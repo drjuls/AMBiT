@@ -3,6 +3,17 @@
 #include "ConfigGenerator.h"
 #include "Universal/Eigensolver.h"
 
+RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfiguration& other):
+    Configuration(other), projections(other.projections),
+    num_states(other.num_states)
+{
+    if(num_states)
+    {   j_coefficients = new double[num_states*projections.size()];
+        for(unsigned int i=0; i<num_states*projections.size(); i++)
+            j_coefficients[i] = other.j_coefficients[i];
+    }
+}
+
 StateInfo RelativisticConfiguration::GetInfo() const
 {
     return StateInfo(Configuration::GetInfo());
@@ -30,7 +41,11 @@ bool RelativisticConfiguration::AddSingleParticle(const StateInfo& info)
 
 bool RelativisticConfiguration::GenerateProjections(int two_m)
 {
-    j_coefficients.clear();
+    if(num_states)
+    {   delete[] j_coefficients;
+        j_coefficients = NULL;
+        num_states = 0;
+    }
     projections.clear();
 
     // Get electron vector
@@ -61,22 +76,7 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
             p++;
     }
 
-    if(GetProjectionCoefficients(double(two_m)/2.))
-    {
-        //std::cout << " ---- " << std::endl;
-        //p = projections.begin();
-        //unsigned int i, j = 0;
-        //while(p != projections.end())
-        //{   std::cout << p->Name();
-        //    for(i = 0; i < j_coefficients.size(); i++)
-        //        std::cout << "\t" << j_coefficients[i][j];
-        //    std::cout << std::endl;
-        //    p++; j++;
-        //}
-        return true;
-    }
-    else
-        return false;
+    return (projections.size() != 0);
 }
 
 void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons, unsigned int index)
@@ -156,12 +156,32 @@ std::string RelativisticConfiguration::Name() const
     return name;
 }
 
-bool RelativisticConfiguration::GetProjectionCoefficients(double J)
+void RelativisticConfiguration::SetJCoefficients(unsigned int num_Jstates, double* coefficients)
+{
+    if(num_states)
+    {   delete[] j_coefficients;
+    }
+
+    if(num_Jstates)
+        j_coefficients = coefficients;
+    else
+        j_coefficients = NULL;
+
+    num_states = num_Jstates;
+}
+
+bool RelativisticConfiguration::GenerateJCoefficients(double J)
 {
     unsigned int N = projections.size();
 
     if(N == 0)
         return false;
+
+    if(num_states)
+    {   delete[] j_coefficients;
+        j_coefficients = NULL;
+        num_states = 0;
+    }
 
     // Generate the matrix
     unsigned int i, j;
@@ -192,24 +212,34 @@ bool RelativisticConfiguration::GetProjectionCoefficients(double J)
     Eigensolver E;
     E.SolveSmallSymmetric(M, V, N);
 
-    // Transfer eigenvalues
+    // Count number of good eigenvalues
     double JSquared = J * (J+1.);
+    num_states = 0;
     for(i=0; i<N; i++)
-    {
         if(fabs(V[i] - JSquared) < 1.e-6)
-        {
-            std::vector<double> coeff(N);
-            for(j = 0; j < N; j++)
-                coeff[j] = M[i*N + j];
+            num_states++;
 
-            j_coefficients.push_back(coeff);
+    // Transfer eigenvalues
+    if(num_states)
+    {
+        j_coefficients = new double[num_states * N];
+        unsigned int count = 0;
+        for(i=0; i<N; i++)
+        {
+            if(fabs(V[i] - JSquared) < 1.e-6)
+            {
+                for(j = 0; j < N; j++)
+                    j_coefficients[count*N + j] = M[i*N + j];
+
+                count++;
+            }
         }
     }
 
     delete[] M;
     delete[] V;
 
-    return (j_coefficients.size() != 0);
+    return (num_states != 0);
 }
 
 double RelativisticConfiguration::GetJSquared(const Projection& first, const Projection& second) const

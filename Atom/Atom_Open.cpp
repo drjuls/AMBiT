@@ -145,7 +145,7 @@ void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only
     {   unsigned int N = 0;
         RelativisticConfigList::const_iterator it = rlist.begin();
         while(it != rlist.end())
-        {   N += it->GetJCoefficients().size();
+        {   N += it->NumJStates();
             it++;
         }
         *outstream << " Number of J-configurations = " << N << std::endl;

@@ -1,6 +1,5 @@
 #ifndef MPI_HAMILTONIAN_MATRIX_H
 #define MPI_HAMILTONIAN_MATRIX_H
-#ifdef _MPI
 
 #include "HamiltonianMatrix.h"
 
@@ -25,5 +24,4 @@ protected:
     unsigned int M_start, M_end;
 };
 
-#endif
 #endif

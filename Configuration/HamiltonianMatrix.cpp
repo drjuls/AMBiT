@@ -16,7 +16,7 @@ HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const 
     N = 0;
     RelativisticConfigList::const_iterator it = configs.begin();
     while(it != configs.end())
-    {   N += it->GetJCoefficients().size();
+    {   N += it->NumJStates();
         it++;
     }
 
@@ -188,7 +188,9 @@ void HamiltonianMatrix::GenerateMatrix()
     while(list_it != configs.end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
-        const std::vector< std::vector<double> >& coefficients_i = list_it->GetJCoefficients();
+        unsigned int proj_i_size = proj_i.size();
+        unsigned int num_states_i = list_it->NumJStates();
+        const double* coefficients_i = list_it->GetJCoefficients();
 
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
@@ -197,7 +199,9 @@ void HamiltonianMatrix::GenerateMatrix()
         {
             // Iterate over projections
             const ProjectionSet& proj_j = list_jt->GetProjections();
-            const std::vector< std::vector<double> >& coefficients_j = list_jt->GetJCoefficients();
+            unsigned int proj_j_size = proj_j.size();
+            unsigned int num_states_j = list_jt->NumJStates();
+            const double* coefficients_j = list_jt->GetJCoefficients();
 
             ProjectionSet::const_iterator proj_it = proj_i.begin();
             ProjectionSet::const_iterator proj_jt = proj_j.begin();
@@ -213,15 +217,16 @@ void HamiltonianMatrix::GenerateMatrix()
 
                     if(fabs(operatorH) > 1.e-16)
                     // Loop through JStates of the relativistic configurations and update M
-                    for(unsigned int jstate_i = 0; jstate_i < coefficients_i.size(); jstate_i++)
+                    for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
                     {
                         unsigned int jstate_j_start = 0;
                         if(j == i)
                             jstate_j_start = jstate_i;
 
-                        for(unsigned int jstate_j = jstate_j_start; jstate_j < coefficients_j.size(); jstate_j++)
+                        for(unsigned int jstate_j = jstate_j_start; jstate_j < num_states_j; jstate_j++)
                         {
-                            double matrix_element = coefficients_i[jstate_i][pi] * coefficients_j[jstate_j][pj];
+                            double matrix_element = coefficients_i[jstate_i*proj_i_size + pi]
+                                                   * coefficients_j[jstate_j*proj_j_size + pj];
                             matrix_element = matrix_element * operatorH;
 
                             M->At(i + jstate_i, j + jstate_j) += matrix_element;
@@ -232,10 +237,10 @@ void HamiltonianMatrix::GenerateMatrix()
                 proj_it++; pi++;
             }
 
-            list_jt++; j += coefficients_j.size();
+            list_jt++; j += num_states_j;
         }
 
-        list_it++; i += coefficients_i.size();
+        list_it++; i += num_states_i;
     }
 }
 
@@ -597,8 +602,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
             if(percentages.find(nrconfig) == percentages.end())
                 percentages[nrconfig] = 0.;
 
-            const std::vector< std::vector<double> >& coefficients = list_it->GetJCoefficients();
-            for(unsigned int Jstate = 0; Jstate < coefficients.size(); Jstate++)
+            for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
             {
                 double coeff = V[solution*N + j];
                 coeff = coeff * coeff * 100;
@@ -643,14 +647,18 @@ void HamiltonianMatrix::GetEigenvalues() const
     while(list_it != configs.end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
-        const std::vector< std::vector<double> >& coefficients_i = list_it->GetJCoefficients();
+        unsigned int proj_i_size = proj_i.size();
+        unsigned int num_states_i = list_it->NumJStates();
+        const double* coefficients_i = list_it->GetJCoefficients();
 
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
         while(list_jt != configs.end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
-            const std::vector< std::vector<double> >& coefficients_j = list_jt->GetJCoefficients();
+            unsigned int proj_j_size = proj_j.size();
+            unsigned int num_states_j = list_jt->NumJStates();
+            const double* coefficients_j = list_jt->GetJCoefficients();
 
             // Iterate over projections
             ProjectionSet::const_iterator pi_it = proj_i.begin();
@@ -668,13 +676,14 @@ void HamiltonianMatrix::GetEigenvalues() const
                         for(solution = 0; solution < NumSolutions; solution++)
                             coeff[solution] = 0.;
 
-                        for(unsigned int jstate_i = 0; jstate_i < coefficients_i.size(); jstate_i++)
+                        for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
                         {
-                            for(unsigned int jstate_j = 0; jstate_j < coefficients_j.size(); jstate_j++)
+                            for(unsigned int jstate_j = 0; jstate_j < num_states_j; jstate_j++)
                             {
                                 for(solution = 0; solution < NumSolutions; solution++)
                                 {
-                                    coeff[solution] += coefficients_i[jstate_i][pi] * coefficients_j[jstate_j][pj]
+                                    coeff[solution] += coefficients_i[jstate_i*proj_i_size + pi]
+                                                    * coefficients_j[jstate_j*proj_j_size + pj]
                                                     * V[solution*N + i + jstate_i]
                                                     * V[solution*N + j + jstate_j];
                                 }
@@ -697,10 +706,10 @@ void HamiltonianMatrix::GetEigenvalues() const
                 pi_it++; pi++;
             }
 
-            list_jt++; j+=coefficients_j.size();
+            list_jt++; j+=num_states_j;
         }
 
-        list_it++; i+=coefficients_i.size();
+        list_it++; i+=num_states_i;
     }
 
     for(solution = 0; solution < NumSolutions; solution++)
@@ -737,14 +746,18 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
     while(list_it != configs.end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
-        const std::vector< std::vector<double> >& coefficients_i = list_it->GetJCoefficients();
+        unsigned int proj_i_size = proj_i.size();
+        unsigned int num_states_i = list_it->NumJStates();
+        const double* coefficients_i = list_it->GetJCoefficients();
 
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
         while(list_jt != configs.end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
-            const std::vector< std::vector<double> >& coefficients_j = list_jt->GetJCoefficients();
+            unsigned int proj_j_size = proj_j.size();
+            unsigned int num_states_j = list_jt->NumJStates();
+            const double* coefficients_j = list_jt->GetJCoefficients();
 
             // Iterate over projections
             ProjectionSet::const_iterator pi_it = proj_i.begin();
@@ -777,13 +790,14 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
                         for(solution = 0; solution < NumSolutions; solution++)
                             coeff[solution] = 0.;
 
-                        for(unsigned int jstate_i = 0; jstate_i < coefficients_i.size(); jstate_i++)
+                        for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
                         {
-                            for(unsigned int jstate_j = 0; jstate_j < coefficients_j.size(); jstate_j++)
+                            for(unsigned int jstate_j = 0; jstate_j < num_states_j; jstate_j++)
                             {
                                 for(solution = 0; solution < NumSolutions; solution++)
                                 {
-                                    coeff[solution] += coefficients_i[jstate_i][pi] * coefficients_j[jstate_j][pj]
+                                    coeff[solution] += coefficients_i[jstate_i*proj_i_size + pi]
+                                                    * coefficients_j[jstate_j*proj_j_size + pj]
                                                     * V[solution*N + i + jstate_i]
                                                     * V[solution*N + j + jstate_j];
                                 }
@@ -806,10 +820,10 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
                 pi_it++; pi++;
             }
 
-            list_jt++; j+=coefficients_j.size();
+            list_jt++; j+=num_states_j;
         }
 
-        list_it++; i+=coefficients_i.size();
+        list_it++; i+=num_states_i;
     }
 
     double J = two_j/2.;

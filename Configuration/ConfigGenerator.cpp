@@ -1,6 +1,10 @@
 #include "Include.h"
 #include "ConfigGenerator.h"
 
+#ifdef _MPI
+#include <mpi.h>
+#endif
+
 void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
 {
     states = manager;
@@ -124,6 +128,91 @@ void ConfigGenerator::GenerateProjections(RelativisticConfigList& rlist, int two
         else
             it++;
     }
+
+    rlist.sort(RelConfProjectionSizeRanking());
+
+#ifdef _MPI
+    const unsigned int SHARING_SIZE_LIM = 200;
+    // Processors take turn getting tasks, all the way down the list.
+    it = rlist.begin();
+    unsigned int count = 0;
+    while(it != rlist.end() && (it->GetProjections().size() > SHARING_SIZE_LIM))
+    {
+        if(count == ProcessorRank)
+            it->GenerateJCoefficients(double(two_m)/2.);
+
+        it++;
+        count++;
+        if(count == NumProcessors)
+            count = 0;
+    }
+
+    // Share information
+    MPI::Intracomm comm_world = MPI::COMM_WORLD;
+
+    unsigned int num_jstates;
+    double* j_coefficients;
+    unsigned int coeff_size;
+
+    it = rlist.begin();
+    count = 0;
+    while(it != rlist.end() && (it->GetProjections().size() > SHARING_SIZE_LIM))
+    {
+        if(count == ProcessorRank)
+        {   // This processor calculated the jstates for this config
+            num_jstates = it->NumJStates();
+            comm_world.Bcast(&num_jstates, 1, MPI::UNSIGNED, count);
+            
+            if(num_jstates)
+            {   j_coefficients = it->GetJCoefficients();
+                coeff_size = num_jstates * it->GetProjections().size();
+                comm_world.Bcast(j_coefficients, coeff_size, MPI::DOUBLE, count);
+                it++;
+            }
+            else
+                it = rlist.erase(it);
+        }
+        else
+        {   // This processor needs to get the jstates
+            comm_world.Bcast(&num_jstates, 1, MPI::UNSIGNED, count);
+
+            if(num_jstates)
+            {   coeff_size = num_jstates * it->GetProjections().size();
+                j_coefficients = new double[coeff_size];
+                comm_world.Bcast(j_coefficients, coeff_size, MPI::DOUBLE, count);
+                it->SetJCoefficients(num_jstates, j_coefficients);
+                it++;
+            }
+            else
+                it = rlist.erase(it);
+        }
+
+        count++;
+        if(count == NumProcessors)
+            count = 0;
+    }
+
+    // Calculate the ones with size <= SHARING_SIZE_LIM
+    while(it != rlist.end())
+    {
+        if(!it->GenerateJCoefficients(double(two_m)/2.))
+            it = rlist.erase(it);
+        else
+            it++;
+    }
+
+#else
+    it = rlist.begin();
+    while(it != rlist.end())
+    {
+        if(!it->GenerateJCoefficients(double(two_m)/2.))
+            it = rlist.erase(it);
+        else
+            it++;
+    }
+#endif
+
+    rlist.sort();
 }
 
 void ConfigGenerator::SplitNonRelInfo(Configuration config, RelativisticConfigList& rlist)
