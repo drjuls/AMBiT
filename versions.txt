@@ -1,0 +1,38 @@
+Version information. The versions are tagged in CVS using the naming convention
+  Atomic1_1_1
+Changes sorted as follows
+Bug: Bug fixes.
+Opt: Optimisations.
+Alt: Alterations for cosmetic/usage reasons or improved accuracy (not bugs).
+Add: Added functionality.
+Del: Removed functionality.
+-------------------------------------------------------------------------------
+
+1.1.3 - 22/02/05
+Bug: FeII configuration; sign in GetSMSIntegral().
+Alt: Atom.h and Atom/OpenShellEnergy(); call to DSPEVX in Davidson changed
+     to improve accuracy.
+Opt: MPIMatrix modified for better load distribution and moved to 
+     Configuration; SMS in HamiltonianMatrix (which introduced the bug that
+     needed fixing).
+Add: CorePolarisability and Core::GetRadius(); Matrix::GetDiagonal();
+     versions.txt (this file).
+
+1.1.2
+Opt: GenerateProjections for MPI.
+Bug: GetEigenvalue wasn't providing space for MPI::Reduce().
+
+1.1.1
+Del: HFExcitedStates.
+Bug: BSplineGrid::CreateSplineKnots().
+
+1.1
+Opt: Many.
+Add: Compilations options for linux cluster; parallel support using MPI;
+     link to f77 directly (no more f2c).
+Alt: I/O; interface functions in Atom; DebugOptions altered, made global;
+     Merged RelativisticInfo, SingleParticleInfo with StateInfo.
+Bug: Memory leak in Core::CalculateDiscreteState().
+
+1.1.1.1
+non-parallel, Win32 + Unix, HF + CI + MBPT (single particle only)
