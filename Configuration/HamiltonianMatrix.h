@@ -10,7 +10,8 @@ class HamiltonianMatrix
 public:
     HamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs);
     virtual ~HamiltonianMatrix(void) 
-    {   delete M;
+    {   if(M)
+            delete M;
         if(NumSolutions)
         {   delete[] E;
             delete[] V;
