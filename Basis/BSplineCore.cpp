@@ -262,7 +262,9 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     double* fspline_buf = new double[nderiv * MaximumK];
     int left = (int)bspline;
 
-    unsigned int b_lower_point = hflattice->real_to_lattice(knots[bspline]);    // check!!!
+    unsigned int b_lower_point = hflattice->real_to_lattice(knots[bspline]);
+    if(b_lower_point)
+        b_lower_point--;
     unsigned int b_upper_point = hflattice->real_to_lattice(knots[bspline+k]);
     unsigned int i;
 
