@@ -8,6 +8,7 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Opt: MBPTCalculator::CalculateCorrelation* uses Constant::Electron3j().
 Alt: Maximum iterations of Davidson method changed from 2000 -> 20000;
      added size in atomic units to Debug::LogHFIterations output.
 

@@ -283,3 +283,13 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
         return sign * value;
     }
 }
+
+double Constant::Electron3j(double j1, double j2, unsigned int k, double m1, double m2)
+{
+    unsigned int twoj1 = (unsigned int)(2.*j1);
+    unsigned int twoj2 = (unsigned int)(2.*j2);
+    unsigned int twom1 = (unsigned int)(2.*m1);
+    unsigned int twom2 = (unsigned int)(2.*m2);
+
+    return Electron3j(twoj1, twoj2, k, twom1, twom2);
+}
