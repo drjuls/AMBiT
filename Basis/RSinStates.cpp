@@ -8,9 +8,6 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
 
     NumStatesPerL = num_states_per_l;
 
-    // Gotta get rid of all existing states
-    Clear();
-
     for(unsigned int k=0; k<num_states_per_l.size(); k++)
     {
         if(num_states_per_l[k])
@@ -35,19 +32,25 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                         s = core->GetState(StateInfo(pqn, kappa));
 
                     if(s == NULL)
-                    {
-                        // Check that it doesn't already exist
+                    {   // Check if state already exists
                         s = GetState(StateInfo(pqn, kappa));
                         if(s == NULL)
-                        {
-                            DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
-                            unsigned int it = core->CalculateExcitedState(ds);
-                            if(it)
+                        {   DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                            unsigned int loop = core->CalculateExcitedState(ds);
+                            if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
+
                             AddState(ds);
                             previous_state = ds;
-                            count++;
                         }
+                        else
+                        {   DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                            unsigned int loop = core->UpdateExcitedState(ds);
+                            if(loop)
+                                Orthogonalise(ds);
+                            previous_state = ds;
+                        }
+                        count++;
                     }
                     pqn++;
                 }
@@ -56,7 +59,11 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 bool TimesR = true;
                 while(count < num_states_per_l[k])
                 {
-                    DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                    DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                    if(ds == NULL)
+                    {   ds = new DiscreteState(lattice, pqn, kappa);
+                        AddState(ds);
+                    }
 
                     if(TimesR)
                         MultiplyByR(previous_state, ds);
@@ -68,7 +75,6 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     if(DebugOptions.OutputHFExcited())
                         *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
-                    AddState(ds);
                     previous_state = ds;
                     count++;
                     pqn++;

@@ -11,9 +11,6 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
 
     NumStatesPerL = num_states_per_l;
 
-    // Gotta get rid of all existing states
-    Clear();
-
     for(unsigned int k=0; k<num_states_per_l.size(); k++)
     {
         if(num_states_per_l[k])
@@ -35,35 +32,28 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
 
                     // If state is not in the open shell part, check whether it is in the core
                     if(!core->IsOpenShellState(StateInfo(pqn, kappa)))
-                    {   s = core->GetState(StateInfo(pqn, kappa));
-                        previous_state = s;
-                    }
+                        s = core->GetState(StateInfo(pqn, kappa));
 
                     if(s == NULL)
-                    {
-                        // Check that it doesn't already exist
+                    {   // Check if state already exists
                         s = GetState(StateInfo(pqn, kappa));
                         if(s == NULL)
-                        {
-                            DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
-                            if(core->GetCharge())
-                            {   unsigned int it = core->CalculateExcitedState(ds);
-                                if(it)  // tells us whether ds is pre-existing OpenShellState
-                                    Orthogonalise(ds);
-                            }
-                            else if(previous_state)
-                            {   MultiplyByR(previous_state, ds);
-                                if(DebugOptions.OutputHFExcited())
-                                    *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
-                            }
-                            else
-                            {   *errstream << "Cannot form HF state, kappa = " << kappa << std::endl;
-                                return;
-                            }
+                        {   DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                            unsigned int loop = core->CalculateExcitedState(ds);
+                            if(loop)  // tells us whether ds is pre-existing OpenShellState
+                                Orthogonalise(ds);
+
                             AddState(ds);
-                            count++;
                             previous_state = ds;
                         }
+                        else
+                        {   DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                            unsigned int loop = core->UpdateExcitedState(ds);
+                            if(loop)
+                                Orthogonalise(ds);
+                            previous_state = ds;
+                        }
+                        count++;
                     }
                     pqn++;
                 }
@@ -71,14 +61,17 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
                 // Get higher states by multiplication by R
                 while(count < num_states_per_l[k])
                 {
-                    DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                    DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                    if(ds == NULL)
+                    {   ds = new DiscreteState(lattice, pqn, kappa);
+                        AddState(ds);
+                    }
 
                     MultiplyByR(previous_state, ds);
 
                     if(DebugOptions.OutputHFExcited())
                         *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
-                    AddState(ds);
                     previous_state = ds;
                     count++;
                     pqn++;
@@ -90,8 +83,6 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
 
 void RStates::Update()
 {
-    Clear();
-
     SigmaMap::iterator sigma = SecondOrderSigma.begin();
     while(sigma != SecondOrderSigma.end())
     {   delete sigma->second;
