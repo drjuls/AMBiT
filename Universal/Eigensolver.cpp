@@ -52,6 +52,7 @@ void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, dou
 
 #ifdef _MPI
 MPI::Intracomm comm_world;
+double* c_copy;
 
 extern "C" {
 int MPI_op(int *n, int *m, double* b, double* c)
@@ -59,11 +60,9 @@ int MPI_op(int *n, int *m, double* b, double* c)
     comm_world.Bcast(m, 1, MPI::INT, 0);
     comm_world.Bcast(b, (*n)*(*m), MPI::DOUBLE, 0);
 
-    double* c_copy = new double[(*n)*(*m)];
     aa->MatrixMultiply(*m, b, c_copy);
 
     comm_world.Reduce(c_copy, c, (*n)*(*m), MPI::DOUBLE, MPI::SUM, 0);
-    delete[] c_copy;
 
     return 0;
 }
@@ -195,6 +194,10 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
 
     n = N;
     comm_world = MPI::COMM_WORLD;
+    c_copy = new double[num_solutions * N]; 
+
+    diag = new double[n];
+    double* my_diag = new double[n];
 
     if(ProcessorRank == 0)
     {
@@ -202,15 +205,11 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
         lim = mmin(N, num_solutions+20);
 
         // Get diagonal
-        diag = new double[n];
-
-        double* my_diag = new double[n];
         for(i = 0; i < n; i++)
             my_diag[i] = 0.;
         for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
             my_diag[i] = matrix->At(i, i);
         comm_world.Reduce(my_diag, diag, n, MPI::DOUBLE, MPI::SUM, 0);
-        delete[] my_diag;
 
         // Start davidson
         ilow = 1;
@@ -265,7 +264,6 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
             comm_world.Bcast(eigenvectors, num_solutions * n, MPI::DOUBLE, 0);
         }
 
-        delete[] diag;
         delete[] iselec;
         delete[] work;
         delete[] intwork;
@@ -273,13 +271,11 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
     else    // worker nodes
     {   
         // Get diagonal
-        double* my_diag = new double[N];
         for(i = 0; i < N; i++)
             my_diag[i] = 0.;
         for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
             my_diag[i] = matrix->At(i, i);
         comm_world.Reduce(my_diag, diag, N, MPI::DOUBLE, MPI::SUM, 0);
-        delete[] my_diag;
 
         // Multiplications in davidson method
         double* b = new double[num_solutions * N];
@@ -294,9 +290,9 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
             {   nloops++;
                 comm_world.Bcast(b, m * N, MPI::DOUBLE, 0);
 
-                matrix->MatrixMultiply(m, b, c);
+                matrix->MatrixMultiply(m, b, c_copy);
 
-                comm_world.Reduce(c, c, m * N, MPI::DOUBLE, MPI::SUM, 0);
+                comm_world.Reduce(c_copy, c, m * N, MPI::DOUBLE, MPI::SUM, 0);                
             }
         }
 
@@ -316,6 +312,9 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
         }
     }
 
+    delete[] c_copy;
+    delete[] my_diag;
+    delete[] diag;
     *outstream << "    nloops=" << nloops << std::endl;;
 }
 #endif

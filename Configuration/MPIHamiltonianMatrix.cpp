@@ -389,8 +389,7 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
     }
 
     double* total;
-    if(ProcessorRank == 0)
-        total = new double[NumSolutions];
+    total = new double[NumSolutions];
 
     MPI::Intracomm comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(my_total, total, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
@@ -401,9 +400,9 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
                 << std::setprecision(8) << total[solution] << "    "
                 << total[solution]*Constant::HartreeEnergy_cm
                 << " /cm" << std::endl;
-        delete[] total;
     }
 
+    delete[] total;
     delete[] my_total;
     delete[] coeff;
 }
@@ -514,14 +513,14 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
 
     *logstream << "g-factor contrib: " << std::endl;
     for(solution = 0; solution < NumSolutions; solution++)
-      *logstream << total[solution] << "  ";
+        *logstream << total[solution] << "  ";
     *logstream << std::endl;
 
     MPI::Intracomm comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(total, g_factors, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
     comm_world.Bcast(g_factors, NumSolutions, MPI::DOUBLE, 0);
 
-    double J = two_j/2.;
+    double J = double(two_j)/2.;
     for(solution = 0; solution < NumSolutions; solution++)
         g_factors[solution] = g_factors[solution]/J + 1.;
 
