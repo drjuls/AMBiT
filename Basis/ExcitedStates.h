@@ -75,6 +75,10 @@ protected:
      */
     void MultiplyByRSinR(const DiscreteState* previous, DiscreteState* current) const;
 
+    /** Orthogonalise to all states that have the same kappa and principal quantum number
+        less than current (both in core and in excited states).
+        PRE: all states with smaller pqn must already be orthogonal
+     */
     void Orthogonalise(DiscreteState* current) const;
 
 protected:

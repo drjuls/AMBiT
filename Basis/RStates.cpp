@@ -79,6 +79,9 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
             }
         }
     }
+
+    if(DebugOptions.OutputHFExcited())
+        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
 }
 
 void RStates::Update()

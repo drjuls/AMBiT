@@ -82,4 +82,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
             }
         }
     }
+
+    if(DebugOptions.OutputHFExcited())
+        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
 }

@@ -286,7 +286,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     }   }
 
     if(debug)
-        *outstream << "Orthogonality test: " << TestOrthogonality() << std::endl;
+        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
 }
 
 void BSplineBasis::Update()

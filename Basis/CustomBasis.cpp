@@ -190,6 +190,8 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
     }
 
     fclose(fp);
+    if(DebugOptions.OutputHFExcited())
+        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
 }
 
 /** Update all of the excited states because the core has changed. */

@@ -310,7 +310,6 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
             {   S = S + ((other->f[i])*(current->f[i]) + Constant::AlphaSquared*(other->g[i])*(current->g[i])) * dR[i];
             }
-//            std::cout << "  orth: " << current->Name() << " " << other->Name() << " \t" << S << std::endl;
 
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
             {
@@ -324,12 +323,12 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
         it.Next();
     }
 
-    // Orthogonalise to other excited states
+    // Orthogonalise to other excited states that have smaller pqn.
     ConstStateIterator ex_it = GetConstStateIterator();
     while(!ex_it.AtEnd())
     {
         const DiscreteState* other = ex_it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() != current->RequiredPQN())
+        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() < current->RequiredPQN())
            && !core->GetState(StateInfo(other)))
         {
             double S = 0.;
@@ -338,7 +337,6 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
             {   S += ((other->f[i])*(current->f[i]) + Constant::AlphaSquared*(other->g[i])*(current->g[i]))
                     * dR[i];
             }
-//            std::cout << "  orth: " << current->Name() << " " << other->Name() << " \t" << S << std::endl;
 
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
             {
