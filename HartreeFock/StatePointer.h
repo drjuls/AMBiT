@@ -7,7 +7,7 @@
 class StatePointer
 {
 public:
-    StatePointer(State* s = NULL): p(s) {}
+    StatePointer(DiscreteState* s = NULL): p(s) {}
 
     State& operator*() { return *p; }
     const State& operator*() const { return *p; }
@@ -16,9 +16,9 @@ public:
     const State* operator->() const { return p; }
 
     bool IsNull() const { return p == NULL; }
-    State* GetState() { return p; }
-    const State* GetState() const { return p; }
-    void SetState(State* s) { p = s; }
+    DiscreteState* GetState() { return p; }
+    const DiscreteState* GetState() const { return p; }
+    void SetState(DiscreteState* s) { p = s; }
 
     void DeleteState()
     {   delete p;
@@ -27,7 +27,7 @@ public:
 
     inline bool operator<(const StatePointer& other) const;
 private:
-    State* p;
+    DiscreteState* p;
 };
 
 inline bool StatePointer::operator<(const StatePointer& other) const

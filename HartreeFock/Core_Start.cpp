@@ -140,7 +140,7 @@ void Core::BuildFirstApproximation()
 
         electron_density.clear();
 
-        DiscreteStateIterator it = GetDiscreteStateIterator();
+        StateIterator it = GetStateIterator();
         while(!it.AtEnd())
         {
             DiscreteState* s = it.GetState();

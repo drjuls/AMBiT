@@ -1,7 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
-#include "CoupledFunction.h"
+#include "Universal/CoupledFunction.h"
 #include "Universal/Lattice.h"
 #include <string>
 #include <math.h>

@@ -1,7 +1,7 @@
 #ifndef STATE_MANAGER_H
 #define STATE_MANAGER_H
 
-#include "State.h"
+#include "DiscreteState.h"
 #include "StatePointer.h"
 #include "StateInfo.h"
 #include <set>
@@ -28,19 +28,19 @@ public:
     /** Get pointer to discrete state.
         Return null if no such state exists.
      */
-    virtual const State* GetState(const StateInfo& info) const;
-    virtual State* GetState(const StateInfo& info);
+    virtual const DiscreteState* GetState(const StateInfo& info) const;
+    virtual DiscreteState* GetState(const StateInfo& info);
 
     virtual StateIterator GetStateIterator();
     virtual ConstStateIterator GetConstStateIterator() const;
 
     /** Write all electron states to a file. */
-    virtual void Write(FILE* fp) const = 0;
+    virtual void Write(FILE* fp) const;
 
     /** Read previously stored electron states.
         Manager needs to know whether they're discrete or continuum states.
       */
-    virtual void Read(FILE* fp) = 0;
+    virtual void Read(FILE* fp);
 
     Lattice* GetLattice() const { return lattice; }
 
@@ -53,7 +53,7 @@ protected:
     /** Delete all currently stored states. */
     virtual void Clear();
 
-    virtual void AddState(State* s);
+    virtual void AddState(DiscreteState* s);
 
     double Z, Charge;
     StateSet AllStates;

@@ -1,68 +1,51 @@
 #ifndef STATE_INFO_H
 #define STATE_INFO_H
 
-#include "State.h"
 #include "DiscreteState.h"
+#include <string>
 
 class StateInfo
 {
-    /** StateInfo is an ordered indexing class.
-        It contains all the information needed to identify a state.
-        There is a zero (null) StateInfo.
+    /** Single particle state information.
+        Stores pqn and kappa (L). Has an inbuilt ordering.
      */
 public:
-    inline StateInfo();
-    inline StateInfo(int null_value) { StateInfo(); };
-    inline StateInfo(const State* s);
-    inline StateInfo(double principal_qn, int kappa, bool discrete = true);
-    ~StateInfo() {}
+    StateInfo(unsigned int principal_qn, int kappa);
+    StateInfo(const DiscreteState* s);
+    StateInfo(const StateInfo& other);
+    virtual ~StateInfo(void) {}
 
-    inline bool operator<(const StateInfo& other) const;
-    inline bool operator==(const StateInfo& other) const;
-    inline bool operator!=(const StateInfo& other) const;
+    virtual bool operator<(const StateInfo& other) const;
+    virtual bool operator==(const StateInfo& other) const;
+    virtual bool operator!=(const StateInfo& other) const;
 
-    inline bool Discrete() const { return discrete; }
-    inline double RequiredPQN() const { return requiredPQN; }
+    inline unsigned int PQN() const { return pqn; }
     inline int Kappa() const { return kappa; }
+    inline unsigned int L() const { return l; }
+    inline double J() const;
+    inline unsigned int TwoJ() const;
 
-    inline bool IsNull() const { return (kappa == 0); }
+    inline unsigned int MaxNumElectrons() const { return 2*abs(kappa); }
+    virtual std::string Name() const;
 
-private:
-    bool discrete;
-    double requiredPQN;
+protected:
+    unsigned int pqn;
     int kappa;
     unsigned int l;
 };
 
-inline StateInfo::StateInfo()
+inline StateInfo::StateInfo(const DiscreteState* s)
 {
-    discrete = true;    // Good for ordering
-    requiredPQN = 0.;
-    kappa = 0;          // This is a good marker for a null state
-    l = 0;
-}
-
-inline StateInfo::StateInfo(const State* s)
-{
-    const DiscreteState* ds = dynamic_cast<const DiscreteState*>(s);
-    if(ds != NULL)
-    {
-        discrete = true;
-        requiredPQN = ds->RequiredPQN();
-        kappa = ds->Kappa();
-        l = ds->L();
-    }
+    pqn = s->RequiredPQN();
+    kappa = s->Kappa();
+    if(kappa > 0)
+        l = (unsigned int)kappa;
     else
-    {
-        discrete = false;
-        requiredPQN = s->Nu();
-        kappa = s->Kappa();
-        l = s->L();
-    }
+        l = (unsigned int)(-kappa-1);
 }
 
-inline StateInfo::StateInfo(double principal_qn, int kap, bool is_discrete):
-    discrete(is_discrete), requiredPQN(principal_qn), kappa(kap)
+inline StateInfo::StateInfo(unsigned int principal_qn, int kap):
+    pqn(principal_qn), kappa(kap)
 {
     if(kappa > 0)
         l = (unsigned int)kappa;
@@ -70,39 +53,18 @@ inline StateInfo::StateInfo(double principal_qn, int kap, bool is_discrete):
         l = (unsigned int)(-kappa-1);
 }
 
-inline bool StateInfo::operator<(const StateInfo& other) const
-{
-    // Discrete states < continuum states
-    if(this->discrete && !other.discrete)
-        return true;
-    else if(!this->discrete && other.discrete)
-        return false;
-    
-    if(this->requiredPQN < other.requiredPQN)
-       return true;
-    else if(this->requiredPQN > other.requiredPQN)
-        return false;
+inline StateInfo::StateInfo(const StateInfo& other):
+    pqn(other.pqn), kappa(other.kappa), l(other.l)
+{}
 
-    if(this->l < other.l)
-        return true;
-    else if(this->l > other.l)
-        return false;
-    else return (this->kappa > other.kappa);
+inline double StateInfo::J() const
+{
+    return fabs(double(kappa)) - 0.5;
 }
 
-inline bool StateInfo::operator==(const StateInfo& other) const
+inline unsigned int StateInfo::TwoJ() const
 {
-    if((this->discrete == other.discrete) &&
-       (this->requiredPQN == other.requiredPQN) &&
-       (this->kappa == other.kappa))
-        return true;
-    else
-        return false;
-}
-
-inline bool StateInfo::operator!=(const StateInfo& other) const
-{
-    return !(*this == other);
+    return (2*abs(kappa) - 1);
 }
 
 #endif

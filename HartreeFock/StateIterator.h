@@ -13,8 +13,8 @@ public:
     virtual void Next();
     virtual bool AtEnd();
 
-    virtual State* GetState();
-    virtual void ReplaceState(State* s);
+    virtual DiscreteState* GetState();
+    virtual void ReplaceState(DiscreteState* s);
 
     virtual double Weight() { return 1.; }
     virtual StateIterator& operator=(const StateIterator& other);
@@ -34,7 +34,7 @@ public:
     virtual void Next();
     virtual bool AtEnd();
 
-    virtual const State* GetState();
+    virtual const DiscreteState* GetState();
 
     virtual double Weight() { return 1.; }
     virtual ConstStateIterator& operator=(const ConstStateIterator& other);

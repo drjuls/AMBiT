@@ -11,7 +11,7 @@ StateManager::~StateManager(void)
     Clear();
 }
 
-const State* StateManager::GetState(const StateInfo& info) const
+const DiscreteState* StateManager::GetState(const StateInfo& info) const
 {
     StateSet::const_iterator it;
 
@@ -21,7 +21,7 @@ const State* StateManager::GetState(const StateInfo& info) const
         return NULL;
 }
 
-State* StateManager::GetState(const StateInfo& info)
+DiscreteState* StateManager::GetState(const StateInfo& info)
 {
     StateSet::iterator it;
 
@@ -31,7 +31,7 @@ State* StateManager::GetState(const StateInfo& info)
         return NULL;
 }
 
-void StateManager::AddState(State* s)
+void StateManager::AddState(DiscreteState* s)
 {
     StateInfo info(s);
     StatePointer sp(s);
@@ -86,4 +86,33 @@ ConstStateIterator StateManager::GetConstStateIterator() const
 {
     ConstStateIterator it(this);
     return it;
+}
+
+void StateManager::Write(FILE* fp) const
+{
+    unsigned int num_states = NumStates();
+
+    fwrite(&num_states, sizeof(unsigned int), 1, fp);
+    ConstStateIterator it = GetConstStateIterator();
+    while(!it.AtEnd())
+    {
+        it.GetState()->Write(fp);
+        it.Next();
+    }
+}
+
+void StateManager::Read(FILE* fp)
+{
+    Clear();
+    
+    unsigned int num_core, i;
+
+    // Read states
+    fread(&num_core, sizeof(unsigned int), 1, fp);
+    for(i = 0; i<num_core; i++)
+    {
+        DiscreteState* ds = new DiscreteState(lattice);
+        ds->Read(fp);
+        AddState(ds);
+    }
 }

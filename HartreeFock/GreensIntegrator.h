@@ -2,7 +2,7 @@
 #define GREENS_INTEGRATOR_H
 
 #include "Universal/Integrator.h"
-#include "CoupledFunction.h"
+#include "Universal/CoupledFunction.h"
 
 class GreensIntegrator : public Integrator
 {

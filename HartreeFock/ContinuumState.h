@@ -1,7 +1,7 @@
 #ifndef CONTINUUM_STATE_H
 #define CONTINUUM_STATE_H
 
-#include "HartreeFock/State.h"
+#include "State.h"
 
 class ContinuumState: public State
 {

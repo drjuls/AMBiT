@@ -31,7 +31,7 @@ void Core::Update()
         loop++;
         if(debug)
             *logstream << "HF Iteration :" << loop << std::endl;
-        DiscreteStateIterator i = GetDiscreteStateIterator();
+        StateIterator i = GetStateIterator();
         while(!i.AtEnd())
         {
             // Important to make a copy of the state so that the exchange 
@@ -98,7 +98,7 @@ bool Core::UpdateGreens()
     if(debug)
         *logstream << "\n Greens function iterations:" << std::endl;
 
-    DiscreteStateIterator i = GetDiscreteStateIterator();
+    StateIterator i = GetStateIterator();
     std::map<StateInfo, double> deltaE;
     CoupledFunction exchange;
 
@@ -158,7 +158,7 @@ bool Core::UpdateGreens()
             i.First();
             while(!i.AtEnd())
             {
-                DiscreteState* s = new DiscreteState(*(i.GetState()));
+                DiscreteState* s = i.GetState();
                 *logstream << "  " << s->Name() << "  en: " << std::setprecision(12) << s->Energy() << std::endl;
                 i.Next();
             }
@@ -185,7 +185,7 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
     std::vector<double> density;
     density.clear();
 
-    ConstDiscreteStateIterator cs = GetConstDiscreteStateIterator();
+    ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
         const DiscreteState& s = *cs.GetState();
@@ -271,7 +271,7 @@ void Core::UpdateHFPotentialNoSelfInteraction(const StateInfo& current, double p
     std::vector<double> density;
     density.clear();
 
-    ConstDiscreteStateIterator cs = GetConstDiscreteStateIterator();
+    ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
         const DiscreteState& s = *cs.GetState();
@@ -691,15 +691,15 @@ unsigned int Core::CalculateExcitedState(State* s) const
     }
 
     unsigned int iterations = 0;
-    const DiscreteState* core_state = GetState(StateInfo(s));
-    StateSet::const_iterator it = OpenShellStorage.find(StateInfo(s));
+    const DiscreteState* core_state = GetState(StateInfo(ds));
+    StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
     if(core_state != NULL)
     {   // Try to find in core (probably open shells).
         *ds = *core_state;
     }
     else if(it != OpenShellStorage.end())
     {   // Try to find in unoccupied (but previously calculated) open shells.
-        *ds = *dynamic_cast<const DiscreteState*>(it->second.GetState());
+        *ds = *(it->second.GetState());
     }
     else
     {   // Calculate
@@ -722,7 +722,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
 
         // Increase nu depending on how far above the core it is
         unsigned int largest_core_pqn = 1;
-        ConstDiscreteStateIterator i = GetConstDiscreteStateIterator();
+        ConstStateIterator i = GetConstStateIterator();
         while(!i.AtEnd())
         {   
             const DiscreteState* cs = i.GetState();
@@ -881,8 +881,10 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
     exchange.Clear();
     exchange.ReSize(current.Size());
 
+    const DiscreteState* ds_current = dynamic_cast<const DiscreteState*>(&current);
+
     // Sum over all core states
-    ConstDiscreteStateIterator cs = GetConstDiscreteStateIterator();
+    ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
         const DiscreteState& other = *(cs.GetState());
@@ -909,7 +911,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
                 {   // Average over non-relativistic configurations
                     if(other.Kappa() == -1)
                     {
-                        if(StateInfo(&current) != StateInfo(&other))
+                        if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
                             ex = other.Occupancy()/double(2 * abs(other.Kappa()));
                         else if(k)
                             ex = (other.Occupancy()-1.)/double(2 * abs(other.Kappa()) - 1);
@@ -919,7 +921,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
                         int other_kappa = - other.Kappa() - 1;
                         const DiscreteState* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
 
-                        if((StateInfo(&current) != StateInfo(&other)) && (StateInfo(&current) != StateInfo(ds)))
+                        if((ds_current == NULL) || ((StateInfo(ds_current) != StateInfo(&other)) && (StateInfo(ds_current) != StateInfo(ds))))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
                         else if(k)
                             ex = (other.Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())) - 1);
@@ -927,7 +929,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
                 }
                 else
                 {   // Average over relativistic configurations
-                    if(StateInfo(&current) != StateInfo(&other))
+                    if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
                         ex = other.Occupancy()/double(2 * (abs(other.Kappa())));
                     else if(k)
                         ex = (other.Occupancy() - 1.)/double(2 * (abs(other.Kappa())) - 1);
@@ -975,8 +977,10 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
     exchange.Clear();
     exchange.ReSize(current.Size());
 
+    const DiscreteState* ds_current = dynamic_cast<const DiscreteState*>(&current);
+
     // Sum over all core states
-    ConstDiscreteStateIterator cs = GetConstDiscreteStateIterator();
+    ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
         const DiscreteState& other = *(cs.GetState());
@@ -991,7 +995,7 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
 
         // Sum over all k
         unsigned int k_min;
-        if(StateInfo(&current) == StateInfo(&other))
+        if(ds_current && (StateInfo(ds_current) == StateInfo(&other)))
             k_min = 2;
         else
             k_min = abs((int)other.L() - (int)current.L());
@@ -1009,7 +1013,7 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
                 {   // Average over non-relativistic configurations
                     if(other.Kappa() == -1)
                     {
-                        if(StateInfo(&current) != StateInfo(&other))
+                        if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
                             ex = other.Occupancy()/double(2 * abs(other.Kappa()));
                         else if(k)
                             ex = (other.Occupancy()-1.)/double(2 * abs(other.Kappa()) - 1);
@@ -1019,7 +1023,7 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
                         int other_kappa = - other.Kappa() - 1;
                         const DiscreteState* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
 
-                        if((StateInfo(&current) != StateInfo(&other)) && (StateInfo(&current) != StateInfo(ds)))
+                        if((ds_current == NULL) || ((StateInfo(ds_current) != StateInfo(&other)) && (StateInfo(ds_current) != StateInfo(ds))))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
                         else if(k)
                             ex = (other.Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())) - 1);
@@ -1027,7 +1031,7 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
                 }
                 else
                 {   // Average over relativistic configurations
-                    if(StateInfo(&current) != StateInfo(&other))
+                    if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
                         ex = other.Occupancy()/double(2 * (abs(other.Kappa())));
                     else if(k)
                         ex = (other.Occupancy() - 1.)/double(2 * (abs(other.Kappa())) - 1);

@@ -2,9 +2,9 @@
 #define CORE_H
 
 #include "StateManager.h"
-#include "DiscreteStateIterator.h"
+#include "StateIterator.h"
 #include "Atom/Debug.h"
-#include "MBPT/SigmaPotential.h"
+#include "SigmaPotential.h"
 #include "ContinuumState.h"
 
 class Core : public StateManager
@@ -12,10 +12,6 @@ class Core : public StateManager
     /** The core is closed; all electron shells are filled.
         Core does all of the Hartree-Fock calculation.
      */
-public:
-    friend class DiscreteStateIterator;
-    friend class ConstDiscreteStateIterator;
-
 public:     // Methods for StateManager role
     Core(Lattice* lat, unsigned int atomic_number, int ion_charge);
     virtual ~Core() {}
@@ -24,11 +20,11 @@ public:     // Methods for StateManager role
     virtual void Initialise();
 
     /** These override the methods in StateManager to return a DiscreteState. */
-    virtual DiscreteState* GetState(const StateInfo& info);
-    virtual const DiscreteState* GetState(const StateInfo& info) const;
-    
-    virtual DiscreteStateIterator GetDiscreteStateIterator();
-    virtual ConstDiscreteStateIterator GetConstDiscreteStateIterator() const;
+    //virtual DiscreteState* GetState(const StateInfo& info);
+    //virtual const DiscreteState* GetState(const StateInfo& info) const;
+    //
+    //virtual DiscreteStateIterator GetDiscreteStateIterator();
+    //virtual ConstDiscreteStateIterator GetConstDiscreteStateIterator() const;
 
     virtual void Write(FILE* fp) const;
 

@@ -19,38 +19,6 @@ void Core::Initialise()
     Update();
 }
 
-const DiscreteState* Core::GetState(const StateInfo& info) const
-{
-    StateSet::const_iterator it;
-
-    if((it = AllStates.find(info)) != AllStates.end())
-        return dynamic_cast<const DiscreteState*>(it->second.GetState());
-    else
-        return NULL;
-}
-
-DiscreteState* Core::GetState(const StateInfo& info)
-{
-    StateSet::iterator it;
-
-    if((it = AllStates.find(info)) != AllStates.end())
-        return dynamic_cast<DiscreteState*>(it->second.GetState());
-    else
-        return NULL;
-}
-
-DiscreteStateIterator Core::GetDiscreteStateIterator()
-{
-    DiscreteStateIterator it(this);
-    return it;
-}
-
-ConstDiscreteStateIterator Core::GetConstDiscreteStateIterator() const
-{
-    ConstDiscreteStateIterator it(this);
-    return it;
-}
-
 void Core::Write(FILE* fp) const
 {
     fwrite(&NuclearRadius, sizeof(double), 1, fp);
@@ -60,7 +28,7 @@ void Core::Write(FILE* fp) const
 
     // Output core
     fwrite(&num_states, sizeof(unsigned int), 1, fp);
-    ConstDiscreteStateIterator it = GetConstDiscreteStateIterator();
+    ConstStateIterator it = GetConstStateIterator();
     while(!it.AtEnd())
     {
         it.GetState()->Write(fp);

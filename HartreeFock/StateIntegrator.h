@@ -3,7 +3,7 @@
 
 #include "Universal/Integrator.h"
 #include "State.h"
-#include "HartreeFock/ContinuumState.h"
+#include "ContinuumState.h"
 #include "Core.h"
 #include <complex>
 

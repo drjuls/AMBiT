@@ -22,12 +22,12 @@ bool StateIterator::AtEnd()
     return (it == manager->AllStates.end());
 }
 
-State* StateIterator::GetState()
+DiscreteState* StateIterator::GetState()
 {
     return it->second.GetState();
 }
 
-void StateIterator::ReplaceState(State* s)
+void StateIterator::ReplaceState(DiscreteState* s)
 {
     StateInfo new_state(s);
     if(it->first != new_state)
@@ -66,7 +66,7 @@ bool ConstStateIterator::AtEnd()
     return (it == manager->AllStates.end());
 }
 
-const State* ConstStateIterator::GetState()
+const DiscreteState* ConstStateIterator::GetState()
 {
     return it->second.GetState();
 }

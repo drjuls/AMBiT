@@ -50,12 +50,12 @@ void Core::ToggleOpenShellCore()
 
         if(AllStates.find(it->first) == AllStates.end())
         {   Charge = Charge - new_occupancy;
-            ds = dynamic_cast<DiscreteState*>(OpenShellStorage[it->first].GetState());
+            ds = OpenShellStorage[it->first].GetState();
             ds->SetOccupancy(new_occupancy);
             AddState(ds);
         }
         else
-        {   ds = dynamic_cast<DiscreteState*>(AllStates.find(it->first)->second.GetState());
+        {   ds = AllStates.find(it->first)->second.GetState();
             if(ds->Occupancy() != new_occupancy)
             {   Charge = Charge + ds->Occupancy() - new_occupancy;
                 ds->SetOccupancy(new_occupancy);
