@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "Universal/Interpolator.h"
 #include "Universal/CoulombIntegrator.h"
+#include "HartreeFock/StateIntegrator.h"
 #include "Spline.h"
 
 #define NON_REL_SCALING true
@@ -249,7 +250,8 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     Lattice* hflattice = hfcore->GetLattice();
     const double* R = hflattice->R();
 
-    CoulombIntegrator HFI(*hflattice);
+    CoulombIntegrator CI_hflat(*hflattice);
+    StateIntegrator SI_hflat(*hflattice);
 
     CoupledFunction hfexchange(hflattice->Size());
 
@@ -341,7 +343,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
 
             // Integrate density to get (1/r)Y(ab,r)
             std::vector<double> potential;
-            HFI.CoulombIntegrate(density, potential, k);
+            CI_hflat.CoulombIntegrate(density, potential, k);
 
             // todo: Multiply potential by r^k and interpolate.
             //       Then create exchange in spline grid.
@@ -355,7 +357,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
             if(hfcore->GetNuclearInverseMass() && (k == 1))
             {
                 std::vector<double> P(upper_point);
-                double sms = HFI.IsotopeShiftIntegral(spline, L, other, &P);
+                double sms = SI_hflat.IsotopeShiftIntegral(spline, L, other, &P);
                 
                 for(unsigned int i=0; i<upper_point; i++)
                 {

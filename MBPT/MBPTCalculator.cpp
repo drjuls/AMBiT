@@ -2,6 +2,7 @@
 #include "MBPTCalculator.h"
 #include "Universal/Constant.h"
 #include "Universal/CoulombIntegrator.h"
+#include "HartreeFock/StateIntegrator.h"
 
 MBPTCalculator::MBPTCalculator(Lattice* lat, const Core* atom_core, ExcitedStates* excited_states):
     lattice(lat), core(atom_core), excited(excited_states)
@@ -37,6 +38,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
 
     std::vector<double> Pot24;
     CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
 
     *outstream << "Cor 1+3:  ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
@@ -81,7 +83,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
                     // Isotope shift
                     double SMS_24 = 0.;
                     if(NuclearInverseMass && (k == 1))
-                        SMS_24 = -I.IsotopeShiftIntegral(s4, s2);
+                        SMS_24 = -SI.IsotopeShiftIntegral(s4, s2);
 
                     // Correlation 1 has excited state 3
                     ConstStateIterator it3_1 = excited->GetConstStateIterator();
@@ -110,7 +112,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
                                 if(SMS_24)
                                 {
                                     std::vector<double> P(upper_bound);
-                                    double de_sms = I.IsotopeShiftIntegral(*s, s3, &P);
+                                    double de_sms = SI.IsotopeShiftIntegral(*s, s3, &P);
 
                                     for(i=0; i<upper_bound; i++)
                                         Y[i] = Y[i] - NuclearInverseMass * SMS_24 * P[i];
@@ -153,7 +155,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
                                 if(SMS_24)
                                 {
                                     std::vector<double> P(upper_bound);
-                                    double de_sms = -I.IsotopeShiftIntegral(*s, s3, &P);
+                                    double de_sms = -SI.IsotopeShiftIntegral(*s, s3, &P);
 
                                     for(i=0; i<upper_bound; i++)
                                         // Plus sign is because P is opposite sign
@@ -189,6 +191,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
 
     std::vector<double> Pot24, Pot23;
     CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
     const double* dR = lattice->dR();
 
     *outstream << "Cor 2:    ";
@@ -231,7 +234,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                     // Isotope shift
                     double SMS_24 = 0.;
                     if(NuclearInverseMass && (k1 == 1))
-                        SMS_24 = -I.IsotopeShiftIntegral(s4, s2);
+                        SMS_24 = -SI.IsotopeShiftIntegral(s4, s2);
 
                     ConstStateIterator it3 = excited->GetConstStateIterator();
                     while(!it3.AtEnd())
@@ -268,7 +271,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                                     // Isotope shift
                                     double SMS_23 = 0.;
                                     if(NuclearInverseMass && (k2 == 1))
-                                        SMS_23 = I.IsotopeShiftIntegral(s3, s2);
+                                        SMS_23 = SI.IsotopeShiftIntegral(s3, s2);
 
                                     double de1 = 0.;
                                     unsigned int upper_bound = mmin(s3.Size(), s->Size());
@@ -282,7 +285,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                                     if(SMS_24)
                                     {   
                                         std::vector<double> P1(upper_bound);
-                                        double de1_sms = I.IsotopeShiftIntegral(*s, s3, &P1);
+                                        double de1_sms = SI.IsotopeShiftIntegral(*s, s3, &P1);
                                         
                                         for(i=0; i<upper_bound; i++)
                                             Y1[i] = Y1[i] - NuclearInverseMass * SMS_24 * P1[i];
@@ -303,7 +306,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                                     if(SMS_23)
                                     {   
                                         std::vector<double> P2(upper_bound);
-                                        double de2_sms = -I.IsotopeShiftIntegral(*s, s4, &P2);
+                                        double de2_sms = -SI.IsotopeShiftIntegral(*s, s4, &P2);
 
                                         for(i=0; i<upper_bound; i++)
                                             // P2 is wrong sign
@@ -338,6 +341,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
 
     std::vector<double> Pot24, Pot34;
     CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
 
     *outstream << "Cor 4:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
@@ -379,7 +383,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                     // Isotope shift
                     double SMS_24 = 0.;
                     if(NuclearInverseMass && (k1 == 1))
-                        SMS_24 = -I.IsotopeShiftIntegral(s4, s2);
+                        SMS_24 = -SI.IsotopeShiftIntegral(s4, s2);
 
                     ConstStateIterator it3 = core->GetConstStateIterator();
                     while(!it3.AtEnd())
@@ -416,7 +420,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                                     // Isotope shift
                                     double SMS_34 = 0.;
                                     if(NuclearInverseMass && (k2 == 1))
-                                        SMS_34 = I.IsotopeShiftIntegral(s4, s3);
+                                        SMS_34 = SI.IsotopeShiftIntegral(s4, s3);
 
                                     double de1 = 0.;
                                     unsigned int upper_bound = mmin(s3.Size(), s->Size());
@@ -430,7 +434,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                                     if(SMS_24)
                                     {   
                                         std::vector<double> P1(upper_bound);
-                                        double de1_sms = -I.IsotopeShiftIntegral(*s, s3, &P1);
+                                        double de1_sms = -SI.IsotopeShiftIntegral(*s, s3, &P1);
 
                                         for(i=0; i<upper_bound; i++)
                                             Y1[i] = Y1[i] + NuclearInverseMass * SMS_24 * P1[i];
@@ -451,7 +455,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                                     if(SMS_34)
                                     {   
                                         std::vector<double> P2(upper_bound);
-                                        double de2_sms = I.IsotopeShiftIntegral(*s, s2, &P2);
+                                        double de2_sms = SI.IsotopeShiftIntegral(*s, s2, &P2);
 
                                         for(i=0; i<upper_bound; i++)
                                             Y2[i] = Y2[i] - NuclearInverseMass * SMS_34 * P2[i];

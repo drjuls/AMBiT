@@ -184,37 +184,3 @@ void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density,
         }
     }
 }
-
-double CoulombIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P)
-{   
-    double coeff_f2;
-    if(L == s2.L() + 1)
-    {   coeff_f2 = - double(L);
-    }
-    else
-    {   coeff_f2 = double(s2.L());
-    }
-
-    const double* R = lattice.R();
-    const double* dR = lattice.dR();
-
-    double SMS = 0.;
-    if(P == NULL)
-        for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
-        {
-            SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
-        }
-    else
-        for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
-        {
-            (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
-            SMS += f[i] * (*P)[i] * dR[i];
-        }
-
-    return SMS;
-}
-
-double CoulombIntegrator::IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P)
-{
-    return IsotopeShiftIntegral(s1.f, s1.L(), s2, P);
-}

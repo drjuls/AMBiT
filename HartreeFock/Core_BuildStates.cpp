@@ -460,11 +460,11 @@ unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amou
         unsigned int peak = I.IntegrateBackwardsUntilPeak(no_exchange_state, Potential, critical_point);
 
         // assert(peak > 3)
-        I.IntegrateBackwards(*s, Potential, *exchange, peak-1);
+        I.IntegrateBackwards(*s, Potential, exchange, peak-1);
         double f_right = s->f[peak];
         double g_right = s->g[peak];
 
-        I.IntegrateForwards(*s, Potential, *exchange, peak+1);
+        I.IntegrateForwards(*s, Potential, exchange, peak+1);
 
         // Test whether forwards and backwards integrations met and modify energy accordingly.
 
@@ -877,6 +877,7 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
 void Core::CalculateExchange(const State& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
     CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
 
     exchange.Clear();
     exchange.ReSize(current.Size());
@@ -951,7 +952,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
             if(NuclearInverseMass && (k == 1))
             {
                 std::vector<double> P(upper_point);
-                double sms = I.IsotopeShiftIntegral(current, other, &P);
+                double sms = SI.IsotopeShiftIntegral(current, other, &P);
                 
                 for(unsigned int i=0; i<upper_point; i++)
                 {
@@ -973,6 +974,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
 void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunction& exchange) const
 {
     CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
 
     exchange.Clear();
     exchange.ReSize(current.Size());
@@ -1055,7 +1057,7 @@ void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunct
                 if(NuclearInverseMass && (k == 1))
                 {
                     std::vector<double> P(upper_point);
-                    double sms = I.IsotopeShiftIntegral(current, other, &P);
+                    double sms = SI.IsotopeShiftIntegral(current, other, &P);
                     
                     for(unsigned int i=0; i<upper_point; i++)
                     {

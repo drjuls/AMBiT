@@ -56,7 +56,7 @@ void HamiltonianMatrix::UpdateIntegrals()
 
             // SMS integrals too
             SMSIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,
-                CI.IsotopeShiftIntegral(*it_i.GetState(), *it_j.GetState())));
+                SI.IsotopeShiftIntegral(*it_i.GetState(), *it_j.GetState())));
 
             it_j.Next(); j++;
         }
@@ -436,6 +436,7 @@ double HamiltonianMatrix::CoreSMS(const ElectronInfo& e1, const ElectronInfo& e2
 
     // Sum over all core states
     CoulombIntegrator I(*states.GetLattice());
+    StateIntegrator SI(*states.GetLattice());
     ConstStateIterator cs = core->GetConstStateIterator();
     while(!cs.AtEnd())
     {
@@ -449,7 +450,7 @@ double HamiltonianMatrix::CoreSMS(const ElectronInfo& e1, const ElectronInfo& e2
             double coefficient = Constant::Wigner3j(k, state1.J(), other.J(), 0., .5, -.5);
             coefficient = -(2. * abs(other.Kappa())) * coefficient * coefficient;
 
-            E = E + coefficient * core->GetNuclearInverseMass() * I.IsotopeShiftIntegral(state1, other) * I.IsotopeShiftIntegral(other, state2);
+            E = E + coefficient * core->GetNuclearInverseMass() * SI.IsotopeShiftIntegral(state1, other) * SI.IsotopeShiftIntegral(other, state2);
         }
         cs.Next();
     }
@@ -487,6 +488,7 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
     const State* s4 = states.GetState(e4);
 
     CoulombIntegrator I(*states.GetLattice());
+    StateIntegrator SI(*states.GetLattice());
 
     double total = 0.;
 
@@ -511,7 +513,7 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
         // Specific Mass Shift
         double SMS = states.GetCore()->GetNuclearInverseMass();
         if(SMS)
-            SMS = SMS * I.IsotopeShiftIntegral(*s1, *s3) * I.IsotopeShiftIntegral(*s2, *s4);
+            SMS = SMS * SI.IsotopeShiftIntegral(*s1, *s3) * SI.IsotopeShiftIntegral(*s2, *s4);
 
         total = - coeff * SMS;
     }

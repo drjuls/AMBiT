@@ -37,13 +37,6 @@ public:
      */
     void FastCoulombIntegrate(const std::vector<double>& density, std::vector<double>& potential, unsigned int k);
 
-    /** Get isotope shift between two states. In the first of these functions,
-            f = s1.f
-            L = s1.L
-     */
-    double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P = NULL);
-    double IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P = NULL);
-
 protected:
     class CoulombFunction : public Function2
     {

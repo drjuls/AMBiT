@@ -2,7 +2,7 @@
 #include "StateIntegrator.h"
 #include "Universal/Constant.h"
 
-void StateIntegrator::IntegrateForwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, int end_point, double nuclear_charge)
+void StateIntegrator::IntegrateForwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge)
 {
     const int start_point = 0;
 
@@ -10,20 +10,20 @@ void StateIntegrator::IntegrateForwards(State& s, const std::vector<double>& HFP
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
     A.SetState(&s);
-    A.SetExchange(&exchange);
+    A.SetExchange(exchange);
 
     SetUpForwardsIntegral(s, HFPotential, nuclear_charge);
 
     Integrate2(A, s, start_point+(adams_N-1), end_point);
 }
 
-void StateIntegrator::IntegrateBackwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, int end_point)
+void StateIntegrator::IntegrateBackwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point)
 {
     // Set initial conditions
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
     A.SetState(&s);
-    A.SetExchange(&exchange);
+    A.SetExchange(exchange);
 
     SetUpBackwardsIntegral(s, HFPotential);
 
@@ -407,4 +407,38 @@ double StateIntegrator::StateFunction::Coeff6(int point) const
     if(exchange && (unsigned int)point < exchange->Size())
         return -exchange->f[point];
     else return 0.;
+}
+
+double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P)
+{   
+    double coeff_f2;
+    if(L == s2.L() + 1)
+    {   coeff_f2 = - double(L);
+    }
+    else
+    {   coeff_f2 = double(s2.L());
+    }
+
+    const double* R = lattice.R();
+    const double* dR = lattice.dR();
+
+    double SMS = 0.;
+    if(P == NULL)
+        for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
+        {
+            SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
+        }
+    else
+        for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
+        {
+            (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+            SMS += f[i] * (*P)[i] * dR[i];
+        }
+
+    return SMS;
+}
+
+double StateIntegrator::IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P)
+{
+    return IsotopeShiftIntegral(s1.f, s1.L(), s2, P);
 }
