@@ -8,6 +8,7 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.1.4 - 08/03/05
 Alt: New method of converging Hartree-Fock by damping changes in electron
      states at each iteration. Big changes to Core::Update() and
      Core::CalculateExcitedState().
