@@ -46,7 +46,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
     double energy1 = 0., energy3 = 0.;
 
     /* Firstly, get the loop 24 */
-    ConstDiscreteStateIterator it2 = core->GetConstDiscreteStateIterator();
+    ConstStateIterator it2 = core->GetConstStateIterator();
     while(!it2.AtEnd())
     {   const State& s2 = *(it2.GetState());
 

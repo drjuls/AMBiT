@@ -1,4 +1,4 @@
-cxxobjects = MBPTCalculator.o SigmaPotential.o
+cxxobjects = MBPTCalculator.o
 cobjects = 
 fobjects =
 

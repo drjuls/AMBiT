@@ -3,7 +3,7 @@
 
 #include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
-#include "SigmaPotential.h"
+#include "HartreeFock/SigmaPotential.h"
 
 class MBPTCalculator
 {
