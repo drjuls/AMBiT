@@ -17,7 +17,7 @@ BSplineCore::BSplineCore(BSplineGrid* lat, const Core* core):
 
     // Interpolate potential
     // Multiply by r to smooth potential before interpolation
-    // Todo: Remove multiplication by r at small r (V is almost constant here)?
+    // TODO: Remove multiplication by r at small r (V is almost constant here)?
     std::vector<double> hfpot = hfcore->GetHFPotential();
     const double* R = hflattice->R();
     for(unsigned int i=0; i<hfpot.size(); i++)
@@ -274,6 +274,8 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
         bsplvd_(knots, &k, &r, &leftplus1, fspline_buf, &nderiv);
         spline[i] = fspline_buf[bspline + k - left - 1];
     }
+
+    delete[] fspline_buf;
 
     // Sum over all core states
     ConstDiscreteStateIterator cs = hfcore->GetConstDiscreteStateIterator();

@@ -15,7 +15,7 @@ void OutStreams::InitialiseStreams()
 #endif
 
 #ifdef UNIX   // Don't output cerr to screen
-    if(NumProcessors == 0)
+    if(NumProcessors == 1)
     {   outstream = &std::cout;
         errstream = new std::ofstream("error.out");
         logstream = new std::ofstream("log.out");

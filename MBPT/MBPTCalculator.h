@@ -8,7 +8,7 @@
 class MBPTCalculator
 {
 public:
-    MBPTCalculator(Lattice* lattice, Core* atom_core, ExcitedStates* excited_states);
+    MBPTCalculator(Lattice* lattice, const Core* atom_core, ExcitedStates* excited_states);
     ~MBPTCalculator(void) {}
 
     /** Create a sigma operator for the given state to second order.
@@ -32,8 +32,8 @@ protected:
 
 protected:
     Lattice* lattice;
-    Core* core;
-    ExcitedStates* excited;
+    const Core* core;
+    const ExcitedStates* excited;
 };
 
 #endif

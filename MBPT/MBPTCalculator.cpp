@@ -3,7 +3,7 @@
 #include "Universal/Constant.h"
 #include "Universal/CoulombIntegrator.h"
 
-MBPTCalculator::MBPTCalculator(Lattice* lat, Core* atom_core, ExcitedStates* excited_states):
+MBPTCalculator::MBPTCalculator(Lattice* lat, const Core* atom_core, ExcitedStates* excited_states):
     lattice(lat), core(atom_core), excited(excited_states)
 {}
 

@@ -94,7 +94,7 @@ void HFExcitedStates::CreateExcitedStates(const std::vector<unsigned int>& num_s
             unsigned int count = 0;
             unsigned int pqn = k + 1;
 
-            State* s;
+            const State* s;
             while(count < num_states_per_l[k])
             {
                 s = NULL;

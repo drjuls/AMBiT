@@ -15,7 +15,7 @@ typedef std::map<StateInfo, double> SigmaAmount;
 class ExcitedStates : public StateManager
 {
 public:     // Methods for StateManager role
-    ExcitedStates(Lattice* lattice, Core* atom_core);
+    ExcitedStates(Lattice* lattice, const Core* atom_core);
     virtual ~ExcitedStates();
 
     virtual void AddState(State* s);
@@ -60,7 +60,7 @@ public:     // Methods for managing sigma
     const Core* GetCore() const { return core; }
 
 protected:
-    Core* core;
+    const Core* core;
 
     const std::string* identifier;  // needed to store sigmas
     SigmaMap SecondOrderSigma;

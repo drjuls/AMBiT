@@ -36,7 +36,7 @@ ifeq ($(MACHINE), apaclc)
     BUILD = Release
     CFLAGS += -O3
     CXXFLAGS += -O3 -D_MPI
-    F77FLAGS += -O3
+    F77FLAGS += -O2
   endif
 
   CCDEP = gcc
@@ -48,7 +48,7 @@ ifeq ($(MACHINE), newt)
   CXX = g++33
   F77 = gcc33
 
-  LINK = gcc33
+  LINK = g++33
 
   LIBDIR       = /usr/local/lib
   BLASLIB      = blas
@@ -65,7 +65,7 @@ ifeq ($(MACHINE), newt)
     BUILD = Release
     CXXFLAGS += -O3
     CFLAGS += -O3
-    F77FLAGS += -O3
+    F77FLAGS += -O2
   endif
 
   # non gnu compilers may not support MM: use M instead

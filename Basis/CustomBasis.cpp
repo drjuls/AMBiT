@@ -76,7 +76,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 exit(1);
             }
             DiscreteState* ds = new DiscreteState(lattice, final.PQN(), final.GetFirstRelativisticInfo().Kappa());
-            DiscreteState* previous = GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
+            const DiscreteState* previous = GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
             if(previous == NULL)
                 previous = core->GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
             if(previous == NULL)

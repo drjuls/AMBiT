@@ -14,7 +14,8 @@ MPIHamiltonianMatrix::MPIHamiltonianMatrix(const ExcitedStates& excited_states, 
     // Need to get matrix limits based on processor id
     if(ProcessorRank == 0)
     {
-        unsigned int wanted = N*(N+1)/2/NumProcessors;
+        unsigned int elements_per_processor = N*(N+1)/2/NumProcessors;
+        unsigned int wanted = elements_per_processor;
         unsigned int sum;
 
         unsigned int rconf_start = 0, rconf_end = 1;
@@ -32,7 +33,7 @@ MPIHamiltonianMatrix::MPIHamiltonianMatrix(const ExcitedStates& excited_states, 
         {
             end_row += it->GetJCoefficients().size();
 
-            sum = (end_row - start_row)*(2 * N - end_row - start_row + 1)/2;
+            sum = end_row * (2 * N - end_row + 1)/2;
             if(sum >= wanted)
             {   
                 if(prev_sum && ((wanted - prev_sum) < (sum - wanted)))    // Use previous
@@ -46,6 +47,7 @@ MPIHamiltonianMatrix::MPIHamiltonianMatrix(const ExcitedStates& excited_states, 
                 comm_world.Send(&rconf_end, 1, MPI::UNSIGNED, processor, 2);
 
                 processor--;
+                wanted += elements_per_processor;
                 start_row = end_row;
                 rconf_start = rconf_end;
                 prev_sum = 0;

@@ -212,7 +212,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 unsigned int count = 0;
                 unsigned int pqn = l + 1;
                 i = n;
-                DiscreteState* s;
+                const DiscreteState* s;
 
                 while((count < num_states_per_l[l]) && (i < n2))
                 {

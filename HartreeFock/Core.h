@@ -65,7 +65,7 @@ public:     // Methods for setting physical parameters of core
 public:     // Methods for Hartree-Fock calculations and potentials
     /** Set energy tolerances */
     void SetEnergyTolerance(double tolerance);
-    double GetEnergyTolerance() { return StateParameters::EnergyTolerance; }
+    double GetEnergyTolerance() const { return StateParameters::EnergyTolerance; }
 
     /** Do self consistent Hartree Fock proceedure until convergency is reached. */
     void Update();

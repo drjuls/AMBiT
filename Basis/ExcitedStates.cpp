@@ -4,7 +4,7 @@
 #include "Universal/Constant.h"
 #include "MBPT/MBPTCalculator.h"
 
-ExcitedStates::ExcitedStates(Lattice* lattice, Core* atom_core):
+ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
     StateManager(lattice, (unsigned int)atom_core->GetZ(), (unsigned int)atom_core->GetCharge()),
     core(atom_core)
 {}
