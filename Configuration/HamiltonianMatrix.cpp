@@ -896,7 +896,7 @@ double HamiltonianMatrix::GetSMSIntegral(const StateInfo& s1, const StateInfo& s
     if(i1 <= i2)
         return SMSIntegrals.find(i1 * NumStates + i2)->second;
     else
-        return SMSIntegrals.find(i2 * NumStates + i1)->second;
+        return -SMSIntegrals.find(i2 * NumStates + i1)->second;
 }
 
 double HamiltonianMatrix::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
