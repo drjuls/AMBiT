@@ -24,10 +24,10 @@ ifeq ($(MACHINE), apaclc)
 
   LINK = mpiCC
 
-  LIBDIR       = /usr/lib
+  LIBDIR       = /opt/gcc-3.4.3/lib
   BLASLIB      = blas
   LAPACKLIB    = lapack
-  EXTRALIBS    = g2c
+  EXTRALIBS    = gcc_s g2c
 
   INCLUDE += $$$$LAMHOME/include
 
