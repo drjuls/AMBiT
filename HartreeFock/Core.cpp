@@ -117,7 +117,8 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
                 *logstream << "  " << std::setw(4) << ds->Name() 
                            << "  E = " << std::setprecision(12) << ds->Energy()
                            << "  deltaE = " << std::setprecision(3) << deltaE
-                           << "  size: " << new_ds->Size() << std::endl;
+                           << "  size: (" << new_ds->Size()
+                           << ") " << lattice->R(new_ds->Size()) << std::endl;
 
             ds->Scale(1. - prop_new);
             new_ds->Scale(prop_new);

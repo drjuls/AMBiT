@@ -18,7 +18,7 @@ void Core::Update()
     bool debug = DebugOptions.LogHFIterations();
 
     // Copy states for next iteration.
-    StateManager next_states(lattice, (unsigned int)Z, (unsigned int)Charge);
+    StateManager next_states(lattice, (unsigned int)Z, (int)Charge);
 
     StateIterator core_it(this);
     core_it.First();
@@ -62,7 +62,8 @@ void Core::Update()
                 *logstream << "  " << std::setw(4) << new_state->Name()
                            << "  E = " << std::setprecision(12) << old_energy
                            << "  deltaE = " << std::setprecision(4) << deltaE
-                           << "  size: " << new_state->Size() << std::endl;
+                           << "  size: (" << new_state->Size()
+                           << ") " << lattice->R(new_state->Size()) << std::endl;
 
             deltaE = fabs(deltaE/new_state->Energy());
             max_deltaE = mmax(deltaE, max_deltaE);
@@ -592,7 +593,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 *logstream << "    " << ds->Name()
                            << std::setprecision(7) << "  E = " << ds->Energy()
                            << "  loops: " << loop  << "  size: " << ds->Size()
-                           << " zerodiff: " << zero_difference << std::endl;
+                           << "  zerodiff: " << zero_difference << std::endl;
             }
         }
         while(zero_difference || (loop >= StateParameters::MaxHFIterations));
@@ -614,7 +615,8 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 *logstream << "  " << std::setw(4) << ds->Name() 
                            << "  E = " << std::setprecision(12) << ds->Energy()
                            << "  deltaE = " << std::setprecision(3) << deltaE
-                           << "  size: " << new_ds->Size() << std::endl;
+                           << "  size: (" << new_ds->Size()
+                           << ") " << lattice->R(new_ds->Size()) << std::endl;
 
             ds->Scale(1. - prop_new);
             new_ds->Scale(prop_new);
@@ -648,10 +650,12 @@ unsigned int Core::CalculateExcitedState(State* s) const
             double energy = ds->Energy();
             if(DebugOptions.InvCmEnergyUnits())
                 energy *= Constant::HartreeEnergy_cm;
-            *outstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+            *outstream << ds->Name() << "  E = " << energy;
         }
         else
-            *outstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+            *outstream << ds->Name() << "  nu = " << ds->Nu();
+
+        *outstream << "  loops: " << loop << "  size: (" << ds->Size() << ") " << lattice->R(ds->Size()) << std::endl;
     }
 
     return loop;
