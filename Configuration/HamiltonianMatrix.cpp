@@ -860,7 +860,7 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
         const State* p1 = states.GetState(e1);
         const State* p2 = states.GetState(e2);
         const double* dR = states.GetLattice()->dR();
-        for(unsigned int i=0; i<p1->Size(); i++)
+        for(unsigned int i=0; i<mmin(p1->Size(), p2->Size()); i++)
             overlap += (p1->f[i] * p2->f[i] + Constant::AlphaSquared * p1->g[i] * p2->g[i]) * dR[i];
 
         double Lplushalf = double(e1.L()) + 0.5;
