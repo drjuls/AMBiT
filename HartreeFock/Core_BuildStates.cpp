@@ -397,7 +397,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     const double* R = lattice->R();
     const double* dR = lattice->dR();
 
-    std::vector<double> Potential = GetHFPotential();
+    const std::vector<double>& Potential(HFPotential);
 
     unsigned int i;
     double delta_E = 0.;
@@ -489,6 +489,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
                     - exchange->f[i]) *dR[i];
     }
 
+    s->CheckSize(StateParameters::WavefunctionTolerance);
     return delta_E;
 }
 
@@ -579,7 +580,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 // increase the rate of change in nu.
                 if(old_zero_difference && (zero_difference == old_zero_difference))
                 {   trial_nu = old_trial_nu;
-                    nu_change_factor = nu_change_factor * 2;
+                    nu_change_factor = nu_change_factor * 1.5;
                 }
                 else
                 {   old_trial_nu = trial_nu;
@@ -604,7 +605,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
         double deltaE;
         loop = 0;
         DiscreteState* new_ds = new DiscreteState(*ds);
-        double prop_new = 0.5;
+        double prop_new = 0.4;
         do
         {   loop++;
             CoupledFunction exchange;
@@ -638,6 +639,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
 
         }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
+        delete new_ds;
         if(loop >= StateParameters::MaxHFIterations)
             *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
     }
@@ -799,5 +801,5 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
 }
 
 const unsigned int Core::StateParameters::MaxHFIterations = 300;
-double Core::StateParameters::WavefunctionTolerance = 1.E-11;
+double Core::StateParameters::WavefunctionTolerance = 1.E-10;
 double Core::StateParameters::EnergyTolerance = 1.E-14;

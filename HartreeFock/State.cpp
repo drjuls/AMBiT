@@ -30,12 +30,17 @@ unsigned int State::NumZeroes() const
         }
         i++;
     }
+    
+    // Get effective end point
+    unsigned int end = f.size() - 1;
+    while(fabs(f[end]) < 1.e-7 * fmax)
+        end--;
 
     i = 0;
     double prev = f[i];
     while(fabs(prev) < 1.e-7 * fmax)
         prev = f[i++];
-    while(i < i_fmax)
+    while(i < end)
     {   if(f[i] * prev < 0.)
             zeroes++;
         prev = f[i];

@@ -100,6 +100,9 @@ void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>
     }
 
     start_point = i + (adams_N-2);
+    if(start_point > HFPotential.size() - 1)
+    {   start_point = HFPotential.size() - 1;
+    }
     s.ReSize(start_point+1);
 
     double correction = s.f[start_point];

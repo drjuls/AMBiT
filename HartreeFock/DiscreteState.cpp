@@ -70,36 +70,45 @@ bool DiscreteState::CheckSize(double tolerance)
     unsigned int i = 0;
     unsigned int max_point = 0;
     while(i < f.size())
-    {   if(maximum < fabs(f[i]))
+    {   if(fabs(f[i]) >= maximum)
         {   maximum = fabs(f[i]);
             max_point = i;
         }
         i++;
     }
     
-    i = max_point;
-    while((i<f.size()) && (fabs(f[i])/maximum > tolerance))
-        i++;
-    
-    if(i < f.size())
-    {
-        if(i == f.size() - 1)
-            return true;
-
-        ReSize(i+1);
-        return false;
+    if(maximum < tolerance*100)
+    {   *outstream << "DiscreteState::Checksize: Zero function. " << std::endl;
+        PAUSE
+        exit(1);
     }
-    else
+
+    i = f.size() - 1;
+    while(fabs(f[i])/maximum < tolerance)
+        i--;
+    
+    if(i == f.size() - 1)
     {   // add points to wavefunction
         unsigned int max = f.size()-1;
-        unsigned int old_size = f.size();
         double f_max = fabs(f[max]);
         double f_ratio = f[max]/f[max-1],
                g_ratio = g[max]/g[max-1];
 
-        if(f_ratio > 1.)
-            return true;
+        // Strip off any inconsistency at tail end,
+        // usually just caused by numerical wobbles.
+        while(f_ratio >= 1.)
+        {   max--;
+            f_max = fabs(f[max]);
+            f_ratio = f[max]/f[max-1];
+            g_ratio = g[max]/g[max-1];
+        }
 
+        // ...and this keeps the size from blowing up if we
+        // end up at a plateau.
+        if(f_ratio > 0.95)
+            f_ratio = 0.95;
+
+        unsigned int old_size = max;
         while(f_max/maximum >= tolerance)
         {   max++;
             f_max = f_max * f_ratio;
@@ -115,12 +124,18 @@ bool DiscreteState::CheckSize(double tolerance)
         lattice->R(max);
         return false;
     }
+    else
+    {   // Reduce size
+        ReSize(i+1);
+        return false;
+    }
 }
 
 void DiscreteState::ReNormalise(double norm)
 {
     double scaling = sqrt(norm/Norm());
-    Scale(scaling);
+    if(scaling)
+        Scale(scaling);
 }
 
 void DiscreteState::Write(FILE* fp) const
