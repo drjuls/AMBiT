@@ -49,11 +49,11 @@ public:
       */
     double TestOrthogonality() const;
 
+    virtual void AddState(DiscreteState* s);
+
 protected:
     /** Delete all currently stored states. */
     virtual void Clear();
-
-    virtual void AddState(DiscreteState* s);
 
     double Z, Charge;
     StateSet AllStates;

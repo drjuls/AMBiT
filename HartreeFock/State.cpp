@@ -18,14 +18,27 @@ unsigned int State::NumZeroes() const
 {
     // Count number of zeroes
     unsigned int zeroes = 0;
-    std::vector<double>::const_iterator i = f.begin();
-    double prev = *i++;
-    while(prev == 0.)
-        prev = *i++;
-    while(i != f.end())
-    {   if((*i) * prev < 0.)
+
+    // Get maximum point
+    double fmax = 0.;
+    unsigned int i_fmax = 0;
+    unsigned int i = 0;
+    while(i < f.size())
+    {   if(fabs(f[i]) > fmax)
+        {   fmax = fabs(f[i]);
+            i_fmax = i;
+        }
+        i++;
+    }
+
+    i = 0;
+    double prev = f[i];
+    while(fabs(prev) < 1.e-7 * fmax)
+        prev = f[i++];
+    while(i < i_fmax)
+    {   if(f[i] * prev < 0.)
             zeroes++;
-        prev = *i;
+        prev = f[i];
         i++;
     }
     return zeroes;

@@ -17,168 +17,103 @@ void Core::Update()
 
     bool debug = DebugOptions.LogHFIterations();
 
-    double delta;
-    unsigned int loop = 0;
-    UpdateHFPotential();
-    StateParameters::WavefunctionTolerance = 1.e-5;
+    // Copy states for next iteration.
+    StateManager next_states(lattice, Z, Charge);
 
-    bool do_greens = true;
-    if(AllStates.size() == 1)
-        do_greens = false;
+    StateIterator core_it(this);
+    core_it.First();
+    while(!core_it.AtEnd())
+    {   next_states.AddState(new DiscreteState(*core_it.GetState()));
+        core_it.Next();
+    }
+
+    // Iterate Hartree-Fock. At each step:
+    // 1. Calculate new solutions to the potential.
+    //    Keep the new solutions (states) separate from the core so that the direct and
+    //    exchange potentials are consistent.
+    // 2. Mix old wavefunctions with new ones.
+    // 3. Update potentials.
+    double deltaE, max_deltaE;
+    StateIterator it(&next_states);
+    double prop_new = 0.5;
+    StateIntegrator SI(*lattice);
+
+    unsigned int loop = 0;
 
     do
-    {   delta = 0.;
-        loop++;
+    {   loop++;
+        max_deltaE = 0.;
+
         if(debug)
             *logstream << "HF Iteration :" << loop << std::endl;
-        StateIterator i = GetStateIterator();
-        while(!i.AtEnd())
+
+        // Calculate new states.
+        it.First();
+        while(!it.AtEnd())
         {
-            // Important to make a copy of the state so that the exchange 
-            //  interaction doesn't get messed up.
-            DiscreteState* s = new DiscreteState(*(i.GetState()));
-            double old_nu = s->Nu();
-            unsigned int l = s->L();
-            unsigned int pqn = s->RequiredPQN();
-            UpdateHFPotentialNoSelfInteraction(StateInfo(s));
+            DiscreteState* new_state = it.GetState();
+            double old_energy = new_state->Energy();
 
-            unsigned int iterations = CalculateDiscreteState(s);
-            if(iterations < StateParameters::MaxHFIterations)
-            {
-                i.ReplaceState(s);
-            }
-            else
-            {   *errstream << s->Name() << " failed to converge after " << StateParameters::MaxHFIterations << " iterations. " << std::endl;
-                delete s;
-                s = i.GetState();
-            }
-            double nu = s->Nu();
+            CoupledFunction exchange;
+            CalculateExchange(*new_state, exchange);
+            deltaE = IterateDiscreteStateGreens(new_state, &exchange);
 
-            delta = mmax(delta, fabs((nu - old_nu)/nu));
             if(debug)
-            {   if(DebugOptions.HartreeEnergyUnits())
-                    *logstream << "  " << s->Name() << "  en: " << -0.5/(nu*nu) << "  loops: " << iterations << "  size: " << s->Size() << std::endl;
-                else
-                    *logstream << "  " << s->Name() << "  nu: " << nu << "  loops: " << iterations << "  size: " << s->Size() << std::endl;
-            }
-            i.Next();
+                *logstream << "  " << std::setw(4) << new_state->Name()
+                           << "  E = " << std::setprecision(12) << old_energy
+                           << "  deltaE = " << std::setprecision(4) << deltaE
+                           << "  size: " << new_state->Size() << std::endl;
+
+            deltaE = fabs(deltaE/new_state->Energy());
+            max_deltaE = mmax(deltaE, max_deltaE);
+
+            it.Next();
         }
+
+        // Mix new and old states.
+        core_it.First();
+        while(!core_it.AtEnd())
+        {
+            DiscreteState* core_state = core_it.GetState();
+            DiscreteState* new_state = next_states.GetState(StateInfo(core_state));
+
+            // Add proportion of new states to core states.
+            core_state->Scale(1. - prop_new);
+            new_state->Scale(prop_new);
+            core_state->ReSize(mmax(core_state->Size(), new_state->Size()));
+            new_state->ReSize(mmax(core_state->Size(), new_state->Size()));
+
+            for(unsigned int i = 0; i<core_state->Size(); i++)
+            {   core_state->f[i] += new_state->f[i];
+                core_state->g[i] += new_state->g[i];
+                core_state->df[i] += new_state->df[i];
+                core_state->dg[i] += new_state->dg[i];
+            }
+
+            // Renormalise core states (should be close already) and update energy.
+            core_state->ReNormalise();
+            
+            double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
+            core_state->SetEnergy(energy);
+            *new_state = *core_state;
+
+            core_it.Next();
+        }
+
+        // Update potential.
         UpdateHFPotential();
-    }
-    while(!(do_greens && (loop >= 10)) && (delta > StateParameters::EnergyTolerance));
 
-    if(do_greens)
-    {   double tolerance = StateParameters::EnergyTolerance;
-        bool converged = false;
-        bool converged_once = false;
-        while(!converged)
-        {   converged = UpdateGreens();
-            if(!converged)
-            {   StateParameters::EnergyTolerance *= 10.;
-                *outstream << "\n Tolerance = " << StateParameters::EnergyTolerance << std::endl;
-            }
-            else if(tolerance < StateParameters::EnergyTolerance)
-            {   if(!converged_once)
-                {   converged_once = true;
-                    StateParameters::EnergyTolerance = StateParameters::EnergyTolerance/10.;
-                    *outstream << "\n Tolerance = " << StateParameters::EnergyTolerance << std::endl;
-                    converged = false;
-                }
-            }
-        }
-        StateParameters::EnergyTolerance = tolerance;
-    }
-}
+    }while((max_deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
-bool Core::UpdateGreens()
-{
-    bool debug = DebugOptions.LogHFIterations();
+    if(loop >= StateParameters::MaxHFIterations)
+        *errstream << "Failed to converge Hartree-Fock in Core." << std::endl;
 
-    // Initial iterations for deltaE
     if(debug)
-        *logstream << "\n Greens function iterations:" << std::endl;
-
-    StateIterator i = GetStateIterator();
-    std::map<StateInfo, double> deltaE;
-    CoupledFunction exchange;
-
-    while(!i.AtEnd())
-    {
-        DiscreteState* s = new DiscreteState(*(i.GetState()));
-
-        UpdateHFPotentialNoSelfInteraction(StateInfo(s));
-        CalculateExchangeNoSelfInteraction(*s, exchange);
-
-        deltaE[StateInfo(s)] = IterateDiscreteStateGreens(s, &exchange)/s->Energy();
-        if(debug)
-            *logstream << "  " << s->Name() << "  energy: " << s->Energy() << "  deltaE: " << deltaE[StateInfo(s)] << "  norm: " << s->Norm()-1. << std::endl;
-
-        i.ReplaceState(s);
-        i.Next();
-    }
-
-    // Further iterations until full convergence
-    StateParameters::WavefunctionTolerance = 1.e-7;
-    double max_deltaE = 1.;
-    unsigned int iterations = 0;
-
-    while(max_deltaE > StateParameters::EnergyTolerance && iterations < StateParameters::MaxHFIterations)
-    {
-        max_deltaE = 0.;
-        std::map<StateInfo, double>::iterator it = deltaE.begin();
-        std::map<StateInfo, double>::iterator max_it = deltaE.begin();
-        while(it != deltaE.end())
-        {   if(fabs(it->second) > max_deltaE)
-            {   max_deltaE = fabs(it->second);
-                max_it = it;
-            }
-            it++;
-        }
-
-        DiscreteState* s = new DiscreteState(*GetState(max_it->first));
-
-        UpdateHFPotentialNoSelfInteraction(max_it->first);
-        CalculateExchangeNoSelfInteraction(*s, exchange);
-        max_it->second = IterateDiscreteStateGreens(s, &exchange)/s->Energy();
-
-        StateSet::iterator coreit = AllStates.find(max_it->first);
-        coreit->second.DeleteState();
-        coreit->second.SetState(s);
-
-        if(debug)
-            *logstream << "  " << s->Name() << "  energy: " << s->Energy() << "  deltaE: " << deltaE[StateInfo(s)] << "  norm: " << s->Norm()-1. << std::endl;
-
-        iterations++;
-    }
-
-    if(iterations < StateParameters::MaxHFIterations)
-    {   if(debug)
-        {   *logstream << "\n Final values:" << std::endl;
-
-            i.First();
-            while(!i.AtEnd())
-            {
-                DiscreteState* s = i.GetState();
-                *logstream << "  " << s->Name() << "  en: " << std::setprecision(12) << s->Energy() << std::endl;
-                i.Next();
-            }
-        }
-
-        UpdateHFPotential();
-
-        if(debug)
-            *logstream << "Orthogonality test: " << TestOrthogonality() << std::endl;
-        return true;
-    }
-    else
-        return false;
+        *logstream << "Core Orthogonality test: " << TestOrthogonality() << std::endl;
 }
 
 void Core::UpdateHFPotential(double proportion_new, bool first_build)
 {
-    double HFCharge = Charge;
-    if(HFCharge == 0. && first_build)
-        HFCharge = 1.;
     HFPotential.resize(lattice->Size());
 
     // Get electron density function
@@ -238,8 +173,13 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
             new_potential[i] = new_potential[i] + VolumeShiftParameter * VolumeShiftPotential[i];
     }
 
+
     if(first_build)
     {
+        double HFCharge = Charge;
+        if(HFCharge == 0.)
+            HFCharge = 1.;
+
         for(i=0; i<HFPotential.size(); i++)
         {   new_potential[i] = new_potential[i] + new_local_exchange[i];
             if(new_potential[i] < HFCharge/lattice->R(i))
@@ -251,107 +191,13 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
     {   for(i=0; i<HFPotential.size(); i++)
             HFPotential[i] = proportion_new * new_potential[i]
                             + (1. - proportion_new) * HFPotential[i];
-
         LocalExchangeApproximation.resize(new_local_exchange.size());
         for(unsigned int i=0; i<new_local_exchange.size(); i++)
-        {   if(new_local_exchange[i] > (HFPotential[i] - HFCharge/lattice->R(i)))
-                LocalExchangeApproximation[i] = HFPotential[i] - HFCharge/lattice->R(i);
+        {   if(new_local_exchange[i] > (HFPotential[i] - Charge/lattice->R(i)))
+                LocalExchangeApproximation[i] = HFPotential[i] - Charge/lattice->R(i);
             else
                 LocalExchangeApproximation[i] = new_local_exchange[i];
         }
-    }
-}
-
-void Core::UpdateHFPotentialNoSelfInteraction(const StateInfo& current, double proportion_new)
-{
-    double HFCharge = Charge;
-    HFPotential.resize(lattice->Size());
-
-    // Get electron density function
-    std::vector<double> density;
-    density.clear();
-
-    ConstStateIterator cs = GetConstStateIterator();
-    while(!cs.AtEnd())
-    {
-        const DiscreteState& s = *cs.GetState();
-        const std::vector<double>& f = s.f;
-        const std::vector<double>& g = s.g;
-        double number_electrons = s.Occupancy();
-
-        // Open shells need to be scaled
-        if(IsOpenShellState(StateInfo(&s)) && (number_electrons != double(2 * abs(s.Kappa()))))
-        {   // Average over non-relativistic configurations
-            if(s.Kappa() == -1)
-            {   if(StateInfo(&s) == current)
-                    number_electrons--;
-            }
-            else
-            {   int other_kappa = - s.Kappa() - 1;
-                StateInfo other_info(s.RequiredPQN(), other_kappa);
-
-                if((current == StateInfo(&s)) || (current == other_info))
-                    number_electrons = number_electrons - double(abs(s.Kappa()))/double(abs(s.Kappa())+abs(other_kappa));
-            }
-        }
-        else if(StateInfo(&s) == current)
-            number_electrons--;
-
-        if(s.Size() > density.size())
-            density.resize(s.Size());
-
-        for(unsigned int j=0; j<s.Size(); j++)
-        {
-            density[j] = density[j] + (pow(f[j], 2.) + Constant::AlphaSquared * pow(g[j], 2.))*number_electrons;
-        }
-
-        cs.Next();
-    }
-
-    std::vector<double> y(density.size());
-    CoulombIntegrator I(*lattice);
-    I.CoulombIntegrate(density, y, 0, Z-Charge-1.);
-
-    // Get local exchange approximation
-    std::vector<double> new_local_exchange(HFPotential.size());
-    double C = 0.635348143228;
-    unsigned int i;
-    for(i=0; i<new_local_exchange.size() && i<density.size(); i++)
-    {   
-        new_local_exchange[i] = C * pow((density[i]/pow(lattice->R(i),2.)), 1./3.);
-    }
-
-    std::vector<double> new_potential(HFPotential.size());
-
-    i=0;
-    while((i < NuclearPotential.size()) && (i < y.size()))
-    {   new_potential[i] = NuclearPotential[i] - y[i];
-        i++;
-    }
-    while(i < y.size())
-    {   new_potential[i] = Z/lattice->R(i) - y[i];
-        i++;
-    }
-    while(i < HFPotential.size())
-    {   new_potential[i] = Charge/lattice->R(i);
-        i++;
-    }
-
-    if(VolumeShiftPotential.size() && VolumeShiftParameter)
-    {   for(i=0; i<VolumeShiftPotential.size(); i++)
-            new_potential[i] = new_potential[i] + VolumeShiftParameter * VolumeShiftPotential[i];
-    }
-
-    for(i=0; i<HFPotential.size(); i++)
-        HFPotential[i] = proportion_new * new_potential[i]
-                        + (1. - proportion_new) * HFPotential[i];
-
-    LocalExchangeApproximation.resize(new_local_exchange.size());
-    for(unsigned int i=0; i<new_local_exchange.size(); i++)
-    {   if(new_local_exchange[i] > (HFPotential[i] - HFCharge/lattice->R(i)))
-            LocalExchangeApproximation[i] = HFPotential[i] - HFCharge/lattice->R(i);
-        else
-            LocalExchangeApproximation[i] = new_local_exchange[i];
     }
 }
 
@@ -448,12 +294,8 @@ void Core::CalculateClosedShellRadius()
     ClosedShellRadius = lattice->R(j);
 }
 
-unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amount, const SigmaPotential* sigma, double sigma_amount) const
+unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exch) const
 {
-    bool remove_self_interaction = false;
-    if(GetState(StateInfo(s)))
-        remove_self_interaction = true;
-
     StateIntegrator I(*lattice);
     I.SetAdamsOrder(10);
 
@@ -468,37 +310,13 @@ unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amou
         ExtendPotential();
 
     std::vector<double> Potential = GetHFPotential();
-
-    CoupledFunction* exchange = new CoupledFunction();
-    CoupledFunction* new_exchange = NULL;
-    CoupledFunction* old_exchange = NULL;
-    
-    bool local_exchange = (exchange_amount < 0.);
-    if(local_exchange)
-    {
-        std::vector<double> LocalExchange = GetLocalExchangeApproximation();
+    if(include_exch)
+    {   std::vector<double> LocalExchange = GetLocalExchangeApproximation();
         for(unsigned int i=0; i<Potential.size(); i++)
             Potential[i] = Potential[i] + LocalExchange[i];
-        exchange->Clear();
-        exchange->ReSize(s->Size());
-        exchange_amount = 1.0;
-    }
-    else if(exchange_amount > 0.)
-    {   if(remove_self_interaction)
-            CalculateExchangeNoSelfInteraction(*s, *exchange);
-        else
-            CalculateExchange(*s, *exchange, sigma, sigma_amount);
-
-        exchange->Scale(exchange_amount);
-    }
-    else
-    {   exchange->Clear();
-        exchange->ReSize(s->Size());
     }
 
-    double delta1=0.,
-           delta2=0.,
-           delta=0.;
+    double delta=0.;
     double old_delta1 = 0.;
 
     unsigned int loop = 0;
@@ -508,16 +326,16 @@ unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amou
 
         // Get forward and backwards meeting point
         unsigned int critical_point = lattice->real_to_lattice((1./Z + s->Nu())/2.);
-        // assert (critical_point < lattice->NumPoints())
+
         DiscreteState no_exchange_state(*s);
         unsigned int peak = I.IntegrateBackwardsUntilPeak(no_exchange_state, Potential, critical_point);
 
         // assert(peak > 3)
-        I.IntegrateBackwards(*s, Potential, exchange, peak-1);
+        I.IntegrateBackwards(*s, Potential, NULL, peak-1);
         double f_right = s->f[peak];
         double g_right = s->g[peak];
 
-        I.IntegrateForwards(*s, Potential, exchange, peak+1);
+        I.IntegrateForwards(*s, Potential, NULL, peak+1);
 
         // Test whether forwards and backwards integrations met and modify energy accordingly.
 
@@ -532,89 +350,28 @@ unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amou
         g_right += tail_scaling * no_exchange_state.g[peak];
 
         double norm = s->Norm();
-        delta1 = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm;
-        
-        new_exchange = new CoupledFunction();
-        if(exchange_amount > 0.)
-        {   if(remove_self_interaction)
-                CalculateExchangeNoSelfInteraction(*s, *new_exchange);
-            else
-                CalculateExchange(*s, *new_exchange, sigma, sigma_amount);
+        delta = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm;
 
-            new_exchange->Scale(exchange_amount);
-        }
-        else
-        {   new_exchange->Clear();
-            new_exchange->ReSize(s->Size());
-        }
-
-        // Integrate overlap of wavefunction with change in exchange potential
-        double overlap = 0.;
-        for(i = 0; i<s->Size(); i++)
-        {   overlap = overlap + s->f[i] * (exchange->f[i] - new_exchange->f[i]) * lattice->dR(i);
-        }
-
-        delta2 = -pow(s->Nu(), 3.) * overlap/norm;
-
-        delta = delta1 + delta2;
         if(fabs(delta) > 0.1)
                 delta = 0.1 * delta/fabs(delta);
 
         // Set new principal quantum number
         s->SetNu(s->Nu() - delta);
-
-        double new_exchange_proportion;
-        if(fabs(old_delta1 - delta1) >= 1.E-6)
-        {   new_exchange_proportion = old_delta1/(old_delta1 - delta1);
-            if((new_exchange_proportion <= 0.) || (new_exchange_proportion > 1.))
-                new_exchange_proportion = 1.0;
-        }
-        else
-            new_exchange_proportion = 1.0;
-
-        old_delta1 = delta1;
-
-        if((new_exchange_proportion == 1.0) || (old_exchange == NULL))
-        {   delete exchange;
-            if(old_exchange && (exchange != old_exchange))
-                delete old_exchange;
-            exchange = new_exchange;
-        }
-        else
-        {   for(unsigned int i = 0; i < old_exchange->Size(); i++)
-            {   old_exchange->f[i] = new_exchange_proportion * new_exchange->f[i]
-                                    + (1. - new_exchange_proportion) * old_exchange->f[i];
-                old_exchange->g[i] = new_exchange->g[i];
-            }
-            if(exchange != old_exchange)
-                delete exchange;
-            exchange = old_exchange;
-        }
-        old_exchange = new_exchange;
+        s->ReNormalise();
 
         s->CheckSize(StateParameters::WavefunctionTolerance);
         if(lattice->Size() > HFPotential.size())
-        {   ExtendPotential();
-            Potential = GetHFPotential();
-        }
-
-        exchange->ReSize(s->Size());
-        old_exchange->ReSize(s->Size());
-
-        if(local_exchange)
-        {   
-            Potential = GetHFPotential();
-            local_exchange = false;
+        {   // Lengthen potential if necessary. Local exchange is zero outside the core.
+            ExtendPotential();
+            unsigned int old_size = Potential.size();
+            Potential.resize(HFPotential.size());
+            for(unsigned int i=old_size; i<HFPotential.size(); i++)
+                    Potential[i] = HFPotential[i];
         }
     }
-    while((loop < StateParameters::MaxHFIterations) && 
-         ((fabs(delta) > StateParameters::EnergyTolerance) || (fabs(delta1) > StateParameters::EnergyTolerance) || (fabs(delta2) > StateParameters::EnergyTolerance)));
+    while((loop < StateParameters::MaxHFIterations) && (fabs(delta) > StateParameters::EnergyTolerance));
 
     s->ReNormalise();
-
-    if(old_exchange != exchange)
-        delete old_exchange;
-    delete exchange;
 
     return loop;
 }
@@ -743,7 +500,9 @@ unsigned int Core::CalculateExcitedState(State* s) const
         return CalculateContinuumState(cs);
     }
 
-    unsigned int iterations = 0;
+    // Number of iterations required. Zero shows that the state existed previously.
+    unsigned int loop = 0;
+
     const DiscreteState* core_state = GetState(StateInfo(ds));
     StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
     if(core_state != NULL)
@@ -755,7 +514,12 @@ unsigned int Core::CalculateExcitedState(State* s) const
         *ds = *(it->second.GetState());
     }
     else
-    {   // Calculate
+    {   if(!Charge)
+        {   *errstream << "Cannot calculate excited Hartree-Fock states: Charge = 0." << std::endl;
+            exit(1);
+        }
+
+        // Calculate
         // Get a trial value for nu
         double trial_nu;
         switch(ds->L())
@@ -787,104 +551,110 @@ unsigned int Core::CalculateExcitedState(State* s) const
         trial_nu = trial_nu + (double)(ds->RequiredPQN() - largest_core_pqn - 1)/Charge;
         ds->SetNu(trial_nu/Charge);
 
+        // Calculate wavefunction with local exchange approximation.
+        // Check that the number of zeroes of the wavefunction is correct, otherwise
+        // adjust nu and start again.
+
         double nu_change_factor = 0.3;
         int zero_difference = 0,        // Difference between required and actual number of zeroes of wavefunction
             old_zero_difference = 0;
         double old_trial_nu = trial_nu;
 
-        /* There are two methods for adding exchange:
-            1. Add it in a little at a time, building up until all of it is included
-            2. Use a local approximation to the exchange potential and then include exchange
-            properly the next time round. Faster, but relies on the local approximation
-            being "close" to the real exchange.
-        exchange_addition_method is the first option
-        */
-        bool exchange_addition_method = false;
-
         do
-        {   ds->Clear();
+        {   loop = ConvergeStateApproximation(ds);
 
-            if(exchange_addition_method)
-            {   // Calculate state, adding exchange a little at a time
-                *logstream << "Attempting exchange addition method. Trial nu = " << ds->Nu() << std::endl;
-
-                double exchange_iteration_amount = 0.01;
-                double previous_nu = ds->Nu();
-                unsigned int small_add_count = 0;
-                for(double exch = 0.; exch <= 1.; exch = exch + exchange_iteration_amount)
-                {   
-                    iterations = CalculateDiscreteState(ds, exch);
-                    if(iterations >= StateParameters::MaxHFIterations)
-                    {   exch = exch - exchange_iteration_amount;
-                        exchange_iteration_amount = exchange_iteration_amount/2.;
-                        ds->SetNu(previous_nu);
-                        small_add_count = 30;
-                    }
-                    else
-                    {   if(exchange_iteration_amount < 0.01)
-                        {   if(small_add_count)
-                                small_add_count--;
-                            else
-                            {   exchange_iteration_amount = exchange_iteration_amount * 2;
-                                if(exchange_iteration_amount < 0.01)
-                                    small_add_count = 10;
-                            }
-                        }
-                        previous_nu = ds->Nu();
-                    }
-                }
-                iterations = CalculateDiscreteState(ds, 1.);  // Make sure everything is included
-            }
-            else
-            {   // Attempt the local exchange approximation method
-                iterations = CalculateDiscreteState(ds, -1.);
-                if(iterations >= StateParameters::MaxHFIterations)
-                {   // Doesn't work, try other method
-                    exchange_addition_method = true;
-                }
+            if(loop >= StateParameters::MaxHFIterations)
+            {   // Evil - this should never happen given our simple model.
+                *errstream << "CalculateExcitedState: Local exchange approximation failed to converge.\n"
+                           << "  " << ds->Name() << "  iterations = " << loop << std::endl;
+                PAUSE
+                exit(1);
             }
 
-            if(iterations < StateParameters::MaxHFIterations)
-            {   // Check that the number of zeroes of the wavefunction is correct, otherwise
-                // adjust nu and start again.
-                zero_difference = ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
+            zero_difference = ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
 
-                if(zero_difference)
-                {   
-                    // This checks to see whether we are getting anywhere, otherwise we need to
-                    // increase the rate of change in nu.
-                    if(old_zero_difference && (zero_difference == old_zero_difference))
-                    {   trial_nu = old_trial_nu;
-                        nu_change_factor = nu_change_factor * 2;
-                    }
-                    else
-                    {   old_trial_nu = trial_nu;
-                        old_zero_difference = zero_difference;
-                    }
-
-                    ds->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
-                    trial_nu = ds->Nu();
-                    nu_change_factor = nu_change_factor * 0.75;
+            if(zero_difference)
+            {   // This checks to see whether we are getting anywhere, otherwise we need to
+                // increase the rate of change in nu.
+                if(old_zero_difference && (zero_difference == old_zero_difference))
+                {   trial_nu = old_trial_nu;
+                    nu_change_factor = nu_change_factor * 2;
                 }
+                else
+                {   old_trial_nu = trial_nu;
+                    old_zero_difference = zero_difference;
+                }
+
+                ds->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
+                trial_nu = ds->Nu();
+                nu_change_factor = nu_change_factor * 0.75;
+
+                *logstream << "    " << ds->Name()
+                           << std::setprecision(7) << "  E = " << ds->Energy()
+                           << "  loops: " << loop  << "  size: " << ds->Size()
+                           << " zerodiff: " << zero_difference << std::endl;
             }
         }
-        while(zero_difference || (iterations >= StateParameters::MaxHFIterations));
+        while(zero_difference || (loop >= StateParameters::MaxHFIterations));
+
+        // Hartree-Fock loops
+        bool debugHF = DebugOptions.LogHFIterations();
+
+        double deltaE;
+        loop = 0;
+        DiscreteState* new_ds = new DiscreteState(*ds);
+        double prop_new = 0.5;
+        do
+        {   loop++;
+            CoupledFunction exchange;
+            CalculateExchange(*new_ds, exchange);
+            deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+
+            if(debugHF)
+                *logstream << "  " << std::setw(4) << ds->Name() 
+                           << "  E = " << std::setprecision(12) << ds->Energy()
+                           << "  deltaE = " << std::setprecision(3) << deltaE
+                           << "  size: " << new_ds->Size() << std::endl;
+
+            ds->Scale(1. - prop_new);
+            new_ds->Scale(prop_new);
+            ds->ReSize(mmax(ds->Size(), new_ds->Size()));
+            new_ds->ReSize(mmax(ds->Size(), new_ds->Size()));
+
+            for(unsigned int i = 0; i<ds->Size(); i++)
+            {   ds->f[i] += new_ds->f[i];
+                ds->g[i] += new_ds->g[i];
+                ds->df[i] += new_ds->df[i];
+                ds->dg[i] += new_ds->dg[i];
+            }
+
+            // Renormalise core states (should be close already) and update energy.
+            ds->ReNormalise();
+            ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
+            *new_ds = *ds;
+            deltaE = fabs(deltaE/new_ds->Energy());
+
+        }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
+
+        if(loop >= StateParameters::MaxHFIterations)
+            *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
     }
 
     if(DebugOptions.OutputHFExcited())
     {
-        double energy = ds->Energy();
+        *outstream << std::setprecision(12);
         if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
         {
+            double energy = ds->Energy();
             if(DebugOptions.InvCmEnergyUnits())
                 energy *= Constant::HartreeEnergy_cm;
-            *outstream << ds->Name() << "  energy: " << energy << "  loops: " << iterations << "  size: " << ds->Size() << std::endl;
+            *outstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
         }
         else
-            *outstream << ds->Name() << "  nu: " << ds->Nu() << "  loops: " << iterations << "  size: " << ds->Size() << std::endl;
+            *outstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
     }
 
-    return iterations;
+    return loop;
 }
 
 unsigned int Core::CalculateContinuumState(ContinuumState* s) const
@@ -1024,105 +794,6 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
     }
 }
 
-void Core::CalculateExchangeNoSelfInteraction(const State& current, CoupledFunction& exchange) const
-{
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
-
-    exchange.Clear();
-    exchange.ReSize(current.Size());
-
-    const DiscreteState* ds_current = dynamic_cast<const DiscreteState*>(&current);
-
-    // Sum over all core states
-    ConstStateIterator cs = GetConstStateIterator();
-    while(!cs.AtEnd())
-    {
-        const DiscreteState& other = *(cs.GetState());
-        unsigned int upper_point = mmin(other.Size(), current.Size());
-
-        // Get overlap of wavefunctions
-        std::vector<double> density(upper_point);
-        for(unsigned int i=0; i<upper_point; i++)
-        {
-            density[i] = current.f[i] * other.f[i] + Constant::AlphaSquared * current.g[i] * other.g[i];
-        }
-
-        // Sum over all k
-        unsigned int k_min;
-        if(ds_current && (StateInfo(ds_current) == StateInfo(&other)))
-            k_min = 2;
-        else
-            k_min = abs((int)other.L() - (int)current.L());
-            
-        for(unsigned int k = k_min; k <= (other.L() + current.L()); k+=2)
-        {
-            double coefficient = Constant::Wigner3j(k, current.J(), other.J(), 0., .5, -.5);
-            coefficient = (2 * abs(other.Kappa())) * coefficient * coefficient;
-
-            // Open shells need to be scaled
-            if(IsOpenShellState(StateInfo(&other)) && (other.Occupancy() != double(2 * abs(other.Kappa()))))
-            {
-                double ex = 1.;
-                if(NON_REL_SCALING)
-                {   // Average over non-relativistic configurations
-                    if(other.Kappa() == -1)
-                    {
-                        if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
-                            ex = other.Occupancy()/double(2 * abs(other.Kappa()));
-                        else if(k)
-                            ex = (other.Occupancy()-1.)/double(2 * abs(other.Kappa()) - 1);
-                    }
-                    else
-                    {
-                        int other_kappa = - other.Kappa() - 1;
-                        const DiscreteState* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
-
-                        if((ds_current == NULL) || ((StateInfo(ds_current) != StateInfo(&other)) && (StateInfo(ds_current) != StateInfo(ds))))
-                            ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
-                        else if(k)
-                            ex = (other.Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())) - 1);
-                    }
-                }
-                else
-                {   // Average over relativistic configurations
-                    if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
-                        ex = other.Occupancy()/double(2 * (abs(other.Kappa())));
-                    else if(k)
-                        ex = (other.Occupancy() - 1.)/double(2 * (abs(other.Kappa())) - 1);
-                }
-
-                coefficient = coefficient * ex;
-            }
-
-            if(coefficient)
-            {
-                // Integrate density to get (1/r)Y(ab,r)
-                std::vector<double> potential;
-                I.CoulombIntegrate(density, potential, k);
-
-                for(unsigned int i=0; i<upper_point; i++)
-                {
-                    exchange.f[i] = exchange.f[i] + coefficient * potential[i] * other.f[i];
-                    exchange.g[i] = exchange.g[i] + coefficient * potential[i] * other.g[i];
-                }
-
-                if(NuclearInverseMass && (k == 1))
-                {
-                    std::vector<double> P(upper_point);
-                    double sms = SI.IsotopeShiftIntegral(current, other, &P);
-                    
-                    for(unsigned int i=0; i<upper_point; i++)
-                    {
-                        exchange.f[i] = exchange.f[i] + coefficient * NuclearInverseMass * sms *  P[i];
-                    }
-                }
-            }
-        }
-        cs.Next();
-    }
-}
-
-const unsigned int Core::StateParameters::MaxHFIterations = 200;
-double Core::StateParameters::WavefunctionTolerance = 1.E-5;
-double Core::StateParameters::EnergyTolerance = 1.E-9;
+const unsigned int Core::StateParameters::MaxHFIterations = 300;
+double Core::StateParameters::WavefunctionTolerance = 1.E-11;
+double Core::StateParameters::EnergyTolerance = 1.E-14;

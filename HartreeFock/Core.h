@@ -76,8 +76,6 @@ public:     // Methods for Hartree-Fock calculations and potentials
 
     /** Do self consistent Hartree Fock proceedure until convergency is reached. */
     void Update();
-    /** If convergency is not reached, return false. */
-    bool UpdateGreens();
 
     /** The HF Potential is the direct potential of the core including open shells. */
     virtual std::vector<double> GetHFPotential() const;
@@ -112,15 +110,12 @@ public:
     virtual bool IsOpenShellState(const StateInfo& info) const;
 
 protected:
-    /** Iterate an existing state in the current HF potential until the energy converges.
-        It includes the exchange interaction with all core electrons,
-            scaled by exchange_amount (which should be between 0 and 1, inclusive).
-        If exchange_amount < 0, then use the local approximation to exchange for the
-            first iteration, then the full exchange thereafter.
+    /** Iterate an existing state in an approximate potential until the energy converges.
+        The potential is direct + local exchange approximation.
         Returns the number of iterations necessary to achieve convergence.
         If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
      */
-    unsigned int CalculateDiscreteState(DiscreteState* s, double exchange_amount = 1., const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    unsigned int ConvergeStateApproximation(DiscreteState* s, bool include_exch = true) const;
 
     /** Solve the Dirac eqn in the current HF potential once and adjust the energy
         to renormalise. The exchange may be resized to the new size of s.
@@ -138,9 +133,6 @@ protected:
         the LocalExchangeApproximation is added to HFPotential in this function.
      */
     void UpdateHFPotential(double proportion_new = 1., bool first_build = false);
-
-    void UpdateHFPotentialNoSelfInteraction(const StateInfo& current, double proportion_new = 1.);
-    void CalculateExchangeNoSelfInteraction(const State& current, CoupledFunction& exchange) const;
 
     /** Simply extend the HF potential (and the closed core potential) to the size of the lattice. */
     void ExtendPotential() const;

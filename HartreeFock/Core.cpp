@@ -100,7 +100,62 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
 {
     DiscreteState* ds = dynamic_cast<DiscreteState*>(s);
     if(ds != NULL)
-        return CalculateDiscreteState(ds, 1., sigma, sigma_amount);
+    {   // Hartree-Fock loops
+        bool debugHF = DebugOptions.LogHFIterations();
+
+        double deltaE;
+        unsigned int loop = 0;
+        DiscreteState* new_ds = new DiscreteState(*ds);
+        double prop_new = 0.5;
+        do
+        {   loop++;
+            CoupledFunction exchange;
+            CalculateExchange(*new_ds, exchange, sigma, sigma_amount);
+            deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+
+            if(debugHF)
+                *logstream << "  " << std::setw(4) << ds->Name() 
+                           << "  E = " << std::setprecision(12) << ds->Energy()
+                           << "  deltaE = " << std::setprecision(3) << deltaE
+                           << "  size: " << new_ds->Size() << std::endl;
+
+            ds->Scale(1. - prop_new);
+            new_ds->Scale(prop_new);
+            ds->ReSize(mmax(ds->Size(), new_ds->Size()));
+            new_ds->ReSize(mmax(ds->Size(), new_ds->Size()));
+
+            for(unsigned int i = 0; i<ds->Size(); i++)
+            {   ds->f[i] += new_ds->f[i];
+                ds->g[i] += new_ds->g[i];
+                ds->df[i] += new_ds->df[i];
+                ds->dg[i] += new_ds->dg[i];
+            }
+
+            // Renormalise core states (should be close already) and update energy.
+            ds->ReNormalise();
+            ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
+            *new_ds = *ds;
+            deltaE = fabs(deltaE/new_ds->Energy());
+
+        }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
+
+        if(loop >= StateParameters::MaxHFIterations)
+            *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
+
+        if(DebugOptions.OutputHFExcited())
+        {
+            *outstream << std::setprecision(12);
+            if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
+            {
+                double energy = ds->Energy();
+                if(DebugOptions.InvCmEnergyUnits())
+                    energy *= Constant::HartreeEnergy_cm;
+                *outstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+            }
+            else
+                *outstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+        }
+    }
     else
     {   ContinuumState* cs = dynamic_cast<ContinuumState*>(s);
         return CalculateContinuumState(cs);

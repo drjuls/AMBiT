@@ -130,15 +130,16 @@ void Core::BuildFirstApproximation()
         HFPotential[i] = ZR/lattice->R(i);
     }
 
-    // Iterate states
+    LocalExchangeApproximation.clear();
+    LocalExchangeApproximation.resize(HFPotential.size());
+
+    // Iterate states, adding in local exchange approximation.
     bool debug = DebugOptions.LogFirstBuild();
-    std::vector<double> electron_density;
+
     for(unsigned int m = 0; m < 10; m++)
     {
         if(debug)
             *logstream << "First Build Iteration: " << m+1 << std::endl;
-
-        electron_density.clear();
 
         StateIterator it = GetStateIterator();
         while(!it.AtEnd())
@@ -156,7 +157,7 @@ void Core::BuildFirstApproximation()
                 // Attempt the local exchange approximation method.
                 // This is encapsulated in the UpdateHFPotential method
                 // when first_build = true.
-                iterations = CalculateDiscreteState(s, 0.);
+                iterations = ConvergeStateApproximation(s, false);
                 if(iterations >= StateParameters::MaxHFIterations)
                 {   // Evil - this should never happen given our simple model.
                     *errstream << "    BuildFirstApproximation: iterations = " << iterations << std::endl;
@@ -177,17 +178,12 @@ void Core::BuildFirstApproximation()
             }
             while(zero_difference);
 
-            if(s->Size() > electron_density.size())
-                electron_density.resize(s->Size());
-
-            double number_electrons = s->Occupancy();
-            for(unsigned int j=0; j<s->Size(); j++)
-            {
-                electron_density[j] = electron_density[j] + ((s->f[j])*(s->f[j]) + Constant::AlphaSquared * (s->g[j])*(s->g[j]))*number_electrons;
-            }
-
             if(debug)
-                *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
+            {   if(DebugOptions.HartreeEnergyUnits())
+                    *logstream << "  " << s->Name() << "  en: " << s->Energy() << std::endl;
+                else
+                    *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
+            }
 
             it.Next();
         }
