@@ -82,6 +82,6 @@ void BSplineGrid::CreateSplineKnots(double dr0, double rmax)
     for(i = k; i < n; i++)
         t[i] = beta * (exp(h*(i-k+1)) - 1.);
 
-    for(i = n; i < n+k-1; i++)
+    for(i = n; i < n+k; i++)
         t[i] = rmax;
 }
