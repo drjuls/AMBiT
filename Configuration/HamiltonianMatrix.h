@@ -47,6 +47,7 @@ protected:
     double SMSMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
 
     double GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const;
+    double GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const;
     double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
 
     /** Calculate the Lande g-factors for eigenfunctions of the Hamiltonian.

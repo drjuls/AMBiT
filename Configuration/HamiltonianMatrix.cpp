@@ -65,6 +65,9 @@ void HamiltonianMatrix::UpdateIntegrals()
 
     // Two electron integrals
     const double* dR = states.GetLattice()->dR();
+    const double* R = states.GetLattice()->R();
+    const double core_pol = states.GetCore()->GetPolarisability();
+    const double core_rad = states.GetCore()->GetClosedShellRadius();
 
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
@@ -144,6 +147,20 @@ void HamiltonianMatrix::UpdateIntegrals()
                             {
                                 radial += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
                                           * Pot24[p] * dR[p];
+                            }
+
+                            if(core_pol && k == 1)
+                            {   
+                                double R1 = 0.;
+                                double R2 = 0.;
+                                for(p=0; p<limit; p++)
+                                {
+                                    double r2 = R[p]*R[p] + core_rad*core_rad;
+                                    R1 += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
+                                    R2 += density[p]/r2 * dR[p];
+                                }
+
+                                radial -= core_pol * R1 * R2;
                             }
 
                             TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
@@ -487,14 +504,6 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
 
     const double* dR = states.GetLattice()->dR();
 
-    const State* s1 = states.GetState(e1);
-    const State* s2 = states.GetState(e2);
-    const State* s3 = states.GetState(e3);
-    const State* s4 = states.GetState(e4);
-
-    CoulombIntegrator I(*states.GetLattice());
-    StateIntegrator SI(*states.GetLattice());
-
     double total = 0.;
 
     // k == 1 only
@@ -518,7 +527,7 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
         // Specific Mass Shift
         double SMS = states.GetCore()->GetNuclearInverseMass();
         if(SMS)
-            SMS = SMS * SI.IsotopeShiftIntegral(*s1, *s3) * SI.IsotopeShiftIntegral(*s2, *s4);
+            SMS = SMS * GetSMSIntegral(e1, e3) * GetSMSIntegral(e2, e4);
 
         total = - coeff * SMS;
     }
@@ -851,7 +860,7 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
         const State* p1 = states.GetState(e1);
         const State* p2 = states.GetState(e2);
         const double* dR = states.GetLattice()->dR();
-        for(int i=0; i<p1->Size(); i++)
+        for(unsigned int i=0; i<p1->Size(); i++)
             overlap += (p1->f[i] * p2->f[i] + Constant::AlphaSquared * p1->g[i] * p2->g[i]) * dR[i];
 
         double Lplushalf = double(e1.L()) + 0.5;
@@ -877,6 +886,17 @@ double HamiltonianMatrix::GetOneElectronIntegral(const StateInfo& s1, const Stat
         return OneElectronIntegrals.find(i1 * NumStates + i2)->second;
     else
         return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
+}
+
+double HamiltonianMatrix::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const
+{
+    unsigned int i1 = state_index.find(s1)->second;
+    unsigned int i2 = state_index.find(s2)->second;
+
+    if(i1 <= i2)
+        return SMSIntegrals.find(i1 * NumStates + i2)->second;
+    else
+        return SMSIntegrals.find(i2 * NumStates + i1)->second;
 }
 
 double HamiltonianMatrix::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
