@@ -8,9 +8,17 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Alt: New method of converging Hartree-Fock by damping changes in electron
+     states at each iteration. Big changes to Core::Update() and
+     Core::CalculateExcitedState().
 Bug: HamiltonianMatrix::~HamiltonianMatrix(): check to see if M is NULL
-     before deletion.
+     before deletion; State::NumZeroes now removes start and tail to exclude
+     small oscillations about zero.
 Add: Support for jcb2pc in make.machine.
+Del: Convergence method based on tail matching, except for local exchange
+     approximation. Thus CalculateDiscreteState->ConvergeStateApproximation.
+Del: UpdateHFPotentialNoSelfInteraction() and
+     CalculateExchangeNoSelfInteraction() are no longer required.
 
 1.1.3 - 22/02/05
 Bug: FeII configuration; sign in GetSMSIntegral().
