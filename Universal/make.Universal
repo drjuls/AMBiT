@@ -1,5 +1,6 @@
-cxxobjects = Constant.o CoulombIntegrator.o \
-             Eigensolver.o Integrator.o Interpolator.o Lattice.o
+cxxobjects = Constant.o CoulombIntegrator.o CoupledFunction.o \
+             Eigensolver.o Integrator.o Interpolator.o Lattice.o \
+             MPIMatrix.o SmallMatrix.o SymMatrix.o
 cobjects =
 fobjects = Davidson.o
 

@@ -1,7 +1,7 @@
 #ifndef EIGENSOLVER_H
 #define EIGENSOLVER_H
 
-#include "Configuration/Matrix.h"
+#include "Matrix.h"
 
 class Eigensolver
 {

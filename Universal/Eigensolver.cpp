@@ -1,9 +1,9 @@
 #include "Include.h"
 #include "Eigensolver.h"
-#include "Configuration/SmallMatrix.h"
+#include "SmallMatrix.h"
 
 #ifdef _MPI
-#include "Configuration/MPIMatrix.h"
+#include "MPIMatrix.h"
 #include <mpi.h>
 #endif
 

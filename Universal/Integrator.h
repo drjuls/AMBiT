@@ -4,7 +4,7 @@
 #include <vector>
 #include "Lattice.h"
 #include "Function.h"
-#include "HartreeFock/CoupledFunction.h"
+#include "CoupledFunction.h"
 #include "Constant.h"
 
 class Integrator
