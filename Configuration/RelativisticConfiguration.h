@@ -2,12 +2,16 @@
 #define RELATIVISTIC_CONFIGURATION_H
 
 #include "Configuration.h"
-#include "RelativisticInfo.h"
+#include "HartreeFock/StateInfo.h"
 #include "Projection.h"
 #include <string>
 
 class RelativisticConfiguration : public Configuration
 {
+    /** RelativisticConfiguration extends configuration by adding a set of projections
+        and corresponding coefficients for a particular |J, M>. Thus it should not be used
+        with non-relativistic configurations.
+     */
 public:
     RelativisticConfiguration():
         Configuration()
@@ -20,8 +24,8 @@ public:
     {}
     virtual ~RelativisticConfiguration(void) {}
 
-    RelativisticInfo GetInfo() const;
-    virtual bool AddSingleParticle(const SingleParticleInfo& info);
+    StateInfo GetInfo() const;
+    virtual bool AddSingleParticle(const StateInfo& info);
 
     /** Return whether a suitable projection with J = M = two_m/2 was found
      */

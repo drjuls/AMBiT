@@ -38,7 +38,7 @@ bool ElectronInfo::operator !=(const ElectronInfo& other) const
 
 std::string ElectronInfo::Name() const
 {
-    std::string name = RelativisticInfo::Name();
+    std::string name = StateInfo::Name();
 
     char buffer[20];
     sprintf(buffer, "(%d)", two_m);

@@ -3,17 +3,17 @@
 #include "ConfigGenerator.h"
 #include "Universal/Eigensolver.h"
 
-RelativisticInfo RelativisticConfiguration::GetInfo() const
+StateInfo RelativisticConfiguration::GetInfo() const
 {
-    return RelativisticInfo(Configuration::GetInfo());
+    return StateInfo(Configuration::GetInfo());
 }
 
-bool RelativisticConfiguration::AddSingleParticle(const SingleParticleInfo& info)
+bool RelativisticConfiguration::AddSingleParticle(const StateInfo& info)
 {
-    std::map<SingleParticleInfo, unsigned int>::iterator a_it = Config.find(info);
+    std::map<StateInfo, unsigned int>::iterator a_it = Config.find(info);
     if(a_it != Config.end())
     {
-        RelativisticInfo rel_info(a_it->first);
+        StateInfo rel_info(a_it->first);
         if(a_it->second >= (unsigned int)(2*abs(rel_info.Kappa()))) // maximum number of electrons
         {   a_it->second = 2*abs(rel_info.Kappa());
             return false;
@@ -38,7 +38,7 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
     First();
     while(!AtEnd())
     {
-        RelativisticInfo rinfo = GetInfo();
+        StateInfo rinfo = GetInfo();
         for(unsigned int i=0; i<GetOccupancy(); i++)
         {   electrons.push_back(ElectronInfo(rinfo.PQN(), rinfo.Kappa(), 0));
         }
@@ -98,7 +98,7 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
         if(index != 0)
         {
             const ElectronInfo& prev_info = electrons[index-1];
-            if(RelativisticInfo(e_info) == RelativisticInfo(prev_info))
+            if(StateInfo(e_info) == StateInfo(prev_info))
             {   
                 two_m = prev_info.TwoM() + 2;
                 if(two_m > int(e_info.TwoJ()))
@@ -122,7 +122,7 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
 
 int RelativisticConfiguration::GetTwiceMaxProjection() const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
     int proj = 0;
     while(m_it != Config.end())
     {
@@ -140,11 +140,11 @@ int RelativisticConfiguration::GetTwiceMaxProjection() const
 
 std::string RelativisticConfiguration::Name() const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
     std::string name;
     while(m_it != Config.end())
     {
-        name.append(" " + RelativisticInfo(m_it->first).Name());
+        name.append(" " + StateInfo(m_it->first).Name());
 
         char buffer[20];
         sprintf(buffer, "%d", m_it->second);
@@ -294,7 +294,7 @@ Configuration RelativisticConfiguration::GetNonRelConfiguration() const
 {
     Configuration ret;
 
-    std::map<SingleParticleInfo, unsigned int>::const_iterator c_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator c_it = Config.begin();
     while(c_it != Config.end())
     {
         ret.SetIterator(NonRelInfo(c_it->first));

@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "Configuration.h"
-#include "NonRelInfo.h"
+#include "HartreeFock/NonRelInfo.h"
 
 Configuration::Configuration(const Configuration& other):
     Config(other.Config)
@@ -11,12 +11,12 @@ Configuration::Configuration(const Configuration& other):
         it = Config.find(other.GetInfo());
 }
 
-void Configuration::SetIterator(const SingleParticleInfo& info) const
+void Configuration::SetIterator(const StateInfo& info) const
 {
     it = Config.find(info);
 }
 
-SingleParticleInfo Configuration::GetInfo() const
+StateInfo Configuration::GetInfo() const
 {
     return it->first;
 }
@@ -29,20 +29,20 @@ unsigned int Configuration::GetOccupancy() const
 void Configuration::SetOccupancy(unsigned int occupancy)
 {
     if(!AtEnd())
-    {   SingleParticleInfo info = GetInfo();
+    {   StateInfo info = GetInfo();
         if(occupancy)
             Config[info] = occupancy;
         else
         {   Next();
-            std::map<SingleParticleInfo, unsigned int>::iterator kill_it = Config.find(info);
+            std::map<StateInfo, unsigned int>::iterator kill_it = Config.find(info);
             Config.erase(kill_it);
         }
     }
 }
 
-bool Configuration::RemoveSingleParticle(const SingleParticleInfo& info)
+bool Configuration::RemoveSingleParticle(const StateInfo& info)
 {
-    std::map<SingleParticleInfo, unsigned int>::iterator r_it = Config.find(info);
+    std::map<StateInfo, unsigned int>::iterator r_it = Config.find(info);
     if(r_it != Config.end())
     {
         if(r_it->second <= 1)
@@ -56,9 +56,9 @@ bool Configuration::RemoveSingleParticle(const SingleParticleInfo& info)
         return false;
 }
 
-bool Configuration::AddSingleParticle(const SingleParticleInfo& info)
+bool Configuration::AddSingleParticle(const StateInfo& info)
 {
-    std::map<SingleParticleInfo, unsigned int>::iterator a_it = Config.find(info);
+    std::map<StateInfo, unsigned int>::iterator a_it = Config.find(info);
     if(a_it != Config.end())
     {
         if(a_it->second >= 4*(a_it->first.L()) + 2) // maximum number of electrons
@@ -74,7 +74,7 @@ bool Configuration::AddSingleParticle(const SingleParticleInfo& info)
     return true;
 }
 
-bool Configuration::SetOccupancy(const SingleParticleInfo& info, unsigned int occupancy)
+bool Configuration::SetOccupancy(const StateInfo& info, unsigned int occupancy)
 {
     if(occupancy)
     {   if(occupancy <= 4 * info.L() + 2)
@@ -83,7 +83,7 @@ bool Configuration::SetOccupancy(const SingleParticleInfo& info, unsigned int oc
             return false;
     }
     else
-    {   std::map<SingleParticleInfo, unsigned int>::iterator kill_it = Config.find(info);
+    {   std::map<StateInfo, unsigned int>::iterator kill_it = Config.find(info);
         if(kill_it != Config.end())
             Config.erase(kill_it);
     }
@@ -94,7 +94,7 @@ bool Configuration::SetOccupancy(const SingleParticleInfo& info, unsigned int oc
 unsigned int Configuration::NumParticles() const
 {
     unsigned int num = 0;
-    std::map<SingleParticleInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
     while(m_it != Config.end())
     {   num += m_it->second;
         m_it++;
@@ -104,7 +104,7 @@ unsigned int Configuration::NumParticles() const
 
 Parity Configuration::GetParity() const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
     unsigned int sum = 0;
     while(m_it != Config.end())
     {
@@ -120,7 +120,7 @@ Parity Configuration::GetParity() const
 
 std::string Configuration::Name() const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
     std::string name;
     while(m_it != Config.end())
     {
@@ -137,8 +137,8 @@ std::string Configuration::Name() const
 
 bool Configuration::operator<(const Configuration& other) const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator first = Config.begin();
-    std::map<SingleParticleInfo, unsigned int>::const_iterator second = other.Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator first = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator second = other.Config.begin();
 
     while((first != Config.end()) && (second != other.Config.end()))
     {
@@ -165,8 +165,8 @@ bool Configuration::operator<(const Configuration& other) const
 
 bool Configuration::operator==(const Configuration& other) const
 {
-    std::map<SingleParticleInfo, unsigned int>::const_iterator first = Config.begin();
-    std::map<SingleParticleInfo, unsigned int>::const_iterator second = other.Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator first = Config.begin();
+    std::map<StateInfo, unsigned int>::const_iterator second = other.Config.begin();
 
     while((first != Config.end()) && (second != other.Config.end()))
     {

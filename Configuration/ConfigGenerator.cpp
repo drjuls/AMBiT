@@ -11,17 +11,17 @@ void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
     ConstStateIterator it = states->GetConstStateIterator();
     while(!it.AtEnd())
     {
-        const DiscreteState* ds = dynamic_cast<const DiscreteState*>(it.GetState());
+        const DiscreteState* ds = it.GetState();
         if(ds != NULL)
         {
-            RelativisticSet.insert(RelativisticInfo(ds->RequiredPQN(), ds->Kappa()));
+            RelativisticSet.insert(StateInfo(ds->RequiredPQN(), ds->Kappa()));
             if(ds->Kappa() < 0)
                 NonRelSet.insert(NonRelInfo(ds->RequiredPQN(), ds->L()));
         }
         it.Next();
     }
 
-    std::set<RelativisticInfo>::const_iterator rinfo = RelativisticSet.begin();
+    std::set<StateInfo>::const_iterator rinfo = RelativisticSet.begin();
     unsigned int index = 0;
     while(rinfo != RelativisticSet.end())
     {
@@ -142,8 +142,8 @@ void ConfigGenerator::SplitNonRelInfo(Configuration config, RelativisticConfigLi
     }
     else
     {   // rinfo1 has kappa = -(L+1). rinfo2 has kappa = L.
-        RelativisticInfo rinfo1 = nrinfo.GetFirstRelativisticInfo();
-        RelativisticInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
+        StateInfo rinfo1 = nrinfo.GetFirstRelativisticInfo();
+        StateInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
 
         unsigned int num_electrons = config.GetOccupancy();
         unsigned int start = mmin((unsigned int)(0), num_electrons-rinfo2.MaxNumElectrons());

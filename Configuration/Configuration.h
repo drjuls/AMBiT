@@ -1,7 +1,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include "SingleParticleInfo.h"
+#include "HartreeFock/StateInfo.h"
 #include <map>
 #include <list>
 #include <string>
@@ -13,8 +13,8 @@
 
 class Configuration
 {
-    /** Configuration is really a non-relativistic list, but could be used for
-        relativistic states as well.
+    /** Configuration is a map between a set of single particle states and their occupancy.
+        It can be used for relativistic and non-relativistic states.
      */
 public:
     Configuration() { First(); }
@@ -24,16 +24,16 @@ public:
     inline void First() const;
     inline void Next() const;
     inline bool AtEnd() const;
-    void SetIterator(const SingleParticleInfo& info) const;
+    void SetIterator(const StateInfo& info) const;
 
-    SingleParticleInfo GetInfo() const;
+    StateInfo GetInfo() const;
     unsigned int GetOccupancy() const;
     void SetOccupancy(unsigned int occupancy);
 
     // These return the success of the operation.
-    virtual bool RemoveSingleParticle(const SingleParticleInfo& info);
-    virtual bool AddSingleParticle(const SingleParticleInfo& info);
-    virtual bool SetOccupancy(const SingleParticleInfo& info, unsigned int occupancy);
+    virtual bool RemoveSingleParticle(const StateInfo& info);
+    virtual bool AddSingleParticle(const StateInfo& info);
+    virtual bool SetOccupancy(const StateInfo& info, unsigned int occupancy);
 
     virtual unsigned int NumParticles() const;
 
@@ -44,8 +44,8 @@ public:
 
 protected:
     /** Map single particle state to occupancy. */
-    std::map<SingleParticleInfo, unsigned int> Config;
-    mutable std::map<SingleParticleInfo, unsigned int>::const_iterator it;
+    std::map<StateInfo, unsigned int> Config;
+    mutable std::map<StateInfo, unsigned int>::const_iterator it;
 };
 
 typedef std::list<Configuration> ConfigList;

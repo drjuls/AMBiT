@@ -3,7 +3,7 @@
 
 #include "RelativisticConfiguration.h"
 #include "Basis/ExcitedStates.h"
-#include "Matrix.h"
+#include "Universal/Matrix.h"
 
 class HamiltonianMatrix
 {

@@ -1,8 +1,7 @@
 cxxobjects = ConfigGenerator.o Configuration.o \
              ElectronInfo.o HamiltonianMatrix.o \
-             MPIHamiltonianMatrix.o MPIMatrix.o \
-             Projection.o RelativisticConfiguration.o \
-             RelativisticInfo.o SmallMatrix.o SymMatrix.o
+             MPIHamiltonianMatrix.o Projection.o \
+             RelativisticConfiguration.o
 cobjects =
 fobjects =
 

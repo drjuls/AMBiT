@@ -6,7 +6,7 @@
 #include "Configuration.h"
 #include "RelativisticConfiguration.h"
 #include "Projection.h"
-#include "NonRelInfo.h"
+#include "HartreeFock/NonRelInfo.h"
 
 class ConfigGenerator
 {
@@ -53,7 +53,7 @@ protected:
     const ExcitedStates* states;
 
     std::set<NonRelInfo> NonRelSet;
-    std::set<RelativisticInfo> RelativisticSet;
+    std::set<StateInfo> RelativisticSet;
     std::map<ElectronInfo, unsigned int> ElectronSet;
 };
 

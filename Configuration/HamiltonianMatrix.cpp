@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "HamiltonianMatrix.h"
-#include "SmallMatrix.h"
-#include "SymMatrix.h"
+#include "Universal/SmallMatrix.h"
+#include "Universal/SymMatrix.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/State.h"
@@ -257,7 +257,7 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
         // Sum <i|f|i>
         for(unsigned int i=0; i<first.Size(); i++)
         {
-            value += GetOneElectronIntegral(first[i].GetStateInfo(), first[i].GetStateInfo());
+            value += GetOneElectronIntegral(first[i], first[i]);
             
             // Sum(i < j) <ij|g|ij> - <ij|g|ji>
             for(unsigned int j=i+1; j<first.Size(); j++)
@@ -275,7 +275,7 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
         // a->b
         // <a|f|b>
         if((f1.M() == s1.M()) && (f1.Kappa() == s1.Kappa()))
-            value = GetOneElectronIntegral(f1.GetStateInfo(), s1.GetStateInfo()) * sign;
+            value = GetOneElectronIntegral(f1, s1) * sign;
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
         for(unsigned int i=0; i<first.Size(); i++)
@@ -348,7 +348,7 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
             coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
                                         e3.MaxNumElectrons() * e4.MaxNumElectrons()));
 
-            double radial = GetTwoElectronIntegral(k, e1.GetStateInfo(), e2.GetStateInfo(), e3.GetStateInfo(), e4.GetStateInfo());
+            double radial = GetTwoElectronIntegral(k, e1, e2, e3, e4);
 
             total += coeff * radial;
         }
@@ -429,14 +429,14 @@ double HamiltonianMatrix::CoreSMS(const ElectronInfo& e1, const ElectronInfo& e2
 
     double E = 0.;
 
-    const State& state1 = *states.GetState(e1.GetStateInfo());
-    const State& state2 = *states.GetState(e2.GetStateInfo());
+    const State& state1 = *states.GetState(e1);
+    const State& state2 = *states.GetState(e2);
 
     const Core* core = states.GetCore();
 
     // Sum over all core states
     CoulombIntegrator I(*states.GetLattice());
-    ConstDiscreteStateIterator cs = core->GetConstDiscreteStateIterator();
+    ConstStateIterator cs = core->GetConstStateIterator();
     while(!cs.AtEnd())
     {
         const DiscreteState& other = *(cs.GetState());
@@ -481,10 +481,10 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
 
     const double* dR = states.GetLattice()->dR();
 
-    const State* s1 = states.GetState(e1.GetStateInfo());
-    const State* s2 = states.GetState(e2.GetStateInfo());
-    const State* s3 = states.GetState(e3.GetStateInfo());
-    const State* s4 = states.GetState(e4.GetStateInfo());
+    const State* s1 = states.GetState(e1);
+    const State* s2 = states.GetState(e2);
+    const State* s3 = states.GetState(e3);
+    const State* s4 = states.GetState(e4);
 
     CoulombIntegrator I(*states.GetLattice());
 
@@ -832,8 +832,8 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
        (e1.TwoM() == e2.TwoM()))
     {
         double overlap = 0.;
-        const State* p1 = states.GetState(e1.GetStateInfo());
-        const State* p2 = states.GetState(e2.GetStateInfo());
+        const State* p1 = states.GetState(e1);
+        const State* p2 = states.GetState(e2);
         const double* dR = states.GetLattice()->dR();
         for(int i=0; i<p1->Size(); i++)
             overlap += (p1->f[i] * p2->f[i] + Constant::AlphaSquared * p1->g[i] * p2->g[i]) * dR[i];
