@@ -1,5 +1,4 @@
 # change this stuff only if you know what you are doing
-
 HOSTNAME = $(shell hostname)
 
 ifeq ($(findstring sc, $(HOSTNAME)), sc)
@@ -15,39 +14,15 @@ endif
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
 
-ifeq ($(MACHINE), apacsc)
-  CC = cxx
-  CXX = cxx
-  PLAT         = OSF1
-  PREF         = /usr/local/lib/lib
-  BLASLIB      = $(PREF)blas$(PLAT).a
-  LAPACKLIB    = $(PREF)clapack$(PLAT).a
-  LIBF2C       = $(PREF)f2c.a
-
-  CPPFLAGS += -D__USE_STD_IOSTREAM
-
-  ifdef debug
-    BUILD = Debug
-    CFLAGS += -g
-    CXXFLAGS += -g
-  else
-    BUILD = Release
-    CFLAGS += -fast
-    CXXFLAGS += -fast
-  endif
-
-  DEPFLAG = -M
-endif
-
 ifeq ($(MACHINE), apaclc)
-  CC = gcc
-  CXX = g++
-  F77 = g77
+  CC  = icc
+  CXX = icc
+  F77 = ifort
 
-  LIBDIR       = /usr/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    = g2c
+  LIBDIR       = /usr/lib $(INTELPATH)/mkl61/lib/32
+  BLASLIB      = 
+  LAPACKLIB    = mkl_lapack
+  EXTRALIBS    = mkl_p4 guide
 
   ifdef debug
     BUILD = Debug
@@ -60,13 +35,14 @@ ifeq ($(MACHINE), apaclc)
     F77FLAGS += -O3
   endif
 
-  DEPFLAG = -MM
+  CCDEP = icc
+  DEPFLAG = -M
 endif
 
 ifeq ($(MACHINE), newt)
-  CC = gcc
-  CXX = g++
-  F77 = gcc
+  CC  = gcc33
+  CXX = g++33
+  F77 = gcc33
 
   LIBDIR       = /usr/local/lib
   BLASLIB      = blas
@@ -87,6 +63,7 @@ ifeq ($(MACHINE), newt)
   endif
 
   # non gnu compilers may not support MM: use M instead
+  CCDEP = gcc33
   DEPFLAG = -MM
 endif
 

@@ -19,7 +19,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     NumStatesPerL = num_states_per_l;
     Clear();
 
-    bool debug = core->GetDebugOptions().DebugHFExcited();
+    bool debug = DebugOptions.OutputHFExcited();
 
     double dr0;
 
@@ -202,7 +202,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             if(E.SolveMatrixEquation(A, b, eigenvalues, n2))
             {
                 if(debug)
-                    printf("kappa = %d\n", kappa);
+                    *outstream << "kappa = " << kappa << std::endl;
 
                 // Interpolate onto HF lattice and store
                 const double* HF_R = lattice->R();
@@ -222,7 +222,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     if(s != NULL && !core->IsOpenShellState(StateInfo(pqn, kappa)))
                     {   if(debug)
                         {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                            printf("  %s en: %.7f  deltaE: %e\n", s->Name().c_str(), eigenvalues[i], diff);
+                            *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
+                                       << "  deltaE: " << diff << std::endl;
                         }
                     }
                     else
@@ -252,7 +253,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                         if(fabs(ds->Norm() - 1.) > 1.e-2)
                         {   if(debug)
-                                printf("  State removed: energy = %.7f  norm = %.5f\n", ds->Energy(), ds->Norm());
+                                *outstream << "  State removed: energy = " << ds->Energy()
+                                           << "  norm = " << ds->Norm() << std::endl;
                             pqn--;
 
                             delete ds;
@@ -261,10 +263,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         {   if(debug)
                             {   if(s)
                                 {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                                    printf("  %s en: %.7f norm: %e  deltaE: %e\n", ds->Name().c_str(), ds->Energy(), ds->Norm()-1., diff);
+                                    *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                               << " norm: " << ds->Norm() - 1. << "  deltaE: " << diff << std::endl;
                                 }
                                 else
-                                    printf("  %s en: %.7f norm: %e\n", ds->Name().c_str(), ds->Energy(), ds->Norm()-1.);
+                                    *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                               << " norm: " << ds->Norm() - 1. << std::endl;
                             }
                             AddState(ds);
                             count++;
@@ -285,7 +289,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     }   }
 
     if(debug)
-        printf("Orthogonality test: %e\n", TestOrthogonality());
+        *outstream << "Orthogonality test: " << TestOrthogonality() << std::endl;
 }
 
 void BSplineBasis::Update()

@@ -22,11 +22,11 @@ double MBPTCalculator::GetSecondOrderSigma(const State* s, SigmaPotential* sigma
         for(unsigned int i=0; i<sum.size(); i++)
             energy += s->f[i] * sum[i] * lattice->dR(i);
 
-        printf("\tSecond order contribution: %.3f\n", energy * Constant::HartreeEnergy_cm);
+        *outstream << "\tSecond order contribution: " << energy * Constant::HartreeEnergy_cm << std::endl;
     }
 
-    printf("Total energy from direct summation = %.3f\n", (s->Energy() + ten1 + ten2 + ten4)*Constant::HartreeEnergy_cm);
-    printf("Total energy via sigma potential   = %.3f\n", (s->Energy() + energy) * Constant::HartreeEnergy_cm);
+    *outstream << "Total energy from direct summation = " << (s->Energy() + ten1 + ten2 + ten4)*Constant::HartreeEnergy_cm << std::endl;
+    *outstream << "Total energy via sigma potential   = " << (s->Energy() + energy) * Constant::HartreeEnergy_cm << std::endl;
 
     return (s->Energy() + ten1 + ten2 + ten4);
 }
@@ -38,7 +38,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
     std::vector<double> Pot24;
     CoulombIntegrator I(*lattice);
 
-    std::cout << "Cor 1+3:  ";
+    *outstream << "Cor 1+3:  ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
     double count = 0;
     unsigned int i;
@@ -57,7 +57,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
 
             count += spacing;
             if(count >= 0.02)
-            {   std::cout << ".";
+            {   *logstream << ".";
                 count -= 0.02;
             }
 
@@ -177,7 +177,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
         it2.Next();
     }
 
-    std::cout << "  " << energy1 * Constant::HartreeEnergy_cm
+    *outstream << "  " << energy1 * Constant::HartreeEnergy_cm
               << "  " << energy3 * Constant::HartreeEnergy_cm << std::endl;
 
     return energy1 + energy3;
@@ -191,7 +191,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
     CoulombIntegrator I(*lattice);
     const double* dR = lattice->dR();
 
-    std::cout << "Cor 2:    ";
+    *outstream << "Cor 2:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
     double count = 0;
     unsigned int i;
@@ -208,7 +208,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
 
             count += spacing;
             if(count >= 0.02)
-            {   std::cout << ".";
+            {   *logstream << ".";
                 count -= 0.02;
             }
 
@@ -328,7 +328,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
         it2.Next();
     }
 
-    std::cout << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+    *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
     return energy;
 }
 
@@ -339,7 +339,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
     std::vector<double> Pot24, Pot34;
     CoulombIntegrator I(*lattice);
 
-    std::cout << "Cor 4:    ";
+    *outstream << "Cor 4:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
     double count = 0;
     unsigned int i;
@@ -356,7 +356,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
 
             count += spacing;
             if(count >= 0.02)
-            {   std::cout << ".";
+            {   *logstream << ".";
                 count -= 0.02;
             }
 
@@ -475,6 +475,6 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
         it4.Next();
     }
 
-    std::cout << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+    *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
     return energy;
 }

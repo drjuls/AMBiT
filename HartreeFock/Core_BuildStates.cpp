@@ -15,7 +15,7 @@ void Core::Update()
     if(Empty())
         BuildFirstApproximation();
 
-    bool debug = DebugOptions.DebugHFIterations();
+    bool debug = DebugOptions.LogHFIterations();
 
     double delta;
     unsigned int loop = 0;
@@ -30,7 +30,7 @@ void Core::Update()
     {   delta = 0.;
         loop++;
         if(debug)
-            std::cout << "HF Iteration :" << loop << std::endl;
+            *logstream << "HF Iteration :" << loop << std::endl;
         DiscreteStateIterator i = GetDiscreteStateIterator();
         while(!i.AtEnd())
         {
@@ -48,7 +48,7 @@ void Core::Update()
                 i.ReplaceState(s);
             }
             else
-            {   std::cerr << s->Name() << " failed to converge after " << StateParameters::MaxHFIterations << " iterations. " << std::endl;
+            {   *errstream << s->Name() << " failed to converge after " << StateParameters::MaxHFIterations << " iterations. " << std::endl;
                 delete s;
                 s = i.GetState();
             }
@@ -57,9 +57,9 @@ void Core::Update()
             delta = mmax(delta, fabs((nu - old_nu)/nu));
             if(debug)
             {   if(DebugOptions.HartreeEnergyUnits())
-                    printf("  %s en:   %.7f   loops: %d  size: %d\n", s->Name().c_str(), -0.5/(nu*nu), iterations, s->Size());
+                    *logstream << "  " << s->Name() << "  en: " << -0.5/(nu*nu) << "  loops: " << iterations << "  size: " << s->Size() << std::endl;
                 else
-                    std::cout << "  " << s->Name() << " nu:   " << nu << "   loops:   " << iterations << " size:   " << s->Size() << std::endl;
+                    *logstream << "  " << s->Name() << "  nu: " << nu << "  loops: " << iterations << "  size: " << s->Size() << std::endl;
             }
             i.Next();
         }
@@ -75,13 +75,13 @@ void Core::Update()
         {   converged = UpdateGreens();
             if(!converged)
             {   StateParameters::EnergyTolerance *= 10.;
-                printf("\n Tolerance = %e\n", StateParameters::EnergyTolerance);
+                *outstream << "\n Tolerance = " << StateParameters::EnergyTolerance << std::endl;
             }
             else if(tolerance < StateParameters::EnergyTolerance)
             {   if(!converged_once)
                 {   converged_once = true;
                     StateParameters::EnergyTolerance = StateParameters::EnergyTolerance/10.;
-                    printf("\n Tolerance = %e\n", StateParameters::EnergyTolerance);
+                    *outstream << "\n Tolerance = " << StateParameters::EnergyTolerance << std::endl;
                     converged = false;
                 }
             }
@@ -92,11 +92,11 @@ void Core::Update()
 
 bool Core::UpdateGreens()
 {
-    bool debug = DebugOptions.DebugHFIterations();
+    bool debug = DebugOptions.LogHFIterations();
 
     // Initial iterations for deltaE
     if(debug)
-        printf("\n Greens function iterations:\n");
+        *logstream << "\n Greens function iterations:" << std::endl;
 
     DiscreteStateIterator i = GetDiscreteStateIterator();
     std::map<StateInfo, double> deltaE;
@@ -111,7 +111,7 @@ bool Core::UpdateGreens()
 
         deltaE[StateInfo(s)] = IterateDiscreteStateGreens(s, &exchange)/s->Energy();
         if(debug)
-            printf("  %s en: %.7f  deltaE: %e  norm: %e\n", s->Name().c_str(), s->Energy(), deltaE[StateInfo(s)], s->Norm()-1.);
+            *logstream << "  " << s->Name() << "  energy: " << s->Energy() << "  deltaE: " << deltaE[StateInfo(s)] << "  norm: " << s->Norm()-1. << std::endl;
 
         i.ReplaceState(s);
         i.Next();
@@ -146,20 +146,20 @@ bool Core::UpdateGreens()
         coreit->second.SetState(s);
 
         if(debug)
-            printf("  %s en: %.7f  deltaE: %e  norm: %e\n", s->Name().c_str(), s->Energy(), deltaE[StateInfo(s)], s->Norm()-1.);
+            *logstream << "  " << s->Name() << "  energy: " << s->Energy() << "  deltaE: " << deltaE[StateInfo(s)] << "  norm: " << s->Norm()-1. << std::endl;
 
         iterations++;
     }
 
     if(iterations < StateParameters::MaxHFIterations)
     {   if(debug)
-        {   printf("\n Final values:\n");
+        {   *logstream << "\n Final values:" << std::endl;
 
             i.First();
             while(!i.AtEnd())
             {
                 DiscreteState* s = new DiscreteState(*(i.GetState()));
-                printf("  %s en: %.7f\n", s->Name().c_str(), s->Energy());
+                *logstream << "  " << s->Name() << "  en: " << std::setprecision(12) << s->Energy() << std::endl;
                 i.Next();
             }
         }
@@ -167,7 +167,7 @@ bool Core::UpdateGreens()
         UpdateHFPotential();
 
         if(debug)
-            printf("Orthogonality test: %e\n", TestOrthogonality());
+            *logstream << "Orthogonality test: " << TestOrthogonality() << std::endl;
         return true;
     }
     else
@@ -751,7 +751,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
 
             if(exchange_addition_method)
             {   // Calculate state, adding exchange a little at a time
-                std::cout << "Attempting exchange addition method. Trial nu = " << ds->Nu() << std::endl;
+                *logstream << "Attempting exchange addition method. Trial nu = " << ds->Nu() << std::endl;
 
                 double exchange_iteration_amount = 0.01;
                 double previous_nu = ds->Nu();
@@ -816,17 +816,17 @@ unsigned int Core::CalculateExcitedState(State* s) const
         while(zero_difference || (iterations >= StateParameters::MaxHFIterations));
     }
 
-    if(DebugOptions.DebugHFExcited())
+    if(DebugOptions.OutputHFExcited())
     {
         double energy = ds->Energy();
         if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
         {
             if(DebugOptions.InvCmEnergyUnits())
                 energy *= Constant::HartreeEnergy_cm;
-            printf("%s en:   %.7f loops:   %d size:  %d\n", ds->Name().c_str(), energy, iterations, ds->Size());
+            *outstream << ds->Name() << "  energy: " << energy << "  loops: " << iterations << "  size: " << ds->Size() << std::endl;
         }
         else
-            printf("%s nu:   %.7f loops:   %d size:  %d\n", ds->Name().c_str(), ds->Nu(), iterations, ds->Size());
+            *outstream << ds->Name() << "  nu: " << ds->Nu() << "  loops: " << iterations << "  size: " << ds->Size() << std::endl;
     }
 
     return iterations;

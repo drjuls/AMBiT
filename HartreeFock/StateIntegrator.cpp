@@ -287,9 +287,6 @@ void StateIntegrator::SetUpContinuum(ContinuumState& s, const std::vector<double
     }
     else
     {
-        //printf("**** StateIntegrator::SetUpContinuum:  energy > 0 ************\n");
-        //getchar();
-
         double CSI = 0.5 * atan2(Z/ALAMBD * (E*s.Kappa() - GAM), (Z/ALAMBD)*(Z/ALAMBD)*E + GAM*s.Kappa());
         double ANA = Z*E/ALAMBD;
         for(unsigned int i = start_point; i<start_point+(adams_N-1); i++)

@@ -1,5 +1,6 @@
 #include "Include.h"
 #include "Atom.h"
+#include "OutStreams.h"
 #include "Basis/HFExcitedStates.h"
 #include "Basis/RStates.h"
 #include "Basis/RSinStates.h"
@@ -7,14 +8,13 @@
 #include "Universal/Constant.h"
 #include "Basis/BSplineBasis.h"
 #include "MBPT/MBPTCalculator.h"
-#include <fstream>
+
+// The debug options for the whole program.
+Debug DebugOptions;
 
 int main(int argc, char* argv[])
 {
-#ifdef UNIX   // Don't output cerr to screen
-    std::ofstream error_file("error.txt");
-    std::cerr.rdbuf(error_file.rdbuf());
-#endif
+    OutStreams::InitialiseStreams();
 
     try
     {   Atom A(26, 2, "FeII");
@@ -25,29 +25,25 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-#ifndef UNIX
-#ifdef _DEBUG
-    std::cout << "\nFinished" << std::endl;
-    getchar();
-#endif
-#endif
-
+    *outstream << "\nFinished" << std::endl;
+    PAUSE
+    OutStreams::FinaliseStreams();
     return 0;
 }
 
 void Atom::Run()
 {
-    GetDebugOptions().DebugFirstBuild(false);
-    GetDebugOptions().DebugHFIterations(false);
-    GetDebugOptions().DebugHFExcited(true);
-    GetDebugOptions().HartreeEnergyUnits(true);
+    DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(true);
+    DebugOptions.HartreeEnergyUnits(true);
 
     //CreateHFBasis();
     //CreateCustomBasis();
     //CreateRBasis();
     CreateBSplineBasis();
 
-    GetDebugOptions().DebugHFExcited(false);
+    DebugOptions.OutputHFExcited(false);
 
     DoClosedShellAlphaVar();
 }
@@ -58,9 +54,9 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     core = new Core(lattice, atomic_number, charge);
-    //GetDebugOptions().DebugFirstBuild(true);
-    //GetDebugOptions().DebugHFIterations(true);
-    //GetDebugOptions().HartreeEnergyUnits(true);
+    //DebugOptions.LogFirstBuild(true);
+    //DebugOptions.LogHFIterations(true);
+    //DebugOptions.HartreeEnergyUnits(true);
     if(read)
         Read();
     else
@@ -106,7 +102,7 @@ void Atom::Read()
     fread(&stored_Charge, sizeof(double), 1, fp);
     if((stored_Z != Z) || (stored_Charge != Charge))
     {   fclose(fp);
-        std::cerr << "\nIncorrect stored state." << std::endl;
+        *errstream << "\nIncorrect stored state." << std::endl;
         exit(1);
     }
 
@@ -153,7 +149,7 @@ void Atom::CreateRBasis(const StateInfo* ionised)
     std::vector<unsigned int> num_states;
     num_states.push_back(2);
     num_states.push_back(2);
-    num_states.push_back(3);
+    num_states.push_back(2);
     //num_states.push_back(13);
     //num_states.push_back(13);
     //num_states.push_back(12);
@@ -199,7 +195,7 @@ void Atom::GetSigma(const StateInfo& info)
     DiscreteState* ds = dynamic_cast<DiscreteState*>(excited->GetState(info));
     if(ds)
     {   MBPTCalculator MC(lattice, core, excited);
-        printf("%s %.5f\n\n", ds->Name().c_str(), MC.GetSecondOrderSigma(ds)*Constant::HartreeEnergy_cm);
+        *outstream << ds->Name() << " " << std::setprecision(12) << MC.GetSecondOrderSigma(ds)*Constant::HartreeEnergy_cm << "\n" << std::endl;
     }
 }
 
@@ -233,10 +229,10 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
                 totals[k2-1] = ds->Energy();
         }
 
-        std::cout << "\nNuclearInverseMass = " << ais << std::endl;
+        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
         for(k2 = 0; k2 < 5; k2++)
-            printf("%.5f\n", totals[k2]*Constant::HartreeEnergy_cm);
-        std::cout << std::endl;
+            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        *outstream << std::endl;
     }
 }
 
@@ -272,10 +268,10 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
                 totals[k2-1] = ds->Energy();
         }
 
-        std::cout << "\nVolumeShiftParameter = " << ais << std::endl;
+        *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
         for(k2 = 0; k2 < 5; k2++)
-            printf("%.5f\n", totals[k2]*Constant::HartreeEnergy_cm);
-        std::cout << std::endl;
+            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        *outstream << std::endl;
     }
 
     core->SetVolumeShiftParameter(0.);
@@ -317,13 +313,12 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
                 totals[k2-1] = ds->Energy();
         }
 
-        std::cout << "\nx = " << x << std::endl;
+        *outstream << "\nx = " << x << std::endl;
         for(k2 = 0; k2 < N; k2++)
-            printf("%.5f\n", totals[k2]*Constant::HartreeEnergy_cm);
-        std::cout << std::endl;
+            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        *outstream << std::endl;
     }
 
     Constant::Alpha = alpha0;
     Constant::AlphaSquared = alpha0 * alpha0;
 }
-

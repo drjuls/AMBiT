@@ -178,22 +178,20 @@ void SigmaPotential::ReSize(unsigned int new_size)
 {
     if(new_size < size)
     {
-        printf("  Sigma resize: %d -> %d\n", size, new_size);
-	unsigned int i;
-	for(i = new_size; i<size; i++)
-	    free(function[i]);
+        *logstream << "  Sigma resize: " << size << " -> " << new_size << std::endl;
+    	unsigned int i;
+	    for(i = new_size; i<size; i++)
+	        free(function[i]);
 
-	function = (double**)realloc(function, new_size * sizeof(double*));
+	    function = (double**)realloc(function, new_size * sizeof(double*));
 
         for(i = 0; i<new_size; i++)
-	{
-	    function[i] = (double*)realloc(function[i], new_size * sizeof(double));
-	}
+	        function[i] = (double*)realloc(function[i], new_size * sizeof(double));
     }
 
     else if(new_size > size)
     {
-        printf("  Sigma resize: %d -> %d\n", size, new_size);
+        *logstream << "  Sigma resize: " << size << " -> " << new_size << std::endl;
         function = (double**)realloc(function, new_size * sizeof(double*));
 
         unsigned int i, j;
@@ -204,9 +202,9 @@ void SigmaPotential::ReSize(unsigned int new_size)
             function[i] = (double*)malloc(new_size * sizeof(double));
 
         for(i=0; i<size; i++)
-	{   for(j=size; j<new_size; j++)
-	        function[i][j] = 0.;
-	}
+	    {   for(j=size; j<new_size; j++)
+	            function[i][j] = 0.;
+	    }
     }
 
     size = new_size;

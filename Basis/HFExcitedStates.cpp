@@ -140,8 +140,8 @@ void HFExcitedStates::CreateContinuum(double start_nu, double end_nu, unsigned i
             ContinuumState* s = new ContinuumState(lattice, nu, kappa);
             unsigned int it = core->CalculateExcitedState(s);
             
-            if(core->GetDebugOptions().DebugHFContinuum())
-                std::cout << "  " << s->Name() << " loops:   " << it << std::endl;
+            if(DebugOptions.LogHFContinuum())
+                *logstream << "  " << s->Name() << " loops:   " << it << std::endl;
 
             AddState(s);
         }

@@ -13,11 +13,14 @@ include make.machine
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
 $(exe): $(libnames)
-	$(CXX) -o $(exe) $(libnames) -L$(LIBDIR) -l$(LAPACKLIB) -l$(BLASLIB) $(foreach library, $(EXTRALIBS), -l$(library)) -lm -lc
+	$(CXX) -o $(exe) $(libnames) \
+             $(foreach dir, $(LIBDIR), -L$(dir)) -l$(LAPACKLIB) -l$(BLASLIB)\
+             $(foreach library, $(EXTRALIBS), -l$(library)) -lm -lc
 
 .EXPORT_ALL_VARIABLES:
 
 $(libnames): %$(LIBSUFFIX):
+	-@mkdir $(notdir $*)/$(BUILD)
 	$(MAKE) -C $(notdir $*) -f make.$(notdir $*) module=$(notdir $*)
 
 #if a command fails, delete the target

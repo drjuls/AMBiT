@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <iomanip>
 #include <math.h>
 #include <new>
+
+#include "Atom/Debug.h"
 
 #ifdef WIN32
     #pragma warning ( disable : 4786 )
@@ -17,7 +20,9 @@
     #define mmin std::min
     #define mmax std::max
 
-    #define PAUSE getchar();
+    #ifdef _DEBUG
+        #define PAUSE getchar();
+    #endif
 
 #else
     #ifndef UNIX
@@ -31,8 +36,17 @@
         #define mmin(i, j) (((i) < (j))?(i):(j))
         #define mmax(i, j) (((i) > (j))?(i):(j))
     #endif
+#endif
 
+#ifndef PAUSE
     #define PAUSE
 #endif
+
+/** I/O streams */
+extern std::ostream* outstream;
+extern std::ostream* logstream;
+extern std::ostream* errstream;
+
+extern Debug DebugOptions;
 
 #endif

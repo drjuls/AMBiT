@@ -24,7 +24,7 @@ extern int dvdson_(int (*op)(int*, int*, double*, double*),
 int op(int *n, int *m, double* b, double* c)
 {
 #ifdef WIN32
-    std::cerr << ".";
+    *logstream << ".";
 #endif
 
     double* cp = &c[0];
@@ -61,7 +61,7 @@ void Eigensolver::SolveSmallSymmetric(double* matrix, double* eigenvalues, unsig
         delete[] work;
 
         if(info != 0)
-        {   std::cerr << "dsyev failed, info = " << info << std::endl;
+        {   *errstream << "dsyev failed, info = " << info << std::endl;
             return;
         }
     }
@@ -135,7 +135,7 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
             work, &worksize, intwork, &intworksize, &hiend, &nloops, &nmv, &ierr);
 
     if(ierr != 0)
-    {   std::cerr << "dvdson failed, ierr = " << ierr << std::endl;
+    {   *errstream << "dvdson failed, ierr = " << ierr << std::endl;
     }
     else
     {   for(i=0; i<num_solutions; i++)
@@ -144,7 +144,7 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
                 eigenvectors[i*n + j] = work[i*n + j];
         }
     }
-    std::cout << "    nloops=" << nloops << std::endl;;
+    *outstream << "    nloops=" << nloops << std::endl;;
 
     delete[] diag;
     delete[] iselec;
@@ -175,7 +175,7 @@ bool Eigensolver::SolveSimultaneousEquations(double* matrix, double* vector, uns
         if(info == 0)
             return true;
         else
-        {   std::cerr << "dgesv failed, info = " << info << std::endl;
+        {   *errstream << "dgesv failed, info = " << info << std::endl;
         }
     }
     return false;
@@ -202,7 +202,7 @@ bool Eigensolver::SolveMatrixEquation(double* A_matrix, double* B_matrix, double
         if(info == 0)
             return true;
         else
-        {   std::cerr << "dsygv failed, info = " << info << std::endl;
+        {   *errstream << "dsygv failed, info = " << info << std::endl;
         }
     }
     return false;

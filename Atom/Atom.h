@@ -31,9 +31,6 @@ public:
       */
     void Read();
 
-    /** Get the debugging information */
-    Debug& GetDebugOptions() { return core->GetDebugOptions(); }
-
 public:
     /** Get energy of state given kappa and principal quantum number. */
     double GetEnergy(const StateInfo& info);

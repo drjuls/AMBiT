@@ -53,11 +53,11 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
                             }
                             else if(previous_state)
                             {   MultiplyByR(previous_state, ds);
-                                if(core->GetDebugOptions().DebugHFExcited())
-                                    std::cout << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
+                                if(DebugOptions.OutputHFExcited())
+                                    *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
                             }
                             else
-                            {   std::cerr << "Cannot form HF state, kappa = " << kappa << std::endl;
+                            {   *errstream << "Cannot form HF state, kappa = " << kappa << std::endl;
                                 return;
                             }
                             AddState(ds);
@@ -75,8 +75,8 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
 
                     MultiplyByR(previous_state, ds);
 
-                    if(core->GetDebugOptions().DebugHFExcited())
-                        std::cout << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
+                    if(DebugOptions.OutputHFExcited())
+                        *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
                     AddState(ds);
                     previous_state = ds;

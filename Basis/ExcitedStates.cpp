@@ -126,8 +126,8 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
     unsigned int iterations = core->UpdateExcitedState(&sigma_s);
     double current_energy = sigma_s.Energy();
 
-    printf("  Wanted energy:  %.3f\n", energy * Constant::HartreeEnergy_cm);
-    printf("  Sigma iterated: %.3f    iterations: %d\n", current_energy * Constant::HartreeEnergy_cm, iterations);
+    *outstream << "  Wanted energy:  " << std::setprecision(12) << energy * Constant::HartreeEnergy_cm << std::endl;
+    *outstream << "  Sigma iterated: " << current_energy * Constant::HartreeEnergy_cm << "    iterations: " << iterations << std::endl;
     double full_gap = current_energy - old_energy;
 
     while(fabs(current_energy/energy - 1.) > core->GetEnergyTolerance())
@@ -136,10 +136,12 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
         amount += gap;
         iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
         current_energy = sigma_s.Energy();
-        printf("    %.6f   %.3f   iterations: %d\n", amount, current_energy * Constant::HartreeEnergy_cm, iterations);
+        *logstream << "    " << amount << "   " << current_energy * Constant::HartreeEnergy_cm
+                   << "   iterations: " << iterations << std::endl;
     }
     SetSigmaAmount(info, amount);
-    printf("Final sigma amount: %.10f (gives %.3f)\n", amount, current_energy * Constant::HartreeEnergy_cm);
+    *outstream << "Final sigma amount: " << std::setprecision(10) << amount << " (gives "
+               << std::setprecision(12) << current_energy * Constant::HartreeEnergy_cm << ")" << std::endl;
 }
 
 void ExcitedStates::SetSigmaAmount(const StateInfo& info, double amount)
@@ -155,4 +157,3 @@ double ExcitedStates::GetSigmaAmount(const StateInfo& info) const
     else
         return 0.;
 }
-

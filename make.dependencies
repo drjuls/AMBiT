@@ -1,33 +1,23 @@
 # get dependencies from compiler, eg:
 #    gcc -MM -I/Atomic *.cpp > Release/*.dep
 
-ifeq ($(MACHINE), apacsc)
-  $(addprefix $(BUILD)/, $(cxxobjects) $(cobjects)): $(BUILD)
-
-  $(BUILD):
-	-mkdir $(BUILD)
-else
-  # need to check that .c files are all known from .o
-  $(BUILD)/%.dep: %.cpp $(BUILD)
+# need to check that .c files are all known from .o
+$(BUILD)/%.dep: %.cpp
 	@set -e; rm -f $@; \
-	$(CXX) $(DEPFLAG) $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	$(CCDEP) $(DEPFLAG) $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-  ifneq ($(words $(cxxobjects)), 0)
+ifneq ($(words $(cxxobjects)), 0)
   include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cxxobjects)))
-  endif
+endif
 
-  $(BUILD)/%.dep: %.c $(BUILD)
+$(BUILD)/%.dep: %.c
 	@set -e; rm -f $@; \
-	$(CC) $(DEPFLAG) $(CFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	$(CCDEP) $(DEPFLAG) $(CFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-  ifneq ($(words $(cobjects)), 0)
+ifneq ($(words $(cobjects)), 0)
   include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cobjects)))
-  endif
-
-  $(BUILD):
-	-mkdir $(BUILD)
 endif

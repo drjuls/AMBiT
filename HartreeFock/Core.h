@@ -87,9 +87,6 @@ public:     // Methods for Hartree-Fock calculations and potentials
     /** Update an existing excited state, in case of changed core or addition of sigma. */
     unsigned int UpdateExcitedState(State* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
-    /** Get the debugging information */
-    Debug& GetDebugOptions() { return DebugOptions; }
-
 public:
     /** Methods for open shell core. The core calculates states in the V^n scheme.
         Can also toggle modes for V^(n-1) and V^(n-c), which is a closed shell core.
@@ -174,8 +171,6 @@ protected:
 
     StateSet OpenShellStorage;  // Store currently unused open shell states
     std::map<StateInfo, double> OpenShellStates; // Original occupancies
-
-    Debug DebugOptions;
 
 public:
     class StateParameters

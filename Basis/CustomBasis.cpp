@@ -5,7 +5,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 {
     FILE* fp = fopen("CustomBasis.txt", "r");
     if(fp == NULL)
-    {   printf("Unable to open file CustomBasis.txt");
+    {   *errstream << "Unable to open file CustomBasis.txt" << std::endl;
         PAUSE;
         exit(1);
     }
@@ -44,17 +44,10 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {   fmax = ds->f[count];
                     r = count;
                 }
-            if(core->GetDebugOptions().DebugHFExcited())
-                printf("  %s  en: %f  size: %d  Rmax: %d  NZ: %d\n", ds->Name().c_str(), ds->Energy(), ds->Size(),
-                            r, int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1);
-            //fmax = 0.;
-            //CoupledFunction exch;
-            //core->CalculateExchange(*ds, exch);
-            //for(count = 0; count < ds->Size(); count++)
-            //    fmax += fabs(ds->df[count]/lattice->dR(count) + double(ds->Kappa())/lattice->R(count)*ds->f[count]
-            //    - (2. + Constant::AlphaSquared * core->GetHFPotential()[count])*ds->g[count]
-            //    - Constant::AlphaSquared*exch.g[count]);
-            //printf("    Deviation: %f\n", fmax);
+            if(DebugOptions.OutputHFExcited())
+                *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                           << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                           << int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1 << std::endl;
 
             if(final.L() != 0)
             {   ds = new DiscreteState(lattice, final.PQN(), final.GetSecondRelativisticInfo().Kappa());
@@ -68,16 +61,17 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     {   fmax = ds->f[count];
                         r = count;
                     }
-                if(core->GetDebugOptions().DebugHFExcited())
-                    printf("  %s  en: %f  size: %d  Rmax: %d  NZ: %d\n", ds->Name().c_str(), ds->Energy(), ds->Size(),
-                            r, int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1);
+                if(DebugOptions.OutputHFExcited())
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                               << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                               << int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1 << std::endl;
             }
         }
         else
         {   NonRelInfo prev = ReadNonRelInfo(buffer, i);
             if((!strcmp(tempbuf, "RS") && (prev.L() + 1 != final.L())) ||
                (strcmp(tempbuf, "RS") && (prev.L() != final.L())))
-            {   fprintf(stderr, "Error in \"CustomBasis.txt\", %s -> %s.\n", prev.Name().c_str(), final.Name().c_str());
+            {   *errstream << "Error in \"CustomBasis.txt\", " << prev.Name() << " -> " << final.Name() << std::endl;
                 PAUSE
                 exit(1);
             }
@@ -86,7 +80,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
             if(previous == NULL)
                 previous = core->GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
             if(previous == NULL)
-            {   printf("Error in \"CustomBasis.txt\": %s undefined.\n", prev.Name().c_str());
+            {   *errstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
                 PAUSE
                 exit(1);
             }
@@ -97,7 +91,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
             else if(!strcmp(tempbuf, "RS"))
                 MultiplyByRSinR(previous, ds);
             else
-            {   printf("Error in \"CustomBasis.txt\": %s unknown.\n", tempbuf);
+            {   *errstream << "Error in \"CustomBasis.txt\": " << tempbuf << " unknown." << std::endl;
                 PAUSE
                 exit(1);
             }
@@ -109,14 +103,10 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {   fmax = ds->f[count];
                     r = count;
                 }
-            if(core->GetDebugOptions().DebugHFExcited())
-                printf("  %s  en: %f  size: %d  Rmax: %d  NZ: %d\n", ds->Name().c_str(), ds->Energy(), ds->Size(),
-                            r, int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1);
-            //fmax = 0.;
-            //for(count = 0; count < ds->Size(); count++)
-            //    fmax += fabs(ds->df[count]/lattice->dR(count) + ds->Kappa()/lattice->R(count)*ds->f[count]
-            //    -(2. + Constant::AlphaSquared * (core->GetHFPotential()[count] + core->GetLocalExchangeApproximation()[count]))*ds->g[count]);
-            //printf("    Deviation: %f\n", fmax);
+            if(DebugOptions.OutputHFExcited())
+                *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                           << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                           << int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1 << std::endl;
             
             if(final.L() != 0)
             {   ds = new DiscreteState(lattice, final.PQN(), final.GetSecondRelativisticInfo().Kappa());
@@ -124,7 +114,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 if(previous == NULL)
                     previous = core->GetState(prev.GetSecondRelativisticInfo().GetStateInfo());
                 if(previous == NULL)
-                {   printf("Error in \"CustomBasis.txt\": %s undefined.\n", prev.Name().c_str());
+                {   *outstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
                     PAUSE
                     exit(1);
                 }
@@ -141,11 +131,10 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     {   fmax = ds->f[count];
                         r = count;
                     }
-                if(core->GetDebugOptions().DebugHFExcited())
-                    printf("  %s  en: %f  size: %d  Rmax: %d  NZ: %d\n", ds->Name().c_str(), ds->Energy(), ds->Size(),
-                            r, int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1);
-                //if(core->GetDebugOptions().DebugHFExcited())
-                //    std::cout << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
+                if(DebugOptions.OutputHFExcited())
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                               << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                               << int(ds->RequiredPQN()) - int(ds->NumZeroes()) - int(ds->L()) - 1 << std::endl;
             }
         }
     }

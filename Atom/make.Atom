@@ -1,4 +1,4 @@
-cxxobjects = Atom.o Atom_Open.o
+cxxobjects = Atom.o Atom_Open.o OutStreams.o
 cobjects = 
 fobjects =
 

@@ -7,17 +7,17 @@
 
 void Atom::RunOpen()
 {
-    GetDebugOptions().DebugFirstBuild(false);
-    GetDebugOptions().DebugHFIterations(false);
-    GetDebugOptions().DebugHFExcited(true);
-    GetDebugOptions().HartreeEnergyUnits(true);
+    DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(true);
+    DebugOptions.HartreeEnergyUnits(true);
 
     //CreateHFBasis();
     //CreateCustomBasis();
     CreateRBasis();
     //CreateBSplineBasis();
 
-    GetDebugOptions().DebugHFExcited(false);
+    DebugOptions.OutputHFExcited(false);
 
     SD_CI = true;
     Configuration config;
@@ -27,17 +27,18 @@ void Atom::RunOpen()
     unsigned int two_j;
     NumSolutions = 4;
 
-    OpenShellEnergy(9, config);
+//    OpenShellEnergy(9, config);
+    SMS_V2(9, config);
     return;
 
-    std::cout << "\nGS Parity:\n" << std::endl;
+    *outstream << "\nGS Parity:\n" << std::endl;
     for(two_j = 9; two_j < 9; two_j += 2)
     {
-        std::cout << "V2" << std::endl;
+        *outstream << "V2" << std::endl;
         SMS_V2(two_j, config);
-        std::cout << "V0" << std::endl;
+        *outstream << "V0" << std::endl;
         SMS_V0(two_j, config);
-        std::cout << "V1" << std::endl;
+        *outstream << "V1" << std::endl;
         SMS_V1(two_j, config);
 
         //DoOpenShellSMS(two_j, config);
@@ -49,15 +50,15 @@ void Atom::RunOpen()
 
     NumSolutions = 6;
 
-    std::cout << "\nOpposite Parity:\n" << std::endl;
+    *outstream << "\nOpposite Parity:\n" << std::endl;
 
     for(two_j = 7; two_j <= 11; two_j+=2)
     {
-        std::cout << "V2" << std::endl;
+        *outstream << "V2" << std::endl;
         SMS_V2(two_j, config);
-        std::cout << "V0" << std::endl;
+        *outstream << "V0" << std::endl;
         SMS_V0(two_j, config);
-        std::cout << "V1" << std::endl;
+        *outstream << "V1" << std::endl;
         SMS_V1(two_j, config);
     }
 }
@@ -77,8 +78,8 @@ void Atom::OpenShellEnergy(int twoJ, Configuration& config, bool size_only)
     ConfigGenerator generator(excited);
     generator.GenerateMultipleExcitations(nrlist, electron_excitations);
     generator.GenerateRelativisticConfigs(nrlist, rlist);
-    std::cout << " Number of non-rel configurations = " << nrlist.size() << std::endl;
-    std::cout << " Number of rel configurations = " << rlist.size() << std::endl;
+    *outstream << " Number of non-rel configurations = " << nrlist.size() << std::endl;
+    *outstream << " Number of rel configurations = " << rlist.size() << std::endl;
     generator.GenerateProjections(rlist, twoJ);
 
     if(size_only)
@@ -88,7 +89,7 @@ void Atom::OpenShellEnergy(int twoJ, Configuration& config, bool size_only)
         {   N += it->GetJCoefficients().size();
             it++;
         }
-        std::cout << " Number of J-configurations = " << N << std::endl;
+        *outstream << " Number of J-configurations = " << N << std::endl;
     }
     else
     {   core->ToggleOpenShellCore();
@@ -121,7 +122,7 @@ void Atom::DoOpenShellSMS(int twoJ, Configuration& config)
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.002)
     {
-        std::cout << "\nNuclearInverseMass = " << ais << std::endl;
+        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
         core->ToggleOpenShellCore();
         core->SetNuclearInverseMass(ais);
@@ -160,7 +161,7 @@ void Atom::SMS_V0(int twoJ, Configuration& config)
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.004)
     {
-        std::cout << "\nNuclearInverseMass = " << ais << std::endl;
+        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
         core->ToggleOpenShellCore();
         core->SetNuclearInverseMass(ais);
@@ -200,7 +201,7 @@ void Atom::SMS_V1(int twoJ, Configuration& config)
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.004)
     {
-        std::cout << "\nNuclearInverseMass = " << ais << std::endl;
+        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
         core->SetNuclearInverseMass(ais);
 
@@ -240,7 +241,7 @@ void Atom::SMS_V2(int twoJ, Configuration& config)
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.004)
     {
-        std::cout << "\nNuclearInverseMass = " << ais << std::endl;
+        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
         core->SetNuclearInverseMass(ais);
         H.GetEigenvalues();
@@ -273,7 +274,7 @@ void Atom::DoOpenShellVolumeShift(int twoJ, Configuration& config)
     Write();
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
-        std::cout << "\nVolumeShiftParameter = " << ais << std::endl;
+        *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
 
         core->ToggleOpenShellCore();
         core->SetVolumeShiftParameter(ais);
@@ -316,7 +317,7 @@ void Atom::DoOpenShellAlphaVar(int twoJ, Configuration& config)
         Constant::Alpha = alpha0 * sqrt(x+1.);
         Constant::AlphaSquared = alpha0 * alpha0 * (x+1.);
 
-        std::cout << "\nx = " << x << std::endl;
+        *outstream << "\nx = " << x << std::endl;
 
         core->ToggleOpenShellCore();
         core->Update();

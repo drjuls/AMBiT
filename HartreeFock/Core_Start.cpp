@@ -131,12 +131,12 @@ void Core::BuildFirstApproximation()
     }
 
     // Iterate states
-    bool debug = DebugOptions.DebugFirstBuild();
+    bool debug = DebugOptions.LogFirstBuild();
     std::vector<double> electron_density;
     for(unsigned int m = 0; m < 10; m++)
     {
         if(debug)
-            std::cout << "First Build Iteration: " << m+1 << std::endl;
+            *logstream << "First Build Iteration: " << m+1 << std::endl;
 
         electron_density.clear();
 
@@ -159,8 +159,9 @@ void Core::BuildFirstApproximation()
                 iterations = CalculateDiscreteState(s, 0.);
                 if(iterations >= StateParameters::MaxHFIterations)
                 {   // Evil - this should never happen given our simple model.
-                    // Throw some kind of exception
-                    printf("    BuildFirstApproximation: iterations = %d\n", iterations);
+                    *errstream << "    BuildFirstApproximation: iterations = " << iterations << std::endl;
+                    PAUSE
+                    exit(1);
                 }
 
                 zero_difference = s->NumZeroes() + s->L() + 1 - s->RequiredPQN();
@@ -168,7 +169,7 @@ void Core::BuildFirstApproximation()
                 if(zero_difference)
                 {   
                     if(debug)
-                        std::cout << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
+                        *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
                     s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
                     trial_nu = s->Nu();
                     nu_change_factor = nu_change_factor * 0.75;
@@ -186,7 +187,7 @@ void Core::BuildFirstApproximation()
             }
 
             if(debug)
-                std::cout << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
+                *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
 
             it.Next();
         }
@@ -201,7 +202,7 @@ bool Core::GetConfigData()
 {
     FILE* fp = fopen("config.txt", "r");
     if(fp == NULL)
-    {   std::cerr << "Failed to open file \"config.txt\"" << std::endl;
+    {   *errstream << "Failed to open file \"config.txt\"" << std::endl;
         getchar();
         exit(1);
     }
@@ -334,7 +335,7 @@ unsigned int Core::GetSpecialStates()
 
     FILE* fp = fopen("mendel.tab", "r");
     if(fp == NULL)
-    {   std::cerr << "Failed to open file \"mendel.tab\"" << std::endl;
+    {   *errstream << "Failed to open file \"mendel.tab\"" << std::endl;
         getchar();
         exit(1);
     }

@@ -3,28 +3,34 @@
 
 class Debug
 {
+    /** Set of options for debugging and logging.
+        We also hijack this class for directing output from outside of class Atom.
+     */
+    friend class Atom;
 public:
     Debug();
     ~Debug() {}
 
 public:
-    inline bool DebugFirstBuild() const { return bFirstBuild; }
-    inline void DebugFirstBuild(bool debugon) { bFirstBuild = debugon; }
-    inline bool DebugHFIterations() const { return bHFIterations; }
-    inline void DebugHFIterations(bool debugon) { bHFIterations = debugon; }
-    inline bool DebugHFExcited() const { return bHFExcited; }
-    inline void DebugHFExcited(bool debugon) { bHFExcited = debugon; }
-    inline bool DebugHFContinuum() const { return bHFContinuum; }
-    inline void DebugHFContinuum(bool debugon) { bHFContinuum = debugon; }
-    inline bool DebugVolumeShift() const { return bVShift; }
-    inline void DebugVolumeShift(bool debugon) { bVShift = debugon; }
+    inline bool LogFirstBuild() const { return bFirstBuild; }
+    inline bool LogHFIterations() const { return bHFIterations; }
+    inline bool OutputHFExcited() const { return bHFExcited; }
+    inline bool LogHFContinuum() const { return bHFContinuum; }
+
+    /** Generic Options */
+    inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
+    inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
     
-public:
+protected:
+    /** Only class Atom can change these. */
+    inline void LogFirstBuild(bool debugon) { bFirstBuild = debugon; }
+    inline void LogHFIterations(bool debugon) { bHFIterations = debugon; }
+    inline void OutputHFExcited(bool debugon) { bHFExcited = debugon; }
+    inline void LogHFContinuum(bool debugon) { bHFContinuum = debugon; }
+
     /** Generic Options */
     inline void HartreeEnergyUnits(bool turnon) { bHartreeUnits = turnon; }
-    inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
     inline void InvCmEnergyUnits(bool turnon) { bInvCmUnits = turnon; }
-    inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
 
 private:
     bool bFirstBuild;

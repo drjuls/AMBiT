@@ -21,7 +21,7 @@ HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const 
         it++;
     }
 
-    std::cerr << " " << N << std::flush;
+    *logstream << " " << N << std::flush;
     UpdateIntegrals();
 
     if(N <= SMALL_MATRIX_LIM)
@@ -29,7 +29,7 @@ HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const 
     else
         M = new SymMatrix(N);
 
-    std::cout << " Number of J-configurations = " << N << std::endl;
+    *outstream << " Number of J-configurations = " << N << std::endl;
 }
 
 void HamiltonianMatrix::UpdateIntegrals()
@@ -539,14 +539,14 @@ void HamiltonianMatrix::PollMatrix()
         }
 
     for(i=0; i<10; i++)
-        printf("%d %d %.2f\n", i, range[i], double(range[i])/double(N*N)*100.);
+        *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
 void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
 {
     M->WriteMode(false);
 
-    std::cout << "\nFinding solutions" << std::endl;
+    *outstream << "\nFinding solutions" << std::endl;
 
     if(NumSolutions)
     {   delete[] V;
@@ -569,12 +569,13 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
 
     unsigned int i, j;
 
-    std::cout << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
+    *outstream << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
     for(i=0; i<NumSolutions; i++)
     {
         unsigned int solution = i;
 
-        printf("%d: %.7f    %.5f /cm\n", i, E[solution], E[solution]*Constant::HartreeEnergy_cm);
+        *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
+            << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
 
         // Get non-rel configuration percentages
         RelativisticConfigList::const_iterator list_it = configs.begin();
@@ -604,14 +605,15 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
         while(it != percentages.end())
         {
             if(it->second > .001)
-                printf("    %s\t%.3f%%\n", it->first.Name().c_str(), it->second);
+                *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
+                    << it->second << "%" << std::endl;
             it++;
         }
 
         if(gFactors)
-            printf("    g-factor = %.4f\n", g_factors[solution]);
+            *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
-        printf("\n");
+        *outstream << std::endl;
     }
     
     if(gFactors)
@@ -696,7 +698,10 @@ void HamiltonianMatrix::GetEigenvalues() const
     }
 
     for(solution = 0; solution < NumSolutions; solution++)
-        printf("%d: %.7f    %.5f /cm\n", solution, total[solution], total[solution]*Constant::HartreeEnergy_cm);
+        *outstream << solution << ": " 
+            << std::setprecision(8) << total[solution] << "    "
+            << total[solution]*Constant::HartreeEnergy_cm
+            << " /cm" << std::endl;
 
     delete[] total;
     delete[] coeff;
@@ -903,7 +908,9 @@ double HamiltonianMatrix::GetTwoElectronIntegral(unsigned int k, const StateInfo
         }
     }
     else
-        printf("Shit\n");
+    {   *errstream << "HamiltonianMatrix: Couldn't find TwoElectronIntegral." << std::endl;
+        exit(1);
+    }
 
     return radial;
 }
