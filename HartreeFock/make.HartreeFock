@@ -1,0 +1,8 @@
+cxxobjects = BoundStateIntegrator.o ContinuumState.o Core.o \
+             Core_BuildStates.o Core_OpenShell.o Core_Start.o \
+             CoupledFunction.o DiscreteState.o GreensIntegrator.o \
+             State.o StateIntegrator.o StateIterator.o \
+             StateManager.o
+cobjects = 
+
+include $(SRCDIR)/make.instructions

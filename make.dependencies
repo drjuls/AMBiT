@@ -1,0 +1,30 @@
+# get dependencies from compiler, eg:
+#    gcc -MM -I/Atomic *.cpp > Release/*.dep
+
+# non gnu compilers may not support MM: use M instead
+MFLAG = MM
+
+# need to check that .c files are all known from .o
+
+$(BUILD)/%.dep: %.cpp $(BUILD)
+	@set -e; rm -f $@; \
+	$(CXX) -$(MFLAG) $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+ifneq ($(words $(cxxobjects)), 0)
+include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cxxobjects)))
+endif
+
+$(BUILD)/%.dep: %.c $(BUILD)
+	@set -e; rm -f $@; \
+	$(CC) -$(MFLAG) $(CFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+ifneq ($(words $(cobjects)), 0)
+include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cobjects)))
+endif
+
+$(BUILD):
+	-mkdir $(BUILD)

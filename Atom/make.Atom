@@ -1,0 +1,4 @@
+cxxobjects = Atom.o Atom_Open.o
+cobjects = 
+
+include $(SRCDIR)/make.instructions

@@ -1,0 +1,22 @@
+modulename = $(module)$(LIBSUFFIX)
+
+$(BUILD)/$(modulename): $(addprefix $(BUILD)/, $(cxxobjects) $(cobjects))
+	$(AR) cr $@ $?
+	$(RANLIB) $@
+
+# include instructions on constructing dependencies from objects
+include $(SRCDIR)/make.dependencies
+
+$(addprefix $(BUILD)/, $(cxxobjects)): $(BUILD)/%.o: %.cpp
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+
+$(addprefix $(BUILD)/, $(cobjects)): $(BUILD)/%.o : %.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+.PHONY: clean
+
+clean:
+	-cd $(BUILD); rm -f *.o *.a
+
+veryclean:
+	-rm -rf $(BUILD)

@@ -1,0 +1,7 @@
+cxxobjects = ConfigGenerator.o Configuration.o \
+             ElectronInfo.o HamiltonianMatrix.o \
+             Projection.o RelativisticConfiguration.o \
+             RelativisticInfo.o SmallMatrix.o SymMatrix.o
+cobjects =
+
+include $(SRCDIR)/make.instructions

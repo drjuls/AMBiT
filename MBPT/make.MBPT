@@ -1,0 +1,4 @@
+cxxobjects = MBPTCalculator.o SigmaPotential.o
+cobjects = 
+
+include $(SRCDIR)/make.instructions

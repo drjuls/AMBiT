@@ -1,0 +1,10 @@
+2s HF
+2p HF
+3s R  2s
+3p R  2p
+3d RS 2p
+4s S  3s
+4p S  3p
+4d S  3d
+5s R  4s
+5p R  4p
