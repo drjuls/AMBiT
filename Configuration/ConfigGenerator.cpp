@@ -212,7 +212,7 @@ void ConfigGenerator::GenerateProjections(RelativisticConfigList& rlist, int two
     }
 #endif
 
-    rlist.sort();
+    rlist.sort(RelConfNumJStatesRanking());
 }
 
 void ConfigGenerator::SplitNonRelInfo(Configuration config, RelativisticConfigList& rlist)

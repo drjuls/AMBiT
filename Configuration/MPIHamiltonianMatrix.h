@@ -6,7 +6,9 @@
 class MPIHamiltonianMatrix: public HamiltonianMatrix
 {
 public:
-    MPIHamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs);
+    MPIHamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs):
+        HamiltonianMatrix(excited_states, rconfigs)
+    {}
     virtual ~MPIHamiltonianMatrix(void) {}
 
 public:
@@ -18,10 +20,6 @@ public:
 
 protected:
     virtual void GetgFactors(unsigned int two_j, double* g_factors) const;
-
-protected:
-    RelativisticConfigList::const_iterator config_start, config_end;
-    unsigned int M_start, M_end;
 };
 
 #endif

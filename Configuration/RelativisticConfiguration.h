@@ -9,6 +9,7 @@
 class RelativisticConfiguration : public Configuration
 {
     friend struct RelConfProjectionSizeRanking;
+    friend struct RelConfNumJStatesRanking;
 
     /** RelativisticConfiguration extends configuration by adding a set of projections
         and corresponding coefficients for a particular |J, M>. Thus it should not be used
@@ -84,6 +85,20 @@ struct RelConfProjectionSizeRanking
         if(first.projections.size() > second.projections.size())
             return true;
         else if(first.projections.size() < second.projections.size())
+            return false;
+        else
+            return (first < second);
+    }
+};
+
+struct RelConfNumJStatesRanking
+{
+    // Sort in descending order of number of Jstates
+    inline bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        if(first.num_states > second.num_states)
+            return true;
+        else if(first.num_states < second.num_states)
             return false;
         else
             return (first < second);
