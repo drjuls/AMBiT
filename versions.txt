@@ -8,6 +8,9 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Alt: Maximum iterations of Davidson method changed from 2000 -> 20000;
+     added size in atomic units to Debug::LogHFIterations output.
+
 1.1.4 - 08/03/05
 Alt: New method of converging Hartree-Fock by damping changes in electron
      states at each iteration. Big changes to Core::Update() and

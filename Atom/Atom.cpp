@@ -140,23 +140,6 @@ double Atom::GetEnergy(const StateInfo& info)
     return ds.Energy();
 }
 
-/*
-void Atom::CreateHFBasis()
-{
-    excited = new HFExcitedStates(lattice, core);
-    excited->SetIdentifier(&identifier);
-
-    std::vector<unsigned int> num_states;
-    num_states.push_back(4);
-    num_states.push_back(4);
-    num_states.push_back(5);
-
-    excited->CreateExcitedStates(num_states);
-    // dynamic_cast<HFExcitedStates*>(excited)->CreateContinuum(0.1, 4.2, 25, 7);
-    // CreateContinuum(0.1, 4.2, 25, 11)
-}
-*/
-
 void Atom::CreateRBasis(const StateInfo* ionised)
 {
     excited = new RSinStates(lattice, core);
