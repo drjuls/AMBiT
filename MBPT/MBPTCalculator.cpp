@@ -65,7 +65,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
 
             for(unsigned int k=start_k; k<=8; k+=2)
             {
-                double coeff24 = Constant::Wigner3j(k, s2.J(), s4.J(), 0., 0.5, -0.5);
+                double coeff24 = Constant::Electron3j(s2.J(), s4.J(), k, 0.5, -0.5);
                 if(coeff24)
                 {
                     coeff24 = coeff24 * coeff24 * (2. * s2.J() + 1.) * (2. * s4.J() + 1.)
@@ -92,7 +92,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
 
                         if((s->L() + s3.L())%2 == start_k)
                         {
-                            double coeff = Constant::Wigner3j(k, s->J(), s3.J(), 0., 0.5, -0.5);
+                            double coeff = Constant::Electron3j(s->J(), s3.J(), k, 0.5, -0.5);
 
                             if(coeff)
                             {
@@ -136,7 +136,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State* s, SigmaPotential*
 
                         if((s->L() + s3.L())%2 == start_k)
                         {
-                            double coeff = Constant::Wigner3j(k, s->J(), s3.J(), 0., 0.5, -0.5);
+                            double coeff = Constant::Electron3j(s->J(), s3.J(), k, 0.5, -0.5);
 
                             if(coeff)
                             {
@@ -217,7 +217,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
 
             for(unsigned int k1=start_k1; k1<=8; k1+=2)
             {
-                double coeff24 = Constant::Wigner3j(k1, s2.J(), s4.J(), 0., 0.5, -0.5);
+                double coeff24 = Constant::Electron3j(s2.J(), s4.J(), k1, 0.5, -0.5);
                 if(coeff24)
                 {
                     coeff24 = coeff24 * (2. * s2.J() + 1.) * (2. * s4.J() + 1.);
@@ -240,7 +240,7 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                     while(!it3.AtEnd())
                     {   const State& s3 = *(it3.GetState());
 
-                        double coeff13 = Constant::Wigner3j(k1, s->J(), s3.J(), 0., 0.5, -0.5);
+                        double coeff13 = Constant::Electron3j(s->J(), s3.J(), k1, 0.5, -0.5);
                         unsigned int start_k2 = (s2.L() + s3.L())%2;
                         if(coeff13 && ((s->L() + s4.L())%2 == start_k2) && ((s->L() + s3.L())%2 == start_k1))
                         {
@@ -253,8 +253,8 @@ double MBPTCalculator::CalculateCorrelation2(const State* s, SigmaPotential* sig
                             for(unsigned int k2=start_k2; k2<=8; k2+=2)
                             {
                                 double coeff 
-                                    = coeff13 * coeff24 * Constant::Wigner3j(k2, s->J(), s4.J(), 0., 0.5, -0.5)
-                                    * Constant::Wigner3j(k2, s3.J(), s2.J(), 0., 0.5, -0.5)
+                                    = coeff13 * coeff24 * Constant::Electron3j(s->J(), s4.J(), k2, 0.5, -0.5)
+                                    * Constant::Electron3j(s3.J(), s2.J(), k2, 0.5, -0.5)
                                     * Constant::Wigner6j(s->J(), s3.J(), k1, s2.J(), s4.J(), k2);
 
                                 if(coeff)
@@ -366,7 +366,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
 
             for(unsigned int k1=start_k1; k1<=8; k1+=2)
             {
-                double coeff24 = Constant::Wigner3j(k1, s2.J(), s4.J(), 0., 0.5, -0.5);
+                double coeff24 = Constant::Electron3j(s2.J(), s4.J(), k1, 0.5, -0.5);
                 if(coeff24)
                 {
                     coeff24 = coeff24 * (2. * s2.J() + 1.) * (2. * s4.J() + 1.);
@@ -389,7 +389,7 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                     while(!it3.AtEnd())
                     {   const State& s3 = *(it3.GetState());
 
-                        double coeff13 = Constant::Wigner3j(k1, s->J(), s3.J(), 0., 0.5, -0.5);
+                        double coeff13 = Constant::Electron3j(s->J(), s3.J(), k1, 0.5, -0.5);
                         unsigned int start_k2 = (s3.L() + s4.L())%2;
                         if(coeff13 && ((s->L() + s2.L())%2 == start_k2) && ((s->L() + s3.L())%2 == start_k1))
                         {
@@ -402,8 +402,8 @@ double MBPTCalculator::CalculateCorrelation4(const State* s, SigmaPotential* sig
                             for(unsigned int k2= start_k2; k2<=8; k2+=2)
                             {
                                 double coeff 
-                                    = coeff13 * coeff24 * Constant::Wigner3j(k2, s->J(), s2.J(), 0., 0.5, -0.5)
-                                    * Constant::Wigner3j(k2, s3.J(), s4.J(), 0., 0.5, -0.5)
+                                    = coeff13 * coeff24 * Constant::Electron3j(s->J(), s2.J(), k2, 0.5, -0.5)
+                                    * Constant::Electron3j(s3.J(), s4.J(), k2, 0.5, -0.5)
                                     * Constant::Wigner6j(s->J(), s3.J(), k1, s4.J(), s2.J(), k2);
 
                                 if(coeff)
