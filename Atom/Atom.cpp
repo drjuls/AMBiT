@@ -9,11 +9,28 @@
 #include "Basis/BSplineBasis.h"
 #include "MBPT/MBPTCalculator.h"
 
+#ifdef _MPI
+#include <mpi.h>
+#endif
+// MPI details (if not used, we can have NumProcessors == 1)
+unsigned int NumProcessors;
+unsigned int ProcessorRank;
+
 // The debug options for the whole program.
 Debug DebugOptions;
 
 int main(int argc, char* argv[])
 {
+    #ifdef _MPI
+        MPI::Init(argc, argv);
+        MPI::Intracomm comm_world = MPI::COMM_WORLD; // Alias
+        NumProcessors = comm_world.Get_size();
+        ProcessorRank = comm_world.Get_rank();
+    #else
+        NumProcessors = 1;
+        ProcessorRank = 0;
+    #endif
+
     OutStreams::InitialiseStreams();
 
     try
@@ -21,13 +38,18 @@ int main(int argc, char* argv[])
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
-    {   std::cout << ba.what() << std::endl;
+    {   *errstream << ba.what() << std::endl;
         exit(1);
     }
 
+    #ifdef _MPI
+        MPI::Finalize();
+    #endif
+
     *outstream << "\nFinished" << std::endl;
-    PAUSE
     OutStreams::FinaliseStreams();
+
+    PAUSE
     return 0;
 }
 

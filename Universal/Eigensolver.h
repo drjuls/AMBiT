@@ -28,6 +28,16 @@ public:
      */
     void SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, double* eigenvectors, unsigned int N, unsigned int num_solutions);
 
+    /** Solve a double symmetric matrix using Davidson algorithm on a distributed architecture.
+        PRE: Matrix.GetSize() == N
+             eigenvalues[num_solutions], eigenvectors[num_solutions * N]
+             Only calculates lowest num_solutions
+        POST: eigenvectors[i*N + j], i=(0, num_solutions-1), j=(0, N-1) is the eigenvector 
+              of the original matrix with eigenvalue "eigenvalues[i]".
+              Eigenvalues are sorted in ascending order.
+     */
+    void MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, double* eigenvectors, unsigned int N, unsigned int num_solutions);
+
     /** Solve a matrix equation in the form A*x = B, using lapack routine "dgesv".
         PRE: A = matrix[N][N]
              B = vector[N]

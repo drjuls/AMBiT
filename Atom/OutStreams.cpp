@@ -15,9 +15,24 @@ void OutStreams::InitialiseStreams()
 #endif
 
 #ifdef UNIX   // Don't output cerr to screen
-    outstream = &std::cout;
-    errstream = new std::ofstream("error.txt");
-    logstream = new std::ofstream("log.txt");
+    if(NumProcessors == 0)
+    {   outstream = &std::cout;
+        errstream = new std::ofstream("error.out");
+        logstream = new std::ofstream("log.out");
+    }
+    else
+    {   char buffer[20];
+        sprintf(buffer, "error_%d.out", ProcessorRank);
+        errstream = new std::ofstream(buffer);
+
+        sprintf(buffer, "log_%d.out", ProcessorRank);
+        logstream = new std::ofstream(buffer);
+
+        if(ProcessorRank == 0)
+            outstream = &std::cout;
+        else
+            outstream = logstream;
+    }
 #endif
 }
 

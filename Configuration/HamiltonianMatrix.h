@@ -18,17 +18,17 @@ public:
     }
 
     void UpdateIntegrals();
-    void GenerateMatrix();
-    void PollMatrix();
+    virtual void GenerateMatrix();
+    virtual void PollMatrix();
 
     /** Solve the matrix that has been generated.
         If gFactors are required, set boolean to true.
      */
-    void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactor = false);
+    virtual void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactor = false);
 
-    void GetEigenvalues() const;
+    virtual void GetEigenvalues() const;
 
-    void IncludeSMS_V2(bool include) { include_sms_v2 = include; }
+    void IncludeSMS_V2(bool include);
 
 protected:
     /** Get the Hamiltonian matrix element between two projections. */
@@ -52,7 +52,7 @@ protected:
     /** Calculate the Lande g-factors for eigenfunctions of the Hamiltonian.
         PRE: gFactors.size >= NumSolutions.
      */
-    void GetgFactors(unsigned int two_j, double* g_factors) const;
+    virtual void GetgFactors(unsigned int two_j, double* g_factors) const;
 
     /** Get average z-component of spin for single electron. */
     double GetSz(const ElectronInfo& e) const;

@@ -5,6 +5,7 @@
 #include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
+#include "Configuration/HamiltonianMatrix.h"
 
 class Atom
 {
@@ -52,14 +53,19 @@ public:
     /** Calculate CI using the existing basis.
         If size_only, then do not calculate CI, but report the size of the matrix.
      */
-    void OpenShellEnergy(int twoJ, Configuration& config, bool size_only = false);
+    void OpenShellEnergy(int twoJ, const Configuration& config, bool size_only = false);
 
-    void DoOpenShellSMS(int twoJ, Configuration& config);
-    void SMS_V0(int twoJ, Configuration& config);
-    void SMS_V1(int twoJ, Configuration& config);
-    void SMS_V2(int twoJ, Configuration& config);
-    void DoOpenShellVolumeShift(int twoJ, Configuration& config);
-    void DoOpenShellAlphaVar(int twoJ, Configuration& config);
+    /** Fill out the rlist based on config and twoJ.
+        Creates a new Hamiltonian object, which the user must later delete.
+     */
+    HamiltonianMatrix* CreateHamiltonian(int twoJ, const Configuration& config, RelativisticConfigList& rlist);
+
+    void DoOpenShellSMS(int twoJ, HamiltonianMatrix* H);
+    void SMS_V0(int twoJ, HamiltonianMatrix* H);
+    void SMS_V1(int twoJ, HamiltonianMatrix* H);
+    void SMS_V2(int twoJ, HamiltonianMatrix* H);
+    void DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H);
+    void DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H);
 
 private:
     std::string identifier;

@@ -2,6 +2,11 @@
 #include "Eigensolver.h"
 #include "Configuration/SmallMatrix.h"
 
+#ifdef _MPI
+#include "Configuration/MPIMatrix.h"
+#include <mpi.h>
+#endif
+
 #define SMALL_LIM 400
 
 static Matrix* aa;
@@ -32,7 +37,7 @@ int op(int *n, int *m, double* b, double* c)
     while(cp < cend)
         *cp++ = 0.;
 
-    aa->MatrixMultiply(*m, reinterpret_cast<double*>(b), reinterpret_cast<double*>(c));
+    aa->MatrixMultiply(*m, b, c);
 
     return 0;
 }
@@ -44,6 +49,26 @@ void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
 
 void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, double*, int*, int*);
 }
+
+#ifdef _MPI
+MPI::Intracomm comm_world;
+
+extern "C" {
+int MPI_op(int *n, int *m, double* b, double* c)
+{
+    comm_world.Bcast(m, 1, MPI::INT, 0);
+    comm_world.Bcast(b, (*n)*(*m), MPI::DOUBLE, 0);
+
+    double* c_copy = new double[(*n)*(*m)];
+    aa->MatrixMultiply(*m, b, c_copy);
+
+    comm_world.Reduce(c_copy, c, (*n)*(*m), MPI::DOUBLE, MPI::SUM, 0);
+    delete[] c_copy;
+
+    return 0;
+}
+}
+#endif
 
 void Eigensolver::SolveSmallSymmetric(double* matrix, double* eigenvalues, unsigned int N)
 {
@@ -151,6 +176,149 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     delete[] work;
     delete[] intwork;
 }
+
+#ifdef _MPI
+void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, double* eigenvectors, unsigned int N, unsigned int num_solutions)
+{
+    static int n, lim;
+    static double *diag;
+    static int ilow, ihigh, *iselec;
+    static int niv, mblock, maxiter;
+    static int nloops, nmv, ierr;
+    static bool hiend;
+    static int worksize, intworksize;
+    static double *work;
+    static int *intwork;
+    static double crite, critc, critr, ortho;
+
+    int i, j;
+
+    n = N;
+    comm_world = MPI::COMM_WORLD;
+
+    if(ProcessorRank == 0)
+    {
+        aa = matrix;
+        lim = mmin(N, num_solutions+20);
+
+        // Get diagonal
+        diag = new double[n];
+
+        double* my_diag = new double[n];
+        for(i = 0; i < n; i++)
+            my_diag[i] = 0.;
+        for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
+            my_diag[i] = matrix->At(i, i);
+        comm_world.Reduce(my_diag, diag, n, MPI::DOUBLE, MPI::SUM, 0);
+        delete[] my_diag;
+
+        // Start davidson
+        ilow = 1;
+        ihigh = num_solutions;  // num eigenvalues wanted
+        iselec = new int[lim];    // unused if lowest eigenvalues are wanted
+        for(i=0; i<lim; i++)
+            iselec[i] = 0;
+        niv = 0;
+        mblock = num_solutions;
+        maxiter = 2000;
+        hiend = false;
+        
+        worksize = 2*n*lim + lim*lim + (ihigh+10)*lim + ihigh;
+        work = new double[worksize];
+        for(i=0; i<worksize; i++)
+            work[i] = 0.;
+
+        intworksize = 7*lim;
+        intwork = new int[intworksize];
+        for(i=0; i<intworksize; i++)
+            intwork[i] = 0;
+        
+        crite = 1.e-14;  // Algorithm stops if ANY of these are satisfied
+        critc = 1.e-12;  //1.0e-8;
+        critr = 1.e-10;  //1.0e-10;
+        ortho = 1.e-9;   //1.0e-6;
+
+        dvdson_(MPI_op, &n, &lim, diag, &ilow, &ihigh, iselec, &niv, &mblock,
+                &crite, &critc, &critr, &ortho, &maxiter,
+                work, &worksize, intwork, &intworksize, &hiend, &nloops, &nmv, &ierr);
+
+        // send finish (m = 0)
+        int finish_m = 0;
+        comm_world.Bcast(&finish_m, 1, MPI::INT, 0);
+
+        // send success
+        comm_world.Bcast(&ierr, 1, MPI::INT, 0);
+
+        if(ierr != 0)
+        {   *errstream << "dvdson failed, ierr = " << ierr << std::endl;
+            exit(1);
+        }
+        else
+        {   for(i=0; i<num_solutions; i++)
+            {   eigenvalues[i] = work[ihigh * n + i];
+                for(j=0; j<n; j++)
+                    eigenvectors[i*n + j] = work[i*n + j];
+            }
+
+            // broadcast results
+            comm_world.Bcast(eigenvalues, num_solutions, MPI::DOUBLE, 0);
+            comm_world.Bcast(eigenvectors, num_solutions * n, MPI::DOUBLE, 0);
+        }
+
+        delete[] diag;
+        delete[] iselec;
+        delete[] work;
+        delete[] intwork;
+    }
+    else    // worker nodes
+    {   
+        // Get diagonal
+        double* my_diag = new double[N];
+        for(i = 0; i < N; i++)
+            my_diag[i] = 0.;
+        for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
+            my_diag[i] = matrix->At(i, i);
+        comm_world.Reduce(my_diag, diag, N, MPI::DOUBLE, MPI::SUM, 0);
+        delete[] my_diag;
+
+        // Multiplications in davidson method
+        double* b = new double[num_solutions * N];
+        double* c = new double[num_solutions * N];
+
+        nloops = 0;
+        int m = 1;
+        while(m != 0)
+        {
+            comm_world.Bcast(&m, 1, MPI::INT, 0);
+            if(m != 0)
+            {   nloops++;
+                comm_world.Bcast(b, m * N, MPI::DOUBLE, 0);
+
+                matrix->MatrixMultiply(m, b, c);
+
+                comm_world.Reduce(c, c, m * N, MPI::DOUBLE, MPI::SUM, 0);
+            }
+        }
+
+        delete[] b;
+        delete[] c;
+
+        comm_world.Bcast(&ierr, 1, MPI::INT, 0);
+
+        if(ierr != 0)
+        {   *errstream << "dvdson failed, ierr = " << ierr << std::endl;
+            exit(1);
+        }
+        else
+        {   // get broadcast results
+            comm_world.Bcast(eigenvalues, num_solutions, MPI::DOUBLE, 0);
+            comm_world.Bcast(eigenvectors, num_solutions * N, MPI::DOUBLE, 0);
+        }
+    }
+
+    *outstream << "    nloops=" << nloops << std::endl;;
+}
+#endif
 
 bool Eigensolver::SolveSimultaneousEquations(double* matrix, double* vector, unsigned int N)
 {

@@ -9,6 +9,9 @@ public:
     virtual ~Matrix(void) {}
 
     unsigned int GetSize() { return N; }
+    
+    virtual unsigned int StartRow() { return 0; }
+    virtual unsigned int EndRow() { return N; }
 
     /** Set/Clear write mode.
         WriteMode means that the matrix may still be undergoing changes.

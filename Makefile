@@ -13,9 +13,8 @@ include make.machine
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
 $(exe): $(libnames)
-	$(CXX) -o $(exe) $(libnames) \
-             $(foreach dir, $(LIBDIR), -L$(dir)) -l$(LAPACKLIB) -l$(BLASLIB)\
-             $(foreach library, $(EXTRALIBS), -l$(library)) -lm -lc
+	$(LINK) -o $(exe) $(libnames) $(addprefix -L, $(LIBDIR)) \
+             $(addprefix -l, $(EXTRALIBS) $(LAPACKLIB) $(BLASLIB) m c)
 
 .EXPORT_ALL_VARIABLES:
 

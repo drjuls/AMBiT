@@ -49,4 +49,8 @@ extern std::ostream* errstream;
 
 extern Debug DebugOptions;
 
+/** MPI */
+extern unsigned int NumProcessors;
+extern unsigned int ProcessorRank;
+
 #endif

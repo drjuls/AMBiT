@@ -90,36 +90,6 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
 
 void RStates::Update()
 {
-    //ConstDiscreteStateIterator it = GetConstDiscreteStateIterator();
-    //it.First();
-    //unsigned int k;
-    //unsigned int max_k = 0;
-    //while(!it.AtEnd())
-    //{   int kappa = it.GetState()->Kappa();
-    //    if(kappa > 0)
-    //        k = 2 * kappa - 1;
-    //    else
-    //        k = -2 * (kappa + 1);
-    //    max_k = mmax(k, max_k);
-    //    it.Next();
-    //}
-
-    //unsigned int* num_states_per_kappa = new unsigned int[max_k + 1];
-    //for(k=0; k <= max_k; k++)
-    //    num_states_per_kappa[k] = 0;
-
-    //it.First();
-    //while(!it.AtEnd())
-    //{   int kappa = it.GetState()->Kappa();
-    //    if(kappa > 0)
-    //        k = 2 * kappa - 1;
-    //    else
-    //        k = -2 * (kappa + 1);
-    //    
-    //    num_states_per_kappa[k]++;
-    //    it.Next();
-    //}
-
     Clear();
 
     SigmaMap::iterator sigma = SecondOrderSigma.begin();

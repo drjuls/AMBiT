@@ -15,14 +15,18 @@ SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
 
 ifeq ($(MACHINE), apaclc)
-  CC  = icc
-  CXX = icc
-  F77 = ifort
+  CC  = gcc
+  CXX = g++
+  F77 = gcc
 
-  LIBDIR       = /usr/lib $(INTELPATH)/mkl61/lib/32
-  BLASLIB      = 
-  LAPACKLIB    = mkl_lapack
-  EXTRALIBS    = mkl_p4 guide
+  LINK = mpiCC
+
+  LIBDIR       = /usr/lib
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = g2c
+
+  INCLUDE += $$$$LAMHOME/include
 
   ifdef debug
     BUILD = Debug
@@ -30,19 +34,21 @@ ifeq ($(MACHINE), apaclc)
     CXXFLAGS += -g
   else
     BUILD = Release
-    CFLAGS += -O3 -w
-    CXXFLAGS += -O3 -w
+    CFLAGS += -O3
+    CXXFLAGS += -O3 -D_MPI
     F77FLAGS += -O3
   endif
 
-  CCDEP = icc
-  DEPFLAG = -M
+  CCDEP = gcc
+  DEPFLAG = -MM
 endif
 
 ifeq ($(MACHINE), newt)
   CC  = gcc33
   CXX = g++33
   F77 = gcc33
+
+  LINK = gcc33
 
   LIBDIR       = /usr/local/lib
   BLASLIB      = blas

@@ -6,12 +6,11 @@
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/State.h"
 #include "Universal/Eigensolver.h"
-#include "ConfigGenerator.h"
 
 #define SMALL_MATRIX_LIM 2000
 
 HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs):
-    states(excited_states), configs(rconfigs), include_sms_v2(false), NumSolutions(0)
+    states(excited_states), configs(rconfigs), include_sms_v2(false), NumSolutions(0), M(NULL)
 {
     // Set up matrix
     N = 0;
@@ -23,11 +22,6 @@ HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const 
 
     *logstream << " " << N << std::flush;
     UpdateIntegrals();
-
-    if(N <= SMALL_MATRIX_LIM)
-        M = new SmallMatrix(N);
-    else
-        M = new SymMatrix(N);
 
     *outstream << " Number of J-configurations = " << N << std::endl;
 }
@@ -168,11 +162,24 @@ void HamiltonianMatrix::UpdateIntegrals()
     }
 }
 
+void HamiltonianMatrix::IncludeSMS_V2(bool include)
+{
+    include_sms_v2 = include;
+}
+
 void HamiltonianMatrix::GenerateMatrix()
 {
     unsigned int i, j;
 
-    M->Clear();
+    if(M == NULL)
+    {   if(N <= SMALL_MATRIX_LIM)
+            M = new SmallMatrix(N);
+        else
+            M = new SymMatrix(N);
+    }
+    else
+        M->Clear();
+
     M->WriteMode(true);
 
     // Loop through relativistic configurations
@@ -604,7 +611,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
         std::map<Configuration, double>::const_iterator it = percentages.begin();
         while(it != percentages.end())
         {
-            if(it->second > .001)
+            if(it->second > 1.)
                 *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
                     << it->second << "%" << std::endl;
             it++;
@@ -636,8 +643,8 @@ void HamiltonianMatrix::GetEigenvalues() const
         const ProjectionSet& proj_i = list_it->GetProjections();
         const std::vector< std::vector<double> >& coefficients_i = list_it->GetJCoefficients();
 
-        RelativisticConfigList::const_iterator list_jt = configs.begin();
-        j = 0;
+        RelativisticConfigList::const_iterator list_jt = list_it;
+        j = i;
         while(list_jt != configs.end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
@@ -688,10 +695,7 @@ void HamiltonianMatrix::GetEigenvalues() const
                 pi_it++; pi++;
             }
 
-            if(list_jt == list_it)
-                list_jt = configs.end();
-            else
-                list_jt++; j+=coefficients_j.size();
+            list_jt++; j+=coefficients_j.size();
         }
 
         list_it++; i+=coefficients_i.size();
@@ -733,8 +737,8 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
         const ProjectionSet& proj_i = list_it->GetProjections();
         const std::vector< std::vector<double> >& coefficients_i = list_it->GetJCoefficients();
 
-        RelativisticConfigList::const_iterator list_jt = configs.begin();
-        j = 0;
+        RelativisticConfigList::const_iterator list_jt = list_it;
+        j = i;
         while(list_jt != configs.end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
@@ -800,10 +804,7 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
                 pi_it++; pi++;
             }
 
-            if(list_jt == list_it)
-                list_jt = configs.end();
-            else
-                list_jt++; j+=coefficients_j.size();
+            list_jt++; j+=coefficients_j.size();
         }
 
         list_it++; i+=coefficients_i.size();

@@ -7,7 +7,7 @@ SmallMatrix::SmallMatrix(unsigned int size): Matrix(size)
     {   M = new double[N*N];
     }
     catch(std::bad_alloc& ba)
-    {   std::cout << "Small Matrix (N = " << N << "): " << ba.what() << std::endl;
+    {   *errstream << "Small Matrix (N = " << N << "): " << ba.what() << std::endl;
         throw;
     }
 
