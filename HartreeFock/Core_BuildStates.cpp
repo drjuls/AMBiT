@@ -18,7 +18,7 @@ void Core::Update()
     bool debug = DebugOptions.LogHFIterations();
 
     // Copy states for next iteration.
-    StateManager next_states(lattice, Z, Charge);
+    StateManager next_states(lattice, (unsigned int)Z, (unsigned int)Charge);
 
     StateIterator core_it(this);
     core_it.First();
