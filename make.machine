@@ -47,11 +47,11 @@ ifeq ($(MACHINE), apaclc)
 endif
 
 ifeq ($(MACHINE), newt)
-  CC  = gcc33
-  CXX = g++33
-  F77 = gcc33
+  CC  = gcc34
+  CXX = g++34
+  F77 = gcc34
 
-  LINK = g++33
+  LINK = g++34
 
   LIBDIR       = /usr/local/lib
   BLASLIB      = blas
@@ -72,7 +72,7 @@ ifeq ($(MACHINE), newt)
   endif
 
   # non gnu compilers may not support MM: use M instead
-  CCDEP = gcc33
+  CCDEP = gcc34
   DEPFLAG = -MM
 endif
 
