@@ -3,11 +3,10 @@
 #include "BSplineCore.h"
 #include "Include.h"
 #include "Spline.h"
-#include "HartreeFock/CoupledFunction.h"
+#include "Universal/CoupledFunction.h"
 #include "Universal/Constant.h"
 #include "Universal/Eigensolver.h"
 
-#include "Universal/Interpolator.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Basis/HFExcitedStates.h"
 
@@ -237,7 +236,6 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         int jderiv;
                         double x;
 
-                        Interpolator interp(lattice);
                         for(point = 0; point < HF_size; point++)
                         {
                             x = HF_R[point];

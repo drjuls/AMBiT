@@ -3,9 +3,8 @@
 
 #include "BSplineGrid.h"
 #include "HartreeFock/Core.h"
-#include "HartreeFock/StateManager.h"
 
-class BSplineCore : protected StateManager
+class BSplineCore
 {
 public:
     BSplineCore(BSplineGrid* lat, const Core* core);
@@ -20,7 +19,7 @@ public:
     /** Get direct HF potential on the bspline grid. */
     std::vector<double> GetPotential() { return potential; }
 
-public:
+protected:
     void Read(FILE* fp) {}
     void Write(FILE* fp) const {}
 

@@ -4,7 +4,7 @@
 #include "HartreeFock/StateManager.h"
 #include "HartreeFock/StateIterator.h"
 #include "HartreeFock/Core.h"
-#include "MBPT/SigmaPotential.h"
+#include "HartreeFock/SigmaPotential.h"
 #include <set>
 #include <map>
 #include <vector>
@@ -18,7 +18,7 @@ public:     // Methods for StateManager role
     ExcitedStates(Lattice* lattice, const Core* atom_core);
     virtual ~ExcitedStates();
 
-    virtual void AddState(State* s);
+    virtual void AddState(DiscreteState* s);
 
     /** Get a copy of the state, including iterating sigma (if available). */
     virtual DiscreteState GetStateWithSigma(const StateInfo& info) const;
@@ -58,6 +58,24 @@ public:     // Methods for managing sigma
     double GetSigmaAmount(const StateInfo& info) const;
 
     const Core* GetCore() const { return core; }
+
+protected:
+    /** current.f = r * previous.f
+        PRE: previous.kappa = current.kappa
+     */
+    void MultiplyByR(const DiscreteState* previous, DiscreteState* current) const;
+
+    /** current.f = sin(kr) * previous.f, where k = Pi/R_max
+        PRE: previous.kappa = current.kappa
+     */
+    void MultiplyBySinR(const DiscreteState* previous, DiscreteState* current) const;
+
+    /** current.f = r * sin(kr) * previous.f
+        PRE: current.l = previous.l + 1
+     */
+    void MultiplyByRSinR(const DiscreteState* previous, DiscreteState* current) const;
+
+    void Orthogonalise(DiscreteState* current) const;
 
 protected:
     const Core* core;

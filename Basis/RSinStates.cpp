@@ -24,7 +24,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 unsigned int pqn = k + 1;
 
                 // Get first state by HF iteration
-                const State* s;
+                const DiscreteState* s;
                 const DiscreteState* previous_state = NULL;
                 while(count == 0)
                 {

@@ -1,6 +1,6 @@
 cxxobjects = BSplineBasis.o BSplineCore.o BSplineGrid.o \
-             CustomBasis.o DiscreteExcitedStates.o ExcitedStates.o \
-             HFExcitedStates.o RSinStates.o RStates.o
+             CustomBasis.o ExcitedStates.o \
+             RSinStates.o RStates.o
 cobjects = 
 fobjects = Spline.o
 

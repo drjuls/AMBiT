@@ -1,13 +1,13 @@
 #ifndef CUSTOM_BASIS_H
 #define CUSTOM_BASIS_H
 
-#include "DiscreteExcitedStates.h"
-#include "Configuration/NonRelInfo.h"
+#include "ExcitedStates.h"
+#include "HartreeFock/NonRelInfo.h"
 
-class CustomBasis : public DiscreteExcitedStates
+class CustomBasis : public ExcitedStates
 {
 public:
-    CustomBasis(Lattice* lattice, Core* atom_core): DiscreteExcitedStates(lattice, atom_core) {}
+    CustomBasis(Lattice* lattice, Core* atom_core): ExcitedStates(lattice, atom_core) {}
     virtual ~CustomBasis() {}
 
     /** Create excited states by following the prescription in CustomBasis.txt

@@ -27,7 +27,7 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
                 unsigned int pqn = k + 1;
 
                 // Get first state by HF iteration
-                const State* s;
+                const DiscreteState* s;
                 const DiscreteState* previous_state = NULL;
                 while(count == 0)
                 {
@@ -36,7 +36,7 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
                     // If state is not in the open shell part, check whether it is in the core
                     if(!core->IsOpenShellState(StateInfo(pqn, kappa)))
                     {   s = core->GetState(StateInfo(pqn, kappa));
-                        previous_state = dynamic_cast<const DiscreteState*>(s);
+                        previous_state = s;
                     }
 
                     if(s == NULL)

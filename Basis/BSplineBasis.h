@@ -1,13 +1,13 @@
 #ifndef BSPLINE_BASIS_H
 #define BSPLINE_BASIS_H
 
-#include "DiscreteExcitedStates.h"
+#include "ExcitedStates.h"
 
-class BSplineBasis : public DiscreteExcitedStates
+class BSplineBasis : public ExcitedStates
 {
 public:
     BSplineBasis(Lattice* lattice, Core* atom_core):
-        DiscreteExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.) {}
+        ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.) {}
     virtual ~BSplineBasis() {}
 
     /** Create virtual states above the core.

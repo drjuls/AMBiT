@@ -7,7 +7,7 @@
 #define NON_REL_SCALING true
 
 BSplineCore::BSplineCore(BSplineGrid* lat, const Core* core):
-    StateManager(lat, core->GetZ(), core->GetCharge()), hfcore(core), grid(lat)
+    hfcore(core), grid(lat)
 {
     order = 6;
     Lattice* hflattice = hfcore->GetLattice();
@@ -35,12 +35,15 @@ BSplineCore::BSplineCore(BSplineGrid* lat, const Core* core):
         // divide by x again
         potential[point] = V/x[point];
     }
+}
+/*
+FROM CONSTRUCTOR:
 
     // Interpolate wavefunctions
     const DiscreteState* hfstate;
     DiscreteState* s;
     
-    ConstDiscreteStateIterator it = hfcore->GetConstDiscreteStateIterator();
+    ConstStateIterator it = hfcore->GetConstStateIterator();
     while(!it.AtEnd())
     {
         hfstate = it.GetState();
@@ -64,8 +67,7 @@ BSplineCore::BSplineCore(BSplineGrid* lat, const Core* core):
         AddState(s);
         it.Next();
     }
-}
-/*
+
 void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper, CoupledFunction& exchange)
 {
     unsigned int L;
@@ -133,7 +135,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     ConstDiscreteStateIterator cs = hfcore->GetConstDiscreteStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& other = *dynamic_cast<const DiscreteState*>(cs.GetState());
+        const DiscreteState& other = cs.GetState();
         const State* xother = GetState(StateInfo(&other));
 
         unsigned int lower_point = b_lower_point;
@@ -170,7 +172,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const DiscreteState* ds = hfcore->GetState(StateInfo(other.RequiredPQN(), other_kappa));
+                        const DiscreteState* ds = hfcore->GetState(StateInfo(other.PQN(), other_kappa));
 
                         if((kappa != other.Kappa()) && (kappa != ds->Kappa()))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
@@ -278,10 +280,10 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     delete[] fspline_buf;
 
     // Sum over all core states
-    ConstDiscreteStateIterator cs = hfcore->GetConstDiscreteStateIterator();
+    ConstStateIterator cs = hfcore->GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& other = *dynamic_cast<const DiscreteState*>(cs.GetState());
+        const DiscreteState& other = *cs.GetState();
         unsigned int lower_point = b_lower_point;
         unsigned int upper_point = other.Size();
 

@@ -1,12 +1,12 @@
 #ifndef RSTATES_H
 #define RSTATES_H
 
-#include "DiscreteExcitedStates.h"
+#include "ExcitedStates.h"
 
-class RStates : public DiscreteExcitedStates
+class RStates : public ExcitedStates
 {
 public:
-    RStates(Lattice* lattice, Core* atom_core): DiscreteExcitedStates(lattice, atom_core) {}
+    RStates(Lattice* lattice, Core* atom_core): ExcitedStates(lattice, atom_core) {}
     virtual ~RStates(void) {}
 
     /** Create excited states by multiplying states by R and orthogonalising.

@@ -1,5 +1,6 @@
-#include "CustomBasis.h"
 #include "Include.h"
+#include "CustomBasis.h"
+#include "Universal/Constant.h"
 
 void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
 {
@@ -76,9 +77,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 exit(1);
             }
             DiscreteState* ds = new DiscreteState(lattice, final.PQN(), final.GetFirstRelativisticInfo().Kappa());
-            const DiscreteState* previous = GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
+            const DiscreteState* previous = GetState(prev.GetFirstRelativisticInfo());
             if(previous == NULL)
-                previous = core->GetState(prev.GetFirstRelativisticInfo().GetStateInfo());
+                previous = core->GetState(prev.GetFirstRelativisticInfo());
             if(previous == NULL)
             {   *errstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
                 PAUSE
@@ -110,9 +111,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
             
             if(final.L() != 0)
             {   ds = new DiscreteState(lattice, final.PQN(), final.GetSecondRelativisticInfo().Kappa());
-                previous = GetState(prev.GetSecondRelativisticInfo().GetStateInfo());
+                previous = GetState(prev.GetSecondRelativisticInfo());
                 if(previous == NULL)
-                    previous = core->GetState(prev.GetSecondRelativisticInfo().GetStateInfo());
+                    previous = core->GetState(prev.GetSecondRelativisticInfo());
                 if(previous == NULL)
                 {   *outstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
                     PAUSE
