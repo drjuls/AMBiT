@@ -139,7 +139,7 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
         iselec[i] = 0;
     niv = 0;
     mblock = num_solutions;
-    maxiter = 2000;
+    maxiter = 20000;
     hiend = false;
     
     worksize = 2*n*lim + lim*lim + (ihigh+10)*lim + ihigh;
@@ -214,7 +214,7 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
             iselec[i] = 0;
         niv = 0;
         mblock = num_solutions;
-        maxiter = 2000;
+        maxiter = 20000;
         hiend = false;
         
         worksize = 2*n*lim + lim*lim + (ihigh+10)*lim + ihigh;
