@@ -37,7 +37,7 @@ double& SmallMatrix::At(unsigned int i, unsigned int j)
 {   return M[i*N + j];
 }
 
-void SmallMatrix::MatrixMultiply(int m, double* b, double* c)
+void SmallMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     unsigned int i, j, k;
     double temp;
@@ -62,4 +62,10 @@ void SmallMatrix::Symmetrise()
     for(i=0; i<N; i++)
         for(j=i+1; j<N; j++)
             M[j*N + i] = M[i*N + j];
+}
+
+void SmallMatrix::GetDiagonal(double* diag) const
+{
+    for(unsigned int i=0; i<N; i++)
+        diag[i] = M[i*N + i];
 }

@@ -10,9 +10,6 @@ public:
 
     unsigned int GetSize() { return N; }
     
-    virtual unsigned int StartRow() { return 0; }
-    virtual unsigned int EndRow() { return N; }
-
     /** Set/Clear write mode.
         WriteMode means that the matrix may still be undergoing changes.
         When WriteMode is turned off, Matrix should clean itself up and prepare for
@@ -32,7 +29,12 @@ public:
         Since this routine is intended for use with fortran code,
         the indices of b and c are in (column, row) order.
      */
-    virtual void MatrixMultiply(int m, double* b, double* c) = 0;
+    virtual void MatrixMultiply(int m, double* b, double* c) const = 0;
+
+    /** Get the diagonal of the matrix.
+        PRE: diag = double[N], where N = this->GetSize().
+     */
+    virtual void GetDiagonal(double* diag) const = 0;
 
 protected:
     unsigned int N;

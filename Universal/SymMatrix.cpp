@@ -50,7 +50,7 @@ double& SymMatrix::At(unsigned int i, unsigned int j)
         return M[j][i-j];
 }
 
-void SymMatrix::MatrixMultiply(int m, double* b, double* c)
+void SymMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     unsigned int i, j;
     double temp;
@@ -97,4 +97,10 @@ void SymMatrix::MatrixMultiply(int m, double* b, double* c)
                 *cp++ += B * *rowp++;
         }
     }
+}
+
+void SymMatrix::GetDiagonal(double* diag) const
+{
+    for(unsigned int i=0; i<N; i++)
+        diag[i] = *M[i];
 }

@@ -3,7 +3,7 @@
 #include "SmallMatrix.h"
 
 #ifdef _MPI
-#include "MPIMatrix.h"
+#include "Configuration/MPIMatrix.h"
 #include <mpi.h>
 #endif
 
@@ -130,8 +130,7 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     n = N;
     lim = mmin(N, num_solutions+20);
     diag = new double[n];
-    for(i=0; i<n; i++)
-        diag[i] = aa->At(i, i);
+    aa->GetDiagonal(diag);
 
     ilow = 1;
     ihigh = num_solutions;  // num eigenvalues wanted
@@ -196,20 +195,16 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
     comm_world = MPI::COMM_WORLD;
     c_copy = new double[num_solutions * N]; 
 
+    // Get diagonal
     diag = new double[n];
     double* my_diag = new double[n];
+    matrix->GetDiagonal(my_diag);
+    comm_world.Reduce(my_diag, diag, n, MPI::DOUBLE, MPI::SUM, 0);
 
     if(ProcessorRank == 0)
     {
         aa = matrix;
         lim = mmin(N, num_solutions+20);
-
-        // Get diagonal
-        for(i = 0; i < n; i++)
-            my_diag[i] = 0.;
-        for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
-            my_diag[i] = matrix->At(i, i);
-        comm_world.Reduce(my_diag, diag, n, MPI::DOUBLE, MPI::SUM, 0);
 
         // Start davidson
         ilow = 1;
@@ -270,13 +265,6 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
     }
     else    // worker nodes
     {   
-        // Get diagonal
-        for(i = 0; i < N; i++)
-            my_diag[i] = 0.;
-        for(i = matrix->StartRow(); i < matrix->EndRow(); i++)
-            my_diag[i] = matrix->At(i, i);
-        comm_world.Reduce(my_diag, diag, N, MPI::DOUBLE, MPI::SUM, 0);
-
         // Multiplications in davidson method
         double* b = new double[num_solutions * N];
         double* c = new double[num_solutions * N];

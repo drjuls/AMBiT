@@ -16,7 +16,8 @@ public:
     virtual void Clear();
     virtual double& At(unsigned int i, unsigned int j);
 
-    virtual void MatrixMultiply(int m, double* b, double* c);
+    virtual void MatrixMultiply(int m, double* b, double* c) const;
+    virtual void GetDiagonal(double* diag) const;
 
 protected:
     double** M;  // Pointers to matrix rows (N rows)
