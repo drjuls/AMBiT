@@ -48,18 +48,17 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
 
     // Get projections by recursion
     DoElectron(electrons, 0);
+    projections.sort();
+    projections.unique();
 
     // Eliminate projections with the wrong value of M
     ProjectionSet::iterator p = projections.begin();
-    ProjectionSet::iterator nextp = p;
 
     while(p != projections.end())
-    {
-        nextp++;
-        if(p->GetTwoM() != two_m)
-            projections.erase(p);
-
-        p = nextp;
+    {   if(p->GetTwoM() != two_m)
+            p = projections.erase(p);
+        else
+            p++;
     }
 
     if(GetProjectionCoefficients(double(two_m)/2.))
@@ -89,7 +88,7 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
         {   proj.Add(electrons[i]);
         }
         proj.Sort();
-        projections.insert(proj);
+        projections.push_back(proj);
     }
     else
     {

@@ -5,13 +5,8 @@
 #include "Basis/RSinStates.h"
 #include "Basis/CustomBasis.h"
 #include "Universal/Constant.h"
-#include "Configuration/NonRelInfo.h"
-#include "Configuration/ConfigGenerator.h"
-#include "Configuration/HamiltonianMatrix.h"
-#include "Universal/CoulombIntegrator.h"
 #include "Basis/BSplineBasis.h"
 #include "MBPT/MBPTCalculator.h"
-#include <time.h>
 #include <fstream>
 
 int main(int argc, char* argv[])
@@ -156,9 +151,9 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(3);
-    num_states.push_back(3);
-    num_states.push_back(4);
+    num_states.push_back(2);
+    num_states.push_back(2);
+    num_states.push_back(2);
     //num_states.push_back(13);
     //num_states.push_back(13);
     //num_states.push_back(12);

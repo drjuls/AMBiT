@@ -1,17 +1,9 @@
 #include "Include.h"
 #include "Atom.h"
-#include "Basis/HFExcitedStates.h"
-#include "Basis/RStates.h"
-#include "Basis/RSinStates.h"
-#include "Basis/CustomBasis.h"
 #include "Universal/Constant.h"
 #include "Configuration/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
-#include "Universal/CoulombIntegrator.h"
-#include "Basis/BSplineBasis.h"
-#include "MBPT/MBPTCalculator.h"
-#include <time.h>
 
 void Atom::RunOpen()
 {
@@ -35,7 +27,7 @@ void Atom::RunOpen()
     unsigned int two_j;
     NumSolutions = 4;
 
-    OpenShellEnergy(9, config, true);
+    OpenShellEnergy(9, config);
     return;
 
     std::cout << "\nGS Parity:\n" << std::endl;
@@ -90,9 +82,7 @@ void Atom::OpenShellEnergy(int twoJ, Configuration& config, bool size_only)
     generator.GenerateProjections(rlist, twoJ);
 
     if(size_only)
-    {//   std::cout << " Number of non-rel configurations = " << nrlist.size() << std::endl;
-     //   std::cout << " Number of rel configurations = " << rlist.size() << std::endl;
-        unsigned int N = 0;
+    {   unsigned int N = 0;
         RelativisticConfigList::const_iterator it = rlist.begin();
         while(it != rlist.end())
         {   N += it->GetJCoefficients().size();
@@ -107,7 +97,7 @@ void Atom::OpenShellEnergy(int twoJ, Configuration& config, bool size_only)
         core->ToggleClosedShellCore();
         HamiltonianMatrix H(*excited, rlist);
         H.GenerateMatrix();
-        H.PollMatrix();
+        //H.PollMatrix();
         H.SolveMatrix(NumSolutions, twoJ, true);
     }
 }

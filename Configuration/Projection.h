@@ -3,7 +3,7 @@
 
 #include "ElectronInfo.h"
 #include <vector>
-#include <set>
+#include <list>
 
 #ifndef PARITY_ENUM
 #define PARITY_ENUM
@@ -58,6 +58,6 @@ protected:
     std::vector<ElectronInfo> Config;
 };
 
-typedef std::set<Projection> ProjectionSet;
+typedef std::list<Projection> ProjectionSet;
 
 #endif
