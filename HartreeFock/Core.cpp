@@ -6,7 +6,7 @@
 Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
     StateManager(lat, atomic_number, ion_charge),
     NuclearRadius(0.00001), NuclearThickness(0.000001),
-    NuclearInverseMass(0.0), VolumeShiftParameter(0.0)
+    NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0)
 {}
 
 void Core::Initialise()

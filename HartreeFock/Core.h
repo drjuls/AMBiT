@@ -58,6 +58,17 @@ public:     // Methods for setting physical parameters of core
       */
     void CalculateVolumeShiftPotential(double radius_difference);
 
+    /** We can approximate valence-core correlation effects using polarisability:
+           U = (-1/2) * Polarisability/(r^4 + a^4)
+        where a is the radius of the core. This models the effect of the electric
+        field of the valence electron on the core.
+     */
+    void SetPolarisability(double pol);
+    double GetPolarisability() const { return Polarisability; }
+
+    void CalculateClosedShellRadius();
+    double GetClosedShellRadius() const { return ClosedShellRadius; }
+
 public:     // Methods for Hartree-Fock calculations and potentials
     /** Set energy tolerances */
     void SetEnergyTolerance(double tolerance);
@@ -161,6 +172,12 @@ protected:
     double VolumeShiftParameter;
     std::vector<double> VolumeShiftPotential;
 
+    /** Core polarisability, defined by dE = alpha * E^2. */
+    double Polarisability;
+
+    /** Radius of the closed shell core */
+    double ClosedShellRadius;
+
     /** HFPotential is mutable in case it's size needs to be increased. */
     mutable std::vector<double> HFPotential;
     mutable std::vector<double> LocalExchangeApproximation;
@@ -210,6 +227,11 @@ inline void Core::SetVolumeShiftParameter(double vol_shift)
     VolumeShiftParameter = vol_shift;
     //if(VolumeShiftPotential.size())
     //    Update();
+}
+
+inline void Core::SetPolarisability(double pol)
+{
+    Polarisability = pol;
 }
 
 inline void Core::SetEnergyTolerance(double tolerance)

@@ -395,6 +395,59 @@ std::vector<double> Core::CalculateNuclearDensity(double radius, double thicknes
     return density;
 }
 
+void Core::CalculateClosedShellRadius()
+{
+    // Get electron density function
+    std::vector<double> density;
+    density.clear();
+    unsigned int j;
+
+    ConstStateIterator cs = GetConstStateIterator();
+    while(!cs.AtEnd())
+    {
+        const DiscreteState& s = *cs.GetState();
+        if(OpenShellStates.find(StateInfo(&s)) == OpenShellStates.end())
+        {
+            const std::vector<double>& f = s.f;
+            const std::vector<double>& g = s.g;
+            double number_electrons = s.Occupancy();
+
+            if(s.Size() > density.size())
+                density.resize(s.Size());
+
+            for(unsigned int j=0; j<s.Size(); j++)
+            {
+                density[j] = density[j] + (pow(f[j], 2.) + Constant::AlphaSquared * pow(g[j], 2.))*number_electrons;
+            }
+        }
+
+        cs.Next();
+    }
+
+    std::vector<double>::const_iterator it = density.end();
+    it--;
+    double last_max = fabs(*it);
+    while(it != density.begin())
+    {
+        if(fabs(*it) >= last_max)
+            last_max = fabs(*it);
+        else break;
+        it--;
+    }
+
+    last_max *= 0.5;
+    it = density.end();
+    it--;
+    for(j = density.size() - 1; j >= 0; j--)
+    {
+        if(fabs(*it) >= last_max)
+            break;
+        it--;
+    }
+
+    ClosedShellRadius = lattice->R(j);
+}
+
 unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amount, const SigmaPotential* sigma, double sigma_amount) const
 {
     bool remove_self_interaction = false;
