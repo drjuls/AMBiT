@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "Atom.h"
 #include "Universal/Constant.h"
-#include "Configuration/NonRelInfo.h"
+#include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/MPIHamiltonianMatrix.h"
@@ -13,23 +13,22 @@ void Atom::RunOpen()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    //CreateHFBasis();
     //CreateCustomBasis();
-    CreateRBasis();
-    //CreateBSplineBasis();
+    //CreateRBasis();
+    CreateBSplineBasis();
 
     DebugOptions.OutputHFExcited(false);
 
     SD_CI = true;
     Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 2), 6);
+    config.SetOccupancy(NonRelInfo(3, 2), 2);
     config.SetOccupancy(NonRelInfo(4, 0), 1);
 
     unsigned int two_j;
-    NumSolutions = 4;
+    NumSolutions = 3;
 
     *outstream << "\nGS Parity:\n" << std::endl;
-    for(two_j = 9; two_j <= 9; two_j += 2)
+    for(two_j = 3; two_j <= 9; two_j += 6)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
@@ -47,11 +46,11 @@ void Atom::RunOpen()
     config.RemoveSingleParticle(NonRelInfo(4, 0));
     config.AddSingleParticle(NonRelInfo(4, 1));
 
-    NumSolutions = 6;
+    NumSolutions = 3;
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
 
-    for(two_j = 7; two_j <= 7; two_j+=2)
+    for(two_j = 9; two_j <= 11; two_j+=2)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
@@ -94,6 +93,33 @@ HamiltonianMatrix* Atom::CreateHamiltonian(int twoJ, const Configuration& config
     #endif
 
     return H;
+}
+
+void Atom::CheckMatrixSizes()
+{
+    SD_CI = true;
+    Configuration config;
+    config.SetOccupancy(NonRelInfo(3, 2), 2);
+    config.SetOccupancy(NonRelInfo(4, 0), 1);
+
+    unsigned int two_j;
+
+    *outstream << "\nGS Parity:\n" << std::endl;
+    for(two_j = 3; two_j <= 9; two_j += 6)
+    {
+        *outstream << "J = " << two_j/2. << std::endl;
+        OpenShellEnergy(two_j, config, true);
+    }
+
+    config.RemoveSingleParticle(NonRelInfo(4, 0));
+    config.AddSingleParticle(NonRelInfo(4, 1));
+
+    *outstream << "\nOpposite Parity:\n" << std::endl;
+    for(two_j = 9; two_j <= 11; two_j+=2)
+    {
+        *outstream << "J = " << two_j/2. << std::endl;
+        OpenShellEnergy(two_j, config, true);
+    }
 }
 
 void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only)

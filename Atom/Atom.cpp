@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(26, 2, "FeII");
+    {   Atom A(22, 2, "TiII");
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
@@ -60,7 +60,6 @@ void Atom::Run()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    //CreateHFBasis();
     //CreateCustomBasis();
     //CreateRBasis();
     CreateBSplineBasis();
@@ -138,27 +137,26 @@ void Atom::Read()
 
 double Atom::GetEnergy(const StateInfo& info)
 {
-    if(!info.Discrete())
-        return 0.;
-
     DiscreteState ds = excited->GetStateWithSigma(info);
     return ds.Energy();
 }
 
+/*
 void Atom::CreateHFBasis()
 {
     excited = new HFExcitedStates(lattice, core);
     excited->SetIdentifier(&identifier);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
+    num_states.push_back(4);
+    num_states.push_back(4);
+    num_states.push_back(5);
 
     excited->CreateExcitedStates(num_states);
     // dynamic_cast<HFExcitedStates*>(excited)->CreateContinuum(0.1, 4.2, 25, 7);
     // CreateContinuum(0.1, 4.2, 25, 11)
 }
+*/
 
 void Atom::CreateRBasis(const StateInfo* ionised)
 {
@@ -171,7 +169,7 @@ void Atom::CreateRBasis(const StateInfo* ionised)
     std::vector<unsigned int> num_states;
     num_states.push_back(2);
     num_states.push_back(2);
-    num_states.push_back(2);
+    num_states.push_back(3);
     //num_states.push_back(13);
     //num_states.push_back(13);
     //num_states.push_back(12);
@@ -192,10 +190,10 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(10);
-    num_states.push_back(10);
-    num_states.push_back(10);
-    num_states.push_back(6);
+    num_states.push_back(3);
+    num_states.push_back(3);
+    num_states.push_back(4);
+    //    num_states.push_back(5);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -214,7 +212,7 @@ void Atom::CreateCustomBasis(const StateInfo* ionised)
 
 void Atom::GetSigma(const StateInfo& info)
 {
-    DiscreteState* ds = dynamic_cast<DiscreteState*>(excited->GetState(info));
+    DiscreteState* ds = excited->GetState(info);
     if(ds)
     {   MBPTCalculator MC(lattice, core, excited);
         *outstream << ds->Name() << " " << std::setprecision(12) << MC.GetSecondOrderSigma(ds)*Constant::HartreeEnergy_cm << "\n" << std::endl;

@@ -36,8 +36,8 @@ public:
     /** Get energy of state given kappa and principal quantum number. */
     double GetEnergy(const StateInfo& info);
 
-    /** Create a "complete" Hartree-Fock basis, including discrete and continuum states. */
-    void CreateHFBasis();
+    /** TODO: Create a "complete" Hartree-Fock basis, including discrete and continuum states. */
+
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
     void CreateRBasis(const StateInfo* ionised = NULL);
     void CreateBSplineBasis(const StateInfo* ionised = NULL);
@@ -59,6 +59,9 @@ public:
         Creates a new Hamiltonian object, which the user must later delete.
      */
     HamiltonianMatrix* CreateHamiltonian(int twoJ, const Configuration& config, RelativisticConfigList& rlist);
+
+    /** Check sizes of matrices before doing full scale calculation. */
+    void CheckMatrixSizes();
 
     void DoOpenShellSMS(int twoJ, HamiltonianMatrix* H);
     void SMS_V0(int twoJ, HamiltonianMatrix* H);
