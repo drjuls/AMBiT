@@ -505,6 +505,7 @@
         KPASS =NIV                                                      
         NNCV  =KPASS                                                    
                                                                         
+        ABSTOL = 2.0D0*DLAMCH('S')
 10      CONTINUE                                                        
 *       (iterations for kpass=NUME,LIM)                                 
 *                                                                       
@@ -513,7 +514,7 @@
            CALL DCOPY(NUME,EIGVAL,1,OLDVAL,1)                           
            CALL DCOPY((KPASS*(KPASS+1))/2,S,1,TEMPS,1)                  
            CALL DSPEVX('Vectors also','In a range','Upper triangular',  
-     :          KPASS,TEMPS,-1.,-1.,1,NUME,0.D0,                        
+     :          KPASS,TEMPS,-1.,-1.,1,NUME,ABSTOL,                     
      :          NFOUND,EIGVAL,SVEC,KPASS,SCRA1,ISCRA2,INCV,INFO)        
            IERR=-ABS(INFO)                                              
            IF (IERR.NE.0) GOTO 60                                       
