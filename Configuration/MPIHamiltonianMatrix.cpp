@@ -240,12 +240,12 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
     solver.MPISolveLargeSymmetric(M, E, V, N, NumSolutions);
 
     for(unsigned int i=0; i<NumSolutions; i++)
-      {
-	double sum = 0.;
-	for(unsigned int j=0; j<N; j++)
-	  sum+=V[i*NumSolutions + j];
-	*logstream << i << "  " << std::setprecision(10) << E[i] << "  " << sum << std::endl;
-      }
+    {
+        double sum = 0.;
+        for(unsigned int j=0; j<N; j++)
+            sum+=V[i*NumSolutions + j];
+        *logstream << i << "  " << std::setprecision(10) << E[i] << "  " << sum << std::endl;
+    }
 
     // Calculate g-Factors
     double* g_factors;
