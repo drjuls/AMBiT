@@ -8,6 +8,10 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Bug: HamiltonianMatrix::~HamiltonianMatrix(): check to see if M is NULL
+     before deletion.
+Add: Support for jcb2pc in make.machine.
+
 1.1.3 - 22/02/05
 Bug: FeII configuration; sign in GetSMSIntegral().
 Alt: Atom.h and Atom/OpenShellEnergy(); call to DSPEVX in Davidson changed

@@ -10,6 +10,9 @@ endif
 ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
   MACHINE = newt
 endif
+ifeq ($(findstring jcb2pc, $(HOSTNAME)), jcb2pc)
+  MACHINE = jcb2pc
+endif
 
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
@@ -70,6 +73,36 @@ ifeq ($(MACHINE), newt)
 
   # non gnu compilers may not support MM: use M instead
   CCDEP = gcc33
+  DEPFLAG = -MM
+endif
+
+ifeq ($(MACHINE), jcb2pc)
+  CC  = gcc
+  CXX = g++
+  F77 = gcc
+
+  LINK = g++
+
+  LIBDIR       = /usr/local/lib
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = g2c
+
+  INCLUDE += /usr/local/include
+
+  ifdef debug
+    BUILD = Debug
+    CXXFLAGS += -g
+    CFLAGS += -g
+  else
+    BUILD = Release
+    CXXFLAGS += -O3
+    CFLAGS += -O3
+    F77FLAGS += -O2
+  endif
+
+  # non gnu compilers may not support MM: use M instead
+  CCDEP = gcc
   DEPFLAG = -MM
 endif
 
