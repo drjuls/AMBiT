@@ -8,40 +8,12 @@ packname = AtomPack
 #other files that should be included in package
 packfiles = Include.h config.txt mendel.tab CustomBasis.txt
 
-# change this stuff only if you know what you are doing
-ifdef debug
- BUILD = Debug
- CXXFLAGS += -g
- CFLAGS += -g
-else
- BUILD = Release
- CXXFLAGS += -O3
- CFLAGS += -O3
-endif
+include make.machine
 
-SHELL = /bin/sh
-CC = gcc
-CXX = g++
-SRCDIR = $(shell pwd)
-
-INCLUDE = $(SRCDIR) /usr/local/include
-CXXFLAGS += $(addprefix -I, $(INCLUDE))
-CFLAGS += $(addprefix -I, $(INCLUDE))
-
-RANLIB = ranlib
-AR = ar
-
-LIBSUFFIX = lib.a
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
-PLAT	     = _FREEBSD
-PREF         = /usr/local/lib/lib
-BLASLIB      = $(PREF)blas$(PLAT).a
-LAPACKLIB    = $(PREF)clapack$(PLAT).a
-LIBF2C       = $(PREF)f2c.a
-
 $(exe): $(libnames)
-	$(CXX) -o $(exe) $(libnames) $(LAPACKLIB) $(BLASLIB) $(LIBF2C) -lm -lc
+	$(CXX) -o $(exe) $(libnames) -L$(LIBDIR) -l$(LAPACKLIB) -l$(BLASLIB) $(foreach library, $(EXTRALIBS), -l$(library)) -lm -lc
 
 .EXPORT_ALL_VARIABLES:
 
@@ -62,8 +34,8 @@ veryclean:
 
 pack:
 	-tar cf $(packname).tar $(packfiles) \
-             Makefile make.instructions make.dependencies \
-             $(foreach module, $(modules), $(module)/*.cpp $(module)/*.c $(module)/*.h $(module)/make.$(module))
+             Makefile make.instructions make.dependencies make.machine\
+             $(foreach module, $(modules), $(module)/*.cpp $(module)/*.c $(module)/*.h $(module)/*.f $(module)/make.$(module))
 	gzip $(packname).tar
 
 unpack:

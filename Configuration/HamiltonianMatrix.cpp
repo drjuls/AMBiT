@@ -603,8 +603,8 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
         std::map<Configuration, double>::const_iterator it = percentages.begin();
         while(it != percentages.end())
         {
-            if(it->second > 3.)
-                printf("    %s\t%.1f%%\n", it->first.Name().c_str(), it->second);
+            if(it->second > .001)
+                printf("    %s\t%.3f%%\n", it->first.Name().c_str(), it->second);
             it++;
         }
 

@@ -76,7 +76,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
             // 'left' is an array marker, so add 1 for fortran arrays
             int leftplus1 = (int)left + 1;
-            bsplvd(knots, &k, &x, &leftplus1, fspline_buf, &nderiv);
+            bsplvd_(knots, &k, &x, &leftplus1, fspline_buf, &nderiv);
 
             // Transfer spline values from fspline_buf
             for(unsigned int s = 0; s < k; s++)
@@ -242,12 +242,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                             x = HF_R[point];
 
                             jderiv = 0;
-                            ds->f[point] = bvalue(knots, bcoef, &n, &k, &x, &jderiv);
-                            ds->g[point] = - bvalue(knots, bcoef + n, &n, &k, &x, &jderiv)/Constant::Alpha;
+                            ds->f[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv);
+                            ds->g[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)/Constant::Alpha;
 
                             jderiv = 1;
-                            ds->df[point] = bvalue(knots, bcoef, &n, &k, &x, &jderiv)*HF_dR[point];
-                            ds->dg[point] = - bvalue(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point]/Constant::Alpha;
+                            ds->df[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv)*HF_dR[point];
+                            ds->dg[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point]/Constant::Alpha;
                         }
 
                         if(fabs(ds->Norm() - 1.) > 1.e-2)

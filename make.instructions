@@ -1,6 +1,6 @@
 modulename = $(module)$(LIBSUFFIX)
 
-$(BUILD)/$(modulename): $(addprefix $(BUILD)/, $(cxxobjects) $(cobjects))
+$(BUILD)/$(modulename): $(addprefix $(BUILD)/, $(cxxobjects) $(cobjects) $(fobjects))
 	$(AR) cr $@ $?
 	$(RANLIB) $@
 
@@ -12,6 +12,9 @@ $(addprefix $(BUILD)/, $(cxxobjects)): $(BUILD)/%.o: %.cpp
 
 $(addprefix $(BUILD)/, $(cobjects)): $(BUILD)/%.o : %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+$(addprefix $(BUILD)/, $(fobjects)): $(BUILD)/%.o : %.f
+	$(F77) -c $(F77FLAGS) $< -o $@
 
 .PHONY: clean
 

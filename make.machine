@@ -1,0 +1,99 @@
+# change this stuff only if you know what you are doing
+
+HOSTNAME = $(shell hostname)
+
+ifeq ($(findstring sc, $(HOSTNAME)), sc)
+  MACHINE = apacsc
+endif
+ifeq ($(findstring lc, $(HOSTNAME)), lc)
+  MACHINE = apaclc
+endif
+ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
+  MACHINE = newt
+endif
+
+SRCDIR = $(shell pwd)
+INCLUDE = $(SRCDIR)
+
+ifeq ($(MACHINE), apacsc)
+  CC = cxx
+  CXX = cxx
+  PLAT         = OSF1
+  PREF         = /usr/local/lib/lib
+  BLASLIB      = $(PREF)blas$(PLAT).a
+  LAPACKLIB    = $(PREF)clapack$(PLAT).a
+  LIBF2C       = $(PREF)f2c.a
+
+  CPPFLAGS += -D__USE_STD_IOSTREAM
+
+  ifdef debug
+    BUILD = Debug
+    CFLAGS += -g
+    CXXFLAGS += -g
+  else
+    BUILD = Release
+    CFLAGS += -fast
+    CXXFLAGS += -fast
+  endif
+
+  DEPFLAG = -M
+endif
+
+ifeq ($(MACHINE), apaclc)
+  CC = gcc
+  CXX = g++
+  F77 = g77
+
+  LIBDIR       = /usr/lib
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = g2c
+
+  ifdef debug
+    BUILD = Debug
+    CFLAGS += -g
+    CXXFLAGS += -g
+  else
+    BUILD = Release
+    CFLAGS += -O3 -w
+    CXXFLAGS += -O3 -w
+    F77FLAGS += -O3
+  endif
+
+  DEPFLAG = -MM
+endif
+
+ifeq ($(MACHINE), newt)
+  CC = gcc
+  CXX = g++
+  F77 = gcc
+
+  LIBDIR       = /usr/local/lib
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = g2c
+
+  INCLUDE += /usr/local/include
+
+  ifdef debug
+    BUILD = Debug
+    CXXFLAGS += -g
+    CFLAGS += -g
+  else
+    BUILD = Release
+    CXXFLAGS += -O3
+    CFLAGS += -O3
+    F77FLAGS += -O3
+  endif
+
+  # non gnu compilers may not support MM: use M instead
+  DEPFLAG = -MM
+endif
+
+CXXFLAGS += $(addprefix -I, $(INCLUDE))
+CFLAGS += $(addprefix -I, $(INCLUDE))
+
+RANLIB = ranlib
+AR = ar
+
+LIBSUFFIX = lib.a

@@ -4,5 +4,6 @@ cxxobjects = BoundStateIntegrator.o ContinuumState.o Core.o \
              State.o StateIntegrator.o StateIterator.o \
              StateManager.o
 cobjects = 
+fobjects =
 
 include $(SRCDIR)/make.instructions

@@ -16,7 +16,7 @@ BSplineGrid::BSplineGrid(unsigned int n, unsigned int k, double dr0, double rmax
     wgauss = new double[k];
 
     int kk = (int)k;
-    gauss(&kk, xgauss, wgauss);
+    gauss_(&kk, xgauss, wgauss);
 
     // BSpline coordinate grid
     unsigned int size = (n-k+1)*k;

@@ -271,7 +271,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
             left++;
 
         int leftplus1 = left + 1;   // Fortran array index starts from 1
-        bsplvd(knots, &k, &r, &leftplus1, fspline_buf, &nderiv);
+        bsplvd_(knots, &k, &r, &leftplus1, fspline_buf, &nderiv);
         spline[i] = fspline_buf[bspline + k - left - 1];
     }
 

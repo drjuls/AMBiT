@@ -16,15 +16,23 @@
     #define WIN32_LEAN_AND_MEAN     // Exclude rarely-used stuff from Windows headers
     #define mmin std::min
     #define mmax std::max
-#else
-    #define mmin(i, j) (i <? j)
-    #define mmax(i, j) (i >? j)
 
+    #define PAUSE getchar();
+
+#else
     #ifndef UNIX
         #define UNIX
     #endif
-#endif
 
-#define PAUSE getchar();
+    #ifdef GCC
+        #define mmin(i, j) (i <? j)
+        #define mmax(i, j) (i >? j)
+    #else
+        #define mmin(i, j) (((i) < (j))?(i):(j))
+        #define mmax(i, j) (((i) > (j))?(i):(j))
+    #endif
+
+    #define PAUSE
+#endif
 
 #endif

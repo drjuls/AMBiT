@@ -153,7 +153,7 @@ void Atom::CreateRBasis(const StateInfo* ionised)
     std::vector<unsigned int> num_states;
     num_states.push_back(2);
     num_states.push_back(2);
-    num_states.push_back(2);
+    num_states.push_back(3);
     //num_states.push_back(13);
     //num_states.push_back(13);
     //num_states.push_back(12);

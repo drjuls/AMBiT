@@ -3,5 +3,6 @@ cxxobjects = ConfigGenerator.o Configuration.o \
              Projection.o RelativisticConfiguration.o \
              RelativisticInfo.o SmallMatrix.o SymMatrix.o
 cobjects =
+fobjects =
 
 include $(SRCDIR)/make.instructions

@@ -1,5 +1,6 @@
 cxxobjects = Constant.o CoulombIntegrator.o \
              Eigensolver.o Integrator.o Interpolator.o Lattice.o
-cobjects = Davidson.o
+cobjects =
+fobjects = Davidson.o
 
 include $(SRCDIR)/make.instructions

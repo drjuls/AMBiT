@@ -1,9 +1,6 @@
+#include "Include.h"
 #include "Eigensolver.h"
 #include "Configuration/SmallMatrix.h"
-#include <iostream>
-
-#include "f2c.h"
-#include "clapack.h"
 
 #define SMALL_LIM 400
 
@@ -13,25 +10,25 @@ extern "C"{
 /** Method in Davidson.lib for calculation of some eigenvalues of a large (sparse) matrix.
     See file Davidson/Acpz.c for details on usage.
  */
-extern int dvdson_(int (*op)(int*, int*, doublereal*, doublereal*),
-    integer *n, integer *lim, doublereal *diag, integer *ilow, integer *ihigh, integer *iselec,
-    integer *niv, integer *mblock,
-	doublereal *crite, doublereal *critc, doublereal *critr, doublereal *ortho, integer *maxiter,
-    doublereal *work, integer *iworksz, integer* iwork, integer* iiwsz,
-    logical* hiend, integer *nloops, integer *nmv, integer *ierr);
+extern int dvdson_(int (*op)(int*, int*, double*, double*),
+    int *n, int *lim, double *diag, int *ilow, int *ihigh, int *iselec,
+    int *niv, int *mblock,
+	double *crite, double *critc, double *critr, double *ortho, int *maxiter,
+    double *work, int *iworksz, int* iwork, int* iiwsz,
+    bool* hiend, int *nloops, int *nmv, int *ierr);
 
 /** User supplied routine used by Davidson method.
     PRE: b and c are n x m matrices
     POST: c = A x b, where A is the matrix that is being diagonalised.
  */
-int op(int *n, int *m, doublereal* b, doublereal* c)
+int op(int *n, int *m, double* b, double* c)
 {
 #ifdef WIN32
     std::cerr << ".";
 #endif
 
-    doublereal* cp = &c[0];
-    const doublereal* cend = c + (*n)*(*m);
+    double* cp = &c[0];
+    const double* cend = c + (*n)*(*m);
     while(cp < cend)
         *cp++ = 0.;
 
@@ -39,6 +36,13 @@ int op(int *n, int *m, doublereal* b, doublereal* c)
 
     return 0;
 }
+
+/** Lapack routines */
+void dsyev_(char*, char*, int*, double*, int*, double*, double*, int*, int*);
+
+void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
+
+void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, double*, int*, int*);
 }
 
 void Eigensolver::SolveSmallSymmetric(double* matrix, double* eigenvalues, unsigned int N)
@@ -46,7 +50,7 @@ void Eigensolver::SolveSmallSymmetric(double* matrix, double* eigenvalues, unsig
     if(N)
     {   double* work = new double[3*N];
         char jobs='V', uplo='U';
-        integer order = N,
+        int order = N,
                 leading_dimension = N,
                 work_size = 3*N,
                 info;
@@ -65,16 +69,16 @@ void Eigensolver::SolveSmallSymmetric(double* matrix, double* eigenvalues, unsig
 
 void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, double* eigenvectors, unsigned int N, unsigned int num_solutions)
 {
-    static integer n, lim;
-    static doublereal *diag;
-    static integer ilow, ihigh, *iselec;
-    static integer niv, mblock, maxiter;
-    static integer nloops, nmv, ierr;
-    static logical hiend;
-    static integer worksize, intworksize;
-    static doublereal *work;
-    static integer *intwork;
-    static doublereal crite, critc, critr, ortho;
+    static int n, lim;
+    static double *diag;
+    static int ilow, ihigh, *iselec;
+    static int niv, mblock, maxiter;
+    static int nloops, nmv, ierr;
+    static bool hiend;
+    static int worksize, intworksize;
+    static double *work;
+    static int *intwork;
+    static double crite, critc, critr, ortho;
 
     SmallMatrix* sm = dynamic_cast<SmallMatrix*>(matrix);
     
@@ -100,14 +104,14 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     aa = matrix;
     
     n = N;
-    lim = min(N, num_solutions+20);
-    diag = new doublereal[n];
+    lim = mmin(N, num_solutions+20);
+    diag = new double[n];
     for(i=0; i<n; i++)
         diag[i] = aa->At(i, i);
 
     ilow = 1;
     ihigh = num_solutions;  // num eigenvalues wanted
-    iselec = new integer[lim];    // unused if lowest eigenvalues are wanted
+    iselec = new int[lim];    // unused if lowest eigenvalues are wanted
     for(i=0; i<lim; i++)
         iselec[i] = 0;
     niv = 0;
@@ -116,10 +120,10 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     hiend = false;
     
     worksize = 2*n*lim + lim*lim + (ihigh+10)*lim + ihigh;
-    work = new doublereal[worksize];
+    work = new double[worksize];
 
     intworksize = 7*lim;
-    intwork = new integer[intworksize];
+    intwork = new int[intworksize];
     
     crite = 1.e-14;  // Algorithm stops if ANY of these are satisfied
     critc = 1.e-12;  //1.0e-8;
@@ -152,10 +156,10 @@ bool Eigensolver::SolveSimultaneousEquations(double* matrix, double* vector, uns
 {
     if(N)
     {
-        integer order = N,
+        int order = N,
                 num_equations = 1,
                 info;
-        integer* work = new integer[N];
+        int* work = new int[N];
 
         // Transpose the matrix
         double* tmatrix = new double[N*N];
@@ -181,13 +185,13 @@ bool Eigensolver::SolveMatrixEquation(double* A_matrix, double* B_matrix, double
 {
     if(N)
     {
-        integer itype = 1;
+        int itype = 1;
         char jobs='V', uplo='U';
-        integer order = N,
+        int order = N,
                 leading_dim_A = N,
                 leading_dim_B = N,
                 info;
-        integer worksize = 3*N;
+        int worksize = 3*N;
         double* work = new double[worksize];
 
         dsygv_(&itype, &jobs, &uplo, &order, &A_matrix[0], &leading_dim_A,
