@@ -85,17 +85,19 @@ void Atom::OpenShellEnergy(int twoJ, Configuration& config, bool size_only)
     ConfigGenerator generator(excited);
     generator.GenerateMultipleExcitations(nrlist, electron_excitations);
     generator.GenerateRelativisticConfigs(nrlist, rlist);
-    //generator.GenerateProjections(rlist, twoJ);
+    std::cout << " Number of non-rel configurations = " << nrlist.size() << std::endl;
+    std::cout << " Number of rel configurations = " << rlist.size() << std::endl;
+    generator.GenerateProjections(rlist, twoJ);
 
     if(size_only)
-    {   std::cout << " Number of non-rel configurations = " << nrlist.size() << std::endl;
-        std::cout << " Number of rel configurations = " << rlist.size() << std::endl;
+    {//   std::cout << " Number of non-rel configurations = " << nrlist.size() << std::endl;
+     //   std::cout << " Number of rel configurations = " << rlist.size() << std::endl;
         unsigned int N = 0;
-        //RelativisticConfigList::const_iterator it = rlist.begin();
-        //while(it != rlist.end())
-        //{   N += it->GetJCoefficients().size();
-        //    it++;
-        //}
+        RelativisticConfigList::const_iterator it = rlist.begin();
+        while(it != rlist.end())
+        {   N += it->GetJCoefficients().size();
+            it++;
+        }
         std::cout << " Number of J-configurations = " << N << std::endl;
     }
     else

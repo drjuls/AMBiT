@@ -82,11 +82,11 @@ int Projection::GetTwoM() const
 
 bool Projection::operator<(const Projection& other) const
 {
-    std::vector<ElectronInfo> first_config(Config);
-    std::vector<ElectronInfo> second_config(other.Config);
+    const std::vector<ElectronInfo>& first_config(Config);
+    const std::vector<ElectronInfo>& second_config(other.Config);
 
-    Sort(first_config);
-    Sort(second_config);
+    //Sort(first_config);
+    //Sort(second_config);
 
     std::vector<ElectronInfo>::const_iterator first = first_config.begin();
     std::vector<ElectronInfo>::const_iterator second = second_config.begin();

@@ -159,7 +159,6 @@ void Atom::CreateRBasis(const StateInfo* ionised)
     num_states.push_back(3);
     num_states.push_back(3);
     num_states.push_back(4);
-    num_states.push_back(3);
     //num_states.push_back(13);
     //num_states.push_back(13);
     //num_states.push_back(12);

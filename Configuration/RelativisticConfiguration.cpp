@@ -80,7 +80,7 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
         return false;
 }
 
-void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo> electrons, unsigned int index)
+void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons, unsigned int index)
 {
     if(index >= electrons.size())
     {
@@ -93,12 +93,12 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo> electrons, 
     }
     else
     {
-        ElectronInfo e_info = electrons[index];
+        const ElectronInfo& e_info = electrons[index];
 
         int two_m = 0;
         if(index != 0)
         {
-            ElectronInfo prev_info = electrons[index-1];
+            const ElectronInfo& prev_info = electrons[index-1];
             if(RelativisticInfo(e_info) == RelativisticInfo(prev_info))
             {   
                 two_m = prev_info.TwoM() + 2;
@@ -217,9 +217,11 @@ double RelativisticConfiguration::GetJSquared(const Projection& first, const Pro
 {
     double ret = 0.;
     unsigned int i, j;
+    unsigned int diff[4];
 
-    if(first == second)
-    {
+    int numdiff = Projection::GetProjectionDifferences(first, second, diff);
+    if(numdiff == 0)
+    {   // <J^2> += Sum_i (j_i)(j_i + 1)  + Sum_(i<j) 2(m_i)(m_j)
         i=0;
         while(i < first.Size())
         {
@@ -233,35 +235,58 @@ double RelativisticConfiguration::GetJSquared(const Projection& first, const Pro
             
             i++;
         }
-    }
-    
-    for(i=0; i<second.Size(); i++)
-        for(j=0; j<second.Size(); j++)
-        {
-            if(i != j)
+        // <J^2> += Sum_(i<j) (j+_i)(j-_j) + (j-_i)(j+_j)
+        for(i=0; i<second.Size(); i++)
+        {   for(j=i+1; j<second.Size(); j++)
             {
-                Projection proj(second);
-                ElectronInfo e1(proj[i]);
-                ElectronInfo e2(proj[j]);
-
-                proj[i].SetTwoM(proj[i].TwoM()+2);
-                proj[j].SetTwoM(proj[j].TwoM()-2);
-
-                if((proj[i].TwoM() <= int(proj[i].TwoJ())) && (proj[j].TwoM() >= -int(proj[j].TwoJ())))
+                if((first[i].Kappa() == first[j].Kappa()) && (first[i].PQN() == first[j].PQN())
+                   && (abs(first[i].TwoM() - first[j].TwoM()) == 2))
                 {
-                    bool sort = proj.Sort();
-                    if(first == proj)
-                    {
-                        double coeff = sqrt(e1.J() * (e1.J() + 1.) - e1.M() * (e1.M() + 1.))*
-                                       sqrt(e2.J() * (e2.J() + 1.) - e2.M() * (e2.M() - 1.));
-                        if(sort)
-                            ret = ret - coeff;
-                        else
-                            ret = ret + coeff;
-                    }
+                    double J = first[i].J();
+                    double M;
+                    if(first[i].TwoM() > first[j].TwoM())
+                        M = first[j].M();
+                    else
+                        M = first[i].M();
+
+                    double value = (J * (J + 1) - M * (M + 1));
+                    if((j-i)%2)
+                        ret -= value;
+                    else
+                        ret += value;
                 }
-            }
+                else
+                    break;  // WARNING: Assumes ordering of electrons in projection
+            }               //          is grouped by PQN and Kappa.
         }
+    }
+    else if(abs(numdiff) == 2)
+    {
+        const ElectronInfo& f1 = first[diff[0]];
+        const ElectronInfo& s1 = second[diff[1]];
+        const ElectronInfo& f2 = first[diff[2]];
+        const ElectronInfo& s2 = second[diff[3]];
+
+        if((f1.Kappa() == s1.Kappa()) && (f1.PQN() == s1.PQN())
+           && (f2.Kappa() == s2.Kappa()) && (f2.PQN() == s2.PQN())
+           && (abs(f1.TwoM() - s1.TwoM()) == 2) && (abs(f2.TwoM() - s2.TwoM()) == 2)
+           && (f1.TwoM() + f2.TwoM() == s1.TwoM() + s2.TwoM()))
+        {
+            ret = sqrt(f1.J() * (f1.J() + 1.) - f1.M() * s1.M())*
+                  sqrt(f2.J() * (f2.J() + 1.) - f2.M() * s2.M());
+        }
+        else if((f1.Kappa() == s2.Kappa()) && (f1.PQN() == s2.PQN())
+           && (f2.Kappa() == s1.Kappa()) && (f2.PQN() == s1.PQN())
+           && (abs(f1.TwoM() - s2.TwoM()) == 2) && (abs(f2.TwoM() - s1.TwoM()) == 2)
+           && (f1.TwoM() + f2.TwoM() == s1.TwoM() + s2.TwoM()))
+        {
+            ret = sqrt(f1.J() * (f1.J() + 1.) - f1.M() * s2.M())*
+                  sqrt(f2.J() * (f2.J() + 1.) - f2.M() * s1.M());
+        }
+
+        if(numdiff < 0)
+            ret = -ret;
+    }
 
     return ret;
 }

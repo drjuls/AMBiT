@@ -38,7 +38,7 @@ public:
     Configuration GetNonRelConfiguration() const;
 
 protected:
-    void DoElectron(std::vector<ElectronInfo> electrons, unsigned int index);
+    void DoElectron(std::vector<ElectronInfo>& electrons, unsigned int index);
     bool GetProjectionCoefficients(double J);
 
     double GetJSquared(const Projection& first, const Projection& second) const;
