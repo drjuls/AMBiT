@@ -523,6 +523,8 @@ unsigned int Core::CalculateDiscreteState(DiscreteState* s, double exchange_amou
 
         if((new_exchange_proportion == 1.0) || (old_exchange == NULL))
         {   delete exchange;
+            if(old_exchange && (exchange != old_exchange))
+                delete old_exchange;
             exchange = new_exchange;
         }
         else
