@@ -8,7 +8,11 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
-Opt: MBPTCalculator::CalculateCorrelation* uses Constant::Electron3j().
+Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
+     Core::UpdateExcitedState() checks if state is in open shells first.
+Opt: MBPTCalculator::CalculateCorrelation* uses Constant::Electron3j();
+     RStates and CustomBasis update using previous HF states instead of
+     just rebuilding from scratch.
 Alt: Maximum iterations of Davidson method changed from 2000 -> 20000;
      added size in atomic units to Debug::LogHFIterations output.
 
