@@ -9,7 +9,9 @@ Del: Removed functionality.
 -------------------------------------------------------------------------------
 
 Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
-     Core::UpdateExcitedState() checks if state is in open shells first.
+     Core::UpdateExcitedState() checks if state is in open shells first;
+     removed lucky zero in HamiltonianMatrix::GetSz(); removed lucky zero
+     from Core::IterateDiscreteStateGreens():exchange potential.
 Opt: MBPTCalculator::CalculateCorrelation* uses Constant::Electron3j();
      RStates and CustomBasis update using previous HF states instead of
      just rebuilding from scratch.
