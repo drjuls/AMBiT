@@ -178,14 +178,6 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
     Eigensolver solver;
     solver.MPISolveLargeSymmetric(M, E, V, N, NumSolutions);
 
-    for(unsigned int i=0; i<NumSolutions; i++)
-    {
-        double sum = 0.;
-        for(unsigned int j=0; j<N; j++)
-            sum+=V[i*NumSolutions + j];
-        *logstream << i << "  " << std::setprecision(10) << E[i] << "  " << sum << std::endl;
-    }
-
     // Calculate g-Factors
     double* g_factors;
     if(gFactors)
@@ -475,11 +467,6 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
         if(proc == int(NumProcessors))
             proc = -proc;
     }
-
-    *logstream << "g-factor contrib: " << std::endl;
-    for(solution = 0; solution < NumSolutions; solution++)
-        *logstream << total[solution] << "  ";
-    *logstream << std::endl;
 
     MPI::Intracomm comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(total, g_factors, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
