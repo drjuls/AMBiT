@@ -78,7 +78,7 @@ bool DiscreteState::CheckSize(double tolerance)
     }
     
     if(maximum < tolerance*100)
-    {   *outstream << "DiscreteState::Checksize: Zero function. " << std::endl;
+    {   *errstream << "DiscreteState::Checksize: Zero function. " << std::endl;
         PAUSE
         exit(1);
     }
@@ -105,8 +105,10 @@ bool DiscreteState::CheckSize(double tolerance)
 
         // ...and this keeps the size from blowing up if we
         // end up at a plateau.
-        if(f_ratio > 0.95)
-            f_ratio = 0.95;
+        if(f_ratio > 0.96)
+            f_ratio = 0.96;
+        if(g_ratio > 0.96)
+            g_ratio = 0.96;
 
         unsigned int old_size = max;
         while(f_max/maximum >= tolerance)

@@ -410,10 +410,8 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
 
     s0.ReSize(sInf.Size());
     s->ReSize(sInf.Size());
+    exchange->ReSize(sInf.Size());
     BI.IntegrateForwards(s0, Potential, NULL, s0.Size());
-
-    s0.ReNormalise();
-    sInf.ReNormalise();
 
     GreensIntegrator greens(*lattice);
     greens.SetSolutionOrigin(&s0);
@@ -456,7 +454,6 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
 
     // Solve Dirac equation again with new energy
     s->CheckSize(StateParameters::WavefunctionTolerance);
-    exchange->ReSize(s->Size());
 
     s0 = *s;
     sInf = *s;
@@ -465,10 +462,8 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
 
     s0.ReSize(sInf.Size());
     s->ReSize(sInf.Size());
+    exchange->ReSize(sInf.Size());
     BI.IntegrateForwards(s0, Potential, NULL, s0.Size());
-
-    s0.ReNormalise();
-    sInf.ReNormalise();
 
     greens.SetSolutionOrigin(&s0);
     greens.SetSolutionInfinity(&sInf);
@@ -801,5 +796,5 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
 }
 
 const unsigned int Core::StateParameters::MaxHFIterations = 300;
-double Core::StateParameters::WavefunctionTolerance = 1.E-10;
+double Core::StateParameters::WavefunctionTolerance = 1.E-11;
 double Core::StateParameters::EnergyTolerance = 1.E-14;
