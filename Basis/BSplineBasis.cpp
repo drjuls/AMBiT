@@ -8,7 +8,6 @@
 #include "Universal/Eigensolver.h"
 
 #include "HartreeFock/StateIntegrator.h"
-#include "Basis/HFExcitedStates.h"
 
 void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
 {

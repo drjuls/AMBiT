@@ -1,7 +1,6 @@
 #include "Include.h"
 #include "Atom.h"
 #include "OutStreams.h"
-#include "Basis/HFExcitedStates.h"
 #include "Basis/RStates.h"
 #include "Basis/RSinStates.h"
 #include "Basis/CustomBasis.h"
@@ -184,7 +183,7 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     excited = new BSplineBasis(lattice, core);
     excited->SetIdentifier(&identifier);
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 50.);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 40.);
 
     if(ionised)
         core->Ionise(*ionised);
