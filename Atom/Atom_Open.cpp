@@ -21,17 +21,21 @@ void Atom::RunOpen()
 
     SD_CI = true;
     Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 2), 2);
-    config.SetOccupancy(NonRelInfo(4, 0), 1);
+    config.SetOccupancy(NonRelInfo(2, 0), 2);
+    config.SetOccupancy(NonRelInfo(2, 1), 1);
 
     unsigned int two_j;
-    NumSolutions = 3;
+    NumSolutions = 2;
 
     *outstream << "\nGS Parity:\n" << std::endl;
-    for(two_j = 3; two_j <= 9; two_j += 6)
+    for(two_j = 1; two_j <= 3; two_j += 2)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+
+        //OpenShellEnergy(two_j, H);
+        //DoOpenShellSMS(two_j, H);
+        //DoOpenShellVolumeShift(two_j, H);
 
         *outstream << "V2" << std::endl;
         SMS_V2(two_j, H);
@@ -43,17 +47,20 @@ void Atom::RunOpen()
         delete H;
     }
 
-    config.RemoveSingleParticle(NonRelInfo(4, 0));
-    config.AddSingleParticle(NonRelInfo(4, 1));
+    config.RemoveSingleParticle(NonRelInfo(2, 0));
+    config.AddSingleParticle(NonRelInfo(2, 1));
 
-    NumSolutions = 3;
+    NumSolutions = 2;
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
-
-    for(two_j = 9; two_j <= 11; two_j+=2)
+    for(two_j = 1; two_j <= 5; two_j+=2)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+        
+        //OpenShellEnergy(two_j, H);
+        //DoOpenShellSMS(two_j, H);
+        //DoOpenShellVolumeShift(two_j, H);
 
         *outstream << "V2" << std::endl;
         SMS_V2(two_j, H);
@@ -99,13 +106,13 @@ void Atom::CheckMatrixSizes()
 {
     SD_CI = true;
     Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 2), 2);
+    config.SetOccupancy(NonRelInfo(3, 2), 6);
     config.SetOccupancy(NonRelInfo(4, 0), 1);
 
     unsigned int two_j;
 
     *outstream << "\nGS Parity:\n" << std::endl;
-    for(two_j = 3; two_j <= 9; two_j += 6)
+    for(two_j = 9; two_j <= 9; two_j += 6)
     {
         *outstream << "J = " << two_j/2. << std::endl;
         OpenShellEnergy(two_j, config, true);
@@ -115,7 +122,7 @@ void Atom::CheckMatrixSizes()
     config.AddSingleParticle(NonRelInfo(4, 1));
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
-    for(two_j = 9; two_j <= 11; two_j+=2)
+    for(two_j = 7; two_j <= 11; two_j+=2)
     {
         *outstream << "J = " << two_j/2. << std::endl;
         OpenShellEnergy(two_j, config, true);
@@ -124,25 +131,27 @@ void Atom::CheckMatrixSizes()
 
 void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only)
 {
-    unsigned int electron_excitations;
-    if(SD_CI)
-        electron_excitations = 2;
-    else
-        electron_excitations = config.NumParticles();
-
-    ConfigList nrlist;
-    nrlist.push_back(config);
-
-    RelativisticConfigList rlist;
-    ConfigGenerator generator(excited);
-    generator.GenerateMultipleExcitations(nrlist, electron_excitations);
-    generator.GenerateRelativisticConfigs(nrlist, rlist);
-    *outstream << " Number of non-rel configurations = " << nrlist.size() << std::endl;
-    *outstream << " Number of rel configurations = " << rlist.size() << std::endl;
-    generator.GenerateProjections(rlist, twoJ);
-
     if(size_only)
-    {   unsigned int N = 0;
+    {   // We really don't want to allocate space for the HamiltonianMatrix.
+        unsigned int electron_excitations;
+        if(SD_CI)
+            electron_excitations = 2;
+        else
+            electron_excitations = config.NumParticles();
+
+        ConfigList nrlist;
+        nrlist.push_back(config);
+
+        RelativisticConfigList rlist;
+        ConfigGenerator generator(excited);
+        generator.GenerateMultipleExcitations(nrlist, electron_excitations);
+        generator.GenerateRelativisticConfigs(nrlist, rlist);
+        *outstream << " Number of non-rel configurations = " << nrlist.size() << std::endl;
+        *outstream << " Number of rel configurations = " << rlist.size() << std::endl;
+        generator.GenerateProjections(rlist, twoJ);
+        
+        unsigned int N = 0;
+        unsigned int i = 0;
         RelativisticConfigList::const_iterator it = rlist.begin();
         while(it != rlist.end())
         {   N += it->NumJStates();
@@ -151,22 +160,36 @@ void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only
         *outstream << " Number of J-configurations = " << N << std::endl;
     }
     else
-    {   core->ToggleOpenShellCore();
-        core->Update();
-        excited->Update();
-        core->ToggleClosedShellCore();
-        HamiltonianMatrix H(*excited, rlist);
-        H.GenerateMatrix();
-        //H.PollMatrix();
-        H.SolveMatrix(NumSolutions, twoJ, true);
+    {   RelativisticConfigList rlist;
+        HamiltonianMatrix* H = CreateHamiltonian(twoJ, config, rlist);
+
+        OpenShellEnergy(twoJ, H);
+
+        delete H;
     }
+}
+
+void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
+{
+    core->ToggleOpenShellCore();
+    core->SetNuclearInverseMass(0.);
+    core->SetVolumeShiftParameter(0.);
+    core->Update();
+    excited->Update();
+    core->ToggleClosedShellCore();
+
+    H->IncludeSMS_V2(false);
+    H->UpdateIntegrals();
+    H->GenerateMatrix();
+    //H->PollMatrix();
+    H->SolveMatrix(NumSolutions, twoJ, true);
 }
 
 void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
 {
     H->IncludeSMS_V2(true);
 
-    for(double ais = -0.002; ais <= 0.002; ais += 0.002)
+    for(double ais = -0.002; ais <= 0.002; ais += 0.001)
     {
         *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
@@ -231,16 +254,7 @@ void Atom::SMS_V1(int twoJ, HamiltonianMatrix* H)
 
 void Atom::SMS_V2(int twoJ, HamiltonianMatrix* H)
 {
-    core->ToggleOpenShellCore();
-    core->SetNuclearInverseMass(0.);
-    core->Update();
-    excited->Update();
-    core->ToggleClosedShellCore();
-
-    H->IncludeSMS_V2(false);
-    H->UpdateIntegrals();
-    H->GenerateMatrix();
-    H->SolveMatrix(NumSolutions, twoJ, true);
+    OpenShellEnergy(twoJ, H);
 
     // Just do one point since it is just a matrix element anyway.
     for(double ais = 0.002; ais <= 0.002; ais += 0.004)
@@ -264,7 +278,7 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
     H->IncludeSMS_V2(false);
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
-        *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
+        *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << ais << std::endl;
 
         core->ToggleOpenShellCore();
         core->SetVolumeShiftParameter(ais);
@@ -274,7 +288,10 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
         core->ToggleClosedShellCore();
         H->UpdateIntegrals();
         H->GenerateMatrix();
-        H->SolveMatrix(NumSolutions, twoJ);
+        if(ais == 0.0)  // Get g-factors
+            H->SolveMatrix(NumSolutions, twoJ, true);
+        else
+            H->SolveMatrix(NumSolutions, twoJ);
     }
 
     core->ToggleOpenShellCore();

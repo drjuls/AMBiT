@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(22, 2, "TiII");
+    {   Atom A(6, 2, "CII");
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
@@ -189,10 +189,10 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
+    num_states.push_back(7);
+    num_states.push_back(7);
+    num_states.push_back(6);
     num_states.push_back(3);
-    num_states.push_back(3);
-    num_states.push_back(4);
-    //    num_states.push_back(5);
 
     excited->CreateExcitedStates(num_states);
 }

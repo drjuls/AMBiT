@@ -54,6 +54,7 @@ public:
         If size_only, then do not calculate CI, but report the size of the matrix.
      */
     void OpenShellEnergy(int twoJ, const Configuration& config, bool size_only = false);
+    void OpenShellEnergy(int twoJ, HamiltonianMatrix* H);
 
     /** Fill out the rlist based on config and twoJ.
         Creates a new Hamiltonian object, which the user must later delete.
@@ -63,11 +64,22 @@ public:
     /** Check sizes of matrices before doing full scale calculation. */
     void CheckMatrixSizes();
 
+    /** Calculate specific mass shift. */
     void DoOpenShellSMS(int twoJ, HamiltonianMatrix* H);
+
+    /** Core relaxation term. */
     void SMS_V0(int twoJ, HamiltonianMatrix* H);
+
+    /** Core-valence term. */
     void SMS_V1(int twoJ, HamiltonianMatrix* H);
+
+    /** Valence-valence term (calculates energy and matrix element). */
     void SMS_V2(int twoJ, HamiltonianMatrix* H);
+
+    /** Calculate volume shift. */
     void DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H);
+
+    /** Calculate relativistic shift (q-values). */
     void DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H);
 
 private:
@@ -80,7 +92,7 @@ private:
     ExcitedStates* excited;
 
     // Configuration Interaction parameters
-    bool SD_CI;
+    bool SD_CI;     // Only use single and double excitations in CI.
     unsigned int NumSolutions;
 };
 
