@@ -74,11 +74,11 @@ void Core::CalculateVolumeShiftPotential(double radius_difference)
         i++;
     }
     while(i < newsize)
-    {   VolumeShiftPotential[i] = new_potential[i];
+    {   VolumeShiftPotential[i] = new_potential[i] - Z/lattice->R(i);
         i++;
     }
     while(i < oldsize)
-    {   VolumeShiftPotential[i] = -NuclearPotential[i];
+    {   VolumeShiftPotential[i] = Z/lattice->R(i) - NuclearPotential[i];
         i++;
     }
 

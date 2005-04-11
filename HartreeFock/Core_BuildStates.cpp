@@ -14,6 +14,7 @@ void Core::Update()
     // Check that there is something to start with
     if(Empty())
         BuildFirstApproximation();
+    UpdateHFPotential();
 
     bool debug = DebugOptions.LogHFIterations();
 
