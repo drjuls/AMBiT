@@ -274,7 +274,6 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
         calculated_potential = true;
     }
 
-    Write();
     H->IncludeSMS_V2(false);
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
@@ -294,10 +293,7 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
             H->SolveMatrix(NumSolutions, twoJ);
     }
 
-    core->ToggleOpenShellCore();
     core->SetVolumeShiftParameter(0.);
-    Read();
-    excited->Update();
 }
 
 void Atom::DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H)
