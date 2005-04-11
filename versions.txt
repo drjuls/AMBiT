@@ -8,6 +8,7 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.1.5 - 11/04/05
 Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
      Core::UpdateExcitedState() checks if state is in open shells first;
      removed lucky zero in HamiltonianMatrix::GetSz(); removed lucky zero
