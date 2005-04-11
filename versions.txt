@@ -14,6 +14,7 @@ Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
      from Core::IterateDiscreteStateGreens():exchange potential.
      ExcitedStates::Orthogonalise() orthogonalise to states with smaller
      pqn only (this is needed when all states are updated).
+     Core::CalculateVolumeShiftPotential() was wrong.
 Opt: MBPTCalculator::CalculateCorrelation* uses Constant::Electron3j();
      RStates and CustomBasis update using previous HF states instead of
      just rebuilding from scratch.
