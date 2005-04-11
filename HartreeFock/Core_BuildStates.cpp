@@ -142,8 +142,10 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
     }
 
     std::vector<double> y(density.size());
-    CoulombIntegrator I(*lattice);
-    I.CoulombIntegrate(density, y, 0, Z-Charge);
+    if(density.size())
+    {   CoulombIntegrator I(*lattice);
+        I.CoulombIntegrate(density, y, 0, Z-Charge);
+    }
 
     // Get local exchange approximation
     std::vector<double> new_local_exchange(HFPotential.size());
@@ -159,6 +161,10 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
     i=0;
     while((i < NuclearPotential.size()) && (i < y.size()))
     {   new_potential[i] = NuclearPotential[i] - y[i];
+        i++;
+    }
+    while(i < NuclearPotential.size())
+    {   new_potential[i] = NuclearPotential[i];
         i++;
     }
     while(i < y.size())

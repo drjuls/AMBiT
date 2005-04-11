@@ -239,6 +239,14 @@ bool Core::GetConfigData()
     bool in_core = true;
     char tempbuf[20];
     unsigned int i = 0;
+
+    // Move to first configuration
+    while(!isdigit(buffer[i]) && buffer[i] != '\0')
+    {   if(buffer[i] == ':')
+            in_core = false;
+        i++;
+    }
+
     while(buffer[i] != '\0')
     {
         unsigned int j=0;
