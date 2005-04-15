@@ -2,15 +2,14 @@
 #include "HamiltonianMatrix.h"
 #include "Universal/SmallMatrix.h"
 #include "Universal/SymMatrix.h"
-#include "HartreeFock/StateIntegrator.h"
-#include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/State.h"
 #include "Universal/Eigensolver.h"
+#include "Universal/Constant.h"
 
 #define SMALL_MATRIX_LIM 2000
 
-HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs):
-    states(excited_states), configs(rconfigs), include_sms_v2(false), NumSolutions(0), M(NULL)
+HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
+    integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL)
 {
     // Set up matrix
     N = 0;
@@ -20,168 +19,8 @@ HamiltonianMatrix::HamiltonianMatrix(const ExcitedStates& excited_states, const 
         it++;
     }
 
-    *logstream << " " << N << std::flush;
-    UpdateIntegrals();
-
+    *logstream << " " << N << " " << std::flush;
     *outstream << " Number of J-configurations = " << N << std::endl;
-}
-
-void HamiltonianMatrix::UpdateIntegrals()
-{
-    // One electron integrals
-    StateIntegrator SI(*states.GetLattice());
-    CoulombIntegrator CI(*states.GetLattice());
-
-    NumStates = states.NumStates();
-    state_index.clear();
-    OneElectronIntegrals.clear();
-    SMSIntegrals.clear();
-    TwoElectronIntegrals.clear();
-
-    unsigned int i, j;
-
-    ConstStateIterator it_i = states.GetConstStateIterator();
-    ConstStateIterator it_j = states.GetConstStateIterator();
-
-    it_i.First(); i = 0;
-    while(!it_i.AtEnd())
-    {   
-        // Use it_i to build index of states
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
-        it_j = it_i; j = i;
-        while(!it_j.AtEnd())
-        {
-            OneElectronIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,
-                SI.HamiltonianMatrixElement(*it_i.GetState(), *it_j.GetState(), *states.GetCore())));
-
-            // SMS integrals too
-            SMSIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,
-                SI.IsotopeShiftIntegral(*it_i.GetState(), *it_j.GetState())));
-
-            it_j.Next(); j++;
-        }
-        it_i.Next(); i++;
-    }
-
-    // Two electron integrals
-    const double* dR = states.GetLattice()->dR();
-    const double* R = states.GetLattice()->R();
-    const double core_pol = states.GetCore()->GetPolarisability();
-    const double core_rad = states.GetCore()->GetClosedShellRadius();
-
-    unsigned int i1, i2, i3, i4;
-    unsigned int k, kmax;
-    unsigned int p;  // just a counter
-
-    ConstStateIterator it_1 = states.GetConstStateIterator();
-    ConstStateIterator it_2 = states.GetConstStateIterator();
-    ConstStateIterator it_3 = states.GetConstStateIterator();
-    ConstStateIterator it_4 = states.GetConstStateIterator();
-
-    // Get 2 -> 4
-    it_2.First(); i2 = 0;
-    while(!it_2.AtEnd())
-    {
-        const State* s_2 = it_2.GetState();
-        it_4 = it_2; i4 = i2;
-        while(!it_4.AtEnd())
-        {
-            const State* s_4 = it_4.GetState();
-
-            // Limits on k
-            k = abs(int(s_2->L()) - int(s_4->L()));
-            if(fabs(s_2->J() - s_4->J()) > double(k))
-                k += 2;
-
-            kmax = s_2->L() + s_4->L();
-            if(s_2->J() + s_4->J() < double(kmax))
-                kmax -= 2;
-
-            // Get density24
-            std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
-            if(k <= kmax)
-            {   
-                for(p=0; p<density.size(); p++)
-                {
-                    density[p] = s_2->f[p] * s_4->f[p] + Constant::AlphaSquared * s_2->g[p] * s_4->g[p];
-                }
-                density.resize(states.GetCore()->GetHFPotential().size());
-            }
-
-            while(k <= kmax)
-            {
-                // Get Pot24
-                std::vector<double> Pot24(density.size());
-                CI.FastCoulombIntegrate(density, Pot24, k);
-
-                // s1 is the smallest
-                it_1.First(); i1 = 0;
-                while(i1 <= i2)
-                {
-                    const State* s_1 = it_1.GetState();
-
-                    it_3 = it_1; i3 = i1;
-                    unsigned int i3_limit;
-                    if(i1 == i2)
-                        i3_limit = i4;
-                    else
-                        i3_limit = NumStates;
-                    while((i3 <= i3_limit) && !it_3.AtEnd())
-                    {
-                        const State* s_3 = it_3.GetState();
-
-                        if((int(k) >= abs(int(s_1->L()) - int(s_3->L()))) &&
-                           (double(k) >= fabs(s_1->J() - s_3->J())) &&
-                           (k <= s_1->L() + s_3->L()) &&
-                           (double(k) <= s_1->J() + s_3->J()))
-                        {
-                            unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
-                                               i1 * NumStates*NumStates*NumStates +
-                                               i2 * NumStates*NumStates + 
-                                               i3 * NumStates +
-                                               i4;
-
-                            double radial = 0.;
-                            unsigned int limit = mmin(s_1->Size(), s_3->Size());
-                            for(p=0; p<limit; p++)
-                            {
-                                radial += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
-                                          * Pot24[p] * dR[p];
-                            }
-
-                            if(core_pol && k == 1)
-                            {   
-                                double R1 = 0.;
-                                double R2 = 0.;
-                                for(p=0; p<limit; p++)
-                                {
-                                    double r2 = R[p]*R[p] + core_rad*core_rad;
-                                    R1 += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
-                                    R2 += density[p]/r2 * dR[p];
-                                }
-
-                                radial -= core_pol * R1 * R2;
-                            }
-
-                            TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
-                        }
-
-                        it_3.Next(); i3++;
-                    }
-                    it_1.Next(); i1++;
-                }
-
-                k+=2;
-            }
-            it_4.Next(); i4++;
-        }
-        it_2.Next(); i2++;
-    }
-}
-
-void HamiltonianMatrix::IncludeSMS_V2(bool include)
-{
-    include_sms_v2 = include;
 }
 
 void HamiltonianMatrix::GenerateMatrix()
@@ -279,7 +118,7 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
         // Sum <i|f|i>
         for(unsigned int i=0; i<first.Size(); i++)
         {
-            value += GetOneElectronIntegral(first[i], first[i]);
+            value += integrals.GetOneElectronIntegral(first[i], first[i]);
             
             // Sum(i < j) <ij|g|ij> - <ij|g|ji>
             for(unsigned int j=i+1; j<first.Size(); j++)
@@ -297,7 +136,7 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
         // a->b
         // <a|f|b>
         if((f1.M() == s1.M()) && (f1.Kappa() == s1.Kappa()))
-            value = GetOneElectronIntegral(f1, s1) * sign;
+            value = integrals.GetOneElectronIntegral(f1, s1) * sign;
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
         for(unsigned int i=0; i<first.Size(); i++)
@@ -347,8 +186,6 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
 
     double q = double(two_q)/2.;
 
-    const double* dR = states.GetLattice()->dR();
-
     double total = 0.;
 
     while(k <= kmax)
@@ -370,7 +207,7 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
             coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
                                         e3.MaxNumElectrons() * e4.MaxNumElectrons()));
 
-            double radial = GetTwoElectronIntegral(k, e1, e2, e3, e4);
+            double radial = integrals.GetTwoElectronIntegral(k, e1, e2, e3, e4);
 
             total += coeff * radial;
         }
@@ -399,8 +236,6 @@ double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projec
         // Sum <i|f|i>
         for(unsigned int i=0; i<first.Size(); i++)
         {
-//            value += CoreSMS(p1[i], p1[i]);
-            
             // Sum(i < j) <ij|g|ij> - <ij|g|ji>
             for(unsigned int j=i+1; j<first.Size(); j++)
             {
@@ -413,10 +248,6 @@ double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projec
     {
         const ElectronInfo& f1 = first[diff[0]];
         const ElectronInfo& s1 = second[diff[1]];
-        // a->b
-        // <a|f|b>
-//        if((p1[0].M() == p2[0].M()) && (p1[0].Kappa() == p2[0].Kappa()))
-//            value = CoreSMS(p1[0], p2[0]) * sign;
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
         for(unsigned int i=0; i<first.Size(); i++)
@@ -444,42 +275,6 @@ double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projec
     return value;
 }
 
-double HamiltonianMatrix::CoreSMS(const ElectronInfo& e1, const ElectronInfo& e2) const
-{
-    if((!states.GetCore()->GetNuclearInverseMass()) || (e1.Kappa() != e2.Kappa()))
-        return 0.;
-
-    double E = 0.;
-
-    const State& state1 = *states.GetState(e1);
-    const State& state2 = *states.GetState(e2);
-
-    const Core* core = states.GetCore();
-
-    // Sum over all core states
-    CoulombIntegrator I(*states.GetLattice());
-    StateIntegrator SI(*states.GetLattice());
-    ConstStateIterator cs = core->GetConstStateIterator();
-    while(!cs.AtEnd())
-    {
-        const DiscreteState& other = *(cs.GetState());
-
-        // k == 1
-        if((other.L() + state1.L())%2 == 1)
-        {
-            const unsigned int k = 1;
-
-            double coefficient = Constant::Wigner3j(k, state1.J(), other.J(), 0., .5, -.5);
-            coefficient = -(2. * abs(other.Kappa())) * coefficient * coefficient;
-
-            E = E + coefficient * core->GetNuclearInverseMass() * SI.IsotopeShiftIntegral(state1, other) * SI.IsotopeShiftIntegral(other, state2);
-        }
-        cs.Next();
-    }
-
-    return E;
-}
-
 double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
 {
     if((e1.L() + e2.L() + e3.L() + e4.L())%2)
@@ -502,8 +297,6 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
 
     double q = double(two_q)/2.;
 
-    const double* dR = states.GetLattice()->dR();
-
     double total = 0.;
 
     // k == 1 only
@@ -525,9 +318,9 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
                                     e3.MaxNumElectrons() * e4.MaxNumElectrons()));
 
         // Specific Mass Shift
-        double SMS = states.GetCore()->GetNuclearInverseMass();
+        double SMS = integrals.GetNuclearInverseMass();
         if(SMS)
-            SMS = SMS * GetSMSIntegral(e1, e3) * GetSMSIntegral(e2, e4);
+            SMS = SMS * integrals.GetSMSIntegral(e1, e3) * integrals.GetSMSIntegral(e2, e4);
 
         total = - coeff * SMS;
     }
@@ -856,12 +649,7 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
     if((e1.L() == e2.L()) &&
        (e1.TwoM() == e2.TwoM()))
     {
-        double overlap = 0.;
-        const State* p1 = states.GetState(e1);
-        const State* p2 = states.GetState(e2);
-        const double* dR = states.GetLattice()->dR();
-        for(unsigned int i=0; i<mmin(p1->Size(), p2->Size()); i++)
-            overlap += (p1->f[i] * p2->f[i] + Constant::AlphaSquared * p1->g[i] * p2->g[i]) * dR[i];
+        double overlap = integrals.GetOverlapIntegral(e1, e2);
 
         double Lplushalf = double(e1.L()) + 0.5;
         double M = e1.M();
@@ -870,215 +658,3 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
     else
         return 0.;
 }
-
-inline void swap(unsigned int& i1, unsigned int& i2)
-{   unsigned int temp = i1;
-    i1 = i2;
-    i2 = temp;
-}
-
-double HamiltonianMatrix::GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-
-    if(i1 <= i2)
-        return OneElectronIntegrals.find(i1 * NumStates + i2)->second;
-    else
-        return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
-}
-
-double HamiltonianMatrix::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-
-    if(i1 <= i2)
-        return SMSIntegrals.find(i1 * NumStates + i2)->second;
-    else
-        return -SMSIntegrals.find(i2 * NumStates + i1)->second;
-}
-
-double HamiltonianMatrix::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-    unsigned int i3 = state_index.find(s3)->second;
-    unsigned int i4 = state_index.find(s4)->second;
-
-    bool sms_sign = true;
-
-    if(i3 < i1)
-    {   swap(i3, i1);
-        sms_sign = !sms_sign;
-    }
-    if(i4 < i2)
-    {   swap(i4, i2);
-        sms_sign = !sms_sign;
-    }
-    if(i2 < i1)
-    {   swap(i2, i1);
-        swap(i3, i4);
-    }
-    if((i1 == i2) && (i4 < i3))
-        swap(i3, i4);
-
-    unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
-                       i1 * NumStates*NumStates*NumStates + 
-                       i2 * NumStates*NumStates + 
-                       i3 * NumStates +
-                       i4;
-
-    double radial = 0.;
-    if(TwoElectronIntegrals.find(key) != TwoElectronIntegrals.end())
-    {   
-        radial = TwoElectronIntegrals.find(key)->second;
-        
-        if(include_sms_v2 && (k == 1))
-        {   double SMS = states.GetCore()->GetNuclearInverseMass();
-            if(SMS)
-            {   SMS = SMS * SMSIntegrals.find(i1*NumStates + i3)->second * SMSIntegrals.find(i2*NumStates + i4)->second;
-                if(!sms_sign)
-                    SMS = -SMS;
-                radial = radial - SMS;
-            }
-        }
-    }
-    else
-    {   *errstream << "HamiltonianMatrix: Couldn't find TwoElectronIntegral." << std::endl;
-        exit(1);
-    }
-
-    return radial;
-}
-
-/*
-double ConfigGenerator::gFactor(const RelativisticConfigList& rlist, const double* jstate_coefficients, double J)
-{
-    double C = Constant::Wigner3j(J, 1., J, -J, 0., J);
-    if(C == 0.)
-        return 0.;
-
-    // Get list of coefficients of projections
-    unsigned int num_projections = 0;
-    RelativisticConfigList::const_iterator it = rlist.begin();
-    while(it != rlist.end())
-    {   num_projections += it->GetProjections().size();
-        it++;
-    }
-
-    std::vector<double> projection_coefficients(num_projections);
-    std::vector<Projection> projections(num_projections);
-    unsigned int jstate = 0;
-    unsigned int proj_num = 0;
-    it = rlist.begin();
-    while(it != rlist.end())
-    {
-        const std::vector< std::vector<double> >& coefficients = it->GetJCoefficients();
-        const ProjectionSet& proj = it->GetProjections();
-        ProjectionSet::const_iterator proj_it = proj.begin();
-        unsigned int i=0;   // index of projection, tied to proj_it
-        while(proj_it != proj.end())
-        {
-            projections[proj_num] = *proj_it;
-
-            for(unsigned int j=0; j<coefficients.size(); j++)
-            {
-                projection_coefficients[proj_num] += jstate_coefficients[jstate + j] * coefficients[j][i];
-            }
-
-            proj_it++;
-            i++;
-            proj_num++;
-        }
-        jstate += coefficients.size();
-        it++;
-    }
-
-    unsigned int i, j;
-
-    // Make ro matrix
-    unsigned int e_size = ElectronSet.size();
-    double* ro = new double[e_size * e_size];
-    for(i=0; i<e_size * e_size; i++)
-        ro[i] = 0.;
-
-    // Loop through all projections to get electron coefficients
-    for(i=0; i<num_projections; i++)
-    {
-        for(j=i; j<num_projections; j++)
-        {
-            // Get differences between projections and update ro.
-            // Make copies because they get munged by GetProjectionDifferences.
-            Projection proj_i(projections[i]);
-            Projection proj_j(projections[j]);
-
-            unsigned int diff[4];
-            int numdiff = Projection::GetProjectionDifferences(proj_i, proj_j, diff);
-            if(numdiff == 0)
-            {   // All electrons
-                for(unsigned int e=0; e<proj_i.Size(); e++)
-                {
-                    double value = projection_coefficients[i] * projection_coefficients[j];
-                    if(i != j)
-                        value = value * 2.;
-
-                    unsigned int electron_index = ElectronSet[proj_i[e]];
-                    ro[electron_index * e_size + electron_index] += value;
-                }
-            }
-            else if(abs(numdiff) == 1)
-            {
-                double value = projection_coefficients[i] * projection_coefficients[j];
-                if(numdiff < 0)
-                    value = -value;
-
-                ro[ElectronSet[proj_i[diff[0]]] * e_size + ElectronSet[proj_j[diff[1]]]] += value;
-                ro[ElectronSet[proj_j[diff[1]]] * e_size + ElectronSet[proj_i[diff[0]]]] += value;
-            }
-        }
-    }
-
-    // Reduce ro matrix
-    double g = 0.;
-
-    std::map<ElectronInfo, unsigned int>::const_iterator eit, ejt;
-    eit = ElectronSet.begin();
-    while(eit != ElectronSet.end())
-    {
-        ejt = ElectronSet.begin();
-        while(ejt != ElectronSet.end())
-        {
-            const ElectronInfo& i_info = eit->first;
-            const ElectronInfo& j_info = ejt->first;
-
-            if((i_info.PQN() == j_info.PQN()) &&
-               (i_info.L() == j_info.L()) &&
-               (i_info.TwoM() == j_info.TwoM()))
-            {
-                double x = ro[eit->second * e_size + ejt->second];
-                double value = Constant::Wigner3j(j_info.J(), 1., i_info.J(), -i_info.M(), 0., i_info.M());
-                if(x && value)
-                {
-                    value = value * pow(-1., (j_info.TwoJ() - j_info.TwoM())/2.);
-
-                    if(i_info.TwoJ() == j_info.TwoJ())
-                        value = value * (i_info.J() + 0.5) * 
-                                sqrt((2.*i_info.J() + 1.) * (4.*i_info.J() - 2.*i_info.L() + 1.) / (2.*i_info.L() + 1.));
-                    else
-                        value = value * pow(-1., j_info.J() + 0.5 + j_info.L()) *
-                                sqrt(2. * j_info.L() * (j_info.L() + 1.) / (2. * j_info.L() + 1.));
-
-                    g += value * x / C;
-                }
-            }
-
-            ejt++;
-        }
-        eit++;
-    }
-
-    delete[] ro;
-    return g/sqrt(J * (J + 1.) * (2.*J + 1.));
-}
-*/

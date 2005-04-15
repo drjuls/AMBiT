@@ -6,8 +6,8 @@
 class MPIHamiltonianMatrix: public HamiltonianMatrix
 {
 public:
-    MPIHamiltonianMatrix(const ExcitedStates& excited_states, const RelativisticConfigList& rconfigs):
-        HamiltonianMatrix(excited_states, rconfigs)
+    MPIHamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
+        HamiltonianMatrix(coulomb_integrals, rconfigs)
     {}
     virtual ~MPIHamiltonianMatrix(void) {}
 
