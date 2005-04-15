@@ -8,7 +8,10 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
-Add: Ability to have no "core" electrons (i.e. all electrons in open shell).
+Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
+     can reduce number of integrals stored for CI using CIIntegrals class.
+Alt: Moved Coulomb and SMS integral storage from HamiltonianMatrix to new
+     class CIIntegrals.
 
 1.1.5 - 11/04/05
 Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
