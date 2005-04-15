@@ -5,6 +5,7 @@
 #include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
+#include "Configuration/CIIntegrals.h"
 #include "Configuration/HamiltonianMatrix.h"
 
 class Atom
@@ -90,6 +91,7 @@ private:
     Lattice* lattice;
     Core* core;
     ExcitedStates* excited;
+    CIIntegrals* integrals;
 
     // Configuration Interaction parameters
     bool SD_CI;     // Only use single and double excitations in CI.

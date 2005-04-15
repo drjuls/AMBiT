@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(6, 2, "CII");
+    {   Atom A(6, 4, "CIII");
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
@@ -65,7 +65,7 @@ void Atom::Run()
 
     DebugOptions.OutputHFExcited(false);
 
-    DoClosedShellAlphaVar();
+    DoClosedShellSMS(true);
 }
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
@@ -85,6 +85,8 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
 
 Atom::~Atom(void)
 {
+    if(integrals)
+        delete integrals;
     if(excited)
         delete excited;
     delete core;
@@ -149,15 +151,11 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(3);
-    //num_states.push_back(13);
-    //num_states.push_back(13);
-    //num_states.push_back(12);
-    //num_states.push_back(7);
-    
-    //{3, 3, 4, 4};{5, 5, 6, 2};{6, 6, 3};
+    num_states.push_back(13);
+    num_states.push_back(13);
+    num_states.push_back(12);
+    num_states.push_back(7);
+
     excited->CreateExcitedStates(num_states);
 }
 
@@ -166,16 +164,16 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     excited = new BSplineBasis(lattice, core);
     excited->SetIdentifier(&identifier);
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 40.);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 25.);
 
     if(ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(7);
-    num_states.push_back(7);
-    num_states.push_back(6);
-    num_states.push_back(3);
+    num_states.push_back(13);
+    num_states.push_back(13);
+    num_states.push_back(12);
+    num_states.push_back(11);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -204,7 +202,8 @@ void Atom::GetSigma(const StateInfo& info)
 void Atom::DoClosedShellSMS(bool include_mbpt)
 {
     MBPTCalculator mbpt(lattice, core, excited);
-    double totals[5];
+    const unsigned int max_k = 5;
+    double totals[max_k];
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.001)
     {
@@ -214,14 +213,14 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
 
         const State* ds;
         int k2;
-        for(k2 = 1; k2 <= 5; k2++)
+        for(k2 = 1; k2 <= max_k; k2++)
         {
             int kappa = k2/2;
             if(k2%2)
                 kappa = -kappa-1;
 
-            if(k2 <=3)
-                ds = excited->GetState(StateInfo(6, kappa));
+            if(k2 <= 3)
+                ds = excited->GetState(StateInfo(5, kappa));
             else
                 ds = excited->GetState(StateInfo(5, kappa));
 
@@ -232,20 +231,21 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
         }
 
         *outstream << "\nNuclearInverseMass = " << ais << std::endl;
-        for(k2 = 0; k2 < 5; k2++)
-            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        for(k2 = 0; k2 < max_k; k2++)
+            *outstream << std::setprecision(15) << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
         *outstream << std::endl;
     }
 }
 
 void Atom::DoClosedShellVolumeShift(bool include_mbpt)
 {
-    core->CalculateVolumeShiftPotential(0.01/Constant::AtomicToFermi);
+    core->CalculateVolumeShiftPotential(0.05/Constant::AtomicToFermi);
 
     MBPTCalculator mbpt(lattice, core, excited);
-    double totals[5];
+    const unsigned int max_k = 5;
+    double totals[max_k];
 
-    for(double ais = -100.; ais <= 100.; ais += 20.)
+    for(double ais = -100.; ais <= 100.; ais += 50.)
     {
         core->SetVolumeShiftParameter(ais);
         core->Update();
@@ -253,14 +253,14 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
 
         const State* ds;
         int k2;
-        for(k2 = 1; k2 <= 5; k2++)
+        for(k2 = 1; k2 <= max_k; k2++)
         {
             int kappa = k2/2;
             if(k2%2)
                 kappa = -kappa-1;
 
             if(k2 <= 3)
-                ds = excited->GetState(StateInfo(6, kappa));
+                ds = excited->GetState(StateInfo(5, kappa));
             else
                 ds = excited->GetState(StateInfo(5, kappa));
 
@@ -271,8 +271,8 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
         }
 
         *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
-        for(k2 = 0; k2 < 5; k2++)
-            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        for(k2 = 0; k2 < max_k; k2++)
+            *outstream << std::setprecision(15) << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
         *outstream << std::endl;
     }
 
@@ -282,9 +282,8 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
 void Atom::DoClosedShellAlphaVar(bool include_mbpt)
 {
     MBPTCalculator mbpt(lattice, core, excited);
-    double totals[5];
-
-    const unsigned int N = 3;
+    const unsigned int max_k = 5;
+    double totals[max_k];
 
     double alpha0 = Constant::Alpha;
 
@@ -298,16 +297,16 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
 
         const State* ds;
         int k2;
-        for(k2 = 1; k2 <= N; k2++)
+        for(k2 = 1; k2 <= max_k; k2++)
         {
             int kappa = k2/2;
             if(k2%2)
                 kappa = -kappa-1;
 
             if(k2 <= 3)
-                ds = excited->GetState(StateInfo(2, kappa));
+                ds = excited->GetState(StateInfo(5, kappa));
             else
-                ds = excited->GetState(StateInfo(3, kappa));
+                ds = excited->GetState(StateInfo(5, kappa));
 
             if(include_mbpt)
                 totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
@@ -316,7 +315,7 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
         }
 
         *outstream << "\nx = " << x << std::endl;
-        for(k2 = 0; k2 < N; k2++)
+        for(k2 = 0; k2 < max_k; k2++)
             *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
         *outstream << std::endl;
     }
