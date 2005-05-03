@@ -70,7 +70,7 @@ void Atom::Run()
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), NumSolutions(6), excited(NULL)
+    SD_CI(false), NumSolutions(6), excited(NULL), integrals(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     core = new Core(lattice, atomic_number, charge);

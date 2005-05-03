@@ -10,8 +10,14 @@ Del: Removed functionality.
 
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
      can reduce number of integrals stored for CI using CIIntegrals class.
+     Support for Sigma1 (one-electron MBPT) + CI: added Brillouin-Wigner
+     perturbation theory to MBPTCalculator; added Sigma1 to CIIntegrals;
+     improved calculation of Sigma1 in MBPTCalculator and separated it from
+     calculation of matrix elements.
 Alt: Moved Coulomb and SMS integral storage from HamiltonianMatrix to new
      class CIIntegrals.
+Bug: StateIntegrator::IsotopeShiftIntegral() limits of integration for
+     potential and matrix element separated.
 
 1.1.5 - 11/04/05
 Bug: DiscreteState::CheckSize() remove numerical wobbles at tail;
