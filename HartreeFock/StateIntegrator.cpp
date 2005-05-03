@@ -437,11 +437,23 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
             SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
         }
     else
-        for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
-        {
-            (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+    {   unsigned int state_limit = mmin(f.size(), s2.Size());
+        unsigned int P_limit = mmin(s2.Size(), P->size());
+
+        unsigned int i;
+        for(i=0; i<mmin(P_limit, state_limit); i++)
+        {   (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
             SMS += f[i] * (*P)[i] * dR[i];
         }
+        while(i < state_limit)
+        {   SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
+            i++;
+        }
+        while(i < P_limit)
+        {   (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+            i++;
+        }
+    }
 
     return SMS;
 }

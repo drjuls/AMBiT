@@ -7,10 +7,16 @@
 class SigmaPotential
 {
 public:
-    SigmaPotential(Lattice* lat, const std::string& file, unsigned int matrix_size = 0, unsigned int start_point = 0);
+    SigmaPotential(Lattice* lat, const std::string& file = "", unsigned int matrix_size = 0, unsigned int start_point = 0);
     ~SigmaPotential();
 
+    /** Get potential
+            V(r1) = Integral[Sigma(r1, r2) * f(r2), {r2, 0, Infinity}]
+     */
     std::vector<double> GetPotential(const std::vector<double>& f) const;
+
+    /** Get matrix element <f1 | Sigma | f2> */
+    double GetMatrixElement(const std::vector<double>& f1, const std::vector<double>& f2) const;
 
     double GetSigma(unsigned int r1, unsigned int r2);
 

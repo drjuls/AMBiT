@@ -34,7 +34,6 @@ SigmaPotential::~SigmaPotential()
 
 std::vector<double> SigmaPotential::GetPotential(const std::vector<double>& f) const
 {
-    Store();
     std::vector<double> ret(f.size());
     unsigned int limit = mmin((unsigned int)(f.size() - start)/gap, size);
 
@@ -57,6 +56,7 @@ std::vector<double> SigmaPotential::GetPotential(const std::vector<double>& f) c
     if(gap == 1)
         return ret;
 
+    // otherwise gap == 4
     for(i = start; i<ret.size(); i+=gap)
     {   ret[i] = ret[i] * dR[i];
     }
@@ -97,6 +97,18 @@ std::vector<double> SigmaPotential::GetPotential(const std::vector<double>& f) c
         ret[i] = ret[i]/dR[i];
 
     return ret;
+}
+
+double SigmaPotential::GetMatrixElement(const std::vector<double>& f1, const std::vector<double>& f2) const
+{
+    std::vector<double> pot = GetPotential(f2);
+
+    const double* dR = lattice->dR();
+    double value = 0.;
+    for(unsigned int i=0; i < mmin(pot.size(), f2.size()); i++)
+        value += pot[i] * f2[i] * dR[i];
+
+    return value;
 }
 
 double SigmaPotential::GetSigma(unsigned int r1, unsigned int r2)
