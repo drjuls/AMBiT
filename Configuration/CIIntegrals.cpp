@@ -2,6 +2,17 @@
 #include "CIIntegrals.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
+#include "MBPT/MBPTCalculator.h"
+
+CIIntegrals::~CIIntegrals()
+{
+    std::map<int, SigmaPotential*>::iterator it = Sigma1.begin();
+    while(it != Sigma1.end())
+    {   delete it->second;
+        it++;
+    }
+    Sigma1.clear();
+}
 
 unsigned int CIIntegrals::GetStorageSize() const
 {
@@ -78,9 +89,8 @@ unsigned int CIIntegrals::GetStorageSize() const
     return size;
 }
 
-void CIIntegrals::Update()
+void CIIntegrals::Update(const std::string& id)
 {
-    // One electron integrals
     StateIntegrator SI(*states.GetLattice());
     CoulombIntegrator CI(*states.GetLattice());
 
@@ -95,6 +105,65 @@ void CIIntegrals::Update()
     ConstStateIterator it_i = states.GetConstStateIterator();
     ConstStateIterator it_j = states.GetConstStateIterator();
 
+    // Calculate sigma1 potentials
+    if(include_sigma1)
+    {
+        std::map<int, SigmaPotential*>::iterator it_sigma = Sigma1.begin();
+        while(it_sigma != Sigma1.end())
+        {   delete it_sigma->second;
+            it_sigma++;
+        }
+        Sigma1.clear();
+
+        unsigned int max_l = 0;
+        it_i.First();
+        while(!it_i.AtEnd())
+        {   max_l = mmax(it_i.GetState()->L(), max_l);
+            it_i.Next();
+        }
+
+        for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
+            if(kappa != 0)
+            {
+                std::string sigma_id = id + ".";
+                if(kappa > 0)
+                    sigma_id = sigma_id + Constant::SpectroscopicNotation[kappa];
+                else
+                    sigma_id = sigma_id + Constant::SpectroscopicNotation[-kappa-1];
+
+                if(kappa < -1)
+                    sigma_id = sigma_id + '+';
+
+                sigma_id = sigma_id + ".matrix";
+
+                SigmaPotential* pot = new SigmaPotential(states.GetLattice(), sigma_id);
+
+                if(!pot->Size() && PT)
+                {   double valence_energy = 0.;
+                    unsigned int pqn = 10;
+
+                    // Get leading state (for energy denominator)
+                    it_i.First();
+                    while(!it_i.AtEnd())
+                    {   const DiscreteState* ds = it_i.GetState();
+                        if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
+                        {   pqn = ds->RequiredPQN();
+                            valence_energy = ds->Energy();
+                        }
+                        it_i.Next();
+                    }
+
+                    PT->UseBrillouinWignerPT(valence_energy);
+                    PT->GetSecondOrderSigma(kappa, pot);
+
+                    if(!id.empty())
+                        pot->Store();
+                }
+
+                Sigma1.insert(std::pair<int, SigmaPotential*>(kappa, pot));
+            }
+    }
+
     // Get single particle integrals
     it_i.First(); i = 0;
     while(!it_i.AtEnd())
@@ -106,8 +175,17 @@ void CIIntegrals::Update()
         it_j = it_i; j = i;
         while(!it_j.AtEnd())
         {
-            OneElectronIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,
-                SI.HamiltonianMatrixElement(*it_i.GetState(), *it_j.GetState(), *states.GetCore())));
+            const DiscreteState* si = it_i.GetState();
+            const DiscreteState* sj = it_j.GetState();
+
+            if(si->Kappa() == sj->Kappa())
+            {   double integral = SI.HamiltonianMatrixElement(*it_i.GetState(), *it_j.GetState(), *states.GetCore());
+                if(include_sigma1)
+                {   SigmaPotential* pot = Sigma1[si->Kappa()];
+                    integral += pot->GetMatrixElement(si->f, sj->f);
+                }
+                OneElectronIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j, integral));
+            }
 
             // i.pqn <= j.pqn, so calculate using derivative of i instead of j
             SMSIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,

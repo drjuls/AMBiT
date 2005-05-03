@@ -4,18 +4,20 @@
 #include "Include.h"
 #include "Basis/ExcitedStates.h"
 #include "ElectronInfo.h"
+#include "HartreeFock/SigmaPotential.h"
+#include "MBPT/MBPTCalculator.h"
 
 class CIIntegrals
 {
     /** Class to hold Coulomb integrals for use in CI calculation. */
 public:
     CIIntegrals(const ExcitedStates& excited_states, unsigned int limit1 = 100, unsigned int limit2 = 100, unsigned int limit3 = 100):
-        states(excited_states), include_valence_sms(false)
+        states(excited_states), include_valence_sms(false), include_sigma1(false), PT(NULL)
     {   max_pqn_1 = limit1;
         max_pqn_2 = limit2;
         max_pqn_3 = limit3;
     }
-    virtual ~CIIntegrals() {}
+    virtual ~CIIntegrals();
 
     /** Calculate number of elements that will be stored.
         48 bytes are stored for each element, so this should be kept to around 2 million,
@@ -34,21 +36,32 @@ public:
      */
     unsigned int GetStorageSize() const;
 
-    /** Update all integrals (on the assumption that the excited states have changed). */
-    void Update();
+    /** Update all integrals (on the assumption that the excited states have changed).
+        The id string is used to get Sigma operators from disk.
+      */
+    void Update(const std::string& id = "");
 
     /** Include the scaled specific mass shift in the two electron integrals. */
     inline void IncludeValenceSMS(bool include)
     {   include_valence_sms = include;
     }
 
-    /* GetOneElectronIntegral(i, j) = <i|H|j> */
+    /** Include the scaled specific mass shift in the two electron integrals. */
+    inline void IncludeSigma1(bool include, MBPTCalculator* mbpt = NULL)
+    {   include_sigma1 = include;
+        if(mbpt)
+            PT = mbpt;
+    }
+
+    /** GetOneElectronIntegral(i, j) = <i|H|j> */
     double GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const;
 
-    /* GetSMSIntegral(i, j) = <i|p|j> */
+    /** GetSMSIntegral(i, j) = <i|p|j> */
     double GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const;
     
-    /* GetOverlapIntegral(i, j) = <i|j> */
+    /** GetOverlapIntegral(i, j) = <i|j>.
+        PRE: i.L() == j.L()
+     */
     double GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2) const;
     
     /* GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
@@ -60,6 +73,7 @@ public:
 
 protected:
     const ExcitedStates& states;
+    MBPTCalculator* PT;
 
     unsigned int NumStates;
     std::map<StateInfo, unsigned int> state_index;
@@ -81,9 +95,15 @@ protected:
     // Overlap = <i|j>
     std::map<unsigned int, double> OverlapIntegrals;
 
+    /** Include SMS in two-body integrals. */
     bool include_valence_sms;
 
+    /** Limits on stored two-body integrals. */
     unsigned int max_pqn_1, max_pqn_2, max_pqn_3;
+
+    /** Single-electron MBPT effects. */
+    bool include_sigma1;
+    std::map<int, SigmaPotential*> Sigma1;
 };
 
 #endif
