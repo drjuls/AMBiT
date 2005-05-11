@@ -105,8 +105,8 @@ double SigmaPotential::GetMatrixElement(const std::vector<double>& f1, const std
 
     const double* dR = lattice->dR();
     double value = 0.;
-    for(unsigned int i=0; i < mmin(pot.size(), f2.size()); i++)
-        value += pot[i] * f2[i] * dR[i];
+    for(unsigned int i=0; i < mmin(pot.size(), f1.size()); i++)
+        value += pot[i] * f1[i] * dR[i];
 
     return value;
 }
@@ -211,7 +211,9 @@ void SigmaPotential::ReSize(unsigned int new_size)
             function[i] = (double*)realloc(function[i], new_size * sizeof(double));
 
         for(i=size; i<new_size; i++)
-            function[i] = (double*)malloc(new_size * sizeof(double));
+        {   function[i] = (double*)malloc(new_size * sizeof(double));
+            memset(function[i], 0, new_size * sizeof(double));
+        }        
 
         for(i=0; i<size; i++)
 	    {   for(j=size; j<new_size; j++)
