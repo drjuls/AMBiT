@@ -60,7 +60,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
     bool calculate_sigma_potential = (sigma != NULL);
     unsigned int min_size = mmin(si.Size(), sf.Size());
 
-    double NuclearInverseMass = core->GetNuclearInverseMass();
+    const double NuclearInverseMass = core->GetNuclearInverseMass();
 
     std::vector<double> Pot24;
     CoulombIntegrator I(*lattice);
@@ -261,6 +261,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
                         }
                         it3_3.Next();
                     }
+
                 } // coeff24
             } // k
             it4.Next();
@@ -279,7 +280,7 @@ double MBPTCalculator::CalculateCorrelation2(const State& si, const State& sf, S
     bool calculate_matrix_element = (si.Size() && sf.Size());
     bool calculate_sigma_potential = (sigma != NULL);
 
-    double NuclearInverseMass = core->GetNuclearInverseMass();
+    const double NuclearInverseMass = core->GetNuclearInverseMass();
 
     std::vector<double> Pot24, Pot23;
     CoulombIntegrator I(*lattice);
@@ -463,7 +464,7 @@ double MBPTCalculator::CalculateCorrelation4(const State& si, const State& sf, S
     bool calculate_matrix_element = (si.Size() && sf.Size());
     bool calculate_sigma_potential = (sigma != NULL);
 
-    double NuclearInverseMass = core->GetNuclearInverseMass();
+    const double NuclearInverseMass = core->GetNuclearInverseMass();
 
     std::vector<double> Pot24, Pot34;
     CoulombIntegrator I(*lattice);
