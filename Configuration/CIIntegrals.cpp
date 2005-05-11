@@ -89,25 +89,40 @@ unsigned int CIIntegrals::GetStorageSize() const
     return size;
 }
 
-void CIIntegrals::Update(const std::string& id)
+void CIIntegrals::Update(const std::string& sigma_id)
 {
     StateIntegrator SI(*states.GetLattice());
     CoulombIntegrator CI(*states.GetLattice());
 
     NumStates = states.NumStates();
     state_index.clear();
+    reverse_state_index.clear();
     OneElectronIntegrals.clear();
     SMSIntegrals.clear();
     TwoElectronIntegrals.clear();
+    OverlapIntegrals.clear();
 
     unsigned int i, j;
 
     ConstStateIterator it_i = states.GetConstStateIterator();
     ConstStateIterator it_j = states.GetConstStateIterator();
 
+    // If fp is NULL, calculate one electron integrals, otherwise read them in.
+    std::string file1 = id + ".one.int";
+    FILE* fp = NULL;
+
+    if(!id.empty())
+    {   fp = fopen(file1.c_str(), "rb");
+        if(fp)
+            ReadOneElectronIntegrals(fp);
+    }
+
     // Calculate sigma1 potentials
-    if(include_sigma1)
+    if(include_sigma1 && !fp)
     {
+        // Update the valence energies for perturbation theory
+        SetValenceEnergies();
+
         std::map<int, SigmaPotential*>::iterator it_sigma = Sigma1.begin();
         while(it_sigma != Sigma1.end())
         {   delete it_sigma->second;
@@ -125,39 +140,31 @@ void CIIntegrals::Update(const std::string& id)
         for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
             if(kappa != 0)
             {
-                std::string sigma_id = id + ".";
-                if(kappa > 0)
-                    sigma_id = sigma_id + Constant::SpectroscopicNotation[kappa];
+                std::string sigma_file;
+                if(!sigma_id.empty())
+                    sigma_file = sigma_id + ".";
                 else
-                    sigma_id = sigma_id + Constant::SpectroscopicNotation[-kappa-1];
+                    sigma_file = id + ".";
+
+                if(kappa > 0)
+                    sigma_file = sigma_file + Constant::SpectroscopicNotation[kappa];
+                else
+                    sigma_file = sigma_file + Constant::SpectroscopicNotation[-kappa-1];
 
                 if(kappa < -1)
-                    sigma_id = sigma_id + '+';
+                    sigma_file = sigma_file + '+';
 
-                sigma_id = sigma_id + ".matrix";
+                sigma_file = sigma_file + ".matrix";
 
-                SigmaPotential* pot = new SigmaPotential(states.GetLattice(), sigma_id);
+                SigmaPotential* pot = new SigmaPotential(states.GetLattice(), sigma_file);
 
+                // If (pot->Size() == 0), then it didn't already exist on disk, so make it.
                 if(!pot->Size() && PT)
-                {   double valence_energy = 0.;
-                    unsigned int pqn = 10;
-
-                    // Get leading state (for energy denominator)
-                    it_i.First();
-                    while(!it_i.AtEnd())
-                    {   const DiscreteState* ds = it_i.GetState();
-                        if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
-                        {   pqn = ds->RequiredPQN();
-                            valence_energy = ds->Energy();
-                        }
-                        it_i.Next();
-                    }
+                {
+                    double valence_energy = ValenceEnergies[kappa];
 
                     PT->UseBrillouinWignerPT(valence_energy);
                     PT->GetSecondOrderSigma(kappa, pot);
-
-                    if(!id.empty())
-                        pot->Store();
                 }
 
                 Sigma1.insert(std::pair<int, SigmaPotential*>(kappa, pot));
@@ -178,8 +185,9 @@ void CIIntegrals::Update(const std::string& id)
             const DiscreteState* si = it_i.GetState();
             const DiscreteState* sj = it_j.GetState();
 
-            if(si->Kappa() == sj->Kappa())
-            {   double integral = SI.HamiltonianMatrixElement(*it_i.GetState(), *it_j.GetState(), *states.GetCore());
+            // calculate one electron integrals
+            if(!fp && (si->Kappa() == sj->Kappa()))
+            {   double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
                 if(include_sigma1)
                 {   SigmaPotential* pot = Sigma1[si->Kappa()];
                     integral += pot->GetMatrixElement(si->f, sj->f);
@@ -207,6 +215,10 @@ void CIIntegrals::Update(const std::string& id)
             it_j.Next(); j++;
         }
         it_i.Next(); i++;
+    }
+
+    if(fp)
+    {   fclose(fp);
     }
 
     // Two electron integrals
@@ -246,7 +258,7 @@ void CIIntegrals::Update(const std::string& id)
             // Get density24
             std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
             if(k <= kmax)
-            {   
+            {
                 for(p=0; p<density.size(); p++)
                 {
                     density[p] = s_2->f[p] * s_4->f[p] + Constant::AlphaSquared * s_2->g[p] * s_4->g[p];
@@ -286,7 +298,7 @@ void CIIntegrals::Update(const std::string& id)
                         {
                             unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
                                                i1 * NumStates*NumStates*NumStates +
-                                               i2 * NumStates*NumStates + 
+                                               i2 * NumStates*NumStates +
                                                i3 * NumStates +
                                                i4;
 
@@ -300,7 +312,7 @@ void CIIntegrals::Update(const std::string& id)
                             }
 
                             if(core_pol && k == 1)
-                            {   
+                            {
                                 double R1 = 0.;
                                 double R2 = 0.;
                                 for(p=0; p<limit; p++)
@@ -394,8 +406,8 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
         swap(i3, i4);
 
     unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
-                       i1 * NumStates*NumStates*NumStates + 
-                       i2 * NumStates*NumStates + 
+                       i1 * NumStates*NumStates*NumStates +
+                       i2 * NumStates*NumStates +
                        i3 * NumStates +
                        i4;
 
@@ -474,4 +486,89 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
     }
 
     return radial;
+}
+
+void CIIntegrals::WriteSigmaPotentials() const
+{
+    std::map<int, SigmaPotential*>::const_iterator it = Sigma1.begin();
+
+    while(it != Sigma1.end())
+    {   it->second->Store();
+        it++;
+    }
+}
+
+void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
+{
+    OneElectronIntegrals.clear();
+
+    unsigned int size;
+    fread(&size, sizeof(unsigned int), 1, fp);
+
+    unsigned int i, index;
+    double value;
+
+    for(i=0; i<size; i++)
+    {
+        fread(&index, sizeof(unsigned int), 1, fp);
+        fread(&value, sizeof(double), 1, fp);
+
+        OneElectronIntegrals.insert(std::pair<unsigned int, double>(index, value));
+    }
+}
+
+void CIIntegrals::WriteOneElectronIntegrals() const
+{
+    std::string filename = id + ".one.int";
+    FILE* fp = fopen(filename.c_str(), "wb");
+
+    if(fp)
+    {   unsigned int size = OneElectronIntegrals.size();
+        fwrite(&size, sizeof(unsigned int), 1, fp);
+
+        std::map<unsigned int, double>::const_iterator it = OneElectronIntegrals.begin();
+        while(it != OneElectronIntegrals.end())
+        {
+            fwrite(&(it->first), sizeof(unsigned int), 1, fp);
+            fwrite(&(it->second), sizeof(double), 1, fp);
+
+            it++;
+        }
+
+        fclose(fp);
+    }
+}
+
+void CIIntegrals::SetValenceEnergies()
+{
+    ConstStateIterator it_i = states.GetConstStateIterator();
+    ValenceEnergies.clear();
+
+    // Get maximum angular momentum in excited states
+    unsigned int max_l = 0;
+    it_i.First();
+    while(!it_i.AtEnd())
+    {   max_l = mmax(it_i.GetState()->L(), max_l);
+        it_i.Next();
+    }
+
+    for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
+        if(kappa != 0)
+        {
+            double valence_energy = 0.;
+            unsigned int pqn = 10;
+
+            // Get leading state (for energy denominator)
+            it_i.First();
+            while(!it_i.AtEnd())
+            {   const DiscreteState* ds = it_i.GetState();
+                if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
+                {   pqn = ds->RequiredPQN();
+                    valence_energy = ds->Energy();
+                }
+                it_i.Next();
+            }
+
+            ValenceEnergies.insert(std::pair<int, double>(kappa, valence_energy));
+        }
 }
