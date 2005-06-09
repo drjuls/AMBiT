@@ -1,4 +1,5 @@
-cxxobjects = CIIntegrals.o ConfigGenerator.o Configuration.o \
+cxxobjects = CIIntegrals.o CIIntegralsMBPT.o \
+             ConfigGenerator.o Configuration.o \
              ElectronInfo.o HamiltonianMatrix.o \
              MPIHamiltonianMatrix.o MPIMatrix.o Projection.o \
              RelativisticConfiguration.o

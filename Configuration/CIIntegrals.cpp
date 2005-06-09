@@ -4,20 +4,17 @@
 #include "Universal/CoulombIntegrator.h"
 #include "MBPT/MBPTCalculator.h"
 
-CIIntegrals::~CIIntegrals()
-{
-    std::map<int, SigmaPotential*>::iterator it = Sigma1.begin();
-    while(it != Sigma1.end())
-    {   delete it->second;
-        it++;
-    }
-    Sigma1.clear();
+inline void swap(unsigned int& i1, unsigned int& i2)
+{   unsigned int temp = i1;
+    i1 = i2;
+    i2 = temp;
 }
 
 unsigned int CIIntegrals::GetStorageSize() const
 {
     unsigned int num_states = states.NumStates();
-    unsigned int size = 0;
+    unsigned int size1 = 0;
+    unsigned int size2 = 0;
 
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
@@ -27,6 +24,27 @@ unsigned int CIIntegrals::GetStorageSize() const
     ConstStateIterator it_3 = states.GetConstStateIterator();
     ConstStateIterator it_4 = states.GetConstStateIterator();
 
+    // One electron integrals
+    it_1.First();
+    while(!it_1.AtEnd())
+    {
+        it_2 = it_1;
+        while(!it_2.AtEnd())
+        {
+            const DiscreteState* si = it_1.GetState();
+            const DiscreteState* sj = it_2.GetState();
+
+            // Calculate any remaining one electron integrals
+            if(si->Kappa() == sj->Kappa())
+                size1++;
+
+            it_2.Next();
+        }
+        it_1.Next();
+    }
+    *logstream << "Num one-electron integrals: " << size1 << std::endl;
+
+    // Two-electron integrals
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
     {
@@ -66,12 +84,13 @@ unsigned int CIIntegrals::GetStorageSize() const
                         // Check max_pqn conditions and k conditions
                         if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
                            (s_2->RequiredPQN() <= max_pqn_3) && (s_3->RequiredPQN() <= max_pqn_3) &&
-                           (int(k) >= abs(int(s_1->L()) - int(s_3->L()))) &&
+                           ((s_1->L() + s_3->L() + k)%2 == 0) &&
+                           (k >= (unsigned int)abs(int(s_1->L()) - int(s_3->L()))) &&
                            (double(k) >= fabs(s_1->J() - s_3->J())) &&
                            (k <= s_1->L() + s_3->L()) &&
                            (double(k) <= s_1->J() + s_3->J()))
                         {
-                                size++;
+                                size2++;
                         }
 
                         it_3.Next(); i3++;
@@ -85,16 +104,12 @@ unsigned int CIIntegrals::GetStorageSize() const
         it_2.Next(); i2++;
     }
 
-    *logstream << "Num Integrals: " << size << std::endl;
-    return size;
+    *logstream << "Num two-electron integrals: " << size2 << std::endl;
+    return (size1 + size2);
 }
 
-void CIIntegrals::Update(const std::string& sigma_id)
+void CIIntegrals::Update()
 {
-    StateIntegrator SI(*states.GetLattice());
-    CoulombIntegrator CI(*states.GetLattice());
-
-    NumStates = states.NumStates();
     state_index.clear();
     reverse_state_index.clear();
     OneElectronIntegrals.clear();
@@ -102,6 +117,34 @@ void CIIntegrals::Update(const std::string& sigma_id)
     TwoElectronIntegrals.clear();
     OverlapIntegrals.clear();
 
+    UpdateStateIndexes();
+    UpdateOneElectronIntegrals();
+    UpdateTwoElectronIntegrals();
+}
+
+void CIIntegrals::UpdateStateIndexes()
+{
+    NumStates = states.NumStates();
+    state_index.clear();
+    reverse_state_index.clear();
+
+    ConstStateIterator it_i = states.GetConstStateIterator();
+    unsigned int i;
+
+    // Iterate through states, assign in order
+    it_i.First(); i = 0;
+    while(!it_i.AtEnd())
+    {
+        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
+        reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, StateInfo(it_i.GetState())));
+
+        it_i.Next(); i++;
+    }
+}
+
+void CIIntegrals::UpdateOneElectronIntegrals()
+{
+    StateIntegrator SI(*states.GetLattice());
     unsigned int i, j;
 
     ConstStateIterator it_i = states.GetConstStateIterator();
@@ -114,85 +157,33 @@ void CIIntegrals::Update(const std::string& sigma_id)
     if(!id.empty())
     {   fp = fopen(file1.c_str(), "rb");
         if(fp)
-            ReadOneElectronIntegrals(fp);
-    }
-
-    // Calculate sigma1 potentials
-    if(include_sigma1 && !fp)
-    {
-        // Update the valence energies for perturbation theory
-        SetValenceEnergies();
-
-        std::map<int, SigmaPotential*>::iterator it_sigma = Sigma1.begin();
-        while(it_sigma != Sigma1.end())
-        {   delete it_sigma->second;
-            it_sigma++;
+        {   ReadOneElectronIntegrals(fp);
+            fclose(fp);
         }
-        Sigma1.clear();
-
-        unsigned int max_l = 0;
-        it_i.First();
-        while(!it_i.AtEnd())
-        {   max_l = mmax(it_i.GetState()->L(), max_l);
-            it_i.Next();
-        }
-
-        for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
-            if(kappa != 0)
-            {
-                std::string sigma_file;
-                if(!sigma_id.empty())
-                    sigma_file = sigma_id + ".";
-                else
-                    sigma_file = id + ".";
-
-                if(kappa > 0)
-                    sigma_file = sigma_file + Constant::SpectroscopicNotation[kappa];
-                else
-                    sigma_file = sigma_file + Constant::SpectroscopicNotation[-kappa-1];
-
-                if(kappa < -1)
-                    sigma_file = sigma_file + '+';
-
-                sigma_file = sigma_file + ".matrix";
-
-                SigmaPotential* pot = new SigmaPotential(states.GetLattice(), sigma_file);
-
-                // If (pot->Size() == 0), then it didn't already exist on disk, so make it.
-                if(!pot->Size() && PT)
-                {
-                    double valence_energy = ValenceEnergies[kappa];
-
-                    PT->UseBrillouinWignerPT(valence_energy);
-                    PT->GetSecondOrderSigma(kappa, pot);
-                }
-
-                Sigma1.insert(std::pair<int, SigmaPotential*>(kappa, pot));
-            }
     }
 
     // Get single particle integrals
     it_i.First(); i = 0;
     while(!it_i.AtEnd())
     {
-        // Use it_i to build index of states
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, StateInfo(it_i.GetState())));
-
         it_j = it_i; j = i;
         while(!it_j.AtEnd())
         {
             const DiscreteState* si = it_i.GetState();
             const DiscreteState* sj = it_j.GetState();
 
-            // calculate one electron integrals
-            if(!fp && (si->Kappa() == sj->Kappa()))
-            {   double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
-                if(include_sigma1)
-                {   SigmaPotential* pot = Sigma1[si->Kappa()];
-                    integral += pot->GetMatrixElement(si->f, sj->f);
+            // Calculate any remaining one electron integrals
+            if(si->Kappa() == sj->Kappa())
+            {
+                unsigned int key = i * NumStates + j;
+
+                // Check that this integral doesn't already exist
+                // (it may have been read in)
+                if(OneElectronIntegrals.find(key) == OneElectronIntegrals.end())
+                {
+                    double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
+                    OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, integral));
                 }
-                OneElectronIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j, integral));
             }
 
             // i.pqn <= j.pqn, so calculate using derivative of i instead of j
@@ -216,12 +207,24 @@ void CIIntegrals::Update(const std::string& sigma_id)
         }
         it_i.Next(); i++;
     }
+}
 
-    if(fp)
-    {   fclose(fp);
+void CIIntegrals::UpdateTwoElectronIntegrals()
+{
+    // Read stored two electron integrals.
+    std::string file1 = id + ".two.int";
+    FILE* fp = NULL;
+
+    if(!id.empty())
+    {   fp = fopen(file1.c_str(), "rb");
+        if(fp)
+        {   ReadTwoElectronIntegrals(fp);
+            fclose(fp);
+        }
     }
 
-    // Two electron integrals
+    // Calculate any remaining two electron integrals.
+    CoulombIntegrator CI(*states.GetLattice());
     const double* dR = states.GetLattice()->dR();
     const double* R = states.GetLattice()->R();
     const double core_pol = states.GetCore()->GetPolarisability();
@@ -291,6 +294,7 @@ void CIIntegrals::Update(const std::string& sigma_id)
                         // Check max_pqn conditions and k conditions
                         if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
                            (s_2->RequiredPQN() <= max_pqn_3) && (s_3->RequiredPQN() <= max_pqn_3) &&
+                           ((s_1->L() + s_3->L() + k)%2 == 0) &&
                            (int(k) >= abs(int(s_1->L()) - int(s_3->L()))) &&
                            (double(k) >= fabs(s_1->J() - s_3->J())) &&
                            (k <= s_1->L() + s_3->L()) &&
@@ -302,30 +306,35 @@ void CIIntegrals::Update(const std::string& sigma_id)
                                                i3 * NumStates +
                                                i4;
 
-                            double radial = 0.;
-                            unsigned int limit = mmin(s_1->Size(), s_3->Size());
-                            limit = mmin(limit, Pot24.size());
-                            for(p=0; p<limit; p++)
+                            // Check that this integral doesn't already exist
+                            // (it may have been read in)
+                            if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                             {
-                                radial += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
-                                          * Pot24[p] * dR[p];
-                            }
-
-                            if(core_pol && k == 1)
-                            {
-                                double R1 = 0.;
-                                double R2 = 0.;
+                                double radial = 0.;
+                                unsigned int limit = mmin(s_1->Size(), s_3->Size());
+                                limit = mmin(limit, Pot24.size());
                                 for(p=0; p<limit; p++)
                                 {
-                                    double r2 = R[p]*R[p] + core_rad*core_rad;
-                                    R1 += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
-                                    R2 += density[p]/r2 * dR[p];
+                                    radial += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
+                                            * Pot24[p] * dR[p];
                                 }
 
-                                radial -= core_pol * R1 * R2;
-                            }
+                                if(core_pol && k == 1)
+                                {
+                                    double R1 = 0.;
+                                    double R2 = 0.;
+                                    for(p=0; p<limit; p++)
+                                    {
+                                        double r2 = R[p]*R[p] + core_rad*core_rad;
+                                        R1 += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
+                                        R2 += density[p]/r2 * dR[p];
+                                    }
 
-                            TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                    radial -= core_pol * R1 * R2;
+                                }
+
+                                TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                            }
                         }
                         it_3.Next(); i3++;
                     }
@@ -337,12 +346,6 @@ void CIIntegrals::Update(const std::string& sigma_id)
         }
         it_2.Next(); i2++;
     }
-}
-
-inline void swap(unsigned int& i1, unsigned int& i2)
-{   unsigned int temp = i1;
-    i1 = i2;
-    i2 = temp;
 }
 
 double CIIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const
@@ -385,25 +388,7 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
     unsigned int i3 = state_index.find(s3)->second;
     unsigned int i4 = state_index.find(s4)->second;
 
-    bool sms_sign = true;
-
-    // Ordering of indices:
-    // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
-    // therefore (i1 <= i2 <= i4) and (i1 <= i3)
-    if(i3 < i1)
-    {   swap(i3, i1);
-        sms_sign = !sms_sign;
-    }
-    if(i4 < i2)
-    {   swap(i4, i2);
-        sms_sign = !sms_sign;
-    }
-    if(i2 < i1)
-    {   swap(i2, i1);
-        swap(i3, i4);
-    }
-    if((i1 == i2) && (i4 < i3))
-        swap(i3, i4);
+    bool sms_sign = TwoElectronIntegralOrdering(i1, i2, i3, i4);
 
     unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
                        i1 * NumStates*NumStates*NumStates +
@@ -488,32 +473,215 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
     return radial;
 }
 
-void CIIntegrals::WriteSigmaPotentials() const
+bool CIIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
 {
-    std::map<int, SigmaPotential*>::const_iterator it = Sigma1.begin();
+    bool sms_sign = true;
 
-    while(it != Sigma1.end())
-    {   it->second->Store();
-        it++;
+    // Ordering of indices:
+    // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
+    // therefore (i1 <= i2 <= i4) and (i1 <= i3)
+    if(i3 < i1)
+    {   swap(i3, i1);
+        sms_sign = !sms_sign;
     }
+    if(i4 < i2)
+    {   swap(i4, i2);
+        sms_sign = !sms_sign;
+    }
+    if(i2 < i1)
+    {   swap(i2, i1);
+        swap(i3, i4);
+    }
+    if((i1 == i2) && (i4 < i3))
+        swap(i3, i4);
+
+    return sms_sign;
 }
 
 void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
 {
-    OneElectronIntegrals.clear();
+    // Make state index for stored integrals
+    // Get start and end principal quantum numbers for each L
+    std::map<unsigned int, StateInfo> stored_state_index;
+    unsigned int max_l, L;
+    fread(&max_l, sizeof(unsigned int), 1, fp);
+    
+    unsigned int* start_pqn = new unsigned int[max_l+1];
+    unsigned int* end_pqn = new unsigned int[max_l+1];
+    unsigned int min_pqn = 100, max_pqn = 0;
 
+    for(L = 0; L <= max_l; L++)
+    {   fread(start_pqn+L, sizeof(unsigned int), 1, fp);
+        fread(end_pqn+L, sizeof(unsigned int), 1, fp);
+
+        if(start_pqn[L] < min_pqn)
+            min_pqn = start_pqn[L];
+        if(end_pqn[L] > max_pqn)
+            max_pqn = end_pqn[L];
+    }
+
+    // States are ordered first by pqn, then L, then Kappa
+    unsigned int index = 0;
+    for(unsigned int pqn = min_pqn; pqn <= max_pqn; pqn++)
+    {
+        for(L = 0; L <= max_l; L++)
+        {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
+            {
+                if(L != 0)
+                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                    index++;
+                }
+                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                index++;
+            }
+        }
+    }
+
+    delete[] start_pqn;
+    delete[] end_pqn;
+
+    unsigned int NumStoredStates = stored_state_index.size();
+
+    // Get integrals
     unsigned int size;
     fread(&size, sizeof(unsigned int), 1, fp);
 
-    unsigned int i, index;
+    unsigned int i, stored_key, new_key;
+    unsigned int stored_s1, stored_s2;
+    unsigned int i1, i2;
+    std::map<StateInfo, unsigned int>::const_iterator it;
     double value;
 
     for(i=0; i<size; i++)
     {
-        fread(&index, sizeof(unsigned int), 1, fp);
+        fread(&stored_key, sizeof(unsigned int), 1, fp);
         fread(&value, sizeof(double), 1, fp);
 
-        OneElectronIntegrals.insert(std::pair<unsigned int, double>(index, value));
+        // Get stored states
+        stored_s2 = stored_key%NumStoredStates;
+            stored_key = stored_key/NumStoredStates;
+        stored_s1 = stored_key%NumStoredStates;
+
+        // Get new state_indexes. Check each state exists in new basis.
+        it = state_index.find(stored_state_index.find(stored_s1)->second);
+        if(it != state_index.end())
+        {   i1 = it->second;
+
+            it = state_index.find(stored_state_index.find(stored_s2)->second);
+            if(it != state_index.end())
+            {   i2 = it->second;
+
+                // Check ordering
+                if(i1 > i2)
+                    swap(i1, i2);
+
+                new_key = i1 * NumStates + i2;
+
+                OneElectronIntegrals.insert(std::pair<unsigned int, double>(new_key, value));
+            }
+        }
+    }
+}
+
+void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
+{
+    // Make state index for stored integrals
+    // Get start and end principal quantum numbers for each L
+    std::map<unsigned int, StateInfo> stored_state_index;
+    unsigned int max_l, L;
+    fread(&max_l, sizeof(unsigned int), 1, fp);
+    
+    unsigned int* start_pqn = new unsigned int[max_l+1];
+    unsigned int* end_pqn = new unsigned int[max_l+1];
+    unsigned int min_pqn = 100, max_pqn = 0;
+
+    for(L = 0; L <= max_l; L++)
+    {   fread(start_pqn+L, sizeof(unsigned int), 1, fp);
+        fread(end_pqn+L, sizeof(unsigned int), 1, fp);
+
+        if(start_pqn[L] < min_pqn)
+            min_pqn = start_pqn[L];
+        if(end_pqn[L] > max_pqn)
+            max_pqn = end_pqn[L];
+    }
+
+    // States are ordered first by pqn, then L, then Kappa
+    unsigned int index = 0;
+    for(unsigned int pqn = min_pqn; pqn <= max_pqn; pqn++)
+    {
+        for(L = 0; L <= max_l; L++)
+        {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
+            {
+                if(L != 0)
+                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                    index++;
+                }
+                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                index++;
+            }
+        }
+    }
+
+    delete[] start_pqn;
+    delete[] end_pqn;
+
+    unsigned int NumStoredStates = stored_state_index.size();
+
+    // Get integrals
+    unsigned int size;
+    fread(&size, sizeof(unsigned int), 1, fp);
+
+    unsigned int i, stored_key, new_key;
+    unsigned int k, stored_s1, stored_s2, stored_s3, stored_s4;
+    unsigned int i1, i2, i3, i4;
+    std::map<StateInfo, unsigned int>::const_iterator it;
+    double value;
+
+    for(i=0; i<size; i++)
+    {
+        fread(&stored_key, sizeof(unsigned int), 1, fp);
+        fread(&value, sizeof(double), 1, fp);
+
+        // Get k and stored states
+        stored_s4 = stored_key%NumStoredStates;
+            stored_key = stored_key/NumStoredStates;
+        stored_s3 = stored_key%NumStoredStates;
+            stored_key = stored_key/NumStoredStates;
+        stored_s2 = stored_key%NumStoredStates;
+            stored_key = stored_key/NumStoredStates;
+        stored_s1 = stored_key%NumStoredStates;
+            stored_key = stored_key/NumStoredStates;
+        k = stored_key%NumStoredStates;
+
+        // Get new state_indexes. Check each state exists in new basis.
+        it = state_index.find(stored_state_index.find(stored_s1)->second);
+        if(it != state_index.end())
+        {   i1 = it->second;
+            
+            it = state_index.find(stored_state_index.find(stored_s2)->second);
+            if(it != state_index.end())
+            {   i2 = it->second;
+                
+                it = state_index.find(stored_state_index.find(stored_s3)->second);
+                if(it != state_index.end())
+                {   i3 = it->second;
+                    
+                    it = state_index.find(stored_state_index.find(stored_s4)->second);
+                    if(it != state_index.end())
+                    {   i4 = it->second;
+                        TwoElectronIntegralOrdering(i1, i2, i3, i4);
+                    
+                        new_key = k  * NumStates*NumStates*NumStates*NumStates +
+                                  i1 * NumStates*NumStates*NumStates +
+                                  i2 * NumStates*NumStates +
+                                  i3 * NumStates +
+                                  i4;                                
+
+                        TwoElectronIntegrals.insert(std::pair<unsigned int, double>(new_key, value));
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -523,52 +691,114 @@ void CIIntegrals::WriteOneElectronIntegrals() const
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)
-    {   unsigned int size = OneElectronIntegrals.size();
+    {   // Store information about the basis
+        // Get number of states in each wave
+        unsigned int max_l = 0;
+        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        while(it != state_index.end())
+        {   if(it->first.L() > max_l)
+                max_l = it->first.L();
+            it++;
+        }
+
+        unsigned int L;
+        unsigned int* start_pqn = new unsigned int[max_l+1];
+        unsigned int* end_pqn = new unsigned int[max_l+1];
+        for(L = 0; L <= max_l; L++)
+        {   start_pqn[L] = 100;
+            end_pqn[L] = 0;
+        }
+
+        it = state_index.begin();
+        while(it != state_index.end())
+        {   if(it->first.PQN() < start_pqn[it->first.L()])
+                start_pqn[it->first.L()] = it->first.PQN();
+            if(it->first.PQN() > end_pqn[it->first.L()])
+                end_pqn[it->first.L()] = it->first.PQN();
+            it++;
+        }
+
+        fwrite(&max_l, sizeof(unsigned int), 1, fp);
+        for(L = 0; L <= max_l; L++)
+        {   fwrite(start_pqn+L, sizeof(unsigned int), 1, fp);
+            fwrite(end_pqn+L, sizeof(unsigned int), 1, fp);
+        }
+
+        delete[] start_pqn;
+        delete[] end_pqn;
+
+        // Store integrals
+        unsigned int size = OneElectronIntegrals.size();
         fwrite(&size, sizeof(unsigned int), 1, fp);
 
-        std::map<unsigned int, double>::const_iterator it = OneElectronIntegrals.begin();
-        while(it != OneElectronIntegrals.end())
+        std::map<unsigned int, double>::const_iterator it2 = OneElectronIntegrals.begin();
+        while(it2 != OneElectronIntegrals.end())
         {
-            fwrite(&(it->first), sizeof(unsigned int), 1, fp);
-            fwrite(&(it->second), sizeof(double), 1, fp);
+            fwrite(&(it2->first), sizeof(unsigned int), 1, fp);
+            fwrite(&(it2->second), sizeof(double), 1, fp);
 
-            it++;
+            it2++;
         }
 
         fclose(fp);
     }
 }
 
-void CIIntegrals::SetValenceEnergies()
+void CIIntegrals::WriteTwoElectronIntegrals() const
 {
-    ConstStateIterator it_i = states.GetConstStateIterator();
-    ValenceEnergies.clear();
+    std::string filename = id + ".two.int";
+    FILE* fp = fopen(filename.c_str(), "wb");
 
-    // Get maximum angular momentum in excited states
-    unsigned int max_l = 0;
-    it_i.First();
-    while(!it_i.AtEnd())
-    {   max_l = mmax(it_i.GetState()->L(), max_l);
-        it_i.Next();
-    }
-
-    for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
-        if(kappa != 0)
-        {
-            double valence_energy = 0.;
-            unsigned int pqn = 10;
-
-            // Get leading state (for energy denominator)
-            it_i.First();
-            while(!it_i.AtEnd())
-            {   const DiscreteState* ds = it_i.GetState();
-                if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
-                {   pqn = ds->RequiredPQN();
-                    valence_energy = ds->Energy();
-                }
-                it_i.Next();
-            }
-
-            ValenceEnergies.insert(std::pair<int, double>(kappa, valence_energy));
+    if(fp)
+    {   // Store information about the basis
+        // Get number of states in each wave
+        unsigned int max_l = 0;
+        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        while(it != state_index.end())
+        {   if(it->first.L() > max_l)
+                max_l = it->first.L();
+            it++;
         }
+
+        unsigned int L;
+        unsigned int* start_pqn = new unsigned int[max_l+1];
+        unsigned int* end_pqn = new unsigned int[max_l+1];
+        for(L = 0; L <= max_l; L++)
+        {   start_pqn[L] = 100;
+            end_pqn[L] = 0;
+        }
+
+        it = state_index.begin();
+        while(it != state_index.end())
+        {   if(it->first.PQN() < start_pqn[it->first.L()])
+                start_pqn[it->first.L()] = it->first.PQN();
+            if(it->first.PQN() > end_pqn[it->first.L()])
+                end_pqn[it->first.L()] = it->first.PQN();
+            it++;
+        }
+
+        fwrite(&max_l, sizeof(unsigned int), 1, fp);
+        for(L = 0; L <= max_l; L++)
+        {   fwrite(start_pqn+L, sizeof(unsigned int), 1, fp);
+            fwrite(end_pqn+L, sizeof(unsigned int), 1, fp);
+        }
+
+        delete[] start_pqn;
+        delete[] end_pqn;
+
+        // Store integrals
+        unsigned int size = TwoElectronIntegrals.size();
+        fwrite(&size, sizeof(unsigned int), 1, fp);
+
+        std::map<unsigned int, double>::const_iterator it2 = TwoElectronIntegrals.begin();
+        while(it2 != TwoElectronIntegrals.end())
+        {
+            fwrite(&(it2->first), sizeof(unsigned int), 1, fp);
+            fwrite(&(it2->second), sizeof(double), 1, fp);
+
+            it2++;
+        }
+
+        fclose(fp);
+    }
 }

@@ -4,8 +4,6 @@
 #include "Include.h"
 #include "Basis/ExcitedStates.h"
 #include "ElectronInfo.h"
-#include "HartreeFock/SigmaPotential.h"
-#include "MBPT/MBPTCalculator.h"
 
 class CIIntegrals
 {
@@ -15,12 +13,10 @@ public:
         or output integrals once calculated.
      */
     CIIntegrals(const ExcitedStates& excited_states, const std::string& storage_id = ""):
-        states(excited_states), id(storage_id), PT(NULL),
-        include_valence_sms(false), include_sigma1(false)
+        states(excited_states), id(storage_id), include_valence_sms(false)
     {   SetTwoElectronStorageLimits();
-        SetValenceEnergies();
     }
-    virtual ~CIIntegrals();
+    virtual ~CIIntegrals() {}
 
     /** Set limits on storage of two electron integrals (can check using GetStorageSize()).
         48 bytes are stored for each element, so this should be kept to around 2 million,
@@ -43,25 +39,17 @@ public:
         max_pqn_3 = limit3;
     }
 
-    /** Calculate number of elements that will be stored. */
-    unsigned int GetStorageSize() const;
+    /** Calculate number of one-electron and two-electron integrals that will be stored.
+        Return total.
+     */
+    virtual unsigned int GetStorageSize() const;
 
-    /** Update all integrals (on the assumption that the excited states have changed).
-        The sigma_id string can be used to get Sigma operators from disk, or else
-        the normal storage id is used.
-      */
-    void Update(const std::string& sigma_id = "");
+    /** Update all integrals (on the assumption that the excited states have changed). */
+    virtual void Update();
 
     /** Include the scaled specific mass shift in the two electron integrals. */
     inline void IncludeValenceSMS(bool include)
     {   include_valence_sms = include;
-    }
-
-    /** Include the scaled specific mass shift in the two electron integrals. */
-    inline void IncludeSigma1(bool include, MBPTCalculator* mbpt = NULL)
-    {   include_sigma1 = include;
-        if(mbpt)
-            PT = mbpt;
     }
 
     /** GetOneElectronIntegral(i, j) = <i|H|j> */
@@ -76,32 +64,59 @@ public:
     double GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2) const;
     
     /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-    double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
 
     inline double GetNuclearInverseMass() const
     {   return states.GetCore()->GetNuclearInverseMass();
     }
- 
+
+    /** The identifier is used to choose filenames for integrals. */
     inline void SetIdentifier(const std::string& storage_id = "")
     {   id = storage_id;
     }
 
-    /** Write out sigma potentials. */
-    void WriteSigmaPotentials() const;
+    /** Structure of *.one.int and *.two.int files:
+         stores basis information (start and end pqn for each wave)
+                        s-wave          p-wave        d-wave
+           -------------------------------------------------------------
+           | MAX_L | start |  end  | start |  end  | start |  end  | ...
+           |       |  pqn  |  pqn  |  pqn  |  pqn  |  pqn  |  pqn  |
+           -------------------------------------------------------------
+         then integrals
+           -------------------------------------------------------------
+           | size  | index |    value      | index |    value      | ...
+           |       |       |   (double)    |       |   (double)    |
+           -------------------------------------------------------------
+     */
 
     /** Write single electron integrals to binary *.one.int file. */
     void WriteOneElectronIntegrals() const;
 
+    /** Write two-electron integrals to binary *.two.int file. */
+    void WriteTwoElectronIntegrals() const;
+
 protected:
+    /** Change ordering of states so that it corresponds to a stored integral.
+        Returns false if SMS sign needs to be changed.
+     */
+    virtual bool TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
+
     /** Read single electron integrals from binary *.one.int file. */
     void ReadOneElectronIntegrals(FILE* fp);
+
+    /** Read two-electron integrals from binary *.two.int file. */
+    void ReadTwoElectronIntegrals(FILE* fp);
+
+    virtual void UpdateStateIndexes();
+    virtual void UpdateOneElectronIntegrals();
+    virtual void UpdateTwoElectronIntegrals();
 
 protected:
     std::string id;
     const ExcitedStates& states;
-    MBPTCalculator* PT;
 
     unsigned int NumStates;
+    // The ordering of states is not arbitrary; they should be ordered by pqn first.
     std::map<StateInfo, unsigned int> state_index;
     std::map<unsigned int, StateInfo> reverse_state_index;
 
@@ -121,19 +136,11 @@ protected:
     // Overlap = <i|j>
     std::map<unsigned int, double> OverlapIntegrals;
 
-    /** Include SMS in two-body integrals. */
+    // Include SMS in two-body integrals.
     bool include_valence_sms;
 
-    /** Limits on stored two-body integrals. */
+    // Limits on stored two-body integrals.
     unsigned int max_pqn_1, max_pqn_2, max_pqn_3;
-
-    /** Single-electron MBPT effects. */
-    bool include_sigma1;
-    std::map<int, SigmaPotential*> Sigma1;
-
-    /** Valence energies for single-electron Brillouin-Wigner MBPT. */
-    std::map<int, double> ValenceEnergies;
-    void SetValenceEnergies();
 };
 
 #endif
