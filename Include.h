@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <math.h>
 #include <new>
+#include <sstream>
 
 #include "Atom/Debug.h"
 
