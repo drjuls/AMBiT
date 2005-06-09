@@ -37,7 +37,7 @@ double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2,
     if(m1 + m2 + m3 != 0.)
         return 0.;
 
-    double test[9];
+    static double test[9];
     test[0] = j1 + j2 - j3;
     test[1] = j3 + j1 - j2;
     test[2] = j2 + j3 - j1;
@@ -48,14 +48,15 @@ double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2,
     test[7] = j3 + m3;
     test[8] = j3 - m3;
 
-    std::vector<unsigned int> outer_num(9), outer_den(9);   // Numerator terms and denominator
-                                                            // terms of outer part.
+    // Numerator terms and denominator terms of outer part.
+    static std::vector<unsigned int> outer_num(9), outer_den(9);
+
     // Check that all test[] are non-negative integers. Save the integers.
     unsigned int i;
     for(i=0; i<9; i++)
     {   if((test[i] < 0.) || (test[i] != floor(test[i])))
             return 0.;
-        outer_num[i] = (unsigned int)floor(test[i]);
+        outer_num[i] = (unsigned int)(test[i]);
     }
 
     double y[3];
@@ -68,7 +69,7 @@ double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2,
     z[2] = j1 - j3 + m2;
 
     // Check that all y[] and z[] are integers. Save the integers.
-    std::vector<int> ma(3), na(3);
+    static std::vector<int> ma(3), na(3);
     for(i=0; i<3; i++)
     {   if(y[i] != floor(y[i]))
             return 0.;
@@ -130,18 +131,18 @@ double Constant::Wigner6j(double j1, double j2, double j3, double j4, double j5,
     if((j1 < 0.) || (j2 < 0.) || (j3 < 0.) || (j4 < 0.) || (j5 < 0.) || (j6 < 0.))
         return 0.;
 
-    double test[4];
+    static double test[4];
     test[0] = j1 + j2 + j3;
     test[1] = j1 + j5 + j6;
     test[2] = j4 + j2 + j6;
     test[3] = j4 + j5 + j3;
 
-    double y[3];
+    static double y[3];
     y[0] = j1 + j2 + j4 + j5;
     y[1] = j2 + j3 + j5 + j6;
     y[2] = j3 + j1 + j6 + j4;
 
-    std::vector<unsigned int> ma(4), na(3);
+    static std::vector<unsigned int> ma(4), na(3);
     unsigned int i;
     for(i=0; i<4; i++)
     {   if(test[i] != floor(test[i]))
@@ -174,7 +175,7 @@ double Constant::Wigner6j(double j1, double j2, double j3, double j4, double j5,
     x[10] = j4 - j5 + j3;
     x[11] = - j4 + j5 + j3;
 
-    std::vector<unsigned int> outer_den(13), outer_num(13);
+    static std::vector<unsigned int> outer_den(13), outer_num(13);
     unsigned int j;
     for(j=0; j<12; j++)
     {   if((x[j] < 0.) || (x[j] != floor(x[j])))
@@ -238,7 +239,7 @@ std::map<int, double> Constant::Symbols3j;
 
 double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
 {
-    double sign = 1.;
+    bool sign = true;
 
     // Sort so that (j1 >= j2) for lookup
     if(twoj1 < twoj2)
@@ -247,18 +248,21 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
         int tempm;
         tempm = twom1; twom1 = twom2; twom2 = tempm;
         if(((twoj1 + twoj2)/2 + k)%2 == 1)
-            sign = -sign;
+            sign = !sign;
     }
     else if((twoj1 == twoj2) && (twom1 < twom2))
     {   int tempm;
         tempm = twom1; twom1 = twom2; twom2 = tempm;
         if((1 + k)%2 == 1)
-            sign = -sign;
+            sign = !sign;
     }
 
     if(twoj1 > MaxStoredTwoJ)
     {   double q = double(- twom1 - twom2)/2.;
-        return sign * Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+        if(sign)
+            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+        else
+            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
     }
     else if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k)))
     {   return 0.;
@@ -274,13 +278,19 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
     std::map<int, double>::const_iterator it = Symbols3j.find(key);
 
     if(it != Symbols3j.end())
-    {   return sign * it->second;
+    {   if(sign)
+            return it->second;
+        else
+            return -it->second;
     }
     else
     {   double q = double(- twom1 - twom2)/2.;
         double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
         Symbols3j[key] = value;
-        return sign * value;
+        if(sign)
+            return value;
+        else
+            return -value;
     }
 }
 

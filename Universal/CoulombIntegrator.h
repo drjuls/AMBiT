@@ -34,8 +34,16 @@ public:
     /** Same thing, but faster and less accurate.
         Good for just calculating a matrix element or something similar.
         There is no option to renormalise the density, because this wouldn't be very accurate anyway.
+        POST: potential.size = density.size
      */
     void FastCoulombIntegrate(const std::vector<double>& density, std::vector<double>& potential, unsigned int k);
+
+    /** This one doesn't change the potential size.
+        PRE: density.size >= density_size (after which all density points are assumed zero).
+             lattice.size >= potential_size
+             Also, for accuracy, potential.size >= density_size.
+     */
+    void FastCoulombIntegrate(const std::vector<double>& density, std::vector<double>& potential, unsigned int k, unsigned int density_size);
 
 protected:
     class CoulombFunction : public Function2
