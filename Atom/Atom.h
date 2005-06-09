@@ -6,6 +6,7 @@
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
 #include "Configuration/CIIntegrals.h"
+#include "Configuration/CIIntegralsMBPT.h"
 #include "Configuration/HamiltonianMatrix.h"
 
 class Atom
@@ -43,9 +44,6 @@ public:
     void CreateRBasis(const StateInfo* ionised = NULL);
     void CreateBSplineBasis(const StateInfo* ionised = NULL);
     void CreateCustomBasis(const StateInfo* ionised = NULL);
-
-    /** Create a second order sigma, if it doesn't already exist. */
-    void GetSigma(const StateInfo& info);
 
     void DoClosedShellSMS(bool include_mbpt = true);
     void DoClosedShellVolumeShift(bool include_mbpt = true);
@@ -91,10 +89,13 @@ private:
     Lattice* lattice;
     Core* core;
     ExcitedStates* excited;
+    ExcitedStates* excited_mbpt;
     CIIntegrals* integrals;
+    CIIntegralsMBPT* integralsMBPT;
 
     // Configuration Interaction parameters
     bool SD_CI;     // Only use single and double excitations in CI.
+    bool MBPT_CI;   // Include MBPT effects
     unsigned int NumSolutions;
 };
 

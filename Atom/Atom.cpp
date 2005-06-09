@@ -8,6 +8,9 @@
 #include "Basis/BSplineBasis.h"
 #include "MBPT/MBPTCalculator.h"
 
+#include "HartreeFock/StateIntegrator.h"
+#include "Universal/CoulombIntegrator.h"
+
 #ifdef _MPI
 #include <mpi.h>
 #endif
@@ -33,7 +36,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(6, 4, "CIII");
+    {   Atom A(12, 2, "MgI001");
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
@@ -55,7 +58,7 @@ int main(int argc, char* argv[])
 void Atom::Run()
 {
     DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(false);
+    DebugOptions.LogHFIterations(true);
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
@@ -70,7 +73,7 @@ void Atom::Run()
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), NumSolutions(6), excited(NULL), integrals(NULL)
+    SD_CI(false), MBPT_CI(false), NumSolutions(6), excited(NULL), excited_mbpt(NULL), integrals(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     core = new Core(lattice, atomic_number, charge);
@@ -89,6 +92,8 @@ Atom::~Atom(void)
         delete integrals;
     if(excited)
         delete excited;
+    if(excited_mbpt)
+        delete excited_mbpt;
     delete core;
     delete lattice;
 }
@@ -151,10 +156,11 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(13);
-    num_states.push_back(13);
-    num_states.push_back(12);
-    num_states.push_back(7);
+    num_states.push_back(20);
+    num_states.push_back(20);
+    num_states.push_back(20);
+    num_states.push_back(20);
+    num_states.push_back(20);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -164,16 +170,16 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     excited = new BSplineBasis(lattice, core);
     excited->SetIdentifier(&identifier);
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 25.);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 45.);
 
     if(ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(13);
-    num_states.push_back(13);
-    num_states.push_back(12);
-    num_states.push_back(11);
+    num_states.push_back(7);
+    num_states.push_back(7);
+    num_states.push_back(7);
+    num_states.push_back(6);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -190,19 +196,10 @@ void Atom::CreateCustomBasis(const StateInfo* ionised)
     excited->CreateExcitedStates(num_states);
 }
 
-void Atom::GetSigma(const StateInfo& info)
-{
-    DiscreteState* ds = excited->GetState(info);
-    if(ds)
-    {   MBPTCalculator MC(lattice, core, excited);
-        *outstream << ds->Name() << " " << std::setprecision(12) << MC.GetSecondOrderSigma(ds)*Constant::HartreeEnergy_cm << "\n" << std::endl;
-    }
-}
-
 void Atom::DoClosedShellSMS(bool include_mbpt)
 {
     MBPTCalculator mbpt(lattice, core, excited);
-    const unsigned int max_k = 5;
+    const unsigned int max_k = 3;
     double totals[max_k];
 
     for(double ais = -0.002; ais <= 0.002; ais += 0.001)
@@ -220,12 +217,13 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
                 kappa = -kappa-1;
 
             if(k2 <= 3)
-                ds = excited->GetState(StateInfo(5, kappa));
+                ds = excited->GetState(StateInfo(2, kappa));
             else
                 ds = excited->GetState(StateInfo(5, kappa));
 
             if(include_mbpt)
-                totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+            {   totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+            }
             else
                 totals[k2-1] = ds->Energy();
         }
