@@ -8,12 +8,18 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.2.0 - 09/06/05
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
      can reduce number of integrals stored for CI using CIIntegrals class.
-     Support for Sigma1 (one-electron MBPT) + CI: added Brillouin-Wigner
-     perturbation theory to MBPTCalculator; added Sigma1 to CIIntegrals;
-     improved calculation of Sigma1 in MBPTCalculator and separated it from
-     calculation of matrix elements.
+     Support for MBPT + CI using new CIIntegralsMBPT class, which also has MPI
+     support; added Brillouin-Wigner perturbation theory to MBPTCalculator;
+     improved calculation of SigmaPotential in MBPTCalculator and separated it
+     from calculation of matrix elements. Added two-electron integrals and
+     one-electron subtraction diagrams to MBPTCalculator.
+     Added bool Core::IsOpenShellCore().
+Opt: MBPTCalculator::GetSecondOrderSigma(); Constant::Wigner3j() to use
+     static vectors; CoulombIntegrator::FastCoulombIntegrate() has alternative
+     fast interface, as does SigmaPotential::AddToSigma().
 Alt: Moved Coulomb and SMS integral storage from HamiltonianMatrix to new
      class CIIntegrals.
 Bug: StateIntegrator::IsotopeShiftIntegral() limits of integration for
