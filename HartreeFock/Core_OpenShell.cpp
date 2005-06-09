@@ -71,3 +71,8 @@ bool Core::IsOpenShellState(const StateInfo& info) const
 {
     return (OpenShellStates.find(info) != OpenShellStates.end());
 }
+
+bool Core::IsOpenShellCore() const
+{
+    return (OpenShellStates.size() != 0);
+}

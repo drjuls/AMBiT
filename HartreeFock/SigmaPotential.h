@@ -20,10 +20,20 @@ public:
 
     double GetSigma(unsigned int r1, unsigned int r2);
 
+    /** function(r1, r2) += f1(r1) * f2(r2) * coeff
+        POST: Sigma.size() >= f1.size() and f2.size()
+     */
     void AddToSigma(const std::vector<double>& f1, const std::vector<double>& f2, double coeff);
 
-    unsigned int Size() { return size; }
-    void ReSize(unsigned int new_size);
+    /** PRE:  f1.size() >= f1_size, f2.size() >= f2_size
+        POST: Sigma.size() >= f1_size and f2_size
+     */
+    void AddToSigma(const std::vector<double>& f1, const std::vector<double>& f2, double coeff, unsigned int f1_size, unsigned int f2_size);
+
+    /** function(r1, r1) += f(r1) * coeff */
+    void AddDiagonal(const std::vector<double>& f, double coeff);
+    
+    unsigned int Size();
 
     void Reset();
 
@@ -33,10 +43,12 @@ protected:
     void WriteOut() const;
     void ReadIn();
 
+    void ReSize(unsigned int new_size);
+    
     mutable bool changed_since_store;
     std::string filename;
 
-    unsigned int size;
+    unsigned int size;  // Physical size of function array
     unsigned int start;
     double** function;
 

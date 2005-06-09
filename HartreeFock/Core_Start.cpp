@@ -1,5 +1,4 @@
 #include "Include.h"
-#include <sstream>
 #include "Core.h"
 #include "Universal/Constant.h"
 
@@ -75,7 +74,7 @@ void Core::BuildFirstApproximation()
         }
 
         // different for some states when 56 < Z < 72
-        if((56 < Z) && (Z < 72))
+        if(((56 < Z) && (Z < 72)) || (Z == 81))
         {
             // Alter 6s state
             DiscreteState* s = GetState(StateInfo(6, -1));
@@ -161,8 +160,8 @@ void Core::BuildFirstApproximation()
                 if(iterations >= StateParameters::MaxHFIterations)
                 {   // Evil - this should never happen given our simple model.
                     *errstream << "    BuildFirstApproximation: iterations = " << iterations << std::endl;
-                    PAUSE
-                    exit(1);
+                    //PAUSE
+                    //exit(1);
                 }
 
                 zero_difference = s->NumZeroes() + s->L() + 1 - s->RequiredPQN();

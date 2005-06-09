@@ -91,6 +91,11 @@ std::vector<double> Core::GetHFPotential() const
     return HFPotential;
 }
 
+const std::vector<double>& Core::GetConstHFPotential() const
+{
+    return HFPotential;
+}
+
 std::vector<double> Core::GetLocalExchangeApproximation() const
 {
     return LocalExchangeApproximation;

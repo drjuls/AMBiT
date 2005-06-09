@@ -79,6 +79,7 @@ public:     // Methods for Hartree-Fock calculations and potentials
 
     /** The HF Potential is the direct potential of the core including open shells. */
     virtual std::vector<double> GetHFPotential() const;
+    virtual const std::vector<double>& GetConstHFPotential() const;
     virtual std::vector<double> GetLocalExchangeApproximation() const;
 
     /** Calculate the exchange part of the interaction between the current state and all
@@ -108,6 +109,9 @@ public:
 
     /** Test whether a state is in the open shells of the core. */
     virtual bool IsOpenShellState(const StateInfo& info) const;
+
+    /** Test whether the core has open shells. */
+    virtual bool IsOpenShellCore() const;
 
 protected:
     /** Iterate an existing state in an approximate potential until the energy converges.
