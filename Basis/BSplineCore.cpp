@@ -345,9 +345,6 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
             std::vector<double> potential;
             CI_hflat.CoulombIntegrate(density, potential, k);
 
-            // todo: Multiply potential by r^k and interpolate.
-            //       Then create exchange in spline grid.
-
             for(unsigned int i=0; i<upper_point; i++)
             {
                 hfexchange.f[i] = hfexchange.f[i] + coefficient * potential[i] * other.f[i];
