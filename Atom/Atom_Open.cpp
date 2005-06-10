@@ -37,10 +37,10 @@ void Atom::RunOpen()
         num_states_per_l.push_back(28);
         excited_mbpt->CreateExcitedStates(num_states_per_l);
 
-        MBPTCalculator mbpt(lattice, core, excited_mbpt);
+        mbpt = new MBPTCalculator(lattice, core, excited_mbpt);
 
-        integralsMBPT->IncludeMBPT1(true, &mbpt);
-        integralsMBPT->IncludeMBPT2(true, &mbpt);
+        integralsMBPT->IncludeMBPT1(true, mbpt);
+        integralsMBPT->IncludeMBPT2(true, mbpt);
     }
     else
     {   integrals = new CIIntegrals(*excited);
@@ -204,7 +204,7 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
 
     std::string original_id = identifier;
     
-    for(double ais = -0.002; ais <= -0.002; ais += 0.001)
+    for(double ais = -0.002; ais <= 0.002; ais += 0.001)
     {
         *outstream << "\nNuclearInverseMass = " << ais << std::endl;
 
@@ -222,8 +222,17 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
             excited_mbpt->Update();
         core->ToggleClosedShellCore();
 
-        integrals->SetIdentifier(identifier);
+        if(NumProcessors > 1)
+        {   std::stringstream proc;
+            proc << ProcessorRank;
+            std::string id = identifier + '_' + proc.str();
+            integrals->SetIdentifier(id);
+        }
+        else
+            integrals->SetIdentifier(identifier);
+
         integrals->Update();
+
         //integralsMBPT->WriteSigmaPotentials();
         //integrals->WriteOneElectronIntegrals();
         //integrals->WriteTwoElectronIntegrals();

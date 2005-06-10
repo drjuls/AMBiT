@@ -92,6 +92,7 @@ private:
     ExcitedStates* excited_mbpt;
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
+    MBPTCalculator* mbpt;
 
     // Configuration Interaction parameters
     bool SD_CI;     // Only use single and double excitations in CI.
