@@ -575,7 +575,7 @@ void CIIntegralsMBPT::ReadMultipleOneElectronIntegrals(const std::string& name, 
     {
         std::stringstream ss;
         ss << i;
-        std::string filename = name + '_' + ss.str() + ".two.int";
+        std::string filename = name + '_' + ss.str() + ".one.int";
 
         fp = fopen(filename.c_str(), "rb");
         if(fp)
