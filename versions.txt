@@ -8,6 +8,9 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Bug: CIIntegralsMBPT::ReadMultipleOneElectronIntegrals(). Added variable
+     mbpt to Atom to fix scoping error in Atom::RunOpen().
+
 1.2.0 - 09/06/05
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
      can reduce number of integrals stored for CI using CIIntegrals class.
