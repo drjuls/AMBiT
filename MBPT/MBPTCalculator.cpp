@@ -1101,13 +1101,13 @@ double MBPTCalculator::CalculateTwoElectron2(const State& sa, const State& sb, c
                     {
                         // R1 = R_k1 (b4, 2d)
                         double R1 = 0.;
-                        for(i=0; i<mmin(sa.Size(), s2.Size()); i++)
+                        for(i=0; i<mmin(sb.Size(), s2.Size()); i++)
                         {
                             density[i] = sb.f[i] * s2.f[i] + Constant::AlphaSquared * sb.g[i] * s2.g[i];
                         }
-                        I.FastCoulombIntegrate(density, Potb2, k1, mmin(sa.Size(), s2.Size()));
+                        I.FastCoulombIntegrate(density, Potb2, k1, mmin(sb.Size(), s2.Size()));
 
-                        for(i=0; i < mmin(s4.Size(), sc.Size()); i++)
+                        for(i=0; i < mmin(s4.Size(), sd.Size()); i++)
                             R1 = R1 + Potb2[i] * (s4.f[i] * sd.f[i] + Constant::AlphaSquared * s4.g[i] * sd.g[i]) * dR[i];
 
                         if(NuclearInverseMass && (k1 == 1))
