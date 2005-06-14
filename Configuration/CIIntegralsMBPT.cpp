@@ -557,7 +557,7 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
             if(i2 <= i4)
                 SMS = SMS * SMSIntegrals.find(i2*NumStates + i4)->second;
             else
-                SMS = SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
+                SMS = - SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
 
             radial = radial - SMS * SMSIntegrals.find(i1*NumStates + i3)->second;
         }
@@ -660,36 +660,16 @@ bool CIIntegralsMBPT::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int
     // i1 is smallest && (if i1 == i2, then (i3 <= i4))
     //                && (if i1 == i3, then (i2 <= i4))
     //                && (if i1 == i4, then (i2 <= i3))
-    unsigned int min = i1;
-    unsigned int minpos = 1;
-    if(i2 < min)
-    {   min = i2;
-        minpos = 2;
-    }
-    if(i3 < min)
-    {   min = i3;
-        minpos = 3;
-    }
-    if(i4 < min)
-    {   min = i4;
-        minpos = 4;
-    }
 
-    switch(minpos)
-    {   case 1:
-            break;
-        case 2:
-            swap(i2, i1);
-            swap(i4, i3);
-            break;
-        case 3:
-            swap(i3, i1);
-            swap(i4, i2);
-            break;
-        case 4:
-            swap(i4, i1);
-            swap(i3, i2);
-            break;
+    // Assert one of i1, i3 is smallest
+    if(mmin(i1, i3) > mmin(i2, i4))
+    {   swap(i1, i2);
+        swap(i3, i4);
+    }
+    // Assert i1 <= i3
+    if(i1 > i3)
+    {   swap(i1, i3);
+        swap(i2, i4);
     }
 
     if((i1 == i2) && (i4 < i3))
