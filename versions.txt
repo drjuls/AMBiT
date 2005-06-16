@@ -20,7 +20,10 @@ Opt: Vector resize eliminated from CIIntegrals::UpdateTwoElectronIntegrals;
 Alt: Core::Clear() overwritten to erase OpenShellStates also. Core::Read/Write
      modified to store OpenShellStates; StateManager::Read() modified to only
      replace existing states.
-Add: Support for APAC AC in make.machine.
+Add: Support for APAC AC in make.machine. This required small modifications to
+     Atom, ConfigGenerator, and MPIHamiltonianMatrix because comm_world alias
+     needs to be declared and initialised separately, or else be a reference to
+     MPI::COMM_WORLD.
 
 1.2.0 - 09/06/05
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
