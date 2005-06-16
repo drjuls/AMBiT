@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 {
     #ifdef _MPI
         MPI::Init(argc, argv);
-        MPI::Intracomm comm_world = MPI::COMM_WORLD; // Alias
+        MPI::Intracomm& comm_world = MPI::COMM_WORLD; // Alias
         NumProcessors = comm_world.Get_size();
         ProcessorRank = comm_world.Get_rank();
     #else

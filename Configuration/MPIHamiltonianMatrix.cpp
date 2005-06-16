@@ -151,7 +151,7 @@ void MPIHamiltonianMatrix::PollMatrix()
             proc = -proc;
     }
 
-    MPI::Intracomm comm_world = MPI::COMM_WORLD;
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(&proc_range, &range, 10, MPI::UNSIGNED, MPI::SUM, 0);
 
     if(ProcessorRank == 0)
@@ -335,7 +335,7 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
     double* total;
     total = new double[NumSolutions];
 
-    MPI::Intracomm comm_world = MPI::COMM_WORLD;
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(my_total, total, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
 
     if(ProcessorRank == 0)
@@ -468,7 +468,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
             proc = -proc;
     }
 
-    MPI::Intracomm comm_world = MPI::COMM_WORLD;
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
     comm_world.Reduce(total, g_factors, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
     comm_world.Bcast(g_factors, NumSolutions, MPI::DOUBLE, 0);
 

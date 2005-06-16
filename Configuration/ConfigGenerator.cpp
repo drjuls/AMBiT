@@ -148,7 +148,7 @@ void ConfigGenerator::GenerateProjections(RelativisticConfigList& rlist, int two
     }
 
     // Share information
-    MPI::Intracomm comm_world = MPI::COMM_WORLD;
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     unsigned int num_jstates;
     double* j_coefficients;
