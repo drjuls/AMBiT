@@ -225,6 +225,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
 double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s2, const Core& core)
 {
     double E = 0.;
+    const double core_pol = core.GetPolarisability();
 
     if(s1.Kappa() == s2.Kappa())
     {
@@ -238,10 +239,12 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
 
         for(unsigned int i=0; i<mmin(s1.Size(), s2.Size()); i++)
         {
-            double r4 = R[i]*R[i] + core.GetClosedShellRadius()*core.GetClosedShellRadius();
-            r4 *= r4;
+            if(core_pol)
+            {   double r4 = R[i]*R[i] + core.GetClosedShellRadius()*core.GetClosedShellRadius();
+                r4 *= r4;
 
-            Potential[i] -= 0.5 * core.GetPolarisability()/r4;
+                Potential[i] -= 0.5 * core.GetPolarisability()/r4;
+            }
 
             double EQ1 = s2.df[i]/dR[i] + s2.Kappa()*s2.f[i]/R[i]
                         - (2. + Constant::AlphaSquared*Potential[i])*s2.g[i]

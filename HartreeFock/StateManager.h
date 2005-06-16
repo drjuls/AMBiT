@@ -37,16 +37,17 @@ public:
     /** Write all electron states to a file. */
     virtual void Write(FILE* fp) const;
 
-    /** Read previously stored electron states.
+    /** Replaces electron states with those previously stored on disk. Ignores states
+        that are not in both sets.
         Manager needs to know whether they're discrete or continuum states.
-      */
+     */
     virtual void Read(FILE* fp);
 
     Lattice* GetLattice() const { return lattice; }
 
     /** Test for orthogonality of states.
         Return largest overlap.
-      */
+     */
     double TestOrthogonality() const;
 
     virtual void AddState(DiscreteState* s);

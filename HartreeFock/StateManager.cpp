@@ -103,16 +103,17 @@ void StateManager::Write(FILE* fp) const
 
 void StateManager::Read(FILE* fp)
 {
-    Clear();
-    
     unsigned int num_core, i;
+    DiscreteState ds(lattice);
 
     // Read states
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        DiscreteState* ds = new DiscreteState(lattice);
-        ds->Read(fp);
-        AddState(ds);
+        ds.Read(fp);
+        DiscreteState* current = GetState(StateInfo(&ds));
+        if(current)
+        {   *current = ds;
+        }
     }
 }

@@ -19,16 +19,14 @@ public:     // Methods for StateManager role
     /** This method must be called before any other, except for Read() or GetDebugOptions(). */
     virtual void Initialise();
 
-    /** These override the methods in StateManager to return a DiscreteState. */
-    //virtual DiscreteState* GetState(const StateInfo& info);
-    //virtual const DiscreteState* GetState(const StateInfo& info) const;
-    //
-    //virtual DiscreteStateIterator GetDiscreteStateIterator();
-    //virtual ConstDiscreteStateIterator GetConstDiscreteStateIterator() const;
-
+    /** Writes stored open shell states also. */
     virtual void Write(FILE* fp) const;
 
-    /** Use instead of initialisation to save computational time. */
+    /** This redefines StateManager::Read() because it clears the existing core states
+        before reading in all of the stored states. The number of core states is constant
+        for any given ion configuration.
+        Can use this instead of initialisation to save computational time.
+     */
     virtual void Read(FILE* fp);
 
 public:     // Methods for setting physical parameters of core
@@ -114,6 +112,9 @@ public:
     virtual bool IsOpenShellCore() const;
 
 protected:
+    /** Delete all currently stored states. */
+    virtual void Clear();
+
     /** Iterate an existing state in an approximate potential until the energy converges.
         The potential is direct + local exchange approximation.
         Returns the number of iterations necessary to achieve convergence.
@@ -178,7 +179,8 @@ protected:
     mutable std::vector<double> HFPotential;
     mutable std::vector<double> LocalExchangeApproximation;
 
-    StateSet OpenShellStorage;  // Store currently unused open shell states
+    StateSet OpenShellStorage;  // Store currently unused open shell states.
+                                // Only storing each state in one place helps memory management.
     std::map<StateInfo, double> OpenShellStates; // Original occupancies
 
 public:
@@ -221,13 +223,12 @@ inline void Core::SetNuclearInverseMass(double inv_mass)
 inline void Core::SetVolumeShiftParameter(double vol_shift)
 {
     VolumeShiftParameter = vol_shift;
-    //if(VolumeShiftPotential.size())
-    //    Update();
 }
 
 inline void Core::SetPolarisability(double pol)
 {
     Polarisability = pol;
+    CalculateClosedShellRadius();
 }
 
 inline void Core::SetEnergyTolerance(double tolerance)

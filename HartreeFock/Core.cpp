@@ -6,7 +6,7 @@
 Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
     StateManager(lat, atomic_number, ion_charge),
     NuclearRadius(0.00001), NuclearThickness(0.000001),
-    NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0)
+    NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0), ClosedShellRadius(0.)
 {}
 
 void Core::Initialise()
@@ -19,31 +19,70 @@ void Core::Initialise()
     Update();
 }
 
+void Core::Clear()
+{
+    StateManager::Clear();
+
+    // Delete stored states
+    StateSet::iterator it = OpenShellStorage.begin();
+    while(it != OpenShellStorage.end())
+    {   it->second.DeleteState();
+        it++;
+    }
+    OpenShellStorage.clear();
+
+    OpenShellStates.clear();
+}
+
 void Core::Write(FILE* fp) const
 {
     fwrite(&NuclearRadius, sizeof(double), 1, fp);
     fwrite(&NuclearThickness, sizeof(double), 1, fp);
-
-    unsigned int num_states = NumStates();
+    fwrite(&NuclearInverseMass, sizeof(double), 1, fp);
+    fwrite(&Polarisability, sizeof(double), 1, fp);
 
     // Output core
-    fwrite(&num_states, sizeof(unsigned int), 1, fp);
-    ConstStateIterator it = GetConstStateIterator();
-    while(!it.AtEnd())
+    StateManager::Write(fp);
+
+    // Output open shell states
+    unsigned int num_open = OpenShellStorage.size();
+    fwrite(&num_open, sizeof(unsigned int), 1, fp);
+
+    StateSet::const_iterator it = OpenShellStorage.begin();
+    while(it != OpenShellStorage.end())
     {
-        it.GetState()->Write(fp);
-        it.Next();
+        it->second->Write(fp);
+        it++;
+    }
+
+    // Output original occupancies
+    num_open = OpenShellStates.size();
+    fwrite(&num_open, sizeof(unsigned int), 1, fp);
+
+    std::map<StateInfo, double>::const_iterator info_it = OpenShellStates.begin();
+    while(info_it != OpenShellStates.end())
+    {
+        unsigned int pqn = info_it->first.PQN();
+        int kappa = info_it->first.Kappa();
+        double occ = info_it->second;
+
+        fwrite(&pqn, sizeof(unsigned int), 1, fp);
+        fwrite(&kappa, sizeof(int), 1, fp);
+        fwrite(&occ, sizeof(double), 1, fp);
+
+        info_it++;
     }
 }
 
 void Core::Read(FILE* fp)
 {
-    Clear();
-    
+    Clear();    
     unsigned int num_core, i;
 
     fread(&NuclearRadius, sizeof(double), 1, fp);
     fread(&NuclearThickness, sizeof(double), 1, fp);
+    fread(&NuclearInverseMass, sizeof(double), 1, fp);
+    fread(&Polarisability, sizeof(double), 1, fp);
 
     // Read core
     fread(&num_core, sizeof(unsigned int), 1, fp);
@@ -54,8 +93,38 @@ void Core::Read(FILE* fp)
         AddState(ds);
     }
 
+    // Read open shell states
+    unsigned int num_open;
+    fread(&num_open, sizeof(unsigned int), 1, fp);
+    for(i = 0; i<num_open; i++)
+    {
+        DiscreteState* ds = new DiscreteState(lattice);
+        ds->Read(fp);
+
+        StateInfo info(ds);
+        StatePointer sp(ds);
+        OpenShellStorage.insert(StateSet::value_type(info, sp));
+    }
+
+    // Read original occupancies
+    fread(&num_open, sizeof(unsigned int), 1, fp);
+    for(i = 0; i<num_open; i++)
+    {
+        unsigned int pqn;
+        int kappa;
+        double occ;
+
+        fread(&pqn, sizeof(unsigned int), 1, fp);
+        fread(&kappa, sizeof(int), 1, fp);
+        fread(&occ, sizeof(double), 1, fp);
+
+        StateInfo info(pqn, kappa);
+        OpenShellStates.insert(std::pair<StateInfo, double>(info, occ));
+    }
+
     UpdateNuclearPotential();
-    Update();
+    if(Polarisability)
+        CalculateClosedShellRadius();
 }
 
 void Core::CalculateVolumeShiftPotential(double radius_difference)
