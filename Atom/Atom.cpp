@@ -103,22 +103,25 @@ Atom::~Atom(void)
 
 void Atom::Write() const
 {
-    std::string filename = identifier + ".atom";
-    FILE* fp = fopen(filename.c_str(), "wb");
+    if(ProcessorRank == 0)
+    {
+        std::string filename = identifier + ".atom";
+        FILE* fp = fopen(filename.c_str(), "wb");
 
-    // Output atomic data
-    fwrite(&Z, sizeof(double), 1, fp);
-    fwrite(&Charge, sizeof(double), 1, fp);
+        // Output atomic data
+        fwrite(&Z, sizeof(double), 1, fp);
+        fwrite(&Charge, sizeof(double), 1, fp);
 
-    // Output electron states
-    core->Write(fp);
-    if(excited)
-        excited->Write(fp);
-    else
-    {   unsigned int zero = 0;
-        fwrite(&zero, sizeof(unsigned int), 1, fp);
+        // Output electron states
+        core->Write(fp);
+        if(excited)
+            excited->Write(fp);
+        else
+        {   unsigned int zero = 0;
+            fwrite(&zero, sizeof(unsigned int), 1, fp);
+        }
+        fclose(fp);
     }
-    fclose(fp);
 }
 
 void Atom::Read()
