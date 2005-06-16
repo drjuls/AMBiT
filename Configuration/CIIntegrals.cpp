@@ -225,6 +225,8 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(*states.GetLattice());
+    std::vector<double> density(states.GetCore()->GetHFPotential().size());
+    std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
     const double* dR = states.GetLattice()->dR();
     const double* R = states.GetLattice()->R();
     const double core_pol = states.GetCore()->GetPolarisability();
@@ -259,21 +261,16 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                 kmax -= 2;
 
             // Get density24
-            std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
             if(k <= kmax)
-            {
-                for(p=0; p<density.size(); p++)
-                {
-                    density[p] = s_2->f[p] * s_4->f[p] + Constant::AlphaSquared * s_2->g[p] * s_4->g[p];
+            {   for(p=0; p<mmin(s_2->Size(), s_4->Size()); p++)
+                {   density[p] = s_2->f[p] * s_4->f[p] + Constant::AlphaSquared * s_2->g[p] * s_4->g[p];
                 }
-                density.resize(states.GetCore()->GetHFPotential().size());
             }
 
             while(k <= kmax)
             {
                 // Get Pot24
-                std::vector<double> Pot24(density.size());
-                CI.FastCoulombIntegrate(density, Pot24, k);
+                CI.FastCoulombIntegrate(density, Pot24, k, mmin(s_2->Size(), s_4->Size()));
 
                 // s1 is the smallest
                 it_1.First(); i1 = 0;

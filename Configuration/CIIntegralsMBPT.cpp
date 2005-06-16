@@ -22,6 +22,7 @@ CIIntegralsMBPT::~CIIntegralsMBPT()
 /** Calculate number of elements that will be stored. */
 unsigned int CIIntegralsMBPT::GetStorageSize() const
 {
+    unsigned int num_states = states.NumStates();
     unsigned int size1 = 0;
     unsigned int size2 = 0;
 
@@ -54,52 +55,49 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
     *logstream << "Num one-electron integrals: " << size1 << std::endl;
 
     // Two-electron integrals
-    // s1 is the smallest
-    it_1.First(); i1 = 0;
-    while(!it_1.AtEnd() && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
-    {   const DiscreteState* s1 = it_1.GetState();
+    it_2.First(); i2 = 0;
+    while(!it_2.AtEnd())
+    {   const DiscreteState* s2 = it_2.GetState();
 
-        it_2 = it_1; i2 = i1;
-        while(!it_2.AtEnd())
-        {   const DiscreteState* s2 = it_2.GetState();
-            
-            it_3 = it_1; i3 = i1;
-            while(!it_3.AtEnd())
-            {   const DiscreteState* s3 = it_3.GetState();
+        it_4.First(); i4 = 0;
+        while(!it_4.AtEnd())
+        {   const DiscreteState* s4 = it_4.GetState();
 
-                if(i1 == i2)
-                {   it_4 = it_3; i4 = i3;
-                }
-                else if(i1 == i3)
-                {   it_4 = it_2; i4 = i2;
-                }
-                else
-                {   it_4 = it_1; i4 = i1;
-                }
+            // Limits on k
+            k = abs(int(s2->L()) - int(s4->L()));
+            if(fabs(s2->J() - s4->J()) > double(k))
+                k += 2;
 
-                while(!it_4.AtEnd())
-                {   const DiscreteState* s4 = it_4.GetState();
+            kmax = s2->L() + s4->L();
+            if(s2->J() + s4->J() < double(kmax))
+                kmax -= 2;
 
-                    // Skip if(i1 == i4 && i2 > i3)
-                    if(!((i1 == i4) && (i2 > i3))
-                       && ((s1->L() + s3->L())%2 == (s2->L() + s4->L())%2))
-                    {
-                        // Limits on k
-                        k = abs(int(s2->L()) - int(s4->L()));
-                        k = mmax(k, (unsigned int)abs(int(s1->L()) - int(s3->L())));
-                        if(fabs(s2->J() - s4->J()) > double(k))
-                            k += 2;
-                        if(fabs(s1->J() - s3->J()) > double(k))
-                            k += 2;
-
-                        kmax = s2->L() + s4->L();
-                        kmax = mmin(kmax, s1->L() + s3->L());
-                        if(s2->J() + s4->J() < double(kmax))
-                            kmax -= 2;
-                        if(s1->J() + s3->J() < double(kmax))
-                            kmax -= 2;
-
-                        while(k <= kmax)
+            while(k <= kmax)
+            {
+                // s1 is the smallest
+                it_1.First(); i1 = 0;
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                {   const DiscreteState* s1 = it_1.GetState();
+                    
+                    it_3 = it_1; i3 = i1;
+                    unsigned int i3_limit;
+                    if(i1 == i2)
+                        i3_limit = i4;
+                    else
+                        i3_limit = num_states;
+                    while((i3 <= i3_limit) && !it_3.AtEnd())
+                    {   const DiscreteState* s3 = it_3.GetState();
+                       
+                        // Check conditions:
+                        //     if(i1 == i4)  i2 <= i3
+                        //     if(i1 == i3)  i2 <= i4
+                        //     Triangle(s1, s3, k)
+                        if(   !((i1 == i4) && (i2 > i3))
+                           && !((i1 == i3) && (i2 > i4))
+                           && ((s1->L() + s3->L() + k)%2 == 0)
+                           && (double(k) >= fabs(s1->J() - s3->J()))
+                           && (k <= s1->L() + s3->L())
+                           && (double(k) <= s1->J() + s3->J()))
                         {
                             // Check max_pqn conditions - these are slightly redefined
                             //    because of the reduced symmetry in integrals.
@@ -121,16 +119,16 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                             {
                                 size2++;
                             }
-                            k += 2;
                         }
+                        it_3.Next(); i3++;
                     }
-                    it_4.Next(); i4++;
+                    it_1.Next(); i1++;
                 }
-                it_3.Next(); i3++;
+                k += 2;
             }
-            it_2.Next(); i2++;
+            it_4.Next(); i4++;
         }
-        it_1.Next(); i1++;
+        it_2.Next(); i2++;
     }
 
     *logstream << "Num two-electron integrals: " << size2 << std::endl;
@@ -250,17 +248,17 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
             // calculate one electron integrals
             if(si->Kappa() == sj->Kappa())
             {
-              #ifdef _MPI
-                // MPI: Check if this is our integral.
-                if(count == ProcessorRank)
-                {
-              #endif
                 unsigned int key = i * NumStates + j;
 
                 // Check that this integral doesn't already exist
                 // (it may have been read in)
                 if(OneElectronIntegrals.find(key) == OneElectronIntegrals.end())
                 {
+                  #ifdef _MPI
+                    // MPI: Check if this is our integral.
+                    if(count == ProcessorRank)
+                    {
+                  #endif
                     double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
                     if(include_sigma1)
                     {   SigmaPotential* pot = Sigma1[si->Kappa()];
@@ -274,13 +272,13 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     {   integral += PT->GetSigmaSubtraction(si, sj);
                     }
                     OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, integral));
+                  #ifdef _MPI
+                    }
+                    count++;
+                    if(count == NumProcessors)
+                        count = 0;
+                  #endif
                 }
-              #ifdef _MPI
-                }
-                count++;
-                if(count == NumProcessors)
-                    count = 0;
-              #endif
             }
 
             // i.pqn <= j.pqn, so calculate using derivative of i instead of j
@@ -327,6 +325,8 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(*states.GetLattice());
+    std::vector<double> density(states.GetCore()->GetHFPotential().size());
+    std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
     const double* dR = states.GetLattice()->dR();
     const double* R = states.GetLattice()->R();
     const double core_pol = states.GetCore()->GetPolarisability();
@@ -341,66 +341,61 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     ConstStateIterator it_3 = states.GetConstStateIterator();
     ConstStateIterator it_4 = states.GetConstStateIterator();
 
-    // s1 is the smallest
-    it_1.First(); i1 = 0;
-    while(!it_1.AtEnd() && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
-    {   const DiscreteState* s1 = it_1.GetState();
+    it_2.First(); i2 = 0;
+    while(!it_2.AtEnd())
+    {   const DiscreteState* s2 = it_2.GetState();
 
-        it_2 = it_1; i2 = i1;
-        while(!it_2.AtEnd())
-        {   const DiscreteState* s2 = it_2.GetState();
-            
-            it_3 = it_1; i3 = i1;
-            while(!it_3.AtEnd())
-            {   const DiscreteState* s3 = it_3.GetState();
+        it_4.First(); i4 = 0;
+        while(!it_4.AtEnd())
+        {   const DiscreteState* s4 = it_4.GetState();
 
-                if(i1 == i2)
-                {   it_4 = it_3; i4 = i3;
+            // Limits on k
+            k = abs(int(s2->L()) - int(s4->L()));
+            if(fabs(s2->J() - s4->J()) > double(k))
+                k += 2;
+
+            kmax = s2->L() + s4->L();
+            if(s2->J() + s4->J() < double(kmax))
+                kmax -= 2;
+
+            // Get density24
+            if(k <= kmax)
+            {   for(p=0; p < mmin(s2->Size(), s4->Size()); p++)
+                {   density[p] = s2->f[p] * s4->f[p] + Constant::AlphaSquared * s2->g[p] * s4->g[p];
                 }
-                else if(i1 == i3)
-                {   it_4 = it_2; i4 = i2;
-                }
-                else
-                {   it_4 = it_1; i4 = i1;
-                }
+            }
 
-                while(!it_4.AtEnd())
-                {   const DiscreteState* s4 = it_4.GetState();
+            while(k <= kmax)
+            {
+                // Get Pot24
+                CI.FastCoulombIntegrate(density, Pot24, k, mmin(s2->Size(), s4->Size()));
 
-                    // Skip if(i1 == i4 && i2 > i3)
-                    if(!((i1 == i4) && (i2 > i3))
-                       && ((s1->L() + s3->L())%2 == (s2->L() + s4->L())%2))
-                    {
-                        // Limits on k
-                        k = abs(int(s2->L()) - int(s4->L()));
-                        k = mmax(k, (unsigned int)abs(int(s1->L()) - int(s3->L())));
-                        if(fabs(s2->J() - s4->J()) > double(k))
-                            k += 2;
-                        if(fabs(s1->J() - s3->J()) > double(k))
-                            k += 2;
+                // s1 is the smallest
+                it_1.First(); i1 = 0;
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                {   const DiscreteState* s1 = it_1.GetState();
+                    
+                    it_3 = it_1; i3 = i1;
+                    unsigned int i3_limit;
+                    if(i1 == i2)
+                        i3_limit = i4;
+                    else
+                        i3_limit = NumStates;
 
-                        kmax = s2->L() + s4->L();
-                        kmax = mmin(kmax, s1->L() + s3->L());
-                        if(s2->J() + s4->J() < double(kmax))
-                            kmax -= 2;
-                        if(s1->J() + s3->J() < double(kmax))
-                            kmax -= 2;
-
-                        // Get density24
-                        std::vector<double> density(mmin(s2->Size(), s4->Size()));
-                        if(k <= kmax)
-                        {   for(p=0; p<density.size(); p++)
-                            {   density[p] = s2->f[p] * s4->f[p] + Constant::AlphaSquared * s2->g[p] * s4->g[p];
-                            }
-                            density.resize(states.GetCore()->GetHFPotential().size());
-                        }
-
-                        while(k <= kmax)
+                    while((i3 <= i3_limit) && !it_3.AtEnd())
+                    {   const DiscreteState* s3 = it_3.GetState();
+                       
+                        // Check conditions:
+                        //     if(i1 == i4)  i2 <= i3
+                        //     if(i1 == i3)  i2 <= i4
+                        //     Triangle(s1, s3, k)
+                        if(   !((i1 == i4) && (i2 > i3))
+                           && !((i1 == i3) && (i2 > i4))
+                           && ((s1->L() + s3->L() + k)%2 == 0)
+                           && (double(k) >= fabs(s1->J() - s3->J()))
+                           && (k <= s1->L() + s3->L())
+                           && (double(k) <= s1->J() + s3->J()))
                         {
-                            // Get Pot24
-                            std::vector<double> Pot24(density.size());
-                            CI.FastCoulombIntegrate(density, Pot24, k);
-
                             // Check max_pqn conditions - these are slightly redefined
                             //    because of the reduced symmetry in integrals.
                             // (one of remaining states s2, s3 or s4) < max_pqn_2
@@ -419,11 +414,6 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                             if((smallest_pqn <= max_pqn_2) &&
                                (second_smallest_pqn <= max_pqn_3))
                             {
-                              #ifdef _MPI
-                                // MPI: Check if this is our integral.
-                                if(count == ProcessorRank)
-                                {
-                              #endif
                                 unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
                                                    i1 * NumStates*NumStates*NumStates +
                                                    i2 * NumStates*NumStates +
@@ -434,6 +424,11 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                 // (it may have been read in)
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
+                                  #ifdef _MPI
+                                    // MPI: Check if this is our integral.
+                                    if(count == ProcessorRank)
+                                    {
+                                  #endif
                                     double radial = 0.;
                                     unsigned int limit = mmin(s1->Size(), s3->Size());
                                     limit = mmin(limit, Pot24.size());
@@ -449,24 +444,24 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     }
 
                                     TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                  #ifdef _MPI
+                                    }
+                                    count++;
+                                    if(count == NumProcessors)
+                                        count = 0;
+                                  #endif
                                 }
-                              #ifdef _MPI
-                                }
-                                count++;
-                                if(count == NumProcessors)
-                                    count = 0;
-                              #endif
                             }
-                            k += 2;
                         }
+                        it_3.Next(); i3++;
                     }
-                    it_4.Next(); i4++;
+                    it_1.Next(); i1++;
                 }
-                it_3.Next(); i3++;
+                k += 2;
             }
-            it_2.Next(); i2++;
+            it_4.Next(); i4++;
         }
-        it_1.Next(); i1++;
+        it_2.Next(); i2++;
     }
 }
 
