@@ -44,6 +44,7 @@ void Atom::RunOpen()
     }
     else
     {   integrals = new CIIntegrals(*excited);
+        integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
     }
 
     Configuration config;
