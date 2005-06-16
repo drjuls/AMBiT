@@ -1,8 +1,8 @@
 # change this stuff only if you know what you are doing
 HOSTNAME = $(shell hostname)
 
-ifeq ($(findstring sc, $(HOSTNAME)), sc)
-  MACHINE = apacsc
+ifeq ($(findstring ac, $(HOSTNAME)), ac)
+  MACHINE = apacac
 endif
 ifeq ($(findstring lc, $(HOSTNAME)), lc)
   MACHINE = apaclc
@@ -16,6 +16,35 @@ endif
 
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
+
+ifeq ($(MACHINE), apacac)
+  CC  = gcc
+  CXX = g++
+  F77 = gcc
+
+  LINK = g++
+
+  LIBDIR       =
+  BLASLIB      =
+  LAPACKLIB    = scs
+  EXTRALIBS    = mpi++ mpi gcc_s g2c
+
+  INCLUDE +=
+
+  ifdef debug
+    BUILD = Debug
+    CFLAGS += -g
+    CXXFLAGS += -g
+  else
+    BUILD = Release
+    CFLAGS += -O3
+    CXXFLAGS += -O2 -D_MPI
+    F77FLAGS += -O2
+  endif
+
+  CCDEP = gcc
+  DEPFLAG = -MM
+endif
 
 ifeq ($(MACHINE), apaclc)
   CC  = gcc
