@@ -223,16 +223,15 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
             excited_mbpt->Update();
         core->ToggleClosedShellCore();
 
+        integrals->SetIdentifier(identifier);
+        integrals->Update();
+
         if(NumProcessors > 1)
         {   std::stringstream proc;
             proc << ProcessorRank;
             std::string id = identifier + '_' + proc.str();
             integrals->SetIdentifier(id);
         }
-        else
-            integrals->SetIdentifier(identifier);
-
-        integrals->Update();
 
         //integralsMBPT->WriteSigmaPotentials();
         //integrals->WriteOneElectronIntegrals();
