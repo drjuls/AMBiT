@@ -235,11 +235,19 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
+
+    // Save our integrals to separate files
+    std::string original_id = id;
+    std::stringstream ss;
+    ss << ProcessorRank;
+    std::string save_id = id + '_' + ss.str();
+
+    SetIdentifier(save_id);
 #endif
 
     // Want to save progress every hour or so.
-    clock_t start = clock();
-    clock_t gap = 47 * 60 * CLOCKS_PER_SEC; // 47 minutes
+    clock_t start = clock()/CLOCKS_PER_SEC;
+    clock_t gap = 47 * 60;  // 47 minutes
 
     // Get single particle integrals
     it_i.First(); i = 0;
@@ -286,7 +294,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                   #endif
 
                     if(include_mbpt1)
-                    {   clock_t now = clock();
+                    {   clock_t now = clock()/CLOCKS_PER_SEC;
                         if(now - start > gap)
                         {   WriteOneElectronIntegrals();
                             start = now;
@@ -316,6 +324,10 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
         }
         it_i.Next(); i++;
     }
+
+#ifdef _MPI
+    SetIdentifier(original_id);
+#endif
 }
 
 void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
@@ -335,11 +347,19 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
+
+    // Save our integrals to separate files
+    std::string original_id = id;
+    std::stringstream ss;
+    ss << ProcessorRank;
+    std::string save_id = id + '_' + ss.str();
+
+    SetIdentifier(save_id);
 #endif
 
     // Want to save progress every hour or so.
-    clock_t start = clock();
-    clock_t gap = 47 * 60 * CLOCKS_PER_SEC; // 47 minutes
+    clock_t start = clock()/CLOCKS_PER_SEC;
+    clock_t gap = 47 * 60;  // 47 minutes
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(*states.GetLattice());
@@ -470,7 +490,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                   #endif
 
                                     if(include_mbpt2)
-                                    {   clock_t now = clock();
+                                    {   clock_t now = clock()/CLOCKS_PER_SEC;
                                         if(now - start > gap)
                                         {   WriteTwoElectronIntegrals();
                                             start = now;
@@ -489,6 +509,10 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         }
         it_2.Next(); i2++;
     }
+
+#ifdef _MPI
+    SetIdentifier(original_id);
+#endif
 }
 
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
