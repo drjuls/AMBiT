@@ -18,16 +18,16 @@ SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
 
 ifeq ($(MACHINE), apacac)
-  CC  = gcc
-  CXX = g++
-  F77 = gcc
+  CC  = icc
+  CXX = icpc
+  F77 = ifort
 
-  LINK = g++
+  LINK = icpc
 
   LIBDIR       =
   BLASLIB      =
-  LAPACKLIB    = scs
-  EXTRALIBS    = mpi++ mpi gcc_s g2c
+  LAPACKLIB    = mkl_lapack64 mkl_ipf
+  EXTRALIBS    = guide pthread mpi++ mpi
 
   INCLUDE +=
 
@@ -38,7 +38,7 @@ ifeq ($(MACHINE), apacac)
   else
     BUILD = Release
     CFLAGS += -O3
-    CXXFLAGS += -O2 -D_MPI
+    CXXFLAGS += -O2 -D_MPI -w
     F77FLAGS += -O2
   endif
 

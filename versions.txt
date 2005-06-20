@@ -19,11 +19,13 @@ Opt: Vector resize eliminated from CIIntegrals::UpdateTwoElectronIntegrals;
      before calculating.
 Alt: Core::Clear() overwritten to erase OpenShellStates also. Core::Read/Write
      modified to store OpenShellStates; StateManager::Read() modified to only
-     replace existing states.
+     replace existing states; changed compiler to intel on lc; removed
+     printing to stdout in Davidson routine.
 Add: Support for APAC AC in make.machine. This required small modifications to
      Atom, ConfigGenerator, and MPIHamiltonianMatrix because comm_world alias
      needs to be declared and initialised separately, or else be a reference to
-     MPI::COMM_WORLD.
+     MPI::COMM_WORLD; CIIntegralsMBPT::Update() writes integrals every
+     hour when doing MBPT.
 
 1.2.0 - 09/06/05
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
