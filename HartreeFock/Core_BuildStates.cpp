@@ -271,7 +271,7 @@ void Core::CalculateClosedShellRadius()
 
             for(unsigned int j=0; j<s.Size(); j++)
             {
-                density[j] = density[j] + (pow(f[j], 2.) + Constant::AlphaSquared * pow(g[j], 2.))*number_electrons;
+                density[j] = density[j] + (f[j] * f[j] + Constant::AlphaSquared * g[j] * g[j])*number_electrons;
             }
         }
 
@@ -292,11 +292,13 @@ void Core::CalculateClosedShellRadius()
     last_max *= 0.5;
     it = density.end();
     it--;
-    for(j = density.size() - 1; j >= 0; j--)
+    j = density.size() - 1;
+    while(it != density.begin())
     {
         if(fabs(*it) >= last_max)
             break;
         it--;
+        j--;
     }
 
     ClosedShellRadius = lattice->R(j);
