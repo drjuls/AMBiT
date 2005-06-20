@@ -2,6 +2,7 @@
 #include "CIIntegralsMBPT.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
+#include <time.h>
 
 inline void swap(unsigned int& i1, unsigned int& i2)
 {   unsigned int temp = i1;
@@ -224,6 +225,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
 
                     PT->UseBrillouinWignerPT(valence_energy);
                     PT->GetSecondOrderSigma(kappa, pot);
+                    pot->Store();
                 }
 
                 Sigma1.insert(std::pair<int, SigmaPotential*>(kappa, pot));
@@ -234,6 +236,10 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
 #endif
+
+    // Want to save progress every hour or so.
+    clock_t start = clock();
+    clock_t gap = 47 * 60 * CLOCKS_PER_SEC; // 47 minutes
 
     // Get single particle integrals
     it_i.First(); i = 0;
@@ -278,6 +284,14 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     if(count == NumProcessors)
                         count = 0;
                   #endif
+
+                    if(include_mbpt1)
+                    {   clock_t now = clock();
+                        if(now - start > gap)
+                        {   WriteOneElectronIntegrals();
+                            start = now;
+                        }
+                    }
                 }
             }
 
@@ -322,6 +336,10 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
 #endif
+
+    // Want to save progress every hour or so.
+    clock_t start = clock();
+    clock_t gap = 47 * 60 * CLOCKS_PER_SEC; // 47 minutes
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(*states.GetLattice());
@@ -450,6 +468,14 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     if(count == NumProcessors)
                                         count = 0;
                                   #endif
+
+                                    if(include_mbpt2)
+                                    {   clock_t now = clock();
+                                        if(now - start > gap)
+                                        {   WriteTwoElectronIntegrals();
+                                            start = now;
+                                        }
+                                    }
                                 }
                             }
                         }
