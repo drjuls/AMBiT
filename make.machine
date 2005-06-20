@@ -38,7 +38,7 @@ ifeq ($(MACHINE), apacac)
   else
     BUILD = Release
     CFLAGS += -O3
-    CXXFLAGS += -O2 -D_MPI -w
+    CXXFLAGS += -O2 -wd1125 -D_MPI
     F77FLAGS += -O2
   endif
 
@@ -47,16 +47,16 @@ ifeq ($(MACHINE), apacac)
 endif
 
 ifeq ($(MACHINE), apaclc)
-  CC  = gcc
-  CXX = g++
-  F77 = gcc
+  CC  = icc
+  CXX = icpc
+  F77 = ifort
 
-  LINK = mpiCC
+  LINK = icpc
 
-  LIBDIR       = /opt/gcc-3.4.3/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    = gcc_s g2c
+  LIBDIR       = $$LAMHOME/lib
+  BLASLIB      = 
+  LAPACKLIB    = mkl_lapack mkl_p4
+  EXTRALIBS    = lammpi++ mpi lam
 
   INCLUDE += $$$$LAMHOME/include
 
@@ -67,8 +67,8 @@ ifeq ($(MACHINE), apaclc)
   else
     BUILD = Release
     CFLAGS += -O3
-    CXXFLAGS += -O3 -D_MPI
-    F77FLAGS += -O2
+    CXXFLAGS += -O3 -wd1125 -D_MPI
+    F77FLAGS += -O3
   endif
 
   CCDEP = gcc
