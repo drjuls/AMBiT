@@ -282,16 +282,16 @@
                                                                         
         IF (IERR.NE.0) RETURN                                           
                                                                         
-        IF (NIV.GT.LIM) THEN                                            
+c        IF (NIV.GT.LIM) THEN                                            
 *          ..Check number of initial estimates NIV is lower than LIM.   
-           PRINT*,'WARNING: Too many initial estimates.?'               
-           PRINT*,'The routine will pick the appropriate number'        
-        ELSEIF ((NIV.LT.NUME).AND.(NIV.GT.0)) THEN                      
+c           PRINT*,'WARNING: Too many initial estimates.?'               
+c           PRINT*,'The routine will pick the appropriate number'        
+c        ELSEIF ((NIV.LT.NUME).AND.(NIV.GT.0)) THEN                      
 *          ..check if enough initial estimates.                         
 *          ..(NIV<1 => program chooses)                                 
-           PRINT*,'WARNING: Not enough initial estimates'               
-           PRINT*,'The routine will pick the appropriate number'        
-        ENDIF                                                           
+c           PRINT*,'WARNING: Not enough initial estimates'               
+c           PRINT*,'The routine will pick the appropriate number'        
+c        ENDIF                                                           
 *                                                                       
 * Assigning space for the real work arrays                              
 *                                                                       
