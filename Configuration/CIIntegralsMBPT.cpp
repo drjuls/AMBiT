@@ -143,15 +143,8 @@ void CIIntegralsMBPT::Update()
 
 void CIIntegralsMBPT::Update(const std::string& sigma_id)
 {
-    NumStates = states.NumStates();
-    state_index.clear();
-    reverse_state_index.clear();
-    OneElectronIntegrals.clear();
-    SMSIntegrals.clear();
-    TwoElectronIntegrals.clear();
-    OverlapIntegrals.clear();
+    Clear();
 
-    UpdateStateIndexes();
     UpdateOneElectronIntegrals(sigma_id);
     UpdateTwoElectronIntegrals();
 }
@@ -165,10 +158,10 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     ConstStateIterator it_j = states.GetConstStateIterator();
 
     // If fp is NULL, calculate one electron integrals, otherwise read them in.
-    std::string file1 = id + ".one.int";
+    std::string file1 = read_id + ".one.int";
     FILE* fp = NULL;
 
-    if(!id.empty())
+    if(!read_id.empty())
     {   fp = fopen(file1.c_str(), "rb");
         if(fp)
         {   ReadOneElectronIntegrals(fp);
@@ -204,7 +197,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 if(!sigma_id.empty())
                     sigma_file = sigma_id + ".";
                 else
-                    sigma_file = id + ".";
+                    sigma_file = read_id + ".";
 
                 if(kappa > 0)
                     sigma_file = sigma_file + Constant::SpectroscopicNotation[kappa];
@@ -235,19 +228,12 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
-
-    // Save our integrals to separate files
-    std::string original_id = id;
-    std::stringstream ss;
-    ss << ProcessorRank;
-    std::string save_id = id + '_' + ss.str();
-
-    SetIdentifier(save_id);
 #endif
 
     // Want to save progress every hour or so.
-    clock_t start = clock()/CLOCKS_PER_SEC;
-    clock_t gap = 47 * 60;  // 47 minutes
+    time_t start, gap, now;
+    time(&start);
+    gap = 47 * 60;  // 47 minutes
 
     // Get single particle integrals
     it_i.First(); i = 0;
@@ -293,8 +279,8 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                         count = 0;
                   #endif
 
-                    if(include_mbpt1)
-                    {   clock_t now = clock()/CLOCKS_PER_SEC;
+                    if(include_mbpt1 && PT)
+                    {   time(&now);
                         if(now - start > gap)
                         {   WriteOneElectronIntegrals();
                             start = now;
@@ -325,18 +311,17 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
         it_i.Next(); i++;
     }
 
-#ifdef _MPI
-    SetIdentifier(original_id);
-#endif
+    if(include_mbpt1 && PT)
+        WriteOneElectronIntegrals();
 }
 
 void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 {
     // Read stored two electron integrals.
-    std::string file1 = id + ".two.int";
+    std::string file1 = read_id + ".two.int";
     FILE* fp = NULL;
 
-    if(!id.empty())
+    if(!read_id.empty())
     {   fp = fopen(file1.c_str(), "rb");
         if(fp)
         {   ReadTwoElectronIntegrals(fp);
@@ -347,19 +332,12 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
-
-    // Save our integrals to separate files
-    std::string original_id = id;
-    std::stringstream ss;
-    ss << ProcessorRank;
-    std::string save_id = id + '_' + ss.str();
-
-    SetIdentifier(save_id);
 #endif
 
     // Want to save progress every hour or so.
-    clock_t start = clock()/CLOCKS_PER_SEC;
-    clock_t gap = 47 * 60;  // 47 minutes
+    time_t start, gap, now;
+    time(&start);
+    gap = 47 * 60;  // 47 minutes
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(*states.GetLattice());
@@ -489,8 +467,8 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                         count = 0;
                                   #endif
 
-                                    if(include_mbpt2)
-                                    {   clock_t now = clock()/CLOCKS_PER_SEC;
+                                    if(include_mbpt2 && PT)
+                                    {   time(&now);
                                         if(now - start > gap)
                                         {   WriteTwoElectronIntegrals();
                                             start = now;
@@ -510,9 +488,8 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         it_2.Next(); i2++;
     }
 
-#ifdef _MPI
-    SetIdentifier(original_id);
-#endif
+    if(include_mbpt2 && PT)
+        WriteTwoElectronIntegrals();
 }
 
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
@@ -613,8 +590,6 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
 
 void CIIntegralsMBPT::ReadMultipleOneElectronIntegrals(const std::string& name, unsigned int num_files)
 {
-    UpdateStateIndexes();
-
     FILE* fp;
     for(unsigned int i = 0; i < num_files; i++)
     {
@@ -635,8 +610,6 @@ void CIIntegralsMBPT::ReadMultipleOneElectronIntegrals(const std::string& name, 
 
 void CIIntegralsMBPT::ReadMultipleTwoElectronIntegrals(const std::string& name, unsigned int num_files)
 {
-    UpdateStateIndexes();
-
     FILE* fp;
     for(unsigned int i = 0; i < num_files; i++)
     {

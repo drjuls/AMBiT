@@ -25,7 +25,7 @@ public:
 
     /** Update all integrals (on the assumption that the excited states have changed).
         The sigma_id string can be used to get Sigma operators from disk, or else
-        the normal storage id is used.
+        the normal storage read_id is used.
       */
     virtual void Update();
     virtual void Update(const std::string& sigma_id);

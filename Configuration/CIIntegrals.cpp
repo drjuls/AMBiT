@@ -108,7 +108,7 @@ unsigned int CIIntegrals::GetStorageSize() const
     return (size1 + size2);
 }
 
-void CIIntegrals::Update()
+void CIIntegrals::Clear()
 {
     state_index.clear();
     reverse_state_index.clear();
@@ -118,6 +118,12 @@ void CIIntegrals::Update()
     OverlapIntegrals.clear();
 
     UpdateStateIndexes();
+}
+
+void CIIntegrals::Update()
+{
+    Clear();
+
     UpdateOneElectronIntegrals();
     UpdateTwoElectronIntegrals();
 }
@@ -151,10 +157,10 @@ void CIIntegrals::UpdateOneElectronIntegrals()
     ConstStateIterator it_j = states.GetConstStateIterator();
 
     // If fp is NULL, calculate one electron integrals, otherwise read them in.
-    std::string file1 = id + ".one.int";
+    std::string file1 = read_id + ".one.int";
     FILE* fp = NULL;
 
-    if(!id.empty())
+    if(!read_id.empty())
     {   fp = fopen(file1.c_str(), "rb");
         if(fp)
         {   ReadOneElectronIntegrals(fp);
@@ -212,10 +218,10 @@ void CIIntegrals::UpdateOneElectronIntegrals()
 void CIIntegrals::UpdateTwoElectronIntegrals()
 {
     // Read stored two electron integrals.
-    std::string file1 = id + ".two.int";
+    std::string file1 = read_id + ".two.int";
     FILE* fp = NULL;
 
-    if(!id.empty())
+    if(!read_id.empty())
     {   fp = fopen(file1.c_str(), "rb");
         if(fp)
         {   ReadTwoElectronIntegrals(fp);
@@ -495,6 +501,19 @@ bool CIIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2
     return sms_sign;
 }
 
+void CIIntegrals::SetIdentifier(const std::string& storage_id)
+{
+    read_id = storage_id;
+
+    if((NumProcessors > 1) && !storage_id.empty())
+    {   std::stringstream proc;
+        proc << ProcessorRank;
+        write_id = storage_id + '_' + proc.str();
+    }
+    else
+        write_id = storage_id;
+}
+
 void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
 {
     // Make state index for stored integrals
@@ -684,7 +703,7 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
 
 void CIIntegrals::WriteOneElectronIntegrals() const
 {
-    std::string filename = id + ".one.int";
+    std::string filename = write_id + ".one.int";
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)
@@ -743,7 +762,7 @@ void CIIntegrals::WriteOneElectronIntegrals() const
 
 void CIIntegrals::WriteTwoElectronIntegrals() const
 {
-    std::string filename = id + ".two.int";
+    std::string filename = write_id + ".two.int";
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)

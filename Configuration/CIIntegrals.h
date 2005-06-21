@@ -13,8 +13,10 @@ public:
         or output integrals once calculated.
      */
     CIIntegrals(const ExcitedStates& excited_states, const std::string& storage_id = ""):
-        states(excited_states), id(storage_id), include_valence_sms(false)
+        states(excited_states), include_valence_sms(false)
     {   SetTwoElectronStorageLimits();
+        SetIdentifier(storage_id);
+        UpdateStateIndexes();
     }
     virtual ~CIIntegrals() {}
 
@@ -44,6 +46,9 @@ public:
      */
     virtual unsigned int GetStorageSize() const;
 
+    /** Clear all integrals. */
+    virtual void Clear();
+
     /** Update all integrals (on the assumption that the excited states have changed). */
     virtual void Update();
 
@@ -71,9 +76,7 @@ public:
     }
 
     /** The identifier is used to choose filenames for integrals. */
-    inline void SetIdentifier(const std::string& storage_id = "")
-    {   id = storage_id;
-    }
+    virtual void SetIdentifier(const std::string& storage_id = "");
 
     /** Structure of *.one.int and *.two.int files:
          stores basis information (start and end pqn for each wave)
@@ -112,7 +115,8 @@ protected:
     virtual void UpdateTwoElectronIntegrals();
 
 protected:
-    std::string id;
+    std::string read_id;    // Read and write files may be different (e.g. multiprocessor)
+    std::string write_id;
     const ExcitedStates& states;
 
     unsigned int NumStates;
