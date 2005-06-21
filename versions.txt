@@ -25,7 +25,10 @@ Add: Support for APAC AC in make.machine. This required small modifications to
      Atom, ConfigGenerator, and MPIHamiltonianMatrix because comm_world alias
      needs to be declared and initialised separately, or else be a reference to
      MPI::COMM_WORLD; CIIntegralsMBPT::Update() writes integrals every
-     hour when doing MBPT.
+     hour when doing MBPT; CIIntegrals::Clear() added; CIIntegrals identifier
+     separated into potentially different read/write files. Added command
+     "unpackbackend" to Makefile which keeps Atom/Atom.cpp and Atom_Open.cpp
+     constant.
 
 1.2.0 - 09/06/05
 Add: Ability to have no "core" electrons (i.e. all electrons in open shell);
