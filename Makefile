@@ -43,3 +43,11 @@ pack:
 unpack:
 	gunzip $(packname).tar.gz
 	-tar xvf $(packname).tar
+
+unpackbackend:
+	gunzip $(packname).tar.gz
+	cp Atom/Atom.cpp Atom/Atom.cpp.save
+	cp Atom/Atom_Open.cpp Atom/Atom_Open.cpp.save
+	-tar xvf $(packname).tar
+	mv Atom/Atom.cpp.save Atom/Atom.cpp
+	mv Atom/Atom_Open.cpp.save Atom/Atom_Open.cpp
