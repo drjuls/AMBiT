@@ -226,17 +226,6 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
         integrals->SetIdentifier(identifier);
         integrals->Update();
 
-        if(NumProcessors > 1)
-        {   std::stringstream proc;
-            proc << ProcessorRank;
-            std::string id = identifier + '_' + proc.str();
-            integrals->SetIdentifier(id);
-        }
-
-        //integralsMBPT->WriteSigmaPotentials();
-        //integrals->WriteOneElectronIntegrals();
-        //integrals->WriteTwoElectronIntegrals();
-
         H->GenerateMatrix();
 
         if(ais == 0.0)  // Get g-factors
