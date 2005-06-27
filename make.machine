@@ -54,9 +54,9 @@ ifeq ($(MACHINE), apaclc)
   LINK = icpc
 
   LIBDIR       = $$LAMHOME/lib
-  BLASLIB      = 
-  LAPACKLIB    = mkl_lapack mkl_p4
-  EXTRALIBS    = lammpi++ mpi lam
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = lammpi++ mpi lam g2c
 
   INCLUDE += $$$$LAMHOME/include
 
