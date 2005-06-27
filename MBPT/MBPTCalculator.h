@@ -42,21 +42,15 @@ public:
     /** Returns <s1, s2 | Sigma2(k) | s3, s4>. Only calculates in Brillouin-Wigner PT. */
     double GetTwoElectronDiagrams(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k);
 
+    /** Returns subtraction diagrams for the matrix element <s1, s2 | Sigma2(k) | s3, s4>. */
+    double GetTwoElectronSubtraction(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k);
+
     /** Use Brillouin-Wigner perturbation theory, where the energy of external lines is
         kept constant in the energy denominator (this ensures that the operator is hermitian).
-        The energy of the external single-particle is supplied by the user, and should
-        usually correspond to the leading configuration.
      */
-    void UseBrillouinWignerPT(double single_particle_energy)
-    {   ValenceEnergy1 = single_particle_energy;
+    void UseBrillouinWignerPT()
+    {   SetValenceEnergies();
         BrillouinWignerPT = true;
-    }
-
-    /** The two-particle valence energy is supplied by the user, and should
-        usually correspond to the leading configuration.
-     */
-    void SetTwoParticleEnergy(double two_particle_energy)
-    {   ValenceEnergy2 = two_particle_energy;
     }
 
     /** Use Rayleigh-Shrodinger perturbation theory. */
@@ -126,16 +120,33 @@ protected:
     double CalculateTwoElectron5(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const;
     double CalculateTwoElectron6(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const;
 
+    /** Calculate two-electron subtraction diagram of second order.
+                     x
+                     |          There are four diagrams, with the hole state
+                     |          being connected to each of the four valence lines.
+        ->>-------------<---
+          a              2  
+                            
+        --<------------->>--
+          2  |           c  
+             |              
+        ->>------------->>--
+          b              d  
+     */
+    double CalculateTwoElectronSub(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const;
+
 protected:
     Lattice* lattice;
     const Core* core;
     const ExcitedStates* excited;
 
-    bool BrillouinWignerPT;
-    double ValenceEnergy1;
-    double ValenceEnergy2;
-
     unsigned int MaxStateSize;
+
+    bool BrillouinWignerPT;
+
+    /** Valence energies for Brillouin-Wigner MBPT. */
+    std::map<int, double> ValenceEnergies;
+    void SetValenceEnergies();
 };
 
 #endif

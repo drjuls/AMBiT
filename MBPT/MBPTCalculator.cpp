@@ -7,10 +7,10 @@
 #define MAX_K 12
 
 MBPTCalculator::MBPTCalculator(Lattice* lat, const Core* atom_core, const ExcitedStates* excited_states):
-    lattice(lat), core(atom_core), excited(excited_states), BrillouinWignerPT(false),
-    ValenceEnergy1(0.), ValenceEnergy2(0.)
+    lattice(lat), core(atom_core), excited(excited_states), BrillouinWignerPT(false)
 {
     MaxStateSize = core->GetConstHFPotential().size();
+    SetValenceEnergies();
 }
 
 void MBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma)
@@ -75,19 +75,26 @@ double MBPTCalculator::GetSigmaSubtraction(const State* s1, const State* s2)
     return (term1 + term2 + term3);
 }
 
-double MBPTCalculator::GetTwoElectronDiagrams(const State* sa, const State* sb, const State* sc, const State* sd, unsigned int k)
+double MBPTCalculator::GetTwoElectronDiagrams(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
     double term = 0;
-    term += CalculateTwoElectron1(*sa, *sb, *sc, *sd, k);
-    term += CalculateTwoElectron2(*sa, *sb, *sc, *sd, k);
-    term += CalculateTwoElectron3(*sa, *sb, *sc, *sd, k);
-    term += CalculateTwoElectron4(*sa, *sb, *sc, *sd, k);
-    term += CalculateTwoElectron5(*sa, *sb, *sc, *sd, k);
-    term += CalculateTwoElectron6(*sa, *sb, *sc, *sd, k);
+    term += CalculateTwoElectron1(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron2(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron3(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron4(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron5(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron6(*s1, *s2, *s3, *s4, k);
 
     return term;
+}
+
+double MBPTCalculator::GetTwoElectronSubtraction(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
+{
+    MaxStateSize = core->GetConstHFPotential().size();
+
+    return CalculateTwoElectronSub(*s1, *s2, *s3, *s4, k);
 }
 
 double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& sf, SigmaPotential* sigma) const
@@ -110,11 +117,12 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
     if(debug)
         *outstream << "Cor 1+3:  ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     // Value of the matrix elements <si | Sigma | sf>
     double energy1 = 0., energy3 = 0.;
+    const double ValenceEnergy = ValenceEnergies.find(si.Kappa())->second;
 
     // Firstly, get the loop 24
     ConstStateIterator it2 = core->GetConstStateIterator();
@@ -170,7 +178,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
                                 coeff = coeff * coeff * coeff24 * (J3 + 1);
 
                                 if(BrillouinWignerPT)
-                                    coeff = coeff/(ValenceEnergy1 + s2.Energy() - s3.Energy() - s4.Energy());
+                                    coeff = coeff/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy());
                                 else
                                     coeff = coeff/(si.Energy() + s2.Energy() - s3.Energy() - s4.Energy());
 
@@ -244,7 +252,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
                                 coeff = coeff * coeff * coeff24 * (J3 + 1);
 
                                 if(BrillouinWignerPT)
-                                    coeff = coeff/(ValenceEnergy1 + s4.Energy() - s2.Energy() - s3.Energy());
+                                    coeff = coeff/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy());
                                 else
                                     coeff = coeff/(sf.Energy() + s4.Energy() - s2.Energy() - s3.Energy());
 
@@ -338,11 +346,12 @@ double MBPTCalculator::CalculateCorrelation2(const State& si, const State& sf, S
     if(debug)
         *outstream << "Cor 2:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     // Value of the matrix element <si | Sigma | sf>
     double energy = 0.;
+    const double ValenceEnergy = ValenceEnergies.find(si.Kappa())->second;
 
     ConstStateIterator it2 = core->GetConstStateIterator();
     while(!it2.AtEnd())
@@ -392,7 +401,7 @@ double MBPTCalculator::CalculateCorrelation2(const State& si, const State& sf, S
                             coeff13 = coeff13 * (J3 + 1);
 
                             if(BrillouinWignerPT)
-                                coeff13 = coeff13/(ValenceEnergy1 + s2.Energy() - s3.Energy() - s4.Energy());
+                                coeff13 = coeff13/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy());
                             else
                                 coeff13 = coeff13/(si.Energy() + s2.Energy() - s3.Energy() - s4.Energy());
 
@@ -526,10 +535,12 @@ double MBPTCalculator::CalculateCorrelation4(const State& si, const State& sf, S
     if(debug)
         *outstream << "Cor 4:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
+    const double ValenceEnergy = ValenceEnergies.find(si.Kappa())->second;
+
     ConstStateIterator it4 = excited->GetConstStateIterator();
     while(!it4.AtEnd())
     {   const State& s4 = *(it4.GetState());
@@ -578,7 +589,7 @@ double MBPTCalculator::CalculateCorrelation4(const State& si, const State& sf, S
                             coeff13 = coeff13 * (J3 + 1);
 
                             if(BrillouinWignerPT)
-                                coeff13 = coeff13/(ValenceEnergy1 + s4.Energy() - s2.Energy() - s3.Energy());
+                                coeff13 = coeff13/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy());
                             else
                                 coeff13 = coeff13/(sf.Energy() + s4.Energy() - s2.Energy() - s3.Energy());
 
@@ -701,7 +712,7 @@ double MBPTCalculator::CalculateSubtraction1(const State& si, const State& sf, S
     if(debug)
         *outstream << "Sub 1:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -780,7 +791,7 @@ double MBPTCalculator::CalculateSubtraction2(const State& si, const State& sf, S
     if(debug)
         *outstream << "Sub 2:    ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -878,6 +889,8 @@ double MBPTCalculator::CalculateSubtraction3(const State& si, const State& sf, S
         *outstream << "Sub 3:    ";
 
     double energy = 0.;
+    const double ValenceEnergy = ValenceEnergies.find(si.Kappa())->second;
+
     ConstStateIterator it2 = core->GetConstStateIterator();
     while(!it2.AtEnd())
     {   const State& s2 = *(it2.GetState());
@@ -886,7 +899,7 @@ double MBPTCalculator::CalculateSubtraction3(const State& si, const State& sf, S
         {
             double term = SI.HamiltonianMatrixElement(si, s2, *core) * SI.HamiltonianMatrixElement(sf, s2, *core);
             if(BrillouinWignerPT)
-                term = term/(s2.Energy() - ValenceEnergy1);
+                term = term/(s2.Energy() - ValenceEnergy);
             else
                 term = term/(s2.Energy() - si.Energy());
                 
@@ -913,7 +926,7 @@ double MBPTCalculator::CalculateTwoElectron1(const State& sa, const State& sb, c
     if(debug)
         *outstream << "TwoE 1:   ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -996,7 +1009,7 @@ double MBPTCalculator::CalculateTwoElectron2(const State& sa, const State& sb, c
     if(debug)
         *outstream << "TwoE 2:   ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -1158,7 +1171,7 @@ double MBPTCalculator::CalculateTwoElectron3(const State& sa, const State& sb, c
     if(debug)
         *outstream << "TwoE 3:   ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -1319,7 +1332,7 @@ double MBPTCalculator::CalculateTwoElectron4(const State& sa, const State& sb, c
     if(debug)
         *outstream << "TwoE 4/5: ";
     double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -1452,7 +1465,7 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
     if(debug)
         *outstream << "TwoE 6:   ";
     double spacing = 1./double(core->NumStates() * core->NumStates());
-    double count = 0;
+    double count = 0.;
     unsigned int i;
 
     double energy = 0.;
@@ -1460,6 +1473,8 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
     const double coeff_bd = Constant::Electron3j(Jb, Jd, k, 1, -1);
     if(!coeff_ac || !coeff_bd)
         return energy;
+
+    const double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second + ValenceEnergies.find(sb.Kappa())->second;
 
     ConstStateIterator itm = core->GetConstStateIterator();
     while(!itm.AtEnd())
@@ -1488,7 +1503,7 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
             if(coeff_mn)
             {
                 coeff_mn = coeff_mn/(coeff_ac*coeff_bd);
-                coeff_mn = coeff_mn/(sm.Energy() + sn.Energy() - ValenceEnergy2);
+                coeff_mn = coeff_mn/(sm.Energy() + sn.Energy() - ValenceEnergy);
                 unsigned int exponent = (unsigned int)(Ja + Jb + Jc + Jd + Jm + Jn)/2;
                 if((exponent + k + 1)%2)
                     coeff_mn = -coeff_mn;
@@ -1560,4 +1575,151 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
     if(debug)
         *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
     return energy;
+}
+
+double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const
+{
+    const bool debug = DebugOptions.LogMBPT();
+    const double NuclearInverseMass = core->GetNuclearInverseMass();
+
+    std::vector<double> density(MaxStateSize);
+    std::vector<double> pot(MaxStateSize);
+
+    CoulombIntegrator I(*lattice);
+    StateIntegrator SI(*lattice);
+    const double* dR = lattice->dR();
+
+    if(debug)
+        *outstream << "2eSub :   ";
+
+    unsigned int i;
+    double energy = 0.;
+
+    // Hole line is attached to sa or sc
+    for(i=0; i<mmin(sb.Size(), sd.Size()); i++)
+    {
+        density[i] = sb.f[i] * sd.f[i] + Constant::AlphaSquared * sb.g[i] * sd.g[i];
+    }
+    I.FastCoulombIntegrate(density, pot, k, mmin(sb.Size(), sd.Size()));
+
+    double SMS_bd = 0.;
+    if(NuclearInverseMass && (k == 1))
+    {   SMS_bd = NuclearInverseMass * SI.IsotopeShiftIntegral(sb, sd);
+    }
+
+    ConstStateIterator itn = core->GetConstStateIterator();
+    while(!itn.AtEnd())
+    {   const State& sn = *(itn.GetState());
+
+        if(sn.Kappa() == sa.Kappa())
+        {
+            double R1 = 0.;
+            for(i=0; i < mmin(sn.Size(), sc.Size()); i++)
+                R1 += pot[i] * (sn.f[i] * sc.f[i] + Constant::AlphaSquared * sn.g[i] * sc.g[i]) * dR[i];
+
+            if(SMS_bd)
+            {   R1 = R1 + SMS_bd * SI.IsotopeShiftIntegral(sc, sn);
+            }
+
+            energy -= R1 * SI.HamiltonianMatrixElement(sa, sn, *core) / (sn.Energy() - ValenceEnergies.find(sa.Kappa())->second);
+        }
+
+        if(sn.Kappa() == sc.Kappa())
+        {
+            double R1 = 0.;
+            for(i=0; i < mmin(sa.Size(), sn.Size()); i++)
+                R1 += pot[i] * (sa.f[i] * sn.f[i] + Constant::AlphaSquared * sa.g[i] * sn.g[i]) * dR[i];
+
+            if(SMS_bd)
+            {   R1 = R1 - SMS_bd * SI.IsotopeShiftIntegral(sa, sn);
+            }
+
+            energy -= R1 * SI.HamiltonianMatrixElement(sc, sn, *core) / (sn.Energy() - ValenceEnergies.find(sc.Kappa())->second);
+        }
+
+        itn.Next();
+    }
+
+    // Hole line is attached to sb or sd.
+    for(i=0; i<mmin(sa.Size(), sc.Size()); i++)
+    {
+        density[i] = sa.f[i] * sc.f[i] + Constant::AlphaSquared * sa.g[i] * sc.g[i];
+    }
+    I.FastCoulombIntegrate(density, pot, k, mmin(sa.Size(), sc.Size()));
+
+    double SMS_ac = 0.;
+    if(NuclearInverseMass && (k == 1))
+    {   SMS_ac = NuclearInverseMass * SI.IsotopeShiftIntegral(sa, sc);
+    }
+
+    itn.First();
+    while(!itn.AtEnd())
+    {   const State& sn = *(itn.GetState());
+
+        if(sn.Kappa() == sb.Kappa())
+        {
+            double R1 = 0.;
+            for(i=0; i < mmin(sn.Size(), sd.Size()); i++)
+                R1 += pot[i] * (sn.f[i] * sd.f[i] + Constant::AlphaSquared * sn.g[i] * sd.g[i]) * dR[i];
+
+            if(SMS_ac)
+            {   R1 = R1 + SMS_ac * SI.IsotopeShiftIntegral(sd, sn);
+            }
+
+            energy -= R1 * SI.HamiltonianMatrixElement(sb, sn, *core) / (sn.Energy() - ValenceEnergies.find(sb.Kappa())->second);
+        }
+
+        if(sn.Kappa() == sd.Kappa())
+        {
+            double R1 = 0.;
+            for(i=0; i < mmin(sb.Size(), sn.Size()); i++)
+                R1 += pot[i] * (sb.f[i] * sn.f[i] + Constant::AlphaSquared * sb.g[i] * sn.g[i]) * dR[i];
+
+            if(SMS_ac)
+            {   R1 = R1 - SMS_ac * SI.IsotopeShiftIntegral(sb, sn);
+            }
+
+            energy -= R1 * SI.HamiltonianMatrixElement(sd, sn, *core) / (sn.Energy() - ValenceEnergies.find(sd.Kappa())->second);
+        }
+
+        itn.Next();
+    }
+
+    if(debug)
+        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+    return energy;
+}
+
+void MBPTCalculator::SetValenceEnergies()
+{
+    ConstStateIterator it_i = excited->GetConstStateIterator();
+    ValenceEnergies.clear();
+
+    // Get maximum angular momentum in excited states
+    unsigned int max_l = 0;
+    it_i.First();
+    while(!it_i.AtEnd())
+    {   max_l = mmax(it_i.GetState()->L(), max_l);
+        it_i.Next();
+    }
+
+    for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
+        if(kappa != 0)
+        {
+            double valence_energy = 0.;
+            unsigned int pqn = 10;
+
+            // Get leading state (for energy denominator)
+            it_i.First();
+            while(!it_i.AtEnd())
+            {   const DiscreteState* ds = it_i.GetState();
+                if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
+                {   pqn = ds->RequiredPQN();
+                    valence_energy = ds->Energy();
+                }
+                it_i.Next();
+            }
+
+            ValenceEnergies.insert(std::pair<int, double>(kappa, valence_energy));
+        }
 }
