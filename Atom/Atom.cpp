@@ -105,28 +105,35 @@ void Atom::Write() const
 {
     if(ProcessorRank == 0)
     {
-        std::string filename = identifier + ".atom";
+        std::string filename = identifier + ".core.atom";
         FILE* fp = fopen(filename.c_str(), "wb");
 
         // Output atomic data
         fwrite(&Z, sizeof(double), 1, fp);
         fwrite(&Charge, sizeof(double), 1, fp);
 
-        // Output electron states
+        // Output core states
         core->Write(fp);
-        if(excited)
-            excited->Write(fp);
-        else
-        {   unsigned int zero = 0;
-            fwrite(&zero, sizeof(unsigned int), 1, fp);
-        }
         fclose(fp);
+
+        if(excited)
+        {   filename = identifier + ".excited.atom";
+            fp = fopen(filename.c_str(), "wb");
+
+            if(excited_mbpt)
+                excited_mbpt->Write(fp);
+            else
+                excited->Write(fp);
+
+            fclose(fp);
+        }
     }
 }
 
 void Atom::Read()
 {
-    std::string filename = identifier + ".atom";
+    // Read core electron states
+    std::string filename = identifier + ".core.atom";
     FILE* fp = fopen(filename.c_str(), "rb");
 
     // Check that the stored ion is the same as this one!
@@ -139,12 +146,23 @@ void Atom::Read()
         exit(1);
     }
 
-    // Read electron states
     core->Read(fp);
+    fclose(fp);
+
+    // Excited states
     if(excited)
+    {   filename = identifier + ".excited.atom";
+        fp = fopen(filename.c_str(), "rb");
         excited->Read(fp);
 
-    fclose(fp);
+        if(excited_mbpt)
+        {   fp = freopen(filename.c_str(), "rb", fp);
+            excited_mbpt->Read(fp);
+        }
+
+        fclose(fp);
+    }
+
 }
 
 double Atom::GetEnergy(const StateInfo& info)
