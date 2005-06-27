@@ -16,8 +16,7 @@ public:
         CIIntegrals(excited_states, storage_id), PT(NULL),
         include_sigma1(false), include_mbpt1(false), include_mbpt1_subtraction(false),
         include_mbpt2(false), include_mbpt2_subtraction(false)
-    {   SetValenceEnergies();
-    }
+    {}
     virtual ~CIIntegralsMBPT();
 
     /** Calculate number of elements that will be stored. */
@@ -101,10 +100,6 @@ protected:
     /** Two-electron MBPT effects. */
     bool include_mbpt2;
     bool include_mbpt2_subtraction;
-
-    /** Valence energies for Brillouin-Wigner MBPT. */
-    std::map<int, double> ValenceEnergies;
-    void SetValenceEnergies();
 };
 
 #endif

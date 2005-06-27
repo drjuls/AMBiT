@@ -170,8 +170,8 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     }
 
     // Update the valence energies for perturbation theory
-    if(include_sigma1 || include_mbpt1)
-        SetValenceEnergies();
+    if((include_sigma1 || include_mbpt1) && PT)
+        PT->UseBrillouinWignerPT();
 
     // Calculate sigma1 potentials
     if(include_sigma1)
@@ -214,9 +214,6 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 // If (pot->Size() == 0), then it didn't already exist on disk, so make it.
                 if(!pot->Size() && PT)
                 {
-                    double valence_energy = ValenceEnergies[kappa];
-
-                    PT->UseBrillouinWignerPT(valence_energy);
                     PT->GetSecondOrderSigma(kappa, pot);
                     pot->Store();
                 }
@@ -256,7 +253,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 {
                   #ifdef _MPI
                     // MPI: Check if this is our integral.
-                    if(count == ProcessorRank)
+                    if(!PT || (count == ProcessorRank))
                     {
                   #endif
                     double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
@@ -265,8 +262,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                         integral += pot->GetMatrixElement(si->f, sj->f);
                     }
                     else if(include_mbpt1 && PT)
-                    {   PT->UseBrillouinWignerPT(ValenceEnergies[si->Kappa()]);
-                        integral += PT->GetSecondOrderSigma(si, sj);
+                    {   integral += PT->GetSecondOrderSigma(si, sj);
                     }
                     if(include_mbpt1_subtraction && PT)
                     {   integral += PT->GetSigmaSubtraction(si, sj);
@@ -328,6 +324,10 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
             fclose(fp);
         }
     }
+
+    // Update the valence energies for perturbation theory
+    if(include_mbpt2 && PT)
+        PT->UseBrillouinWignerPT();
 
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
@@ -442,7 +442,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                 {
                                   #ifdef _MPI
                                     // MPI: Check if this is our integral.
-                                    if(count == ProcessorRank)
+                                    if(!PT || (count == ProcessorRank))
                                     {
                                   #endif
                                     double radial = 0.;
@@ -455,8 +455,9 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     }
 
                                     if(include_mbpt2 && PT)
-                                    {   PT->SetTwoParticleEnergy(ValenceEnergies[s1->Kappa()] + ValenceEnergies[s2->Kappa()]);
-                                        radial += PT->GetTwoElectronDiagrams(s1, s2, s3, s4, k);
+                                    {   radial += PT->GetTwoElectronDiagrams(s1, s2, s3, s4, k);
+                                        if(include_mbpt2_subtraction)
+                                            radial += PT->GetTwoElectronSubtraction(s1, s2, s3, s4, k);
                                     }
 
                                     TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
@@ -636,40 +637,6 @@ void CIIntegralsMBPT::WriteSigmaPotentials() const
     {   it->second->Store();
         it++;
     }
-}
-
-void CIIntegralsMBPT::SetValenceEnergies()
-{
-    ConstStateIterator it_i = states.GetConstStateIterator();
-    ValenceEnergies.clear();
-
-    // Get maximum angular momentum in excited states
-    unsigned int max_l = 0;
-    it_i.First();
-    while(!it_i.AtEnd())
-    {   max_l = mmax(it_i.GetState()->L(), max_l);
-        it_i.Next();
-    }
-
-    for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
-        if(kappa != 0)
-        {
-            double valence_energy = 0.;
-            unsigned int pqn = 10;
-
-            // Get leading state (for energy denominator)
-            it_i.First();
-            while(!it_i.AtEnd())
-            {   const DiscreteState* ds = it_i.GetState();
-                if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
-                {   pqn = ds->RequiredPQN();
-                    valence_energy = ds->Energy();
-                }
-                it_i.Next();
-            }
-
-            ValenceEnergies.insert(std::pair<int, double>(kappa, valence_energy));
-        }
 }
 
 bool CIIntegralsMBPT::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
