@@ -145,42 +145,14 @@ void Atom::CheckMatrixSizes()
 
 void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only)
 {
+    RelativisticConfigList rlist;
+    HamiltonianMatrix* H = CreateHamiltonian(twoJ, config, rlist);
     if(size_only)
-    {   // We really don't want to allocate space for the HamiltonianMatrix.
-        unsigned int electron_excitations;
-        if(SD_CI)
-            electron_excitations = 2;
-        else
-            electron_excitations = config.NumParticles();
-
-        ConfigList nrlist;
-        nrlist.push_back(config);
-
-        RelativisticConfigList rlist;
-        ConfigGenerator generator(excited);
-        generator.GenerateMultipleExcitations(nrlist, electron_excitations);
-        generator.GenerateRelativisticConfigs(nrlist, rlist);
-        *outstream << " Number of non-rel configurations = " << nrlist.size() << std::endl;
         *outstream << " Number of rel configurations = " << rlist.size() << std::endl;
-        generator.GenerateProjections(rlist, twoJ);
-        
-        unsigned int N = 0;
-        unsigned int i = 0;
-        RelativisticConfigList::const_iterator it = rlist.begin();
-        while(it != rlist.end())
-        {   N += it->NumJStates();
-            it++;
-        }
-        *outstream << " Number of J-configurations = " << N << std::endl;
-    }
     else
-    {   RelativisticConfigList rlist;
-        HamiltonianMatrix* H = CreateHamiltonian(twoJ, config, rlist);
-
         OpenShellEnergy(twoJ, H);
 
-        delete H;
-    }
+    delete H;
 }
 
 void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
@@ -217,10 +189,10 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
         core->SetNuclearInverseMass(ais);
         //core->Update();
         //excited->Update();
+        //if(MBPT_CI)
+        //    excited_mbpt->Update();
         //Write();
         Read();
-        if(MBPT_CI)
-            excited_mbpt->Update();
         core->ToggleClosedShellCore();
 
         integrals->SetIdentifier(identifier);
@@ -301,17 +273,29 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
     }
 
     integrals->IncludeValenceSMS(false);
+    std::string original_id = identifier;
+
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
         *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << ais << std::endl;
 
+        std::stringstream ss;
+        ss << (int)(ais);
+        identifier = original_id + '_' + ss.str();
+
         core->ToggleOpenShellCore();
         core->SetVolumeShiftParameter(ais);
-        core->Update();
-        excited->Update();
-
+        //core->Update();
+        //excited->Update();
+        //if(MBPT_CI)
+        //    excited_mbpt->Update();
+        //Write();
+        Read();
         core->ToggleClosedShellCore();
+
+        integrals->SetIdentifier(identifier);
         integrals->Update();
+
         H->GenerateMatrix();
 
         if(ais == 0.0)  // Get g-factors
@@ -319,12 +303,16 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
         else
             H->SolveMatrix(NumSolutions, twoJ);
     }
+
+    identifier = original_id;
 }
 
 void Atom::DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H)
 {
     double alpha0 = Constant::Alpha;
+
     integrals->IncludeValenceSMS(false);
+    std::string original_id = identifier;
 
     for(double x = -0.25; x <= 0.25; x += 0.125)
     {
@@ -333,12 +321,22 @@ void Atom::DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H)
 
         *outstream << "\nx = " << x << std::endl;
 
-        core->ToggleOpenShellCore();
-        core->Update();
-        excited->Update();
+        std::stringstream ss;
+        ss << (int)(x * 8);
+        identifier = original_id + '_' + ss.str();
 
+        core->ToggleOpenShellCore();
+        //core->Update();
+        //excited->Update();
+        //if(MBPT_CI)
+        //    excited_mbpt->Update();
+        //Write();
+        Read();
         core->ToggleClosedShellCore();
+
+        integrals->SetIdentifier(identifier);
         integrals->Update();
+
         H->GenerateMatrix();
 
         if(x == 0.)
@@ -349,4 +347,6 @@ void Atom::DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H)
 
     Constant::Alpha = alpha0;
     Constant::AlphaSquared = alpha0 * alpha0;
+
+    identifier = original_id;
 }
