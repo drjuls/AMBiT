@@ -8,10 +8,10 @@ $(BUILD)/$(modulename): $(addprefix $(BUILD)/, $(cxxobjects) $(cobjects) $(fobje
 include $(SRCDIR)/make.dependencies
 
 $(addprefix $(BUILD)/, $(cxxobjects)): $(BUILD)/%.o: %.cpp
-	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 $(addprefix $(BUILD)/, $(cobjects)): $(BUILD)/%.o : %.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 $(addprefix $(BUILD)/, $(fobjects)): $(BUILD)/%.o : %.f
 	$(F77) -c $(F77FLAGS) $< -o $@

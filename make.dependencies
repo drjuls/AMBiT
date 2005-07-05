@@ -4,7 +4,7 @@
 # need to check that .c files are all known from .o
 $(BUILD)/%.dep: %.cpp
 	@set -e; rm -f $@; \
-	$(CCDEP) $(DEPFLAG) $(CXXFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	$(CCDEP) $(DEPFLAG) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
@@ -14,7 +14,7 @@ endif
 
 $(BUILD)/%.dep: %.c
 	@set -e; rm -f $@; \
-	$(CCDEP) $(DEPFLAG) $(CFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	$(CCDEP) $(DEPFLAG) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 

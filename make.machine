@@ -137,6 +137,7 @@ endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
 CFLAGS += $(addprefix -I, $(INCLUDE))
+DEPFLAG += $(addprefix -I, $(INCLUDE))
 
 RANLIB = ranlib
 AR = ar
