@@ -26,6 +26,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
     unsigned int num_states = states.NumStates();
     unsigned int size1 = 0;
     unsigned int size2 = 0;
+    unsigned int size3 = 0;
 
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
@@ -131,9 +132,88 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
         }
         it_2.Next(); i2++;
     }
-
     *logstream << "Num two-electron integrals: " << size2 << std::endl;
-    return (size1 + size2);
+
+    // Count box diagrams with wrong parity
+    if(include_extra_box)
+    {
+        it_2.First(); i2 = 0;
+        while(!it_2.AtEnd())
+        {   const DiscreteState* s2 = it_2.GetState();
+
+            it_4.First(); i4 = 0;
+            while(!it_4.AtEnd())
+            {   const DiscreteState* s4 = it_4.GetState();
+
+                // Limits on k; start at wrong parity
+                k = (unsigned int)fabs(s2->J() - s4->J());
+                if((k + s2->L() + s4->L())%2 == 0)
+                    k++;
+
+                kmax = (unsigned int)(s2->J() + s4->J());
+
+                while(k <= kmax)
+                {
+                    // s1 is the smallest
+                    it_1.First(); i1 = 0;
+                    while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
+                    {   const DiscreteState* s1 = it_1.GetState();
+                        
+                        it_3 = it_1; i3 = i1;
+                        unsigned int i3_limit;
+                        if(i1 == i2)
+                            i3_limit = i4;
+                        else
+                            i3_limit = NumStates;
+
+                        while((i3 <= i3_limit) && !it_3.AtEnd())
+                        {   const DiscreteState* s3 = it_3.GetState();
+                           
+                            // Check conditions:
+                            //     if(i1 == i4)  i2 <= i3
+                            //     if(i1 == i3)  i2 <= i4
+                            //     Triangle(s1.J, s3.J, k)
+                            if(   !((i1 == i4) && (i2 > i3))
+                            && !((i1 == i3) && (i2 > i4))
+                            && ((s1->L() + s3->L() + k)%2 == 1)
+                            && (double(k) >= fabs(s1->J() - s3->J()))
+                            && (double(k) <= s1->J() + s3->J()))
+                            {
+                                // Check max_pqn conditions - these are slightly redefined
+                                //    because of the reduced symmetry in integrals.
+                                // (one of remaining states s2, s3 or s4) < max_pqn_2
+                                // (at least two  of remaining states) < max_pqn_3
+                                unsigned int smallest_pqn = s2->RequiredPQN();
+                                unsigned int second_smallest_pqn = s3->RequiredPQN();
+                                if(smallest_pqn > second_smallest_pqn)
+                                    swap(smallest_pqn, second_smallest_pqn);
+                                if(s4->RequiredPQN() < smallest_pqn)
+                                {   second_smallest_pqn = smallest_pqn;
+                                    smallest_pqn = s4->RequiredPQN();
+                                }
+                                else if(s4->RequiredPQN() < second_smallest_pqn)
+                                    second_smallest_pqn = s4->RequiredPQN();
+
+                                if((smallest_pqn <= box_max_pqn_2) &&
+                                (second_smallest_pqn <= box_max_pqn_3))
+                                {
+                                    size3++;
+                                }
+                            }
+                            it_3.Next(); i3++;
+                        }
+                        it_1.Next(); i1++;
+                    }
+                    k += 2;
+                }
+                it_4.Next(); i4++;
+            }
+            it_2.Next(); i2++;
+        }
+        *logstream << "Num extra box integrals: " << size3 << std::endl;
+    }
+
+    return (size1 + size2 + size3);
 }
 
 void CIIntegralsMBPT::Update()
@@ -147,6 +227,8 @@ void CIIntegralsMBPT::Update(const std::string& sigma_id)
 
     UpdateOneElectronIntegrals(sigma_id);
     UpdateTwoElectronIntegrals();
+    if(include_extra_box)
+        UpdateTwoElectronBoxDiagrams();
 }
 
 void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
@@ -404,7 +486,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                         // Check conditions:
                         //     if(i1 == i4)  i2 <= i3
                         //     if(i1 == i3)  i2 <= i4
-                        //     Triangle(s1, s3, k)
+                        //     Triangle(s1.J, s3.J, k)
                         if(   !((i1 == i4) && (i2 > i3))
                            && !((i1 == i3) && (i2 > i4))
                            && ((s1->L() + s3->L() + k)%2 == 0)
@@ -454,6 +536,20 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                                 * Pot24[p] * dR[p];
                                     }
 
+                                    // Include the SMS directly into the integral
+                                    if(include_valence_sms && (k == 1))
+                                    {   double SMS = GetNuclearInverseMass();
+                                        if(SMS)
+                                        {   // i1 <= i3 always, but i2 is not necessarily less than i4.
+                                            if(i2 <= i4)
+                                                SMS = SMS * SMSIntegrals.find(i2*NumStates + i4)->second;
+                                            else
+                                                SMS = - SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
+
+                                            radial = radial - SMS * SMSIntegrals.find(i1*NumStates + i3)->second;
+                                        }
+                                    }
+
                                     if(include_mbpt2 && PT)
                                     {   radial += PT->GetTwoElectronDiagrams(s1, s2, s3, s4, k);
                                         if(include_mbpt2_subtraction)
@@ -493,6 +589,138 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         WriteTwoElectronIntegrals();
 }
 
+void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
+{
+    // Update the valence energies for perturbation theory
+    if(PT)
+        PT->UseBrillouinWignerPT();
+    else
+        return;
+
+#ifdef _MPI
+    // If MPI, then only calculate our integrals (these will presumably be stored).
+    int count = 0;
+#endif
+
+    // Want to save progress every hour or so.
+    time_t start, gap, now;
+    time(&start);
+    gap = 47 * 60;  // 47 minutes
+
+    unsigned int i1, i2, i3, i4;
+    unsigned int k, kmax;
+
+    ConstStateIterator it_1 = states.GetConstStateIterator();
+    ConstStateIterator it_2 = states.GetConstStateIterator();
+    ConstStateIterator it_3 = states.GetConstStateIterator();
+    ConstStateIterator it_4 = states.GetConstStateIterator();
+
+    it_2.First(); i2 = 0;
+    while(!it_2.AtEnd())
+    {   const DiscreteState* s2 = it_2.GetState();
+
+        it_4.First(); i4 = 0;
+        while(!it_4.AtEnd())
+        {   const DiscreteState* s4 = it_4.GetState();
+
+            // Limits on k; start at wrong parity
+            k = (unsigned int)fabs(s2->J() - s4->J());
+            if((k + s2->L() + s4->L())%2 == 0)
+                k++;
+
+            kmax = (unsigned int)(s2->J() + s4->J());
+
+            while(k <= kmax)
+            {
+                // s1 is the smallest
+                it_1.First(); i1 = 0;
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
+                {   const DiscreteState* s1 = it_1.GetState();
+                    
+                    it_3 = it_1; i3 = i1;
+                    unsigned int i3_limit;
+                    if(i1 == i2)
+                        i3_limit = i4;
+                    else
+                        i3_limit = NumStates;
+
+                    while((i3 <= i3_limit) && !it_3.AtEnd())
+                    {   const DiscreteState* s3 = it_3.GetState();
+                       
+                        // Check conditions:
+                        //     if(i1 == i4)  i2 <= i3
+                        //     if(i1 == i3)  i2 <= i4
+                        //     Triangle(s1.J, s3.J, k)
+                        if(   !((i1 == i4) && (i2 > i3))
+                           && !((i1 == i3) && (i2 > i4))
+                           && ((s1->L() + s3->L() + k)%2 == 1)
+                           && (double(k) >= fabs(s1->J() - s3->J()))
+                           && (double(k) <= s1->J() + s3->J()))
+                        {
+                            // Check max_pqn conditions - these are slightly redefined
+                            //    because of the reduced symmetry in integrals.
+                            // (one of remaining states s2, s3 or s4) < max_pqn_2
+                            // (at least two  of remaining states) < max_pqn_3
+                            unsigned int smallest_pqn = s2->RequiredPQN();
+                            unsigned int second_smallest_pqn = s3->RequiredPQN();
+                            if(smallest_pqn > second_smallest_pqn)
+                                swap(smallest_pqn, second_smallest_pqn);
+                            if(s4->RequiredPQN() < smallest_pqn)
+                            {   second_smallest_pqn = smallest_pqn;
+                                smallest_pqn = s4->RequiredPQN();
+                            }
+                            else if(s4->RequiredPQN() < second_smallest_pqn)
+                                second_smallest_pqn = s4->RequiredPQN();
+
+                            if((smallest_pqn <= box_max_pqn_2) &&
+                               (second_smallest_pqn <= box_max_pqn_3))
+                            {
+                                unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
+                                                   i1 * NumStates*NumStates*NumStates +
+                                                   i2 * NumStates*NumStates +
+                                                   i3 * NumStates +
+                                                   i4;
+
+                                // Check that this integral doesn't already exist
+                                // (it may have been read in)
+                                if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
+                                {
+                                  #ifdef _MPI
+                                    // MPI: Check if this is our integral.
+                                    if(count == ProcessorRank)
+                                    {
+                                  #endif
+                                        double radial = PT->GetTwoElectronBoxDiagrams(s1, s2, s3, s4, k);
+                                        TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                  #ifdef _MPI
+                                    }
+                                    count++;
+                                    if(count == NumProcessors)
+                                        count = 0;
+                                  #endif
+
+                                    time(&now);
+                                    if(now - start > gap)
+                                    {   WriteTwoElectronIntegrals();
+                                        start = now;
+                                    }
+                                }
+                            }
+                        }
+                        it_3.Next(); i3++;
+                    }
+                    it_1.Next(); i1++;
+                }
+                k += 2;
+            }
+            it_4.Next(); i4++;
+        }
+        it_2.Next(); i2++;
+    }
+
+    WriteTwoElectronIntegrals();
+}
+
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
 double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
 {
@@ -515,14 +743,12 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
         radial = TwoElectronIntegrals.find(key)->second;
     }
     else
-    {   // Check triangle conditions on k
-        if((int(k) < abs(int(s1.L()) - int(s3.L()))) ||
+    {   // Check triangle and parity conditions on k
+        if(((k + s1.L() + s3.L())%2 == 1) ||
              (double(k) < fabs(s1.J() - s3.J())) ||
-           (k > s1.L() + s3.L()) ||
              (double(k) > s1.J() + s3.J()) ||
-           (int(k) < abs(int(s2.L()) - int(s4.L()))) ||
+           ((k + s2.L() + s4.L())%2 == 1) ||
              (double(k) < fabs(s2.J() - s4.J())) ||
-           (k > s2.L() + s4.L()) ||
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
@@ -571,21 +797,20 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
 
             radial -= core_pol * R1 * R2;
         }
-    }
 
-    if(include_valence_sms && (k == 1))
-    {   double SMS = GetNuclearInverseMass();
-        if(SMS)
-        {   // i1 <= i3 always, but i2 is not necessarily less than i4.
-            if(i2 <= i4)
-                SMS = SMS * SMSIntegrals.find(i2*NumStates + i4)->second;
-            else
-                SMS = - SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
+        if(include_valence_sms && (k == 1))
+        {   double SMS = GetNuclearInverseMass();
+            if(SMS)
+            {   // i1 <= i3 always, but i2 is not necessarily less than i4.
+                if(i2 <= i4)
+                    SMS = SMS * SMSIntegrals.find(i2*NumStates + i4)->second;
+                else
+                    SMS = - SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
 
-            radial = radial - SMS * SMSIntegrals.find(i1*NumStates + i3)->second;
+                radial = radial - SMS * SMSIntegrals.find(i1*NumStates + i3)->second;
+            }
         }
     }
-
     return radial;
 }
 
@@ -596,7 +821,10 @@ void CIIntegralsMBPT::ReadMultipleOneElectronIntegrals(const std::string& name, 
     {
         std::stringstream ss;
         ss << i;
-        std::string filename = name + '_' + ss.str() + ".one.int";
+        std::string filename = name;
+        if(num_files > 1)
+            filename = filename + '_' + ss.str();
+        filename += ".one.int";
 
         fp = fopen(filename.c_str(), "rb");
         if(fp)
@@ -616,7 +844,10 @@ void CIIntegralsMBPT::ReadMultipleTwoElectronIntegrals(const std::string& name, 
     {
         std::stringstream ss;
         ss << i;
-        std::string filename = name + '_' + ss.str() + ".two.int";
+        std::string filename = name;
+        if(num_files > 1)
+            filename = filename + '_' + ss.str();
+        filename += ".two.int";
 
         fp = fopen(filename.c_str(), "rb");
         if(fp)
@@ -665,4 +896,66 @@ bool CIIntegralsMBPT::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int
         swap(i2, i3);
 
     return true;
+}
+
+void CIIntegralsMBPT::AddSMSToTwoElectronIntegrals(const std::string& name)
+{
+    const double SMS_scaling = GetNuclearInverseMass();
+    if(!include_valence_sms || !SMS_scaling)
+        return;
+
+    unsigned int stored_key;
+    double radial;
+    unsigned int k, i1, i2, i3, i4;
+
+    Clear();
+    UpdateOneElectronIntegrals("");
+    ReadMultipleTwoElectronIntegrals(name, 1);
+
+    std::map<unsigned int, double>::iterator it = TwoElectronIntegrals.begin();
+
+    while(it != TwoElectronIntegrals.end())
+    {
+        stored_key = it->first;
+        radial = it->second;
+
+        // Get k and stored states
+        i4 = stored_key%NumStates;
+            stored_key = stored_key/NumStates;
+        i3 = stored_key%NumStates;
+            stored_key = stored_key/NumStates;
+        i2 = stored_key%NumStates;
+            stored_key = stored_key/NumStates;
+        i1 = stored_key%NumStates;
+            stored_key = stored_key/NumStates;
+        k = stored_key%NumStates;
+
+        if(k == 1)
+        {
+            // Get states
+            StateInfo& s1 = reverse_state_index.find(i1)->second;
+            StateInfo& s2 = reverse_state_index.find(i2)->second;
+            StateInfo& s3 = reverse_state_index.find(i3)->second;
+            StateInfo& s4 = reverse_state_index.find(i4)->second;
+
+            // Check for correct parity (as opposed to box diagrams)
+            if(((s1.L() + s3.L() + k)%2 == 0) && ((s2.L() + s4.L() + k)%2 == 0))
+            {
+                double SMS = SMS_scaling;
+
+                // i1 <= i3 always, but i2 is not necessarily less than i4.
+                if(i2 <= i4)
+                    SMS = SMS * SMSIntegrals.find(i2*NumStates + i4)->second;
+                else
+                    SMS = - SMS * SMSIntegrals.find(i4*NumStates + i2)->second;
+
+                radial = radial - SMS * SMSIntegrals.find(i1*NumStates + i3)->second;
+                it->second = radial;
+            }
+        }
+
+        it++;
+    }
+
+    WriteTwoElectronIntegrals();
 }

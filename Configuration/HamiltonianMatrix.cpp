@@ -8,6 +8,9 @@
 
 #define SMALL_MATRIX_LIM 2000
 
+// Include this define for the box diagrams of "wrong" parity.
+#define INCLUDE_EXTRA_BOX_DIAGRAMS
+
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
     integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL)
 {
@@ -181,9 +184,6 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
     if((e1.J() + e3.J() < double(kmax)) || (e2.J() + e4.J() < double(kmax)))
         kmax -= 2;
 
-    if(k > kmax)
-        return 0.;
-
     double q = double(two_q)/2.;
 
     double total = 0.;
@@ -214,6 +214,45 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
 
         k = k+2;
     }
+
+#ifdef INCLUDE_EXTRA_BOX_DIAGRAMS
+    // Include the box diagrams with "wrong" parity.
+    k = (unsigned int)mmax(fabs(e1.J() - e3.J()), fabs(e2.J() - e4.J()));
+    if((k + e1.L() + e3.L())%2 == 0)
+        k++;
+
+    kmax = (unsigned int)mmin(e1.J() + e3.J(), e2.J() + e4.J());
+
+    while(k <= kmax)
+    {
+        double radial = integrals.GetTwoElectronIntegral(k, e1, e2, e3, e4);
+
+        if(radial)
+        {
+            double coeff = 0.;
+            if(fabs(q) <= k)
+                coeff = Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                        Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+                
+            if(coeff)
+                coeff = coeff * Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                                Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+
+            if(coeff)
+            {
+                if(int(q - e1.M() - e2.M() + 1.)%2)
+                    coeff = - coeff;
+
+                coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                            e3.MaxNumElectrons() * e4.MaxNumElectrons()));
+
+                total += coeff * radial;
+            }
+        }
+
+        k = k+2;
+    }
+#endif
 
     return total;
 }

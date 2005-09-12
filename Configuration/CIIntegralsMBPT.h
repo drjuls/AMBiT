@@ -15,7 +15,7 @@ public:
     CIIntegralsMBPT(const ExcitedStates& excited_states, const std::string& storage_id = ""):
         CIIntegrals(excited_states, storage_id), PT(NULL),
         include_sigma1(false), include_mbpt1(false), include_mbpt1_subtraction(false),
-        include_mbpt2(false), include_mbpt2_subtraction(false)
+        include_mbpt2(false), include_mbpt2_subtraction(false), include_extra_box(false)
     {}
     virtual ~CIIntegralsMBPT();
 
@@ -67,6 +67,14 @@ public:
             PT = mbpt;
     }
 
+    /** Include two-particle box diagrams. */
+    inline void IncludeExtraBoxDiagrams(bool include, unsigned int limit1 = 100, unsigned int limit2 = 100, unsigned int limit3 = 100)
+    {   include_extra_box = include;
+        box_max_pqn_1 = limit1;
+        box_max_pqn_2 = limit2;
+        box_max_pqn_3 = limit3;
+    }
+
     /** Write out sigma potentials. */
     void WriteSigmaPotentials() const;
 
@@ -82,11 +90,28 @@ public:
     */
     void ReadMultipleTwoElectronIntegrals(const std::string& name, unsigned int num_files);
 
+    /** Temporary: Add SMS to stored integrals - this is just to upgrade old files. This function:
+            UpdatesOneElectronIntegrals
+            Reads in two electron integrals from "name"
+            Adds SMS to stored integrals
+            Writes two-electron integrals to "id"
+    */
+    void AddSMSToTwoElectronIntegrals(const std::string& name);
+
 protected:
     virtual bool TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
 
     virtual void UpdateOneElectronIntegrals(const std::string& sigma_id);
+
+    // Unlike CIIntegrals, the CIIntegralsMBPT class includes the SMS in the radial integral
+    // directly. Therefore one must not update the two-electron integrals before the
+    // one-electron integrals if the SMS != 0.
     virtual void UpdateTwoElectronIntegrals();
+
+    /** Include a set of box diagrams of "wrong" parity with the two electron integrals.
+        Should only be done after UpdateTwoElectronIntegals().
+     */
+    virtual void UpdateTwoElectronBoxDiagrams();
 
 protected:
     MBPTCalculator* PT;
@@ -100,6 +125,10 @@ protected:
     /** Two-electron MBPT effects. */
     bool include_mbpt2;
     bool include_mbpt2_subtraction;
+    bool include_extra_box;
+
+    // Limits on extra two-body box diagram integrals.
+    unsigned int box_max_pqn_1, box_max_pqn_2, box_max_pqn_3;
 };
 
 #endif
