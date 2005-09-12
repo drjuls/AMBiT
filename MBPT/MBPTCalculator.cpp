@@ -90,6 +90,18 @@ double MBPTCalculator::GetTwoElectronDiagrams(const State* s1, const State* s2, 
     return term;
 }
 
+double MBPTCalculator::GetTwoElectronBoxDiagrams(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
+{
+    MaxStateSize = core->GetConstHFPotential().size();
+
+    double term = 0;
+    term += CalculateTwoElectron4(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron5(*s1, *s2, *s3, *s4, k);
+    term += CalculateTwoElectron6(*s1, *s2, *s3, *s4, k);
+
+    return term;
+}
+
 double MBPTCalculator::GetTwoElectronSubtraction(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();

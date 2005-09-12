@@ -45,6 +45,11 @@ public:
     /** Returns subtraction diagrams for the matrix element <s1, s2 | Sigma2(k) | s3, s4>. */
     double GetTwoElectronSubtraction(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k);
 
+    /** Returns "box" diagrams of <s1, s2 | Sigma2(k) | s3, s4> (numbers 4, 5, and 6).
+        Only calculates in Brillouin-Wigner PT.
+     */
+    double GetTwoElectronBoxDiagrams(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k);
+
     /** Use Brillouin-Wigner perturbation theory, where the energy of external lines is
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
