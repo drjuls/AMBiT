@@ -8,6 +8,13 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.2.3 - 12/09/05
+     This version is very stable; it was used for all C and Mg calculations.
+Alt: Atom::DoOpenShell*() improved usage of Read/Write with MBPT; 
+     Atom::OpenShellEnergy() simplified.
+Add: Altered make.dependencies to only use DEPFLAG and not CXXFLAGS when doing
+     makedep (so that we can use gcc for makedep and icpc for compiling).
+
 1.2.2 - 27/06/05
 Add: MBPTCalculator::CalculateTwoElectronSub() for two-electron subtraction
      diagrams.
