@@ -9,7 +9,7 @@
 #define SMALL_MATRIX_LIM 2000
 
 // Include this define for the box diagrams of "wrong" parity.
-#define INCLUDE_EXTRA_BOX_DIAGRAMS
+//#define INCLUDE_EXTRA_BOX_DIAGRAMS
 
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
     integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL)
