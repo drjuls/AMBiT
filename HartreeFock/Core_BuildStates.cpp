@@ -459,6 +459,11 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     }
 
     delta_E = (1. - norm)/(2. * var);
+    // Limit change in energy to 20%. Place warning in error file.
+    if(fabs(delta_E/old_energy) > 0.2)
+    {   *errstream << "IterateDiscreteStateGreens: large delta_E: = " << fabs(delta_E/old_energy)*100 << "%" << std::endl;
+        delta_E = fabs(old_energy*delta_E*0.2)/delta_E;
+    }
     s->SetEnergy(old_energy + delta_E);
 
     // Solve Dirac equation again with new energy
@@ -561,10 +566,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
         // Check that the number of zeroes of the wavefunction is correct, otherwise
         // adjust nu and start again.
 
-        double nu_change_factor = 0.3;
-        int zero_difference = 0,        // Difference between required and actual number of zeroes of wavefunction
-            old_zero_difference = 0;
-        double old_trial_nu = trial_nu;
+        int zero_difference = 0;    // Difference between required and actual number of zeroes of wavefunction
 
         do
         {   loop = ConvergeStateApproximation(ds);
@@ -580,25 +582,14 @@ unsigned int Core::CalculateExcitedState(State* s) const
             zero_difference = ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
 
             if(zero_difference)
-            {   // This checks to see whether we are getting anywhere, otherwise we need to
-                // increase the rate of change in nu.
-                if(old_zero_difference && (zero_difference == old_zero_difference))
-                {   trial_nu = old_trial_nu;
-                    nu_change_factor = nu_change_factor * 1.5;
-                }
-                else
-                {   old_trial_nu = trial_nu;
-                    old_zero_difference = zero_difference;
-                }
-
-                ds->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
-                trial_nu = ds->Nu();
-                nu_change_factor = nu_change_factor * 0.75;
-
-                *logstream << "    " << ds->Name()
+            {   *logstream << "    " << ds->Name()
                            << std::setprecision(7) << "  E = " << ds->Energy()
                            << "  loops: " << loop  << "  size: " << ds->Size()
                            << "  zerodiff: " << zero_difference << std::endl;
+
+                // This moves the state one pqn at a time
+                trial_nu = ds->Nu() - zero_difference/abs(zero_difference)/Charge;
+                ds->SetNu(trial_nu);
             }
         }
         while(zero_difference || (loop >= StateParameters::MaxHFIterations));
