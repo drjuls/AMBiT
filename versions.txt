@@ -8,6 +8,25 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.2.4 - 04/10/05
+Add: MBPTCalculator::GetTwoElectronBoxDiagrams() which calculates two-valence-
+     electron MBPT diagrams 4, 5, and 6; Added INCLUDE_EXTRA_BOX_DIAGRAMS
+     option to HamiltonianMatrix::CoulombMatrixElement() which includes radial
+     integrals with "wrong" parity, if they exist in integrals;
+     CIIntegralsMBPT::IncludeExtraBoxDiagrams() and 
+     UpdateTwoElectronBoxDiagrams() add odd parity box diagrams to integrals.
+     GetStorageSize() will now include these box diagrams in the total if
+     include_extra_box is true. Temporary function
+     CIIntegralsMBPT::AddSMSToTwoElectronIntegrals() will upgrade *.two.int
+     files that have no SMS included in them.
+Alt: CIIntegralsMBPT::TwoElectronIntegrals now include SMS with the radial
+     integral, instead of adding them when required. This makes sure the SMS is
+     not incorrectly added to box diagrams with wrong parity.
+     CIIntegralsMBPT::ReadMultipleTwoElectronIntegrals() will not append a "_0"
+     to the filename if only one file is requested (same with
+     ReadMultipleOneElectronIntegrals).
+Bug: Changes to Core::CalculateExcitedState() should improve HF excited states.
+
 1.2.3 - 12/09/05
      This version is very stable; it was used for all C and Mg calculations.
 Alt: Atom::DoOpenShell*() improved usage of Read/Write with MBPT; 
