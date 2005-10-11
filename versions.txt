@@ -8,6 +8,20 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.3.0 - 11/10/05
+Add: Sigma3Calculator class. The class inherits MBPTCalculator, but is separate
+     since its functions include calculation of ang. momentum diagrams, and it
+     has different syntax. Projection::GetNonRelConfiguration() and
+     Projection::GetProjectionDifferences3() added. HamiltonianMatrix has a few
+     functions added so that it can handle Sigma3. It also now has a set of
+     leading configurations that it uses to select elements in which to include
+     Sigma3, but these may be useful in the future anyway.
+     Added Sigma3Calculator* sigma3 to Atom class.
+Opt: Constant::Electron3j() now uses symmetry properties so that it only stores
+     3j symbols that have m1 > 0.
+Bug: ConfigGenerator::GenerateMultipleExcitations() can now deal with zero
+     excitations (useful for one-configuration calculations).
+
 1.2.4 - 04/10/05
 Add: MBPTCalculator::GetTwoElectronBoxDiagrams() which calculates two-valence-
      electron MBPT diagrams 4, 5, and 6; Added INCLUDE_EXTRA_BOX_DIAGRAMS

@@ -26,7 +26,7 @@ ifeq ($(MACHINE), apacac)
 
   LIBDIR       =
   BLASLIB      =
-  LAPACKLIB    = mkl_lapack64 mkl_ipf
+  LAPACKLIB    = scs
   EXTRALIBS    = guide pthread mpi++ mpi
 
   INCLUDE +=
