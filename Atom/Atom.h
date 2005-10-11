@@ -93,6 +93,7 @@ private:
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
     MBPTCalculator* mbpt;
+    Sigma3Calculator* sigma3;
 
     // Configuration Interaction parameters
     bool SD_CI;     // Only use single and double excitations in CI.

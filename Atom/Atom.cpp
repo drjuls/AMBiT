@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(12, 2, "MgI001");
+    {   Atom A(22, 2, "TiII001");
         A.RunOpen();
     }
     catch(std::bad_alloc& ba)
@@ -74,7 +74,7 @@ void Atom::Run()
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
     SD_CI(false), MBPT_CI(false), NumSolutions(6), excited(NULL), excited_mbpt(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL)
+    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     core = new Core(lattice, atomic_number, charge);
@@ -97,6 +97,8 @@ Atom::~Atom(void)
         delete excited_mbpt;
     if(mbpt)
         delete mbpt;
+    if(sigma3)
+        delete sigma3;
     delete core;
     delete lattice;
 }
@@ -180,11 +182,10 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(20);
-    num_states.push_back(20);
-    num_states.push_back(20);
-    num_states.push_back(20);
-    num_states.push_back(20);
+    num_states.push_back(6);
+    num_states.push_back(6);
+    num_states.push_back(7);
+    num_states.push_back(6);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -200,10 +201,10 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(7);
-    num_states.push_back(7);
-    num_states.push_back(7);
-    num_states.push_back(6);
+    num_states.push_back(13);
+    num_states.push_back(13);
+    num_states.push_back(14);
+    num_states.push_back(13);
 
     excited->CreateExcitedStates(num_states);
 }

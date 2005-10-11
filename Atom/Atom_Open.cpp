@@ -20,7 +20,7 @@ void Atom::RunOpen()
     DebugOptions.OutputHFExcited(false);
 
     SD_CI = true;
-    MBPT_CI = true;
+    MBPT_CI = false;
 
     if(MBPT_CI)
     {   integrals = new CIIntegralsMBPT(*excited);
@@ -32,9 +32,9 @@ void Atom::RunOpen()
         std::vector<unsigned int> num_states_per_l;
         num_states_per_l.push_back(30);
         num_states_per_l.push_back(30);
+        num_states_per_l.push_back(31);
         num_states_per_l.push_back(30);
         num_states_per_l.push_back(29);
-        num_states_per_l.push_back(28);
         excited_mbpt->CreateExcitedStates(num_states_per_l);
 
         mbpt = new MBPTCalculator(lattice, core, excited_mbpt);
@@ -47,17 +47,21 @@ void Atom::RunOpen()
         integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
     }
 
+    sigma3 = new Sigma3Calculator(lattice, core, excited);
+
     Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 0), 2);
+    config.SetOccupancy(NonRelInfo(3, 2), 2);
+    config.SetOccupancy(NonRelInfo(4, 0), 1);
 
     unsigned int two_j;
-    NumSolutions = 6;
+    NumSolutions = 2;
 
     *outstream << "\nGS Parity:\n" << std::endl;
-    for(two_j = 0; two_j <= 6; two_j += 2)
+    for(two_j = 3; two_j <= 9; two_j += 6)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+        H->IncludeSigma3(sigma3);
 
         //OpenShellEnergy(two_j, H);
         DoOpenShellSMS(two_j, H);
@@ -66,16 +70,17 @@ void Atom::RunOpen()
         delete H;
     }
 
-    config.RemoveSingleParticle(NonRelInfo(3, 0));
-    config.AddSingleParticle(NonRelInfo(3, 1));
+    config.RemoveSingleParticle(NonRelInfo(4, 0));
+    config.AddSingleParticle(NonRelInfo(4, 1));
 
-    NumSolutions = 6;
+    NumSolutions = 4;
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
-    for(two_j = 0; two_j <= 4; two_j+=2)
+    for(two_j = 9; two_j <= 11; two_j+=2)
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+        H->IncludeSigma3(sigma3);
         
         //OpenShellEnergy(two_j, H);
         DoOpenShellSMS(two_j, H);
@@ -93,8 +98,21 @@ HamiltonianMatrix* Atom::CreateHamiltonian(int twoJ, const Configuration& config
     else
         electron_excitations = config.NumParticles();
 
+    ConfigList leading_configs;
+    leading_configs.push_back(config);
+
+    Configuration config1;
+    config1.SetOccupancy(NonRelInfo(3, 2), 2);
+    config1.SetOccupancy(NonRelInfo(4, 0), 1);
+    leading_configs.push_back(config1);
+
+    Configuration config2;
+    config2.SetOccupancy(NonRelInfo(3, 2), 2);
+    config2.SetOccupancy(NonRelInfo(4, 1), 1);
+    leading_configs.push_back(config2);
+
     ConfigList nrlist;
-    nrlist.push_back(config);
+    nrlist.insert(nrlist.begin(), leading_configs.begin(), leading_configs.end());
 
     rlist.clear();
 
@@ -111,6 +129,8 @@ HamiltonianMatrix* Atom::CreateHamiltonian(int twoJ, const Configuration& config
         H = new HamiltonianMatrix(*integrals, rlist);
     #endif
 
+    H->AddLeadingConfigurations(leading_configs);
+
     return H;
 }
 
@@ -121,22 +141,23 @@ void Atom::CheckMatrixSizes()
 
     SD_CI = true;
     Configuration config;
-    config.SetOccupancy(NonRelInfo(2, 0), 2);
+    config.SetOccupancy(NonRelInfo(3, 2), 2);
+    config.SetOccupancy(NonRelInfo(4, 0), 1);
 
     unsigned int two_j;
 
     *outstream << "\nGS Parity:\n" << std::endl;
-    for(two_j = 0; two_j <= 0; two_j += 6)
+    for(two_j = 3; two_j <= 9; two_j += 6)
     {
         *outstream << "J = " << two_j/2. << std::endl;
         OpenShellEnergy(two_j, config, true);
     }
 
-    config.RemoveSingleParticle(NonRelInfo(2, 0));
-    config.AddSingleParticle(NonRelInfo(2, 1));
+    config.RemoveSingleParticle(NonRelInfo(4, 0));
+    config.AddSingleParticle(NonRelInfo(4, 1));
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
-    for(two_j = 0; two_j <= 4; two_j+=2)
+    for(two_j = 9; two_j <= 11; two_j+=2)
     {
         *outstream << "J = " << two_j/2. << std::endl;
         OpenShellEnergy(two_j, config, true);
