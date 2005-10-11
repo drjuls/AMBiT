@@ -1,4 +1,4 @@
-cxxobjects = MBPTCalculator.o
+cxxobjects = MBPTCalculator.o Sigma3Calculator.o
 cobjects = 
 fobjects =
 

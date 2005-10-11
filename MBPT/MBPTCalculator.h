@@ -20,7 +20,7 @@ class MBPTCalculator
      */
 public:
     MBPTCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
-    ~MBPTCalculator(void) {}
+    virtual ~MBPTCalculator(void) {}
 
     /** Create a sigma operator for the given state to second order.
      */
