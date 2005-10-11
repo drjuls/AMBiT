@@ -250,10 +250,17 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
         if(((twoj1 + twoj2)/2 + k)%2 == 1)
             sign = !sign;
     }
+    // if(j1 == j2), then (m1 >= m2)
     else if((twoj1 == twoj2) && (twom1 < twom2))
     {   int tempm;
         tempm = twom1; twom1 = twom2; twom2 = tempm;
         if((1 + k)%2 == 1)
+            sign = !sign;
+    }
+    // (m1 > 0)
+    if(twom1 < 0)
+    {   twom1 = -twom1; twom2 = -twom2;
+        if(((twoj1 + twoj2)/2 + k)%2 == 1)
             sign = !sign;
     }
 
