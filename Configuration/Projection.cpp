@@ -1,5 +1,6 @@
 #include "Include.h"
 #include "Projection.h"
+#include "HartreeFock/NonRelInfo.h"
 
 void Projection::Add(const ElectronInfo& info)
 {
@@ -195,4 +196,78 @@ int Projection::GetProjectionDifferences(const Projection& p1, const Projection&
         return int(diff1_size);
     else
         return -int(diff1_size);
+}
+
+int Projection::GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff)
+{
+    unsigned int i=0, j=0;
+    unsigned int diff1[4], diff2[4];
+    unsigned int diff1_size=0, diff2_size=0;
+
+    while((i < p1.Size()) && (j < p2.Size()) && (diff1_size <= 3) && (diff2_size <= 3))
+    {
+        if(p1[i] == p2[j])
+        {   i++;
+            j++;
+        }
+        else if(p1[i] < p2[j])
+        {   diff1[diff1_size++] = i;
+            i++;
+        }
+        else
+        {   diff2[diff2_size++] = j;
+            j++;
+        }
+    }
+    while((i < p1.Size()) && (diff1_size <= 3))
+    {   diff1[diff1_size++] = i;
+        i++;
+    }
+    while((j < p2.Size()) && (diff2_size <= 3))
+    {   diff2[diff2_size++] = j;
+        j++;
+    }
+    if((diff1_size != diff2_size) || (diff1_size > 3))
+        return 4;
+    else if(diff1_size == 0)
+        return 0;
+
+    int sort = abs(int(diff1[0]) - int(diff2[0]));
+    
+    //Copy first difference
+    diff[0] = diff1[0];
+    diff[1] = diff2[0];
+
+    if(diff1_size >= 2)
+    {   sort += abs(int(diff1[1]) - int(diff2[1]));
+
+        // Copy second difference
+        diff[2] = diff1[1];
+        diff[3] = diff2[1];
+    }
+
+    if(diff1_size == 3)
+    {   sort += abs(int(diff1[2]) - int(diff2[2]));
+
+        // Copy third difference
+        diff[4] = diff1[2];
+        diff[5] = diff2[2];
+    }
+
+    if(sort%2 == 0)
+        return int(diff1_size);
+    else
+        return -int(diff1_size);
+}
+
+Configuration Projection::GetNonRelConfiguration() const
+{
+    Configuration ret;
+
+    for(unsigned int i = 0; i < Config.size(); i++)
+    {
+        ret.AddSingleParticle(NonRelInfo(Config[i].PQN(), Config[i].L()));
+    }
+
+    return ret;
 }

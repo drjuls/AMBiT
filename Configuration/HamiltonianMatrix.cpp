@@ -12,7 +12,7 @@
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
 
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
-    integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL)
+    integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL), include_sigma3(false)
 {
     // Set up matrix
     N = 0;
@@ -40,6 +40,9 @@ void HamiltonianMatrix::GenerateMatrix()
         M->Clear();
 
     M->WriteMode(true);
+
+    if(include_sigma3)
+        sigma3calc->UseBrillouinWignerPT();
 
     // Loop through relativistic configurations
     RelativisticConfigList::const_iterator list_it = configs.begin();
@@ -163,6 +166,9 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
         value = sign * (CoulombMatrixElement(f1, f2, s1, s2)
                         - CoulombMatrixElement(f1, f2, s2, s1));
     }
+
+    if(include_sigma3)
+        value += GetSigma3(first, second);
 
     return value;
 }
@@ -696,4 +702,141 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
     }
     else
         return 0.;
+}
+
+void HamiltonianMatrix::AddLeadingConfigurations(const ConfigList& list)
+{
+    ConfigList::const_iterator it = list.begin();
+    while(it != list.end())
+    {   leading_configs.insert(*it);
+        it++;
+    }
+}
+
+void HamiltonianMatrix::AddLeadingConfigurations(const Configuration& config)
+{
+    leading_configs.insert(config);
+}
+
+double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
+{
+    // Check that first and second are leading configurations
+    if((leading_configs.find(first.GetNonRelConfiguration()) == leading_configs.end()) ||
+       (leading_configs.find(second.GetNonRelConfiguration()) == leading_configs.end()))
+        return 0.;
+
+    unsigned int diff[6];
+    int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
+
+    int sign;
+    if(numdiff >= 0)
+        sign = 1;
+    else
+        sign = -1;
+
+    double value = 0.;
+
+    if(numdiff == 0)
+    {
+        // Sum(i < j < k) Sigma3(ijk, ijk)
+        for(unsigned int i=0; i<first.Size(); i++)
+        {
+            for(unsigned int j=i+1; j<first.Size(); j++)
+            {
+                for(unsigned int k=j+1; k<first.Size(); k++)
+                {
+                    value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
+                }
+            }
+        }
+    }
+    else if(abs(numdiff) == 1)
+    {
+        const ElectronInfo& f1 = first[diff[0]];
+        const ElectronInfo& s1 = second[diff[1]];
+
+        // Sum(i < j) Sigma3(aij, bij)
+        for(unsigned int i=0; i<first.Size(); i++)
+        {
+            for(unsigned int j=i+1; j<first.Size(); j++)
+            {
+                if((i != diff[0]) && (j != diff[0]))
+                {   
+                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
+                }
+            }
+        }
+    }
+    else if(abs(numdiff) == 2)
+    {
+        const ElectronInfo& f1 = first[diff[0]];
+        const ElectronInfo& s1 = second[diff[1]];
+        const ElectronInfo& f2 = first[diff[2]];
+        const ElectronInfo& s2 = second[diff[3]];
+
+        // Sum(i) Sigma3(abi, cdi)
+        for(unsigned int i=0; i<first.Size(); i++)
+        {
+            if((i != diff[0]) && (i != diff[2]))
+               value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);
+        }
+    }
+    else if(abs(numdiff) == 3)
+    {
+        const ElectronInfo& f1 = first[diff[0]];
+        const ElectronInfo& s1 = second[diff[1]];
+        const ElectronInfo& f2 = first[diff[2]];
+        const ElectronInfo& s2 = second[diff[3]];
+        const ElectronInfo& f3 = first[diff[4]];
+        const ElectronInfo& s3 = second[diff[5]];
+
+        // Sigma3(abc, def)
+        value = sign * Sigma3(f1, f2, f3, s1, s2, s3);
+    }
+
+    return value;
+}
+
+double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
+{
+    // Check momentum projections
+    if(e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM())
+        return 0.;
+
+    // Check parity
+    if((e1.L() + e2.L() + e4.L())%2 != (e3.L() + e5.L() + e6.L())%2)
+        return 0.;
+
+    double value = 0.;
+
+    // The sign changes for odd permutations
+    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
+            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
+            + Sigma3LinePermutations(e1, e2, e3, e6, e4, e5)
+            - Sigma3LinePermutations(e1, e2, e3, e5, e4, e6)
+            - Sigma3LinePermutations(e1, e2, e3, e6, e5, e4)
+            - Sigma3LinePermutations(e1, e2, e3, e4, e6, e5);
+
+    return value;
+}
+
+/** This function does the line permutations, putting the pairs on different levels
+    of the three-body interaction.
+    */
+inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
+{
+    double value = 0.;
+
+    // There are no sign changes, since there are the same number
+    // of permutations on both sides
+    value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
+            + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
+            + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)
+            + sigma3calc->GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4)
+            + sigma3calc->GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6)
+            + sigma3calc->GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
+
+    return value;
 }

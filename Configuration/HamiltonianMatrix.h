@@ -5,12 +5,13 @@
 #include "CIIntegrals.h"
 #include "Basis/ExcitedStates.h"
 #include "Universal/Matrix.h"
+#include "MBPT/Sigma3Calculator.h"
 
 class HamiltonianMatrix
 {
 public:
     HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs);
-    virtual ~HamiltonianMatrix(void) 
+    virtual ~HamiltonianMatrix(void)
     {   if(M)
             delete M;
         if(NumSolutions)
@@ -29,6 +30,18 @@ public:
     virtual void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactor = false);
 
     virtual void GetEigenvalues() const;
+
+public:
+    /** Include Sigma3 in the leading configurations. */
+    void IncludeSigma3(Sigma3Calculator* sigma3)
+    {   if(sigma3 && (configs.begin()->NumParticles() >= 3))
+            include_sigma3 = true;
+        sigma3calc = sigma3;
+    }
+
+    /** Add to the set of leading configurations. */
+    void AddLeadingConfigurations(const ConfigList& list);
+    void AddLeadingConfigurations(const Configuration& config);
 
 protected:
     /** Get the Hamiltonian matrix element between two projections. */
@@ -51,6 +64,28 @@ protected:
     /** Get average z-component of spin for single electron. */
     double GetSz(const ElectronInfo& e) const;
     double GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const;
+
+protected:
+    bool include_sigma3;
+    Sigma3Calculator* sigma3calc;
+    std::set<Configuration> leading_configs;
+
+    /** Return value of Sigma3 for matrix element (added in GetProjectionH).
+        Checks to see that first and second are leading configurations.
+      */
+    double GetSigma3(const Projection& first, const Projection& second) const;
+
+    /** Get Sigma3(e1 e2 e3 -> e4 e5 e6) including all permutations.
+        Sigma3 does the pair matching (matching e1 to e4, e5, and then e6).
+     */
+    double Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
+
+    /** This function does the line permutations, putting the pairs on different levels
+        of the three-body interaction.
+     */
+    inline double Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
 
 protected:
     const RelativisticConfigList& configs;

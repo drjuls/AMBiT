@@ -44,6 +44,9 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     ConfigList::iterator it = configlist.begin();
     Parity  parity = it->GetParity();
 
+    configlist.sort();
+    configlist.unique();
+
     for(unsigned int i=0; i<num_excitations; i++)
     {
         GenerateExcitations(configlist);

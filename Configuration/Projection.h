@@ -1,6 +1,7 @@
 #ifndef PROJECTION_H
 #define PROJECTION_H
 
+#include "Configuration.h"
 #include "ElectronInfo.h"
 #include <vector>
 #include <list>
@@ -51,6 +52,16 @@ public:
             diff[3] = projection p2, difference 2.
       */
     static int GetProjectionDifferences(const Projection& p1, const Projection& p2, unsigned int* diff);
+
+    /** This function is the same as GetProjectionDifferences(), but returns up
+            to three differences.
+            If there are more than three differences the function returns 4.
+        diff[6] stores the positions of the three differences (see above).
+     */
+    static int GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff);
+
+    /** Get equivalent non-relativistic configuration. */
+    Configuration GetNonRelConfiguration() const;
 
 protected:
     bool Sort(std::vector<ElectronInfo>& config) const;
