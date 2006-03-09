@@ -11,6 +11,10 @@
 // Include this define for the box diagrams of "wrong" parity.
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
 
+// Include this define to only include sigma3 when both states are leading configurations
+// (instead of just one).
+#define SIGMA3_AND
+
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
     integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL), include_sigma3(false)
 {
@@ -41,6 +45,7 @@ void HamiltonianMatrix::GenerateMatrix()
 
     M->WriteMode(true);
 
+    // Set valence energies
     if(include_sigma3)
         sigma3calc->UseBrillouinWignerPT();
 
@@ -720,10 +725,17 @@ void HamiltonianMatrix::AddLeadingConfigurations(const Configuration& config)
 
 double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
 {
-    // Check that first and second are leading configurations
+#ifdef SIGMA3_AND
+    // Check that first AND second are leading configurations
     if((leading_configs.find(first.GetNonRelConfiguration()) == leading_configs.end()) ||
        (leading_configs.find(second.GetNonRelConfiguration()) == leading_configs.end()))
         return 0.;
+#else
+    // Check that first OR second is a leading configuration
+    if((leading_configs.find(first.GetNonRelConfiguration()) == leading_configs.end()) &&
+       (leading_configs.find(second.GetNonRelConfiguration()) == leading_configs.end()))
+        return 0.;
+#endif
 
     unsigned int diff[6];
     int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
