@@ -58,9 +58,20 @@ public:
         BrillouinWignerPT = true;
     }
 
-    /** Use Rayleigh-Shrodinger perturbation theory. */
+    /** Use Rayleigh-Shrodinger perturbation theory. Only for single-valence-electron diagrams. */
     void UseRayleighShrodingerPT()
     {   BrillouinWignerPT = false;
+    }
+
+    /** Add a constant, delta, to the energy denominator in all diagrams.
+        This corresponds to H_0 -> H_0 + delta, so V -> V - delta
+        and the energy denominator becomes
+            1/(E + delta - H_0)
+        To choose delta to adjust E closer to the BW value, use
+            delta = E_CI - E_HF
+     */
+    void SetEnergyShift(double energy_shift)
+    {   delta = energy_shift;
     }
 
 protected:
@@ -152,6 +163,8 @@ protected:
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;
     void SetValenceEnergies();
+
+    double delta;   // Shift in the (BW) energy denominator.
 };
 
 #endif

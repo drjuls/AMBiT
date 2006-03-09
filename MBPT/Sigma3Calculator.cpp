@@ -102,7 +102,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                         {
                             ElectronInfo en(sn.RequiredPQN(), sn.Kappa(), two_mn);
 
-                            double coeff = double(en.MaxNumElectrons())/(sn.Energy() - ValenceEnergy)
+                            double coeff = double(en.MaxNumElectrons())/(sn.Energy() - ValenceEnergy + delta)
                                 * Constant::Electron3j(e2.TwoJ(), two_Jn, k1, 1, -1)
                                 * Constant::Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn)
                                 * Constant::Electron3j(two_Jn, e5.TwoJ(), k2, 1, -1)

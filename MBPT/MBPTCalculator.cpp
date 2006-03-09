@@ -7,7 +7,7 @@
 #define MAX_K 12
 
 MBPTCalculator::MBPTCalculator(Lattice* lat, const Core* atom_core, const ExcitedStates* excited_states):
-    lattice(lat), core(atom_core), excited(excited_states), BrillouinWignerPT(false)
+    lattice(lat), core(atom_core), excited(excited_states), BrillouinWignerPT(false), delta(0.)
 {
     MaxStateSize = core->GetConstHFPotential().size();
     SetValenceEnergies();
@@ -190,7 +190,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
                                 coeff = coeff * coeff * coeff24 * (J3 + 1);
 
                                 if(BrillouinWignerPT)
-                                    coeff = coeff/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy());
+                                    coeff = coeff/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy() + delta);
                                 else
                                     coeff = coeff/(si.Energy() + s2.Energy() - s3.Energy() - s4.Energy());
 
@@ -264,7 +264,7 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
                                 coeff = coeff * coeff * coeff24 * (J3 + 1);
 
                                 if(BrillouinWignerPT)
-                                    coeff = coeff/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy());
+                                    coeff = coeff/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy() - delta);
                                 else
                                     coeff = coeff/(sf.Energy() + s4.Energy() - s2.Energy() - s3.Energy());
 
@@ -413,7 +413,7 @@ double MBPTCalculator::CalculateCorrelation2(const State& si, const State& sf, S
                             coeff13 = coeff13 * (J3 + 1);
 
                             if(BrillouinWignerPT)
-                                coeff13 = coeff13/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy());
+                                coeff13 = coeff13/(ValenceEnergy + s2.Energy() - s3.Energy() - s4.Energy() + delta);
                             else
                                 coeff13 = coeff13/(si.Energy() + s2.Energy() - s3.Energy() - s4.Energy());
 
@@ -601,7 +601,7 @@ double MBPTCalculator::CalculateCorrelation4(const State& si, const State& sf, S
                             coeff13 = coeff13 * (J3 + 1);
 
                             if(BrillouinWignerPT)
-                                coeff13 = coeff13/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy());
+                                coeff13 = coeff13/(ValenceEnergy + s4.Energy() - s2.Energy() - s3.Energy() - delta);
                             else
                                 coeff13 = coeff13/(sf.Energy() + s4.Energy() - s2.Energy() - s3.Energy());
 
@@ -758,7 +758,7 @@ double MBPTCalculator::CalculateSubtraction1(const State& si, const State& sf, S
                     }
                     I.FastCoulombIntegrate(density, Pot24, 0, mmin(s2.Size(), s4.Size()));
 
-                    coeff = coeff/(s2.Energy() - s4.Energy());
+                    coeff = coeff/(s2.Energy() - s4.Energy() + delta);
 
                     // R1 = R_0 (i2, f4)
                     double R1 = 0.;
@@ -828,7 +828,7 @@ double MBPTCalculator::CalculateSubtraction2(const State& si, const State& sf, S
                 if(coeff24)
                 {
                     coeff24 = coeff24 * (J2 + 1);
-                    coeff24 = coeff24/(s2.Energy() - s4.Energy());
+                    coeff24 = coeff24/(s2.Energy() - s4.Energy() + delta);
             
                     unsigned int start_k = (si.L() + s2.L())%2;
 
@@ -911,7 +911,7 @@ double MBPTCalculator::CalculateSubtraction3(const State& si, const State& sf, S
         {
             double term = SI.HamiltonianMatrixElement(si, s2, *core) * SI.HamiltonianMatrixElement(sf, s2, *core);
             if(BrillouinWignerPT)
-                term = term/(s2.Energy() - ValenceEnergy);
+                term = term/(s2.Energy() - ValenceEnergy + delta);
             else
                 term = term/(s2.Energy() - si.Energy());
                 
@@ -968,7 +968,7 @@ double MBPTCalculator::CalculateTwoElectron1(const State& sa, const State& sb, c
             {
                 coeff = coeff * coeff * (J2 + 1) * (J4 + 1)
                                         / (2. * k + 1.);
-                coeff = coeff/(s2.Energy() - s4.Energy());
+                coeff = coeff/(s2.Energy() - s4.Energy() + delta);
 
                 for(i=0; i<mmin(s2.Size(), s4.Size()); i++)
                 {
@@ -1055,7 +1055,7 @@ double MBPTCalculator::CalculateTwoElectron2(const State& sa, const State& sb, c
             if(coeff24)
             {
                 coeff24 = coeff24 * (J2 + 1) * (J4 + 1);
-                coeff24 = coeff24/(s2.Energy() - s4.Energy());
+                coeff24 = coeff24/(s2.Energy() - s4.Energy() + delta);
 
                 for(i=0; i<mmin(s2.Size(), s4.Size()); i++)
                 {
@@ -1217,7 +1217,7 @@ double MBPTCalculator::CalculateTwoElectron3(const State& sa, const State& sb, c
             if(coeff24)
             {
                 coeff24 = coeff24 * (J2 + 1) * (J4 + 1);
-                coeff24 = coeff24/(s2.Energy() - s4.Energy());
+                coeff24 = coeff24/(s2.Energy() - s4.Energy() + delta);
 
                 for(i=0; i<mmin(s2.Size(), s4.Size()); i++)
                 {
@@ -1380,7 +1380,7 @@ double MBPTCalculator::CalculateTwoElectron4(const State& sa, const State& sb, c
             if(coeff24)
             {
                 coeff24 = coeff24/(coeff_ac*coeff_bd);
-                coeff24 = coeff24/(s2.Energy() - s4.Energy());
+                coeff24 = coeff24/(s2.Energy() - s4.Energy() + delta);
                 unsigned int exponent = (unsigned int)(Ja + Jb + Jc + Jd + J2 + J4)/2;
                 if(exponent%2)
                     coeff24 = -coeff24;
@@ -1515,7 +1515,7 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
             if(coeff_mn)
             {
                 coeff_mn = coeff_mn/(coeff_ac*coeff_bd);
-                coeff_mn = coeff_mn/(sm.Energy() + sn.Energy() - ValenceEnergy);
+                coeff_mn = coeff_mn/(sm.Energy() + sn.Energy() - ValenceEnergy + delta);
                 unsigned int exponent = (unsigned int)(Ja + Jb + Jc + Jd + Jm + Jn)/2;
                 if((exponent + k + 1)%2)
                     coeff_mn = -coeff_mn;
@@ -1633,7 +1633,7 @@ double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb,
             {   R1 = R1 + SMS_bd * SI.IsotopeShiftIntegral(sc, sn);
             }
 
-            energy -= R1 * SI.HamiltonianMatrixElement(sa, sn, *core) / (sn.Energy() - ValenceEnergies.find(sa.Kappa())->second);
+            energy -= R1 * SI.HamiltonianMatrixElement(sa, sn, *core) / (sn.Energy() - ValenceEnergies.find(sa.Kappa())->second + delta);
         }
 
         if(sn.Kappa() == sc.Kappa())
@@ -1646,7 +1646,7 @@ double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb,
             {   R1 = R1 - SMS_bd * SI.IsotopeShiftIntegral(sa, sn);
             }
 
-            energy -= R1 * SI.HamiltonianMatrixElement(sc, sn, *core) / (sn.Energy() - ValenceEnergies.find(sc.Kappa())->second);
+            energy -= R1 * SI.HamiltonianMatrixElement(sc, sn, *core) / (sn.Energy() - ValenceEnergies.find(sc.Kappa())->second + delta);
         }
 
         itn.Next();
@@ -1678,7 +1678,7 @@ double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb,
             {   R1 = R1 + SMS_ac * SI.IsotopeShiftIntegral(sd, sn);
             }
 
-            energy -= R1 * SI.HamiltonianMatrixElement(sb, sn, *core) / (sn.Energy() - ValenceEnergies.find(sb.Kappa())->second);
+            energy -= R1 * SI.HamiltonianMatrixElement(sb, sn, *core) / (sn.Energy() - ValenceEnergies.find(sb.Kappa())->second + delta);
         }
 
         if(sn.Kappa() == sd.Kappa())
@@ -1691,7 +1691,7 @@ double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb,
             {   R1 = R1 - SMS_ac * SI.IsotopeShiftIntegral(sb, sn);
             }
 
-            energy -= R1 * SI.HamiltonianMatrixElement(sd, sn, *core) / (sn.Energy() - ValenceEnergies.find(sd.Kappa())->second);
+            energy -= R1 * SI.HamiltonianMatrixElement(sd, sn, *core) / (sn.Energy() - ValenceEnergies.find(sd.Kappa())->second + delta);
         }
 
         itn.Next();
