@@ -41,12 +41,14 @@ void Atom::RunOpen()
 
         integralsMBPT->IncludeMBPT1(true, mbpt);
         integralsMBPT->IncludeMBPT2(true, mbpt);
+        integralsMBPT->IncludeExtraBoxDiagrams(true, 4, 4);
     }
     else
     {   integrals = new CIIntegrals(*excited);
         integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
     }
 
+    //integralsMBPT->SetTwoElectronStorageLimits(4, 4);
     sigma3 = new Sigma3Calculator(lattice, core, excited);
 
     Configuration config;
@@ -54,7 +56,7 @@ void Atom::RunOpen()
     config.SetOccupancy(NonRelInfo(4, 0), 1);
 
     unsigned int two_j;
-    NumSolutions = 2;
+    NumSolutions = 3;
 
     *outstream << "\nGS Parity:\n" << std::endl;
     for(two_j = 3; two_j <= 9; two_j += 6)
@@ -195,8 +197,13 @@ void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
 void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
 {
     integrals->IncludeValenceSMS(true);
-
     std::string original_id = identifier;
+
+    // delta = E_CI - E_HF
+    const static double delta[] = {-153032.342993, -153171.872643,
+				   -153311.988576, -153452.692228,
+				   -153593.985096};
+    int p_delta;
     
     for(double ais = -0.002; ais <= 0.002; ais += 0.001)
     {
@@ -216,7 +223,16 @@ void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
         Read();
         core->ToggleClosedShellCore();
 
+        p_delta = (int)(ais * 1000) + 2;
+        if(mbpt)
+            mbpt->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+        if(sigma3)
+            sigma3->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+
         integrals->SetIdentifier(identifier);
+        //integrals->Clear();
+        //integralsMBPT->ReadMultipleTwoElectronIntegrals(identifier, 16);
+        //integrals->WriteTwoElectronIntegrals();
         integrals->Update();
 
         H->GenerateMatrix();
@@ -296,6 +312,12 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
     integrals->IncludeValenceSMS(false);
     std::string original_id = identifier;
 
+    // delta = E_CI - E_HF
+    const static double delta[] = {-153309.654578, -153310.828119,
+				   -153311.988571, -153313.136414,
+				   -153314.272120};
+    int p_delta;
+
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
         *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << ais << std::endl;
@@ -314,7 +336,16 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
         Read();
         core->ToggleClosedShellCore();
 
+        p_delta = (int)(ais/50. + 2.01);
+        if(mbpt)
+            mbpt->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+        if(sigma3)
+            sigma3->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+
         integrals->SetIdentifier(identifier);
+        //integrals->Clear();
+        //integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, 16);
+        //integrals->WriteOneElectronIntegrals();
         integrals->Update();
 
         H->GenerateMatrix();
