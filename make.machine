@@ -56,7 +56,7 @@ ifeq ($(MACHINE), apaclc)
   LIBDIR       = $$LAMHOME/lib
   BLASLIB      = blas
   LAPACKLIB    = lapack
-  EXTRALIBS    = lammpi++ mpi lam g2c
+  EXTRALIBS    = lammpi++ mpi lam g2c pthread dl
 
   INCLUDE += $$$$LAMHOME/include
 
