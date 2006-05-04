@@ -8,6 +8,10 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Add: Options for Sigma3 in HamiltonianMatrix class. Zero thickness option for
+     NuclearPotential in Core_BuildStates.cpp. Additional energy shift "delta"
+     in denominator of MBPT diagrams.
+
 1.3.0 - 11/10/05
 Add: Sigma3Calculator class. The class inherits MBPTCalculator, but is separate
      since its functions include calculation of ang. momentum diagrams, and it
