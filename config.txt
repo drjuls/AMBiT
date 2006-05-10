@@ -1,5 +1,7 @@
 // Z, Charge, NuclearRadius, NuclearThickness
 // Configuration (':' delimits closed shell core)
+1   1  0.0000  0.0    H
+:
 6   0  1.9350  1.5	CI
 1s2: 2s2 2p2
 6   2  1.9350  2.3	CI/CII
