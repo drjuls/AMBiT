@@ -49,7 +49,7 @@ void Atom::RunOpen()
     }
 
     //integralsMBPT->SetTwoElectronStorageLimits(4, 4);
-    sigma3 = new Sigma3Calculator(lattice, core, excited);
+    //sigma3 = new Sigma3Calculator(lattice, core, excited);
 
     Configuration config;
     config.SetOccupancy(NonRelInfo(3, 2), 2);
@@ -63,7 +63,7 @@ void Atom::RunOpen()
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
-        H->IncludeSigma3(sigma3);
+        //H->IncludeSigma3(sigma3);
 
         //OpenShellEnergy(two_j, H);
         DoOpenShellSMS(two_j, H);
@@ -82,7 +82,7 @@ void Atom::RunOpen()
     {
         RelativisticConfigList rlist;
         HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
-        H->IncludeSigma3(sigma3);
+        //H->IncludeSigma3(sigma3);
         
         //OpenShellEnergy(two_j, H);
         DoOpenShellSMS(two_j, H);
@@ -301,11 +301,66 @@ void Atom::SMS_V2(int twoJ, HamiltonianMatrix* H)
     }
 }
 
+void Atom::DoOpenShellFSModifyR(int twoJ, HamiltonianMatrix* H)
+{
+    integrals->IncludeValenceSMS(false);
+    std::string original_id = identifier;
+
+    // delta = E_CI - E_HF
+    const static double delta[] = {-153309.654578, -153310.828119,
+				   -153311.988571, -153313.136414,
+				   -153314.272120};
+    int p_delta;
+
+    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
+
+    for(double r = 0.; r <= 12.; r += 3.)
+    {
+        *outstream << "\nRadius = " << std::setprecision(3) << r << std::endl;
+
+        std::stringstream ss;
+        ss << (int)(r);
+        identifier = original_id + '_' + ss.str();
+
+        core->ToggleOpenShellCore();
+        core->SetNuclearRadius(r/Constant::AtomicToFermi);
+        core->Update();
+        excited->Update();
+        //if(MBPT_CI)
+        //    excited_mbpt->Update();
+        //Write();
+        //Read();
+        core->ToggleClosedShellCore();
+
+        p_delta = (int)(r/3. - 0.99);
+        if(mbpt)
+            mbpt->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+        if(sigma3)
+            sigma3->SetEnergyShift(delta[p_delta]/Constant::HartreeEnergy_cm);
+
+        integrals->SetIdentifier(identifier);
+        //integrals->Clear();
+        //integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, 16);
+        //integrals->WriteOneElectronIntegrals();
+        integrals->Update();
+
+        H->GenerateMatrix();
+
+        if(r == 3.0)  // Get g-factors
+            H->SolveMatrix(NumSolutions, twoJ, true);
+        else
+            H->SolveMatrix(NumSolutions, twoJ);
+    }
+
+    identifier = original_id;
+}
+
 void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
 {
+    double deltaR = 0.05;
     static bool calculated_potential = false;
     if(!calculated_potential)
-    {   core->CalculateVolumeShiftPotential(0.05/Constant::AtomicToFermi);
+    {   core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
         calculated_potential = true;
     }
 
@@ -317,6 +372,10 @@ void Atom::DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H)
 				   -153311.988571, -153313.136414,
 				   -153314.272120};
     int p_delta;
+
+    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
+    *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
+    *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR;
 
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {

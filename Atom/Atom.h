@@ -46,6 +46,7 @@ public:
     void CreateCustomBasis(const StateInfo* ionised = NULL);
 
     void DoClosedShellSMS(bool include_mbpt = true);
+    void DoClosedShellFSModifyR(bool include_mbpt = true);
     void DoClosedShellVolumeShift(bool include_mbpt = true);
     void DoClosedShellAlphaVar(bool include_mbpt = true);
 
@@ -76,6 +77,7 @@ public:
     void SMS_V2(int twoJ, HamiltonianMatrix* H);
 
     /** Calculate volume shift. */
+    void DoOpenShellFSModifyR(int twoJ, HamiltonianMatrix* H);
     void DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H);
 
     /** Calculate relativistic shift (q-values). */

@@ -260,13 +260,58 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
     }
 }
 
+void Atom::DoClosedShellFSModifyR(bool include_mbpt)
+{
+    MBPTCalculator mbpt(lattice, core, excited);
+    const unsigned int max_k = 5;
+    double totals[max_k];
+
+    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
+
+    for(double r = 0.; r <= 12.; r += 3.)
+    {
+        core->SetNuclearRadius(r/Constant::AtomicToFermi);
+        core->Update();
+        excited->Update();
+
+        const State* ds;
+        int k2;
+        for(k2 = 1; k2 <= max_k; k2++)
+        {
+            int kappa = k2/2;
+            if(k2%2)
+                kappa = -kappa-1;
+
+            if(k2 <= 3)
+                ds = excited->GetState(StateInfo(4, kappa));
+            else
+                ds = excited->GetState(StateInfo(3, kappa));
+
+            if(include_mbpt)
+                totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+            else
+                totals[k2-1] = ds->Energy();
+        }
+
+        *outstream << "\nRadius = " << r << std::endl;
+        for(k2 = 0; k2 < max_k; k2++)
+            *outstream << std::setprecision(15) << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
+        *outstream << std::endl;
+    }
+}
+
 void Atom::DoClosedShellVolumeShift(bool include_mbpt)
 {
-    core->CalculateVolumeShiftPotential(0.05/Constant::AtomicToFermi);
+    double deltaR = 0.05;
+    core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
 
     MBPTCalculator mbpt(lattice, core, excited);
     const unsigned int max_k = 5;
     double totals[max_k];
+
+    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
+    *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
+    *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR;
 
     for(double ais = -100.; ais <= 100.; ais += 50.)
     {
