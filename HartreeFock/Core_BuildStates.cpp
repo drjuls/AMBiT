@@ -12,7 +12,7 @@
 void Core::Update()
 {
     // Check that there is something to start with
-    if(Empty())
+    if((Z > 1.) && Empty())
         BuildFirstApproximation();
     UpdateHFPotential();
 
@@ -222,44 +222,45 @@ void Core::ExtendPotential() const
 
 void Core::UpdateNuclearPotential()
 {
-    // Create nuclear density function
-    std::vector<double> density = CalculateNuclearDensity(NuclearRadius, NuclearThickness);
+    if(NuclearRadius < 0.1/Constant::AtomicToFermi)
+    {   // Point nucleus
+        NuclearPotential.clear();
+    }
+    else if(NuclearThickness < 0.1/Constant::AtomicToFermi)
+    {   // Uniform hard sphere
+        NuclearPotential.resize(lattice->real_to_lattice(NuclearRadius));
+        for(unsigned int i=0; i<NuclearPotential.size(); i++)
+        {   double radius_ratio = lattice->R(i)/NuclearRadius;
+            NuclearPotential[i] = (1.5 - 0.5*radius_ratio*radius_ratio)*Z/NuclearRadius;
+        }
+    }
+    else
+    {   // Create nuclear density function
+        std::vector<double> density = CalculateNuclearDensity(NuclearRadius, NuclearThickness);
 
-    CoulombIntegrator I(*lattice);
-    I.CoulombIntegrate(density, NuclearPotential, 0, Z);
+        CoulombIntegrator I(*lattice);
+        I.CoulombIntegrate(density, NuclearPotential, 0, Z);
+    }
 }
 
 std::vector<double> Core::CalculateNuclearDensity(double radius, double thickness) const
 {
     std::vector<double> density(lattice->Size());
-    if(thickness > 0.1)
-    {   double B = 4.*log(3.)/thickness;
-        double A = 3.*Z/(radius * (pow(radius,2.) + pow(Constant::Pi/B, 2.)));
-        for(unsigned int i=0; i<lattice->Size(); i++)
-        {   
-            double X = B * (lattice->R(i) - radius);
-            if(X <= -20.)
-                density[i] = A * pow(lattice->R(i), 2.);
-            else if(X < 50)
-                density[i] = A/(1. + exp(X)) * pow(lattice->R(i), 2.);
-            else
-            {   density.resize(i);
-                break;
-            }
+    double B = 4.*log(3.)/thickness;
+    double A = 3.*Z/(radius * (pow(radius,2.) + pow(Constant::Pi/B, 2.)));
+    for(unsigned int i=0; i<lattice->Size(); i++)
+    {   
+        double X = B * (lattice->R(i) - radius);
+        if(X <= -20.)
+            density[i] = A * pow(lattice->R(i), 2.);
+        else if(X < 50)
+            density[i] = A/(1. + exp(X)) * pow(lattice->R(i), 2.);
+        else
+        {   density.resize(i);
+            break;
         }
     }
-    else   // Zero thickness
-    {   double A = 3.*Z/(radius*radius*radius);
-        for(unsigned int i=0; i<lattice->Size(); i++)
-        {
-	    if(lattice->R(i) < radius)
-	        density[i] = A * lattice->R(i)*lattice->R(i);
-            else
-            {   density.resize(i);
-                break;
-	    }
-         }
-    }
+
     return density;
 }
 
