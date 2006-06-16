@@ -218,6 +218,11 @@ void Atom::CreateCustomBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
+    num_states.push_back(3);
+    num_states.push_back(3);
+    num_states.push_back(4);
+    num_states.push_back(3);
+
     excited->CreateExcitedStates(num_states);
 }
 

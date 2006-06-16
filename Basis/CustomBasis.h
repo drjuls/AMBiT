@@ -11,8 +11,8 @@ public:
     virtual ~CustomBasis() {}
 
     /** Create excited states by following the prescription in CustomBasis.txt
-        Only creates up to num_states_per_l states in each wave, and adds more
-        states than specified in CustomBasis.txt if necessary by multiplication by sin(kr).
+        Only creates up to num_states_per_l states in each wave. If num_states_per_l is zero length,
+        it creates all states in CustomBasis.txt.
      */
     virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l);
 
@@ -21,6 +21,7 @@ public:
 
 protected:
     virtual NonRelInfo ReadNonRelInfo(char* buffer, unsigned int& num_read);
+    std::vector<unsigned int> NumStatesPerL;
 };
 
 #endif
