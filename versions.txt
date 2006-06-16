@@ -12,6 +12,7 @@ Add: Options for Sigma3 in HamiltonianMatrix class. Zero thickness and zero
      radius options for NuclearPotential in Core_BuildStates.cpp. Additional
      energy shift "delta" in denominator of MBPT diagrams. Added alternative
      field shift calculation routines to Atom.cpp and Atom_Open.cpp.
+Alt: CustomBasis now has option num_states_per_l.
 
 1.3.0 - 11/10/05
 Add: Sigma3Calculator class. The class inherits MBPTCalculator, but is separate
