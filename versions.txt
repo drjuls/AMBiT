@@ -8,6 +8,21 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.4.0 - 10/09/06
+Add: ConfigFileGenerator class that allows saving of configurations used in CI
+     method. ConfigGenerator* added to Atom class. The ConfigGenerator is
+     created in Atom::RunOpen, and Atom retains ownership of it.
+Alt: ConfigGenerator class now stores the configurations (nonrel. and
+     relativistic), as well as a set of leading configurations, as well as
+     generating them. ConfigGenerator::GenerateMultipleExcitations() is now
+     called using parity and num_electrons instead of a configuration.
+     HamiltonianMatrix class now includes a pointer to the ConfigGenerator
+     instead of a RelativisticConfigList. The RelativisticConfigList* config
+     remains as a pointer to the list stored by the ConfigGenerator. Also,
+     HamiltonianMatrix has no need to store its own leading configurations.
+     Atom class modified to correctly interface with HamiltonianMatrix and
+     ConfigGenerator (now owned by Atom).
+
 1.3.1 - 09/09/06
 Add: Options for Sigma3 in HamiltonianMatrix class. Zero thickness and zero
      radius options for NuclearPotential in Core_BuildStates.cpp. Additional
