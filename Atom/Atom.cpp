@@ -73,7 +73,8 @@ void Atom::Run()
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), MBPT_CI(false), NumSolutions(6), excited(NULL), excited_mbpt(NULL),
+    SD_CI(false), MBPT_CI(false), GenerateFromFile(false), NumSolutions(6),
+    excited(NULL), excited_mbpt(NULL), generator(NULL),
     integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
@@ -89,6 +90,8 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
 
 Atom::~Atom(void)
 {
+    if(generator)
+        delete generator;
     if(integrals)
         delete integrals;
     if(excited)

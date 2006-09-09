@@ -50,16 +50,13 @@ public:
     void DoClosedShellVolumeShift(bool include_mbpt = true);
     void DoClosedShellAlphaVar(bool include_mbpt = true);
 
-    /** Calculate CI using the existing basis.
-        If size_only, then do not calculate CI, but report the size of the matrix.
-     */
-    void OpenShellEnergy(int twoJ, const Configuration& config, bool size_only = false);
+    /** Calculate CI using the existing basis. */
     void OpenShellEnergy(int twoJ, HamiltonianMatrix* H);
 
     /** Fill out the rlist based on config and twoJ.
         Creates a new Hamiltonian object, which the user must later delete.
      */
-    HamiltonianMatrix* CreateHamiltonian(int twoJ, const Configuration& config, RelativisticConfigList& rlist);
+    HamiltonianMatrix* CreateHamiltonian(int twoJ, unsigned int num_particles, Parity P);
 
     /** Check sizes of matrices before doing full scale calculation. */
     void CheckMatrixSizes();
@@ -92,6 +89,7 @@ private:
     Core* core;
     ExcitedStates* excited;
     ExcitedStates* excited_mbpt;
+    ConfigGenerator* generator;
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
     MBPTCalculator* mbpt;
@@ -100,6 +98,7 @@ private:
     // Configuration Interaction parameters
     bool SD_CI;     // Only use single and double excitations in CI.
     bool MBPT_CI;   // Include MBPT effects
+    bool GenerateFromFile;  // Generate non-relativistic configs from file.
     unsigned int NumSolutions;
 };
 

@@ -51,9 +51,10 @@ void Atom::RunOpen()
     //integralsMBPT->SetTwoElectronStorageLimits(4, 4);
     //sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-    Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 2), 2);
-    config.SetOccupancy(NonRelInfo(4, 0), 1);
+    GenerateFromFile = true;
+    generator = new ConfigFileGenerator(excited);
+
+    unsigned int NumParticles = 3;
 
     unsigned int two_j;
     NumSolutions = 3;
@@ -61,8 +62,7 @@ void Atom::RunOpen()
     *outstream << "\nGS Parity:\n" << std::endl;
     for(two_j = 3; two_j <= 9; two_j += 6)
     {
-        RelativisticConfigList rlist;
-        HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+        HamiltonianMatrix* H = CreateHamiltonian(two_j, NumParticles, even);
         //H->IncludeSigma3(sigma3);
 
         //OpenShellEnergy(two_j, H);
@@ -71,17 +71,13 @@ void Atom::RunOpen()
 
         delete H;
     }
-
-    config.RemoveSingleParticle(NonRelInfo(4, 0));
-    config.AddSingleParticle(NonRelInfo(4, 1));
-
+    
     NumSolutions = 4;
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
     for(two_j = 9; two_j <= 11; two_j+=2)
     {
-        RelativisticConfigList rlist;
-        HamiltonianMatrix* H = CreateHamiltonian(two_j, config, rlist);
+        HamiltonianMatrix* H = CreateHamiltonian(two_j, NumParticles, odd);
         //H->IncludeSigma3(sigma3);
         
         //OpenShellEnergy(two_j, H);
@@ -92,46 +88,48 @@ void Atom::RunOpen()
     }
 }
 
-HamiltonianMatrix* Atom::CreateHamiltonian(int twoJ, const Configuration& config, RelativisticConfigList& rlist)
+HamiltonianMatrix* Atom::CreateHamiltonian(int twoJ, unsigned int num_particles, Parity P)
 {
     unsigned int electron_excitations;
     if(SD_CI)
         electron_excitations = 2;
     else
-        electron_excitations = config.NumParticles();
+        electron_excitations = num_particles;
 
-    ConfigList leading_configs;
-    leading_configs.push_back(config);
+    std::set<Configuration> leading_configs;
 
     Configuration config1;
     config1.SetOccupancy(NonRelInfo(3, 2), 2);
     config1.SetOccupancy(NonRelInfo(4, 0), 1);
-    leading_configs.push_back(config1);
+    leading_configs.insert(config1);
 
     Configuration config2;
     config2.SetOccupancy(NonRelInfo(3, 2), 2);
     config2.SetOccupancy(NonRelInfo(4, 1), 1);
-    leading_configs.push_back(config2);
+    leading_configs.insert(config2);
 
-    ConfigList nrlist;
-    nrlist.insert(nrlist.begin(), leading_configs.begin(), leading_configs.end());
+    generator->ClearConfigLists();
+    generator->AddLeadingConfigurations(leading_configs);
+    
+    if(GenerateFromFile)
+    {   ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
+        filegenerator->SetInputFile("PercentagesIn.txt");
+        filegenerator->ReadConfigs(P, 0.05);
+    }
+    else
+    {   generator->GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations, P);
+    }
 
-    rlist.clear();
-
-    ConfigGenerator generator(excited);
-    generator.GenerateMultipleExcitations(nrlist, electron_excitations);
-    generator.GenerateRelativisticConfigs(nrlist, rlist);
-    generator.GenerateProjections(rlist, twoJ);
+    generator->GenerateRelativisticConfigs();
+    generator->GenerateProjections(twoJ);
 
     HamiltonianMatrix* H;
 
     #ifdef _MPI
-        H = new MPIHamiltonianMatrix(*integrals, rlist);
+        H = new MPIHamiltonianMatrix(*integrals, generator);
     #else
-        H = new HamiltonianMatrix(*integrals, rlist);
+        H = new HamiltonianMatrix(*integrals, generator);
     #endif
-
-    H->AddLeadingConfigurations(leading_configs);
 
     return H;
 }
@@ -142,9 +140,7 @@ void Atom::CheckMatrixSizes()
     *outstream << "Num coulomb integrals: " << integrals->GetStorageSize() << std::endl;
 
     SD_CI = true;
-    Configuration config;
-    config.SetOccupancy(NonRelInfo(3, 2), 2);
-    config.SetOccupancy(NonRelInfo(4, 0), 1);
+    unsigned int NumParticles = 3;
 
     unsigned int two_j;
 
@@ -152,30 +148,19 @@ void Atom::CheckMatrixSizes()
     for(two_j = 3; two_j <= 9; two_j += 6)
     {
         *outstream << "J = " << two_j/2. << std::endl;
-        OpenShellEnergy(two_j, config, true);
+        HamiltonianMatrix* H = CreateHamiltonian(two_j, NumParticles, even);
+        *outstream << " Number of rel configurations = " << generator->GetRelConfigs()->size() << std::endl;
+        delete H;
     }
-
-    config.RemoveSingleParticle(NonRelInfo(4, 0));
-    config.AddSingleParticle(NonRelInfo(4, 1));
 
     *outstream << "\nOpposite Parity:\n" << std::endl;
     for(two_j = 9; two_j <= 11; two_j+=2)
     {
         *outstream << "J = " << two_j/2. << std::endl;
-        OpenShellEnergy(two_j, config, true);
+        HamiltonianMatrix* H = CreateHamiltonian(two_j, NumParticles, odd);
+        *outstream << " Number of rel configurations = " << generator->GetRelConfigs()->size() << std::endl;
+        delete H;
     }
-}
-
-void Atom::OpenShellEnergy(int twoJ, const Configuration& config, bool size_only)
-{
-    RelativisticConfigList rlist;
-    HamiltonianMatrix* H = CreateHamiltonian(twoJ, config, rlist);
-    if(size_only)
-        *outstream << " Number of rel configurations = " << rlist.size() << std::endl;
-    else
-        OpenShellEnergy(twoJ, H);
-
-    delete H;
 }
 
 void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
@@ -186,12 +171,18 @@ void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
     core->Update();
     excited->Update();
     core->ToggleClosedShellCore();
-
+    
     integrals->IncludeValenceSMS(false);
     integrals->Update();
     H->GenerateMatrix();
     //H->PollMatrix();
     H->SolveMatrix(NumSolutions, twoJ, true);
+
+    ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
+    if(filegenerator)
+    {   filegenerator->SetOutputFile("PercentagesOut.txt");
+        filegenerator->WriteConfigs();
+    }
 }
 
 void Atom::DoOpenShellSMS(int twoJ, HamiltonianMatrix* H)
