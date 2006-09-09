@@ -8,6 +8,7 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.3.1 - 09/09/06
 Add: Options for Sigma3 in HamiltonianMatrix class. Zero thickness and zero
      radius options for NuclearPotential in Core_BuildStates.cpp. Additional
      energy shift "delta" in denominator of MBPT diagrams. Added alternative
