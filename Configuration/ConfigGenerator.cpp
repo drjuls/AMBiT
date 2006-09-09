@@ -39,11 +39,50 @@ void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
     }
 }
 
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations)
+void ConfigGenerator::ClearConfigLists()
 {
-    ConfigList::iterator it = configlist.begin();
-    Parity  parity = it->GetParity();
+    leading_configs.clear();
+    nrlist.clear();
+    rlist.clear();
+}
 
+std::set<Configuration>* ConfigGenerator::GetLeadingConfigs()
+{   return &leading_configs;
+}
+const std::set<Configuration>* ConfigGenerator::GetLeadingConfigs() const
+{   return &leading_configs;
+}
+
+ConfigList* ConfigGenerator::GetNonRelConfigs()
+{   return &nrlist;
+}
+const ConfigList* ConfigGenerator::GetNonRelConfigs() const
+{   return &nrlist;
+}
+
+RelativisticConfigList* ConfigGenerator::GetRelConfigs()
+{   return &rlist;
+}
+const RelativisticConfigList* ConfigGenerator::GetRelConfigs() const
+{   return &rlist;
+}
+
+void ConfigGenerator::AddLeadingConfiguration(const Configuration& config)
+{
+    leading_configs.insert(config);
+}
+
+void ConfigGenerator::AddLeadingConfigurations(const std::set<Configuration> config_set)
+{
+    std::set<Configuration>::const_iterator it = config_set.begin();
+    while(it != config_set.end())
+    {   leading_configs.insert(*it);
+        it++;
+    }
+}
+
+void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, Parity parity)
+{
     configlist.sort();
     configlist.unique();
 
@@ -55,7 +94,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     }
 
     // Remove states of wrong parity
-    it = configlist.begin();
+    ConfigList::iterator it = configlist.begin();
 
     while(it != configlist.end())
     {   
@@ -66,6 +105,26 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
         else
             it++;
     }
+    
+    // Append new configurations to nrlist.
+    nrlist.insert(nrlist.end(), configlist.begin(), configlist.end());
+    nrlist.sort();
+    nrlist.unique();
+}
+
+void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, Parity parity)
+{
+    // Move leading configs to configlist
+    ConfigList configlist;
+    
+    std::set<Configuration>::const_iterator it = leading_configs.begin();
+    while(it != leading_configs.end())
+    {   configlist.push_back(*it);
+        it++;
+    }
+    
+    // Generate excitations
+    GenerateMultipleExcitations(configlist, num_excitations, parity);
 }
 
 void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
@@ -102,7 +161,7 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
     }
 }
 
-void ConfigGenerator::GenerateRelativisticConfigs(const ConfigList& nrlist, RelativisticConfigList& rlist)
+void ConfigGenerator::GenerateRelativisticConfigs()
 {
     ConfigList::const_iterator it = nrlist.begin();
     while(it != nrlist.end())
@@ -117,7 +176,7 @@ void ConfigGenerator::GenerateRelativisticConfigs(const ConfigList& nrlist, Rela
     rlist.unique();
 }
 
-void ConfigGenerator::GenerateProjections(RelativisticConfigList& rlist, int two_m)
+void ConfigGenerator::GenerateProjections(int two_m)
 {
     RelativisticConfigList::iterator it = rlist.begin();
     while(it != rlist.end())

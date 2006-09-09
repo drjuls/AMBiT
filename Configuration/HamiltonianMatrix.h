@@ -7,10 +7,12 @@
 #include "Universal/Matrix.h"
 #include "MBPT/Sigma3Calculator.h"
 
+#include "ConfigFileGenerator.h"
+
 class HamiltonianMatrix
 {
 public:
-    HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs);
+    HamiltonianMatrix(const CIIntegrals& coulomb_integrals, ConfigGenerator* config_generator);
     virtual ~HamiltonianMatrix(void)
     {   if(M)
             delete M;
@@ -34,14 +36,10 @@ public:
 public:
     /** Include Sigma3 in the leading configurations. */
     void IncludeSigma3(Sigma3Calculator* sigma3)
-    {   if(sigma3 && (configs.begin()->NumParticles() >= 3))
+    {   if(sigma3 && (configs->front().NumParticles() >= 3))
             include_sigma3 = true;
         sigma3calc = sigma3;
     }
-
-    /** Add to the set of leading configurations. */
-    void AddLeadingConfigurations(const ConfigList& list);
-    void AddLeadingConfigurations(const Configuration& config);
 
 protected:
     /** Get the Hamiltonian matrix element between two projections. */
@@ -88,7 +86,10 @@ protected:
                   const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
 
 protected:
-    const RelativisticConfigList& configs;
+    /** ConfigGenerator* confgen stores leading configs and the configuration list. */
+    ConfigGenerator* confgen;
+    /** RelativisticConfigList* configs is just a pointer to the list stored in confgen. */
+    const RelativisticConfigList* configs;
     const CIIntegrals& integrals;
 
     Matrix* M;      // Hamiltonian Matrix

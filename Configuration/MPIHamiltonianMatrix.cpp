@@ -163,6 +163,7 @@ void MPIHamiltonianMatrix::PollMatrix()
 void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
 {
     M->WriteMode(false);
+    ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
 
     *outstream << "\nFinding solutions" << std::endl;
 
@@ -219,6 +220,9 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
 
                 list_it++;
             }
+
+            if(config_file_gen)
+                config_file_gen->AddPercentages(percentages);
 
             std::map<Configuration, double>::const_iterator it = percentages.begin();
             while(it != percentages.end())

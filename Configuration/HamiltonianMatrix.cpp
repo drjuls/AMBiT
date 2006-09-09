@@ -5,6 +5,7 @@
 #include "HartreeFock/State.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
+#include "ConfigFileGenerator.h"
 
 #define SMALL_MATRIX_LIM 2000
 
@@ -15,13 +16,15 @@
 // (instead of just one).
 #define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, const RelativisticConfigList& rconfigs):
-    integrals(coulomb_integrals), configs(rconfigs), NumSolutions(0), M(NULL), include_sigma3(false)
+HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, ConfigGenerator* config_generator):
+    integrals(coulomb_integrals), confgen(config_generator), NumSolutions(0), M(NULL), include_sigma3(false)
 {
+    configs = confgen->GetRelConfigs();
+
     // Set up matrix
     N = 0;
-    RelativisticConfigList::const_iterator it = configs.begin();
-    while(it != configs.end())
+    RelativisticConfigList::const_iterator it = configs->begin();
+    while(it != configs->end())
     {   N += it->NumJStates();
         it++;
     }
@@ -50,9 +53,9 @@ void HamiltonianMatrix::GenerateMatrix()
         sigma3calc->UseBrillouinWignerPT();
 
     // Loop through relativistic configurations
-    RelativisticConfigList::const_iterator list_it = configs.begin();
+    RelativisticConfigList::const_iterator list_it = configs->begin();
     i=0;
-    while(list_it != configs.end())
+    while(list_it != configs->end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
         unsigned int proj_i_size = proj_i.size();
@@ -62,7 +65,7 @@ void HamiltonianMatrix::GenerateMatrix()
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
         
-        while(list_jt != configs.end())
+        while(list_jt != configs->end())
         {
             // Iterate over projections
             const ProjectionSet& proj_j = list_jt->GetProjections();
@@ -411,6 +414,7 @@ void HamiltonianMatrix::PollMatrix()
 void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
 {
     M->WriteMode(false);
+    ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
 
     *outstream << "\nFinding solutions" << std::endl;
 
@@ -444,11 +448,11 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
             << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
 
         // Get non-rel configuration percentages
-        RelativisticConfigList::const_iterator list_it = configs.begin();
+        RelativisticConfigList::const_iterator list_it = configs->begin();
         std::map<Configuration, double> percentages;  // Map non-rel configurations to percentages
 
         j = 0;
-        while(list_it != configs.end())
+        while(list_it != configs->end())
         {
             Configuration nrconfig(list_it->GetNonRelConfiguration());
             if(percentages.find(nrconfig) == percentages.end())
@@ -465,6 +469,9 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
 
             list_it++;
         }
+        
+        if(config_file_gen)
+            config_file_gen->AddPercentages(percentages);
 
         std::map<Configuration, double>::const_iterator it = percentages.begin();
         while(it != percentages.end())
@@ -480,7 +487,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
 
         *outstream << std::endl;
     }
-    
+
     if(gFactors)
         delete[] g_factors;
 }
@@ -495,8 +502,8 @@ void HamiltonianMatrix::GetEigenvalues() const
 
     // Iterate over different relativistic configurations
     unsigned int i=0, j;
-    RelativisticConfigList::const_iterator list_it = configs.begin();
-    while(list_it != configs.end())
+    RelativisticConfigList::const_iterator list_it = configs->begin();
+    while(list_it != configs->end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
         unsigned int proj_i_size = proj_i.size();
@@ -505,7 +512,7 @@ void HamiltonianMatrix::GetEigenvalues() const
 
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
-        while(list_jt != configs.end())
+        while(list_jt != configs->end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
             unsigned int proj_j_size = proj_j.size();
@@ -590,12 +597,12 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
         total[solution] = 0.;
 
     unsigned int diff[4];   // Storage for projection differences.
-    unsigned int num_electrons = configs.front().NumParticles();
+    unsigned int num_electrons = configs->front().NumParticles();
 
     // Iterate over different relativistic configurations
     unsigned int i=0, j;
-    RelativisticConfigList::const_iterator list_it = configs.begin();
-    while(list_it != configs.end())
+    RelativisticConfigList::const_iterator list_it = configs->begin();
+    while(list_it != configs->end())
     {
         const ProjectionSet& proj_i = list_it->GetProjections();
         unsigned int proj_i_size = proj_i.size();
@@ -604,7 +611,7 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
 
         RelativisticConfigList::const_iterator list_jt = list_it;
         j = i;
-        while(list_jt != configs.end())
+        while(list_jt != configs->end())
         {
             const ProjectionSet& proj_j = list_jt->GetProjections();
             unsigned int proj_j_size = proj_j.size();
@@ -709,31 +716,19 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
         return 0.;
 }
 
-void HamiltonianMatrix::AddLeadingConfigurations(const ConfigList& list)
-{
-    ConfigList::const_iterator it = list.begin();
-    while(it != list.end())
-    {   leading_configs.insert(*it);
-        it++;
-    }
-}
-
-void HamiltonianMatrix::AddLeadingConfigurations(const Configuration& config)
-{
-    leading_configs.insert(config);
-}
-
 double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
 {
+    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
+
 #ifdef SIGMA3_AND
     // Check that first AND second are leading configurations
-    if((leading_configs.find(first.GetNonRelConfiguration()) == leading_configs.end()) ||
-       (leading_configs.find(second.GetNonRelConfiguration()) == leading_configs.end()))
+    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) ||
+       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
         return 0.;
 #else
     // Check that first OR second is a leading configuration
-    if((leading_configs.find(first.GetNonRelConfiguration()) == leading_configs.end()) &&
-       (leading_configs.find(second.GetNonRelConfiguration()) == leading_configs.end()))
+    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) &&
+       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
         return 0.;
 #endif
 
