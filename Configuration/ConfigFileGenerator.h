@@ -30,9 +30,19 @@ public:
     /** Map non-rel configurations to percentages. */
     void AddPercentages(const std::map<Configuration, double> percentages);
 
+    /** Generate all non-relativistic configurations possible by exciting num_excitations
+        electrons from existing configurations with percentages larger then the cutoff, as
+        well as the leading configurations.
+        Append the new configurations to the list.
+     */
+    void GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, Parity parity, double cutoff);
+
 protected:
     std::string input_filename;
     std::string output_filename;
+
+    // Map of input configurations and their percentage contributions to eigenstates
+    std::map<Configuration, double> InputContributions;
 
     // Map of final configurations and their percentage contributions to eigenstates
     std::map<Configuration, double> Contributions;

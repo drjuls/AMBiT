@@ -65,8 +65,10 @@ void ConfigFileGenerator::ReadConfigs(Parity parity, double cutoff)
         
         percentage = atof(buffer+i);
 
-        if((percentage >= cutoff) && (config.GetParity() == parity))
-        {   nrlist.push_back(config);
+        if(percentage >= cutoff)
+        {   InputContributions[config] = percentage;
+            if(config.GetParity() == parity)
+                nrlist.push_back(config);
         }
     }
     
@@ -107,4 +109,27 @@ void ConfigFileGenerator::AddPercentages(const std::map<Configuration, double> p
     }
 }
 
+void ConfigFileGenerator::GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, Parity parity, double cutoff)
+{
+    ConfigList important;
 
+    std::set<Configuration>::const_iterator lc_it = leading_configs.begin();    
+    while(lc_it != leading_configs.end())
+    {
+        important.push_back(*lc_it);
+        lc_it++;
+    }
+    
+    std::map<Configuration, double>::const_iterator input_it = InputContributions.begin();
+    while(input_it != InputContributions.end())
+    {
+        if(input_it->second >= cutoff)
+            important.push_back(input_it->first);
+        input_it++;
+    }
+    
+    important.sort();
+    important.unique();
+    
+    GenerateMultipleExcitations(important, num_excitations, parity);
+}

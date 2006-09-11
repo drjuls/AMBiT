@@ -415,6 +415,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
 {
     M->WriteMode(false);
     ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
+    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
 
     *outstream << "\nFinding solutions" << std::endl;
 
@@ -470,17 +471,27 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
             list_it++;
         }
         
-        if(config_file_gen)
-            config_file_gen->AddPercentages(percentages);
+        // Find most important configuration, and print all leading configurations.
+        std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
+        double largest_percentage = 0.0;
 
         std::map<Configuration, double>::const_iterator it = percentages.begin();
         while(it != percentages.end())
         {
+            if(it->second > largest_percentage)
+            {   it_largest_percentage = it;
+                largest_percentage = it->second;
+            }
+
             if(it->second > 1.)
                 *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
                     << it->second << "%" << std::endl;
             it++;
         }
+
+        // If the most important configuration is a leading configuration, add this state to the config file.
+        if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
+            config_file_gen->AddPercentages(percentages);
 
         if(gFactors)
             *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
