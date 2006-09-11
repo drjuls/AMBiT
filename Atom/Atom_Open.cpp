@@ -55,6 +55,7 @@ void Atom::RunOpen()
     generator = new ConfigFileGenerator(excited);
 
     unsigned int NumParticles = 3;
+    //CheckMatrixSizes();
 
     unsigned int two_j;
     NumSolutions = 3;
@@ -138,9 +139,6 @@ void Atom::CheckMatrixSizes()
 {
     // Two electron integral storage size
     *outstream << "Num coulomb integrals: " << integrals->GetStorageSize() << std::endl;
-
-    SD_CI = true;
-    unsigned int NumParticles = 3;
 
     unsigned int two_j;
 

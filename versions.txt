@@ -8,6 +8,13 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Add: ConfigFileGenerator now stores input configurations and percentages and
+     added function GenerateMultipleExcitationsFromImportantConfigurations()
+     which generates from leading configurations as well as those with input
+     percentages greater than a cutoff.
+Alt: HamiltonianMatrix calls ConfigFileGenerator::AddPercentages() only when
+     the eigenstate has a leading configuration as its main configuration.
+
 1.4.0 - 10/09/06
 Add: ConfigFileGenerator class that allows saving of configurations used in CI
      method. ConfigGenerator* added to Atom class. The ConfigGenerator is
