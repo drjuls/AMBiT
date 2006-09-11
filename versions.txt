@@ -14,6 +14,7 @@ Add: ConfigFileGenerator now stores input configurations and percentages and
      percentages greater than a cutoff.
 Alt: HamiltonianMatrix calls ConfigFileGenerator::AddPercentages() only when
      the eigenstate has a leading configuration as its main configuration.
+Bug: Forgot to update MPIHamiltonianMatrix.cpp.
 
 1.4.0 - 10/09/06
 Add: ConfigFileGenerator class that allows saving of configurations used in CI

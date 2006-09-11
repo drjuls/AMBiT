@@ -17,16 +17,16 @@ void MPIHamiltonianMatrix::GenerateMatrix()
     int rank2 = -1 - int(ProcessorRank);
 
     if(M == NULL)
-        M = new MPIMatrix(N, configs);
+        M = new MPIMatrix(N, *configs);
     else
         M->Clear();
 
     M->WriteMode(true);
 
     // Loop through relativistic configurations
-    RelativisticConfigList::const_iterator list_it = configs.begin();
+    RelativisticConfigList::const_iterator list_it = configs->begin();
     i = 0;
-    while(list_it != configs.end())
+    while(list_it != configs->end())
     {
         if((proc == rank1) || (proc == rank2))
         {
@@ -38,7 +38,7 @@ void MPIHamiltonianMatrix::GenerateMatrix()
             RelativisticConfigList::const_iterator list_jt = list_it;
             j = i;
             
-            while(list_jt != configs.end())
+            while(list_jt != configs->end())
             {
                 // Iterate over projections
                 const ProjectionSet& proj_j = list_jt->GetProjections();
@@ -112,9 +112,9 @@ void MPIHamiltonianMatrix::PollMatrix()
     int rank2 = -1 - int(ProcessorRank);
 
     // Loop through relativistic configurations
-    RelativisticConfigList::const_iterator list_it = configs.begin();
+    RelativisticConfigList::const_iterator list_it = configs->begin();
     i = 0;
-    while(list_it != configs.end())
+    while(list_it != configs->end())
     {
         if((proc == rank1) || (proc == rank2))
         {
@@ -199,11 +199,11 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
                 << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
 
             // Get non-rel configuration percentages
-            RelativisticConfigList::const_iterator list_it = configs.begin();
+            RelativisticConfigList::const_iterator list_it = configs->begin();
             std::map<Configuration, double> percentages;  // Map non-rel configurations to percentages
 
             j = 0;
-            while(list_it != configs.end())
+            while(list_it != configs->end())
             {
                 Configuration nrconfig(list_it->GetNonRelConfiguration());
                 if(percentages.find(nrconfig) == percentages.end())
@@ -259,8 +259,8 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
     int rank1 = int(ProcessorRank);
     int rank2 = -1 - int(ProcessorRank);
 
-    RelativisticConfigList::const_iterator list_it = configs.begin();
-    while(list_it != configs.end())
+    RelativisticConfigList::const_iterator list_it = configs->begin();
+    while(list_it != configs->end())
     {
         if((proc == rank1) || (proc == rank2))
         {
@@ -271,7 +271,7 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
 
             RelativisticConfigList::const_iterator list_jt = list_it;
             j = i;
-            while(list_jt != configs.end())
+            while(list_jt != configs->end())
             {
                 const ProjectionSet& proj_j = list_jt->GetProjections();
                 unsigned int proj_j_size = proj_j.size();
@@ -371,7 +371,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
         total[solution] = 0.;
 
     unsigned int diff[4];   // Storage for projection differences.
-    unsigned int num_electrons = configs.front().NumParticles();
+    unsigned int num_electrons = configs->front().NumParticles();
 
     // Iterate over different relativistic configurations
     unsigned int i = 0, j;
@@ -380,8 +380,8 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
     int rank1 = int(ProcessorRank);
     int rank2 = -1 - int(ProcessorRank);
 
-    RelativisticConfigList::const_iterator list_it = configs.begin();
-    while(list_it != configs.end())
+    RelativisticConfigList::const_iterator list_it = configs->begin();
+    while(list_it != configs->end())
     {
         if((proc == rank1) || (proc == rank2))
         {
@@ -392,7 +392,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
 
             RelativisticConfigList::const_iterator list_jt = list_it;
             j = i;
-            while(list_jt != configs.end())
+            while(list_jt != configs->end())
             {
                 const ProjectionSet& proj_j = list_jt->GetProjections();
                 unsigned int proj_j_size = proj_j.size();
