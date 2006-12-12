@@ -1,6 +1,8 @@
 # change this stuff only if you know what you are doing
 HOSTNAME = $(shell hostname)
 
+MACHINE = default
+
 ifeq ($(findstring ac, $(HOSTNAME)), ac)
   MACHINE = apacac
 endif
@@ -106,6 +108,36 @@ ifeq ($(MACHINE), newt)
 endif
 
 ifeq ($(MACHINE), jcb2pc)
+  CC  = gcc
+  CXX = g++
+  F77 = gcc
+
+  LINK = g++
+
+  LIBDIR       = /usr/local/lib
+  BLASLIB      = blas
+  LAPACKLIB    = lapack
+  EXTRALIBS    = g2c
+
+  INCLUDE += /usr/local/include
+
+  ifdef debug
+    BUILD = Debug
+    CXXFLAGS += -g
+    CFLAGS += -g
+  else
+    BUILD = Release
+    CXXFLAGS += -O3
+    CFLAGS += -O3
+    F77FLAGS += -O2
+  endif
+
+  # non gnu compilers may not support MM: use M instead
+  CCDEP = gcc
+  DEPFLAG = -MM
+endif
+
+ifeq ($(MACHINE), default)
   CC  = gcc
   CXX = g++
   F77 = gcc
