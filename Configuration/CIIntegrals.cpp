@@ -150,7 +150,7 @@ void CIIntegrals::UpdateStateIndexes()
 
 void CIIntegrals::UpdateOneElectronIntegrals()
 {
-    StateIntegrator SI(*states.GetLattice());
+    StateIntegrator SI(states.GetLattice());
     unsigned int i, j;
 
     ConstStateIterator it_i = states.GetConstStateIterator();
@@ -230,7 +230,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     }
 
     // Calculate any remaining two electron integrals.
-    CoulombIntegrator CI(*states.GetLattice());
+    CoulombIntegrator CI(states.GetLattice());
     std::vector<double> density(states.GetCore()->GetHFPotential().size());
     std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
     const double* dR = states.GetLattice()->dR();
@@ -422,7 +422,7 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
         const State* s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
-        CoulombIntegrator CI(*states.GetLattice());
+        CoulombIntegrator CI(states.GetLattice());
         const double* R = states.GetLattice()->R();
         const double* dR = states.GetLattice()->dR();
         const double core_pol = states.GetCore()->GetPolarisability();

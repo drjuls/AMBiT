@@ -40,6 +40,16 @@ void Configuration::SetOccupancy(unsigned int occupancy)
     }
 }
 
+unsigned int Configuration::GetOccupancy(const StateInfo& info) const
+{
+    std::map<StateInfo, unsigned int>::const_iterator r_it = Config.find(info);
+
+     if(r_it != Config.end())
+        return r_it->second;
+    else
+        return 0;
+}
+
 bool Configuration::RemoveSingleParticle(const StateInfo& info)
 {
     std::map<StateInfo, unsigned int>::iterator r_it = Config.find(info);

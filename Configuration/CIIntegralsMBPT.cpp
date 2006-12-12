@@ -233,7 +233,7 @@ void CIIntegralsMBPT::Update(const std::string& sigma_id)
 
 void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
 {
-    StateIntegrator SI(*states.GetLattice());
+    StateIntegrator SI(states.GetLattice());
     unsigned int i, j;
 
     ConstStateIterator it_i = states.GetConstStateIterator();
@@ -422,7 +422,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     gap = 47 * 60;  // 47 minutes
 
     // Calculate any remaining two electron integrals.
-    CoulombIntegrator CI(*states.GetLattice());
+    CoulombIntegrator CI(states.GetLattice());
     std::vector<double> density(states.GetCore()->GetHFPotential().size());
     std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
     const double* dR = states.GetLattice()->dR();
@@ -758,7 +758,7 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
         const State* s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
-        CoulombIntegrator CI(*states.GetLattice());
+        CoulombIntegrator CI(states.GetLattice());
         const double* R = states.GetLattice()->R();
         const double* dR = states.GetLattice()->dR();
         const double core_pol = states.GetCore()->GetPolarisability();

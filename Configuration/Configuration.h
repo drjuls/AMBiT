@@ -21,6 +21,7 @@ public:
     Configuration(const Configuration& other);
     virtual ~Configuration(void) {}
 
+    // Controllers for built-in state iterator
     inline void First() const;
     inline void Next() const;
     inline bool AtEnd() const;
@@ -29,6 +30,10 @@ public:
     StateInfo GetInfo() const;
     unsigned int GetOccupancy() const;
     void SetOccupancy(unsigned int occupancy);
+
+    // Get occupancy of a particular single particle state.
+    // (zero if absent)
+    unsigned int GetOccupancy(const StateInfo& info) const;
 
     // These return the success of the operation.
     virtual bool RemoveSingleParticle(const StateInfo& info);

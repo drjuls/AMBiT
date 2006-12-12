@@ -413,6 +413,11 @@ void HamiltonianMatrix::PollMatrix()
 
 void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
 {
+    if(N == 0)
+    {   *outstream << "\nNo solutions" << std::endl;
+        return;
+    }
+
     M->WriteMode(false);
     ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
     const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
@@ -424,7 +429,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
         delete[] E;
     }
     NumSolutions = mmin(num_solutions, N);
-
+    
     V = new double[NumSolutions * N];
     E = new double[NumSolutions];
 
