@@ -59,16 +59,16 @@ void StateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<double>&
     unsigned int i;
     for(i=start_point; i<start_point+(adams_N-1); i++)
     {   if(s.Kappa() < 0)
-        {   s.f[i] = pow(lattice.R(i), -s.Kappa());
-            s.g[i] = s.f[i] * lattice.R(i) * HFPotential[i] / (2 * s.Kappa() - 1);
-            s.df[i] = - s.Kappa() * s.f[i] / lattice.R(i) * lattice.dR(i);
-            s.dg[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice.R(i) * lattice.dR(i);
+        {   s.f[i] = pow(lattice->R(i), -s.Kappa());
+            s.g[i] = s.f[i] * lattice->R(i) * HFPotential[i] / (2 * s.Kappa() - 1);
+            s.df[i] = - s.Kappa() * s.f[i] / lattice->R(i) * lattice->dR(i);
+            s.dg[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i) * lattice->dR(i);
         }
         else
-        {   s.g[i] = pow(lattice.R(i), s.Kappa());
-            s.f[i] = s.g[i] * lattice.R(i) * Constant::AlphaSquared * HFPotential[i] / (2 * s.Kappa() + 1);
-            s.dg[i] = s.Kappa() * s.g[i] / lattice.R(i) * lattice.dR(i);
-            s.df[i] = (s.Kappa() + 1.) * s.f[i] / lattice.R(i) * lattice.dR(i);
+        {   s.g[i] = pow(lattice->R(i), s.Kappa());
+            s.f[i] = s.g[i] * lattice->R(i) * Constant::AlphaSquared * HFPotential[i] / (2 * s.Kappa() + 1);
+            s.dg[i] = s.Kappa() * s.g[i] / lattice->R(i) * lattice->dR(i);
+            s.df[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i) * lattice->dR(i);
         }
     }
 
@@ -93,7 +93,7 @@ void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>
     unsigned int i = start_point - (adams_N-2);
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice.R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -109,17 +109,17 @@ void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>
     double S = -9.;
     for(i=start_point; i>start_point-(adams_N-1); i--)
     {
-        P = -2*(HFPotential[i] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice.R(i),2.);
+        P = -2*(HFPotential[i] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(i),2.);
         //assert(P>0);
         P = sqrt(P);
-        S = S + 0.5 * P * lattice.dR(i);
+        S = S + 0.5 * P * lattice->dR(i);
 
         s.f[i] = exp(S)/sqrt(P);
-        s.g[i] = s.f[i] * (s.Kappa()/lattice.R(i) - P) * 0.5;
-        s.df[i] = (-P * s.f[i]) * lattice.dR(i);
-        s.dg[i] = (s.Kappa()/lattice.R(i) * s.g[i] - (s.Energy() + HFPotential[i]) * s.f[i]) * lattice.dR(i);
+        s.g[i] = s.f[i] * (s.Kappa()/lattice->R(i) - P) * 0.5;
+        s.df[i] = (-P * s.f[i]) * lattice->dR(i);
+        s.dg[i] = (s.Kappa()/lattice->R(i) * s.g[i] - (s.Energy() + HFPotential[i]) * s.f[i]) * lattice->dR(i);
 
-        S = S + 0.5 * P * lattice.dR(i);
+        S = S + 0.5 * P * lattice->dR(i);
     }
 
     if(correction)
@@ -160,7 +160,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
     // Do integration
     std::vector<double> P(HFPotential.size());
     std::vector<double> S(HFPotential.size());
-    const double* R = lattice.R();
+    const double* R = lattice->R();
     unsigned int start_sine = 0;
     final_amplitude = 0.;
     double peak_phase = 0.;
@@ -168,11 +168,11 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
     int i = start_point+(adams_N-1);
     while(i < s.Size())
     {
-        double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*lattice.R(i)*lattice.R(i));
+        double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*lattice->R(i)*lattice->R(i));
         P[i] = sqrt(2. * fabs(s.Energy() + Pot));
         S[i] = S[i-1];
         for(unsigned int j=0; j<adams_N; j++)
-            S[i] = S[i] + adams_coeff[j] * P[i-j] * lattice.dR(i-j);
+            S[i] = S[i] + adams_coeff[j] * P[i-j] * lattice->dR(i-j);
 
         if(!start_sine)
         {
@@ -207,7 +207,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
             double amplitude = final_amplitude/sqrt(P[i]);
             double phase = S[i] - peak_phase;
             s.f[i] = amplitude * cos(phase);
-            s.g[i] = 0.5 * amplitude * (-P[i] * sin(phase) + s.Kappa()/lattice.R(i) * cos(phase));
+            s.g[i] = 0.5 * amplitude * (-P[i] * sin(phase) + s.Kappa()/lattice->R(i) * cos(phase));
         }
         i++;
     }
@@ -234,8 +234,8 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
 
         std::vector<double> Potential(core.GetHFPotential());
 
-        const double* R = lattice.R();
-        const double* dR = lattice.dR();
+        const double* R = lattice->R();
+        const double* dR = lattice->dR();
 
         for(unsigned int i=0; i<mmin(s1.Size(), s2.Size()); i++)
         {
@@ -259,7 +259,7 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
 void StateIntegrator::SetUpContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point)
 {
     double& Z = nuclear_charge;
-    double energy = s.Energy() - Z/lattice.R(start_point) + HFPotential[start_point];
+    double energy = s.Energy() - Z/lattice->R(start_point) + HFPotential[start_point];
     double AM = 1./sqrt(2. * fabs(energy));
     double GAM = sqrt(s.Kappa()*s.Kappa() - Constant::AlphaSquared*Z*Z);
     double GAM1 = 2.*GAM + 1.;
@@ -284,16 +284,16 @@ void StateIntegrator::SetUpContinuum(ContinuumState& s, const std::vector<double
         double AQQ = AQ * AQA;
         for(unsigned int i = start_point; i<start_point+(adams_N-1); i++)
         {
-            double Y = 2.*ALAMBD * lattice.R(i);
+            double Y = 2.*ALAMBD * lattice->R(i);
             double Fre1 = GipReal(-RN, GAM1, Y);
             double Fre2 = GipReal(1.-RN, GAM1, Y);
 
-            double AQI = AQQ * exp(-0.5 * Y) * pow(lattice.R(i), GAM);
+            double AQI = AQQ * exp(-0.5 * Y) * pow(lattice->R(i), GAM);
             s.f[i] = AQI * AM * ALAMBD * ((Z/ALAMBD - s.Kappa()) * Fre1 - RN * Fre2);
             s.g[i] = -AQI * 0.5/AM * ((Z/ALAMBD - s.Kappa()) * Fre1 + RN * Fre2);
 
-            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice.dR(i);
-            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice.dR(i);
+            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice->dR(i);
+            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice->dR(i);
         }
     }
     else
@@ -302,19 +302,19 @@ void StateIntegrator::SetUpContinuum(ContinuumState& s, const std::vector<double
         double ANA = Z*E/ALAMBD;
         for(unsigned int i = start_point; i<start_point+(adams_N-1); i++)
         {
-            double Y = 2.*ALAMBD * lattice.R(i);
+            double Y = 2.*ALAMBD * lattice->R(i);
             std::complex<double> A(GAM, -ANA), B(GAM1, 0.), C(0., -Y);
             std::complex<double> F = Gip(A, B, C);
 
             std::complex<double> CS = std::polar(1., 0.5 * Y + CSI);
             std::complex<double> FG = CS * F;
 
-            double AQQ = pow(lattice.R(i), GAM) * 2. * Z * AM * AQ;
+            double AQQ = pow(lattice->R(i), GAM) * 2. * Z * AM * AQ;
             s.f[i] = -AM * ALAMBD * AQQ * FG.imag();
             s.g[i] = -0.5 / AM * AQQ * FG.real();
 
-            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice.dR(i);
-            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice.dR(i);
+            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice->dR(i);
+            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice->dR(i);
         }
     }
 }
@@ -326,9 +326,9 @@ double StateIntegrator::FindExtremum(const std::vector<double>& function, unsign
     double f3 = function[zero_point+1];
     double f4 = function[zero_point+2];
 
-    double A = (f4 - 3*f3 + 3*f2 - f1)/(6 * pow(lattice.H(), 3.));
-    double B = (f3 - 2*f2 + f1)/(2 * lattice.H() * lattice.H());
-    double C = (-f4 + 6*f3 - 3*f2 - 2*f1)/(6 * lattice.H());
+    double A = (f4 - 3*f3 + 3*f2 - f1)/(6 * pow(lattice->H(), 3.));
+    double B = (f3 - 2*f2 + f1)/(2 * lattice->H() * lattice->H());
+    double C = (-f4 + 6*f3 - 3*f2 - 2*f1)/(6 * lattice->H());
     double D = f2;
 
     if(calculate_x)
@@ -388,7 +388,7 @@ double StateIntegrator::GipReal(double A, double B, double Z)
 
 double StateIntegrator::StateFunction::Coeff1(int point) const
 {
-    return  -kappa/lattice.R(point);
+    return  -kappa/lattice->R(point);
 }
 
 double StateIntegrator::StateFunction::Coeff2(int point) const
@@ -410,7 +410,7 @@ double StateIntegrator::StateFunction::Coeff4(int point) const
 
 double StateIntegrator::StateFunction::Coeff5(int point) const
 {
-    return kappa/lattice.R(point);
+    return kappa/lattice->R(point);
 }
 
 double StateIntegrator::StateFunction::Coeff6(int point) const
@@ -430,8 +430,8 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
     {   coeff_f2 = double(s2.L());
     }
 
-    const double* R = lattice.R();
-    const double* dR = lattice.dR();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
 
     double SMS = 0.;
     if(P == NULL)

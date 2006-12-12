@@ -23,7 +23,7 @@ std::vector<double> GreensIntegrator::GetGreensInfinity()
         integrand[i] = - (G->f[i] * s_inf->f[i] + Constant::AlphaSquared * G->g[i] * s_inf->g[i])/W;
     }
 
-    const double* dR = lattice.dR();
+    const double* dR = lattice->dR();
 
     i = limit-1;
     Ginf[i] = - 0.5 * integrand[i] * dR[i];
@@ -58,7 +58,7 @@ std::vector<double> GreensIntegrator::GetGreensOrigin()
         integrand[i] = (G->f[i] * s_0->f[i] + Constant::AlphaSquared * G->g[i] * s_0->g[i])/W;
     }
 
-    const double* dR = lattice.dR();
+    const double* dR = lattice->dR();
 
     i = 0;
     G0[i] = 0.5 * integrand[i] * dR[i];

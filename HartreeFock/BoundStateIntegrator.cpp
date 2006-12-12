@@ -8,12 +8,12 @@ void BoundStateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<dou
 
     double correction = s.f[0];
     if(s.Kappa() < 0)
-    {   s.f[0] = pow(lattice.R(0), -s.Kappa());
-        s.g[0] = s.f[0] * lattice.R(0) * HFPotential[0] / (2 * s.Kappa() - 1);
+    {   s.f[0] = pow(lattice->R(0), -s.Kappa());
+        s.g[0] = s.f[0] * lattice->R(0) * HFPotential[0] / (2 * s.Kappa() - 1);
     }
     else
-    {   s.g[0] = pow(lattice.R(0), s.Kappa());
-        s.f[0] = s.g[0] * lattice.R(0) * Constant::AlphaSquared * HFPotential[0] / (2 * s.Kappa() + 1);
+    {   s.g[0] = pow(lattice->R(0), s.Kappa());
+        s.f[0] = s.g[0] * lattice->R(0) * Constant::AlphaSquared * HFPotential[0] / (2 * s.Kappa() + 1);
     }
 
     // Determine an appropriate scaling to make the norm close to unit.
@@ -39,7 +39,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<do
     unsigned int i = start_point - (adams_N-2);
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice.R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -51,13 +51,13 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<do
     double correction = s.f[start_point];
     double S = -9.;
 
-    P = -2*(HFPotential[start_point] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice.R(start_point),2.);
+    P = -2*(HFPotential[start_point] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(start_point),2.);
     //assert(P>0);
     P = sqrt(P);
-    S = S + 0.5 * P * lattice.dR(start_point);
+    S = S + 0.5 * P * lattice->dR(start_point);
 
     s.f[start_point] = exp(S)/sqrt(P);
-    s.g[start_point] = s.f[start_point] * (s.Kappa()/lattice.R(start_point) - P) * 0.5;
+    s.g[start_point] = s.f[start_point] * (s.Kappa()/lattice->R(start_point) - P) * 0.5;
 
     SolveDiracBoundary(s, HFPotential, start_point, false);
 
@@ -111,9 +111,9 @@ void BoundStateIntegrator::SolveDiracBoundary(State& s, const std::vector<double
             
             if(i == j)
             {   if(forwards)
-                    A[i*2*DM + j] += s.Kappa()/lattice.R(start_point + i+1) * lattice.dR(start_point + i+1);
+                    A[i*2*DM + j] += s.Kappa()/lattice->R(start_point + i+1) * lattice->dR(start_point + i+1);
                 else
-                    A[i*2*DM + j] -= s.Kappa()/lattice.R(start_point - (i+1)) * lattice.dR(start_point - (i+1));
+                    A[i*2*DM + j] -= s.Kappa()/lattice->R(start_point - (i+1)) * lattice->dR(start_point - (i+1));
             }
         }
     }
@@ -122,18 +122,18 @@ void BoundStateIntegrator::SolveDiracBoundary(State& s, const std::vector<double
     for(i=0; i<DM; i++)
     {
         if(forwards)
-            A[i*2*DM + i+DM] = -(2. + Constant::AlphaSquared * HFPotential[start_point + i+1])*lattice.dR(start_point + i+1);
+            A[i*2*DM + i+DM] = -(2. + Constant::AlphaSquared * HFPotential[start_point + i+1])*lattice->dR(start_point + i+1);
         else
-            A[i*2*DM + i+DM] = (2. + Constant::AlphaSquared * HFPotential[start_point -(i+1)])*lattice.dR(start_point - (i+1));
+            A[i*2*DM + i+DM] = (2. + Constant::AlphaSquared * HFPotential[start_point -(i+1)])*lattice->dR(start_point - (i+1));
     }
 
     // Set up lower left quarter
     for(i=0; i<DM; i++)
     {
         if(forwards)
-            A[(i+DM)*2*DM + i] = HFPotential[start_point + i+1]*lattice.dR(start_point + i+1);
+            A[(i+DM)*2*DM + i] = HFPotential[start_point + i+1]*lattice->dR(start_point + i+1);
         else
-            A[(i+DM)*2*DM + i] = -HFPotential[start_point - (i+1)]*lattice.dR(start_point - (i+1));
+            A[(i+DM)*2*DM + i] = -HFPotential[start_point - (i+1)]*lattice->dR(start_point - (i+1));
     }
 
     // Set up lower right quarter
@@ -146,9 +146,9 @@ void BoundStateIntegrator::SolveDiracBoundary(State& s, const std::vector<double
             
             if(i == j)
             {   if(forwards)
-                    A[(i+DM)*2*DM + j+DM] -= s.Kappa()/lattice.R(start_point + i+1) * lattice.dR(start_point + i+1);
+                    A[(i+DM)*2*DM + j+DM] -= s.Kappa()/lattice->R(start_point + i+1) * lattice->dR(start_point + i+1);
                 else
-                    A[(i+DM)*2*DM + j+DM] += s.Kappa()/lattice.R(start_point - (i+1)) * lattice.dR(start_point - (i+1));
+                    A[(i+DM)*2*DM + j+DM] += s.Kappa()/lattice->R(start_point - (i+1)) * lattice->dR(start_point - (i+1));
             }
         }
     }
@@ -184,13 +184,13 @@ void BoundStateIntegrator::SolveDiracBoundary(State& s, const std::vector<double
     // Calculate derivatives
     if(forwards)
         for(i=start_point; i<start_point+DM; i++)
-        {   s.df[i] = (-s.Kappa()/lattice.R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice.dR(i);
-            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice.R(i)*s.g[i])*lattice.dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice->dR(i);
+            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
     else
         for(i=start_point; i>start_point-DM; i--)
-        {   s.df[i] = (-s.Kappa()/lattice.R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice.dR(i);
-            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice.R(i)*s.g[i])*lattice.dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice->dR(i);
+            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
 
     // Calculate other points up to adams_N

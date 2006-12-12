@@ -37,7 +37,7 @@ void Core::Update()
     double deltaE, max_deltaE;
     StateIterator it(&next_states);
     double prop_new = 0.5;
-    StateIntegrator SI(*lattice);
+    StateIntegrator SI(lattice);
 
     unsigned int loop = 0;
 
@@ -143,7 +143,7 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
 
     std::vector<double> y(density.size());
     if(density.size())
-    {   CoulombIntegrator I(*lattice);
+    {   CoulombIntegrator I(lattice);
         I.CoulombIntegrate(density, y, 0, Z-Charge);
     }
 
@@ -238,7 +238,7 @@ void Core::UpdateNuclearPotential()
     {   // Create nuclear density function
         std::vector<double> density = CalculateNuclearDensity(NuclearRadius, NuclearThickness);
 
-        CoulombIntegrator I(*lattice);
+        CoulombIntegrator I(lattice);
         I.CoulombIntegrate(density, NuclearPotential, 0, Z);
     }
 }
@@ -321,7 +321,7 @@ void Core::CalculateClosedShellRadius()
 
 unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exch) const
 {
-    StateIntegrator I(*lattice);
+    StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
 
     if(s->Size() > (I.AdamsOrder()-1))
@@ -403,9 +403,9 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
 
 double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* exchange) const
 {
-    StateIntegrator I(*lattice);
+    StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
-    BoundStateIntegrator BI(*lattice);
+    BoundStateIntegrator BI(lattice);
     BI.SetAdamsOrder(10);
 
     if(s->Size() > (I.AdamsOrder()-1))
@@ -437,7 +437,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     exchange->ReSize(sInf.Size());
     BI.IntegrateForwards(s0, Potential, NULL, s0.Size());
 
-    GreensIntegrator greens(*lattice);
+    GreensIntegrator greens(lattice);
     greens.SetSolutionOrigin(&s0);
     greens.SetSolutionInfinity(&sInf);
     greens.SetGreensIntegrand(exchange);
@@ -687,7 +687,7 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
     do
     {   loop++;
         
-        StateIntegrator I(*lattice);
+        StateIntegrator I(lattice);
         start_sine = I.IntegrateContinuum(*s, HFPotential, exchange, Z, 0.01, final_amplitude, final_phase);
 
         ds = (final_phase - old_phase)/Constant::Pi;
@@ -715,8 +715,8 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
 
 void Core::CalculateExchange(const State& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
 
     exchange.Clear();
     exchange.ReSize(current.Size());

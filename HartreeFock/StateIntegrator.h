@@ -19,7 +19,7 @@ class StateIntegrator : public Integrator
             V(r) = HFPotential[]
      */
 public:
-    StateIntegrator(Lattice& lat): Integrator(lat) {}
+    StateIntegrator(Lattice* lat): Integrator(lat) {}
     virtual ~StateIntegrator(void) {}
 
     /** Set up the wavefunction from r->0 (points 0 to (adams_N-2))
@@ -106,7 +106,7 @@ protected:
     class StateFunction : public Function6
     {
     public:
-        StateFunction(Lattice& lat): Function6(), lattice(lat), exchange(NULL) {}
+        StateFunction(Lattice* lat): Function6(), lattice(lat), exchange(NULL) {}
         virtual ~StateFunction(void) {}
 
         virtual double Coeff1(int point) const;
@@ -128,7 +128,7 @@ protected:
         double energy;
         const CoupledFunction* exchange;
         const std::vector<double>* HFPotential;
-        Lattice& lattice;
+        Lattice* lattice;
     };
 };
 

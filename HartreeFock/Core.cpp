@@ -131,7 +131,7 @@ void Core::CalculateVolumeShiftPotential(double radius_difference)
 {
     std::vector<double> new_density = CalculateNuclearDensity(NuclearRadius + radius_difference, NuclearThickness);
     std::vector<double> new_potential;
-    CoulombIntegrator I(*lattice);
+    CoulombIntegrator I(lattice);
     I.CoulombIntegrate(new_density, new_potential, 0, Z);
 
     unsigned int oldsize = NuclearPotential.size(),
