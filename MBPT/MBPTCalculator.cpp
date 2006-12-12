@@ -122,8 +122,8 @@ double MBPTCalculator::CalculateCorrelation1and3(const State& si, const State& s
     std::vector<double> density(MaxStateSize);
     std::vector<double> Pot24(MaxStateSize);
     std::vector<double> Y(MaxStateSize); unsigned int Y_size;
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -351,8 +351,8 @@ double MBPTCalculator::CalculateCorrelation2(const State& si, const State& sf, S
     std::vector<double> Pot23(MaxStateSize);
     std::vector<double> Y1(MaxStateSize); unsigned int Y1_size;
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -540,8 +540,8 @@ double MBPTCalculator::CalculateCorrelation4(const State& si, const State& sf, S
     std::vector<double> Pot34(MaxStateSize);
     std::vector<double> Y1(MaxStateSize); unsigned int Y1_size;
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -717,8 +717,8 @@ double MBPTCalculator::CalculateSubtraction1(const State& si, const State& sf, S
 
     std::vector<double> density(MaxStateSize);
     std::vector<double> Pot24(MaxStateSize);
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -796,8 +796,8 @@ double MBPTCalculator::CalculateSubtraction2(const State& si, const State& sf, S
     std::vector<double> density(MaxStateSize);
     std::vector<double> Pot2f(MaxStateSize);
     std::vector<double> Pot4f(MaxStateSize);
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -895,7 +895,7 @@ double MBPTCalculator::CalculateSubtraction2(const State& si, const State& sf, S
 double MBPTCalculator::CalculateSubtraction3(const State& si, const State& sf, SigmaPotential* sigma) const
 {
     const bool debug = DebugOptions.LogMBPT();
-    StateIntegrator SI(*lattice);    
+    StateIntegrator SI(lattice);    
 
     if(debug)
         *outstream << "Sub 3:    ";
@@ -932,7 +932,7 @@ double MBPTCalculator::CalculateTwoElectron1(const State& sa, const State& sb, c
     std::vector<double> Pot24(MaxStateSize);
     std::vector<double> density(MaxStateSize);
 
-    CoulombIntegrator I(*lattice);
+    CoulombIntegrator I(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -1014,8 +1014,8 @@ double MBPTCalculator::CalculateTwoElectron2(const State& sa, const State& sb, c
     std::vector<double> Pot24(MaxStateSize);
     std::vector<double> Pota2(MaxStateSize);
     std::vector<double> Potb2(MaxStateSize);
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -1176,8 +1176,8 @@ double MBPTCalculator::CalculateTwoElectron3(const State& sa, const State& sb, c
     std::vector<double> Pot24(MaxStateSize);
     std::vector<double> Pota4(MaxStateSize);
     std::vector<double> Potb4(MaxStateSize);
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -1337,8 +1337,8 @@ double MBPTCalculator::CalculateTwoElectron4(const State& sa, const State& sb, c
     std::vector<double> density(MaxStateSize);
     std::vector<double> pot(MaxStateSize);
 
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -1470,8 +1470,8 @@ double MBPTCalculator::CalculateTwoElectron6(const State& sa, const State& sb, c
     std::vector<double> density(MaxStateSize);
     std::vector<double> pot(MaxStateSize);
 
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)
@@ -1597,8 +1597,8 @@ double MBPTCalculator::CalculateTwoElectronSub(const State& sa, const State& sb,
     std::vector<double> density(MaxStateSize);
     std::vector<double> pot(MaxStateSize);
 
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     if(debug)

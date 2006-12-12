@@ -18,8 +18,8 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
     std::vector<double> density(MaxStateSize);
     std::vector<double> Pot14(MaxStateSize);
     std::vector<double> Pot36(MaxStateSize);
-    CoulombIntegrator I(*lattice);
-    StateIntegrator SI(*lattice);
+    CoulombIntegrator I(lattice);
+    StateIntegrator SI(lattice);
     const double* dR = lattice->dR();
 
     const DiscreteState& s1(*excited->GetState(e1));
