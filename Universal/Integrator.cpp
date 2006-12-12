@@ -26,7 +26,7 @@ void Integrator::SetAdamsOrder(unsigned int adams_order)
 void Integrator::Integrate0(const std::vector<double>& f, std::vector<double>& y,
                        int start_point, int end_point)
 {
-    const double* dR = lattice.dR();
+    const double* dR = lattice->dR();
 
     if(start_point < end_point)
         for(int i = start_point; i < end_point; i++)
@@ -63,7 +63,7 @@ void Integrator::Integrate(const Function2& f, std::vector<double>& y, std::vect
 {
     std::vector<double> Coeff1 = f.Coeff1();
     std::vector<double> Coeff2 = f.Coeff2();
-    const double* dR = lattice.dR();
+    const double* dR = lattice->dR();
 
     if(start_point < end_point)
         for(int i = start_point; i < end_point; i++)
@@ -100,8 +100,8 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
     if(start_point < end_point)
         for(int i = start_point; i < end_point; i++)
         {
-            double f_next = s.f[i-1] + adams_coeff[0] * A.Coeff3(i) * lattice.dR(i);
-            double g_next = s.g[i-1] + adams_coeff[0] * A.Coeff6(i) * lattice.dR(i);
+            double f_next = s.f[i-1] + adams_coeff[0] * A.Coeff3(i) * lattice->dR(i);
+            double g_next = s.g[i-1] + adams_coeff[0] * A.Coeff6(i) * lattice->dR(i);
             
             for(unsigned int j=1; j<adams_N; j++)
             {
@@ -109,23 +109,23 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
                 g_next = g_next + adams_coeff[j] * s.dg[i-j];
             }
             
-            double D = (1. - adams_coeff[0] * A.Coeff1(i) * lattice.dR(i))
-                         * (1. - adams_coeff[0] * A.Coeff5(i) * lattice.dR(i))
-                     - (adams_coeff[0] * A.Coeff2(i) * lattice.dR(i))
-                         * (adams_coeff[0] * A.Coeff4(i) * lattice.dR(i));
+            double D = (1. - adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
+                         * (1. - adams_coeff[0] * A.Coeff5(i) * lattice->dR(i))
+                     - (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))
+                         * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i));
 
-            s.f[i] = (f_next * (1. - adams_coeff[0] * A.Coeff5(i) * lattice.dR(i))
-                         + g_next * (adams_coeff[0] * A.Coeff2(i) * lattice.dR(i))) / D;
-            s.g[i] = (g_next * (1. - adams_coeff[0] * A.Coeff1(i) * lattice.dR(i))
-                         + f_next * (adams_coeff[0] * A.Coeff4(i) * lattice.dR(i))) / D;
-            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice.dR(i);
-            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice.dR(i);
+            s.f[i] = (f_next * (1. - adams_coeff[0] * A.Coeff5(i) * lattice->dR(i))
+                         + g_next * (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))) / D;
+            s.g[i] = (g_next * (1. - adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
+                         + f_next * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i))) / D;
+            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice->dR(i);
+            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice->dR(i);
         }
     else
         for(int i = start_point; i > end_point; i--)
         {
-            double f_next = s.f[i+1] - adams_coeff[0] * A.Coeff3(i) * lattice.dR(i);
-            double g_next = s.g[i+1] - adams_coeff[0] * A.Coeff6(i) * lattice.dR(i);
+            double f_next = s.f[i+1] - adams_coeff[0] * A.Coeff3(i) * lattice->dR(i);
+            double g_next = s.g[i+1] - adams_coeff[0] * A.Coeff6(i) * lattice->dR(i);
             
             for(unsigned int j=1; j<adams_N; j++)
             {
@@ -133,23 +133,23 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
                 g_next = g_next - adams_coeff[j] * s.dg[i+j];
             }
             
-            double D = (1. + adams_coeff[0] * A.Coeff1(i) * lattice.dR(i))
-                         * (1. + adams_coeff[0] * A.Coeff5(i) * lattice.dR(i))
-                     - (adams_coeff[0] * A.Coeff2(i) * lattice.dR(i))
-                         * (adams_coeff[0] * A.Coeff4(i) * lattice.dR(i));
+            double D = (1. + adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
+                         * (1. + adams_coeff[0] * A.Coeff5(i) * lattice->dR(i))
+                     - (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))
+                         * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i));
 
-            s.f[i] = (f_next * (1. + adams_coeff[0] * A.Coeff5(i) * lattice.dR(i))
-                         - g_next * (adams_coeff[0] * A.Coeff2(i) * lattice.dR(i))) / D;
-            s.g[i] = (g_next * (1. + adams_coeff[0] * A.Coeff1(i) * lattice.dR(i))
-                         - f_next * (adams_coeff[0] * A.Coeff4(i) * lattice.dR(i))) / D;
-            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice.dR(i);
-            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice.dR(i);
+            s.f[i] = (f_next * (1. + adams_coeff[0] * A.Coeff5(i) * lattice->dR(i))
+                         - g_next * (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))) / D;
+            s.g[i] = (g_next * (1. + adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
+                         - f_next * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i))) / D;
+            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice->dR(i);
+            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice->dR(i);
         }
 }
 
 void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>& df, int start_point, int end_point)
 {
-    const double* R = lattice.R();
+    const double* R = lattice->R();
 
     // Calculate derivative using quartic formula
     for(int i = start_point; i<end_point; i++)
@@ -175,7 +175,7 @@ void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>
         double E = f[i+2];
 
         df[i] = coeff_A * A + coeff_B * B + coeff_C * C + coeff_D * D + coeff_E * E;
-        df[i] = df[i] * lattice.dR(i);
+        df[i] = df[i] * lattice->dR(i);
     }
 }
 
@@ -185,7 +185,7 @@ void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>
     */
 void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<double>& df, int start_point)
 {
-    const double* R = lattice.R();
+    const double* R = lattice->R();
 
     // first two points just use quadratic formula
     for(int i = start_point; i < start_point+2; i++)
@@ -204,7 +204,7 @@ void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<do
         double E = f[i+2];
 
         df[i] = coeff_C * C + coeff_D * D + coeff_E * E;
-        df[i] = df[i] * lattice.dR(i);
+        df[i] = df[i] * lattice->dR(i);
     }
 }
 
@@ -214,7 +214,7 @@ void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<do
     */
 void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point)
 {
-    const double* R = lattice.R();
+    const double* R = lattice->R();
 
     // last two points just use quadratic formula
     for(int i = end_point - 2; i < end_point; i++)
@@ -233,6 +233,6 @@ void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<doub
         double C = f[i];
 
         df[i] = coeff_A * A + coeff_B * B + coeff_C * C;
-        df[i] = df[i] * lattice.dR(i);
+        df[i] = df[i] * lattice->dR(i);
     }
 }

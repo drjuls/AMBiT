@@ -36,16 +36,16 @@ public:
     /** Return the first lattice point greater than or equal to "r_point".
         If no such point exists, create it.
      */
-    unsigned int real_to_lattice(double r_point);
+    virtual unsigned int real_to_lattice(double r_point);
 
 protected:
     Lattice() {}
 
     /** Calculate the value that r[i] should be. */
-    double lattice_to_real(unsigned int i) const;
+    virtual double lattice_to_real(unsigned int i) const;
 
     /** Calculate the lattice spacing at a point. */
-    double calculate_dr(double r_point) const;
+    virtual double calculate_dr(double r_point) const;
 
     /** Calculate R^power and store, for all powers up to k.
         PRE: k > 0
@@ -53,7 +53,8 @@ protected:
     const double* Calculate_Rpower(unsigned int k);
     
     /** Resizes the lattice such that NumPoints > min_size. */
-    void ReSize(unsigned int min_size);
+    virtual void ReSize(unsigned int min_size);
+
 protected:
     unsigned int NumPoints;
     double* r;

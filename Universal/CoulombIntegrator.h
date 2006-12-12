@@ -22,7 +22,7 @@ class CoulombIntegrator : public Integrator
           dI2/dr =    k/r .I2   - density/r
      */
 public:
-    CoulombIntegrator(Lattice& lat): Integrator(lat) {}
+    CoulombIntegrator(Lattice* lat): Integrator(lat) {}
     virtual ~CoulombIntegrator(void) {}
 
     /** Calculate k-th term of coulomb potential due to charge density.
@@ -49,7 +49,7 @@ protected:
     class CoulombFunction : public Function2
     {
     public:
-        CoulombFunction(Lattice& lat, const std::vector<double>& density, unsigned int k):
+        CoulombFunction(Lattice* lat, const std::vector<double>& density, unsigned int k):
             Function2(), Density(&density), lattice(lat), K(k), FirstPass(true) {}
         virtual ~CoulombFunction(void) {}
 
@@ -64,7 +64,7 @@ protected:
     protected:
         double K;
         const std::vector<double>* Density;
-        Lattice& lattice;
+        Lattice* lattice;
         bool FirstPass;
     };
 };

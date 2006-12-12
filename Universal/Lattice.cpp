@@ -30,7 +30,7 @@ void CollectFloatingValues(const char* buff, double* values, unsigned int size)
 
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), NumPoints(numpoints), rmin(r_min)
-{   
+{
     r = (double*)malloc(NumPoints * sizeof(double));
     dr = (double*)malloc(NumPoints * sizeof(double));
     

@@ -4,14 +4,14 @@
 double CoulombIntegrator::CoulombFunction::Coeff1(int point) const
 {
     if(FirstPass)
-        return -(K + 1.)/lattice.R(point);
+        return -(K + 1.)/lattice->R(point);
     else
-        return K/lattice.R(point);
+        return K/lattice->R(point);
 }
 
 double CoulombIntegrator::CoulombFunction::Coeff2(int point) const
 {
-    double ret = (*Density)[point]/lattice.R(point);
+    double ret = (*Density)[point]/lattice->R(point);
     if(FirstPass)
         return ret;
     else
@@ -22,8 +22,8 @@ std::vector<double> CoulombIntegrator::CoulombFunction::Coeff1(void) const
 {
     std::vector<double> ret(Density->size());
     // Check that lattice is big enough
-    lattice.R(Density->size() - 1);
-    const double* R = lattice.R();
+    lattice->R(Density->size() - 1);
+    const double* R = lattice->R();
 
     if(FirstPass)
     {   for(unsigned int i=0; i<ret.size(); i++)
@@ -40,8 +40,8 @@ std::vector<double> CoulombIntegrator::CoulombFunction::Coeff2(void) const
 {
     std::vector<double> ret(Density->size());
     // Check that lattice is big enough
-    lattice.R(Density->size() - 1);
-    const double* R = lattice.R();
+    lattice->R(Density->size() - 1);
+    const double* R = lattice->R();
 
     if(FirstPass)
     {   for(unsigned int i=0; i<ret.size(); i++)
@@ -64,7 +64,7 @@ void CoulombIntegrator::CoulombIntegrate(std::vector<double>& density, std::vect
 
     // Renormalise
     if(charge != 0.)
-    {   double norm = y[density.size()-1] * lattice.R(density.size()-1);
+    {   double norm = y[density.size()-1] * lattice->R(density.size()-1);
         norm = charge/norm;
         for(unsigned int i=0; i<density.size(); i++)
         {   y[i] = y[i] * norm;
@@ -83,7 +83,7 @@ void CoulombIntegrator::CoulombIntegrate(std::vector<double>& density, std::vect
          */
         for(unsigned int i=density.size()-1; i>density.size()-adams_N; i--)
         {   potential[i] = y[i];
-            dy[i] = -y[i]/lattice.R(i)*lattice.dR(i);
+            dy[i] = -y[i]/lattice->R(i)*lattice->dR(i);
         }
         function.SetDensity(y);
         function.SetDirection(false);
@@ -109,13 +109,13 @@ void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density,
     potential.clear();
     potential.resize(density.size());
 
-    lattice.R(density.size()-1);
-    const double* dR = lattice.dR();
+    lattice->R(density.size()-1);
+    const double* dR = lattice->dR();
 
     if(k != 0)
     {
-        const double* R_k = lattice.Rpower(k);
-        const double* R_k_1 = lattice.Rpower(k+1);
+        const double* R_k = lattice->Rpower(k);
+        const double* R_k_1 = lattice->Rpower(k+1);
 
         double sum = 0., sum1 = 0.;
         int i, j;
@@ -150,7 +150,7 @@ void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density,
     }
     else
     {
-        const double* R = lattice.R();
+        const double* R = lattice->R();
 
         double sum = 0., sum1 = 0.;
         int i, j;
@@ -187,12 +187,12 @@ void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density,
 
 void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density, std::vector<double>& potential, unsigned int k, unsigned int density_size)
 {
-    const double* dR = lattice.dR();
+    const double* dR = lattice->dR();
 
     if(k != 0)
     {
-        const double* R_k = lattice.Rpower(k);
-        const double* R_k_1 = lattice.Rpower(k+1);
+        const double* R_k = lattice->Rpower(k);
+        const double* R_k_1 = lattice->Rpower(k+1);
 
         double sum = 0., sum1 = 0.;
         int i, j;
@@ -241,7 +241,7 @@ void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density,
     }
     else
     {
-        const double* R = lattice.R();
+        const double* R = lattice->R();
 
         double sum = 0., sum1 = 0.;
         int i, j;

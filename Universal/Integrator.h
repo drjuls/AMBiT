@@ -13,7 +13,7 @@ class Integrator
           dy/dx = f(y,x) = f.coeff1(x) * y + f.coeff2(x)
      */
 public:
-    Integrator(Lattice& lat, unsigned int adams_order = 10): lattice(lat)
+    Integrator(Lattice* lat, unsigned int adams_order = 10): lattice(lat)
     {   SetAdamsOrder(adams_order);
     }
     virtual ~Integrator(void) {}
@@ -74,7 +74,7 @@ public:
     virtual void GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point);
 
 protected:
-    Lattice& lattice;
+    Lattice* lattice;
     unsigned int adams_N;
 
     const double* adams_coeff;  // Size = adams_N
