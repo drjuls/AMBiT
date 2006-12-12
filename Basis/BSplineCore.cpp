@@ -250,8 +250,8 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     Lattice* hflattice = hfcore->GetLattice();
     const double* R = hflattice->R();
 
-    CoulombIntegrator CI_hflat(*hflattice);
-    StateIntegrator SI_hflat(*hflattice);
+    CoulombIntegrator CI_hflat(hflattice);
+    StateIntegrator SI_hflat(hflattice);
 
     CoupledFunction hfexchange(hflattice->Size());
 

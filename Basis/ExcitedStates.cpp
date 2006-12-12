@@ -168,7 +168,7 @@ void ExcitedStates::MultiplyByR(const DiscreteState* previous, DiscreteState* cu
         Potential[i] += LocalExchange[i];
 
     std::vector<double> dV(Potential.size());
-    StateIntegrator I(*lattice);
+    StateIntegrator I(lattice);
     I.GetDerivativeStart(Potential, dV, 0);
     I.GetDerivativeEnd(Potential, dV, Potential.size());
     I.GetDerivative(Potential, dV, 2, Potential.size()-2);
@@ -209,7 +209,7 @@ void ExcitedStates::MultiplyBySinR(const DiscreteState* previous, DiscreteState*
         Potential[i] += LocalExchange[i];
 
     std::vector<double> dV(Potential.size());
-    StateIntegrator I(*lattice);
+    StateIntegrator I(lattice);
     I.GetDerivativeStart(Potential, dV, 0);
     I.GetDerivativeEnd(Potential, dV, Potential.size());
     I.GetDerivative(Potential, dV, 2, Potential.size()-2);
@@ -255,7 +255,7 @@ void ExcitedStates::MultiplyByRSinR(const DiscreteState* previous, DiscreteState
         Potential[i] += LocalExchange[i];
 
     std::vector<double> dV(Potential.size());
-    StateIntegrator I(*lattice);
+    StateIntegrator I(lattice);
     I.GetDerivativeStart(Potential, dV, 0);
     I.GetDerivativeEnd(Potential, dV, Potential.size());
     I.GetDerivative(Potential, dV, 2, Potential.size()-2);
