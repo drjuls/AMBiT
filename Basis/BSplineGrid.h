@@ -24,13 +24,13 @@ public:
 
 protected:
     /** Calculate the value that r[i] should be. */
-    double lattice_to_real(unsigned int i) const;
+    //double lattice_to_real(unsigned int i) const;
 
     /** Calculate the lattice spacing at a point. */
-    double calculate_dr(double r_point) const;
+    //double calculate_dr(double r_point) const;
 
     /** Resizes the lattice such that NumPoints > min_size. */
-    void ReSize(unsigned int min_size);
+    //void ReSize(unsigned int min_size);
 
     /** Create a grid (knot sequence) for the splines.
      *  PRE: t[n+k]

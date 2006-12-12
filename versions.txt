@@ -8,6 +8,15 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Alt: Integrator::Lattice& lattice changed from reference to pointer 
+     Lattice* lattice. This affects StateIntegrator and
+     CoulombIntegrator and just about all functions that use these classes.
+Add: ExpLattice class which is a pure exponential lattice used in R-Matrix
+     codes as well as "AutoStructure". Default makefile configuration added
+     to make.machine. Configuration::GetOccupancy(const StateInfo&) function
+     added.
+Bug: Escape for HamiltonianMatrix::SolveMatrix when N==0.
+
 1.4.1 - 13/12/06
 Add: ConfigFileGenerator now stores input configurations and percentages and
      added function GenerateMultipleExcitationsFromImportantConfigurations()
