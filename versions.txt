@@ -8,6 +8,7 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.4.1 - 13/12/06
 Add: ConfigFileGenerator now stores input configurations and percentages and
      added function GenerateMultipleExcitationsFromImportantConfigurations()
      which generates from leading configurations as well as those with input

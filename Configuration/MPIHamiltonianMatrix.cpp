@@ -164,6 +164,7 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
 {
     M->WriteMode(false);
     ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
+    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
 
     *outstream << "\nFinding solutions" << std::endl;
 
@@ -221,7 +222,8 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
                 list_it++;
             }
 
-            if(config_file_gen)
+            // If the most important configuration is a leading configuration, add this state to the config file.
+            if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
                 config_file_gen->AddPercentages(percentages);
 
             std::map<Configuration, double>::const_iterator it = percentages.begin();
