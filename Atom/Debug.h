@@ -7,6 +7,7 @@ class Debug
         We also hijack this class for directing output from outside of class Atom.
      */
     friend class Atom;
+    friend class RMatrixPrimer;
 public:
     Debug();
     ~Debug() {}

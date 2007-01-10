@@ -93,6 +93,7 @@ private:
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
     MBPTCalculator* mbpt;
+    ValenceCalculator* valence_mbpt;
     Sigma3Calculator* sigma3;
 
     // Configuration Interaction parameters
