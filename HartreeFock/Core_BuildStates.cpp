@@ -394,7 +394,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
                     Potential[i] = HFPotential[i];
         }
     }
-    while((loop < StateParameters::MaxHFIterations) && (fabs(delta) > StateParameters::EnergyTolerance));
+    while((loop < StateParameters::MaxHFIterations) && (fabs(delta) > StateParameters::FirstBuildEnergyTolerance));
 
     s->ReNormalise();
 
@@ -812,4 +812,5 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
 
 const unsigned int Core::StateParameters::MaxHFIterations = 300;
 double Core::StateParameters::WavefunctionTolerance = 1.E-11;
+double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
 double Core::StateParameters::EnergyTolerance = 1.E-14;

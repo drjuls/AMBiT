@@ -198,6 +198,7 @@ public:
         /** Accuracy of Hartree Fock energy
          */
         static double EnergyTolerance;
+        static double FirstBuildEnergyTolerance;
     };
 };
 
