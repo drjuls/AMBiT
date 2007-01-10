@@ -8,13 +8,21 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.4.2 - 10/01/06
 Alt: Integrator::Lattice& lattice changed from reference to pointer 
      Lattice* lattice. This affects StateIntegrator and
      CoulombIntegrator and just about all functions that use these classes.
+     Changed interface to CIIntegrals::SetTwoElectronStorageLimits(), and
+     CIIntegralsMBPT::IncludeExtraBoxDiagrams() now uses
+     SetExtraBoxDiagramLimits().
 Add: ExpLattice class which is a pure exponential lattice used in R-Matrix
      codes as well as "AutoStructure". Default makefile configuration added
      to make.machine. Configuration::GetOccupancy(const StateInfo&) function
-     added.
+     added. Added RMatrixPrimer class as a simpler alternative to Atom class.
+     Added ValenceCalculator class to calculate valence-valence correlations
+     in MBPT. Added room for ValenceCalculator to CIIntegralsMBPT class.
+     Added Core::StateParameters::FirstBuildEnergyTolerance which is used
+     instead of EnergyTolerance in Core::ConvergeStateApproximation.
 Bug: Escape for HamiltonianMatrix::SolveMatrix when N==0.
 
 1.4.1 - 13/12/06

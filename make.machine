@@ -13,7 +13,10 @@ ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
   MACHINE = newt
 endif
 ifeq ($(findstring jcb2pc, $(HOSTNAME)), jcb2pc)
-  MACHINE = jcb2pc
+  MACHINE = jcbmac
+endif
+ifeq ($(findstring physics.auburn, $(HOSTNAME)), physics.auburn)
+  MACHINE = jcbmac
 endif
 
 SRCDIR = $(shell pwd)
@@ -107,17 +110,17 @@ ifeq ($(MACHINE), newt)
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), jcb2pc)
+ifeq ($(MACHINE), jcbmac)
   CC  = gcc
   CXX = g++
-  F77 = gcc
+  F77 = gfortran
 
   LINK = g++
 
   LIBDIR       = /usr/local/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    = g2c
+  BLASLIB      =
+  LAPACKLIB    =
+  EXTRALIBS    =
 
   INCLUDE += /usr/local/include
 
@@ -147,7 +150,7 @@ ifeq ($(MACHINE), default)
   LIBDIR       = /usr/local/lib
   BLASLIB      = blas
   LAPACKLIB    = lapack
-  EXTRALIBS    = g2c
+  EXTRALIBS    =
 
   INCLUDE += /usr/local/include
 

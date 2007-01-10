@@ -1,19 +1,25 @@
 # To compile a debug version, define 'debug' in the command line, ie:
 #     make debug=1
 #
-modules = Atom Configuration MBPT Basis HartreeFock Universal
+coremodules = Configuration MBPT Basis HartreeFock Universal
+modules = Atom $(coremodules)
 exe = atom
 
 packname = AtomPack
 #other files that should be included in package
-packfiles = Include.h config.txt mendel.tab CustomBasis.txt
+packfiles = Include.h config.txt mendel.tab CustomBasis.txt Atom/make.RMatrixPrimer
 
 include make.machine
 
+corelibnames = $(foreach module, $(coremodules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
 $(exe): $(libnames)
 	$(LINK) -o $(exe) $(libnames) $(addprefix -L, $(LIBDIR)) \
+             $(addprefix -l, $(EXTRALIBS) $(LAPACKLIB) $(BLASLIB) m c)
+
+rap.exe: Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX) $(corelibnames)
+	$(LINK) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
              $(addprefix -l, $(EXTRALIBS) $(LAPACKLIB) $(BLASLIB) m c)
 
 .EXPORT_ALL_VARIABLES:
@@ -21,6 +27,10 @@ $(exe): $(libnames)
 $(libnames): %$(LIBSUFFIX):
 	-@mkdir $(notdir $*)/$(BUILD)
 	$(MAKE) -C $(notdir $*) -f make.$(notdir $*) module=$(notdir $*)
+
+Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX): %$(LIBSUFFIX):
+	-@mkdir Atom/$(BUILD)
+	$(MAKE) -C Atom -f make.$(notdir $*) module=$(notdir $*)
 
 #if a command fails, delete the target
 .DELETE_ON_ERROR:
