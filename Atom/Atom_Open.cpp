@@ -41,7 +41,8 @@ void Atom::RunOpen()
 
         integralsMBPT->IncludeMBPT1(true, mbpt);
         integralsMBPT->IncludeMBPT2(true, mbpt);
-        integralsMBPT->IncludeExtraBoxDiagrams(true, 4, 4);
+        integralsMBPT->IncludeExtraBoxDiagrams(true);
+        integralsMBPT->SetExtraBoxDiagramLimits(4, 4);
     }
     else
     {   integrals = new CIIntegrals(*excited);
