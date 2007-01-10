@@ -227,7 +227,7 @@ void CIIntegralsMBPT::Update(const std::string& sigma_id)
 
     UpdateOneElectronIntegrals(sigma_id);
     UpdateTwoElectronIntegrals();
-    if(include_extra_box)
+    if(include_extra_box || include_valence_extra_box)
         UpdateTwoElectronBoxDiagrams();
 }
 
@@ -254,6 +254,9 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     // Update the valence energies for perturbation theory
     if((include_sigma1 || include_mbpt1) && PT)
         PT->UseBrillouinWignerPT();
+
+    if(include_valence_mbpt1 && ValencePT)
+        ValencePT->UseBrillouinWignerPT();
 
     // Calculate sigma1 potentials
     if(include_sigma1)
@@ -335,7 +338,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 {
                   #ifdef _MPI
                     // MPI: Check if this is our integral.
-                    if(!PT || (count == ProcessorRank))
+                    if((!PT && !ValencePT) || (count == ProcessorRank))
                     {
                   #endif
                     double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
@@ -349,6 +352,9 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     if(include_mbpt1_subtraction && PT)
                     {   integral += PT->GetSigmaSubtraction(si, sj);
                     }
+                    if(include_valence_mbpt1 && ValencePT)
+                    {   integral += ValencePT->GetOneElectronValence(si, sj);
+                    }
                     OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, integral));
                   #ifdef _MPI
                     }
@@ -357,7 +363,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                         count = 0;
                   #endif
 
-                    if(include_mbpt1 && PT)
+                    if((include_mbpt1 && PT) || (include_valence_mbpt1 && ValencePT))
                     {   time(&now);
                         if(now - start > gap)
                         {   WriteOneElectronIntegrals();
@@ -389,7 +395,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
         it_i.Next(); i++;
     }
 
-    if(include_mbpt1 && PT)
+    if((include_mbpt1 && PT) || (include_valence_mbpt1 && ValencePT))
         WriteOneElectronIntegrals();
 }
 
@@ -410,6 +416,8 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     // Update the valence energies for perturbation theory
     if(include_mbpt2 && PT)
         PT->UseBrillouinWignerPT();
+    if(include_valence_mbpt2 && ValencePT)
+        ValencePT->UseBrillouinWignerPT();
 
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
@@ -426,9 +434,6 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     std::vector<double> density(states.GetCore()->GetHFPotential().size());
     std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
     const double* dR = states.GetLattice()->dR();
-    const double* R = states.GetLattice()->R();
-    const double core_pol = states.GetCore()->GetPolarisability();
-    const double core_rad = states.GetCore()->GetClosedShellRadius();
 
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
@@ -524,7 +529,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                 {
                                   #ifdef _MPI
                                     // MPI: Check if this is our integral.
-                                    if(!PT || (count == ProcessorRank))
+                                    if((!PT && !ValencePT) || (count == ProcessorRank))
                                     {
                                   #endif
                                     double radial = 0.;
@@ -555,6 +560,9 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                         if(include_mbpt2_subtraction)
                                             radial += PT->GetTwoElectronSubtraction(s1, s2, s3, s4, k);
                                     }
+                                    if(include_valence_mbpt2 && ValencePT)
+                                    {   radial += ValencePT->GetTwoElectronValence(s1, s2, s3, s4, k);
+                                    }
 
                                     TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
                                   #ifdef _MPI
@@ -564,7 +572,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                         count = 0;
                                   #endif
 
-                                    if(include_mbpt2 && PT)
+                                    if((include_mbpt2 && PT) || (include_valence_mbpt2 && ValencePT))
                                     {   time(&now);
                                         if(now - start > gap)
                                         {   WriteTwoElectronIntegrals();
@@ -585,16 +593,19 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         it_2.Next(); i2++;
     }
 
-    if(include_mbpt2 && PT)
+    if((include_mbpt2 && PT) || (include_valence_mbpt2 && ValencePT))
         WriteTwoElectronIntegrals();
 }
 
 void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
 {
     // Update the valence energies for perturbation theory
-    if(PT)
+    if(include_extra_box && PT)
         PT->UseBrillouinWignerPT();
-    else
+    if(include_valence_extra_box && ValencePT)
+        ValencePT->UseBrillouinWignerPT();
+        
+    if(!(include_extra_box && PT) && !(include_valence_extra_box && ValencePT))
         return;
 
 #ifdef _MPI
@@ -690,7 +701,12 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                                     if(count == ProcessorRank)
                                     {
                                   #endif
-                                        double radial = PT->GetTwoElectronBoxDiagrams(s1, s2, s3, s4, k);
+                                        double radial = 0;
+                                        if(include_extra_box && PT)
+                                            radial += PT->GetTwoElectronBoxDiagrams(s1, s2, s3, s4, k);
+                                        if(include_valence_extra_box && ValencePT)
+                                            radial += ValencePT->GetTwoElectronBoxValence(s1, s2, s3, s4, k);
+
                                         TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
                                   #ifdef _MPI
                                     }

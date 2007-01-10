@@ -35,10 +35,16 @@ public:
         and hopefully after max_pqn_2 and then max_pqn_3
             N ~ x^2 and then N ~ x, respectively.
      */
-    void SetTwoElectronStorageLimits(unsigned int limit1 = 100, unsigned int limit2 = 100, unsigned int limit3 = 100)
-    {   max_pqn_1 = limit1;
-        max_pqn_2 = limit2;
-        max_pqn_3 = limit3;
+    void SetTwoElectronStorageLimits(unsigned int limit1 = 0, unsigned int limit2 = 0, unsigned int limit3 = 0)
+    {
+        if(limit1) max_pqn_1 = limit1;
+        else max_pqn_1 = 100;
+            
+        if(limit2) max_pqn_2 = limit2;
+        else max_pqn_2 = 100;
+        
+        if(limit3) max_pqn_3 = limit3;
+        else max_pqn_3 = 100;
     }
 
     /** Calculate number of one-electron and two-electron integrals that will be stored.

@@ -4,6 +4,7 @@
 #include "CIIntegrals.h"
 #include "HartreeFock/SigmaPotential.h"
 #include "MBPT/MBPTCalculator.h"
+#include "MBPT/ValenceCalculator.h"
 
 class CIIntegralsMBPT: public CIIntegrals
 {
@@ -13,9 +14,10 @@ class CIIntegralsMBPT: public CIIntegrals
      */
 public:
     CIIntegralsMBPT(const ExcitedStates& excited_states, const std::string& storage_id = ""):
-        CIIntegrals(excited_states, storage_id), PT(NULL),
+        CIIntegrals(excited_states, storage_id), PT(NULL), ValencePT(NULL),
         include_sigma1(false), include_mbpt1(false), include_mbpt1_subtraction(false),
-        include_mbpt2(false), include_mbpt2_subtraction(false), include_extra_box(false)
+        include_mbpt2(false), include_mbpt2_subtraction(false), include_extra_box(false),
+        include_valence_mbpt1(false), include_valence_mbpt2(false), include_valence_extra_box(false)
     {}
     virtual ~CIIntegralsMBPT();
 
@@ -68,11 +70,46 @@ public:
     }
 
     /** Include two-particle box diagrams. */
-    inline void IncludeExtraBoxDiagrams(bool include, unsigned int limit1 = 100, unsigned int limit2 = 100, unsigned int limit3 = 100)
+    inline void IncludeExtraBoxDiagrams(bool include)
     {   include_extra_box = include;
-        box_max_pqn_1 = limit1;
-        box_max_pqn_2 = limit2;
-        box_max_pqn_3 = limit3;
+        if(include)
+            SetExtraBoxDiagramLimits();
+    }
+
+    /** Include single-particle valence-valence MBPT diagrams. */
+    inline void IncludeValenceMBPT1(bool include, ValenceCalculator* mbpt = NULL)
+    {   include_valence_mbpt1 = include;
+        if(mbpt)
+            ValencePT = mbpt;
+    }
+
+    /** Include two-particle MBPT diagrams. */
+    inline void IncludeValenceMBPT2(bool include, ValenceCalculator* mbpt = NULL)
+    {   include_valence_mbpt2 = include;
+        if(mbpt)
+            ValencePT = mbpt;
+    }
+
+    /** Include two-particle box diagrams. */
+    inline void IncludeValenceExtraBoxDiagrams(bool include)
+    {   include_valence_extra_box = include;
+        if(include)
+            SetExtraBoxDiagramLimits();
+    }
+
+    /** Set limits on storage of extra box-diagram integrals (can check using GetStorageSize()).
+        See CIIntegrals::SetTwoElectronStorageLimits() for details on structure.
+     */
+    void SetExtraBoxDiagramLimits(unsigned int limit1 = 0, unsigned int limit2 = 0, unsigned int limit3 = 0)
+    {
+        if(limit1) box_max_pqn_1 = limit1;
+        else box_max_pqn_1 = 100;
+            
+        if(limit2) box_max_pqn_2 = limit2;
+        else box_max_pqn_2 = 100;
+        
+        if(limit3) box_max_pqn_3 = limit3;
+        else box_max_pqn_3 = 100;
     }
 
     /** Write out sigma potentials. */
@@ -115,19 +152,26 @@ protected:
 
 protected:
     MBPTCalculator* PT;
+    ValenceCalculator* ValencePT;
 
-    /** Single-electron MBPT effects. */
+    /** Single-electron core MBPT effects. */
     bool include_sigma1;
     bool include_mbpt1;
     bool include_mbpt1_subtraction;
     std::map<int, SigmaPotential*> Sigma1;
 
-    /** Two-electron MBPT effects. */
+    /** Two-electron core MBPT effects. */
     bool include_mbpt2;
     bool include_mbpt2_subtraction;
     bool include_extra_box;
+    
+    /** Valence-valence MBPT effects. */
+    bool include_valence_mbpt1;
+    bool include_valence_mbpt2;
+    bool include_valence_extra_box;
 
     // Limits on extra two-body box diagram integrals.
+    // Used for both core-valence and valence-valence MBPT diagrams.
     unsigned int box_max_pqn_1, box_max_pqn_2, box_max_pqn_3;
 };
 
