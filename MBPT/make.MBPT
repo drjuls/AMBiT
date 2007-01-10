@@ -1,4 +1,4 @@
-cxxobjects = MBPTCalculator.o Sigma3Calculator.o
+cxxobjects = MBPTCalculator.o Sigma3Calculator.o ValenceCalculator.o
 cobjects = 
 fobjects =
 
