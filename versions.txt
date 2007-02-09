@@ -8,6 +8,8 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Add: Universal/Include.cpp with a function to convert endianness on fread.
+
 1.4.3 - 09/02/07
 Bug: Added option _FUS which appends underscore to fortran subroutines. This
      is needed on nersc machines in which fortran libraries are compiled
