@@ -1,6 +1,12 @@
 #ifndef SPLINE_H
 #define SPLINE_H
 
+#if !(_FUS)
+    #define bsplvd_ bsplvd
+    #define bvalue_ bvalue
+    #define gauss_  gauss
+#endif
+
 extern "C"{
 /** Get value of the B-Splines of order k and derivatives at point
  *      x = [t[left], t[left+1]).
