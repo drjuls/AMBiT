@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "MPIHamiltonianMatrix.h"
 #include "MPIMatrix.h"
+#include "Universal/ScalapackMatrix.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
 #include <mpi.h>
@@ -92,6 +93,12 @@ void MPIHamiltonianMatrix::GenerateMatrix()
             proc = -proc;
     }
     *logstream << "Matrix Generated" << std::endl;
+}
+
+void MPIHamiltonianMatrix::WriteToFile(const std::string& filename)
+{
+    if(dynamic_cast<MPIMatrix*>(M))
+        dynamic_cast<MPIMatrix*>(M)->WriteToFile(filename);
 }
 
 void MPIHamiltonianMatrix::PollMatrix()
@@ -500,4 +507,132 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
     delete[] total;
 }
 
+#ifdef _SCALAPACK
+void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, unsigned int two_j, bool gFactors)
+{
+    if(N == 0)
+    {   *outstream << "\nNo solutions" << std::endl;
+        return;
+    }
+
+    if(M)
+        delete M;
+
+    M = new ScalapackMatrix(N);
+    ScalapackMatrix* SM = dynamic_cast<ScalapackMatrix*>(M);
+    
+    SM->ReadTriangle(filename);
+    
+    ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
+    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
+
+    *outstream << "\nFinding solutions" << std::endl;
+
+    if(NumSolutions)
+    {   delete[] V;
+        delete[] E;
+    }
+    NumSolutions = mmin(50, N);
+
+    E = new double[N];
+    V = new double[NumSolutions * N];
+
+    SM->Diagonalise(E);
+    
+    if(ProcessorRank == 0)
+    {
+        *outstream << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
+    }
+
+    // Calculate g-Factors
+    double* g_factors;
+    if(gFactors)
+        g_factors = new double[NumSolutions];
+
+    unsigned int i, j, count;
+
+    i = 0;
+    while((i < N) && (E[i] - E[0] < eigenvalue_limit))
+    {
+        // Do a chunk of eigenvectors, maximum size NumSolutions
+        for(count = 0; (count < NumSolutions) && (i+count < N) &&
+                                    (E[i+count] - E[0] < eigenvalue_limit); count++)
+        {
+            SM->GetColumn(i+count, &V[count*N]);
+        }
+
+        // Change NumSolutions for GetgFactors(), in case we aren't doing a maximum-sized chunk
+        NumSolutions = count;
+
+        if(gFactors)
+            GetgFactors(two_j, g_factors);
+
+        for(count = 0; count < NumSolutions; count++)
+        {
+            if(ProcessorRank == 0)
+            {
+                *outstream << i << ": " << std::setprecision(8) << E[i] << "    "
+                    << std::setprecision(12) << E[i]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+
+                // Get non-rel configuration percentages
+                RelativisticConfigList::const_iterator list_it = configs->begin();
+                std::map<Configuration, double> percentages;  // Map non-rel configurations to percentages
+
+                j = 0;
+                while(list_it != configs->end())
+                {
+                    Configuration nrconfig(list_it->GetNonRelConfiguration());
+                    if(percentages.find(nrconfig) == percentages.end())
+                        percentages[nrconfig] = 0.;
+
+                    for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
+                    {
+                        double coeff = V[count*N + j];
+                        coeff = coeff * coeff * 100;
+
+                        percentages[nrconfig] += coeff;
+                        j++;
+                    }
+
+                    list_it++;
+                }
+
+                // Find most important configuration, and print all leading configurations.
+                std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
+                double largest_percentage = 0.0;
+
+                std::map<Configuration, double>::const_iterator it = percentages.begin();
+                while(it != percentages.end())
+                {
+                    if(it->second > largest_percentage)
+                    {   it_largest_percentage = it;
+                        largest_percentage = it->second;
+                    }
+
+                    if(it->second > 5.)
+                        *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
+                            << it->second << "%" << std::endl;
+                    it++;
+                }
+
+                // If the most important configuration is a leading configuration, add this state to the config file.
+                if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
+                    config_file_gen->AddPercentages(percentages);
+
+                if(gFactors)
+                    *outstream << "    g-factor = " << std::setprecision(5) << g_factors[count] << std::endl;
+
+                *outstream << std::endl;
+            }
+
+            i++;
+        }
+    }
+
+    if(gFactors)
+        delete[] g_factors;
+}
 #endif
+
+#endif
+

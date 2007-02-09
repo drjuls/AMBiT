@@ -28,6 +28,10 @@ public:
     virtual void MatrixMultiply(int m, double* b, double* c) const;
     virtual void GetDiagonal(double* diag) const;
 
+public:
+    /** Send matrix sequentially to root node which writes it to file. */
+    virtual void WriteToFile(const std::string& filename, bool binary = true);
+
 protected:
     const RelativisticConfigList& configs;
     double** M;  // Pointers to matrix rows for this processor

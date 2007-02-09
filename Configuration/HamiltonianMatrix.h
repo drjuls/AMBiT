@@ -24,12 +24,13 @@ public:
 
     void UpdateIntegrals();
     virtual void GenerateMatrix();
+    virtual void WriteToFile(const std::string& filename);
     virtual void PollMatrix();
 
     /** Solve the matrix that has been generated.
         If gFactors are required, set boolean to true.
      */
-    virtual void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactor = false);
+    virtual void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors = false);
 
     virtual void GetEigenvalues() const;
 

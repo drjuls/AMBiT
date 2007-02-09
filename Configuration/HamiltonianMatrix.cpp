@@ -381,6 +381,11 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
     return total;
 }
 
+void HamiltonianMatrix::WriteToFile(const std::string& filename)
+{
+    return;
+}
+
 void HamiltonianMatrix::PollMatrix()
 {
     M->WriteMode(false);

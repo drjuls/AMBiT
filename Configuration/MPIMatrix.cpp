@@ -1,5 +1,7 @@
+#ifdef _MPI
 #include "Include.h"
 #include "MPIMatrix.h"
+#include <mpi.h>
 
 MPIMatrix::MPIMatrix(unsigned int size, const RelativisticConfigList& rlist): Matrix(size), configs(rlist)
 {
@@ -146,3 +148,59 @@ void MPIMatrix::GetDiagonal(double* diag) const
             diag[i] = 0.;
     }
 }
+
+void MPIMatrix::WriteToFile(const std::string& filename, bool binary)
+{
+    double* buf;    // Buffer for rows used by root node
+    FILE* fp;
+
+    if(ProcessorRank == 0)
+    {
+        // Write size of matrix.
+        if(binary)
+        {   fp = fopen(filename.c_str(), "wb");
+            fwrite(&N, sizeof(unsigned int), 1, fp);
+        }
+        else
+        {   fp = fopen(filename.c_str(), "wt");
+            fprintf(fp, "%d\n", N);
+        }
+
+        // Buffer for temporary storage.
+        buf = new double[N];
+    }
+
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
+
+    // Send rows to root node, which writes them sequentially.
+    for(unsigned int i=0; i<N; i++)
+    {
+        if(ProcessorRank == 0)
+        {
+            if(M[i])
+                memcpy(buf, M[i], sizeof(double) * (N-i));
+            else
+                // Receive row from other node
+                comm_world.Recv(buf, N-i, MPI::DOUBLE, MPI::ANY_SOURCE, i);
+
+            if(binary)
+                fwrite(buf, sizeof(double), N-i, fp);
+            else
+            {   for(unsigned int k = 0; k < (N-i); k++)
+                    fprintf(fp, "%18.10E ", buf[k]);
+            }
+        }
+        else if(M[i])
+        {   // Send row to root node
+            comm_world.Send(M[i], N-i, MPI::DOUBLE, 0, i);
+        }
+    }
+    
+    if(ProcessorRank == 0)
+    {
+        fclose(fp);
+        delete buf;
+    }
+}
+
+#endif
