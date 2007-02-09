@@ -176,7 +176,15 @@ void Atom::OpenShellEnergy(int twoJ, HamiltonianMatrix* H)
     integrals->Update();
     H->GenerateMatrix();
     //H->PollMatrix();
-    H->SolveMatrix(NumSolutions, twoJ, true);
+
+    #ifdef _SCALAPACK
+        H->WriteToFile("temp.matrix");
+
+        MPIHamiltonianMatrix* mpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
+        mpiH->SolveScalapack("temp.matrix", 0.5, twoJ, true);
+    #else
+        H->SolveMatrix(NumSolutions, twoJ, true);
+    #endif
 
     ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
     if(filegenerator)

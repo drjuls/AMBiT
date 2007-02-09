@@ -15,6 +15,14 @@
 #include "Universal/CoulombIntegrator.h"
 
 #ifdef _MPI
+    #ifdef _SCALAPACK
+    #if !(_FUS)
+        #define blacs_exit_ blacs_exit
+    #endif
+    extern "C"{
+    void blacs_exit_(const int*);
+    }
+    #endif
 #include <mpi.h>
 #endif
 // MPI details (if not used, we can have NumProcessors == 1)
@@ -51,6 +59,11 @@ int main(int argc, char* argv[])
     }
 
     #ifdef _MPI
+        #ifdef _SCALAPACK
+            int cont = 1;
+            blacs_exit(&cont);
+        #endif
+
         MPI::Finalize();
     #endif
 

@@ -22,6 +22,9 @@ public:
     /** MBPT */
     inline bool LogMBPT() const { return bMBPT; }
 
+    /** ScaLAPACK */
+    inline bool LogScalapack() const { return bScalapack; }
+
     /** Generic Options */
     inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
     inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
@@ -34,6 +37,7 @@ protected:
     inline void LogHFContinuum(bool debugon) { bHFContinuum = debugon; }
 
     inline void LogMBPT(bool debugon) { bMBPT = debugon; }
+    inline void LogScalapack(bool debugon) { bScalapack = debugon; }
 
     inline void HartreeEnergyUnits(bool turnon) { bHartreeUnits = turnon; }
     inline void InvCmEnergyUnits(bool turnon) { bInvCmUnits = turnon; }
@@ -45,6 +49,7 @@ private:
     bool bHFContinuum;
     
     bool bMBPT;
+    bool bScalapack;
 
     bool bHartreeUnits;
     bool bInvCmUnits;
@@ -58,6 +63,7 @@ inline Debug::Debug()
     bHFContinuum = false;
     
     bMBPT = false;
+    bScalapack = false;
 
     bHartreeUnits = false;
     bInvCmUnits = false;

@@ -7,11 +7,20 @@
 #include "Universal/Constant.h"
 #include "Basis/BSplineBasis.h"
 #include "MBPT/MBPTCalculator.h"
+#include "Universal/ScalapackMatrix.h"
 
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
 
 #ifdef _MPI
+    #ifdef _SCALAPACK
+    #if !(_FUS)
+        #define blacs_exit_ blacs_exit
+    #endif
+    extern "C"{
+    void blacs_exit_(const int*);
+    }
+    #endif
 #include <mpi.h>
 #endif
 // MPI details (if not used, we can have NumProcessors == 1)
@@ -45,6 +54,12 @@ int main(int argc, char* argv[])
     }
 
     #ifdef _MPI
+        #ifdef _SCALAPACK
+            // Continue should be non-zero, otherwise MPI_Finalise is called.
+            int cont = 1;
+            blacs_exit_(&cont);
+        #endif
+
         MPI::Finalize();
     #endif
 
