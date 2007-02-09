@@ -22,7 +22,7 @@ public:
 public:
     /** SolveScalapack works differently to the SolveMatrix:
         - All eigenvalues and eigenvectors are calculated
-        - All eigenvectors with eigenvalues less than eigenvalue_limit from
+        - All eigenvectors with eigenvalues less than eigenvalue_limit (atomic units) from
           the lowest eigenvalue are processed
         - Eigenvectors are processed in batches of size NumSolutions.
      */
