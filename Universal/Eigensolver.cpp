@@ -9,6 +9,13 @@
 
 #define SMALL_LIM 400
 
+#if !(_FUS)
+    #define dvdson_ dvdson
+    #define dsyev_  dsyev
+    #define dgesv_  dgesv
+    #define dsygv_  dsygv
+#endif
+
 static Matrix* aa;
 
 extern "C"{
@@ -44,9 +51,7 @@ int op(int *n, int *m, double* b, double* c)
 
 /** Lapack routines */
 void dsyev_(char*, char*, int*, double*, int*, double*, double*, int*, int*);
-
 void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
-
 void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, double*, int*, int*);
 }
 
