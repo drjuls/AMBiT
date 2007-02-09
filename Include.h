@@ -43,6 +43,11 @@
     #define PAUSE
 #endif
 
+/** Default for appending underscore to fortran subroutines. */
+#ifndef _FUS
+    #define _FUS 1
+#endif
+
 /** I/O streams */
 extern std::ostream* outstream;
 extern std::ostream* logstream;

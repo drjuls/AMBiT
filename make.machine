@@ -1,4 +1,10 @@
 # change this stuff only if you know what you are doing
+# Options specific to Atomic source code are
+#   -D_MPI       - To use MPI
+#   -D_SCALAPACK - To use ScaLAPACK
+#   -D_FSU=1     - Append underscores to fortran subroutine names (default)
+#   -D_FSU=0     - Do not append underscores to fortran subroutine names
+
 HOSTNAME = $(shell hostname)
 
 MACHINE = default
@@ -12,42 +18,62 @@ endif
 ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
   MACHINE = newt
 endif
-ifeq ($(findstring jcb2pc, $(HOSTNAME)), jcb2pc)
-  MACHINE = jcbmac
-endif
-ifeq ($(findstring physics.auburn, $(HOSTNAME)), physics.auburn)
-  MACHINE = jcbmac
-endif
 
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
+
+ifeq ($(MACHINE), default)
+  CC  = gcc
+  CXX = g++
+  F77 = gfortran
+
+  LINK      = g++
+  LINKFLAGS =
+  LIBDIR    = /usr/local/lib
+  LIBS      = blas lapack
+
+  INCLUDE  += /usr/local/include
+
+  ifdef debug
+    BUILD     = Debug
+    CXXFLAGS += -g
+    CFLAGS   += -g
+  else
+    BUILD     = Release
+    CXXFLAGS += -O3
+    CFLAGS   += -O3
+    F77FLAGS += -O2
+  endif
+
+  CCDEP   = gcc
+  DEPFLAG = -MM
+endif
 
 ifeq ($(MACHINE), apacac)
   CC  = icc
   CXX = icpc
   F77 = ifort
 
-  LINK = icpc
+  LINK      = icpc
+  LINKFLAGS =
+  LIBDIR    =
+  LIBS      = scs guide pthread mpi++ mpi #sdsm
 
-  LIBDIR       =
-  BLASLIB      =
-  LAPACKLIB    = scs
-  EXTRALIBS    = guide pthread mpi++ mpi
-
-  INCLUDE +=
+  INCLUDE  +=
+  CXXFLAGS += -wd1125 -D_MPI -D_SCALAPACK
 
   ifdef debug
-    BUILD = Debug
-    CFLAGS += -g
+    BUILD     = Debug
+    CFLAGS   += -g
     CXXFLAGS += -g
   else
-    BUILD = Release
-    CFLAGS += -O3
-    CXXFLAGS += -O2 -wd1125 -D_MPI
+    BUILD     = Release
+    CFLAGS   += -O3
+    CXXFLAGS += -O2
     F77FLAGS += -O2
   endif
 
-  CCDEP = gcc
+  CCDEP   = gcc
   DEPFLAG = -MM
 endif
 
@@ -56,27 +82,26 @@ ifeq ($(MACHINE), apaclc)
   CXX = icpc
   F77 = ifort
 
-  LINK = icpc
+  LINK      = icpc
+  LINKFLAGS =
+  LIBDIR    = $$LAMHOME/lib
+  LIBS      = blas lapack lammpi++ mpi lam g2c pthread dl
 
-  LIBDIR       = $$LAMHOME/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    = lammpi++ mpi lam g2c pthread dl
-
-  INCLUDE += $$$$LAMHOME/include
+  INCLUDE  += $$$$LAMHOME/include
+  CXXFLAGS += -wd1125 -D_MPI
 
   ifdef debug
-    BUILD = Debug
-    CFLAGS += -g
+    BUILD     = Debug
+    CFLAGS   += -g
     CXXFLAGS += -g
   else
-    BUILD = Release
-    CFLAGS += -O3
-    CXXFLAGS += -O3 -wd1125 -D_MPI
+    BUILD     = Release
+    CFLAGS   += -O3
+    CXXFLAGS += -O3
     F77FLAGS += -O3
   endif
 
-  CCDEP = gcc
+  CCDEP   = gcc
   DEPFLAG = -MM
 endif
 
@@ -85,94 +110,60 @@ ifeq ($(MACHINE), newt)
   CXX = g++34
   F77 = gcc34
 
-  LINK = g++34
+  LINK      = g++34
+  LINKFLAGS =
+  LIBDIR    = /usr/local/lib
+  LIBS      = blas lapack g2c
 
-  LIBDIR       = /usr/local/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    = g2c
-
-  INCLUDE += /usr/local/include
+  INCLUDE  += /usr/local/include
 
   ifdef debug
-    BUILD = Debug
+    BUILD     = Debug
     CXXFLAGS += -g
-    CFLAGS += -g
+    CFLAGS   += -g
   else
-    BUILD = Release
+    BUILD     = Release
     CXXFLAGS += -O3
-    CFLAGS += -O3
+    CFLAGS   += -O3
     F77FLAGS += -O2
   endif
 
-  # non gnu compilers may not support MM: use M instead
-  CCDEP = gcc34
+  CCDEP   = gcc34
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), jcbmac)
-  CC  = gcc
-  CXX = g++
-  F77 = gfortran
+ifeq ($(MACHINE), seaborg)
+  CC  = xlc
+  CXX = mpCC_r -cpp
+  F77 = xlf
 
-  LINK = g++
+  LINK      = mpCC_r
+  LINKFLAGS = -cpp $$SCALAPACK $$LAPACK $$PBLAS $$BLACS
+  LIBDIR    = 
+  LIBS      = essl xlf90
 
-  LIBDIR       = /usr/local/lib
-  BLASLIB      =
-  LAPACKLIB    =
-  EXTRALIBS    =
-
-  INCLUDE += /usr/local/include
-
-  ifdef debug
-    BUILD = Debug
-    CXXFLAGS += -g
-    CFLAGS += -g
-  else
-    BUILD = Release
-    CXXFLAGS += -O3
-    CFLAGS += -O3
-    F77FLAGS += -O2
-  endif
-
-  # non gnu compilers may not support MM: use M instead
-  CCDEP = gcc
-  DEPFLAG = -MM
-endif
-
-ifeq ($(MACHINE), default)
-  CC  = gcc
-  CXX = g++
-  F77 = gcc
-
-  LINK = g++
-
-  LIBDIR       = /usr/local/lib
-  BLASLIB      = blas
-  LAPACKLIB    = lapack
-  EXTRALIBS    =
-
-  INCLUDE += /usr/local/include
+  INCLUDE  +=
+  CXXFLAGS += -D_MPI -D_SCALAPACK -D_FUS=0 -qrtti=all
+  F77FLAGS += -qnoextname
 
   ifdef debug
-    BUILD = Debug
+    BUILD     = Debug
     CXXFLAGS += -g
-    CFLAGS += -g
+    CFLAGS   += -g
   else
-    BUILD = Release
-    CXXFLAGS += -O3
-    CFLAGS += -O3
-    F77FLAGS += -O2
+    BUILD     = Release
+    CXXFLAGS += -O3 -qstrict -qarch=auto -qtune=auto
+    CFLAGS   += -O3 -qstrict -qarch=auto -qtune=auto
+    F77FLAGS += -O3 -qstrict -qarch=pwr3 -qtune=pwr3
   endif
 
-  # non gnu compilers may not support MM: use M instead
-  CCDEP = gcc
+  CCDEP   = gcc
   DEPFLAG = -MM
 endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
-CFLAGS += $(addprefix -I, $(INCLUDE))
-DEPFLAG += $(addprefix -I, $(INCLUDE))
+CFLAGS   += $(addprefix -I, $(INCLUDE))
+DEPFLAG  += $(addprefix -I, $(INCLUDE))
 
 RANLIB = ranlib
 AR = ar

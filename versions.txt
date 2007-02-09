@@ -8,7 +8,22 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
-1.4.2 - 10/01/06
+1.4.3 - 09/02/07
+Bug: Added option _FUS which appends underscore to fortran subroutines. This
+     is needed on nersc machines in which fortran libraries are compiled
+     without underscores. Added "FORCE" (phony) target to Makefile so that
+     subdirectories are always checked.
+Alt: Changed lib/link tags in make.machine and Makefile. Added default config
+     and seaborg config (probably good for all nersc machines). 
+Add: Universal/ScalapackMatrix class that distributes matrix according to
+     ScaLAPACK rules and uses it to diagonalise.
+     Added function MPIMatrix::WriteToFile() and
+     MPIHamiltonianMatrix::WriteToFile(). The latter is a virtual function,
+     and so a stub was also added to HamiltonianMatrix class.
+     Added option LogScalapack to Debug class.
+     Added ScaLAPACK/BLACS exit procedure to main() (Atom and RMatrixPrimer).
+
+1.4.2 - 10/01/07
 Alt: Integrator::Lattice& lattice changed from reference to pointer 
      Lattice* lattice. This affects StateIntegrator and
      CoulombIntegrator and just about all functions that use these classes.
