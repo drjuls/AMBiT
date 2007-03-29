@@ -43,17 +43,3 @@ void OutStreams::FinaliseStreams()
     dynamic_cast<std::ofstream*>(logstream)->close();
 #endif
 }
-
-//OutStreams& operator<<(OutStreams& out, double in)
-//{
-//    *outstream << "o " << in;
-//    *errstream << "e " << in;
-//    return out;
-//}
-//
-//OutStreams& operator<<(OutStreams& out, std::ostream& (*_Pfn)(std::ostream&))
-//{
-//    *outstream << "o " << *(_Pfn);
-//    *errstream << "e " << *(_Pfn);
-//    return out;
-//}

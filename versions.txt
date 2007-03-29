@@ -8,7 +8,19 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Alt: Ongoing work to Atom class to deal with storing Eigenstates and improving
+     general ease of use. 
 Add: Universal/Include.cpp with a function to convert endianness on fread.
+     Symmetry class is a simple storage class for total ang. momentum and
+     parity. The Eigenstates class stores eigenvalues and eigenvectors of
+     the Hamiltonian for a given symmetry. It has read/write functionality.
+     ConfigGenerator and ConfigFileGenerator now know and store their own 
+     Symmetry. Configuration class and subclass RelativisticConfiguration
+     now have read/write ability, and this is employed by ConfigGenerator
+     to store configurations and angular algebra (JCoefficients).
+     HamiltonianMatrix and MPIHamiltonianMatrix modified to use Eigenstates
+     container class for storing eigenvalues, rather than storing it
+     themselves.
 
 1.4.3 - 09/02/07
 Bug: Added option _FUS which appends underscore to fortran subroutines. This

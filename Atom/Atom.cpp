@@ -12,6 +12,8 @@
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
 
+#include "RateCalculator.h"
+
 #ifdef _MPI
     #ifdef _SCALAPACK
     #if !(_FUS)
@@ -45,8 +47,11 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(22, 2, "TiII001");
+    {   Atom A(6, 4, "CIII");
         A.RunOpen();
+        RateCalculator rate(A.GetBasis());
+        rate.CalculateDipoleMoment(&A, Symmetry(2, odd), 0, Symmetry(2, even), 2);
+        rate.CalculateDipoleMoment(&A, Symmetry(2, odd), 0, Symmetry(2, even), 1);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -83,14 +88,40 @@ void Atom::Run()
 
     DebugOptions.OutputHFExcited(false);
 
-    DoClosedShellSMS(true);
+    for(int two_m1 = -1; two_m1 <= 1; two_m1 +=2)
+    {
+        double tot = 0.;
+        for(int two_m2 = -1; two_m2 <= 1; two_m2 +=2)
+        {   ElectronInfo e1(2, 1, two_m1);
+            ElectronInfo e2(2, -1, two_m2);
+            double temp = GetE1MatrixElement(e1, e2);
+            tot += temp * temp;
+        }
+        *outstream << "\nE1 matrix element (m1 = " << (double)two_m1/2. << "): " << tot << std::endl;
+    }
+    
+    StateInfo e1(2, -2);
+    StateInfo e2(2, -1);
+    double total = GetE1ReducedMatrixElementSquared(e1, e2);
+    *outstream << "\nReduced E1 matrix element = " << total << std::endl;
+
+    const DiscreteState& p1 = *excited->GetState(e1);
+    const DiscreteState& p2 = *excited->GetState(e2);
+    
+    double sig = fabs(p1.Energy() - p2.Energy()) * Constant::HartreeEnergy_cm;
+    *outstream << "sigma = " << sig <<std::endl;
+    total = total * sig * sig * sig * 2.0261e-6;
+    *outstream << "E1 rate = " << total << std::endl;
+
+    //DoClosedShellSMS(true);
 }
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), MBPT_CI(false), GenerateFromFile(false), NumSolutions(6),
-    excited(NULL), excited_mbpt(NULL), generator(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
+    SD_CI(false), MBPT_CI(false), NumSolutions(6),
+    excited(NULL), excited_mbpt(NULL),
+    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL),
+    num_multiple_runs(0), multiple_ids(NULL), multiple_SMS(NULL), multiple_alpha(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     core = new Core(lattice, atomic_number, charge);
@@ -105,8 +136,6 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
 
 Atom::~Atom(void)
 {
-    if(generator)
-        delete generator;
     if(integrals)
         delete integrals;
     if(excited)
@@ -155,6 +184,8 @@ void Atom::Read()
     // Read core electron states
     std::string filename = identifier + ".core.atom";
     FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        exit(1);
 
     // Check that the stored ion is the same as this one!
     double stored_Z, stored_Charge;
@@ -213,16 +244,17 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     excited = new BSplineBasis(lattice, core);
     excited->SetIdentifier(&identifier);
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 45.);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 25.);
 
     if(ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(13);
-    num_states.push_back(13);
-    num_states.push_back(14);
-    num_states.push_back(13);
+    num_states.push_back(7);
+    num_states.push_back(7);
+    num_states.push_back(6);
+//    num_states.push_back(14);
+//    num_states.push_back(13);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -414,3 +446,64 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
     Constant::Alpha = alpha0;
     Constant::AlphaSquared = alpha0 * alpha0;
 }
+
+double Atom::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
+{
+    double matrix_element = 0.0;
+    
+    if((e1.L() + e2.L() + 1)%2 == 0)
+    {
+        double coeff = Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, -e1.TwoM(), e2.TwoM());
+        
+        if(coeff)
+        {   coeff = coeff * Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, 1, -1)
+                          * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons()));
+
+            if(abs(e1.L() - (e1.TwoM() + 1)/2)%2 == 1)
+                coeff = -coeff;
+
+            const DiscreteState& p1 = *excited->GetState(e1);
+            const DiscreteState& p2 = *excited->GetState(e2);
+
+            double overlap = 0.;
+            const double* R = excited->GetLattice()->R();
+            const double* dR = excited->GetLattice()->dR();
+            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+                overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+
+            matrix_element = coeff * overlap;
+        }
+    }
+    
+    return matrix_element;
+}
+
+double Atom::GetE1ReducedMatrixElementSquared(const StateInfo& e1, const StateInfo& e2) const
+{
+    double matrix_element_squared = 0.0;
+    
+    if((e1.L() + e2.L() + 1)%2 == 0)
+    {
+        // Don't worry about phase for the square of the matrix element
+        double coeff = Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, 1, -1);
+        
+        if(coeff)
+        {   coeff = coeff * coeff * double(e1.MaxNumElectrons() * e2.MaxNumElectrons());
+            
+            const DiscreteState& p1 = *excited->GetState(e1);
+            const DiscreteState& p2 = *excited->GetState(e2);
+
+            double overlap = 0.;
+            const double* R = excited->GetLattice()->R();
+            const double* dR = excited->GetLattice()->dR();
+            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+                overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+
+            matrix_element_squared = coeff * overlap * overlap;
+        }
+    }
+    
+    return matrix_element_squared;
+}
+
+
