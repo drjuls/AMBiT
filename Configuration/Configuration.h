@@ -47,6 +47,10 @@ public:
     bool operator==(const Configuration& other) const;
     virtual std::string Name() const;
 
+    // File storage (binary)
+    virtual void Write(FILE* fp) const;
+    virtual void Read(FILE* fp);
+
 protected:
     /** Map single particle state to occupancy. */
     std::map<StateInfo, unsigned int> Config;

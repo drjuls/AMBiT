@@ -1,16 +1,28 @@
 #include "Include.h"
 #include "ConfigGenerator.h"
+#include <sstream>
 
 #ifdef _MPI
 #include <mpi.h>
 #endif
+
+ConfigGenerator::ConfigGenerator(const ExcitedStates* manager, const std::string& atom_identifier, const Symmetry& sym):
+    filename(atom_identifier), symmetry(sym)
+{
+    SetExcitedStates(manager);
+    filename = filename + "." + symmetry.GetString() + ".configs";
+}
+
+ConfigGenerator::~ConfigGenerator(void)
+{
+    Clear();
+}
 
 void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
 {
     states = manager;
 
     NonRelSet.clear();
-    RelativisticSet.clear();
 
     ConstStateIterator it = states->GetConstStateIterator();
     while(!it.AtEnd())
@@ -18,29 +30,16 @@ void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
         const DiscreteState* ds = it.GetState();
         if(ds != NULL)
         {
-            RelativisticSet.insert(StateInfo(ds->RequiredPQN(), ds->Kappa()));
             if(ds->Kappa() < 0)
                 NonRelSet.insert(NonRelInfo(ds->RequiredPQN(), ds->L()));
         }
         it.Next();
     }
-
-    std::set<StateInfo>::const_iterator rinfo = RelativisticSet.begin();
-    unsigned int index = 0;
-    while(rinfo != RelativisticSet.end())
-    {
-        for(int two_m = -int(rinfo->TwoJ()); two_m <= int(rinfo->TwoJ()); two_m+=2)
-        {
-            ElectronSet[ElectronInfo(rinfo->PQN(), rinfo->Kappa(), two_m)] = index;
-            index++;
-        }
-
-        rinfo++;
-    }
 }
 
-void ConfigGenerator::ClearConfigLists()
+void ConfigGenerator::Clear()
 {
+    NonRelSet.clear();
     leading_configs.clear();
     nrlist.clear();
     rlist.clear();
@@ -49,22 +48,39 @@ void ConfigGenerator::ClearConfigLists()
 std::set<Configuration>* ConfigGenerator::GetLeadingConfigs()
 {   return &leading_configs;
 }
+
 const std::set<Configuration>* ConfigGenerator::GetLeadingConfigs() const
 {   return &leading_configs;
 }
 
 ConfigList* ConfigGenerator::GetNonRelConfigs()
-{   return &nrlist;
-}
-const ConfigList* ConfigGenerator::GetNonRelConfigs() const
-{   return &nrlist;
+{
+    // Check to see if we haven't restored nrlist since a read.
+    if(nrlist.empty() && !rlist.empty())
+        RestoreNonRelConfigs();
+
+    return &nrlist;
 }
 
 RelativisticConfigList* ConfigGenerator::GetRelConfigs()
 {   return &rlist;
 }
+
 const RelativisticConfigList* ConfigGenerator::GetRelConfigs() const
 {   return &rlist;
+}
+
+unsigned int ConfigGenerator::GetNumJStates() const
+{
+    unsigned int N = 0;
+
+    RelativisticConfigList::const_iterator it = rlist.begin();
+    while(it != rlist.end())
+    {   N += it->NumJStates();
+        it++;
+    }
+    
+    return N;
 }
 
 void ConfigGenerator::AddLeadingConfiguration(const Configuration& config)
@@ -81,8 +97,12 @@ void ConfigGenerator::AddLeadingConfigurations(const std::set<Configuration> con
     }
 }
 
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, Parity parity)
+void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations)
 {
+    // Check to see if we haven't restored nrlist since a read.
+    if(nrlist.empty() && !rlist.empty())
+        RestoreNonRelConfigs();
+
     configlist.sort();
     configlist.unique();
 
@@ -98,7 +118,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
 
     while(it != configlist.end())
     {   
-        if(it->GetParity() != parity)
+        if(it->GetParity() != symmetry.GetParity())
         {   //std::cout << "                              " << it->Name() << std::endl;
             it = configlist.erase(it);
         }
@@ -112,7 +132,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     nrlist.unique();
 }
 
-void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, Parity parity)
+void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations)
 {
     // Move leading configs to configlist
     ConfigList configlist;
@@ -124,11 +144,14 @@ void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int
     }
     
     // Generate excitations
-    GenerateMultipleExcitations(configlist, num_excitations, parity);
+    GenerateMultipleExcitations(configlist, num_excitations);
 }
 
 void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
 {
+    if(NonRelSet.empty())
+        SetExcitedStates(states);
+
     ConfigList old_list(configlist);
     // Go through the set of initial configurations
     ConfigList::const_iterator it = old_list.begin();
@@ -174,6 +197,11 @@ void ConfigGenerator::GenerateRelativisticConfigs()
     }
     rlist.sort();
     rlist.unique();
+}
+
+void ConfigGenerator::GenerateProjections()
+{
+    GenerateProjections(symmetry.GetTwoJ());
 }
 
 void ConfigGenerator::GenerateProjections(int two_m)
@@ -315,4 +343,86 @@ void ConfigGenerator::SplitNonRelInfo(Configuration config, RelativisticConfigLi
             SplitNonRelInfo(rconfig, rlist);
         }
     }
+}
+
+void ConfigGenerator::Write() const
+{
+    if(ProcessorRank == 0)
+    {
+        FILE* fp = fopen(filename.c_str(), "wb");
+
+        unsigned int size;
+
+        // Write leading configurations
+        size = leading_configs.size();
+        fwrite(&size, sizeof(unsigned int), 1, fp);
+        
+        std::set<Configuration>::const_iterator it = leading_configs.begin();
+        while(it != leading_configs.end())
+        {   it->Write(fp);
+            it++;
+        }
+        
+        // Write relativistic configurations
+        size = rlist.size();
+        fwrite(&size, sizeof(unsigned int), 1, fp);
+
+        RelativisticConfigList::const_iterator rit = rlist.begin();
+        while(rit != rlist.end())
+        {   rit->Write(fp);
+            rit++;
+        }
+        
+        fclose(fp);
+    }
+}
+
+bool ConfigGenerator::Read()
+{
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        return false;
+
+    unsigned int size, i;
+
+    // Read leading configurations
+    leading_configs.clear();
+    fread(&size, sizeof(unsigned int), 1, fp);
+
+    for(i = 0; i < size; i++)
+    {
+        Configuration config;
+        config.Read(fp);
+        leading_configs.insert(config);
+    }
+
+    // Read relativistic configurations
+    rlist.clear();
+    fread(&size, sizeof(unsigned int), 1, fp);
+
+    for(i = 0; i < size; i++)
+    {
+        RelativisticConfiguration rconfig;
+        rconfig.Read(fp);
+        rlist.push_back(rconfig);
+    }
+
+    rlist.sort(RelConfNumJStatesRanking());
+
+    fclose(fp);
+
+    return true;
+}
+
+void ConfigGenerator::RestoreNonRelConfigs()
+{
+    // Generate non-relativistic configurations
+    nrlist.clear();
+    RelativisticConfigList::const_iterator it = rlist.begin();
+    while(it != rlist.end())
+    {   nrlist.push_back(it->GetNonRelConfiguration());
+        it++;
+    }
+    nrlist.sort();
+    nrlist.unique();
 }

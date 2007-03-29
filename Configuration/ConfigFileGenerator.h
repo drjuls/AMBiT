@@ -8,11 +8,17 @@
 class ConfigFileGenerator : public ConfigGenerator
 {
 public:
-    ConfigFileGenerator(const ExcitedStates* manager):
-        ConfigGenerator(manager)
+    ConfigFileGenerator(const ExcitedStates* manager, const std::string& atom_identifier, Symmetry sym):
+        ConfigGenerator(manager, atom_identifier, sym)
     {}
     virtual ~ConfigFileGenerator(void) {}
-    
+
+    /** Clear the non-relativistic and relativistic config lists and free memory.
+        Also clear InputContributions and Contributions.
+        Use Read() (and ReadConfigs() if wanted) to restore.
+     */
+    virtual void Clear();
+
     void SetInputFile(const std::string& filename)
     {   input_filename = filename;
     }
@@ -22,7 +28,7 @@ public:
     }
     
     /** Read configurations from file with percentages larger than cutoff. */
-    void ReadConfigs(Parity parity, double cutoff = 0.0);
+    void ReadConfigs(double cutoff = 0.0);
     
     /** Write configurations with percentages larger than cutoff to file. */
     void WriteConfigs(double cutoff = 0.0);
@@ -35,7 +41,7 @@ public:
         well as the leading configurations.
         Append the new configurations to the list.
      */
-    void GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, Parity parity, double cutoff);
+    void GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, double cutoff);
 
 protected:
     std::string input_filename;

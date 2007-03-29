@@ -196,3 +196,53 @@ bool Configuration::operator==(const Configuration& other) const
         return false;
     else return true;
 }
+
+void Configuration::Write(FILE* fp) const
+{
+    // Write config
+    unsigned int size = Config.size();
+    fwrite(&size, sizeof(unsigned int), 1, fp);
+
+    std::map<StateInfo, unsigned int>::const_iterator cit;
+    cit = Config.begin();
+
+    while(cit != Config.end())
+    {
+        unsigned int pqn = cit->first.PQN();
+        int kappa = cit->first.Kappa();
+        unsigned int occupancy = cit->second;
+        
+        // Write PQN, Kappa, occupancy
+        fwrite(&pqn, sizeof(unsigned int), 1, fp);    
+        fwrite(&kappa, sizeof(int), 1, fp);    
+        fwrite(&occupancy, sizeof(unsigned int), 1, fp);    
+
+        cit++;
+    }
+}
+
+void Configuration::Read(FILE* fp)
+{
+    // Clear the current configuration
+    Config.clear();
+    
+    // Read config
+    unsigned int size;
+    fread(&size, sizeof(unsigned int), 1, fp);
+    
+    for(unsigned int i = 0; i < size; i++)
+    {
+        unsigned int pqn;
+        int kappa;
+        unsigned int occupancy;
+
+        // Read PQN, Kappa, occupancy
+        fread(&pqn, sizeof(unsigned int), 1, fp);    
+        fread(&kappa, sizeof(int), 1, fp);    
+        fread(&occupancy, sizeof(unsigned int), 1, fp);    
+
+        SetOccupancy(StateInfo(pqn, kappa), occupancy);
+    }
+    
+    First();
+}

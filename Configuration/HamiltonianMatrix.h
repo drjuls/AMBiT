@@ -8,6 +8,7 @@
 #include "MBPT/Sigma3Calculator.h"
 
 #include "ConfigFileGenerator.h"
+#include "Eigenstates.h"
 
 class HamiltonianMatrix
 {
@@ -16,10 +17,6 @@ public:
     virtual ~HamiltonianMatrix(void)
     {   if(M)
             delete M;
-        if(NumSolutions)
-        {   delete[] E;
-            delete[] V;
-        }
     }
 
     void UpdateIntegrals();
@@ -30,9 +27,9 @@ public:
     /** Solve the matrix that has been generated.
         If gFactors are required, set boolean to true.
      */
-    virtual void SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors = false);
+    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false);
 
-    virtual void GetEigenvalues() const;
+    virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 
 public:
     /** Include Sigma3 in the leading configurations. */
@@ -58,7 +55,7 @@ protected:
     /** Calculate the Lande g-factors for eigenfunctions of the Hamiltonian.
         PRE: gFactors.size >= NumSolutions.
      */
-    virtual void GetgFactors(unsigned int two_j, double* g_factors) const;
+    virtual void GetgFactors(const Eigenstates& eigenstates, double* g_factors) const;
 
     /** Get average z-component of spin for single electron. */
     double GetSz(const ElectronInfo& e) const;
@@ -95,10 +92,6 @@ protected:
 
     Matrix* M;      // Hamiltonian Matrix
     unsigned int N; // Matrix M dimension = N x N
-
-    double* E;      // Eigenvalues
-    double* V;      // Eigenvectors
-    unsigned int NumSolutions;
 };
 
 #endif

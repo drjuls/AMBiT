@@ -1,8 +1,8 @@
 cxxobjects = CIIntegrals.o CIIntegralsMBPT.o \
              ConfigGenerator.o ConfigFileGenerator.o Configuration.o \
-             ElectronInfo.o HamiltonianMatrix.o \
+             Eigenstates.o ElectronInfo.o HamiltonianMatrix.o \
              MPIHamiltonianMatrix.o MPIMatrix.o Projection.o \
-             RelativisticConfiguration.o
+             RelativisticConfiguration.o Symmetry.o
 cobjects =
 fobjects =
 

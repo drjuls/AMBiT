@@ -3,7 +3,6 @@
 
 #include "Include.h"
 #include "Basis/ExcitedStates.h"
-#include "ElectronInfo.h"
 
 class CIIntegrals
 {

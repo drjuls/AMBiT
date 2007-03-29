@@ -7,6 +7,7 @@
 #include "RelativisticConfiguration.h"
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
+#include "Symmetry.h"
 
 class ConfigGenerator
 {
@@ -18,16 +19,29 @@ class ConfigGenerator
         for use by HamiltonianMatrix class.
      */
 public:
-    ConfigGenerator(const ExcitedStates* manager)
-    {   SetExcitedStates(manager);
+    ConfigGenerator(const ExcitedStates* manager, const std::string& atom_identifier, const Symmetry& sym);
+    virtual ~ConfigGenerator(void);
+
+    /** Get symmetry of stored JConfigurations. */
+    Symmetry GetSymmetry() const
+    {   return symmetry;
     }
-    virtual ~ConfigGenerator(void) {}
+
+    unsigned int GetTwoJ() const
+    {   return symmetry.GetTwoJ();
+    }
+
+    Parity GetParity() const
+    {   return symmetry.GetParity();
+    }
 
     /** Reset the list of excited states. */
     void SetExcitedStates(const ExcitedStates* manager);
 
-    /** Clear the non-relativistic and relativistic config lists. */
-    void ClearConfigLists();
+    /** Clear the non-relativistic and relativistic config lists and free memory.
+        Use Read() to restore.
+     */
+    virtual void Clear();
 
     /** Get list of leading configurations. */
     std::set<Configuration>* GetLeadingConfigs();
@@ -35,11 +49,13 @@ public:
 
     /** Get list of non-relativistic configurations. */
     ConfigList* GetNonRelConfigs();
-    const ConfigList* GetNonRelConfigs() const;
 
     /** Get list of relativistic configurations. */
     RelativisticConfigList* GetRelConfigs();
     const RelativisticConfigList* GetRelConfigs() const;
+
+    /** Return number of JStates. */
+    unsigned int GetNumJStates() const;
 
 public:
     /** Add to the set of leading configurations. */
@@ -51,10 +67,10 @@ public:
         All new configurations must have the same parity as the first.
         Returns a sorted, unique list and appends that list to local nrlist.
      */
-    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, Parity parity);
+    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations);
 
     /** Call GenerateMultipleExcitations() with leading configurations as input. */
-    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_electrons, Parity parity);
+    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_electrons);
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
@@ -64,10 +80,20 @@ public:
     void GenerateRelativisticConfigs();
 
     /** Make all projections of the rlist that have a projection M = two_m/2.
-        Remove configurations that cannot have this projection.
+        Remove configurations that cannot have this projection. If two_m is not given,
+        the default is M = J.
         PRE: rlist should be unique.
      */
     void GenerateProjections(int two_m);
+    void GenerateProjections();
+
+    /** Store the leading_configs and rlist (RelativisticConfigList).
+        Filename is "identifier.twoJ.P.configs".
+     */
+    void Write() const;
+
+    /** Read leading_configs and rlist. Return success. */
+    bool Read();
 
 protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
@@ -80,12 +106,19 @@ protected:
       */
     void SplitNonRelInfo(Configuration config, RelativisticConfigList& rlist);
 
+    /** Restore nrlist from rlist.
+        Usually we no longer want the nrlist after a read, but if it is wanted,
+        nrlist is generated from rlist on the fly.
+     */
+    void RestoreNonRelConfigs();
+
 protected:
     const ExcitedStates* states;
+    std::string filename;
+    Symmetry symmetry;
 
+    // Set of all non-relativistic states
     std::set<NonRelInfo> NonRelSet;
-    std::set<StateInfo> RelativisticSet;
-    std::map<ElectronInfo, unsigned int> ElectronSet;
     
     std::set<Configuration> leading_configs;
     ConfigList nrlist;

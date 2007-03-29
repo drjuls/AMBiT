@@ -167,7 +167,7 @@ void MPIHamiltonianMatrix::PollMatrix()
     }
 }
 
-void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
+void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -180,30 +180,34 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
 
     *outstream << "\nFinding solutions" << std::endl;
 
-    if(NumSolutions)
-    {   delete[] V;
-        delete[] E;
-    }
-    NumSolutions = mmin(num_solutions, N);
-
-    V = new double[NumSolutions * N];
-    E = new double[NumSolutions];
+    unsigned int NumSolutions = mmin(num_solutions, N);
+    
+    double* V = new double[NumSolutions * N];
+    double* E = new double[NumSolutions];
 
     Eigensolver solver;
     solver.MPISolveLargeSymmetric(M, E, V, N, NumSolutions);
+
+    eigenstates.SetEigenvalues(E, NumSolutions);
+    eigenstates.SetEigenvectors(V, NumSolutions);
 
     // Calculate g-Factors
     double* g_factors;
     if(gFactors)
     {   g_factors = new double[NumSolutions];
-        GetgFactors(two_j, g_factors);
+        GetgFactors(eigenstates, g_factors);
     }
 
     if(ProcessorRank == 0)
     {
         unsigned int i, j;
 
-        *outstream << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
+        *outstream << "Solutions for J = " << double(eigenstates.GetTwoJ())/2. << ", P = ";
+        if(eigenstates.GetParity() == even)
+            *outstream << "even:" << std::endl;
+        else
+            *outstream << "odd:" << std::endl;
+
         for(i=0; i<NumSolutions; i++)
         {
             unsigned int solution = i;
@@ -267,8 +271,11 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int 
         delete[] g_factors;
 }
 
-void MPIHamiltonianMatrix::GetEigenvalues() const
+void MPIHamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
 {
+    unsigned int NumSolutions = eigenstates.GetNumEigenvectors();
+    const double* V = eigenstates.GetEigenvectors();
+
     double* my_total = new double[NumSolutions];
     double* coeff = new double[NumSolutions];
     unsigned int solution;
@@ -378,17 +385,23 @@ void MPIHamiltonianMatrix::GetEigenvalues() const
     delete[] coeff;
 }
 
-void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
+void MPIHamiltonianMatrix::GetgFactors(const Eigenstates& eigenstates, double* g_factors) const
 {
-    unsigned int solution;
-    for(solution = 0; solution < NumSolutions; solution++)
-        g_factors[solution] = 0.;
+    GetgFactors(eigenstates.GetNumEigenvectors(), eigenstates.GetEigenvectors(), eigenstates.GetTwoJ(), g_factors);
+}
 
+void MPIHamiltonianMatrix::GetgFactors(unsigned int NumSolutions, const double* V, unsigned int two_j, double* g_factors) const
+{
+    // Case where J=0
     if(two_j == 0)
+    {   for(unsigned int solution = 0; solution < NumSolutions; solution++)
+            g_factors[solution] = 0.;
         return;
+    }
 
     double* total = new double[NumSolutions];
     double* coeff = new double[NumSolutions];
+    unsigned int solution;
 
     for(solution = 0; solution < NumSolutions; solution++)
         total[solution] = 0.;
@@ -496,8 +509,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
     }
 
     MPI::Intracomm& comm_world = MPI::COMM_WORLD;
-    comm_world.Reduce(total, g_factors, NumSolutions, MPI::DOUBLE, MPI::SUM, 0);
-    comm_world.Bcast(g_factors, NumSolutions, MPI::DOUBLE, 0);
+    comm_world.Allreduce(total, g_factors, NumSolutions, MPI::DOUBLE, MPI::SUM);
 
     double J = double(two_j)/2.;
     for(solution = 0; solution < NumSolutions; solution++)
@@ -508,7 +520,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) co
 }
 
 #ifdef _SCALAPACK
-void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, unsigned int two_j, bool gFactors)
+void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, Eigenstates& eigenstates, bool gFactors)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -528,20 +540,24 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
 
     *outstream << "\nFinding solutions" << std::endl;
 
-    if(NumSolutions)
-    {   delete[] V;
-        delete[] E;
-    }
-    NumSolutions = mmin(50, N);
+    unsigned int NumSolutions = mmin(50, N);
 
-    E = new double[N];
-    V = new double[NumSolutions * N];
+    double* E = new double[N];
+    double* V = new double[NumSolutions * N];
+
+    bool multiple_chunks = false;
 
     SM->Diagonalise(E);
-    
+
+    eigenstates.SetEigenvalues(E, N);
+
     if(ProcessorRank == 0)
     {
-        *outstream << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
+        *outstream << "Solutions for J = " << double(eigenstates.GetTwoJ())/2. << ", P = ";
+        if(eigenstates.GetParity() == even)
+            *outstream << "even:" << std::endl;
+        else
+            *outstream << "odd:" << std::endl;
     }
 
     // Calculate g-Factors
@@ -554,6 +570,13 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
     i = 0;
     while((i < N) && (E[i] - E[0] < eigenvalue_limit))
     {
+        // Second pass: keep the first chunk, and continue with the others
+        if((i > 0) && !multiple_chunks)
+        {
+            multiple_chunks = true;
+            V = new double[NumSolutions * N];
+        }
+
         // Do a chunk of eigenvectors, maximum size NumSolutions
         for(count = 0; (count < NumSolutions) && (i+count < N) &&
                                     (E[i+count] - E[0] < eigenvalue_limit); count++)
@@ -564,8 +587,12 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
         // Change NumSolutions for GetgFactors(), in case we aren't doing a maximum-sized chunk
         NumSolutions = count;
 
+        // Save first chunk
+        if(i == 0)
+            eigenstates.SetEigenvectors(V, NumSolutions);
+
         if(gFactors)
-            GetgFactors(two_j, g_factors);
+            GetgFactors(NumSolutions, V, eigenstates.GetTwoJ(), g_factors);
 
         for(count = 0; count < NumSolutions; count++)
         {
@@ -631,6 +658,9 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
 
     if(gFactors)
         delete[] g_factors;
+
+    if(multiple_chunks)
+        delete[] V;
 }
 #endif
 

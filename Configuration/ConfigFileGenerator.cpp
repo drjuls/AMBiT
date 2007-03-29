@@ -1,9 +1,21 @@
 #include "Include.h"
 #include "ConfigFileGenerator.h"
 #include "Universal/Constant.h"
-    
-void ConfigFileGenerator::ReadConfigs(Parity parity, double cutoff)
+
+void ConfigFileGenerator::Clear()
 {
+    ConfigGenerator::Clear();
+
+    InputContributions.clear();
+    Contributions.clear();
+}
+
+void ConfigFileGenerator::ReadConfigs(double cutoff)
+{
+    // Check to see if we haven't restored nrlist since a read.
+    if(nrlist.empty() && !rlist.empty())
+        RestoreNonRelConfigs();
+
     FILE* fp = fopen(input_filename.c_str(), "r");
     char buffer[200];
 
@@ -67,7 +79,7 @@ void ConfigFileGenerator::ReadConfigs(Parity parity, double cutoff)
 
         if(percentage >= cutoff)
         {   InputContributions[config] = percentage;
-            if(config.GetParity() == parity)
+            if(config.GetParity() == symmetry.GetParity())
                 nrlist.push_back(config);
         }
     }
@@ -109,7 +121,7 @@ void ConfigFileGenerator::AddPercentages(const std::map<Configuration, double> p
     }
 }
 
-void ConfigFileGenerator::GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, Parity parity, double cutoff)
+void ConfigFileGenerator::GenerateMultipleExcitationsFromImportantConfigs(unsigned int num_excitations, double cutoff)
 {
     ConfigList important;
 
@@ -131,5 +143,5 @@ void ConfigFileGenerator::GenerateMultipleExcitationsFromImportantConfigs(unsign
     important.sort();
     important.unique();
     
-    GenerateMultipleExcitations(important, num_excitations, parity);
+    GenerateMultipleExcitations(important, num_excitations);
 }

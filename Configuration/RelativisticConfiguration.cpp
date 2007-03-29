@@ -342,3 +342,92 @@ Configuration RelativisticConfiguration::GetNonRelConfiguration() const
 
     return ret;
 }
+
+void RelativisticConfiguration::Write(FILE* fp) const
+{
+    // Write config
+    unsigned int size = Config.size();
+    fwrite(&size, sizeof(unsigned int), 1, fp);    
+
+    std::map<StateInfo, unsigned int>::const_iterator cit;
+    cit = Config.begin();
+
+    while(cit != Config.end())
+    {
+        unsigned int pqn = cit->first.PQN();
+        int kappa = cit->first.Kappa();
+        unsigned int occupancy = cit->second;
+        
+        // Write PQN, Kappa, occupancy
+        fwrite(&pqn, sizeof(unsigned int), 1, fp);    
+        fwrite(&kappa, sizeof(int), 1, fp);    
+        fwrite(&occupancy, sizeof(unsigned int), 1, fp);    
+
+        cit++;
+    }
+
+    // Write number of projections. Projections will be generated again upon read,
+    // so this serves as a sanity check.
+    size = projections.size();
+    fwrite(&size, sizeof(unsigned int), 1, fp);
+
+    if(size)
+    {   // Write twoM (all projections should have the same value).
+        int twoM = projections.front().GetTwoM();
+        fwrite(&twoM, sizeof(int), 1, fp);
+
+        // Write JCoefficients. (These can be costly to generate in some cases.)
+        fwrite(&num_states, sizeof(unsigned int), 1, fp);
+        if(num_states)
+            fwrite(j_coefficients, sizeof(double), num_states * projections.size(), fp);
+    }
+}
+
+void RelativisticConfiguration::Read(FILE* fp)
+{
+    // Clear the current configuration
+    Config.clear();
+    if(num_states)
+        delete[] j_coefficients;
+    
+    // Read config
+    unsigned int size;
+    fread(&size, sizeof(unsigned int), 1, fp);
+    
+    for(unsigned int i = 0; i < size; i++)
+    {
+        unsigned int pqn;
+        int kappa;
+        unsigned int occupancy;
+
+        // Read PQN, Kappa, occupancy
+        fread(&pqn, sizeof(unsigned int), 1, fp);    
+        fread(&kappa, sizeof(int), 1, fp);    
+        fread(&occupancy, sizeof(unsigned int), 1, fp);    
+
+        SetOccupancy(StateInfo(pqn, kappa), occupancy);
+    }
+
+    // Generate projections and check that the same number were stored.
+    fread(&size, sizeof(unsigned int), 1, fp);
+    
+    if(size)
+    {   // Read twoM.
+        int twoM;
+        fread(&twoM, sizeof(int), 1, fp);
+
+        GenerateProjections(twoM);
+        if(projections.size() != size)
+        {   *errstream << "RelativisticConfiguration::Read(): " << Name()
+                       << " has incorrect number of projections stored." << std::endl;
+            exit(1);
+        }
+
+        // Read JCoefficients.
+        fread(&num_states, sizeof(unsigned int), 1, fp);
+        if(num_states)
+        {   j_coefficients = new double[num_states * projections.size()];
+            fread(j_coefficients, sizeof(double), num_states * projections.size(), fp);
+        }
+    }
+}

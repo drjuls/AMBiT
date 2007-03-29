@@ -17,7 +17,7 @@
 #define SIGMA3_AND
 
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, ConfigGenerator* config_generator):
-    integrals(coulomb_integrals), confgen(config_generator), NumSolutions(0), M(NULL), include_sigma3(false)
+    integrals(coulomb_integrals), confgen(config_generator), M(NULL), include_sigma3(false)
 {
     configs = confgen->GetRelConfigs();
 
@@ -416,7 +416,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two_j, bool gFactors)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -429,28 +429,32 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
 
     *outstream << "\nFinding solutions" << std::endl;
 
-    if(NumSolutions)
-    {   delete[] V;
-        delete[] E;
-    }
-    NumSolutions = mmin(num_solutions, N);
+    unsigned int NumSolutions = mmin(num_solutions, N);
     
-    V = new double[NumSolutions * N];
-    E = new double[NumSolutions];
+    double* V = new double[NumSolutions * N];
+    double* E = new double[NumSolutions];
 
     Eigensolver solver;
     solver.SolveLargeSymmetric(M, E, V, N, NumSolutions);
+
+    eigenstates.SetEigenvalues(E, NumSolutions);
+    eigenstates.SetEigenvectors(V, NumSolutions);
 
     // Calculate g-Factors
     double* g_factors;
     if(gFactors)
     {   g_factors = new double[NumSolutions];
-        GetgFactors(two_j, g_factors);
+        GetgFactors(eigenstates, g_factors);
     }
 
     unsigned int i, j;
 
-    *outstream << "Solutions for J = " << double(two_j)/2. << ": " << std::endl;
+    *outstream << "Solutions for J = " << double(eigenstates.GetTwoJ())/2. << ", P = ";
+    if(eigenstates.GetParity() == even)
+        *outstream << "even:" << std::endl;
+    else
+        *outstream << "odd:" << std::endl;
+
     for(i=0; i<NumSolutions; i++)
     {
         unsigned int solution = i;
@@ -513,8 +517,11 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, unsigned int two
         delete[] g_factors;
 }
 
-void HamiltonianMatrix::GetEigenvalues() const
+void HamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
 {
+    unsigned int NumSolutions = eigenstates.GetNumEigenvectors();
+    const double* V = eigenstates.GetEigenvectors();
+
     double* total = new double[NumSolutions];
     double* coeff = new double[NumSolutions];
     unsigned int solution;
@@ -602,10 +609,13 @@ void HamiltonianMatrix::GetEigenvalues() const
     delete[] coeff;
 }
 
-void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
+void HamiltonianMatrix::GetgFactors(const Eigenstates& eigenstates, double* g_factors) const
 {
+    unsigned int NumSolutions = eigenstates.GetNumEigenvectors();
+    const double* V = eigenstates.GetEigenvectors();
+
     // Case where J=0
-    if(two_j == 0)
+    if(eigenstates.GetTwoJ() == 0)
     {   for(unsigned int solution = 0; solution < NumSolutions; solution++)
             g_factors[solution] = 0.;
         return;
@@ -706,7 +716,7 @@ void HamiltonianMatrix::GetgFactors(unsigned int two_j, double* g_factors) const
         list_it++; i+=num_states_i;
     }
 
-    double J = two_j/2.;
+    double J = double(eigenstates.GetTwoJ())/2.;
     for(solution = 0; solution < NumSolutions; solution++)
         g_factors[solution] = total[solution]/J + 1.;
 

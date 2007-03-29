@@ -44,8 +44,10 @@ public:
 
     inline const ProjectionSet& GetProjections() const
     {   return projections; }
+
     inline unsigned int NumJStates() const
     {   return num_states;  }
+
     inline const double* GetJCoefficients() const
     {   return j_coefficients; }
 
@@ -57,6 +59,10 @@ public:
     virtual std::string Name() const;
     
     Configuration GetNonRelConfiguration() const;
+
+    // File storage (binary)
+    virtual void Write(FILE* fp) const;
+    virtual void Read(FILE* fp);
 
 protected:
     void DoElectron(std::vector<ElectronInfo>& electrons, unsigned int index);
