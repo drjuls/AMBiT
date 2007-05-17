@@ -689,6 +689,10 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
         
         StateIntegrator I(lattice);
         start_sine = I.IntegrateContinuum(*s, HFPotential, exchange, Z, 0.01, final_amplitude, final_phase);
+        if(!start_sine)
+        {   *errstream << "Core::CalculateContinuumState: need to increase lattice size." << std::endl;
+            exit(1);
+        }
 
         ds = (final_phase - old_phase)/Constant::Pi;
         if(fabs(ds) > StateParameters::EnergyTolerance)

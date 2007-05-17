@@ -1,6 +1,7 @@
 #include "Include.h"
 #include "DiscreteState.h"
 #include "Universal/Constant.h"
+#include "StateInfo.h"
 #include <math.h>
 
 DiscreteState::DiscreteState(Lattice* lat, unsigned int num_points): 
@@ -50,18 +51,7 @@ double DiscreteState::Norm() const
 
 std::string DiscreteState::Name() const
 {
-    unsigned int level;
-    level = RequiredPQN();
-
-    char buffer[20];
-    sprintf(buffer, "%d", level);
-    std::string ret(buffer);
-
-    ret.append(1, Constant::SpectroscopicNotation[L()]);
-    if(kappa < -1)
-        ret.append(1, '+');
-
-    return ret;
+    return StateInfo(this).Name();
 }
 
 bool DiscreteState::CheckSize(double tolerance)

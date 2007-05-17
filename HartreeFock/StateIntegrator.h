@@ -60,6 +60,8 @@ public:
     /** Set up the wavefunction at r->0 and integrate until the wavefunction
         begins to oscillate sinusoidally (outside range of potential).
         Return the point that this occurs. Also return the final amplitude and the phase.
+        A return value of zero indicates that it never got to sinusoidal oscillations,
+        most likely because the lattice isn't big enough.
      */
     unsigned int IntegrateContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
 

@@ -66,3 +66,4 @@ inline void DiscreteState::SetEnergy(double energy)
 }
 
 #endif
+

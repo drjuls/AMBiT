@@ -16,6 +16,12 @@ ContinuumState::ContinuumState(const ContinuumState& other):
     State(other)
 {}
 
+ContinuumState::ContinuumState(double energy, int Kappa):
+    State(NULL, Kappa)
+{
+    nu = sqrt(0.5/energy);
+}
+
 std::string ContinuumState::Name() const
 {
     char buffer[20];

@@ -9,6 +9,7 @@ public:
     ContinuumState(Lattice* lat, unsigned int num_points = 0);
     ContinuumState(Lattice* lat, double Nu, int Kappa, unsigned int num_points = 0);
     ContinuumState(const ContinuumState& other);
+    ContinuumState(double energy, int Kappa);
     virtual ~ContinuumState(void) {}
 
     /** Store the state. File pointer fp must be open and writable. */

@@ -212,12 +212,14 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
         i++;
     }
 
-    GetDerivative(s.f, s.df, start_sine, s.Size()-2);
-    GetDerivative(s.g, s.dg, start_sine, s.Size()-2);
-    GetDerivativeEnd(s.f, s.df, s.Size());
-    GetDerivativeEnd(s.g, s.dg, s.Size());
+    if(start_sine)
+    {   GetDerivative(s.f, s.df, start_sine, s.Size()-2);
+        GetDerivative(s.g, s.dg, start_sine, s.Size()-2);
+        GetDerivativeEnd(s.f, s.df, s.Size());
+        GetDerivativeEnd(s.g, s.dg, s.Size());
 
-    final_phase = S[s.Size() - 1] - peak_phase;
+        final_phase = S[s.Size() - 1] - peak_phase;
+    }
 
     return start_sine;
 }
