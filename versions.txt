@@ -8,8 +8,9 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.5.0 - 17/05/07
 Alt: Ongoing work to Atom class to deal with storing Eigenstates and improving
-     general ease of use. 
+     general ease of use.
 Add: Universal/Include.cpp with a function to convert endianness on fread.
      Symmetry class is a simple storage class for total ang. momentum and
      parity. The Eigenstates class stores eigenvalues and eigenvectors of
@@ -20,7 +21,15 @@ Add: Universal/Include.cpp with a function to convert endianness on fread.
      to store configurations and angular algebra (JCoefficients).
      HamiltonianMatrix and MPIHamiltonianMatrix modified to use Eigenstates
      container class for storing eigenvalues, rather than storing it
-     themselves.
+     themselves. Added RateCalculator class to calculate radiative rates,
+     Auger rates, etc. Atom class will generally be inputs to functions.
+     ContinuumState(energy, Kappa) constructor added. DiscreteState::Name()
+     now uses StateInfo::Name() for ease of modification.
+     Projection::GetProjectionDifferences() now works when one of the
+     projections is smaller than the other (by one electron) and includes the
+     gap as a difference - useful for calculating Auger rates.
+Bug: StateIntegrator::IntegrateContinuum() and Core::CalculateContinuumState()
+     check that start_sine is reached during integration.      
 
 1.4.3 - 09/02/07
 Bug: Added option _FUS which appends underscore to fortran subroutines. This
