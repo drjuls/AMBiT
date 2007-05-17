@@ -17,12 +17,13 @@ const double Constant::InvCmToMHz = 29979.2458;
 const char Constant::SpectroscopicNotation[10] 
     = {'s', 'p', 'd', 'f', 'g', 'h', 'i', 'j', 'k', 'l'};
 
+double LogFactorialFraction(unsigned int num, unsigned int denom);
+
 /** Clever method for finding wigner coefficients takes the log of the expression to convert
     the factorials into sums - that way the computer won't break. Also optimises by doing
     terms from the numerator and denominator in pairs so that we don't add and then subtract
     the same thing.
  */
-double LogFactorialFraction(unsigned int num, unsigned int denom);
 double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3)
 {
     /*  The whole expression is of the form
