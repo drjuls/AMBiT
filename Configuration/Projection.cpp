@@ -173,7 +173,21 @@ int Projection::GetProjectionDifferences(const Projection& p1, const Projection&
     {   diff2[diff2_size++] = j;
         j++;
     }
+/*
     if((diff1_size != diff2_size) || (diff1_size > 2))
+        return 3;
+    else if(diff1_size == 0)
+        return 0;
+*/
+    if((diff1_size > 2) || (diff2_size > 2))
+        return 3;
+
+    if(diff1_size < diff2_size)
+        diff1[diff1_size++] = p1.Size();
+    else if(diff2_size < diff1_size)
+        diff2[diff2_size++] = p2.Size();
+
+    if(diff1_size != diff2_size)
         return 3;
     else if(diff1_size == 0)
         return 0;
