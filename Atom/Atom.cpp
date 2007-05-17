@@ -9,8 +9,10 @@
 #include "MBPT/MBPTCalculator.h"
 #include "Universal/ScalapackMatrix.h"
 
+#include "Universal/ExpLattice.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
+#include "Universal/Eigensolver.h"
 
 #include "RateCalculator.h"
 
@@ -49,9 +51,13 @@ int main(int argc, char* argv[])
     try
     {   Atom A(6, 4, "CIII");
         A.RunOpen();
+//        A.GenerateCowanInputFile();
         RateCalculator rate(A.GetBasis());
-        rate.CalculateDipoleMoment(&A, Symmetry(2, odd), 0, Symmetry(2, even), 2);
-        rate.CalculateDipoleMoment(&A, Symmetry(2, odd), 0, Symmetry(2, even), 1);
+        double A1 = rate.CalculateAugerRate(&A, Symmetry(2, even), &A, Symmetry(2, odd), 4);
+        *outstream << A1 << std::endl;
+//        rate.CalculateAllDipoleStrengths(&A, Symmetry(2, odd), 2);
+//        rate.CalculateDipoleStrength(&A, Symmetry(0, even), 0, Symmetry(2, odd), 2);
+//        rate.CalculateDipoleStrength(&A, Symmetry(2, odd), 0, Symmetry(2, even), 1);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -84,35 +90,17 @@ void Atom::Run()
 
     //CreateCustomBasis();
     //CreateRBasis();
-    CreateBSplineBasis();
+    //CreateBSplineBasis();
 
     DebugOptions.OutputHFExcited(false);
 
-    for(int two_m1 = -1; two_m1 <= 1; two_m1 +=2)
-    {
-        double tot = 0.;
-        for(int two_m2 = -1; two_m2 <= 1; two_m2 +=2)
-        {   ElectronInfo e1(2, 1, two_m1);
-            ElectronInfo e2(2, -1, two_m2);
-            double temp = GetE1MatrixElement(e1, e2);
-            tot += temp * temp;
-        }
-        *outstream << "\nE1 matrix element (m1 = " << (double)two_m1/2. << "): " << tot << std::endl;
-    }
-    
-    StateInfo e1(2, -2);
-    StateInfo e2(2, -1);
-    double total = GetE1ReducedMatrixElementSquared(e1, e2);
-    *outstream << "\nReduced E1 matrix element = " << total << std::endl;
+    ContinuumState* cs = new ContinuumState(lattice, 1.0, -1, core->GetHFPotential().size());
+    unsigned int loops = core->CalculateExcitedState(cs);
+    *outstream << loops << "\n" << std::endl;
 
-    const DiscreteState& p1 = *excited->GetState(e1);
-    const DiscreteState& p2 = *excited->GetState(e2);
-    
-    double sig = fabs(p1.Energy() - p2.Energy()) * Constant::HartreeEnergy_cm;
-    *outstream << "sigma = " << sig <<std::endl;
-    total = total * sig * sig * sig * 2.0261e-6;
-    *outstream << "E1 rate = " << total << std::endl;
-
+    *outstream << cs->Size() << std::endl;
+    for(unsigned int i=0; i<cs->Size(); i+=1)
+        *outstream << i << "\t " << cs->f[i] << std::endl;
     //DoClosedShellSMS(true);
 }
 
@@ -120,10 +108,11 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
     SD_CI(false), MBPT_CI(false), NumSolutions(6),
     excited(NULL), excited_mbpt(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL),
-    num_multiple_runs(0), multiple_ids(NULL), multiple_SMS(NULL), multiple_alpha(NULL)
+    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
-    lattice = new Lattice(1000, 1.e-6, 50.);
+    lattice = new Lattice(1500, 1.e-6, 200.);
+    //lattice = new Lattice(1000, 1.e-6, 50.);
+    //lattice = new ExpLattice(350, 1.e-5, 0.05);
     core = new Core(lattice, atomic_number, charge);
     //DebugOptions.LogFirstBuild(true);
     //DebugOptions.LogHFIterations(true);
@@ -253,7 +242,7 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     num_states.push_back(7);
     num_states.push_back(7);
     num_states.push_back(6);
-//    num_states.push_back(14);
+    num_states.push_back(5);
 //    num_states.push_back(13);
 
     excited->CreateExcitedStates(num_states);
@@ -447,63 +436,119 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
     Constant::AlphaSquared = alpha0 * alpha0;
 }
 
-double Atom::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
+void Atom::GenerateCowanInputFile()
 {
-    double matrix_element = 0.0;
-    
-    if((e1.L() + e2.L() + 1)%2 == 0)
-    {
-        double coeff = Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, -e1.TwoM(), e2.TwoM());
-        
-        if(coeff)
-        {   coeff = coeff * Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, 1, -1)
-                          * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons()));
+    FILE* fp = fopen("test.txt", "wt");
 
-            if(abs(e1.L() - (e1.TwoM() + 1)/2)%2 == 1)
-                coeff = -coeff;
+    const DiscreteState* ds = core->GetState(StateInfo(1, -1));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(2, -1));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(2, 1));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(2, -2));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, 1));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, -2));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, 3));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, -4));
+    PrintWavefunctionCowan(fp, ds);
 
-            const DiscreteState& p1 = *excited->GetState(e1);
-            const DiscreteState& p2 = *excited->GetState(e2);
+    Eigenstates* E = GetEigenstates(Symmetry(0, even));
+    double energy_shift = -1.7598437 - E->GetEigenvalues()[0];
+    E->PrintCowan(fp, energy_shift);
 
-            double overlap = 0.;
-            const double* R = excited->GetLattice()->R();
-            const double* dR = excited->GetLattice()->dR();
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
-
-            matrix_element = coeff * overlap;
-        }
-    }
-    
-    return matrix_element;
+    fclose(fp);
 }
 
-double Atom::GetE1ReducedMatrixElementSquared(const StateInfo& e1, const StateInfo& e2) const
+void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
 {
-    double matrix_element_squared = 0.0;
-    
-    if((e1.L() + e2.L() + 1)%2 == 0)
-    {
-        // Don't worry about phase for the square of the matrix element
-        double coeff = Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, 1, -1);
-        
-        if(coeff)
-        {   coeff = coeff * coeff * double(e1.MaxNumElectrons() * e2.MaxNumElectrons());
-            
-            const DiscreteState& p1 = *excited->GetState(e1);
-            const DiscreteState& p2 = *excited->GetState(e2);
+    // Extract A and B from expansion
+    //   f(r) = A * r^g + B * r^(g + 1)
+    // where g = |Kappa|.
+    unsigned int r0 = 0;
+    unsigned int r1 = 1;
 
-            double overlap = 0.;
-            const double* R = excited->GetLattice()->R();
-            const double* dR = excited->GetLattice()->dR();
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+    double R[4];
+    R[0] = pow(lattice->R(r0), abs(ds->Kappa()));
+    R[1] = pow(lattice->R(r0), abs(ds->Kappa()) + 1.);
+    R[2] = pow(lattice->R(r1), abs(ds->Kappa()));
+    R[3] = pow(lattice->R(r1), abs(ds->Kappa()) + 1.);
 
-            matrix_element_squared = coeff * overlap * overlap;
+    double f[2];
+    f[0] = ds->f[r0];
+    f[1] = ds->f[r1];
+
+    Eigensolver solver;
+    if(!solver.SolveSimultaneousEquations(R, f, 2))
+    {   *errstream << "PrintWavefunctionCowan: Can't get wavefunction expansion" << std::endl;
+        exit(1);
+    }
+
+    // Upper component
+    fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1], -ds->Energy());
+
+    unsigned int count = 0;
+    unsigned int i;
+    for(i = 0; i < ds->Size(); i++)
+    {   if(count == 5)
+        {   fprintf(fp, "\n");
+            count = 1;
         }
+        else
+            count++;
+        fprintf(fp, "%14.7E", ds->f[i]);
+    }
+    while(i < lattice->Size())
+    {   if(count == 5)
+        {   fprintf(fp, "\n");
+            count = 1;
+        }
+        else
+            count++;
+        fprintf(fp, "%14.7E", 0.0);
+        i++;
     }
     
-    return matrix_element_squared;
+    // Lower component
+    R[0] = pow(lattice->R(r0), abs(ds->Kappa()));
+    R[1] = pow(lattice->R(r0), abs(ds->Kappa()) + 1.);
+    R[2] = pow(lattice->R(r1), abs(ds->Kappa()));
+    R[3] = pow(lattice->R(r1), abs(ds->Kappa()) + 1.);
+
+    f[0] = ds->g[r0];
+    f[1] = ds->g[r1];
+
+    if(!solver.SolveSimultaneousEquations(R, f, 2))
+    {   *errstream << "PrintWavefunctionCowan: Can't get wavefunction expansion" << std::endl;
+        exit(1);
+    }
+
+    fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1]);
+
+    count = 0;
+    for(i = 0; i < ds->Size(); i++)
+    {   if(count == 5)
+        {   fprintf(fp, "\n");
+            count = 1;
+        }
+        else
+            count++;
+        fprintf(fp, "%14.7E", ds->g[i]*Constant::Alpha);
+    }
+    while(i < lattice->Size())
+    {   if(count == 5)
+        {   fprintf(fp, "\n");
+            count = 1;
+        }
+        else
+            count++;
+        fprintf(fp, "%14.7E", 0.0);
+        i++;
+    }
+    
+    fprintf(fp, "\n");
 }
-
-

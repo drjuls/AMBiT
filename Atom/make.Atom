@@ -1,4 +1,5 @@
-cxxobjects = Atom.o Atom_Open.o OutStreams.o
+cxxobjects = Atom.o Atom_Open.o Atom_RunMultiple.o \
+             OutStreams.o RateCalculator.o
 cobjects = 
 fobjects =
 

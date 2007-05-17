@@ -51,36 +51,6 @@ public:
     void DoClosedShellVolumeShift(bool include_mbpt = true);
     void DoClosedShellAlphaVar(bool include_mbpt = true);
 
-    /** Calculate CI using the existing basis. */
-    void OpenShellEnergy(int twoJ, HamiltonianMatrix* H);
-
-    /** Fill out the rlist based on config and twoJ.
-        Creates a new Hamiltonian object, which the user must later delete.
-     */
-    HamiltonianMatrix* CreateHamiltonian(unsigned int twoJ, unsigned int num_particles, Parity P);
-
-    /** Check sizes of matrices before doing full scale calculation. */
-    void CheckMatrixSizes();
-
-    /** Calculate specific mass shift. */
-    void DoOpenShellSMS(int twoJ, HamiltonianMatrix* H);
-
-    /** Core relaxation term. */
-    void SMS_V0(int twoJ, HamiltonianMatrix* H);
-
-    /** Core-valence term. */
-    void SMS_V1(int twoJ, HamiltonianMatrix* H);
-
-    /** Valence-valence term (calculates energy and matrix element). */
-    void SMS_V2(int twoJ, HamiltonianMatrix* H);
-
-    /** Calculate volume shift. */
-    void DoOpenShellFSModifyR(int twoJ, HamiltonianMatrix* H);
-    void DoOpenShellVolumeShift(int twoJ, HamiltonianMatrix* H);
-
-    /** Calculate relativistic shift (q-values). */
-    void DoOpenShellAlphaVar(int twoJ, HamiltonianMatrix* H);
-
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
         each processor with a separate file.
@@ -103,7 +73,10 @@ public:
     /** Generate configurations, projections, and JStates for a symmetry, and store on disk.
         if(try_read), then it checks to see if the configurations exist on file already.
      */
-    Eigenstates* GenerateConfigurations(const Symmetry& sym, bool try_read = true);
+    ConfigGenerator* GenerateConfigurations(const Symmetry& sym, bool try_read = true);
+
+    /** Check sizes of matrices before doing full scale calculation. */
+    void CheckMatrixSizes();
 
     /** Calculate energies for all chosen symmetries.
         PRE: Need to have generated all integrals.
@@ -111,8 +84,18 @@ public:
     void CalculateEnergies();
 
 public:
+    /** Run open shell atomic energy code multiple times, varying some parameter like
+        alpha, NuclearInverseMass (for SMS), or volume shift parameter.
+     */
+    void RunMultipleOpen();
+
+    /** Set up core, excited states, and integrals some value of the varying parameter.
+        PRE: Need to have initialised CIIntegrals* integrals, core and excited states.
+     */
+    void SetMultipleIntegralsAndCore(unsigned int index);
+
     /** Generate multiple integrals with MBPT. */
-    void GenerateMulitipleIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false, double* delta = NULL);
+    void GenerateMultipleIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false, double* delta = NULL);
 
     /** Collate multiple integrals generated from CIIntegralsMBPT. */
     void CollateMultipleIntegralsMBPT(unsigned int num_processors = 0);
@@ -127,10 +110,18 @@ public:
     void CalculateMultipleEnergies();
 
 public:
+    /** Get previously calculated Eigenstates of Symmetry sym. */
     Eigenstates* GetEigenstates(const Symmetry& sym);
-    double GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const;
-    double GetE1ReducedMatrixElementSquared(const StateInfo& e1, const StateInfo& e2) const;
+
+    /** Get the set of atomic core orbitals. */
+    Core* GetCore() { return core; }
+
+    /** Get the set of valence orbitals. */
     ExcitedStates* GetBasis() { return excited; }
+
+public:
+    void GenerateCowanInputFile();
+    void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
 
 private:
     std::string identifier;
@@ -160,6 +151,8 @@ private:
     bool multiple_radius;
     std::vector<double> multiple_parameters;
     std::vector<std::string> multiple_ids;
+
+    double alpha0;  // Original value of alpha.
 };
 
 #endif
