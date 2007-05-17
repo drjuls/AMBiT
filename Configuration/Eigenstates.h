@@ -60,7 +60,12 @@ public:
         If config_owner, clear configs too.
      */
     void Clear();
+
+    void Print() const;
+    void Print(double max_energy) const;
     
+    void PrintCowan(FILE* fp, double energy_shift = 0.0) const;
+
 protected:
     std::string identifier;
 
