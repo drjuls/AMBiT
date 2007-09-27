@@ -97,7 +97,7 @@ void Core::BuildFirstApproximation()
     else if(!Empty())
     {
         State* s = GetStateIterator().GetState();
-        s->SetNu(1.);
+        s->SetNu(1./Z);
     }
 
     // Get first approximation to potential

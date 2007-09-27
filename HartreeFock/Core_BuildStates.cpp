@@ -705,14 +705,25 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
     }
     while((loop < StateParameters::MaxHFIterations) && (fabs(ds) > StateParameters::EnergyTolerance));
 
-    final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
+    // Actual amplitude of wavefunction as r->Infinity (from IntegrateContinuum),
+    //      A = final_amplitude/(2E)^(1/4)
+
+    /* Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)     */
+    //final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
+    
+    /* Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)     */
+    final_amplitude = sqrt(2./Constant::Pi)/final_amplitude;
+    
+    /* Unitary normalization:   A = 1                           */
+    //final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
+
     s->Scale(final_amplitude);
 
-    //Graph g;
-    //g.SetData(s->f, "f");
-    //g.View();
-    //PAUSE
-    //g.CloseView();
+    //static bool once = true;
+    //if(once)
+    //for(unsigned int i = 0; i < s->Size(); i++)
+    //    *errstream << lattice->R(i) << "\t" << s->f[i] << std::endl;
+    //once = false;
 
     return loop;
 }

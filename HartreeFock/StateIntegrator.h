@@ -62,6 +62,7 @@ public:
         Return the point that this occurs. Also return the final amplitude and the phase.
         A return value of zero indicates that it never got to sinusoidal oscillations,
         most likely because the lattice isn't big enough.
+        POST: actual amplitude as r->Infinity, A = final_amplitude/(2E)^(1/4)
      */
     unsigned int IntegrateContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
 

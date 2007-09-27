@@ -135,7 +135,8 @@ void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>
 
 unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase)
 {
-    unsigned int start_point = 100;
+    // Start calculation outside of the nucleus
+    unsigned int start_point = lattice->real_to_lattice(1.e-4);
 
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
