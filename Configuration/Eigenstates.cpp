@@ -266,4 +266,5 @@ void Eigenstates::PrintCowan(FILE* fp, double energy_shift) const
     {   fprintf(fp, "%4d %s\n", i, it->Name().c_str());
         it++; i++;
     }
+    fprintf(fp, "\n\n");
 }
