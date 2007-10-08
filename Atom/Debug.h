@@ -25,6 +25,9 @@ public:
     /** ScaLAPACK */
     inline bool LogScalapack() const { return bScalapack; }
 
+    /** Rate calculator */
+    inline bool LogAugerRate() const { return bAugerRate; }
+
     /** Generic Options */
     inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
     inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
@@ -38,6 +41,7 @@ protected:
 
     inline void LogMBPT(bool debugon) { bMBPT = debugon; }
     inline void LogScalapack(bool debugon) { bScalapack = debugon; }
+    inline void LogAugerRate(bool debugon) { bAugerRate = debugon; }
 
     inline void HartreeEnergyUnits(bool turnon) { bHartreeUnits = turnon; }
     inline void InvCmEnergyUnits(bool turnon) { bInvCmUnits = turnon; }
@@ -50,6 +54,7 @@ private:
     
     bool bMBPT;
     bool bScalapack;
+    bool bAugerRate;
 
     bool bHartreeUnits;
     bool bInvCmUnits;

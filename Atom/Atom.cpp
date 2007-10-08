@@ -10,10 +10,7 @@
 #include "Universal/ScalapackMatrix.h"
 
 #include "Universal/ExpLattice.h"
-#include "HartreeFock/StateIntegrator.h"
-#include "Universal/CoulombIntegrator.h"
 #include "Universal/Eigensolver.h"
-
 #include "RateCalculator.h"
 
 #ifdef _MPI
@@ -49,15 +46,11 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(6, 4, "CIII");
+    {   Atom A(6, 2, "CIII");
         A.RunOpen();
 //        A.GenerateCowanInputFile();
         RateCalculator rate(A.GetBasis());
-        double A1 = rate.CalculateAugerRate(&A, Symmetry(2, even), &A, Symmetry(2, odd), 4);
-        *outstream << A1 << std::endl;
-//        rate.CalculateAllDipoleStrengths(&A, Symmetry(2, odd), 2);
-//        rate.CalculateDipoleStrength(&A, Symmetry(0, even), 0, Symmetry(2, odd), 2);
-//        rate.CalculateDipoleStrength(&A, Symmetry(2, odd), 0, Symmetry(2, even), 1);
+        rate.DielectronicRecombination(&A);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -94,29 +87,22 @@ void Atom::Run()
 
     DebugOptions.OutputHFExcited(false);
 
-    ContinuumState* cs = new ContinuumState(lattice, 1.0, -1, core->GetHFPotential().size());
-    unsigned int loops = core->CalculateExcitedState(cs);
-    *outstream << loops << "\n" << std::endl;
-
-    *outstream << cs->Size() << std::endl;
-    for(unsigned int i=0; i<cs->Size(); i+=1)
-        *outstream << i << "\t " << cs->f[i] << std::endl;
-    //DoClosedShellSMS(true);
+    DoClosedShellSMS(true);
 }
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), MBPT_CI(false), NumSolutions(6),
+    SD_CI(false), MBPT_CI(false), NumSolutions(20),
     excited(NULL), excited_mbpt(NULL),
     integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
-    lattice = new Lattice(1500, 1.e-6, 200.);
-    //lattice = new Lattice(1000, 1.e-6, 50.);
-    //lattice = new ExpLattice(350, 1.e-5, 0.05);
+    lattice = new Lattice(1000, 1.e-6, 50.);
+    //lattice = new ExpLattice(300, 1.e-5, 0.05);
     core = new Core(lattice, atomic_number, charge);
-    //DebugOptions.LogFirstBuild(true);
-    //DebugOptions.LogHFIterations(true);
+    DebugOptions.LogFirstBuild(true);
+    DebugOptions.LogHFIterations(true);
     //DebugOptions.HartreeEnergyUnits(true);
+    DebugOptions.LogHFContinuum(true);
     if(read)
         Read();
     else
@@ -220,8 +206,8 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(6);
-    num_states.push_back(6);
+    num_states.push_back(2);
+    num_states.push_back(1);
     num_states.push_back(7);
     num_states.push_back(6);
 
@@ -239,11 +225,10 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(7);
-    num_states.push_back(7);
-    num_states.push_back(6);
-    num_states.push_back(5);
-//    num_states.push_back(13);
+    num_states.push_back(3);
+    num_states.push_back(3);
+    num_states.push_back(2);
+    num_states.push_back(1);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -440,7 +425,7 @@ void Atom::GenerateCowanInputFile()
 {
     FILE* fp = fopen("test.txt", "wt");
 
-    const DiscreteState* ds = core->GetState(StateInfo(1, -1));
+    const DiscreteState* ds = excited->GetState(StateInfo(1, -1));
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(2, -1));
     PrintWavefunctionCowan(fp, ds);
@@ -448,6 +433,7 @@ void Atom::GenerateCowanInputFile()
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(2, -2));
     PrintWavefunctionCowan(fp, ds);
+/*
     ds = excited->GetState(StateInfo(4, 1));
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(4, -2));
@@ -456,9 +442,20 @@ void Atom::GenerateCowanInputFile()
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(4, -4));
     PrintWavefunctionCowan(fp, ds);
+*/
 
+    // Ground state
     Eigenstates* E = GetEigenstates(Symmetry(0, even));
-    double energy_shift = -1.7598437 - E->GetEigenvalues()[0];
+    double energy_shift = -324.42474 - E->GetEigenvalues()[0];
+//    double energy_shift = -1.7598437 - E->GetEigenvalues()[0];
+
+    E = GetEigenstates(Symmetry(0, odd));
+    E->PrintCowan(fp, energy_shift);
+
+    E = GetEigenstates(Symmetry(2, odd));
+    E->PrintCowan(fp, energy_shift);
+
+    E = GetEigenstates(Symmetry(4, odd));
     E->PrintCowan(fp, energy_shift);
 
     fclose(fp);

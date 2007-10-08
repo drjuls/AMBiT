@@ -3,13 +3,65 @@
 #include "Universal/Constant.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
+#include "HartreeFock/ContinuumBuilder.h"
 
-void RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigned int solution1)
+void RateCalculator::DielectronicRecombination(Atom* A)
+{
+    FILE* fp = fopen("dr.txt", "wt");
+    double Ec_width = 0.01; // Beam energy width (eV)
+    Ec_width = Ec_width/Constant::HartreeEnergy_eV;
+
+    Eigenstates* gs_eigenstates = A->GetEigenstates(Symmetry(0, even));
+    double continuum_energy = gs_eigenstates->GetEigenvalues()[0] + 386241./Constant::HartreeEnergy_cm;
+
+    double energy_limit = continuum_energy + 1.0/Constant::HartreeEnergy_eV;
+    *outstream << continuum_energy*Constant::HartreeEnergy_cm << " -> "
+               << energy_limit*Constant::HartreeEnergy_cm << std::endl;
+
+    double auger_rate, radiative_rate;
+
+    for(int parity_loop = 0; parity_loop < 2; parity_loop++)
+    {   Parity p = even;
+        if(parity_loop)
+            p = odd;
+
+        for(unsigned int two_j = 0; two_j <=6; two_j+=2)
+        {   Symmetry sym(two_j, p);
+            Eigenstates* ES = A->GetEigenstates(sym);
+            unsigned int i = 0;
+            while(ES->GetEigenvalues()[i] < continuum_energy)
+                i++;
+
+            while(ES->GetEigenvalues()[i] < energy_limit)
+            {
+                *outstream << "\n*** " << sym.GetString() << " ***" << std::endl;
+                auger_rate = CalculateAugerRate(A, sym, i, continuum_energy);
+                radiative_rate = CalculateAllDipoleStrengths(A, sym, i);
+                
+                double Ec = ES->GetEigenvalues()[i] - continuum_energy;
+                double cross_section = 6.68525e-15/(Ec*Ec_width) * (two_j + 1.)/4.
+                                                            // Denominator is 2 * (stat. weight of N-electron target)
+                                                            //      = 2 * [ 2(1/2) + 1] = 4
+                                                            // for j = 1/2 ground state
+                                       * auger_rate * radiative_rate
+                                       /(auger_rate + radiative_rate);
+
+                fprintf(fp, "%12.6e\t%12.6e\t%s:%d\n", Ec*Constant::HartreeEnergy_eV, cross_section,
+                    sym.GetString().c_str(), i);
+                i++;
+            }
+        }
+    }
+    
+    fclose(fp);
+}
+
+double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigned int solution1, bool print_rates, bool print_oscillator_strengths)
 {
     Eigenstates* eigenstates1 = A->GetEigenstates(sym1);
     if(!eigenstates1 || !eigenstates1->Restore())
-    {   *outstream << sym1.GetString() << "eigenstates restore failed" << std::endl;
-        return;
+    {   *outstream << sym1.GetString() << " eigenstates restore failed" << std::endl;
+        return 0.;
     }
 
     const double* V1 = eigenstates1->GetEigenvectors();
@@ -36,13 +88,15 @@ void RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigne
     else
         other_P = even;
 
+    double sum_over_all_J = 0.0;
+
     for(unsigned int TwoJ = TwoJ_min; TwoJ <= TwoJ_max; TwoJ += 2)
     {
         Symmetry sym2(TwoJ, other_P);
         Eigenstates* eigenstates2 = A->GetEigenstates(sym2);
         if(!eigenstates2 || !eigenstates2->Restore())
         {   *outstream << sym2.GetString() << "eigenstates restore failed" << std::endl;
-            return;
+            return 0.;
         }
 
         const double* V2 = eigenstates2->GetEigenvectors();
@@ -136,24 +190,52 @@ void RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigne
 
             list_it++; i+=num_states_i;
         }
-        
-        *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
-                   << ": i) oscillator strengths" << std::endl;
+
         double wigner_coeff = Constant::Electron3j(sym1.GetTwoJ(), TwoJ, 1, -sym1.GetTwoJ(), TwoJ);
         for(solution2 = 0; solution2 < num_solutions2; solution2++)
-        {
-            // Get reduced matrix element squared
+        {   // Get reduced matrix element squared
             total[solution2] = total[solution2]/wigner_coeff;
             total[solution2] = total[solution2] * total[solution2];
-            
-            // Oscillator strength
-            double deltaE = fabs(E1[solution1] - E2[solution2]);
-            *outstream << "  " << solution2 << "  " << deltaE * total[solution2] << std::endl;
         }
-        
+
+        if(print_oscillator_strengths)
+        {   *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
+                       << ": i) oscillator strengths" << std::endl;
+
+            for(solution2 = 0; solution2 < num_solutions2; solution2++)
+            {   // Oscillator strength
+                double deltaE = fabs(E1[solution1] - E2[solution2]);
+                *outstream << "  " << solution2 << "  " << deltaE * total[solution2]/3. << std::endl;
+            }
+        }
+
+
+        if(print_rates)
+            *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
+                       << ": i) radiative rates (/sec)" << std::endl;
+
+        double sum = 0.0;
+        for(solution2 = 0; solution2 < num_solutions2; solution2++)
+        {   // Radiative rate (per second)
+            double sig = fabs(E1[solution1] - E2[solution2]) * Constant::HartreeEnergy_cm;
+            double rate = total[solution2] * sig * sig * sig * 2.0261e-6;
+            if(print_rates)
+                *outstream << "  " << solution2 << "  " << rate << std::endl;
+            sum += rate;
+        }
+
+        if(print_rates)
+            *outstream << "  Sum = " << sum << std::endl;
+        sum_over_all_J += sum;
+
         delete[] coeff;
         delete[] total;
     }
+    
+    if(print_rates)
+        *outstream << "Radiative rate (sum over all J) = " << sum_over_all_J << std::endl;
+
+    return sum_over_all_J;
 }
 
 double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2)
@@ -180,7 +262,6 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
     RelativisticConfigList* configs2 = eigenstates2->GetRelConfigs();
 
     unsigned int diff[4];   // Storage for projection differences.
-    unsigned int num_electrons = configs1->front().NumParticles();
     double total = 0.0;
 
     // Iterate over different relativistic configurations
@@ -254,10 +335,10 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
 
     total = total/Constant::Electron3j(sym1.GetTwoJ(), sym2.GetTwoJ(), 1, -sym1.GetTwoJ(), sym2.GetTwoJ());
     total = total * total;
-    *outstream << "E1 reduced matrix element squared = " << total << std::endl;
+    *outstream << "E1 reduced matrix element squared (S) = " << total << std::endl;
     
     double deltaE = fabs((eigenstates1->GetEigenvalues())[solution1] - (eigenstates2->GetEigenvalues())[solution2]);
-    *outstream << "Oscillator strength f = " << deltaE * total << std::endl;
+    *outstream << "Oscillator strength g.f = " << deltaE * total/3. << std::endl;
 
     double sig = deltaE * Constant::HartreeEnergy_cm;
     *outstream << "sigma = " << sig <<std::endl;
@@ -298,45 +379,74 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
     return matrix_element;
 }
 
-double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Symmetry sym1, unsigned int solution1)
+double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int solution1, double continuum_energy)
 {
-    // Assume gs is s_1/2 (for now)
+    // Assume ion ground state is s_1/2 (for now)
     // Get energy of atom
-    Eigenstates* ion_eigenstates = ion->GetEigenstates(gs);
-    Eigenstates* atom_eigenstates = atom->GetEigenstates(sym1);
-    double continuum_energy = atom_eigenstates->GetEigenvalues()[solution1]
-                              - ion_eigenstates->GetEigenvalues()[0];
-
+    Eigenstates* atom_eigenstates = A->GetEigenstates(sym1);
     const double* V1 = atom_eigenstates->GetEigenvectors();
     const double* E1 = atom_eigenstates->GetEigenvalues();
     unsigned int N1 = atom_eigenstates->GetEigenvectorLength();
     RelativisticConfigList* configs1 = atom_eigenstates->GetRelConfigs();
 
-    Core* core = ion->GetCore();
+    double cs_energy = E1[solution1] - continuum_energy;
+    *outstream << "Solution " << solution1 << "  ";
+    *outstream << "Continuum energy: " << std::setprecision(6) 
+               << cs_energy * Constant::HartreeEnergy_eV << std::endl;
+    if(cs_energy <= 0.0)
+        return 0.0;
+
+    unsigned int final_ion_pqn = 2;
+
+    Core* core = A->GetCore();
+    core->ToggleOpenShellCore();
+
+    // Decide how to make the continuum wavefunctions
+    ContinuumBuilder cs_builder(A->GetCore());
+    Core* cs_core = cs_builder.GetCore();
+    cs_core->Ionise(StateInfo(2, -1));
+
+    core->ToggleClosedShellCore();
 
     // Match parity
     Parity cs_parity;
-    if(gs.GetParity() == sym1.GetParity())
-        cs_parity = even;
-    else
-        cs_parity = odd;
+    // Parity of ion + continuum state == Parity of excited state
+    //if(gs.GetParity() == sym1.GetParity())
+    //    cs_parity = even;
+    //else
+    //    cs_parity = odd;
+
+    // Parity of s_1/2 ion is even
+    cs_parity = sym1.GetParity();
+
+    bool debug = DebugOptions.LogAugerRate();
+
+    if(debug)
+    {   *logstream << "\n\nCS Parity = ";
+        if(cs_parity == even)
+            *logstream << "even" << std::endl;
+        else
+            *logstream << "odd" << std::endl;
+    }
 
     double total = 0.0;
-
-    // change to step size 2!
+ 
     for(int cs_twoj = abs(int(sym1.GetTwoJ()) - 1); cs_twoj <= sym1.GetTwoJ() + 1; cs_twoj += 2)
     {
+        double partial_total = 0.0;
+
         // kappa = (j + 1/2) * (-1)^(j + 1/2 + l)
         int cs_kappa = (cs_twoj + 1)/2;
         if(cs_kappa%2 == 1)
             cs_kappa = -cs_kappa;
-        if(cs_parity = odd)
+        if(cs_parity == odd)
             cs_kappa = -cs_kappa;
 
         // Calculate continuum state
-        ContinuumState* cs = new ContinuumState(continuum_energy, cs_kappa);
-        core->CalculateExcitedState(cs);
-        //core->CalculateContinuumState(cs);
+        ContinuumState* cs = new ContinuumState(cs_energy, cs_kappa);
+        cs_builder.CalculateContinuumState(cs, core->GetLattice());
+        if(debug)
+            *logstream << "Continuum State: " << cs->Name() << std::endl;
 
         // Form ion+continuum wavefunction
         // For j = J - 1/2, ground state has projection +1/2
@@ -350,7 +460,7 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
         {
             // Here again is our ground state = 2s assumption
             Projection p_ion;
-            p_ion.Add(ElectronInfo(2, -1, ion_TwoM));
+            p_ion.Add(ElectronInfo(final_ion_pqn, -1, ion_TwoM));
             
             double ion_coeff = 1.;
             if(cs_twoj == sym1.GetTwoJ() + 1)
@@ -359,11 +469,15 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
                 else // ion_TwoM == 1
                     ion_coeff = 1./sqrt(double(sym1.GetTwoJ() + 2));
             }
-            
+
             ElectronInfo cs_electron_info(99, cs_kappa, sym1.GetTwoJ() - ion_TwoM);
 
+            if(debug)
+                *logstream << "CS twoM = " << cs_electron_info.TwoM() << "\n"
+                           << "Ion twoM = " << ion_TwoM << std::endl;
+
             // Loop over configurations
-            unsigned int i=0, j;
+            unsigned int i=0;
             RelativisticConfigList::const_iterator list_it = configs1->begin();
             while(list_it != configs1->end())
             {
@@ -371,6 +485,9 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
                 unsigned int proj_i_size = proj_i.size();
                 unsigned int num_states_i = list_it->NumJStates();
                 const double* coefficients_i = list_it->GetJCoefficients();
+                if(debug)
+                    *logstream << "\nproj_i_size = " << proj_i_size
+                               << "\nnum_states_i = " << num_states_i << std::endl;
 
                 // Iterate over projections
                 ProjectionSet::const_iterator pi_it = proj_i.begin();
@@ -378,8 +495,11 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
                 while(pi_it != proj_i.end())
                 {
                     double matrix_element = GetProjectionH(p_ion, *pi_it, cs, cs_electron_info);
+                    if(debug)
+                        *logstream << "< " << p_ion.Name() << " " << cs_electron_info.Name() << " |H| "
+                                   << pi_it->Name() << " >\n    = " << matrix_element << std::endl;
 
-                    if(fabs(matrix_element) > 1.e-16)
+                    if(fabs(matrix_element) > 1.e-15)
                     {
                         double coeff = 0.0;
 
@@ -389,12 +509,20 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
                             coeff += coefficients_i[jstate_i*proj_i_size + pi]
                                      * ion_coeff
                                      * V1[solution1*N1 + i + jstate_i];
+
+                            if(debug)
+                                *logstream <<   "      * " << ion_coeff << "  (ion_coeff)"
+                                    << "\n      * " << coefficients_i[jstate_i*proj_i_size + pi] << "  (coeff_i)"
+                                    << "\n      * " << V1[solution1*N1 + i + jstate_i] << "  (V1)" << std::endl;
                         }
 
-                        total += coeff * matrix_element;
+                        if(debug)
+                            *logstream << "    = " << coeff*matrix_element << "\n" << std::endl;
+                        partial_total += coeff * matrix_element;
                     }
 
                     pi_it++;
+                    pi++;
                 }
 
                 list_it++; i+=num_states_i;
@@ -402,7 +530,32 @@ double RateCalculator::CalculateAugerRate(Atom* ion, Symmetry gs, Atom* atom, Sy
 
             ion_TwoM += 2;
         }
+
+        total += partial_total*partial_total;
     }
+
+    switch(cs_builder.GetNormalisationType())
+    {
+        case Unitary:
+            // Total using unitary normalisation of continuum wavefunctions.
+            total = total * 4.0/sqrt(2.0 * cs_energy);
+            break;
+
+        case Cowan:
+            // Total using Cowan normalisation of continuum wavefunctions.
+            total = total * 2. * Constant::Pi;
+            break;
+            
+        default:
+            *errstream << "Normalisation type not supported: " << cs_builder.GetNormalisationType();
+            exit(1);
+            break;
+    }
+
+    // Convert to inverse seconds (divide by hbar)
+    total = total/2.418884e-17;
+
+    *outstream << "Auger rate (/sec) = " << total << std::endl;
 
     return total;
 }
@@ -463,8 +616,8 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
 
         // a->b, c->d
         // <ac|g|bd> - <ac|g|db>
-        value = sign * (CoulombMatrixElement(cs_electron, f1, s2, s1, cs)
-                        - CoulombMatrixElement(cs_electron, f1, s1, s2, cs));
+        value = sign * (CoulombMatrixElement(cs_electron, f1, s2, s1, cs, sign)
+                        - CoulombMatrixElement(cs_electron, f1, s1, s2, cs, -sign));
     }
 
     return value;
@@ -473,7 +626,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
 /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >.
     e1 is the continuum state.
  */
-double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumState* cs) const
+double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumState* cs, int sign) const
 {
     // Get two-body matrix element
     if((e1.L() + e2.L() + e3.L() + e4.L())%2)
@@ -493,6 +646,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
 
     double q = double(two_q)/2.;
 
+    bool debug = DebugOptions.LogAugerRate();
     double total = 0.;
 
     while(k <= kmax)
@@ -543,11 +697,17 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
 
             unsigned int limit = mmin(s_1->Size(), s_3->Size());
             limit = mmin(limit, Pot24.size());
-            for(p=0; p<limit; p++)
+            for(p=0; p<limit; p+=2)
             {
-                radial += (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
+                radial += 4.* (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
                             * Pot24[p] * dR[p];
             }
+            for(p=1; p<limit; p+=2)
+            {
+                radial += 2.* (s_1->f[p] * s_3->f[p] + Constant::AlphaSquared * s_1->g[p] * s_3->g[p])
+                            * Pot24[p] * dR[p];
+            }
+            radial = radial/3.;
 
             if(core_pol && k == 1)
             {
@@ -564,6 +724,10 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
             }
 
             total += coeff * radial;
+            if(debug)
+                *logstream << "\t < " << e1.Name() << e2.Name() << " | R(k=" << k << ") | "
+                    << e3.Name() << e4.Name() << " >\n"
+                    << "\t     = " << sign*coeff << " * " << radial << " = " << sign*coeff * radial << std::endl;
         }
 
         k = k+2;
