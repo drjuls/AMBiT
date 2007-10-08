@@ -48,7 +48,7 @@ FROM CONSTRUCTOR:
     while(!it.AtEnd())
     {
         hfstate = it.GetState();
-        s = new DiscreteState(grid, hfstate->RequiredPQN(), hfstate->Kappa());
+        s = new DiscreteState(hfstate->RequiredPQN(), hfstate->Kappa());
         s->SetOccupancy(hfstate->Occupancy());
         s->SetNu(hfstate->Nu());
 

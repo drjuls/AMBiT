@@ -52,7 +52,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 
                 DiscreteState* ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new DiscreteState(lattice, final.PQN(), final.GetFirstRelativisticInfo().Kappa());
+                {   ds = new DiscreteState(final.PQN(), final.GetFirstRelativisticInfo().Kappa());
                     unsigned int loops = core->CalculateExcitedState(ds);
                     if(loops)
                         Orthogonalise(ds);
@@ -82,7 +82,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {   ds = new DiscreteState(lattice, final.PQN(), final.GetSecondRelativisticInfo().Kappa());
+                    {   ds = new DiscreteState(final.PQN(), final.GetSecondRelativisticInfo().Kappa());
                         unsigned int loops = core->CalculateExcitedState(ds);
                         if(loops)
                             Orthogonalise(ds);
@@ -121,7 +121,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 
                 DiscreteState* ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new DiscreteState(lattice, final.PQN(), final.GetFirstRelativisticInfo().Kappa());
+                {   ds = new DiscreteState(final.PQN(), final.GetFirstRelativisticInfo().Kappa());
                     AddState(ds);
                 }
 
@@ -164,7 +164,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {    ds = new DiscreteState(lattice, final.PQN(), final.GetSecondRelativisticInfo().Kappa());
+                    {    ds = new DiscreteState(final.PQN(), final.GetSecondRelativisticInfo().Kappa());
                          AddState(ds);
                     }
 

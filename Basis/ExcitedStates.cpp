@@ -40,14 +40,14 @@ DiscreteState ExcitedStates::GetStateWithSigma(const StateInfo& info) const
         return ds;
     }
     else
-        return DiscreteState(lattice);
+        return DiscreteState();
 }
 
 double ExcitedStates::GetSecondOrderSigma(const StateInfo& info)
 {
     DiscreteState* s = GetState(info);
     if(s == NULL)
-    {   s = new DiscreteState(lattice, info.PQN(), info.Kappa());
+    {   s = new DiscreteState(info.PQN(), info.Kappa());
         core->CalculateExcitedState(s);
     }
 
@@ -77,7 +77,7 @@ bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
 {
     DiscreteState* s = GetState(info);
     if(s == NULL)
-    {   s = new DiscreteState(lattice, info.PQN(), info.Kappa());
+    {   s = new DiscreteState(info.PQN(), info.Kappa());
         core->CalculateExcitedState(s);
     }
 
@@ -107,7 +107,7 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
 {
     DiscreteState* s = GetState(info);
     if(s == NULL)
-    {   s = new DiscreteState(lattice, info.PQN(), info.Kappa());
+    {   s = new DiscreteState(info.PQN(), info.Kappa());
         core->CalculateExcitedState(s);
     }
 
@@ -193,7 +193,7 @@ void ExcitedStates::MultiplyByR(const DiscreteState* previous, DiscreteState* cu
     }
 
     Orthogonalise(current);
-    current->ReNormalise();
+    current->ReNormalise(lattice);
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
@@ -239,7 +239,7 @@ void ExcitedStates::MultiplyBySinR(const DiscreteState* previous, DiscreteState*
     }
 
     Orthogonalise(current);
-    current->ReNormalise();
+    current->ReNormalise(lattice);
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
@@ -289,14 +289,14 @@ void ExcitedStates::MultiplyByRSinR(const DiscreteState* previous, DiscreteState
     }
 
     Orthogonalise(current);
-    current->ReNormalise();
+    current->ReNormalise(lattice);
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
 void ExcitedStates::Orthogonalise(DiscreteState* current) const
 {
     const double* dR = lattice->dR();
-    current->ReNormalise();
+    current->ReNormalise(lattice);
 
     // Orthogonalise to core
     ConstStateIterator it = core->GetConstStateIterator();
@@ -318,7 +318,7 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
                 current->df[i] = current->df[i] - S * other->df[i];
                 current->dg[i] = current->dg[i] - S * other->dg[i];
             }
-            current->ReNormalise();
+            current->ReNormalise(lattice);
         }
         it.Next();
     }
@@ -345,7 +345,7 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
                 current->df[i] = current->df[i] - S * other->df[i];
                 current->dg[i] = current->dg[i] - S * other->dg[i];
             }
-            current->ReNormalise();
+            current->ReNormalise(lattice);
         }
         ex_it.Next();
     }

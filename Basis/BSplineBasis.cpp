@@ -225,7 +225,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         }
                     }
                     else
-                    {   DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                    {   DiscreteState* ds = new DiscreteState(pqn, kappa);
                         ds->SetEnergy(eigenvalues[i]);
                         ds->ReSize(HF_size);
 
@@ -248,10 +248,10 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                             ds->dg[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point]/Constant::Alpha;
                         }
 
-                        if(fabs(ds->Norm() - 1.) > 1.e-2)
+                        if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
                         {   if(debug)
                                 *outstream << "  State removed: energy = " << ds->Energy()
-                                           << "  norm = " << ds->Norm() << std::endl;
+                                           << "  norm = " << ds->Norm(lattice) << std::endl;
                             pqn--;
 
                             delete ds;
@@ -261,11 +261,11 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                             {   if(s)
                                 {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
                                     *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                               << " norm: " << ds->Norm() - 1. << "  deltaE: " << diff << std::endl;
+                                               << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
                                 }
                                 else
                                     *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                               << " norm: " << ds->Norm() - 1. << std::endl;
+                                               << " norm: " << ds->Norm(lattice) - 1. << std::endl;
                             }
                             AddState(ds);
                             count++;

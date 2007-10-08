@@ -35,7 +35,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     {   // Check if state already exists
                         s = GetState(StateInfo(pqn, kappa));
                         if(s == NULL)
-                        {   DiscreteState* ds = new DiscreteState(lattice, pqn, kappa);
+                        {   DiscreteState* ds = new DiscreteState(pqn, kappa);
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -61,7 +61,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 {
                     DiscreteState* ds = GetState(StateInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = new DiscreteState(lattice, pqn, kappa);
+                    {   ds = new DiscreteState(pqn, kappa);
                         AddState(ds);
                     }
 
