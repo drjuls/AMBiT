@@ -17,7 +17,7 @@ void MBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
-    DiscreteState s(lattice, abs(kappa)+1, kappa);
+    DiscreteState s(abs(kappa)+1, kappa);
 
     CalculateCorrelation1and3(s, s, sigma);
     CalculateCorrelation2(s, s, sigma);
