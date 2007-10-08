@@ -37,24 +37,16 @@ std::string StateInfo::Name() const
     std::string ret(buffer);
 
     ret.append(1, Constant::SpectroscopicNotation[L()]);
-    if(kappa < -1)
-        ret.append(1, '+');
 
-    return ret;
-}
-/*
-std::string StateInfo::Name() const
-{
-    char buffer[20];
-    sprintf(buffer, "%d", pqn);
-    std::string ret(buffer);
-
-    ret.append(1, Constant::SpectroscopicNotation[L()]);
+#ifdef USE_ALT_STATE_NOTATION
     if(kappa > 0)
         ret.append(1, '-');
     else
         ret.append(1, ' ');
+#else
+    if(kappa < -1)
+        ret.append(1, '+');
+#endif
 
     return ret;
 }
-*/

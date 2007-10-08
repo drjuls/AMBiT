@@ -1,10 +1,57 @@
 #include "Include.h"
 #include "StateManager.h"
 #include "StateIterator.h"
+#include "Universal/Interpolator.h"
 
 StateManager::StateManager(Lattice* lat, unsigned int atomic_number, int ion_charge):
     lattice(lat), Z(atomic_number), Charge(ion_charge)
 {}
+
+StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
+    Z(other.Z), Charge(other.Charge)
+{
+    if(new_lattice)
+        lattice = new_lattice;
+    else
+        lattice = other.lattice;
+
+    bool interpolate = !(*lattice == *other.lattice);
+    Interpolator interp(other.lattice);
+    unsigned int order = 6;
+
+    const double* R_old = other.lattice->R();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    ConstStateIterator it = other.GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {
+        const DiscreteState* ds_old = it.GetState();
+
+        // Copy kappa, pqn, etc.
+        DiscreteState* ds = new DiscreteState(*ds_old);
+
+        if(interpolate)
+        {
+            unsigned int new_size = lattice->real_to_lattice(R_old[ds_old->Size() - 1]);
+            double dfdr, dgdr;
+
+            ds->ReSize(new_size);
+            for(unsigned int i = 0; i < new_size; i++)
+            {
+                interp.Interpolate(ds_old->f, R[i], ds->f[i], dfdr, order);
+                interp.Interpolate(ds_old->g, R[i], ds->g[i], dgdr, order);
+                ds->df[i] = dfdr * dR[i];
+                ds->dg[i] = dgdr * dR[i];
+            }
+        }
+
+        AddState(ds);
+        it.Next();
+    }
+}
+
 
 StateManager::~StateManager(void)
 {
@@ -64,7 +111,7 @@ double StateManager::TestOrthogonality() const
         jt.Next();
         while(!jt.AtEnd())
         {
-            double orth = fabs(it.GetState()->Overlap(*jt.GetState()));
+            double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
             if(orth > max_orth)
                 max_orth = orth;
 
@@ -104,7 +151,7 @@ void StateManager::Write(FILE* fp) const
 void StateManager::Read(FILE* fp)
 {
     unsigned int num_core, i;
-    DiscreteState ds(lattice);
+    DiscreteState ds;
 
     // Read states
     fread(&num_core, sizeof(unsigned int), 1, fp);

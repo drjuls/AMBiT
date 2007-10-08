@@ -6,13 +6,13 @@
 class DiscreteState : public State  
 {
 public:
-    DiscreteState(Lattice* lat, unsigned int num_points = 0);
-    DiscreteState(Lattice* lat, unsigned int PrincipalQN, int Kappa, unsigned int num_points = 0);
+    DiscreteState(): State() {}
+    DiscreteState(unsigned int PrincipalQN, int Kappa);
     DiscreteState(const DiscreteState& other);
     virtual ~DiscreteState(void) {}
 
     virtual double Energy() const;
-    double Norm() const;
+    double Norm(const Lattice* lattice) const;
 
     inline void SetRequiredPrincipalQN(unsigned int pqn) { this->pqn = pqn; }
     inline void SetOccupancy(double number_electrons);
@@ -30,7 +30,7 @@ public:
         Return true if the size was correct, false if there was a change.
       */
     bool CheckSize(double tolerance);
-    void ReNormalise(double norm = 1.);
+    void ReNormalise(const Lattice* lattice, double norm = 1.);
 
     const DiscreteState& operator=(const DiscreteState& other)
     {   State::operator=(other);

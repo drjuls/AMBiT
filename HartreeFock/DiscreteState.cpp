@@ -4,12 +4,8 @@
 #include "StateInfo.h"
 #include <math.h>
 
-DiscreteState::DiscreteState(Lattice* lat, unsigned int num_points): 
-    State(lat, num_points)
-{}
-
-DiscreteState::DiscreteState(Lattice* lat, unsigned int PrincipalQN, int Kappa, unsigned int num_points):
-    State(lat, Kappa, num_points), pqn(PrincipalQN)
+DiscreteState::DiscreteState(unsigned int PrincipalQN, int Kappa):
+    State(Kappa), pqn(PrincipalQN)
 {
     occupancy = 2*abs(kappa);
 }
@@ -27,7 +23,7 @@ double DiscreteState::Energy() const
         return 0.;
 }
 
-double DiscreteState::Norm() const
+double DiscreteState::Norm(const Lattice* lattice) const
 {
     double norm = 0.;
     unsigned int i;
@@ -113,7 +109,7 @@ bool DiscreteState::CheckSize(double tolerance)
         }
 
         // Check lattice is okay
-        lattice->R(max);
+        //lattice->R(max);
         return false;
     }
     else
@@ -123,9 +119,9 @@ bool DiscreteState::CheckSize(double tolerance)
     }
 }
 
-void DiscreteState::ReNormalise(double norm)
+void DiscreteState::ReNormalise(const Lattice* lattice, double norm)
 {
-    double scaling = sqrt(norm/Norm());
+    double scaling = sqrt(norm/Norm(lattice));
     if(scaling)
         Scale(scaling);
 }

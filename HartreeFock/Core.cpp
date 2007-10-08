@@ -2,12 +2,64 @@
 #include "Core.h"
 #include "Universal/Constant.h"
 #include "Universal/CoulombIntegrator.h"
+#include "Universal/Interpolator.h"
 
 Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
     StateManager(lat, atomic_number, ion_charge),
     NuclearRadius(0.00001), NuclearThickness(0.000001),
     NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0), ClosedShellRadius(0.)
 {}
+
+Core::Core(const Core& other, Lattice* new_lattice):
+    StateManager(other, new_lattice),
+    NuclearRadius(other.NuclearRadius), NuclearThickness(other.NuclearThickness),
+    NuclearInverseMass(other.NuclearInverseMass), VolumeShiftParameter(other.VolumeShiftParameter),
+    Polarisability(other.Polarisability), ClosedShellRadius(other.ClosedShellRadius)
+{
+    // The StateManager part has copied/interpolated all the wavefunctions.
+    UpdateNuclearPotential();
+    UpdateHFPotential();
+
+    // Copy original occupancies
+    OpenShellStates = other.OpenShellStates;
+
+    // Copy/interpolate any currently unused open shell states
+    bool interpolate = !(*lattice == *other.lattice);
+    Interpolator interp(other.lattice);
+    unsigned int order = 6;
+
+    const double* R_old = other.lattice->R();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    StateSet::const_iterator it = other.OpenShellStorage.begin();
+
+    while(it != other.OpenShellStorage.end())
+    {
+        const StatePointer ds_old = it->second;
+
+        // Copy kappa, pqn, etc.
+        DiscreteState* ds = new DiscreteState(*ds_old.GetState());
+
+        if(interpolate)
+        {
+            unsigned int new_size = lattice->real_to_lattice(R_old[ds_old->Size() - 1]);
+            double dfdr, dgdr;
+
+            ds->ReSize(new_size);
+            for(unsigned int i = 0; i < new_size; i++)
+            {
+                interp.Interpolate(ds_old->f, R[i], ds->f[i], dfdr, order);
+                interp.Interpolate(ds_old->g, R[i], ds->g[i], dgdr, order);
+                ds->df[i] = dfdr * dR[i];
+                ds->dg[i] = dgdr * dR[i];
+            }
+        }
+
+        OpenShellStorage[it->first] = ds;
+        it++;
+    }
+}
 
 void Core::Initialise()
 {
@@ -88,7 +140,7 @@ void Core::Read(FILE* fp)
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        DiscreteState* ds = new DiscreteState(lattice);
+        DiscreteState* ds = new DiscreteState();
         ds->Read(fp);
         AddState(ds);
     }
@@ -98,7 +150,7 @@ void Core::Read(FILE* fp)
     fread(&num_open, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_open; i++)
     {
-        DiscreteState* ds = new DiscreteState(lattice);
+        DiscreteState* ds = new DiscreteState();
         ds->Read(fp);
 
         StateInfo info(ds);
@@ -221,7 +273,7 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
                 }
 
                 // Renormalise core states (should be close already) and update energy.
-                ds->ReNormalise();
+                ds->ReNormalise(lattice);
                 ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
                 *new_ds = *ds;
                 deltaE = fabs(deltaE/new_ds->Energy());

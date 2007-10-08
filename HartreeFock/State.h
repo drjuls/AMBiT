@@ -1,20 +1,21 @@
 #ifndef STATE_H
 #define STATE_H
 
+//#define USE_ALT_STATE_NOTATION
+
 #include "Universal/CoupledFunction.h"
 #include "Universal/Lattice.h"
 #include <string>
 #include <math.h>
 
-/**
- * Electron state. Psi = (        f/r. Y_jlm)
- *                       (i.alpha.g/r.~Y_jlm)
- */
 class State : public CoupledFunction
 {
+    /** Electron state. Psi = (        f/r. Y_jlm)
+                              (i.alpha.g/r.~Y_jlm)
+     */
 public:
-    State(Lattice* lat, unsigned int num_points = 0);
-    State(Lattice* lat, int Kappa, unsigned int num_points = 0);
+    State();
+    State(int Kappa);
     State(const State& other);
     virtual ~State(void) {}
 
@@ -35,8 +36,6 @@ public:
     {   CoupledFunction::operator=(other);
         kappa = other.kappa;
         nu = other.nu;
-
-        lattice = other.lattice;
         return *this;
     }
 
@@ -47,12 +46,10 @@ public:
     virtual void Read(FILE* fp);
 
     /** Get overlap of this state with another. */
-    double Overlap(const State& other) const;
+    double Overlap(const State& other, const Lattice* lattice) const;
 protected:
     int kappa;
     double nu;          // effective principal quantum number - determines energy
-
-    Lattice* lattice;
 };
 
 inline unsigned int State::L() const

@@ -14,6 +14,10 @@ class Core : public StateManager
      */
 public:     // Methods for StateManager role
     Core(Lattice* lat, unsigned int atomic_number, int ion_charge);
+    /** Copy all states, interpolating onto new_lattice (if supplied and required).
+        If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
+     */
+    Core(const Core& other, Lattice* new_lattice = NULL);
     virtual ~Core() {}
 
     /** This method must be called before any other, except for Read() or GetDebugOptions(). */
@@ -74,6 +78,9 @@ public:     // Methods for Hartree-Fock calculations and potentials
 
     /** Do self consistent Hartree Fock proceedure until convergency is reached. */
     void Update();
+
+    /** Simply extend the HF potential (and the closed core potential) to the size of the lattice. */
+    void ExtendPotential() const;
 
     /** The HF Potential is the direct potential of the core including open shells. */
     virtual std::vector<double> GetHFPotential() const;
@@ -138,9 +145,6 @@ protected:
         the LocalExchangeApproximation is added to HFPotential in this function.
      */
     void UpdateHFPotential(double proportion_new = 1., bool first_build = false);
-
-    /** Simply extend the HF potential (and the closed core potential) to the size of the lattice. */
-    void ExtendPotential() const;
 
     /** Update the coulomb potential due to the nucleus, inside the nucleus */
     void UpdateNuclearPotential();

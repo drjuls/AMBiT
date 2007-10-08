@@ -34,7 +34,7 @@ void Core::BuildFirstApproximation()
                 // Make sure state doesn't already exist
                 if(!GetState(StateInfo(pqn, kappa)))
                 {
-                    DiscreteState* s = new DiscreteState(lattice, pqn, kappa);
+                    DiscreteState* s = new DiscreteState(pqn, kappa);
 
                     if(electron_count + 2*abs(kappa) <= number_electrons)
                     {   electron_count = electron_count + 2*abs(kappa);
@@ -278,13 +278,13 @@ bool Core::GetConfigData()
         DiscreteState* s2 = NULL;
 
         if(L == 0)
-        {   s2 = new DiscreteState(lattice, pqn, -1);
+        {   s2 = new DiscreteState(pqn, -1);
             s2->SetOccupancy(double(occupancy));
         }
         else
         {   // Split electrons between subshells
-            s1 = new DiscreteState(lattice, pqn, L);
-            s2 = new DiscreteState(lattice, pqn, -(L+1));
+            s1 = new DiscreteState(pqn, L);
+            s2 = new DiscreteState(pqn, -(L+1));
 
             double occ1 = double(2*L)/double(4*L+2) * double(occupancy);
             double occ2 = double(2*L+2)/double(4*L+2) * double(occupancy);
@@ -295,11 +295,11 @@ bool Core::GetConfigData()
             //unsigned int occ1 = occupancy/2;
             //occ1 = mmin(occ1, unsigned int(2*L));
             //if(occ1)
-            //{   s1 = new DiscreteState(lattice, pqn, L);
+            //{   s1 = new DiscreteState(pqn, L);
             //    s1->SetOccupancy(occ1);
             //}
 
-            //s2 = new DiscreteState(lattice, pqn, -(L+1));
+            //s2 = new DiscreteState(pqn, -(L+1));
             //s2->SetOccupancy(mmin(occupancy-occ1, unsigned int(2*L + 2)));
         }
 
@@ -365,7 +365,7 @@ unsigned int Core::GetSpecialStates()
             pqn = L + zeros + 1;
 
             // Make state
-            DiscreteState* s = new DiscreteState(lattice, pqn, kappa);
+            DiscreteState* s = new DiscreteState(pqn, kappa);
             s->SetOccupancy(occupancy);
             AddState(s);
 

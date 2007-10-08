@@ -6,8 +6,7 @@
 class ContinuumState: public State
 {
 public:
-    ContinuumState(Lattice* lat, unsigned int num_points = 0);
-    ContinuumState(Lattice* lat, double Nu, int Kappa, unsigned int num_points = 0);
+    ContinuumState(): State() {}
     ContinuumState(const ContinuumState& other);
     ContinuumState(double energy, int Kappa);
     virtual ~ContinuumState(void) {}

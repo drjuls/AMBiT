@@ -2,16 +2,16 @@
 #include "State.h"
 #include "Universal/Constant.h"
 
-State::State(Lattice* lat, unsigned int num_points):
-    CoupledFunction(num_points), lattice(lat), nu(0.), kappa(0)
+State::State():
+    CoupledFunction(), nu(0.), kappa(0)
 {}
 
-State::State(Lattice* lat, int Kappa, unsigned int num_points):
-    CoupledFunction(num_points), lattice(lat), nu(0.), kappa(Kappa)
+State::State(int Kappa):
+    CoupledFunction(), nu(0.), kappa(Kappa)
 {}
 
 State::State(const State& other):
-    CoupledFunction(other), kappa(other.kappa), nu(other.nu), lattice(other.lattice)
+    CoupledFunction(other), kappa(other.kappa), nu(other.nu)
 {}
 
 unsigned int State::NumZeroes() const
@@ -52,10 +52,9 @@ unsigned int State::NumZeroes() const
 void State::Read(FILE* fp)
 {
     CoupledFunction::Read(fp);
-    lattice->R(Size()-1);
 }
 
-double State::Overlap(const State& other) const
+double State::Overlap(const State& other, const Lattice* lattice) const
 {
     double total = 0.;
 

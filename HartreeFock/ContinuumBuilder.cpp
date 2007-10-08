@@ -1,0 +1,186 @@
+#include "Include.h"
+#include "ContinuumBuilder.h"
+#include "Universal/ExpLattice.h"
+#include "StateIntegrator.h"
+#include "Universal/Interpolator.h"
+#include "Atom/Debug.h"
+
+ContinuumBuilder::ContinuumBuilder(const Core* other_core):
+    lattice(NULL), core(NULL), norm_type(Cowan)
+{
+    CopyCore(other_core, true);
+}
+
+ContinuumBuilder::~ContinuumBuilder()
+{
+    if(lattice)
+        delete lattice;
+    if(core)
+        delete core;
+}
+
+void ContinuumBuilder::CopyLattice(const Lattice* lat)
+{
+    if(lattice)
+        delete lattice;
+
+    const ExpLattice* explat = dynamic_cast<const ExpLattice*>(lat);
+    if(explat != NULL)
+        lattice = new ExpLattice(*explat);
+    else
+        lattice = new Lattice(*lat);
+}
+
+void ContinuumBuilder::CreateNewLattice(unsigned int numpoints, double r_min, double r_max)
+{
+    if(lattice)
+        delete lattice;
+    
+    lattice = new Lattice(numpoints, r_min, r_max);
+}
+
+void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
+{
+    if(core)
+        delete core;
+
+    if(import_lattice || !lattice)
+    {   CopyLattice(other_core->GetLattice());
+    }
+
+    core = new Core(*other_core, lattice);
+}
+
+void ContinuumBuilder::CreateNewCore(unsigned int atomic_number, int ion_charge)
+{
+    if(core)
+        delete core;
+
+    core = new Core(lattice, atomic_number, ion_charge);
+    core->Initialise();
+}
+
+unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattice* external_lattice)
+{
+    const std::vector<double>& HFPotential = core->GetConstHFPotential();
+
+    unsigned int loop = 0;
+    double final_amplitude, final_phase;
+    CoupledFunction exchange(HFPotential.size());
+    CoupledFunction new_exchange(HFPotential.size());
+    double ds, old_phase = 0.;
+    unsigned int start_sine = 0;
+
+    s->ReSize(HFPotential.size());
+    unsigned int lattice_extensions = 0;
+
+    do
+    {   loop++;
+        
+        StateIntegrator I(lattice);
+        start_sine = I.IntegrateContinuum(*s, HFPotential, exchange, core->GetZ(), 0.01, final_amplitude, final_phase);
+        if(!start_sine)
+        {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
+            lattice_extensions++;
+            if(lattice_extensions > 3)
+            {   *errstream << "ContinuumBuilder::CalculateContinuumState:\n"
+                           << "    start_sine not reached; lattice_extensions = " << lattice_extensions << std::endl;
+                exit(1);
+            }
+
+            lattice->R(HFPotential.size()+1);
+            core->ExtendPotential();
+            s->Clear();
+            s->ReSize(HFPotential.size());
+            *outstream << "Resizing continuum lattice; new size = " << HFPotential.size() << std::endl;
+            old_phase = 0.0;
+            start_sine = 0;
+            ds = 1.0;   // Do another loop!
+        }
+        else
+        {   ds = (final_phase - old_phase)/Constant::Pi;
+            if(fabs(ds) > Core::StateParameters::EnergyTolerance)
+            {   core->CalculateExchange(*s, new_exchange);
+                exchange.ReSize(new_exchange.Size());
+                for(unsigned int i = 0; i<exchange.Size(); i++)
+                    exchange.f[i] = 0.5 * exchange.f[i] + 0.5 * new_exchange.f[i];
+                old_phase = final_phase;
+            }
+        }
+    }
+    while((loop < Core::StateParameters::MaxHFIterations) && (fabs(ds) > Core::StateParameters::EnergyTolerance));
+
+    // Actual amplitude of wavefunction as r->Infinity (from IntegrateContinuum),
+    //      A = final_amplitude/(2E)^(1/4)
+    switch(norm_type)
+    {
+        case Flambaum:
+            // Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)
+            final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
+            break;
+
+        case Cowan:
+            // Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)
+            final_amplitude = sqrt(2./Constant::Pi)/final_amplitude;
+            break;
+
+        case Unitary:
+            // Unitary normalization:   A = 1
+            final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
+            break;
+    }
+
+    s->Scale(final_amplitude);
+
+    // Interpolate back onto external lattice
+    if(external_lattice && !(*external_lattice == *lattice))
+    {
+        // Copy current state
+        ContinuumState cs_old(*s);
+
+        Interpolator interp(lattice);
+        const double* extR = external_lattice->R();
+        const double* extdR = external_lattice->dR(); 
+        unsigned int order = 6;
+        double dfdr, dgdr;
+
+        // Determine size of new continuum state
+        s->Clear();
+        unsigned int size = external_lattice->Size();
+        if(external_lattice->MaxRealDistance() > lattice->MaxRealDistance())
+        {   size = external_lattice->real_to_lattice(lattice->MaxRealDistance());
+        }
+        s->ReSize(size);
+
+        // Interpolate
+        for(unsigned int i = 0; i < size; i++)
+        {
+            interp.Interpolate(cs_old.f, extR[i], s->f[i], dfdr, order);
+            interp.Interpolate(cs_old.g, extR[i], s->g[i], dfdr, order);
+            s->df[i] = dfdr * extdR[i];
+            s->dg[i] = dgdr * extdR[i];
+        }
+    }
+
+    if(DebugOptions.LogHFContinuum())
+    {
+        *logstream << std::setprecision(8);
+
+        double energy = s->Energy();
+        if(DebugOptions.InvCmEnergyUnits())
+            energy *= Constant::HartreeEnergy_cm;
+        *logstream << s->Name() << "  E = " << energy;
+
+        *logstream << std::setprecision(4);
+        *logstream << "  loops: " << loop << "  start sine: (" << start_sine << ") " << lattice->R(start_sine) << std::endl;
+
+        //*errstream << std::setprecision(12);
+        //static bool once = true;
+        //if(once)
+        //for(unsigned int i = 0; i < s->Size(); i++)
+        //    *errstream << i << "\t" << external_lattice->R(i) << "\t" << s->g[i] << std::endl;
+        //once = false;
+    }
+
+    return loop;
+}

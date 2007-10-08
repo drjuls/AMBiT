@@ -93,7 +93,7 @@ void Core::Update()
             }
 
             // Renormalise core states (should be close already) and update energy.
-            core_state->ReNormalise();
+            core_state->ReNormalise(lattice);
             
             double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
             core_state->SetEnergy(energy);
@@ -211,11 +211,13 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
 
 void Core::ExtendPotential() const
 {
+    const double* R = lattice->R();
+
     unsigned int old_size = HFPotential.size();
     HFPotential.resize(lattice->Size());
 
     for(unsigned int i=old_size; i<lattice->Size(); i++)
-        HFPotential[i] = Charge/lattice->R(i);
+        HFPotential[i] = Charge/R[i];
 
     LocalExchangeApproximation.resize(HFPotential.size());
 }
@@ -374,7 +376,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
         f_right += tail_scaling * no_exchange_state.f[peak];
         g_right += tail_scaling * no_exchange_state.g[peak];
 
-        double norm = s->Norm();
+        double norm = s->Norm(lattice);
         delta = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm;
 
         if(fabs(delta) > 0.1)
@@ -382,7 +384,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
 
         // Set new principal quantum number
         s->SetNu(s->Nu() - delta);
-        s->ReNormalise();
+        s->ReNormalise(lattice);
 
         s->CheckSize(StateParameters::WavefunctionTolerance);
         if(lattice->Size() > HFPotential.size())
@@ -396,7 +398,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
     }
     while((loop < StateParameters::MaxHFIterations) && (fabs(delta) > StateParameters::FirstBuildEnergyTolerance));
 
-    s->ReNormalise();
+    s->ReNormalise(lattice);
 
     return loop;
 }
@@ -453,7 +455,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
 
     // Calculate norm and adjust energy so that norm is closer to unity.
     // E -> E + dE, f -> f + df, g -> g + dg
-    double norm = s->Norm();
+    double norm = s->Norm(lattice);
     double old_energy = s->Energy();
 
     CoupledFunction del_s(s->Size());  // ds(r)/dE
@@ -642,7 +644,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
             }
 
             // Renormalise core states (should be close already) and update energy.
-            ds->ReNormalise();
+            ds->ReNormalise(lattice);
             ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
             *new_ds = *ds;
             deltaE = fabs(deltaE/new_ds->Energy());

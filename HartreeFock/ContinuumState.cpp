@@ -2,22 +2,12 @@
 #include "ContinuumState.h"
 #include "Universal/Constant.h"
 
-ContinuumState::ContinuumState(Lattice* lat, unsigned int num_points):
-    State(lat, num_points)
-{}
-
-ContinuumState::ContinuumState(Lattice* lat, double Nu, int Kappa, unsigned int num_points):
-    State(lat, Kappa, num_points)
-{
-    nu = Nu;
-}
-
 ContinuumState::ContinuumState(const ContinuumState& other):
     State(other)
 {}
 
 ContinuumState::ContinuumState(double energy, int Kappa):
-    State(NULL, Kappa)
+    State(Kappa)
 {
     nu = sqrt(0.5/energy);
 }
@@ -29,8 +19,16 @@ std::string ContinuumState::Name() const
     std::string ret(buffer);
 
     ret.append(1, Constant::SpectroscopicNotation[L()]);
+
+#ifdef USE_ALT_STATE_NOTATION
+    if(kappa > 0)
+        ret.append(1, '-');
+    else
+        ret.append(1, ' ');
+#else
     if(kappa < -1)
         ret.append(1, '+');
+#endif
 
     return ret;
 }

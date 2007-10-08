@@ -20,6 +20,10 @@ public:
 
 public:
     StateManager(Lattice* lat, unsigned int atomic_number, int ion_charge);
+    /** Copy all states, interpolating onto new_lattice (if supplied and required).
+        If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
+     */
+    StateManager(const StateManager& other, Lattice* new_lattice = NULL);
     virtual ~StateManager(void);
 
     virtual bool Empty() const { return AllStates.empty(); }
