@@ -28,6 +28,19 @@ void CollectFloatingValues(const char* buff, double* values, unsigned int size)
     }
 }
 
+Lattice::Lattice(const Lattice& other):
+    beta(other.beta), NumPoints(other.NumPoints), rmin(other.rmin), h(other.h)
+{
+    r = (double*)malloc(NumPoints * sizeof(double));
+    dr = (double*)malloc(NumPoints * sizeof(double));
+    
+    for(unsigned int i=0; i<NumPoints; i++)
+    {   r[i] = other.r[i];
+        dr[i] = other.dr[i];
+    }
+
+}
+
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), NumPoints(numpoints), rmin(r_min)
 {
@@ -135,20 +148,25 @@ void Lattice::ReSize(unsigned int min_size)
 
 double Lattice::lattice_to_real(unsigned int i) const
 {
-    double x = rmin + beta*log(rmin) + h*double(i);
+    // Lattice coordinate x = rmin + ih,
+    //      y = x + beta * log(rmin)
+    double y = rmin + beta*log(rmin) + h*double(i);
     double r, rold;
 
-    if(beta <= x)
-        r = x;
+    if(beta <= y)
+        r = y;
     else
-        r = exp(x/beta);
+        r = exp(y/beta);
 
+    // Solve using Newton's method f(r) == 0, where
+    //    f(r) = r + beta*log(r/rmin) - x
+    //         = r + beta*log(r) - y
     do
     {   rold = r;
-        r = r - (r + beta*log(r) - x)/(1. + beta/r);
-        if(r <= 0)
-            r = rold/2;
-    } while(fabs(r - rold)/r > 0.00000001);
+        r = r - (r + beta*log(r) - y)/(1. + beta/r);
+        if(r <= 0.0)
+            r = rold/2.0;
+    } while(fabs(r - rold)/r > 1.e-13);
 
     return r;
 }
@@ -164,6 +182,11 @@ unsigned int Lattice::real_to_lattice(double r_point)
        i++;
 
     return i;
+}
+
+bool Lattice::operator==(const Lattice& other) const
+{
+    return ((beta == other.beta) && (h == other.h) && (rmin == other.rmin));
 }
 
 double Lattice::calculate_dr(double r_point) const

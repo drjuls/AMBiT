@@ -3,21 +3,21 @@
 
 #include "Lattice.h"
 
-/**
- * The lattice class provides a conversion between a lattice with even spacing (x),
- * and a "real" space which may not (r).
- *   x = r + beta*ln(r/rmin)
- */
 class ExpLattice : public Lattice
 {
+    /** Simple exponential conversion between a lattice with even spacing (x),
+        and a "real" space (r):
+            r = rmin * exp(x)
+            x = ln(r/rmin)
+        beta (from Lattice class) is not used here.
+     */
 public:
+    ExpLattice(const ExpLattice& other);
     ExpLattice(unsigned int numpoints, double r_min, double H);
     virtual ~ExpLattice(void) {}
 
-    /** Return the first lattice point greater than or equal to "r_point".
-        If no such point exists, create it.
-     */
-    //virtual unsigned int real_to_lattice(double r_point);
+    /** Equality does not check size of lattice. */
+    virtual bool operator==(const ExpLattice& other) const;
 
 protected:
     /** Calculate the value that r[i] should be. */

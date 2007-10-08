@@ -1,10 +1,27 @@
 #include "Include.h"
 #include "ExpLattice.h"
 
-ExpLattice::ExpLattice(unsigned int numpoints, double r_min, double H) :
+ExpLattice::ExpLattice(const ExpLattice& other)
+{
+    beta = other.beta;
+    NumPoints = other.NumPoints;
+    rmin = other.rmin;
+    h = other.h;
+
+    r = (double*)malloc(NumPoints * sizeof(double));
+    dr = (double*)malloc(NumPoints * sizeof(double));
+    
+    for(unsigned int i=0; i<NumPoints; i++)
+    {   r[i] = other.r[i];
+        dr[i] = other.dr[i];
+    }
+
+}
+
+ExpLattice::ExpLattice(unsigned int numpoints, double r_min, double H):
     Lattice()
 {
-    //Lattice(), NumPoints(numpoints), rmin(r_min), h(H)
+    beta = 0.;
     NumPoints = numpoints;
     rmin = r_min;
     h = H;
@@ -18,25 +35,10 @@ ExpLattice::ExpLattice(unsigned int numpoints, double r_min, double H) :
     }
 }
 
-/*
-unsigned int ExpLattice::real_to_lattice(double r_point)
+bool ExpLattice::operator==(const ExpLattice& other) const
 {
-    while(r_point > r[NumPoints-1])
-    {   ReSize(NumPoints*2-1);
-    }
-    
-    double x = log(r_point/rmin);
-    unsigned int i = (unsigned int)(x/h);
-    
-    if(i>0)
-        i--;
-
-    while(r_point > r[i])
-       i++;
-
-    return i;
+    return ((h == other.h) && (rmin == other.rmin));
 }
-*/
 
 double ExpLattice::lattice_to_real(unsigned int i) const
 {

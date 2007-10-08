@@ -4,14 +4,18 @@
 #include <string>
 #include <vector>
 
-/**
- * The lattice class provides a conversion between a lattice with even spacing (x),
- * and a "real" space which may not (r).
- *   x = r + beta*ln(r/rmin)
- */
 class Lattice
 {
+    /** The lattice class provides a conversion between a lattice with even spacing (x),
+        and a "real" space which may not (r).
+            x = r + beta*ln(r/rmin)
+        Lattice equality is defined by type, and in this case, beta, h, and rmin.
+        None of the public functions can change these (constructor aside), so it is safe
+        to pass non-const lattice pointers around, which is useful since then the lattice
+        can expand if necessary.
+     */
 public:
+    Lattice(const Lattice& other);
     Lattice(unsigned int numpoints, double r_min, double r_max);
     Lattice(const std::string& filename);
     virtual ~Lattice(void);
@@ -37,6 +41,9 @@ public:
         If no such point exists, create it.
      */
     virtual unsigned int real_to_lattice(double r_point);
+
+    /** Equality does not check size of lattice. */
+    virtual bool operator==(const Lattice& other) const;
 
 protected:
     Lattice() {}
