@@ -8,6 +8,27 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.5.1 - 08/10/07
+Add: Lattice::operator==() tests whether lattices have same specifications,
+     ignoring size. Added copy constructor for Lattice and ExpLattice.
+     Added ContinuumBuilder class to allow for flexibility in construction of
+     continuum wavefunctions by using a different core or lattice. Options for
+     different normalization strategies included. It is for ContinuumBuilder
+     that a copy constructor was added to StateManager class that copies all
+     states and interpolates onto a new lattice if required. This change is
+     propagated to Core class. Core::CalculateContinuumState() retained for the
+     time being but will be deprecated. Core::ExtendPotential() made public.
+     Added Debug::LogAugerRate(), RateCalculator::DielectronicRecombination().
+     RateCalculator::CalculateAllDipoleStrengths() returns sum of all rates,
+     in inverse seconds.
+Alt: Convergence of Lattice::lattice_to_real() tightened to 1.e-13.
+     USE_ALT_STATE_NOTATION macro added to State.h to allow easy switching
+     between "2p/2p+" orbital notation and alternate "2p-/2p ".
+     Removed Lattice member from State class. Lattice* now argument to
+     State::Overlap() and DiscreteState::Norm()/ReNormalise() functions.
+Bug: StateIntegrator::IntegrateContinuum() starts just outside of the nucleus
+     (previously at lattice point 100).
+
 1.5.0 - 17/05/07
 Alt: Ongoing work to Atom class to deal with storing Eigenstates and improving
      general ease of use.
