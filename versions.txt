@@ -8,6 +8,21 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.5.2
+Bug: Number of lattice extensions permitted before crashing out of
+     ContinuumBuilder::CalculateContinuumState() increased to 5, also
+     interpolation done in this function was incorrect for s->g.
+     CIIntegrals::GetTwoElectronIntegral() corrected parity, triangle
+     condition check for when stored integral not found.
+     Definition of radiative rate fixed (removed statistical weighting of upper
+     level). RateCalculator::DielectronicRecombination() now only runs on one
+     processor. Atom::CheckMatrixSizes() checks for integrals before printing
+     how many there are, in case they haven't been generated.
+Alt: MPIHamiltonianMatrix::SolveScalapack() now finds solutions up to
+     eigenvalue_limit (formerly measured from lowest eigenvalue, now
+     absolute value).
+Opt: RateCalculator now stores E1Integrals.
+
 1.5.1 - 08/10/07
 Add: Lattice::operator==() tests whether lattices have same specifications,
      ignoring size. Added copy constructor for Lattice and ExpLattice.
