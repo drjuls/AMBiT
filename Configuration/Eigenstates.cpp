@@ -206,7 +206,7 @@ void Eigenstates::Print() const
                 largest_percentage = it->second;
             }
 
-            if(it->second > 1.)
+            if(it->second > 5.)
                 *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
                     << it->second << "%" << std::endl;
             it++;
