@@ -1,4 +1,5 @@
-cxxobjects = BoundStateIntegrator.o ContinuumState.o Core.o \
+cxxobjects = BoundStateIntegrator.o ContinuumBuilder.o \
+             ContinuumState.o Core.o \
              Core_BuildStates.o Core_OpenShell.o Core_Start.o \
              DiscreteState.o GreensIntegrator.o \
              NonRelInfo.o StateInfo.o \

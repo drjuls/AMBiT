@@ -82,7 +82,7 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
         if(!start_sine)
         {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
             lattice_extensions++;
-            if(lattice_extensions > 3)
+            if(lattice_extensions > 5)
             {   *errstream << "ContinuumBuilder::CalculateContinuumState:\n"
                            << "    start_sine not reached; lattice_extensions = " << lattice_extensions << std::endl;
                 exit(1);
@@ -156,7 +156,7 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
         for(unsigned int i = 0; i < size; i++)
         {
             interp.Interpolate(cs_old.f, extR[i], s->f[i], dfdr, order);
-            interp.Interpolate(cs_old.g, extR[i], s->g[i], dfdr, order);
+            interp.Interpolate(cs_old.g, extR[i], s->g[i], dgdr, order);
             s->df[i] = dfdr * extdR[i];
             s->dg[i] = dgdr * extdR[i];
         }
