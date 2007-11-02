@@ -22,8 +22,7 @@ public:
 public:
     /** SolveScalapack works differently to the SolveMatrix:
         - All eigenvalues and eigenvectors are calculated
-        - All eigenvectors with eigenvalues less than eigenvalue_limit (atomic units) from
-          the lowest eigenvalue are processed
+        - All eigenvectors with eigenvalues less than eigenvalue_limit (atomic units) are processed
         - Eigenvectors are processed in batches of size NumSolutions.
      */
     virtual void SolveScalapack(const std::string& filename, double eigenvalue_limit, Eigenstates& eigenstates, bool gFactors = false);

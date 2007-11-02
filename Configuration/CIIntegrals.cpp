@@ -405,14 +405,12 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
         radial = TwoElectronIntegrals.find(key)->second;
     }
     else
-    {   // Check triangle conditions on k
-        if((int(k) < abs(int(s1.L()) - int(s3.L()))) ||
+    {   // Check triangle and parity conditions on k
+        if(((k + s1.L() + s3.L())%2 == 1) ||
              (double(k) < fabs(s1.J() - s3.J())) ||
-           (k > s1.L() + s3.L()) ||
              (double(k) > s1.J() + s3.J()) ||
-           (int(k) < abs(int(s2.L()) - int(s4.L()))) ||
+           ((k + s2.L() + s4.L())%2 == 1) ||
              (double(k) < fabs(s2.J() - s4.J())) ||
-           (k > s2.L() + s4.L()) ||
              (double(k) > s2.J() + s4.J()))
             return 0.;
 

@@ -568,7 +568,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
     unsigned int i, j, count;
 
     i = 0;
-    while((i < N) && (E[i] - E[0] < eigenvalue_limit))
+    while((i < N) && (E[i] < eigenvalue_limit))
     {
         // Second pass: keep the first chunk, and continue with the others
         if((i > 0) && !multiple_chunks)
@@ -579,7 +579,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
 
         // Do a chunk of eigenvectors, maximum size NumSolutions
         for(count = 0; (count < NumSolutions) && (i+count < N) &&
-                                    (E[i+count] - E[0] < eigenvalue_limit); count++)
+                                    (E[i+count] < eigenvalue_limit); count++)
         {
             SM->GetColumn(i+count, &V[count*N]);
         }
