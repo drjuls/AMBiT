@@ -5,16 +5,36 @@
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/ContinuumBuilder.h"
 
+RateCalculator::RateCalculator(ExcitedStates* basis):
+    excited(basis)
+{
+    NumStates = excited->NumStates();
+
+    ConstStateIterator it_i = excited->GetConstStateIterator();
+    unsigned int i;
+
+    // Iterate through states, assign in order
+    it_i.First(); i = 0;
+    while(!it_i.AtEnd())
+    {
+        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
+        it_i.Next(); i++;
+    }
+}
+
 void RateCalculator::DielectronicRecombination(Atom* A)
 {
-    FILE* fp = fopen("dr.txt", "wt");
+    FILE* fp;
+    if(ProcessorRank == 0)
+        fp = fopen("dr.txt", "wt");
+
     double Ec_width = 0.01; // Beam energy width (eV)
     Ec_width = Ec_width/Constant::HartreeEnergy_eV;
 
     Eigenstates* gs_eigenstates = A->GetEigenstates(Symmetry(0, even));
     double continuum_energy = gs_eigenstates->GetEigenvalues()[0] + 386241./Constant::HartreeEnergy_cm;
 
-    double energy_limit = continuum_energy + 1.0/Constant::HartreeEnergy_eV;
+    double energy_limit = continuum_energy + 2.0/Constant::HartreeEnergy_eV;
     *outstream << continuum_energy*Constant::HartreeEnergy_cm << " -> "
                << energy_limit*Constant::HartreeEnergy_cm << std::endl;
 
@@ -25,14 +45,15 @@ void RateCalculator::DielectronicRecombination(Atom* A)
         if(parity_loop)
             p = odd;
 
-        for(unsigned int two_j = 0; two_j <=6; two_j+=2)
+        for(unsigned int two_j = 0; two_j <= 8; two_j+=2)
         {   Symmetry sym(two_j, p);
             Eigenstates* ES = A->GetEigenstates(sym);
             unsigned int i = 0;
-            while(ES->GetEigenvalues()[i] < continuum_energy)
+            unsigned int num_eigenvalues = ES->GetNumEigenvalues();
+            while((i < num_eigenvalues) && (ES->GetEigenvalues()[i] < continuum_energy))
                 i++;
 
-            while(ES->GetEigenvalues()[i] < energy_limit)
+            while((i < num_eigenvalues) && (ES->GetEigenvalues()[i] < energy_limit))
             {
                 *outstream << "\n*** " << sym.GetString() << " ***" << std::endl;
                 auger_rate = CalculateAugerRate(A, sym, i, continuum_energy);
@@ -46,14 +67,16 @@ void RateCalculator::DielectronicRecombination(Atom* A)
                                        * auger_rate * radiative_rate
                                        /(auger_rate + radiative_rate);
 
-                fprintf(fp, "%12.6e\t%12.6e\t%s:%d\n", Ec*Constant::HartreeEnergy_eV, cross_section,
-                    sym.GetString().c_str(), i);
+                if(ProcessorRank == 0)
+                    fprintf(fp, "%12.6e\t%12.6e\t%s:%d\n", Ec*Constant::HartreeEnergy_eV, cross_section,
+                        sym.GetString().c_str(), i);
                 i++;
             }
         }
     }
     
-    fclose(fp);
+    if(ProcessorRank == 0)
+        fclose(fp);
 }
 
 double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigned int solution1, bool print_rates, bool print_oscillator_strengths)
@@ -89,6 +112,7 @@ double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsig
         other_P = even;
 
     double sum_over_all_J = 0.0;
+    *outstream << std::setprecision(5);
 
     for(unsigned int TwoJ = TwoJ_min; TwoJ <= TwoJ_max; TwoJ += 2)
     {
@@ -200,7 +224,7 @@ double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsig
 
         if(print_oscillator_strengths)
         {   *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
-                       << ": i) oscillator strengths" << std::endl;
+                       << ": i) weighted oscillator strengths (g.f)" << std::endl;
 
             for(solution2 = 0; solution2 < num_solutions2; solution2++)
             {   // Oscillator strength
@@ -212,13 +236,13 @@ double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsig
 
         if(print_rates)
             *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
-                       << ": i) radiative rates (/sec)" << std::endl;
+                       << ": i) transition probabilities (A) (/sec)" << std::endl;
 
         double sum = 0.0;
         for(solution2 = 0; solution2 < num_solutions2; solution2++)
         {   // Radiative rate (per second)
             double sig = fabs(E1[solution1] - E2[solution2]) * Constant::HartreeEnergy_cm;
-            double rate = total[solution2] * sig * sig * sig * 2.0261e-6;
+            double rate = total[solution2] * sig * sig * sig * 2.0261e-6/(sym1.GetTwoJ() + 1);
             if(print_rates)
                 *outstream << "  " << solution2 << "  " << rate << std::endl;
             sum += rate;
@@ -333,21 +357,23 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
         list_it++; i+=num_states_i;
     }
 
+    *outstream << std::setprecision(5);
+
     total = total/Constant::Electron3j(sym1.GetTwoJ(), sym2.GetTwoJ(), 1, -sym1.GetTwoJ(), sym2.GetTwoJ());
     total = total * total;
     *outstream << "E1 reduced matrix element squared (S) = " << total << std::endl;
     
     double deltaE = fabs((eigenstates1->GetEigenvalues())[solution1] - (eigenstates2->GetEigenvalues())[solution2]);
-    *outstream << "Oscillator strength g.f = " << deltaE * total/3. << std::endl;
+    *outstream << "Weighted oscillator strength (g.f) = " << deltaE * total/3. << std::endl;
 
     double sig = deltaE * Constant::HartreeEnergy_cm;
     *outstream << "sigma = " << sig <<std::endl;
-    *outstream << "Radiative rate (/sec) = " << total * sig * sig * sig * 2.0261e-6 << std::endl;
+    *outstream << "Weighted transition prob. (g.A) (/sec) = " << total * sig * sig * sig * 2.0261e-6 << std::endl;
 
     return total;
 }
 
-double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
+double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2)
 {
     double matrix_element = 0.0;
 
@@ -363,14 +389,26 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
             if((abs(e1.TwoM() + 1)/2)%2)
                 coeff = -coeff;
 
-            const DiscreteState& p1 = *excited->GetState(e1);
-            const DiscreteState& p2 = *excited->GetState(e2);
-
+            unsigned int key = state_index[e1] * NumStates + state_index[e2];
             double overlap = 0.;
-            const double* R = excited->GetLattice()->R();
-            const double* dR = excited->GetLattice()->dR();
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+
+            // Check that this integral doesn't already exist
+            if(E1Integrals.find(key) != E1Integrals.end())
+            {
+                overlap = E1Integrals[key];
+            }
+            else
+            {
+                const DiscreteState& p1 = *excited->GetState(e1);
+                const DiscreteState& p2 = *excited->GetState(e2);
+
+                const double* R = excited->GetLattice()->R();
+                const double* dR = excited->GetLattice()->dR();
+                for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+                    overlap += (p1.f[x] * p2.f[x] + Constant::AlphaSquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+
+                E1Integrals[key] = overlap;
+            }
 
             matrix_element = coeff * overlap;
         }

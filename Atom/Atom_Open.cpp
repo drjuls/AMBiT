@@ -279,7 +279,7 @@ void Atom::CalculateEnergies()
 
     while(it != SymEigenstates.end())
     {
-        ConfigGenerator* conf_gen = GenerateConfigurations(it->first, false);
+        ConfigGenerator* conf_gen = GenerateConfigurations(it->first, true);
         Eigenstates* E = new Eigenstates(identifier, conf_gen);
 
         if(!E->Read())
@@ -301,7 +301,7 @@ void Atom::CalculateEnergies()
             #ifdef _SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", 0.5, *E, true);
+                MpiH->SolveScalapack("temp.matrix", -2.2, *E, true);
             #else
                 H->SolveMatrix(NumSolutions, *E, true);
             #endif

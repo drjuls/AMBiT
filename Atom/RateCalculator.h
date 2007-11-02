@@ -6,7 +6,7 @@
 class RateCalculator
 {
 public:
-    RateCalculator(ExcitedStates* basis): excited(basis) {}
+    RateCalculator(ExcitedStates* basis);
     virtual ~RateCalculator() {}
 
     /** Calculate E1 matrix elements to all states that lie below solution1 of sym1.
@@ -30,10 +30,13 @@ public:
 protected:
     ExcitedStates* excited;
 
-    // E1Integrals(i, j) = <i|r|j>
-    //std::map<unsigned int, double> E1Integrals;
+    unsigned int NumStates;
+    std::map<StateInfo, unsigned int> state_index;
 
-    double GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const;
+    // E1Integrals(i, j) = <i|r|j>
+    std::map<unsigned int, double> E1Integrals;
+
+    double GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2);
 
     /** Get the Hamiltonian matrix element <first + continuum | H | second> */
     double GetProjectionH(const Projection& first, const Projection& second, const ContinuumState* cs, const ElectronInfo& cs_electron) const;
