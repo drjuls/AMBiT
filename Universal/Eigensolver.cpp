@@ -1,11 +1,10 @@
+#ifdef _MPI
+#include <mpi.h>
+#endif
 #include "Include.h"
 #include "Eigensolver.h"
 #include "SmallMatrix.h"
-
-#ifdef _MPI
 #include "Configuration/MPIMatrix.h"
-#include <mpi.h>
-#endif
 
 #define SMALL_LIM 400
 

@@ -1,11 +1,11 @@
 #ifdef _MPI
+#include <mpi.h>
 #include "Include.h"
 #include "MPIHamiltonianMatrix.h"
 #include "MPIMatrix.h"
 #include "Universal/ScalapackMatrix.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
-#include <mpi.h>
 
 void MPIHamiltonianMatrix::GenerateMatrix()
 {

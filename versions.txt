@@ -22,6 +22,9 @@ Alt: MPIHamiltonianMatrix::SolveScalapack() now finds solutions up to
      eigenvalue_limit (formerly measured from lowest eigenvalue, now
      absolute value).
 Opt: RateCalculator now stores E1Integrals.
+Add: Support for franklin.nersc.gov: includes changes to Makefile,
+     make.machine, and moving #include <mpi.h> to the very top of every file
+     that needs it.
 
 1.5.1 - 08/10/07
 Add: Lattice::operator==() tests whether lattices have same specifications,

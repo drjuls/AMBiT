@@ -1,10 +1,9 @@
-#include "Include.h"
-#include "ConfigGenerator.h"
-#include <sstream>
-
 #ifdef _MPI
 #include <mpi.h>
 #endif
+#include "Include.h"
+#include "ConfigGenerator.h"
+#include <sstream>
 
 ConfigGenerator::ConfigGenerator(const ExcitedStates* manager, const std::string& atom_identifier, const Symmetry& sym):
     filename(atom_identifier), symmetry(sym)

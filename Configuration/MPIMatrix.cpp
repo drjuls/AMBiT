@@ -1,7 +1,7 @@
 #ifdef _MPI
+#include <mpi.h>
 #include "Include.h"
 #include "MPIMatrix.h"
-#include <mpi.h>
 
 MPIMatrix::MPIMatrix(unsigned int size, const RelativisticConfigList& rlist): Matrix(size), configs(rlist)
 {

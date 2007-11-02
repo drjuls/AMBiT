@@ -17,11 +17,11 @@ libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX
 
 atom: $(libnames)
 	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
-	     $(addprefix -l, $(LIBS) m c)
+	     $(addprefix -l, $(LIBS))
 
 rap.exe: Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX) $(corelibnames)
 	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
-	     $(addprefix -l, $(LIBS) m c)
+	     $(addprefix -l, $(LIBS))
 
 .EXPORT_ALL_VARIABLES:
 

@@ -1,10 +1,10 @@
 #ifdef _MPI
 #ifdef _SCALAPACK
+#include <mpi.h>
 #include "Include.h"
 #include "ScalapackMatrix.h"
 #include "Constant.h"
 #include "Atom/Debug.h"
-#include <mpi.h>
 
 // Diagonaliser can use pdsyev or pdsyevd. pdsyevd is faster and
 // guarantees orthogonality between eigenvectors, but requires more memory.

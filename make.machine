@@ -161,6 +161,35 @@ ifeq ($(MACHINE), seaborg)
   DEPFLAG = -MM
 endif
 
+ifeq ($(MACHINE), franklin)
+  CC  = cc
+  CXX = CC
+  F77 = ftn
+
+  LINK      = CC
+  LINKFLAGS = -pgf90libs
+  LIBDIR    = 
+  LIBS      = pgf90 pgf90_rpm1 pgf902 pgf90rtl pgftnrtl
+
+  INCLUDE  +=
+  CXXFLAGS += -D_FUS=1 -D_MPI -D_SCALAPACK
+  F77FLAGS +=
+
+  ifdef debug
+    BUILD     = Debug
+    CXXFLAGS += -g
+    CFLAGS   += -g
+  else
+    BUILD     = Release
+    CXXFLAGS += -fastsse --diag_suppress 997 --display_error_number
+    CFLAGS   += -fastsse
+    F77FLAGS += -fastsse
+  endif
+
+  CCDEP   = gcc
+  DEPFLAG = -MM
+endif
+
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
 CFLAGS   += $(addprefix -I, $(INCLUDE))
 DEPFLAG  += $(addprefix -I, $(INCLUDE))

@@ -1,3 +1,6 @@
+#ifdef _MPI
+#include <mpi.h>
+#endif
 #include "Include.h"
 #include "Atom.h"
 #include "OutStreams.h"
@@ -22,7 +25,6 @@
     void blacs_exit_(const int*);
     }
     #endif
-#include <mpi.h>
 #endif
 // MPI details (if not used, we can have NumProcessors == 1)
 unsigned int NumProcessors;
@@ -58,6 +60,7 @@ int main(int argc, char* argv[])
     }
 
     #ifdef _MPI
+        comm_world.Barrier();
         #ifdef _SCALAPACK
             // Continue should be non-zero, otherwise MPI_Finalise is called.
             int cont = 1;

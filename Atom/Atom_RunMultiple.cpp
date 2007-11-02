@@ -1,3 +1,6 @@
+#ifdef _MPI
+#include <mpi.h>
+#endif
 #include "Include.h"
 #include "Atom.h"
 #include "Universal/Constant.h"
@@ -6,10 +9,6 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/MPIHamiltonianMatrix.h"
 #include "Basis/BSplineBasis.h"
-
-#ifdef _MPI
-#include <mpi.h>
-#endif
 
 void Atom::RunMultipleOpen()
 {

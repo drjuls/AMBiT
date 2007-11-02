@@ -1,3 +1,6 @@
+#ifdef _MPI
+#include <mpi.h>
+#endif
 #include "Include.h"
 #include "RMatrixPrimer.h"
 #include "OutStreams.h"
@@ -23,7 +26,6 @@
     void blacs_exit_(const int*);
     }
     #endif
-#include <mpi.h>
 #endif
 // MPI details (if not used, we can have NumProcessors == 1)
 unsigned int NumProcessors;
