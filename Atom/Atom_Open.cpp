@@ -244,7 +244,8 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read
 void Atom::CheckMatrixSizes()
 {
     // Two electron integral storage size
-    *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
+    if(integrals)
+        *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
 
     SymmetryEigenstatesMap::iterator it = SymEigenstates.begin();
 
