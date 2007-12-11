@@ -97,7 +97,8 @@ Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_ident
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
     SD_CI(false), MBPT_CI(false), NumSolutions(20),
     excited(NULL), excited_mbpt(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
+    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), 
+    valence_mbpt(NULL), sigma3(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
     //lattice = new ExpLattice(300, 1.e-5, 0.05);

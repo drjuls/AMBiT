@@ -8,6 +8,9 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+Bug: Added valence_mbpt(NULL) to Atom constructor. Fixed stringstreams in
+     Atom::RunMultipleOpen(). Fixed make.machine for apacac.
+
 1.5.2
 Bug: Number of lattice extensions permitted before crashing out of
      ContinuumBuilder::CalculateContinuumState() increased to 5, also

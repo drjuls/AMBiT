@@ -30,7 +30,6 @@ void Atom::RunMultipleOpen()
     multiple_radius = false;
 
     unsigned int i;
-    std::stringstream ss;
 
     if(multiple_SMS)
     {   // Inverse nuclear mass
@@ -38,12 +37,12 @@ void Atom::RunMultipleOpen()
 
         for(i = 0; i < 5; i++)
         {
+            std::stringstream ss;
             multiple_parameters.push_back(parameter);
             ss << (int)(parameter * 1000);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
             parameter += 0.001;
-            ss.clear();
         }
     }
     else if(multiple_alpha)
@@ -53,12 +52,12 @@ void Atom::RunMultipleOpen()
 
         for(i = 0; i < 5; i++)
         {
+            std::stringstream ss;
             multiple_parameters.push_back(parameter);
             ss << (int)(parameter * 8);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
             parameter += 0.125;
-            ss.clear();
         }
     }
     else if(multiple_volume)
@@ -67,12 +66,12 @@ void Atom::RunMultipleOpen()
 
         for(i = 0; i < 5; i++)
         {
+            std::stringstream ss;
             multiple_parameters.push_back(parameter);
             ss << (int)(parameter);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
             parameter += 50.;
-            ss.clear();
         }
 
         double deltaR = 0.05;
@@ -87,12 +86,12 @@ void Atom::RunMultipleOpen()
         
         for(i = 0; i < 5; i++)
         {
+            std::stringstream ss;
             multiple_parameters.push_back(parameter);
             ss << (int)(parameter);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
             parameter += 3.;
-            ss.clear();
         }
 
         *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
@@ -101,6 +100,8 @@ void Atom::RunMultipleOpen()
     // delta = E_CI - E_HF
     //double[] mbpt_delta = {0.0, 0.0, 0.0, 0.0, 0.0};
 
+    //GenerateMultipleIntegralsMBPT(true, false);
+    //CollateMultipleIntegralsMBPT(32);
     GenerateMultipleIntegrals(true);
     ChooseSymmetries();
 
@@ -120,13 +121,13 @@ void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double
     // Create excited state basis. Should be a superset of the CI basis.
     excited_mbpt = new BSplineBasis(lattice, core);
     excited_mbpt->SetIdentifier(&identifier);
-    dynamic_cast<BSplineBasis*>(excited_mbpt)->SetParameters(40, 7, 25.);
+    dynamic_cast<BSplineBasis*>(excited_mbpt)->SetParameters(40, 7, 45.);
     std::vector<unsigned int> num_states_per_l;
-    num_states_per_l.push_back(40);
-    num_states_per_l.push_back(40);
-    num_states_per_l.push_back(39);
-    num_states_per_l.push_back(38);
-    num_states_per_l.push_back(37);
+    num_states_per_l.push_back(29);
+    num_states_per_l.push_back(29);
+    num_states_per_l.push_back(30);
+    num_states_per_l.push_back(29);
+    num_states_per_l.push_back(28);
     excited_mbpt->CreateExcitedStates(num_states_per_l);
 
     if(CoreMBPT)
@@ -153,9 +154,14 @@ void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double
         valence_mbpt = NULL;
     }
 
+    integralsMBPT->SetTwoElectronStorageLimits(4, 4);
+
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
     integralsMBPT->SetExtraBoxDiagramLimits(4, 4);
+
+    //integrals->GetStorageSize();
+    //return;
 
     for(unsigned int i = 0; i < multiple_parameters.size(); i++)
     {
@@ -246,8 +252,10 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
 
     core->Update();
     excited->Update();
-    excited_mbpt->Update();
-    //Read();
+    if(excited_mbpt)
+        excited_mbpt->Update();
+    Read();
+    //Write();
     core->ToggleClosedShellCore();
 
     integrals->Clear();
@@ -289,9 +297,9 @@ void Atom::CalculateMultipleEnergies()
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                     if(multiple_parameters[i] == 0.0)  // Get g-factors
-                        MpiH->SolveScalapack("temp.matrix", 0.5, *E, true);
+                        MpiH->SolveScalapack("temp.matrix", -0.45, *E, true);
                     else
-                        MpiH->SolveScalapack("temp.matrix", 0.5, *E);
+                        MpiH->SolveScalapack("temp.matrix", -0.45, *E);
                 #else
                     if(multiple_parameters[i] == 0.0)  // Get g-factors
                         H->SolveMatrix(NumSolutions, *E, true);
