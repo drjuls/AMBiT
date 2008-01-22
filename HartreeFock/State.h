@@ -47,6 +47,12 @@ public:
 
     /** Get overlap of this state with another. */
     double Overlap(const State& other, const Lattice* lattice) const;
+
+    /** Print state to file, optionally printing lattice. Return success. */
+    bool Print(Lattice* lattice = NULL) const;
+    bool Print(const std::string& filename, Lattice* lattice = NULL) const;
+    bool Print(FILE* fp, Lattice* lattice = NULL) const;
+
 protected:
     int kappa;
     double nu;          // effective principal quantum number - determines energy

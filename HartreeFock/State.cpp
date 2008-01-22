@@ -70,3 +70,39 @@ double State::Overlap(const State& other, const Lattice* lattice) const
 
     return total;
 }
+
+bool State::Print(Lattice* lattice) const
+{
+    return Print("orbital.txt", lattice);
+}
+
+bool State::Print(const std::string& filename, Lattice* lattice) const
+{
+    FILE* fp = fopen(filename.c_str(), "wt");
+
+    if(fp)
+    {   bool success = Print(fp, lattice);
+        fclose(fp);
+        return success;
+    }
+    else
+        return false;
+}
+
+bool State::Print(FILE* fp, Lattice* lattice) const
+{
+    if(lattice)
+        for(unsigned int i = 0; i < Size(); i++)
+        {
+            fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
+                f[i], g[i]*Constant::Alpha, df[i], dg[i]*Constant::Alpha);
+        }
+    else
+        for(unsigned int i = 0; i < Size(); i++)
+        {
+            fprintf(fp, "%d %12.6e %12.6e %12.6e %12.6e\n", i,
+                f[i], g[i]*Constant::Alpha, df[i], dg[i]*Constant::Alpha);
+        }
+    
+    return true;
+}
