@@ -6,7 +6,7 @@
 #include "SmallMatrix.h"
 #include "Configuration/MPIMatrix.h"
 
-#define SMALL_LIM 400
+#define SMALL_LIM 1000
 
 #if !(_FUS)
     #define dvdson_ dvdson

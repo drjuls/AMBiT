@@ -1,4 +1,31 @@
 #include "Interpolator.h"
+#include "Include.h"
+
+Interpolator::Interpolator(const std::vector<double>& R_points, unsigned int order):
+    lattice(NULL)
+{
+    // Get lattice derivative dR by using the Interpolate function
+    // Set the base grid to linear mesh x, and interpolate the R_points
+    // in order to get their derivative, dR/dx = dR.
+    std::vector<double> x(R_points.size());
+    unsigned int i;
+    for(i = 0; i < R_points.size(); i++)
+        x[i] = double(i);
+
+    R = x;
+    dR.resize(R.size());
+    double rval, deriv;
+    for(i = 0; i < R_points.size(); i++)
+    {   Interpolate(R_points, i, rval, deriv, order);
+        dR[i] = deriv;
+    }
+
+    R = R_points;
+}
+
+Interpolator::Interpolator(const std::vector<double>& R_points, const std::vector<double>& dR_points):
+    R(R_points), dR(dR_points), lattice(NULL)
+{}
 
 void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue, double& yvalue, double& derivative, unsigned int order)
 {
@@ -7,7 +34,20 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     if(order%2 == 1)
         order++;
 
-    unsigned int left = lattice->real_to_lattice(xvalue);
+    unsigned int left;
+    // get first lattice point greater than or equal to xvalue
+    if(lattice)
+        left = lattice->real_to_lattice(xvalue);
+    else
+    {   left = 0;
+        if(xvalue > R[R.size()-1])
+            left = R.size();
+        else
+        {   while(xvalue > R[left])
+                left++;
+        }
+    }
+    // left is the lattice point just less than xvalue
     if(left > 0)
         left--;
 
@@ -19,7 +59,7 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
         start_point = yvalues.size()-order;
     else
         start_point = left - mid + 1;
- 
+
     std::vector<double> f(order);
     std::vector<double> df(order);
     std::vector<double> x(order);
@@ -28,7 +68,10 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     for(k = 0; k < order; k++)
     {   f[k] = yvalues[start_point+k];
         df[k] = 0.;
-        x[k] = lattice->R(start_point+k);
+        if(lattice)
+            x[k] = lattice->R(start_point+k);
+        else
+            x[k] = R[start_point+k];
     }
 
     std::vector<double> fnext(order);
@@ -54,13 +97,21 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
 
 void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<double>& dy, unsigned int order)
 {
-    const double* R = lattice->R();
-    const double* dR = lattice->dR();
+    if(lattice)
+    {   const double* R = lattice->R();
+        const double* dR = lattice->dR();
 
-    for(unsigned int i=0; i<y.size(); i++)
-    {
-        double yvalue, dyvalue;
-        Interpolate(y, R[i], yvalue, dyvalue, order);
-        dy[i] = dyvalue * dR[i];
+        for(unsigned int i=0; i<y.size(); i++)
+        {   double yvalue, dyvalue;
+            Interpolate(y, R[i], yvalue, dyvalue, order);
+            dy[i] = dyvalue * dR[i];
+        }
+    }
+    else
+    {   for(unsigned int i=0; i<y.size(); i++)
+        {   double yvalue, dyvalue;
+            Interpolate(y, R[i], yvalue, dyvalue, order);
+            dy[i] = dyvalue * dR[i];
+        }
     }
 }

@@ -5,8 +5,14 @@
 
 class Interpolator
 {
+    /** Interpolator is constructed with either a lattice or a vector of points for the
+        radial grid. The functions Interpolate and GetDerivative assume that the functions
+        y or yvalues are defined on this grid.
+     */
 public:
     Interpolator(Lattice* lat): lattice(lat) {}
+    Interpolator(const std::vector<double>& R_points, unsigned int order = 6);
+    Interpolator(const std::vector<double>& R_points, const std::vector<double>& dR_points);
     ~Interpolator() {}
 
     /** Interpolate yvalues over the lattice lat, using points preferably
@@ -25,6 +31,7 @@ public:
 
 protected:
     Lattice* lattice;
+    std::vector<double> R, dR;
 };
 
 #endif
