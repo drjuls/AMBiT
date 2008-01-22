@@ -17,6 +17,8 @@ public:
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
 
+    virtual void SetEnergy(double energy);
+
 public:
     virtual double Energy() const { return 0.5/(nu*nu); }
     virtual std::string Name() const;

@@ -9,7 +9,7 @@ ContinuumState::ContinuumState(const ContinuumState& other):
 ContinuumState::ContinuumState(double energy, int Kappa):
     State(Kappa)
 {
-    nu = sqrt(0.5/energy);
+    SetEnergy(energy);
 }
 
 std::string ContinuumState::Name() const
@@ -32,6 +32,17 @@ std::string ContinuumState::Name() const
 
     return ret;
 }
+
+void ContinuumState::SetEnergy(double energy)
+{
+    if(energy > 0)
+        nu = sqrt(0.5/energy);
+    else
+    {   *errstream << "ContinuumState: energy <= 0" << std::endl;
+        exit(1);
+    }
+}
+
 
 void ContinuumState::Write(FILE* fp) const
 {
