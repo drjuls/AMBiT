@@ -69,7 +69,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     double fmax = 0.;
                     for(count = 0; count < ds->Size(); count++)
                         if(fabs(ds->f[count]) > fmax)
-                        {   fmax = ds->f[count];
+                        {   fmax = fabs(ds->f[count]);
                             r = count;
                         }
 
@@ -99,7 +99,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                         double fmax = 0.;
                         for(count = 0; count < ds->Size(); count++)
                             if(fabs(ds->f[count]) > fmax)
-                            {   fmax = ds->f[count];
+                            {   fmax = fabs(ds->f[count]);
                                 r = count;
                             }
 
@@ -151,7 +151,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     double fmax = 0.;
                     for(count = 0; count < ds->Size(); count++)
                         if(fabs(ds->f[count]) > fmax)
-                        {   fmax = ds->f[count];
+                        {   fmax = fabs(ds->f[count]);
                             r = count;
                         }
 
@@ -189,7 +189,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                         double fmax = 0.;
                         for(count = 0; count < ds->Size(); count++)
                             if(fabs(ds->f[count]) > fmax)
-                            {   fmax = ds->f[count];
+                            {   fmax = fabs(ds->f[count]);
                                 r = count;
                             }
 
