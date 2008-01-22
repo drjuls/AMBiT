@@ -566,7 +566,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
         }
 
         // Increase nu depending on how far above the core it is
-        unsigned int largest_core_pqn = 1;
+        unsigned int largest_core_pqn = 0;
         ConstStateIterator i = GetConstStateIterator();
         while(!i.AtEnd())
         {   
@@ -607,10 +607,13 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 // This moves the state one pqn at a time
                 trial_nu = ds->Nu() - zero_difference/abs(zero_difference)/Charge;
                 ds->SetNu(trial_nu);
+                ds->Clear();
             }
         }
         while(zero_difference || (loop >= StateParameters::MaxHFIterations));
 
+        if(!Empty())
+        {
         // Hartree-Fock loops
         bool debugHF = DebugOptions.LogHFIterations();
 
@@ -654,6 +657,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
         delete new_ds;
         if(loop >= StateParameters::MaxHFIterations)
             *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
+        }
     }
 
     if(DebugOptions.OutputHFExcited())
@@ -829,5 +833,6 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
 
 const unsigned int Core::StateParameters::MaxHFIterations = 300;
 double Core::StateParameters::WavefunctionTolerance = 1.E-11;
-double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
+//double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
+double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-14;
 double Core::StateParameters::EnergyTolerance = 1.E-14;
