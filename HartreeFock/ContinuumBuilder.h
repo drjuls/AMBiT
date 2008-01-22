@@ -65,7 +65,13 @@ public:
         Optionally, interpolate continuum wavefunction onto external_lattice.
         PRE: core and lattice must already exist.
      */
-    unsigned int CalculateContinuumState(ContinuumState* s, Lattice* external_lattice = NULL);
+    unsigned int CalculateContinuumState(ContinuumState* s, Lattice* external_lattice = NULL) const;
+
+    /** Read a continuum wavefunction from file and interpolate onto external_lattice.
+        The normalisation type of the continuum builder is set to Unitary.
+        Return success.
+     */
+    bool ReadContinuumState(ContinuumState* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file);
 
 protected:
     Lattice* lattice;

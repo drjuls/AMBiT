@@ -60,7 +60,7 @@ void ContinuumBuilder::CreateNewCore(unsigned int atomic_number, int ion_charge)
     core->Initialise();
 }
 
-unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattice* external_lattice)
+unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattice* external_lattice) const
 {
     const std::vector<double>& HFPotential = core->GetConstHFPotential();
 
@@ -183,4 +183,78 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
     }
 
     return loop;
+}
+
+bool ContinuumBuilder::ReadContinuumState(ContinuumState* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
+{
+    SetNormalisationType(Unitary);
+
+    /*  Each file is formatted as follows: first line has energy, L.
+        Subsequent lines have lattice point and wavefunction value (either upper or lower), one per line.
+     */
+    FILE* fp_upper = fopen(upper_file.c_str(), "rt");
+    FILE* fp_lower = fopen(lower_file.c_str(), "rt");
+
+    if(fp_upper && fp_lower)
+    {
+        // Get Energy and check L
+        double energy_upper, energy_lower;
+        int l_upper, l_lower;
+        fscanf(fp_upper, "%lf%d", &energy_upper, &l_upper);
+        fscanf(fp_lower, "%lf%d", &energy_lower, &l_lower);
+        s->SetEnergy(energy_upper);
+        if(energy_upper != energy_lower)
+        {   *errstream << "ReadContinuumState: energy doesn't match" << std::endl;
+            return false;
+        }
+        if((l_upper != l_lower) || (l_lower != s->L()))
+        {   *errstream << "ReadContinuumState: l doesn't match" << std::endl;
+            return false;
+        }
+
+        // Read upper component
+        double r, val;
+        std::vector<double> R, f, g;
+        while(fscanf(fp_upper, "%lf%lf", &r, &val) == 2)
+        {   R.push_back(r);
+            f.push_back(val);
+        }
+
+        // Read lower component
+        unsigned int i = 0;
+        while(fscanf(fp_lower, "%lf%lf", &r, &val) == 2)
+        {   if(R[i] != r)
+            {   *errstream << "ReadContinuumState: lattice points don't match at "
+                           << R[i] << " (i = " << i << ")" << std::endl;
+                return false;
+            }
+            g.push_back(val/Constant::Alpha);
+            i++;
+        }
+
+        // Interpolate onto external lattice
+        unsigned int size;
+        if(external_lattice->MaxRealDistance() < R[R.size()-1])
+            size = external_lattice->Size();
+        else
+            size = external_lattice->real_to_lattice(R[R.size()-1]);
+        s->ReSize(size);
+
+        unsigned int order = 6;
+        Interpolator interp(R, order);
+
+        const double* extR = external_lattice->R();
+        const double* extdR = external_lattice->dR(); 
+
+        double dfdr, dgdr;
+        for(unsigned int i = 0; i < s->Size(); i++)
+        {
+            interp.Interpolate(f, extR[i], s->f[i], dfdr, order);
+            interp.Interpolate(g, extR[i], s->g[i], dgdr, order);
+            s->df[i] = dfdr * extdR[i];
+            s->dg[i] = dgdr * extdR[i];
+        }
+    }
+    
+    return (fp_upper && fp_lower);
 }
