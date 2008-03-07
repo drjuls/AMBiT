@@ -85,14 +85,14 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
             if(lattice_extensions > 5)
             {   *errstream << "ContinuumBuilder::CalculateContinuumState:\n"
                            << "    start_sine not reached; lattice_extensions = " << lattice_extensions << std::endl;
-                exit(1);
+                return 0;
             }
 
             lattice->R(HFPotential.size()+1);
             core->ExtendPotential();
             s->Clear();
             s->ReSize(HFPotential.size());
-            *outstream << "Resizing continuum lattice; new size = " << HFPotential.size() << std::endl;
+            *logstream << "Resizing continuum lattice; new size = " << HFPotential.size() << std::endl;
             old_phase = 0.0;
             start_sine = 0;
             ds = 1.0;   // Do another loop!
@@ -173,13 +173,6 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
 
         *logstream << std::setprecision(4);
         *logstream << "  loops: " << loop << "  start sine: (" << start_sine << ") " << lattice->R(start_sine) << std::endl;
-
-        //*errstream << std::setprecision(12);
-        //static bool once = true;
-        //if(once)
-        //for(unsigned int i = 0; i < s->Size(); i++)
-        //    *errstream << i << "\t" << external_lattice->R(i) << "\t" << s->g[i] << std::endl;
-        //once = false;
     }
 
     return loop;

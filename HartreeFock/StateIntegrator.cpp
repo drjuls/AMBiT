@@ -162,6 +162,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
     std::vector<double> P(HFPotential.size());
     std::vector<double> S(HFPotential.size());
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
     unsigned int start_sine = 0;
     final_amplitude = 0.;
     double peak_phase = 0.;
@@ -169,11 +170,11 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
     int i = start_point+(adams_N-1);
     while(i < s.Size())
     {
-        double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*lattice->R(i)*lattice->R(i));
+        double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*R[i]*R[i]);
         P[i] = sqrt(2. * fabs(s.Energy() + Pot));
         S[i] = S[i-1];
         for(unsigned int j=0; j<adams_N; j++)
-            S[i] = S[i] + adams_coeff[j] * P[i-j] * lattice->dR(i-j);
+            S[i] = S[i] + adams_coeff[j] * P[i-j] * dR[i-j];
 
         if(!start_sine)
         {
@@ -208,13 +209,14 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::v
             double amplitude = final_amplitude/sqrt(P[i]);
             double phase = S[i] - peak_phase;
             s.f[i] = amplitude * cos(phase);
-            s.g[i] = 0.5 * amplitude * (-P[i] * sin(phase) + s.Kappa()/lattice->R(i) * cos(phase));
+            s.g[i] = 0.5 * amplitude * (-P[i] * sin(phase) + s.Kappa()/R[i] * cos(phase));
         }
         i++;
     }
 
     if(start_sine)
-    {   GetDerivative(s.f, s.df, start_sine, s.Size()-2);
+    {
+        GetDerivative(s.f, s.df, start_sine, s.Size()-2);
         GetDerivative(s.g, s.dg, start_sine, s.Size()-2);
         GetDerivativeEnd(s.f, s.df, s.Size());
         GetDerivativeEnd(s.g, s.dg, s.Size());
@@ -240,7 +242,8 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
         const double* R = lattice->R();
         const double* dR = lattice->dR();
 
-        for(unsigned int i=0; i<mmin(s1.Size(), s2.Size()); i++)
+        unsigned int i;
+        for(i=0; i<mmin(s1.Size(), s2.Size()); i++)
         {
             if(core_pol)
             {   double r4 = R[i]*R[i] + core.GetClosedShellRadius()*core.GetClosedShellRadius();
@@ -253,7 +256,13 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
                         - (2. + Constant::AlphaSquared*Potential[i])*s2.g[i]
                         - Constant::AlphaSquared * exchange.g[i];
             double EQ2 = s2.dg[i]/dR[i] - s2.Kappa()*s2.g[i]/R[i] + Potential[i]*s2.f[i] + exchange.f[i];
+
             E = E - (s1.f[i] * EQ2 - s1.g[i] * EQ1)*dR[i];
+//            *errstream << i << "\t" << EQ1/s2.g[i]/Constant::AlphaSquared
+//                            << "\t" << -EQ2/s2.f[i]
+//                            << "\t" << s1.g[i] * EQ1 * dR[i]
+//                            << "\t" << -s1.f[i] * EQ2 * dR[i]
+//                            << "\t" << -(s1.f[i] * EQ2 - s1.g[i] * EQ1)*dR[i] << std::endl;
         }
     }
     return E;

@@ -64,6 +64,8 @@ public:
     /** Create a new continuum wavefunction in the field of the core.
         Optionally, interpolate continuum wavefunction onto external_lattice.
         PRE: core and lattice must already exist.
+        Return number of loops required for HF convergence.
+        Return value of 0 means start_sine was not reached and method failed.
      */
     unsigned int CalculateContinuumState(ContinuumState* s, Lattice* external_lattice = NULL) const;
 
