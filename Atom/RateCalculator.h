@@ -26,6 +26,7 @@ public:
         This function is made to be modified.
      */
     void DielectronicRecombination(Atom* A);
+    void AutoionisationRates(Atom* A);
 
 protected:
     ExcitedStates* excited;
@@ -46,6 +47,7 @@ protected:
         by the angular factor when printing debug info.
      */
     double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumState* cs, int sign = 1) const;
+    double SubtractionDiagram(const ContinuumState* sa, const State* sb, const State* sc, const State* sd, unsigned int k) const;
 };
 
 #endif
