@@ -192,10 +192,11 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
     eigenstates.SetEigenvectors(V, NumSolutions);
 
     // Calculate g-Factors
-    double* g_factors;
-    if(gFactors)
+    double* g_factors = NULL;
+    if(gFactors && eigenstates.GetTwoJ())
     {   g_factors = new double[NumSolutions];
         GetgFactors(eigenstates, g_factors);
+        eigenstates.SetgFactors(g_factors);
     }
 
     if(ProcessorRank == 0)
@@ -260,15 +261,12 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
             if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
                 config_file_gen->AddPercentages(percentages);
 
-            if(gFactors)
+            if(g_factors)
                 *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
             *outstream << std::endl;
         }
     }
-        
-    if(gFactors)
-        delete[] g_factors;
 }
 
 void MPIHamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
@@ -394,10 +392,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int NumSolutions, const double* 
 {
     // Case where J=0
     if(two_j == 0)
-    {   for(unsigned int solution = 0; solution < NumSolutions; solution++)
-            g_factors[solution] = 0.;
         return;
-    }
 
     double* total = new double[NumSolutions];
     double* coeff = new double[NumSolutions];

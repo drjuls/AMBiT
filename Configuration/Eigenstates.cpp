@@ -2,9 +2,11 @@
 #include "Include.h"
 #include "Universal/Constant.h"
 
+#define CONFIG_PRINT_LIMIT 5.
+
 Eigenstates::Eigenstates(const std::string& atom_identifier, ConfigGenerator* configlist, bool configlist_owner):
     identifier(atom_identifier), configs(configlist), config_owner(configlist_owner),
-    num_eigenvalues(0), num_eigenvectors(0), eigenvalues(NULL), eigenvectors(NULL)
+    num_eigenvalues(0), num_eigenvectors(0), eigenvalues(NULL), eigenvectors(NULL), gFactors(NULL)
 {
     N = configs->GetNumJStates();
 }
@@ -12,7 +14,7 @@ Eigenstates::Eigenstates(const std::string& atom_identifier, ConfigGenerator* co
 Eigenstates::Eigenstates(const Eigenstates& other):
     configs(other.configs), N(other.N), config_owner(other.config_owner),
     num_eigenvalues(other.num_eigenvalues), num_eigenvectors(other.num_eigenvectors),
-    eigenvalues(other.eigenvalues), eigenvectors(other.eigenvectors)
+    eigenvalues(other.eigenvalues), eigenvectors(other.eigenvectors), gFactors(other.gFactors)
 {}
 
 Eigenstates::~Eigenstates()
@@ -23,6 +25,8 @@ Eigenstates::~Eigenstates()
         delete[] eigenvalues;
     if(num_eigenvectors && eigenvectors)
         delete[] eigenvectors;
+    if(gFactors)
+        delete[] gFactors;
 }
 
 unsigned int Eigenstates::GetTwoJ() const
@@ -61,6 +65,15 @@ void Eigenstates::SetEigenvectors(double* vectors, unsigned int num_vectors)
 
 const double* Eigenstates::GetEigenvectors() const
 {   return eigenvectors;
+}
+
+void Eigenstates::SetgFactors(double* g_factors)
+{
+    if(gFactors)
+        delete[] gFactors;
+
+    if(GetTwoJ())
+        gFactors = g_factors;
 }
 
 void Eigenstates::SetIdentifier(const std::string& atom_identifier)
@@ -150,28 +163,58 @@ void Eigenstates::Clear()
     {   num_eigenvectors = 0;
         delete[] eigenvectors;
     }
+    if(gFactors)
+        delete[] gFactors;
 }
 
 void Eigenstates::Print() const
 {
-    unsigned int i, j;
-
     *outstream << "Solutions for J = " << double(GetTwoJ())/2. << ", P = ";
     if(GetParity() == even)
         *outstream << "even:" << std::endl;
     else
         *outstream << "odd:" << std::endl;
 
+    unsigned int i = 0;
+    while(i < num_eigenvectors)
+    {
+        Print(i, CONFIG_PRINT_LIMIT);
+        *outstream << std::endl;
+        i++;
+    }
+}
+
+void Eigenstates::Print(double max_energy) const
+{
+    *outstream << "Solutions for J = " << double(GetTwoJ())/2. << ", P = ";
+    if(GetParity() == even)
+        *outstream << "even:" << std::endl;
+    else
+        *outstream << "odd:" << std::endl;
+
+    unsigned int i = 0;
+    while((i < num_eigenvectors) && (eigenvalues[i] <= max_energy))
+    {
+        Print(i, CONFIG_PRINT_LIMIT);
+        *outstream << std::endl;
+        i++;
+    }
+}
+
+void Eigenstates::Print(unsigned int solution, double config_fraction_limit) const
+{
+    if(solution >= num_eigenvalues)
+        return;
+
+    unsigned int j;
     const RelativisticConfigList* configlist = configs->GetRelConfigs();
 
-    for(i=0; i<num_eigenvectors; i++)
+    *outstream << solution << ": " << std::setprecision(8) << eigenvalues[solution] << "    "
+        << std::setprecision(12) << eigenvalues[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+
+    // Get non-rel configuration percentages
+    if(solution < num_eigenvectors)
     {
-        unsigned int solution = i;
-
-        *outstream << i << ": " << std::setprecision(8) << eigenvalues[solution] << "    "
-            << std::setprecision(12) << eigenvalues[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
-
-        // Get non-rel configuration percentages
         RelativisticConfigList::const_iterator list_it = configlist->begin();
         std::map<Configuration, double> percentages;  // Map non-rel configurations to percentages
 
@@ -194,30 +237,74 @@ void Eigenstates::Print() const
             list_it++;
         }
         
-        // Find most important configuration, and print all leading configurations.
-        std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
-        double largest_percentage = 0.0;
-
-        std::map<Configuration, double>::const_iterator it = percentages.begin();
-        while(it != percentages.end())
+        // Print leading configurations.
+        if(config_fraction_limit)
         {
-            if(it->second > largest_percentage)
-            {   it_largest_percentage = it;
-                largest_percentage = it->second;
+            std::map<Configuration, double>::const_iterator it = percentages.begin();
+            while(it != percentages.end())
+            {
+                if(it->second > config_fraction_limit)
+                    *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
+                        << it->second << "%" << std::endl;
+                it++;
+            }
+        }
+        // Print only major contribution.
+        else
+        {
+            std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
+            std::map<Configuration, double>::const_iterator it_second_largest_percentage = percentages.begin();
+            double largest_percentage = 0.0;
+            double second_largest_percentage = 0.0;
+
+            std::map<Configuration, double>::const_iterator it = percentages.begin();
+            while(it != percentages.end())
+            {
+                if(it->second > largest_percentage)
+                {   // largest -> second_largest
+                    it_second_largest_percentage = it_largest_percentage;
+                    second_largest_percentage = largest_percentage;
+                    // it -> largest
+                    it_largest_percentage = it;
+                    largest_percentage = it->second;
+                }
+                else if(it->second > second_largest_percentage)
+                {   // it -> second_largest
+                    it_second_largest_percentage = it;
+                    second_largest_percentage = it->second;
+                }
+
+                it++;
             }
 
-            if(it->second > 5.)
-                *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
-                    << it->second << "%" << std::endl;
-            it++;
+            if(!second_largest_percentage || (largest_percentage/second_largest_percentage > 2.))
+            {   // Leading config only
+                *outstream << std::setw(20) << it_largest_percentage->first.Name() << "  " << std::setprecision(2)
+                    << largest_percentage << "%" << std::endl;
+            }
+            else if(largest_percentage + second_largest_percentage > 80.)
+            {   // Leading two configs only
+                *outstream << std::setw(20) << it_largest_percentage->first.Name() << "  "
+                    << std::setprecision(2) << largest_percentage << "%" << std::endl;
+                *outstream << std::setw(20) << it_second_largest_percentage->first.Name() << "  "
+                    << std::setprecision(2) << second_largest_percentage << "%" << std::endl;
+            }
+            else
+            {   // Print all configurations with more than 5% contribution
+                std::map<Configuration, double>::const_iterator it = percentages.begin();
+                while(it != percentages.end())
+                {
+                    if(it->second > CONFIG_PRINT_LIMIT)
+                        *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
+                            << it->second << "%" << std::endl;
+                    it++;
+                }
+            }
         }
 
-        *outstream << std::endl;
+        if(gFactors)
+            *outstream << "    g-factor = " << std::setprecision(5) << gFactors[solution] << std::endl;
     }
-}
-
-void Eigenstates::Print(double max_energy) const
-{
 }
 
 void Eigenstates::PrintCowan(FILE* fp, double energy_shift) const

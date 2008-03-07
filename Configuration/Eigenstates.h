@@ -43,6 +43,8 @@ public:
     void SetEigenvectors(double* vectors, unsigned int num_vectors);
     const double* GetEigenvectors() const;
 
+    void SetgFactors(double* g_factors);
+
     void SetIdentifier(const std::string& atom_identifier);
 
     /** Store the eigenvalues and eigenvectors.
@@ -63,6 +65,7 @@ public:
 
     void Print() const;
     void Print(double max_energy) const;
+    void Print(unsigned int solution, double config_fraction_limit = 0.0) const;
     
     void PrintCowan(FILE* fp, double energy_shift = 0.0) const;
 
@@ -77,6 +80,8 @@ protected:
     double* eigenvalues;
     unsigned int num_eigenvectors;  // number of eigenvectors stored
     double* eigenvectors;
+
+    double* gFactors;
 };
 
 typedef std::map<Symmetry, Eigenstates*> SymmetryEigenstatesMap;

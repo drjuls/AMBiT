@@ -441,10 +441,11 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
     eigenstates.SetEigenvectors(V, NumSolutions);
 
     // Calculate g-Factors
-    double* g_factors;
-    if(gFactors)
+    double* g_factors = NULL;
+    if(gFactors && eigenstates.GetTwoJ())
     {   g_factors = new double[NumSolutions];
         GetgFactors(eigenstates, g_factors);
+        eigenstates.SetgFactors(g_factors);
     }
 
     unsigned int i, j;
@@ -507,14 +508,11 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
         if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
             config_file_gen->AddPercentages(percentages);
 
-        if(gFactors)
+        if(g_factors)
             *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
         *outstream << std::endl;
     }
-
-    if(gFactors)
-        delete[] g_factors;
 }
 
 void HamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
@@ -616,10 +614,7 @@ void HamiltonianMatrix::GetgFactors(const Eigenstates& eigenstates, double* g_fa
 
     // Case where J=0
     if(eigenstates.GetTwoJ() == 0)
-    {   for(unsigned int solution = 0; solution < NumSolutions; solution++)
-            g_factors[solution] = 0.;
         return;
-    }
 
     double* total = new double[NumSolutions];
     double* coeff = new double[NumSolutions];
