@@ -8,8 +8,30 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.5.3 - 07/03/08
+Known issues: The RateCalculator class is definitely in a state of flux.
 Bug: Added valence_mbpt(NULL) to Atom constructor. Fixed stringstreams in
      Atom::RunMultipleOpen(). Fixed make.machine for apacac.
+     Added ContinuumState::SetEnergy() to not allow E <= 0.
+     In Core::CalculateExcitedState() [Core_BuildStates.cpp] largest_core_pqn
+     should start from 0, rather than 1, to allow for bare nuclei. Also, we
+     shouldn't do HF loops if the core is empty (Greens integration fails).
+     Location of fmax fixed in CustomBasis: fabs() was missing (only affects
+     debug output).
+Add: Interpolator now takes a vector of radial points (optionally dR, too)
+     as an alternative to lattices. Added Print() routines to class State.
+     Added ContinuumBuilder::ReadContinuumState() to import continuum wave from
+     files. Added ReadBasis class to read orbitals from cmccore files.
+     Eigenstates class now stores g-factors, also streamlined Print functions
+     to allow printing of individual eigenstates, or sets of eigenstates, with
+     configurations, with the same code. Also has slightly improved default
+     handling of non-rel config printing when config_fraction_limit == 0.
+     Altered HamiltonianMatrix.cpp and MPIHamiltonianMatrix.cpp to give
+     g-factors to Eigenstates class after diagonalising matrix.
+     Added separate program called ConvolveDR to Atom/. It is a simple version
+     that convolves DR rates with a Maxwellian.
+Opt: SMALL_LIM in Eigensolver.cpp changed from 400 to 1000. Minor changes in
+     StateIntegrator.
 
 1.5.2
 Bug: Number of lattice extensions permitted before crashing out of
