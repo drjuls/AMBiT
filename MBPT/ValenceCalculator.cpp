@@ -8,9 +8,7 @@
 
 ValenceCalculator::ValenceCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states):
     MBPTCalculator(lattice, atom_core, excited_states)
-{
-    UseBrillouinWignerPT();
-}
+{}
 
 double ValenceCalculator::GetOneElectronValence(const State* s1, const State* s2)
 {
@@ -58,10 +56,7 @@ double ValenceCalculator::CalculateOneElectronValence1(const State& si, const St
         if(s4.RequiredPQN() >= 5 && s4.Kappa() == si.Kappa())
         {
             double term = SI.HamiltonianMatrixElement(s4, si, *core) * SI.HamiltonianMatrixElement(s4, sf, *core);
-            if(BrillouinWignerPT)
-                term = term/(ValenceEnergy - s4.Energy() + delta);
-            else
-                term = term/(si.Energy() - s4.Energy());
+            term = term/(ValenceEnergy - s4.Energy() + delta);
                 
             energy = energy + term;
         }

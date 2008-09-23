@@ -48,6 +48,9 @@ protected:
      */
     double CalculateTwoElectronValence1(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const;
     double CalculateTwoElectronValence2(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const;
+
+protected:
+    unsigned int MaxStateSize;
 };
 
 #endif
