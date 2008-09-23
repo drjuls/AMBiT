@@ -2,7 +2,7 @@
 #include "ExcitedStates.h"
 #include "HartreeFock/Core.h"
 #include "Universal/Constant.h"
-#include "MBPT/MBPTCalculator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 #include "HartreeFock/StateIntegrator.h"
 
 ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
@@ -63,8 +63,10 @@ double ExcitedStates::GetSecondOrderSigma(const StateInfo& info)
         SecondOrderSigma.erase(it);
     }
 
-    MBPTCalculator mbpt(lattice, core, this);
-    double energy = mbpt.GetSecondOrderSigma(s, sigma);
+    CoreMBPTCalculator mbpt(lattice, core, this);
+    mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
+    
+    double energy = sigma->GetMatrixElement(s->f, s->f);
 
     SecondOrderSigma[s->Kappa()] = sigma;
     sigma->Store();

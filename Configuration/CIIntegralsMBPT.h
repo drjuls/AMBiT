@@ -3,7 +3,7 @@
 
 #include "CIIntegrals.h"
 #include "HartreeFock/SigmaPotential.h"
-#include "MBPT/MBPTCalculator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 #include "MBPT/ValenceCalculator.h"
 
 class CIIntegralsMBPT: public CIIntegrals
@@ -39,7 +39,7 @@ public:
         even if the integrals are already stored on disk.
         If just a few more integrals are required, consider using IncludeMBPT1.
      */
-    inline void IncludeSigma1(bool include, MBPTCalculator* mbpt = NULL)
+    inline void IncludeSigma1(bool include, CoreMBPTCalculator* mbpt = NULL)
     {   include_sigma1 = include;
         if(include)
             include_mbpt1 = false;
@@ -50,7 +50,7 @@ public:
     }
 
     /** Include single-particle MBPT diagrams. */
-    inline void IncludeMBPT1(bool include, MBPTCalculator* mbpt = NULL)
+    inline void IncludeMBPT1(bool include, CoreMBPTCalculator* mbpt = NULL)
     {   include_mbpt1 = include;
         if(include)
             include_sigma1 = false;
@@ -61,7 +61,7 @@ public:
     }
 
     /** Include two-particle MBPT diagrams. */
-    inline void IncludeMBPT2(bool include, MBPTCalculator* mbpt = NULL)
+    inline void IncludeMBPT2(bool include, CoreMBPTCalculator* mbpt = NULL)
     {   include_mbpt2 = include;
         if(states.GetCore()->IsOpenShellCore())
             include_mbpt2_subtraction = include;
@@ -151,7 +151,7 @@ protected:
     virtual void UpdateTwoElectronBoxDiagrams();
 
 protected:
-    MBPTCalculator* PT;
+    CoreMBPTCalculator* PT;
     ValenceCalculator* ValencePT;
 
     /** Single-electron core MBPT effects. */

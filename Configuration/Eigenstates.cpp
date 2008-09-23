@@ -143,6 +143,10 @@ bool Eigenstates::Read()
 
 bool Eigenstates::Restore()
 {
+    // Does not need to be restored
+    if(num_eigenvalues && num_eigenvectors)
+        return true;
+
     bool ret = configs->Read();
     if(ret)
         ret = Read();

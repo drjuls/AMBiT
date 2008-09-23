@@ -27,6 +27,11 @@ DiscreteState* StateIterator::GetState()
     return it->second.GetState();
 }
 
+StateInfo StateIterator::GetStateInfo()
+{
+    return it->first;
+}
+
 void StateIterator::ReplaceState(DiscreteState* s)
 {
     StateInfo new_state(s);
@@ -39,8 +44,9 @@ void StateIterator::ReplaceState(DiscreteState* s)
 
 StateIterator& StateIterator::operator=(const StateIterator& other)
 {
-    if(manager == other.manager)
-        it = other.it;
+    manager = other.manager;
+    it = other.it;
+
     return *this;
 }
 
@@ -71,10 +77,16 @@ const DiscreteState* ConstStateIterator::GetState()
     return it->second.GetState();
 }
 
+StateInfo ConstStateIterator::GetStateInfo()
+{
+    return it->first;
+}
+
 ConstStateIterator& ConstStateIterator::operator=(const ConstStateIterator& other)
 {
-    if(manager == other.manager)
-        it = other.it;
+    manager = other.manager;
+    it = other.it;
+
     return *this;
 }
 

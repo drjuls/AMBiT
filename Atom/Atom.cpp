@@ -7,14 +7,18 @@
 #include "Basis/RStates.h"
 #include "Basis/RSinStates.h"
 #include "Basis/CustomBasis.h"
+#include "Basis/ReadBasis.h"
 #include "Universal/Constant.h"
 #include "Basis/BSplineBasis.h"
-#include "MBPT/MBPTCalculator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/ScalapackMatrix.h"
 
 #include "Universal/ExpLattice.h"
 #include "Universal/Eigensolver.h"
 #include "RateCalculator.h"
+#include "HartreeFock/ContinuumBuilder.h"
+#include "HartreeFock/StateIntegrator.h"
+#include <fstream>
 
 #ifdef _MPI
     #ifdef _SCALAPACK
@@ -48,11 +52,8 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(6, 2, "CIII");
-        A.RunOpen();
-//        A.GenerateCowanInputFile();
-        RateCalculator rate(A.GetBasis());
-        rate.DielectronicRecombination(&A);
+    {   Atom A(22, 2, "TiII");
+        A.RunMultipleOpen();
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -86,27 +87,78 @@ void Atom::Run()
 
     //CreateCustomBasis();
     //CreateRBasis();
-    //CreateBSplineBasis();
+    CreateBSplineBasis();
 
-    DebugOptions.OutputHFExcited(false);
+//    excited = new ReadBasis(lattice, core, "cmccore.txt");
+//    std::vector<unsigned int> num_states;
+//    num_states.push_back(2);
+//    num_states.push_back(1);
+//    excited->CreateExcitedStates(num_states);
 
-    DoClosedShellSMS(true);
+    StateIntegrator I(lattice);
+
+    ContinuumBuilder cs_builder(core);
+    cs_builder.SetNormalisationType(Unitary);
+    ContinuumState* cs = new ContinuumState(9.7809493, 1);
+    cs_builder.CalculateContinuumState(cs, lattice);
+//    cs_builder.ReadContinuumState(cs, lattice, "fort.64", "fort.65");
+
+    cs->Print("continnum.txt", lattice);
+
+    const DiscreteState* ds = excited->GetState(StateInfo(14, 1));
+    ds->Print("14p.txt", lattice);
+
+    *outstream << ds->Name() << " " << ds->Overlap(*cs, core->GetLattice()) << std::endl;
+    *outstream << ds->Name() << " " << cs->Overlap(*ds, core->GetLattice()) << std::endl;
+
+    double S = cs->Overlap(*ds, excited->GetLattice());
+    *outstream << S << std::endl;
+
+    for(unsigned int i=0; i<mmin(cs->Size(), ds->Size()); i++)
+    {
+        cs->f[i] = cs->f[i] - S * ds->f[i];
+        cs->g[i] = cs->g[i] - S * ds->g[i];
+        cs->df[i] = cs->df[i] - S * ds->df[i];
+        cs->dg[i] = cs->dg[i] - S * ds->dg[i];
+    }
+    
+    cs->Print("continnum_orth.txt", lattice);
+
+    return;
+//
+//    for(double cs_energy = 200; cs_energy < 600.; cs_energy*=2)
+//    {
+//        *outstream << "\nEnergy: " << cs_energy << std::endl;
+//        int kappa = -1;
+//
+//        ContinuumState* cs = new ContinuumState(cs_energy, kappa);
+//        cs_builder.CalculateContinuumState(cs, core->GetLattice());
+//
+//        for(unsigned int pqn = 1; pqn < 3; pqn++)
+//        {   const DiscreteState* ds = excited->GetState(StateInfo(pqn, kappa));
+//            *outstream << pqn << " " << ds->Overlap(*cs, core->GetLattice()) << std::endl;
+//            *outstream << I.HamiltonianMatrixElement(*ds, *cs, *core)
+//                       << I.HamiltonianMatrixElement(*cs, *ds, *core) << std::endl;
+//        }
+//    }
+
+    //DoClosedShellSMS(true);
 }
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), MBPT_CI(false), NumSolutions(20),
-    excited(NULL), excited_mbpt(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), 
-    valence_mbpt(NULL), sigma3(NULL)
+    SD_CI(false), MBPT_CI(false), NumSolutions(6),
+    excited(NULL), excited_mbpt(NULL), valence_mbpt(NULL),
+    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
     lattice = new Lattice(1000, 1.e-6, 50.);
+    //        lattice->real_to_lattice(200.);
     //lattice = new ExpLattice(300, 1.e-5, 0.05);
     core = new Core(lattice, atomic_number, charge);
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
     //DebugOptions.HartreeEnergyUnits(true);
-    DebugOptions.LogHFContinuum(true);
+
     if(read)
         Read();
     else
@@ -192,7 +244,6 @@ void Atom::Read()
 
         fclose(fp);
     }
-
 }
 
 double Atom::GetEnergy(const StateInfo& info)
@@ -210,10 +261,10 @@ void Atom::CreateRBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(1);
-    num_states.push_back(7);
-    num_states.push_back(6);
+    num_states.push_back(5);
+    num_states.push_back(5);
+    num_states.push_back(4);
+    num_states.push_back(3);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -223,16 +274,33 @@ void Atom::CreateBSplineBasis(const StateInfo* ionised)
     excited = new BSplineBasis(lattice, core);
     excited->SetIdentifier(&identifier);
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 25.);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 45.);
 
     if(ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(3);
+    num_states.push_back(2);
+    num_states.push_back(2);
     num_states.push_back(3);
     num_states.push_back(2);
-    num_states.push_back(1);
+
+    excited->CreateExcitedStates(num_states);
+}
+
+void Atom::CreateBSplineBasis(double radius)
+{
+    excited = new BSplineBasis(lattice, core);
+    excited->SetIdentifier(&identifier);
+
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, radius);
+
+    std::vector<unsigned int> num_states;
+    num_states.push_back(2);
+    num_states.push_back(2);
+    num_states.push_back(3);
+    num_states.push_back(2);
+//    num_states.push_back(7);
 
     excited->CreateExcitedStates(num_states);
 }
@@ -246,17 +314,20 @@ void Atom::CreateCustomBasis(const StateInfo* ionised)
         core->Ionise(*ionised);
 
     std::vector<unsigned int> num_states;
-    num_states.push_back(3);
-    num_states.push_back(3);
-    num_states.push_back(4);
-    num_states.push_back(3);
+    num_states.push_back(2);
+    num_states.push_back(2);
+    num_states.push_back(1);
+//    num_states.push_back(1);
+//    num_states.push_back(9);
+//    num_states.push_back(8);
+//    num_states.push_back(7);
 
     excited->CreateExcitedStates(num_states);
 }
 
 void Atom::DoClosedShellSMS(bool include_mbpt)
 {
-    MBPTCalculator mbpt(lattice, core, excited);
+    CoreMBPTCalculator mbpt(lattice, core, excited);
     const unsigned int max_k = 3;
     double totals[max_k];
 
@@ -266,7 +337,7 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
         core->Update();
         excited->Update();
 
-        const State* ds;
+        const DiscreteState* ds;
         int k2;
         for(k2 = 1; k2 <= max_k; k2++)
         {
@@ -280,7 +351,7 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
                 ds = excited->GetState(StateInfo(5, kappa));
 
             if(include_mbpt)
-            {   totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+            {   totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
             }
             else
                 totals[k2-1] = ds->Energy();
@@ -295,7 +366,7 @@ void Atom::DoClosedShellSMS(bool include_mbpt)
 
 void Atom::DoClosedShellFSModifyR(bool include_mbpt)
 {
-    MBPTCalculator mbpt(lattice, core, excited);
+    CoreMBPTCalculator mbpt(lattice, core, excited);
     const unsigned int max_k = 5;
     double totals[max_k];
 
@@ -307,7 +378,7 @@ void Atom::DoClosedShellFSModifyR(bool include_mbpt)
         core->Update();
         excited->Update();
 
-        const State* ds;
+        const DiscreteState* ds;
         int k2;
         for(k2 = 1; k2 <= max_k; k2++)
         {
@@ -321,7 +392,7 @@ void Atom::DoClosedShellFSModifyR(bool include_mbpt)
                 ds = excited->GetState(StateInfo(3, kappa));
 
             if(include_mbpt)
-                totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+                totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
             else
                 totals[k2-1] = ds->Energy();
         }
@@ -338,7 +409,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
     double deltaR = 0.05;
     core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
 
-    MBPTCalculator mbpt(lattice, core, excited);
+    CoreMBPTCalculator mbpt(lattice, core, excited);
     const unsigned int max_k = 5;
     double totals[max_k];
 
@@ -352,7 +423,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
         core->Update();
         excited->Update();
 
-        const State* ds;
+        const DiscreteState* ds;
         int k2;
         for(k2 = 1; k2 <= max_k; k2++)
         {
@@ -366,7 +437,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
                 ds = excited->GetState(StateInfo(5, kappa));
 
             if(include_mbpt)
-                totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+                totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
             else
                 totals[k2-1] = ds->Energy();
         }
@@ -382,7 +453,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
 
 void Atom::DoClosedShellAlphaVar(bool include_mbpt)
 {
-    MBPTCalculator mbpt(lattice, core, excited);
+    CoreMBPTCalculator mbpt(lattice, core, excited);
     const unsigned int max_k = 5;
     double totals[max_k];
 
@@ -396,7 +467,7 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
         core->Update();
         excited->Update();
 
-        const State* ds;
+        const DiscreteState* ds;
         int k2;
         for(k2 = 1; k2 <= max_k; k2++)
         {
@@ -410,7 +481,7 @@ void Atom::DoClosedShellAlphaVar(bool include_mbpt)
                 ds = excited->GetState(StateInfo(5, kappa));
 
             if(include_mbpt)
-                totals[k2-1] = mbpt.GetSecondOrderSigma(ds);
+                totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
             else
                 totals[k2-1] = ds->Energy();
         }

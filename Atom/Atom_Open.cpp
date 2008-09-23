@@ -9,24 +9,36 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/MPIHamiltonianMatrix.h"
 #include "Basis/BSplineBasis.h"
+#include "Basis/ReadBasis.h"
 
-void Atom::RunOpen()
+void Atom::RunOpen(double radius)
 {
     DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(false);
+    DebugOptions.LogHFIterations(true);
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
     DebugOptions.LogMBPT(false);
+    //DebugOptions.LogAugerRate(true);
+
+    core->ToggleOpenShellCore();
 
     //CreateCustomBasis();
     //CreateRBasis();
     CreateBSplineBasis();
+//    excited = new ReadBasis(lattice, core, "cmccore.txt");
+//    std::vector<unsigned int> num_states;
+//    num_states.push_back(2);
+//    num_states.push_back(1);
+//    excited->CreateExcitedStates(num_states);
 
     DebugOptions.OutputHFExcited(false);
 
-    double mbpt_delta = 0.0;
+    core->ToggleClosedShellCore();
 
-    GenerateIntegrals(false);
+//    double mbpt_delta = 0.0;
+
+    GenerateIntegralsMBPT(true);
+//    GenerateIntegrals(true);
     ChooseSymmetries();
 
     // Uncomment to include sigma3.
@@ -36,14 +48,14 @@ void Atom::RunOpen()
     //CheckMatrixSizes();
 
     // Warning: Need to have generated integrals already.
-    CalculateEnergies();
+    //CalculateEnergies();
 }
 
 void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 {
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
-    //Read();
+    Read();
 
     integrals = new CIIntegralsMBPT(*excited);
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
@@ -51,20 +63,21 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     // Create excited state basis. Should be a superset of the CI basis.
     excited_mbpt = new BSplineBasis(lattice, core);
     excited_mbpt->SetIdentifier(&identifier);
-    dynamic_cast<BSplineBasis*>(excited_mbpt)->SetParameters(40, 7, 25.);
+    dynamic_cast<BSplineBasis*>(excited_mbpt)->SetParameters(40, 7, 45.);
     std::vector<unsigned int> num_states_per_l;
-    num_states_per_l.push_back(40);
-    num_states_per_l.push_back(40);
-    num_states_per_l.push_back(39);
-    num_states_per_l.push_back(38);
-    num_states_per_l.push_back(37);
+    num_states_per_l.push_back(30);
+    num_states_per_l.push_back(30);
+    num_states_per_l.push_back(31);
+    num_states_per_l.push_back(30);
+    num_states_per_l.push_back(29);
     excited_mbpt->CreateExcitedStates(num_states_per_l);
 
-    Write();
+    //Write();
+    Read();
     core->ToggleClosedShellCore();
 
     if(CoreMBPT)
-    {   mbpt = new MBPTCalculator(lattice, core, excited_mbpt);
+    {   mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
         integralsMBPT->IncludeMBPT1(true, mbpt);
         integralsMBPT->IncludeMBPT2(true, mbpt);
         integralsMBPT->IncludeExtraBoxDiagrams(true);
@@ -87,6 +100,8 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
         valence_mbpt = NULL;
     }
 
+    integralsMBPT->SetTwoElectronStorageLimits(4, 4);
+
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
     integralsMBPT->SetExtraBoxDiagramLimits(4, 4);
@@ -99,6 +114,7 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     integrals->IncludeValenceSMS(false);
     integrals->SetIdentifier(identifier);    
     integrals->Clear();
+    //integrals->GetStorageSize();
     integrals->Update();
 }
 
@@ -142,8 +158,8 @@ void Atom::GenerateIntegrals(bool MBPT_CI)
 {
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
-    //Read();
-    Write();
+    Read();
+    //Write();
     core->ToggleClosedShellCore();
 
     if(MBPT_CI)
@@ -164,13 +180,13 @@ void Atom::ChooseSymmetries()
     unsigned int two_j;
 
     // Even parity
-    for(two_j = 0; two_j <= 10; two_j += 2)
+    for(two_j =3; two_j <= 9; two_j += 6)
     {
         SymEigenstates[Symmetry(two_j, even)] = NULL;
     }
 
     // Odd parity
-    for(two_j = 0; two_j <= 10; two_j+=2)
+    for(two_j = 9; two_j <= 11; two_j += 2)
     {
         SymEigenstates[Symmetry(two_j, odd)] = NULL;
     }
@@ -179,7 +195,7 @@ void Atom::ChooseSymmetries()
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read)
 {
     // Number of electron excitations (e.g. 2 for SD-CI) .
-    unsigned int electron_excitations = 2;
+    unsigned int electron_excitations = 0;
 
     // Generate non-relativistic configs from file.
     bool GenerateFromFile = false;
@@ -200,20 +216,21 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read
         std::set<Configuration> leading_configs;
 
         Configuration config1;
-        config1.SetOccupancy(NonRelInfo(2, 0), 2);
-//        config1.SetOccupancy(NonRelInfo(2, 1), 2);
+        config1.SetOccupancy(NonRelInfo(3, 2), 2);
+        config1.SetOccupancy(NonRelInfo(4, 0), 1);
         leading_configs.insert(config1);
-/*
+
         Configuration config2;
-        config2.SetOccupancy(NonRelInfo(2, 0), 1);
-        config2.SetOccupancy(NonRelInfo(2, 1), 3);
+        config2.SetOccupancy(NonRelInfo(3, 2), 2);
+//        config2.SetOccupancy(NonRelInfo(4, 0), 1);
+        config2.SetOccupancy(NonRelInfo(4, 1), 1);
         leading_configs.insert(config2);
 /*
         Configuration config3;
-        config3.SetOccupancy(NonRelInfo(2, 1), 1);
-        config3.SetOccupancy(NonRelInfo(4, 1), 1);
+        config3.SetOccupancy(NonRelInfo(3, 2), 2);
+        config3.SetOccupancy(NonRelInfo(4, 1), 2);
         leading_configs.insert(config3);
-
+/*
         Configuration config4;
         config4.SetOccupancy(NonRelInfo(2, 1), 1);
         config4.SetOccupancy(NonRelInfo(4, 3), 1);
@@ -234,7 +251,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read
         generator->GenerateRelativisticConfigs();
         generator->GenerateProjections();
         
-        generator->Write();
+        //generator->Write();
     }
     
     return generator;
@@ -301,7 +318,7 @@ void Atom::CalculateEnergies()
             #ifdef _SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", -2.2, *E, true);
+                MpiH->SolveScalapack("temp.matrix", -3.45, *E, true);
             #else
                 H->SolveMatrix(NumSolutions, *E, true);
             #endif
@@ -314,7 +331,7 @@ void Atom::CalculateEnergies()
                 filegenerator->WriteConfigs();
             }
 
-            E->Write();
+            //E->Write();
         }
         else
         {   E->Print();
@@ -328,7 +345,7 @@ void Atom::CalculateEnergies()
 
 Eigenstates* Atom::GetEigenstates(const Symmetry& sym)
 {
-    SymmetryEigenstatesMap::iterator it = SymEigenstates.find(sym);
+    SymmetryEigenstatesMap::iterator it = SymEigenstates.find(sym);    
     if(it != SymEigenstates.end())
         return it->second;
     else

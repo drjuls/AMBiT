@@ -75,6 +75,7 @@ public:
      */
     double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P = NULL);
     double IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P = NULL);
+    void IsotopeShiftIntegral(unsigned int L, const State& s2, std::vector<double>* P);
 
 protected:
     class StateFunction;

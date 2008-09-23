@@ -2,7 +2,7 @@
 #include "CIIntegrals.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
-#include "MBPT/MBPTCalculator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 
 inline void swap(unsigned int& i1, unsigned int& i2)
 {   unsigned int temp = i1;

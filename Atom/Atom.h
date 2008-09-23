@@ -15,7 +15,7 @@ class Atom
 public:
     // Main program
     void Run();
-    void RunOpen();
+    void RunOpen(double radius = 0.0);
 
 public:
     Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read = false);
@@ -44,6 +44,7 @@ public:
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
     void CreateRBasis(const StateInfo* ionised = NULL);
     void CreateBSplineBasis(const StateInfo* ionised = NULL);
+    void CreateBSplineBasis(double radius);
     void CreateCustomBasis(const StateInfo* ionised = NULL);
 
     void DoClosedShellSMS(bool include_mbpt = true);
@@ -134,7 +135,7 @@ private:
     ExcitedStates* excited_mbpt;
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
-    MBPTCalculator* mbpt;
+    CoreMBPTCalculator* mbpt;
     ValenceCalculator* valence_mbpt;
     Sigma3Calculator* sigma3;
 

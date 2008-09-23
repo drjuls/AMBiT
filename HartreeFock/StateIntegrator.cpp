@@ -433,7 +433,7 @@ double StateIntegrator::StateFunction::Coeff6(int point) const
 }
 
 double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P)
-{   
+{
     double coeff_f2;
     if(L == s2.L() + 1)
     {   coeff_f2 = - double(L);
@@ -476,4 +476,22 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
 double StateIntegrator::IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P)
 {
     return IsotopeShiftIntegral(s1.f, s1.L(), s2, P);
+}
+
+void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const State& s2, std::vector<double>* P)
+{
+    double coeff_f2;
+    if(L == s2.L() + 1)
+    {   coeff_f2 = - double(L);
+    }
+    else
+    {   coeff_f2 = double(s2.L());
+    }
+
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    unsigned int P_limit = mmin(s2.Size(), P->size());
+    for(unsigned int i = 0; i < P_limit; i++)
+        (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
 }

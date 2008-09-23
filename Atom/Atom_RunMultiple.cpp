@@ -24,10 +24,10 @@ void Atom::RunMultipleOpen()
 
     DebugOptions.OutputHFExcited(false);
 
-    multiple_SMS = true;
+    multiple_SMS = false;
     multiple_alpha = false;
     multiple_volume = false;
-    multiple_radius = false;
+    multiple_radius = true;
 
     unsigned int i;
 
@@ -62,7 +62,7 @@ void Atom::RunMultipleOpen()
     }
     else if(multiple_volume)
     {   // Field shift multiplier
-        double parameter = -100.;
+        double parameter = -10.;
 
         for(i = 0; i < 5; i++)
         {
@@ -71,7 +71,7 @@ void Atom::RunMultipleOpen()
             ss << (int)(parameter);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
-            parameter += 50.;
+            parameter += 5.;
         }
 
         double deltaR = 0.05;
@@ -100,9 +100,9 @@ void Atom::RunMultipleOpen()
     // delta = E_CI - E_HF
     //double[] mbpt_delta = {0.0, 0.0, 0.0, 0.0, 0.0};
 
-    //GenerateMultipleIntegralsMBPT(true, false);
+    GenerateMultipleIntegralsMBPT(true, false);
     //CollateMultipleIntegralsMBPT(32);
-    GenerateMultipleIntegrals(true);
+    //GenerateMultipleIntegrals(false);
     ChooseSymmetries();
 
     // Uncomment to include sigma3.
@@ -131,7 +131,7 @@ void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double
     excited_mbpt->CreateExcitedStates(num_states_per_l);
 
     if(CoreMBPT)
-    {   mbpt = new MBPTCalculator(lattice, core, excited_mbpt);
+    {   mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
         integralsMBPT->IncludeMBPT1(true, mbpt);
         integralsMBPT->IncludeMBPT2(true, mbpt);
         integralsMBPT->IncludeExtraBoxDiagrams(true);
@@ -254,8 +254,8 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
     excited->Update();
     if(excited_mbpt)
         excited_mbpt->Update();
-    Read();
-    //Write();
+    //Read();
+    Write();
     core->ToggleClosedShellCore();
 
     integrals->Clear();

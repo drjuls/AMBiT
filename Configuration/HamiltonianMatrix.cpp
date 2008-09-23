@@ -10,11 +10,11 @@
 #define SMALL_MATRIX_LIM 2000
 
 // Include this define for the box diagrams of "wrong" parity.
-//#define INCLUDE_EXTRA_BOX_DIAGRAMS
+#define INCLUDE_EXTRA_BOX_DIAGRAMS
 
 // Include this define to only include sigma3 when both states are leading configurations
 // (instead of just one).
-#define SIGMA3_AND
+//#define SIGMA3_AND
 
 HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, ConfigGenerator* config_generator):
     integrals(coulomb_integrals), confgen(config_generator), M(NULL), include_sigma3(false)
@@ -47,10 +47,6 @@ void HamiltonianMatrix::GenerateMatrix()
         M->Clear();
 
     M->WriteMode(true);
-
-    // Set valence energies
-    if(include_sigma3)
-        sigma3calc->UseBrillouinWignerPT();
 
     // Loop through relativistic configurations
     RelativisticConfigList::const_iterator list_it = configs->begin();
@@ -838,7 +834,7 @@ double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2,
         return 0.;
 
     // Check parity
-    if((e1.L() + e2.L() + e4.L())%2 != (e3.L() + e5.L() + e6.L())%2)
+    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2)
         return 0.;
 
     double value = 0.;

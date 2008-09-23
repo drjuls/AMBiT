@@ -332,7 +332,7 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
 {
     Eigenstates* eigenstates1 = A->GetEigenstates(sym1);
     if(!eigenstates1 || !eigenstates1->Restore())
-    {   *errstream << "eigenstates1 restore failed" << std::endl;
+    {   *errstream << "eigenstates1 restore failed " << std::endl;
         return 0.0;
     }
     
@@ -430,7 +430,7 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
     *outstream << "E1 reduced matrix element squared (S) = " << total << std::endl;
     
     double deltaE = fabs((eigenstates1->GetEigenvalues())[solution1] - (eigenstates2->GetEigenvalues())[solution2]);
-    *outstream << "Weighted oscillator strength (g.f) = " << deltaE * total/3. << std::endl;
+    *outstream << "Weighted oscillator strength (g.f) = " << 2. * deltaE * total/3. << std::endl;
 
     double sig = deltaE * Constant::HartreeEnergy_cm;
     *outstream << "sigma = " << sig <<std::endl;

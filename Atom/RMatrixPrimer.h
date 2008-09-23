@@ -63,7 +63,7 @@ private:
     ConfigGenerator* generator;
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
-    MBPTCalculator* mbpt;
+    CoreMBPTCalculator* mbpt;
     Sigma3Calculator* sigma3;
 
     // Configuration Interaction parameters

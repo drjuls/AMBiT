@@ -27,6 +27,7 @@ public:
     int Kappa() const { return kappa; }
     unsigned int L() const;
     double J() const;
+    unsigned int TwoJ() const;
     virtual std::string Name() const = 0;
 
     inline void SetKappa(int kappa) { this->kappa = kappa; }
@@ -67,6 +68,11 @@ inline unsigned int State::L() const
 
 inline double State::J() const
 {   return (double)abs(kappa) - 0.5;
+}
+
+inline unsigned int State::TwoJ() const
+{
+    return (2*abs(kappa) - 1);
 }
 
 #endif

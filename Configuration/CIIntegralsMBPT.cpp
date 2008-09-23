@@ -23,6 +23,16 @@ CIIntegralsMBPT::~CIIntegralsMBPT()
 /** Calculate number of elements that will be stored. */
 unsigned int CIIntegralsMBPT::GetStorageSize() const
 {
+    if(PT)
+    {   unsigned int slater_storage = PT->GetStorageSize(&states);
+        *outstream << "Num Slater Integrals stored for MBPT: " << slater_storage << std::endl;
+    }
+    if(ValencePT)
+    {   unsigned int slater_storage = ValencePT->GetStorageSize(&states);
+        *outstream << "Num Slater Integrals stored for MBPT: " << slater_storage << std::endl;
+    }
+
+
     unsigned int num_states = states.NumStates();
     unsigned int size1 = 0;
     unsigned int size2 = 0;
@@ -225,6 +235,16 @@ void CIIntegralsMBPT::Update(const std::string& sigma_id)
 {
     Clear();
 
+    // Update the valence energies and Slater integrals for perturbation theory
+    time_t start1, now1;
+    time(&start1);
+    if((include_sigma1 || include_mbpt1 || include_mbpt2 || include_extra_box) && PT)
+        PT->UpdateIntegrals(&states);
+    if((include_valence_mbpt1 || include_valence_mbpt2 || include_valence_extra_box) && ValencePT)
+        ValencePT->UpdateIntegrals(&states);
+    time(&now1);
+    *outstream << "Updated Integrals: " << now1 - start1 << std::endl;
+
     UpdateOneElectronIntegrals(sigma_id);
     UpdateTwoElectronIntegrals();
     if(include_extra_box || include_valence_extra_box)
@@ -250,13 +270,6 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
             fclose(fp);
         }
     }
-
-    // Update the valence energies for perturbation theory
-    if((include_sigma1 || include_mbpt1) && PT)
-        PT->UseBrillouinWignerPT();
-
-    if(include_valence_mbpt1 && ValencePT)
-        ValencePT->UseBrillouinWignerPT();
 
     // Calculate sigma1 potentials
     if(include_sigma1)
@@ -315,7 +328,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     // Want to save progress every hour or so.
     time_t start, gap, now;
     time(&start);
-    gap = 47 * 60;  // 47 minutes
+    gap = 7 * 60;  // 47 minutes
 
     // Get single particle integrals
     it_i.First(); i = 0;
@@ -347,10 +360,10 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                         integral += pot->GetMatrixElement(si->f, sj->f);
                     }
                     else if(include_mbpt1 && PT)
-                    {   integral += PT->GetSecondOrderSigma(si, sj);
+                    {   integral += PT->GetOneElectronDiagrams(si, sj);
                     }
                     if(include_mbpt1_subtraction && PT)
-                    {   integral += PT->GetSigmaSubtraction(si, sj);
+                    {   integral += PT->GetOneElectronSubtraction(si, sj);
                     }
                     if(include_valence_mbpt1 && ValencePT)
                     {   integral += ValencePT->GetOneElectronValence(si, sj);
@@ -367,6 +380,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     {   time(&now);
                         if(now - start > gap)
                         {   WriteOneElectronIntegrals();
+                            *outstream << " another 7 min" << std::endl;
                             start = now;
                         }
                     }
@@ -413,12 +427,6 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         }
     }
 
-    // Update the valence energies for perturbation theory
-    if(include_mbpt2 && PT)
-        PT->UseBrillouinWignerPT();
-    if(include_valence_mbpt2 && ValencePT)
-        ValencePT->UseBrillouinWignerPT();
-
 #ifdef _MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
@@ -427,7 +435,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     // Want to save progress every hour or so.
     time_t start, gap, now;
     time(&start);
-    gap = 47 * 60;  // 47 minutes
+    gap = 7 * 60;  // 47 minutes
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(states.GetLattice());
@@ -556,9 +564,9 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     }
 
                                     if(include_mbpt2 && PT)
-                                    {   radial += PT->GetTwoElectronDiagrams(s1, s2, s3, s4, k);
+                                    {   radial += PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
                                         if(include_mbpt2_subtraction)
-                                            radial += PT->GetTwoElectronSubtraction(s1, s2, s3, s4, k);
+                                            radial += PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
                                     }
                                     if(include_valence_mbpt2 && ValencePT)
                                     {   radial += ValencePT->GetTwoElectronValence(s1, s2, s3, s4, k);
@@ -576,6 +584,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     {   time(&now);
                                         if(now - start > gap)
                                         {   WriteTwoElectronIntegrals();
+                                            *outstream << " another 7 min" << std::endl;
                                             start = now;
                                         }
                                     }
@@ -599,12 +608,6 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 
 void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
 {
-    // Update the valence energies for perturbation theory
-    if(include_extra_box && PT)
-        PT->UseBrillouinWignerPT();
-    if(include_valence_extra_box && ValencePT)
-        ValencePT->UseBrillouinWignerPT();
-        
     if(!(include_extra_box && PT) && !(include_valence_extra_box && ValencePT))
         return;
 
@@ -703,7 +706,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                                   #endif
                                         double radial = 0;
                                         if(include_extra_box && PT)
-                                            radial += PT->GetTwoElectronBoxDiagrams(s1, s2, s3, s4, k);
+                                            radial += PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
                                         if(include_valence_extra_box && ValencePT)
                                             radial += ValencePT->GetTwoElectronBoxValence(s1, s2, s3, s4, k);
 

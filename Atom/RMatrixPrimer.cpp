@@ -12,7 +12,7 @@
 #include "Basis/CustomBasis.h"
 #include "Universal/Constant.h"
 #include "Basis/BSplineBasis.h"
-#include "MBPT/MBPTCalculator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
