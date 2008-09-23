@@ -1,8 +1,31 @@
 #ifndef SIGMA3_CALCULATOR_H
 #define SIGMA3_CALCULATOR_H
 
-#include "MBPTCalculator.h"
+#include "CoreMBPTCalculator.h"
+#include "SlaterIntegrals.h"
 #include "Configuration/ElectronInfo.h"
+
+class Sigma3Integrals : public SlaterIntegrals
+{
+    /** Needs to store two electron integrals of the form
+          < n a | 1/r | b c >
+        that is, three valence and one core line.
+        One-electron integrals are not needed, but SMS integrals are.
+     */
+public:
+    Sigma3Integrals(const ExcitedStates* excited_states):
+        SlaterIntegrals(excited_states)
+    {}
+    virtual ~Sigma3Integrals() {}
+
+    /** Return number of two-electron integrals that will be stored. */
+    virtual unsigned int GetStorageSize(const ExcitedStates& valence);
+
+protected:
+    /** No one-electron Hamiltonian integrals, but SMS integrals are still needed. */
+    virtual void UpdateOneElectronIntegrals();
+    virtual void UpdateTwoElectronIntegrals();
+};
 
 class Sigma3Calculator : public MBPTCalculator
 {
@@ -16,7 +39,10 @@ class Sigma3Calculator : public MBPTCalculator
      */
 public:
     Sigma3Calculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
-    virtual ~Sigma3Calculator(void) {}
+    virtual ~Sigma3Calculator(void);
+
+    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states);
+    virtual void UpdateIntegrals(const ExcitedStates* valence_states);
 
     /** Returns <e1, e2, e3 | Sigma2(k) | e4, e5, e6>. Only calculates in Brillouin-Wigner PT.
         -->>------------->>--
@@ -40,33 +66,7 @@ public:
            const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6);
 
 protected:
-    /** Update all integrals (on the assumption that the excited states have changed). */
-    virtual void Update();
-
-    virtual void UpdateStateIndexes();
-
-    /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4);
-
-    /** GetSMSIntegral(i, j) = <i|p|j> */
-    double GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const;
-
-    /** Change ordering of states so that it corresponds to a stored integral.
-        Returns false if SMS sign needs to be changed.
-     */
-    virtual bool TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
-
-protected:
-    unsigned int NumStates;
-    // The ordering of states is not arbitrary; they should be ordered by pqn first.
-    std::map<StateInfo, unsigned int> state_index;
-    std::map<unsigned int, StateInfo> reverse_state_index;
-
-    // SMSIntegrals(i, j) = <i|p|j>
-    std::map<unsigned int, double> SMSIntegrals;
-
-    // TwoElectronIntegrals(k, i, j, l, n) = R_k(ij, ln): i->l, j->n
-    std::map<unsigned int, double> TwoElectronIntegrals;
+    Sigma3Integrals* integrals;
 };
 
 #endif

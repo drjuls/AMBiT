@@ -1,7 +1,7 @@
 #ifndef VALENCE_CALCULATOR_H
 #define VALENCE_CALCULATOR_H
 
-#include "MBPTCalculator.h"
+#include "CoreMBPTCalculator.h"
 
 class ValenceCalculator : public MBPTCalculator
 {
@@ -10,6 +10,13 @@ class ValenceCalculator : public MBPTCalculator
 public:
     ValenceCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
     virtual ~ValenceCalculator(void) {}
+
+    /** No storage yet. */
+    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states)
+    {   return 0;
+    }
+    virtual void UpdateIntegrals(const ExcitedStates* valence_states)
+    {}
 
     /** Returns one-electron valence-valence diagrams. */
     double GetOneElectronValence(const State* s1, const State* s2);
@@ -20,7 +27,7 @@ public:
     /** Returns two-electron "box" valence-valence diagrams, which can have wrong parity.
         Only calculates in Brillouin-Wigner PT. */
     double GetTwoElectronBoxValence(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k);
-           
+
 protected:
     /** Calculate one-electron valence-valence diagram of second order.
              x       x

@@ -1,4 +1,6 @@
-cxxobjects = MBPTCalculator.o Sigma3Calculator.o ValenceCalculator.o
+cxxobjects = CoreMBPTCalculator.o CoreValenceIntegrals.o \
+             MBPTCalculator.o Sigma3Calculator.o SlaterIntegrals.o \
+             ValenceCalculator.o
 cobjects = 
 fobjects =
 
