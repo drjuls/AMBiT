@@ -236,14 +236,10 @@ void CIIntegralsMBPT::Update(const std::string& sigma_id)
     Clear();
 
     // Update the valence energies and Slater integrals for perturbation theory
-    time_t start1, now1;
-    time(&start1);
     if((include_sigma1 || include_mbpt1 || include_mbpt2 || include_extra_box) && PT)
         PT->UpdateIntegrals(&states);
     if((include_valence_mbpt1 || include_valence_mbpt2 || include_valence_extra_box) && ValencePT)
         ValencePT->UpdateIntegrals(&states);
-    time(&now1);
-    *outstream << "Updated Integrals: " << now1 - start1 << std::endl;
 
     UpdateOneElectronIntegrals(sigma_id);
     UpdateTwoElectronIntegrals();
@@ -328,7 +324,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     // Want to save progress every hour or so.
     time_t start, gap, now;
     time(&start);
-    gap = 7 * 60;  // 47 minutes
+    gap = 47 * 60;  // 47 minutes
 
     // Get single particle integrals
     it_i.First(); i = 0;
@@ -380,7 +376,6 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     {   time(&now);
                         if(now - start > gap)
                         {   WriteOneElectronIntegrals();
-                            *outstream << " another 7 min" << std::endl;
                             start = now;
                         }
                     }
@@ -435,7 +430,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     // Want to save progress every hour or so.
     time_t start, gap, now;
     time(&start);
-    gap = 7 * 60;  // 47 minutes
+    gap = 47 * 60;  // 47 minutes
 
     // Calculate any remaining two electron integrals.
     CoulombIntegrator CI(states.GetLattice());
@@ -584,7 +579,6 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     {   time(&now);
                                         if(now - start > gap)
                                         {   WriteTwoElectronIntegrals();
-                                            *outstream << " another 7 min" << std::endl;
                                             start = now;
                                         }
                                     }

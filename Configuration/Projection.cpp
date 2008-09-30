@@ -4,6 +4,7 @@
 
 void Projection::Add(const ElectronInfo& info)
 {
+    NonRelConfiguration.Clear();
     Config.push_back(info);
 }
 
@@ -19,6 +20,13 @@ const ElectronInfo& Projection::operator[](unsigned int i) const
 
 bool Projection::Sort()
 {
+    // Make non-relativistic configuration
+    NonRelConfiguration.Clear();
+    for(unsigned int i = 0; i < Config.size(); i++)
+    {
+        NonRelConfiguration.AddSingleParticle(NonRelInfo(Config[i].PQN(), Config[i].L()));
+    }
+
     return Sort(Config);
 }
 
@@ -272,16 +280,4 @@ int Projection::GetProjectionDifferences3(const Projection& p1, const Projection
         return int(diff1_size);
     else
         return -int(diff1_size);
-}
-
-Configuration Projection::GetNonRelConfiguration() const
-{
-    Configuration ret;
-
-    for(unsigned int i = 0; i < Config.size(); i++)
-    {
-        ret.AddSingleParticle(NonRelInfo(Config[i].PQN(), Config[i].L()));
-    }
-
-    return ret;
 }

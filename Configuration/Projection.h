@@ -20,7 +20,7 @@ class Projection
 public:
     Projection() {}
     Projection(const Projection& other):
-        Config(other.Config)
+        Config(other.Config), NonRelConfiguration(other.NonRelConfiguration)
     {}
     virtual ~Projection(void) {}
 
@@ -61,13 +61,21 @@ public:
     static int GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff);
 
     /** Get equivalent non-relativistic configuration. */
-    Configuration GetNonRelConfiguration() const;
+    inline const Configuration& GetNonRelConfiguration() const;
 
 protected:
     bool Sort(std::vector<ElectronInfo>& config) const;
 
     std::vector<ElectronInfo> Config;
+    Configuration NonRelConfiguration;
 };
+
+const Configuration& Projection::GetNonRelConfiguration() const
+{
+    if(NonRelConfiguration.Empty())
+        exit(44);
+    return NonRelConfiguration;
+}
 
 typedef std::list<Projection> ProjectionSet;
 

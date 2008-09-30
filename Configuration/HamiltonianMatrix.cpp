@@ -838,7 +838,7 @@ double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2,
         return 0.;
 
     double value = 0.;
-
+    
     // The sign changes for odd permutations
     value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
             + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
@@ -860,6 +860,7 @@ inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, 
 
     // There are no sign changes, since there are the same number
     // of permutations on both sides
+
     value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
             + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
             + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)

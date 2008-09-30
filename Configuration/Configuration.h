@@ -40,6 +40,9 @@ public:
     virtual bool AddSingleParticle(const StateInfo& info);
     virtual bool SetOccupancy(const StateInfo& info, unsigned int occupancy);
 
+    void Clear();
+    bool Empty() const;
+
     virtual unsigned int NumParticles() const;
 
     Parity GetParity() const;
@@ -73,6 +76,16 @@ inline void Configuration::Next() const
 inline bool Configuration::AtEnd() const
 {   
     return (it == Config.end());
+}
+
+inline void Configuration::Clear()
+{
+    Config.clear();
+}
+
+inline bool Configuration::Empty() const
+{
+    return Config.empty();
 }
 
 #endif
