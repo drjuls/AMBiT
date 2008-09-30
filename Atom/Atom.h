@@ -152,6 +152,7 @@ private:
     bool multiple_radius;
     std::vector<double> multiple_parameters;
     std::vector<std::string> multiple_ids;
+    std::vector<double> mbpt_delta;
 
     double alpha0;  // Original value of alpha.
 };

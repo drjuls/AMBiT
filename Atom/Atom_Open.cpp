@@ -37,18 +37,18 @@ void Atom::RunOpen(double radius)
 
 //    double mbpt_delta = 0.0;
 
-    GenerateIntegralsMBPT(true);
-//    GenerateIntegrals(true);
-    ChooseSymmetries();
-
     // Uncomment to include sigma3.
-    //sigma3 = new Sigma3Calculator(lattice, core, excited);
+    sigma3 = new Sigma3Calculator(lattice, core, excited);
     //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
+
+//    GenerateIntegralsMBPT(true);
+    GenerateIntegrals(true);
+    ChooseSymmetries();
 
     //CheckMatrixSizes();
 
     // Warning: Need to have generated integrals already.
-    //CalculateEnergies();
+    CalculateEnergies();
 }
 
 void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
@@ -173,6 +173,9 @@ void Atom::GenerateIntegrals(bool MBPT_CI)
     integrals->SetIdentifier(identifier);
     integrals->Clear();
     integrals->Update();
+
+    if(sigma3)
+        sigma3->UpdateIntegrals(excited);
 }
 
 void Atom::ChooseSymmetries()
@@ -222,7 +225,6 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read
 
         Configuration config2;
         config2.SetOccupancy(NonRelInfo(3, 2), 2);
-//        config2.SetOccupancy(NonRelInfo(4, 0), 1);
         config2.SetOccupancy(NonRelInfo(4, 1), 1);
         leading_configs.insert(config2);
 /*

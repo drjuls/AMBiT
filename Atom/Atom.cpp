@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(22, 2, "TiII");
+    {   Atom A(22, 2, "TiII014");
         A.RunMultipleOpen();
     }
     catch(std::bad_alloc& ba)

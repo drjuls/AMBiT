@@ -8,6 +8,20 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.6.0 - 30/09/08
+Bug: Fixed sign problem in Sigma3Calculator. All previous versions give
+     incorrect sign of Sigma3.
+Opt: Major changes throughout the code. MBPTCalculator is now the base class of
+     CoreValenceCalculator (previously MBPTCalculator), ValenceCalculator, and
+     Sigma3Calculator. Radial integrals for these classes are now stored in
+     SlaterIntegrals and subclasses. This dramatically speeds creation of MBPT
+     diagrams. Sigma3Calculator has also been optimised in other ways,
+     including storing Wigner3j symbols with radial integrals, storage of
+     NonRelConfiguration in Projection class and optimisation of
+     Sigma3Integrals::GetTwoElectronIntegral(). Constant::Electron3j() now has
+     an additional overloaded function that speeds up the common case where
+     m1 = 1/2, m2 = -1/2 and q = 0.
+
 1.5.3 - 07/03/08
 Known issues: The RateCalculator class is definitely in a state of flux.
 Bug: Added valence_mbpt(NULL) to Atom constructor. Fixed stringstreams in

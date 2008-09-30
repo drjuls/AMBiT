@@ -22,12 +22,12 @@ void Atom::RunMultipleOpen()
     //CreateRBasis();
     CreateBSplineBasis();
 
-    DebugOptions.OutputHFExcited(false);
+    //DebugOptions.OutputHFExcited(false);
 
-    multiple_SMS = false;
+    multiple_SMS = true;
     multiple_alpha = false;
     multiple_volume = false;
-    multiple_radius = true;
+    multiple_radius = false;
 
     unsigned int i;
 
@@ -98,19 +98,20 @@ void Atom::RunMultipleOpen()
     }
 
     // delta = E_CI - E_HF
-    //double[] mbpt_delta = {0.0, 0.0, 0.0, 0.0, 0.0};
-
-    GenerateMultipleIntegralsMBPT(true, false);
-    //CollateMultipleIntegralsMBPT(32);
-    //GenerateMultipleIntegrals(false);
-    ChooseSymmetries();
+    double delta[] = {-153032.343, -153171.873, -153311.989, -153452.693, -153593.985};
+    for(unsigned int i = 0; i < 5; i++)
+        mbpt_delta.push_back(delta[i]);
 
     // Uncomment to include sigma3.
-    //sigma3 = new Sigma3Calculator(lattice, core, excited);
-    //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
+    sigma3 = new Sigma3Calculator(lattice, core, excited);
+
+    GenerateMultipleIntegralsMBPT(true, false, delta);
+    //CollateMultipleIntegralsMBPT(32);
+    //GenerateMultipleIntegrals(true);
+    //ChooseSymmetries();
 
     //CheckMatrixSizes();
-    CalculateMultipleEnergies();
+    //CalculateMultipleEnergies();
 }
 
 void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double* delta)
@@ -254,14 +255,19 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
     excited->Update();
     if(excited_mbpt)
         excited_mbpt->Update();
-    //Read();
-    Write();
+    Read();
+    //Write();
     core->ToggleClosedShellCore();
 
     integrals->Clear();
     integrals->Update();
 
     identifier = original_identifier;
+    
+    if(sigma3)
+    {   sigma3->UpdateIntegrals(excited);
+        sigma3->SetEnergyShift(mbpt_delta[index]/Constant::HartreeEnergy_cm);
+    }
 }
 
 void Atom::CalculateMultipleEnergies()
