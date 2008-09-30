@@ -237,6 +237,7 @@ double LogFactorialFraction(unsigned int num, unsigned int denom)
 
 const unsigned int Constant::MaxStoredTwoJ = 11;    // Up to h-shell electrons
 std::map<int, double> Constant::Symbols3j;
+const unsigned int Constant::MSize = 2 * MaxStoredTwoJ + 1;
 
 double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
 {
@@ -310,4 +311,47 @@ double Constant::Electron3j(double j1, double j2, unsigned int k, double m1, dou
     unsigned int twom2 = (unsigned int)(2.*m2);
 
     return Electron3j(twoj1, twoj2, k, twom1, twom2);
+}
+
+double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k)
+{
+    // In this case
+    //  ( j1   j2   k ) = (-1)^(j1 + j2 + k) (  j2    j1   k ) = ( j2   j1   k )
+    //  ( 1/2 -1/2  0 )                      ( -1/2  1/2   0 )   ( 1/2 -1/2  0 ) 
+    // So we don't need to worry about sign.
+
+    // Sort so that (j1 >= j2) for lookup
+    if(twoj1 < twoj2)
+    {   unsigned int tempj;
+        tempj = twoj1; twoj1 = twoj2; twoj2 = tempj;
+    }
+
+    if(twoj1 > MaxStoredTwoJ)
+    {   
+        return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), 0.5, -0.5, 0.0);
+    }
+    else if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k)))
+    {
+        return 0.;
+    }
+
+    int key = int(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
+            + int(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
+            + int(k)     * MSize * MSize
+                + 1      * MSize
+                - 1;
+
+    std::map<int, double>::const_iterator it = Symbols3j.find(key);
+
+    if(it != Symbols3j.end())
+    {   
+        return it->second;
+    }
+    else
+    {
+        double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), 0.5, -0.5, 0.);
+        Symbols3j[key] = value;
+
+        return value;
+    }
 }

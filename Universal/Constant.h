@@ -23,6 +23,12 @@ public:
      */
     static double Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2);
     static double Electron3j(double j1, double j2, unsigned int k, double m1, double m2);
+    /** Calculate 3j symbol
+        ( j1   j2   k )
+        ( 1/2 -1/2  0 )
+        where j1 and j2 are half integer and k is integer.
+     */
+    static double Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k);
 
     const static double NucleonElectronMassRatio;
 
@@ -37,6 +43,7 @@ public:
 
 private:
     const static unsigned int MaxStoredTwoJ;
+    const static unsigned int MSize;
     static std::map<int, double> Symbols3j;
 };
 
