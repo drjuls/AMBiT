@@ -21,6 +21,15 @@ public:
     /** Return number of two-electron integrals that will be stored. */
     virtual unsigned int GetStorageSize(const ExcitedStates& valence);
 
+    /** Overwritten on the assumption that s1 is core, all others are not.
+        In order to maximise speed, three-j symbols are included with the integrals.
+        That is, this function actually returns
+         R^k (12, 34) * ( j1   j3   k ) * ( j2   j4   k ) * sqrt[j1, j2, j3, j4]
+                        ( 1/2 -1/2  0 )   ( 1/2 -1/2  0 )
+        where [j1] = 2 * j1 + 1, etc.
+     */
+    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+
 protected:
     /** No one-electron Hamiltonian integrals, but SMS integrals are still needed. */
     virtual void UpdateOneElectronIntegrals();
@@ -67,6 +76,7 @@ public:
 
 protected:
     Sigma3Integrals* integrals;
+    int core_maxTwoJ;
 };
 
 #endif

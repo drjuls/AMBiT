@@ -4,8 +4,18 @@
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
 
+SlaterIntegrals::SlaterIntegrals(const ExcitedStates* excited_states):
+    core(*excited_states->GetCore()), excited(*excited_states), include_valence_sms(false)
+{
+    if(core.GetNuclearInverseMass())
+        include_valence_sms = true;
+}
+
 void SlaterIntegrals::UpdateStateIndexes(const ExcitedStates& valence)
 {
+    if(core.GetNuclearInverseMass())
+        include_valence_sms = true;
+
     NumStates = core.NumStates() + excited.NumStates();
     state_index.clear();
     reverse_state_index.clear();
