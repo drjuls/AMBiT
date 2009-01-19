@@ -478,7 +478,8 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     delta_E = (1. - norm)/(2. * var);
     // Limit change in energy to 20%. Place warning in error file.
     if(fabs(delta_E/old_energy) > 0.2)
-    {   *errstream << "IterateDiscreteStateGreens: large delta_E: = " << fabs(delta_E/old_energy)*100 << "%" << std::endl;
+    {   *errstream << "IterateDiscreteStateGreens: large delta_E (" << s->Name()
+            << ") = " << fabs(delta_E/old_energy)*100 << "%" << std::endl;
         delta_E = fabs(old_energy*delta_E*0.2)/delta_E;
     }
     s->SetEnergy(old_energy + delta_E);
@@ -624,8 +625,15 @@ unsigned int Core::CalculateExcitedState(State* s) const
         do
         {   loop++;
             CoupledFunction exchange;
-            CalculateExchange(*new_ds, exchange);
-            deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+            CalculateExchange(*ds, exchange);
+            do
+            {   if(zero_difference)
+                {   trial_nu = new_ds->Nu() - zero_difference/abs(zero_difference)/Charge;
+                    new_ds->SetNu(trial_nu);
+                }
+                deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+                zero_difference = new_ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
+            } while(zero_difference);
 
             if(debugHF)
                 *logstream << "  " << std::setw(4) << ds->Name() 

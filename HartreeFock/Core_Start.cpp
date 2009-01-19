@@ -14,6 +14,9 @@ void Core::BuildFirstApproximation()
 
     if(!GetConfigData())
     {
+        *errstream << "Failed to get intitial states from config.txt" << std::endl;
+        *outstream << "Failed to get intitial states from config.txt" << std::endl;
+
         // Get needed states
         unsigned int number_electrons = (unsigned int)(Z - Charge);
         unsigned int electron_count = 0;
@@ -231,6 +234,7 @@ bool Core::GetConfigData()
         return false;
 
     int L, pqn, occupancy;
+    int electron_count = 0;
 
     fgets(buffer, 200, fp);
     fclose(fp);
@@ -273,6 +277,7 @@ bool Core::GetConfigData()
         }
         tempbuf[j] = 0;
         occupancy = atoi(tempbuf);
+        electron_count += occupancy;
 
         DiscreteState* s1 = NULL;
         DiscreteState* s2 = NULL;
@@ -328,7 +333,12 @@ bool Core::GetConfigData()
             i++;
     }
 
-    return true;
+    if(electron_count == Z - Charge)
+        return true;
+    else
+    {   *errstream << "Incorrect electron count in config.txt." << std::endl;
+        return false;
+    }
 }
 
 unsigned int Core::GetSpecialStates()
