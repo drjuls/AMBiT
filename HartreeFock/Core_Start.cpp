@@ -162,9 +162,14 @@ void Core::BuildFirstApproximation()
                 iterations = ConvergeStateApproximation(s, false);
                 if(iterations >= StateParameters::MaxHFIterations)
                 {   // Evil - this should never happen given our simple model.
-                    *errstream << "    BuildFirstApproximation: iterations = " << iterations << std::endl;
-                    //PAUSE
-                    //exit(1);
+                    *errstream << "    BuildFirstApproximation (" << m << ") " << s->Name()
+                               << ": iterations = " << iterations << std::endl;
+                    if(m == 9)
+                    {   *outstream << "    BuildFirstApproximation (" << m << ") " << s->Name()
+                                   << ": iterations = " << iterations << std::endl;
+                        *outstream << "       ...try modifying energy/wavefunction tolerances." << std::endl;
+                        exit(1);
+                    }
                 }
 
                 zero_difference = s->NumZeroes() + s->L() + 1 - s->RequiredPQN();

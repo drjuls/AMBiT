@@ -31,7 +31,7 @@ void CoreMBPTCalculator::UpdateIntegrals(const ExcitedStates* valence_states)
     integrals->Update(*valence_states);
 }
 
-void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma)
+void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const
 {
     if(DebugOptions.LogMBPT())
         *outstream << "\nkappa = " << kappa << std::endl;

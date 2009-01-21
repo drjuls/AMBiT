@@ -549,36 +549,39 @@ unsigned int Core::CalculateExcitedState(State* s) const
         }
 
         // Calculate
-        // Get a trial value for nu
-        double trial_nu;
-        switch(ds->L())
-        {   case 0: 
-                trial_nu = 1.5;
-                break;
-            case 1:
-                trial_nu = 2.;
-                break;
-            case 2:
-                trial_nu = 4.;
-                break;
-            default:
-                trial_nu = (double)ds->L() + 1.;
-                break;
-        }
+        // Get a trial value for nu if state hasn't already got one.
+        double trial_nu;        
+        if(!ds->Nu())
+        {
+            switch(ds->L())
+            {   case 0: 
+                    trial_nu = 1.5;
+                    break;
+                case 1:
+                    trial_nu = 2.;
+                    break;
+                case 2:
+                    trial_nu = 4.;
+                    break;
+                default:
+                    trial_nu = (double)ds->L() + 1.;
+                    break;
+            }
 
-        // Increase nu depending on how far above the core it is
-        unsigned int largest_core_pqn = 0;
-        ConstStateIterator i = GetConstStateIterator();
-        while(!i.AtEnd())
-        {   
-            const DiscreteState* cs = i.GetState();
-            if((cs->Kappa() == ds->Kappa()) && (cs->RequiredPQN() > largest_core_pqn))
-                    largest_core_pqn = cs->RequiredPQN();
-            i.Next();
-        }
+            // Increase nu depending on how far above the core it is
+            unsigned int largest_core_pqn = 0;
+            ConstStateIterator i = GetConstStateIterator();
+            while(!i.AtEnd())
+            {   
+                const DiscreteState* cs = i.GetState();
+                if((cs->Kappa() == ds->Kappa()) && (cs->RequiredPQN() > largest_core_pqn))
+                        largest_core_pqn = cs->RequiredPQN();
+                i.Next();
+            }
 
-        trial_nu = trial_nu + (double)(ds->RequiredPQN() - largest_core_pqn - 1)/Charge;
-        ds->SetNu(trial_nu/Charge);
+            trial_nu = trial_nu + (double)(ds->RequiredPQN() - largest_core_pqn - 1)/Charge;
+            ds->SetNu(trial_nu/Charge);
+        }
 
         // Calculate wavefunction with local exchange approximation.
         // Check that the number of zeroes of the wavefunction is correct, otherwise
@@ -839,8 +842,11 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
     }
 }
 
+// Standard tolerances:
+//    EnergyTolerance = 1.e-14
+//    WavefunctionTolerance = 1.e-11
 const unsigned int Core::StateParameters::MaxHFIterations = 300;
 double Core::StateParameters::WavefunctionTolerance = 1.E-11;
-//double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
-double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-14;
+double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
+//double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-14;
 double Core::StateParameters::EnergyTolerance = 1.E-14;

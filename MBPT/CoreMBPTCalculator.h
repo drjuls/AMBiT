@@ -29,7 +29,7 @@ public:
     virtual void UpdateIntegrals(const ExcitedStates* valence_states);
 
     /** Create a second-order one-electron MBPT (sigma1) operator. */
-    void GetSecondOrderSigma(int kappa, SigmaPotential* sigma);
+    void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;
 
     /** Return value is the matrix element < s1 | Sigma1 | s2 >. */
     double GetOneElectronDiagrams(const StateInfo& s1, const StateInfo& s2) const;

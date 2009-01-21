@@ -287,16 +287,16 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
 
             if(DebugOptions.OutputHFExcited())
             {
-                *outstream << std::setprecision(12);
+                *logstream << std::setprecision(12);
                 if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
                 {
                     double energy = ds->Energy();
                     if(DebugOptions.InvCmEnergyUnits())
                         energy *= Constant::HartreeEnergy_cm;
-                    *outstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+                    *logstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
                 }
                 else
-                    *outstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+                    *logstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
             }
         }
         return loop;

@@ -12,6 +12,8 @@
 typedef std::map<int, SigmaPotential*> SigmaMap;
 typedef std::map<StateInfo, double> SigmaAmount;
 
+class CoreMBPTCalculator;
+
 class ExcitedStates : public StateManager
 {
 public:     // Methods for StateManager role
@@ -43,13 +45,12 @@ public:     // Methods for managing sigma
         the state (to turn this off set SigmaAmount to zero).
         Return value is the energy of the state including second order matrix elements.
      */
-    double GetSecondOrderSigma(const StateInfo& info);
+    double CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt);
 
     /** Retreive a sigma operator that already exists. Return true if successful. */
     bool RetrieveSecondOrderSigma(const StateInfo& info);
 
-    /** Create sigma operator if one doesn't already exist.
-    	Set SigmaAmount to give correct energy (in Hartree units).
+    /** Set SigmaAmount to give correct energy (in Hartree units).
      */
     void SetEnergyViaSigma(const StateInfo& info, double energy);
 
@@ -58,6 +59,11 @@ public:     // Methods for managing sigma
     double GetSigmaAmount(const StateInfo& info) const;
 
     const Core* GetCore() const { return core; }
+
+    /** Test for orthogonality of orbitals with each other and the core.
+        Return largest overlap.
+     */
+    double TestOrthogonalityIncludingCore() const;
 
 protected:
     /** current.f = r * previous.f

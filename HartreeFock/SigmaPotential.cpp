@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "SigmaPotential.h"
 
-#define gap 1
+#define gap 4
 
 SigmaPotential::SigmaPotential(Lattice* lat, const std::string& file, unsigned int matrix_size, unsigned int start_point):
     lattice(lat), filename(file), changed_since_store(true), start(start_point)
@@ -39,7 +39,6 @@ std::vector<double> SigmaPotential::GetPotential(const std::vector<double>& f) c
 
     // get points from sigma function
     unsigned int i, j;
-    const double* R = lattice->R();
     const double* dR = lattice->dR();
 
     for(i = 0; i < limit; i++)

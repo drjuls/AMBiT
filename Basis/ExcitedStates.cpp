@@ -4,6 +4,7 @@
 #include "Universal/Constant.h"
 #include "MBPT/CoreMBPTCalculator.h"
 #include "HartreeFock/StateIntegrator.h"
+#include <stdio.h>
 
 ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
     StateManager(lattice, (unsigned int)atom_core->GetZ(), (unsigned int)atom_core->GetCharge()),
@@ -43,33 +44,31 @@ DiscreteState ExcitedStates::GetStateWithSigma(const StateInfo& info) const
         return DiscreteState();
 }
 
-double ExcitedStates::GetSecondOrderSigma(const StateInfo& info)
+double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt)
 {
     DiscreteState* s = GetState(info);
     if(s == NULL)
-    {   s = new DiscreteState(info.PQN(), info.Kappa());
-        core->CalculateExcitedState(s);
+    {   *errstream << "CreateSecondOrderSigma: " << info.Name() << " is not part of ExcitedStates." << std::endl;
+        exit(1);
     }
 
     SigmaPotential* sigma;
 
-    std::string sigma_file = *identifier + "." + s->Name() + ".sigma";
+    std::string sigma_file = *identifier + "." + itoa(info.Kappa()) + ".sigma";
     sigma = new SigmaPotential(lattice, sigma_file, s->Size(), 100);
     sigma->Reset();
 
     SigmaMap::iterator it = SecondOrderSigma.find(s->Kappa());
-    if(it != SecondOrderSigma.end())
-    {   delete SecondOrderSigma[s->Kappa()];
-        SecondOrderSigma.erase(it);
+    if(it == SecondOrderSigma.end())
+    {   mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
+        SecondOrderSigma[s->Kappa()] = sigma;
+        sigma->Store();
+    }
+    else
+    {   sigma = it->second;
     }
 
-    CoreMBPTCalculator mbpt(lattice, core, this);
-    mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
-    
     double energy = sigma->GetMatrixElement(s->f, s->f);
-
-    SecondOrderSigma[s->Kappa()] = sigma;
-    sigma->Store();
     SetSigmaAmount(info, 1.);
 
     return energy;
@@ -77,24 +76,18 @@ double ExcitedStates::GetSecondOrderSigma(const StateInfo& info)
 
 bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
 {
-    DiscreteState* s = GetState(info);
-    if(s == NULL)
-    {   s = new DiscreteState(info.PQN(), info.Kappa());
-        core->CalculateExcitedState(s);
-    }
-
-    std::string sigma_file = *identifier + "." + s->Name() + ".sigma";
+    std::string sigma_file = *identifier + "." + itoa(info.Kappa()) + ".sigma";
     SigmaPotential* sigma = new SigmaPotential(lattice, sigma_file);
 
     if(sigma->Size())
     {
-        SigmaMap::iterator it = SecondOrderSigma.find(s->Kappa());
+        SigmaMap::iterator it = SecondOrderSigma.find(info.Kappa());
         if(it != SecondOrderSigma.end())
-        {   delete SecondOrderSigma[s->Kappa()];
+        {   delete SecondOrderSigma[info.Kappa()];
             SecondOrderSigma.erase(it);
         }
 
-        SecondOrderSigma[s->Kappa()] = sigma;
+        SecondOrderSigma[info.Kappa()] = sigma;
         SetSigmaAmount(info, 1.);
 
         return true;
@@ -117,7 +110,9 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
 
     SigmaPotential* sigma;
     if(SecondOrderSigma.find(s->Kappa()) == SecondOrderSigma.end())
-        GetSecondOrderSigma(info);
+    {   *errstream << "SetEnergyViaSigma: Sigma with kappa = " << s->Kappa() << " not found." << std::endl;
+        exit(1);
+    }
     sigma = SecondOrderSigma[s->Kappa()];
 
     double old_energy = s->Energy();
@@ -351,4 +346,43 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
         }
         ex_it.Next();
     }
+}
+
+double ExcitedStates::TestOrthogonalityIncludingCore() const
+{
+    double max_orth = 0.;
+
+    ConstStateIterator it = GetConstStateIterator();
+    ConstStateIterator jt = GetConstStateIterator();
+
+    it.First();
+    while(!it.AtEnd())
+    {
+        // Core
+        jt = core->GetConstStateIterator();
+        jt.First();
+        while(!jt.AtEnd())
+        {
+            double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
+            if(orth > max_orth)
+                max_orth = orth;
+
+            jt.Next();
+        }
+        
+        // Rest of excited states
+        jt = it;
+        jt.Next();
+        while(!jt.AtEnd())
+        {
+            double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
+            if(orth > max_orth)
+                max_orth = orth;
+
+            jt.Next();
+        }
+        it.Next();
+    }
+
+    return max_orth;
 }

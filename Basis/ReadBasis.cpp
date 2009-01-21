@@ -6,7 +6,29 @@
 #include "Universal/ExpLattice.h"
 #include <cctype>
 
+// Control different types of headers, etc.
+
+// Grasp0 beginning
+//  - total number of orbitals    lattice size
+//  - occupation numbers for all orbitals
+//  - lattice points
+#define GRASP0_FILE_START  1
+
+// grasp0 type orbital header:
+//      pqn     kappa
+#define GRASP0_FILE  1
+
+// cmccore type orbital header:
+//      nl[-]   numpoints   coeffs. of r^Kappa     E(eV)
+//  eg:   2P-       277   0.0000E+00  0.0000E+00  4.5027E+00
+#define CMCCORE_FILE  0
+
 void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
+{
+    CreateExcitedStates(num_states_per_l, NULL);
+}
+
+void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, Core* atom_core)
 {
     FILE* fp = fopen(filename.c_str(), "r");
     if(fp == NULL)
@@ -16,18 +38,47 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
     }
 
     // Lattice of stored states
-    Lattice* read_lattice = new ExpLattice(300, 1.e-5, 0.05);
+    Lattice* read_lattice = new ExpLattice(303, 1.e-5, 0.05);
 
-    std::vector<unsigned int> num_states_so_far(num_states_per_l.size(), 0);
+    // Need to treat all kappas
+    std::vector<unsigned int> num_states_so_far(2 * num_states_per_l.size() - 1, 0);
 
     unsigned int i;
+    double buf;
     unsigned int total_num_states = 0;
     unsigned int num_states_read = 0;
+    int numpoints;
 
-    for(i = 0; i < num_states_per_l.size(); i++)
-    {   total_num_states += num_states_per_l[i];
-        if(i > 0)
-            total_num_states += num_states_per_l[i];
+    if(GRASP0_FILE_START)
+    {
+        fscanf(fp, "%d", &total_num_states);
+        fscanf(fp, "%d", &numpoints);
+        
+        // Read occupation numbers
+        double total_num_electrons = 0;
+        for(i = 0; i < total_num_states; i++)
+        {   fscanf(fp, "%le", &buf);
+            total_num_electrons += buf;
+        }
+        if(fabs(total_num_electrons - core->GetZ() + core->GetCharge()) > 1.e-4)
+        {   *errstream << "ReadBasis: Sum of occupation numbers not equal to number of electrons." << std::endl;
+            *errstream << "   Sum = " << total_num_electrons << std::endl;
+            exit(1);
+        }
+
+        // Read lattice points
+        for(i = 0; i < numpoints; i++)
+            fscanf(fp, "%le", &buf);
+
+        // Skip initial zero of all wavefunctions
+        numpoints--;
+    }
+    else
+    {   for(i = 0; i < num_states_per_l.size(); i++)
+        {   total_num_states += num_states_per_l[i];
+            if(i > 0)
+                total_num_states += num_states_per_l[i];
+        }
     }
 
     StateIntegrator I(lattice);
@@ -37,57 +88,75 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         // Read upper component
         int pqn, l, kappa;
         char lchar;
-        int numpoints;
         double energy;
 
-        fscanf(fp, "%d", &pqn);
-        fscanf(fp, "%c", &lchar);
-        lchar = tolower(lchar);
-        for(l = 0; l < 10; l++)
-            if(Constant::SpectroscopicNotation[l] == lchar)
-                break;
-        if(l >= 10)
-        {   *errstream << "unable to find l from notation " << lchar << std::endl;
-            PAUSE;
-            exit(1);
-        }
-        
-        lchar = getc(fp);
-        if(lchar == '-')
-            kappa = l;
-        else
-            kappa = -(l+1);
+        if(CMCCORE_FILE)
+        {
+            fscanf(fp, "%d", &pqn);
+            fscanf(fp, "%c", &lchar);
+            lchar = tolower(lchar);
+            for(l = 0; l < 10; l++)
+                if(Constant::SpectroscopicNotation[l] == lchar)
+                    break;
+            if(l >= 10)
+            {   *errstream << "unable to find l from notation " << lchar << std::endl;
+                PAUSE;
+                exit(1);
+            }
             
-        fscanf(fp, "%d", &numpoints);
-        fscanf(fp, "%*12le%*12le");     // Coefficients of r^Kappa
-        fscanf(fp, "%12le", &energy);   // Energy relative to threshold (eV)
+            lchar = getc(fp);
+            if(lchar == '-')
+                kappa = l;
+            else
+                kappa = -(l+1);
+            
+            fscanf(fp, "%d", &numpoints);
+            fscanf(fp, "%*12le%*12le");     // Coefficients of r^Kappa
+            fscanf(fp, "%12le", &energy);   // Energy relative to threshold (eV)
+        }
+        else
+        {   fscanf(fp, "%d", &pqn);
+            fscanf(fp, "%d", &kappa);
+        }
 
         DiscreteState* ds;
         DiscreteState* ds_readlattice = new DiscreteState(pqn, kappa);
         ds_readlattice->ReSize(numpoints);
 
-        for(i = 0; i<numpoints; i++)
-            fscanf(fp, "%14le", &(ds_readlattice->f[i]));
+        if(CMCCORE_FILE)
+        {   for(i = 0; i<numpoints; i++)
+                fscanf(fp, "%14le", &(ds_readlattice->f[i]));
+        }
+        else
+        {   // skip initial 0.0
+            fscanf(fp, "%le", &buf);
+            for(i = 0; i<numpoints; i++)
+                fscanf(fp, "%le", &(ds_readlattice->f[i]));
+        }
 
-        *outstream << pqn << " " << l << lchar << "." << numpoints
-                   << " " << energy << std::endl;
-
-        *outstream << ds_readlattice->f[0] << " " << ds_readlattice->f[numpoints-1] << std::endl;
+        *logstream << ds_readlattice->Name() << ": f read, " << std::flush;
 
         // Read lower component
-        fscanf(fp, "%d", &pqn);
-        fscanf(fp, "%c", &lchar);
-        lchar = tolower(lchar);
-        for(l = 0; l < 10; l++)
-            if(Constant::SpectroscopicNotation[l] == lchar)
-                break;
-        lchar = getc(fp);
-        if(lchar == '-')
-            kappa = l;
+        if(CMCCORE_FILE)
+        {
+            fscanf(fp, "%d", &pqn);
+            fscanf(fp, "%c", &lchar);
+            lchar = tolower(lchar);
+            for(l = 0; l < 10; l++)
+                if(Constant::SpectroscopicNotation[l] == lchar)
+                    break;
+            lchar = getc(fp);
+            if(lchar == '-')
+                kappa = l;
+            else
+                kappa = -(l+1);
+            fscanf(fp, "%d", &numpoints);
+            fscanf(fp, "%*12le%*12le");
+        }
         else
-            kappa = -(l+1);
-        fscanf(fp, "%d", &numpoints);
-        fscanf(fp, "%*12le%*12le");
+        {   fscanf(fp, "%d", &pqn);
+            fscanf(fp, "%d", &kappa);
+        }
 
         if(pqn != ds_readlattice->RequiredPQN() || kappa != ds_readlattice->Kappa() ||
            numpoints != ds_readlattice->Size())
@@ -97,13 +166,22 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         }
 
         double g;
-        for(i = 0; i<numpoints; i++)
-        {   fscanf(fp, "%14le", &g);
-            ds_readlattice->g[i] = g/Constant::Alpha;
+        if(CMCCORE_FILE)
+        {   for(i = 0; i<numpoints; i++)
+            {   fscanf(fp, "%14le", &g);
+                ds_readlattice->g[i] = g/Constant::Alpha;
+            }
+        }
+        else
+        {   // skip initial 0.0
+            fscanf(fp, "%le", &buf);
+            for(i = 0; i<numpoints; i++)
+            {   fscanf(fp, "%le", &g);
+                ds_readlattice->g[i] = g/Constant::Alpha;
+            }
         }
 
-        *outstream << ds_readlattice->g[0]*Constant::Alpha << " "
-                   << ds_readlattice->g[numpoints-1]*Constant::Alpha << std::endl;
+        *logstream << "g read" << std::endl;
 
         unsigned int order = 6;
         if(*read_lattice == *lattice)
@@ -113,7 +191,6 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
 
             interp.GetDerivative(ds->f, ds->df, order);
             interp.GetDerivative(ds->g, ds->dg, order);
-            *outstream << "No interp." << std::endl;
         }
         else
         {   // Interpolate onto regular lattice
@@ -136,10 +213,33 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             }
             
             delete ds_readlattice;
-            *outstream << "Interp." << std::endl;
         }
 
-        AddState(ds);
+        // Check whether this is a core state
+        const DiscreteState* existing = core->GetState(StateInfo(pqn, kappa));
+
+        // If state is not in the open shell part, check whether it is in the core
+        if(existing != NULL && !core->IsOpenShellState(StateInfo(pqn, kappa)))
+        {
+            // Replace core states if atom_core != NULL
+            if(atom_core)
+            {   DiscreteState* ds_replace = atom_core->GetState(StateInfo(pqn, kappa));
+                *ds_replace = *ds;
+            }
+        }
+        else
+        {   unsigned int index;
+            if(kappa > 0)
+                index = 2*kappa - 1;
+            else
+                index = 2*abs(kappa) - 2;
+
+            if(num_states_so_far[index] < num_states_per_l[ds->L()])
+                AddState(ds);
+
+            num_states_so_far[index]++;
+        }
+
         num_states_read++;
 
         ds->SetEnergy(I.HamiltonianMatrixElement(*ds, *ds, *core));

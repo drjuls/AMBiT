@@ -59,6 +59,8 @@ extern Debug DebugOptions;
 extern unsigned int NumProcessors;
 extern unsigned int ProcessorRank;
 
+extern std::string itoa(int value, unsigned int base = 10);
+
 /** Change endianness when reading. */
 //#define fread fread_other_endian
 extern size_t fread_other_endian(void* ptr, size_t size, size_t count, FILE * fp);
