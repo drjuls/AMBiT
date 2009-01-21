@@ -1,0 +1,9 @@
+*.txt
+*.out
+*.core.atom
+*.excited.atom
+*.sigma
+*.integrals
+*.tar
+*.tar.gz
+
