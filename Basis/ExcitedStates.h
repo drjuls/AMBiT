@@ -86,6 +86,9 @@ protected:
         PRE: all states with smaller pqn must already be orthogonal
      */
     void Orthogonalise(DiscreteState* current) const;
+    
+    /** Delete all currently stored states and sigma potentials. */
+    virtual void Clear();
 
 protected:
     const Core* core;

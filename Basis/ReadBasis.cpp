@@ -37,6 +37,8 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         exit(1);
     }
 
+    Clear();
+
     // Lattice of stored states
     Lattice* read_lattice = new ExpLattice(303, 1.e-5, 0.05);
 

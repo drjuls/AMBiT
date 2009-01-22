@@ -7,6 +7,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
         return;
 
     NumStatesPerL = num_states_per_l;
+    Clear();
 
     for(unsigned int k=0; k<num_states_per_l.size(); k++)
     {

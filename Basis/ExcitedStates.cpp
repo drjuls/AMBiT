@@ -11,7 +11,7 @@ ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
     core(atom_core)
 {}
 
-ExcitedStates::~ExcitedStates(void)
+ExcitedStates::~ExcitedStates()
 {
     Clear();
 
@@ -385,4 +385,16 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
     }
 
     return max_orth;
+}
+
+void ExcitedStates::Clear()
+{
+    StateManager::Clear();
+
+    SigmaMap::iterator sigma = SecondOrderSigma.begin();
+    while(sigma != SecondOrderSigma.end())
+    {   delete sigma->second;
+        sigma++;
+    }
+    SecondOrderSigma.clear();
 }

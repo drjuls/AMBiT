@@ -60,18 +60,6 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     integrals = new CIIntegralsMBPT(*excited);
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
 
-    // Create excited state basis. Should be a superset of the CI basis.
-    excited_mbpt = new BSplineBasis(lattice, core);
-    excited_mbpt->SetIdentifier(&identifier);
-    dynamic_cast<BSplineBasis*>(excited_mbpt)->SetParameters(40, 7, 45.);
-    std::vector<unsigned int> num_states_per_l;
-    num_states_per_l.push_back(30);
-    num_states_per_l.push_back(30);
-    num_states_per_l.push_back(31);
-    num_states_per_l.push_back(30);
-    num_states_per_l.push_back(29);
-    excited_mbpt->CreateExcitedStates(num_states_per_l);
-
     //Write();
     Read();
     core->ToggleClosedShellCore();

@@ -4,15 +4,18 @@
 #include "Include.h"
 #include "Atom.h"
 #include "OutStreams.h"
+#include "Universal/Constant.h"
+
 #include "Basis/RStates.h"
 #include "Basis/RSinStates.h"
 #include "Basis/CustomBasis.h"
 #include "Basis/ReadBasis.h"
-#include "Universal/Constant.h"
+#include "Basis/SubsetBasis.h"
 #include "Basis/BSplineBasis.h"
+#include "Basis/HartreeFockBasis.h"
+
 #include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/ScalapackMatrix.h"
-
 #include "Universal/ExpLattice.h"
 #include "Universal/Eigensolver.h"
 #include "RateCalculator.h"
@@ -53,7 +56,7 @@ int main(int argc, char* argv[])
 
     try
     {   Atom A(22, 2, "TiII014");
-        A.RunMultipleOpen();
+        A.RunOpen();
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -252,77 +255,93 @@ double Atom::GetEnergy(const StateInfo& info)
     return ds.Energy();
 }
 
-void Atom::CreateRBasis(const StateInfo* ionised)
+void Atom::CreateBasis(bool UseMBPT)
 {
-    excited = new RSinStates(lattice, core);
-    excited->SetIdentifier(&identifier);
-
-    if(ionised)
-        core->Ionise(*ionised);
-
     std::vector<unsigned int> num_states;
-    num_states.push_back(5);
-    num_states.push_back(5);
-    num_states.push_back(4);
+    num_states.push_back(2);
+    num_states.push_back(2);
     num_states.push_back(3);
+    num_states.push_back(2);
 
+    if(UseMBPT)
+    {   // Add extra states and waves to mbpt basis
+        std::vector<unsigned int> num_states_mbpt(num_states);
+        num_states_mbpt.push_back(1);
+
+        for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
+            num_states_mbpt[i] += 10;
+
+        excited_mbpt->SetIdentifier(&identifier);
+        excited_mbpt->CreateExcitedStates(num_states_mbpt);        
+    }
+
+    excited->SetIdentifier(&identifier);
     excited->CreateExcitedStates(num_states);
 }
 
-void Atom::CreateBSplineBasis(const StateInfo* ionised)
+void Atom::CreateRBasis(bool UseMBPT)
 {
-    excited = new BSplineBasis(lattice, core);
-    excited->SetIdentifier(&identifier);
+    if(UseMBPT)
+    {   excited_mbpt = new RSinStates(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new RSinStates(lattice, core);
+    }
 
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, 45.);
+    CreateBasis(UseMBPT);
+}
 
-    if(ionised)
-        core->Ionise(*ionised);
+void Atom::CreateBSplineBasis(bool UseMBPT)
+{
+    BSplineBasis* basis;
 
-    std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(3);
-    num_states.push_back(2);
+    if(UseMBPT)
+    {   excited_mbpt = new BSplineBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+        basis = dynamic_cast<BSplineBasis*>(excited_mbpt);
+    }
+    else
+    {   excited = new BSplineBasis(lattice, core);
+        basis = dynamic_cast<BSplineBasis*>(excited);
+    }
 
-    excited->CreateExcitedStates(num_states);
+    basis->SetParameters(40, 7, 45.);
+    CreateBasis(UseMBPT);
 }
 
 void Atom::CreateBSplineBasis(double radius)
 {
     excited = new BSplineBasis(lattice, core);
-    excited->SetIdentifier(&identifier);
-
     dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, radius);
 
-    std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(3);
-    num_states.push_back(2);
-//    num_states.push_back(7);
-
-    excited->CreateExcitedStates(num_states);
+    CreateBasis(false);
 }
 
-void Atom::CreateCustomBasis(const StateInfo* ionised)
+void Atom::CreateCustomBasis(bool UseMBPT)
 {
-    excited = new CustomBasis(lattice, core);
-    excited->SetIdentifier(&identifier);
+    if(UseMBPT)
+    {   excited_mbpt = new CustomBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new CustomBasis(lattice, core);
+    }
 
-    if(ionised)
-        core->Ionise(*ionised);
+    CreateBasis(UseMBPT);
+}
 
-    std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(1);
-//    num_states.push_back(1);
-//    num_states.push_back(9);
-//    num_states.push_back(8);
-//    num_states.push_back(7);
+void Atom::CreateHartreeFockBasis(bool UseMBPT)
+{
+    if(UseMBPT)
+    {   excited_mbpt = new HartreeFockBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new HartreeFockBasis(lattice, core);
+    }
 
-    excited->CreateExcitedStates(num_states);
+    CreateBasis(UseMBPT);
 }
 
 void Atom::DoClosedShellSMS(bool include_mbpt)

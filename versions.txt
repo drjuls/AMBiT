@@ -10,10 +10,12 @@ Del: Removed functionality.
 
 Add: HartreeFockBasis class created. ReadBasis generalised to read other GRASP0
      files. Added ExcitedStates::TestOrthogonalityIncludingCore(); itoa() in
-     Include.cpp.
+     Include.cpp. Added SubsetBasis which is formed by taking pointers to
+     another ExcitedStates set. Unlike other StateManagers, SubsetBasis does
+     not own its states, and shouldn't delete them.
 Alt: Modified ExcitedStates to use external CoreMBPTCalculator when creating
      SigmaPotentials. Core::CalculateExcitedState() uses incoming trial value
-     of s->Nu() if it is non zero.
+     of s->Nu() if it is non zero. Cleaned up CreateBasis functions in Atom.
 
 1.6.0 - 30/09/08
 Bug: Fixed sign problem in Sigma3Calculator. All previous versions give

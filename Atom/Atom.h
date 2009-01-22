@@ -42,10 +42,11 @@ public:
     /** TODO: Create a "complete" Hartree-Fock basis, including discrete and continuum states. */
 
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
-    void CreateRBasis(const StateInfo* ionised = NULL);
-    void CreateBSplineBasis(const StateInfo* ionised = NULL);
+    void CreateRBasis(bool UseMBPT = false);
+    void CreateBSplineBasis(bool UseMBPT = false);
     void CreateBSplineBasis(double radius);
-    void CreateCustomBasis(const StateInfo* ionised = NULL);
+    void CreateCustomBasis(bool UseMBPT = false);
+    void CreateHartreeFockBasis(bool UseMBPT = false);
 
     void DoClosedShellSMS(bool include_mbpt = true);
     void DoClosedShellFSModifyR(bool include_mbpt = true);
@@ -123,6 +124,10 @@ public:
 public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
+
+protected:
+    /** Assumes excited object has been created (and excited_mbpt, if UseMBPT is true). */
+    void CreateBasis(bool UseMBPT);
 
 private:
     std::string identifier;

@@ -6,6 +6,8 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
     if(!num_states_per_l.size())
         return;
 
+    Clear();
+
     for(unsigned int k=0; k<num_states_per_l.size(); k++)
     {
         if(num_states_per_l[k])

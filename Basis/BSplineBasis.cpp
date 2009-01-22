@@ -291,14 +291,5 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
 void BSplineBasis::Update()
 {
-    Clear();
-
-    SigmaMap::iterator sigma = SecondOrderSigma.begin();
-    while(sigma != SecondOrderSigma.end())
-    {   delete sigma->second;
-        sigma++;
-    }
-    SecondOrderSigma.clear();
-
     CreateExcitedStates(NumStatesPerL);
 }

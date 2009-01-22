@@ -1,6 +1,6 @@
 cxxobjects = BSplineBasis.o BSplineCore.o BSplineGrid.o \
              CustomBasis.o ExcitedStates.o HartreeFockBasis.o \
-             ReadBasis.o RSinStates.o RStates.o
+             ReadBasis.o RSinStates.o RStates.o SubsetBasis.o
 cobjects = 
 fobjects = Spline.o
 

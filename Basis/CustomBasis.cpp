@@ -12,6 +12,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
     }
 
     NumStatesPerL = num_states_per_l;
+    Clear();
     std::vector<unsigned int> num_states_so_far(num_states_per_l.size(), 0);
 
     char buffer[100];
