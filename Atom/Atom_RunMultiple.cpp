@@ -10,7 +10,7 @@
 #include "Configuration/MPIHamiltonianMatrix.h"
 #include "Basis/BSplineBasis.h"
 
-void Atom::RunMultipleOpen()
+void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
 {
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(false);
@@ -18,16 +18,17 @@ void Atom::RunMultipleOpen()
     DebugOptions.HartreeEnergyUnits(true);
     DebugOptions.LogMBPT(false);
 
-    //CreateCustomBasis();
-    //CreateRBasis();
-    CreateBSplineBasis();
+    //CreateCustomBasis(include_mbpt);
+    CreateRBasis(include_mbpt);
+    //CreateBSplineBasis(include_mbpt);
+    //CreateHartreeFockBasis(include_mbpt);
 
-    //DebugOptions.OutputHFExcited(false);
+    DebugOptions.OutputHFExcited(false);
 
-    multiple_SMS = true;
+    multiple_SMS = false;
     multiple_alpha = false;
     multiple_volume = false;
-    multiple_radius = false;
+    multiple_radius = true;
 
     unsigned int i;
 
@@ -62,7 +63,7 @@ void Atom::RunMultipleOpen()
     }
     else if(multiple_volume)
     {   // Field shift multiplier
-        double parameter = -10.;
+        double parameter = -1.;
 
         for(i = 0; i < 5; i++)
         {
@@ -71,14 +72,14 @@ void Atom::RunMultipleOpen()
             ss << (int)(parameter);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
-            parameter += 5.;
+            parameter += .5;
         }
 
         double deltaR = 0.05;
         core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
         *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
         *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
-        *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR;
+        *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR << std::endl;
     }
     else if(multiple_radius)
     {   // Nuclear radius in fermi
@@ -94,24 +95,29 @@ void Atom::RunMultipleOpen()
             parameter += 3.;
         }
 
-        *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
+        *outstream << "\nThickness = " << std::setprecision(3)
+                   << core->GetNuclearThickness()*Constant::AtomicToFermi << std::endl;
     }
 
-    // delta = E_CI - E_HF
-    double delta[] = {-153032.343, -153171.873, -153311.989, -153452.693, -153593.985};
-    for(unsigned int i = 0; i < 5; i++)
-        mbpt_delta.push_back(delta[i]);
+    if(closed_shell)
+        CalculateMultipleClosedShell(include_mbpt);
+    else
+    {   // delta = E_CI - E_HF
+        double delta[] = {-153032.343, -153171.873, -153311.989, -153452.693, -153593.985};
+        for(unsigned int i = 0; i < 5; i++)
+            mbpt_delta.push_back(delta[i]);
 
-    // Uncomment to include sigma3.
-    sigma3 = new Sigma3Calculator(lattice, core, excited);
+        // Uncomment to include sigma3.
+        sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-    GenerateMultipleIntegralsMBPT(true, false, delta);
-    //CollateMultipleIntegralsMBPT(32);
-    //GenerateMultipleIntegrals(true);
-    //ChooseSymmetries();
+        GenerateMultipleIntegralsMBPT(true, false, delta);
+        //CollateMultipleIntegralsMBPT(32);
+        //GenerateMultipleIntegrals(true);
+        //ChooseSymmetries();
 
-    //CheckMatrixSizes();
-    //CalculateMultipleEnergies();
+        //CheckMatrixSizes();
+        //CalculateMultipleEnergies();
+    }
 }
 
 void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double* delta)
@@ -218,37 +224,44 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
     if(multiple_SMS)
     {   core->SetNuclearInverseMass(multiple_parameters[index]);
         *outstream << "\nNuclearInverseMass = " << multiple_parameters[index] << std::endl;
-        integrals->IncludeValenceSMS(true);
+        if(integrals)
+            integrals->IncludeValenceSMS(true);
     }
     else if(multiple_alpha)
     {   Constant::Alpha = alpha0 * sqrt(multiple_parameters[index]+1.);
         Constant::AlphaSquared = alpha0 * alpha0 * (multiple_parameters[index]+1.);
         *outstream << "\nx = " << multiple_parameters[index] << std::endl;
-        integrals->IncludeValenceSMS(false);
+        if(integrals)
+            integrals->IncludeValenceSMS(false);
     }
     else if(multiple_volume)
     {   core->SetVolumeShiftParameter(multiple_parameters[index]);
         *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_parameters[index] << std::endl;
-        integrals->IncludeValenceSMS(false);
+        if(integrals)
+            integrals->IncludeValenceSMS(false);
     }
     else if(multiple_radius)
     {   core->SetNuclearRadius(multiple_parameters[index]/Constant::AtomicToFermi);
         *outstream << "\nRadius = " << std::setprecision(3) << multiple_parameters[index] << std::endl;
-        integrals->IncludeValenceSMS(false);
+        if(integrals)
+            integrals->IncludeValenceSMS(false);
     }
 
-    integrals->SetIdentifier(identifier);
+    if(integrals)
+        integrals->SetIdentifier(identifier);
 
     core->Update();
     excited->Update();
     if(excited_mbpt)
         excited_mbpt->Update();
-    Read();
+    //Read();
     //Write();
     core->ToggleClosedShellCore();
 
-    integrals->Clear();
-    integrals->Update();
+    if(integrals)
+    {   integrals->Clear();
+        integrals->Update();
+    }
 
     identifier = original_identifier;
     
@@ -306,5 +319,38 @@ void Atom::CalculateMultipleEnergies()
         }
 
         it++;
+    }
+}
+
+void Atom::CalculateMultipleClosedShell(bool include_mbpt)
+{
+    // Report ordering of excited states
+    ConstStateIterator it = excited->GetConstStateIterator();
+    while(!it.AtEnd())
+    {   *outstream << it.GetStateInfo().Name() << std::endl;
+        it.Next();
+    }
+
+    if(include_mbpt)
+         mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
+
+    for(unsigned int i = 0; i < multiple_ids.size(); i++)
+    {
+        SetMultipleIntegralsAndCore(i);
+
+        // Calculate for all excited states
+        it = excited->GetConstStateIterator();
+        while(!it.AtEnd())
+        {
+            StateInfo si = it.GetStateInfo();
+            const DiscreteState* ds = it.GetState();
+            double dE = 0.;
+            if(include_mbpt)
+//                dE = mbpt->GetOneElectronDiagrams(si, si);
+                dE = excited->CreateSecondOrderSigma(si, *mbpt);
+
+            *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
+            it.Next();
+        }
     }
 }

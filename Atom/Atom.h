@@ -86,10 +86,10 @@ public:
     void CalculateEnergies();
 
 public:
-    /** Run open shell atomic energy code multiple times, varying some parameter like
+    /** Run atomic energy code multiple times, varying some parameter like
         alpha, NuclearInverseMass (for SMS), or volume shift parameter.
      */
-    void RunMultipleOpen();
+    void RunMultiple(bool include_mbpt = true, bool closed_shell = false);
 
     /** Set up core, excited states, and integrals some value of the varying parameter.
         PRE: Need to have initialised CIIntegrals* integrals, core and excited states.
@@ -110,6 +110,8 @@ public:
 
     /** Calculate energies for all chosen symmetries. Integrals are generated as needed. */
     void CalculateMultipleEnergies();
+
+    void CalculateMultipleClosedShell(bool include_mbpt);
 
 public:
     /** Get previously calculated Eigenstates of Symmetry sym. */

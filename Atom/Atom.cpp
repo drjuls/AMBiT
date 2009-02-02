@@ -55,10 +55,9 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(90, 4, "ThIV");
+    {   Atom A(90, 4, "ThIV", true);
+//        A.RunMultiple(true, true);
         A.Run();
-//        A.DoClosedShellFSModifyR(true);
-//        A.DoClosedShellVolumeShift(true);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -91,17 +90,24 @@ void Atom::Run()
     DebugOptions.HartreeEnergyUnits(true);
 
     //CreateCustomBasis();
+    //CreateHartreeFockBasis(false);
     CreateRBasis(true);
     //CreateBSplineBasis();
 
     mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
     //mbpt->UpdateIntegrals(excited);
 
+    core->SetNuclearRadius(0.0);
+    core->Update();
+    excited->Update();
+    if(excited_mbpt)
+        excited_mbpt->Update();
+
     StateInfo si(5, 3);
     const DiscreteState* ds = excited->GetState(si);
     //ds->Print(ds->Name() + ".txt", lattice);
 
-    //double dE = excited->CreateSecondOrderSigma(si, *mbpt);
+    double dE = excited->CreateSecondOrderSigma(si, *mbpt);
 
     if(excited->RetrieveSecondOrderSigma(si))
     {
@@ -246,18 +252,24 @@ double Atom::GetEnergy(const StateInfo& info)
 void Atom::CreateBasis(bool UseMBPT)
 {
     std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(3);
-    num_states.push_back(2);
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
 
     if(UseMBPT)
     {   // Add extra states and waves to mbpt basis
-        std::vector<unsigned int> num_states_mbpt(num_states);
-        num_states_mbpt.push_back(1);
+        std::vector<unsigned int> num_states_mbpt;
+        num_states_mbpt.push_back(2);
+        num_states_mbpt.push_back(2);
+        num_states_mbpt.push_back(3);
+        num_states_mbpt.push_back(4);
+        num_states_mbpt.push_back(4);
+        num_states_mbpt.push_back(3);
 
         for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += 10;
+            num_states_mbpt[i] += 0;
 
         excited_mbpt->SetIdentifier(&identifier);
         excited_mbpt->CreateExcitedStates(num_states_mbpt);        
@@ -376,7 +388,8 @@ void Atom::DoClosedShellFSModifyR(bool include_mbpt)
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    CreateRBasis(include_mbpt);
+    CreateHartreeFockBasis(include_mbpt);
+    //CreateRBasis(include_mbpt);
 
     DebugOptions.OutputHFExcited(false);
 
@@ -392,7 +405,7 @@ void Atom::DoClosedShellFSModifyR(bool include_mbpt)
 
     *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
 
-    for(double r = 0.; r <= 12.; r += 3.)
+    for(double r = 6.9264; r <= 7.; r += .05)
     {
         *outstream << "\nRadius    = " << std::setprecision(3) << r << std::endl;
 
@@ -428,7 +441,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
     double deltaR = 0.05;
     core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
 
-    CreateRBasis(include_mbpt);
+    CreateHartreeFockBasis(include_mbpt);
     DebugOptions.OutputHFExcited(false);
 
     // Report ordering of excited states
@@ -445,7 +458,7 @@ void Atom::DoClosedShellVolumeShift(bool include_mbpt)
     *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
     *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR;
 
-    for(double ais = -50.; ais <= 50.; ais += 25.)
+    for(double ais = -1.; ais <= 1.; ais += .5)
     {
         *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
 
