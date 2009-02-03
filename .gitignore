@@ -6,4 +6,8 @@
 *.integrals
 *.tar
 *.tar.gz
-
+*/Release
+*/Debug
+atom
+*~
+*.[oa]
