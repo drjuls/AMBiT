@@ -38,7 +38,11 @@ public:     // Methods for managing excited single particle basis states
     virtual void Update() = 0;
 
 public:     // Methods for managing sigma
-    void SetIdentifier(const std::string* s) { identifier = s; }
+    /** Set an identifier to use in the sigma file names. */
+    void SetIdentifier(const std::string& s) { identifier = s; }
+    
+    /** Clear all sigmas. */
+    void ClearSigmas();
 
     /** Create a sigma operator for the given state to second order.
         This operator will henceforth be included in the exchange potential of
@@ -93,7 +97,7 @@ protected:
 protected:
     const Core* core;
 
-    const std::string* identifier;  // needed to store sigmas
+    std::string identifier;  // needed to store sigmas
     SigmaMap SecondOrderSigma;
     SigmaAmount SecondOrderAmount;
 };

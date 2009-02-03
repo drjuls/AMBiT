@@ -324,6 +324,8 @@ void Atom::CalculateMultipleEnergies()
 
 void Atom::CalculateMultipleClosedShell(bool include_mbpt)
 {
+    bool brueckner = true;
+
     // Report ordering of excited states
     ConstStateIterator it = excited->GetConstStateIterator();
     while(!it.AtEnd())
@@ -338,18 +340,33 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
     {
         SetMultipleIntegralsAndCore(i);
 
+        if(include_mbpt)
+        {   if(brueckner)
+            {   excited->SetIdentifier(multiple_ids[i]);
+                excited->ClearSigmas();
+            }
+            else
+                mbpt->UpdateIntegrals(excited);
+        }
+
         // Calculate for all excited states
         it = excited->GetConstStateIterator();
         while(!it.AtEnd())
         {
             StateInfo si = it.GetStateInfo();
-            const DiscreteState* ds = it.GetState();
-            double dE = 0.;
-            if(include_mbpt)
-//                dE = mbpt->GetOneElectronDiagrams(si, si);
-                dE = excited->CreateSecondOrderSigma(si, *mbpt);
+            if(brueckner)
+            {   excited->CreateSecondOrderSigma(si, *mbpt);
+                DiscreteState ds = excited->GetStateWithSigma(si);
+                *outstream << std::setprecision(15) << ds.Energy() * Constant::HartreeEnergy_cm << std::endl;
+            }
+            else
+            {   const DiscreteState* ds = it.GetState();
+                double dE = 0.;
+                if(include_mbpt)
+                    dE = mbpt->GetOneElectronDiagrams(si, si);
+                *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
+            }
 
-            *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
             it.Next();
         }
     }

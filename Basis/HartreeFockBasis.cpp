@@ -87,6 +87,8 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
 /** Update all of the excited states because the core has changed. */
 void HartreeFockBasis::Update()
 {
+    ClearSigmas();
+
     StateIterator it = GetStateIterator();
     it.First();
     while(!it.AtEnd())

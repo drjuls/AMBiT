@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
 
     try
     {   Atom A(90, 4, "ThIV", true);
-//        A.RunMultiple(true, true);
-        A.Run();
+        A.RunMultiple(true, true);
+//        A.Run();
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -269,13 +269,12 @@ void Atom::CreateBasis(bool UseMBPT)
         num_states_mbpt.push_back(3);
 
         for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += 0;
+            num_states_mbpt[i] += -1;
 
-        excited_mbpt->SetIdentifier(&identifier);
         excited_mbpt->CreateExcitedStates(num_states_mbpt);        
     }
 
-    excited->SetIdentifier(&identifier);
+    excited->SetIdentifier(identifier);
     excited->CreateExcitedStates(num_states);
 }
 

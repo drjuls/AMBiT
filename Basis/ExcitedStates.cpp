@@ -44,6 +44,18 @@ DiscreteState ExcitedStates::GetStateWithSigma(const StateInfo& info) const
         return DiscreteState();
 }
 
+void ExcitedStates::ClearSigmas()
+{
+    SigmaMap::iterator sigma = SecondOrderSigma.begin();
+    while(sigma != SecondOrderSigma.end())
+    {   delete sigma->second;
+        sigma++;
+    }
+    SecondOrderSigma.clear();
+
+    SecondOrderAmount.clear();
+}
+
 double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt)
 {
     DiscreteState* s = GetState(info);
@@ -54,13 +66,13 @@ double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMB
 
     SigmaPotential* sigma;
 
-    std::string sigma_file = *identifier + "." + itoa(info.Kappa()) + ".sigma";
-    sigma = new SigmaPotential(lattice, sigma_file, s->Size(), 100);
-    sigma->Reset();
+    std::string sigma_file = identifier + "." + itoa(info.Kappa()) + ".sigma";
 
     SigmaMap::iterator it = SecondOrderSigma.find(s->Kappa());
     if(it == SecondOrderSigma.end())
-    {   mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
+    {   sigma = new SigmaPotential(lattice, sigma_file, s->Size(), 100);
+        sigma->Reset();
+        mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
         SecondOrderSigma[s->Kappa()] = sigma;
         sigma->Store();
     }
@@ -76,7 +88,7 @@ double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMB
 
 bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
 {
-    std::string sigma_file = *identifier + "." + itoa(info.Kappa()) + ".sigma";
+    std::string sigma_file = identifier + "." + itoa(info.Kappa()) + ".sigma";
     SigmaPotential* sigma = new SigmaPotential(lattice, sigma_file);
 
     if(sigma->Size())
@@ -390,11 +402,5 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
 void ExcitedStates::Clear()
 {
     StateManager::Clear();
-
-    SigmaMap::iterator sigma = SecondOrderSigma.begin();
-    while(sigma != SecondOrderSigma.end())
-    {   delete sigma->second;
-        sigma++;
-    }
-    SecondOrderSigma.clear();
+    ClearSigmas();
 }
