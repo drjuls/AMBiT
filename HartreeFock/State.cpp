@@ -73,7 +73,7 @@ double State::Overlap(const State& other, const Lattice* lattice) const
 
 bool State::Print(Lattice* lattice) const
 {
-    return Print("orbital.txt", lattice);
+    return Print(Name() + "_orbital.txt", lattice);
 }
 
 bool State::Print(const std::string& filename, Lattice* lattice) const

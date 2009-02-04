@@ -29,7 +29,7 @@ public:
         and if they are not, enlarge or reduce the size of the wavefunctions.
         Return true if the size was correct, false if there was a change.
       */
-    bool CheckSize(double tolerance);
+    bool CheckSize(Lattice* lattice, double tolerance);
     void ReNormalise(const Lattice* lattice, double norm = 1.);
 
     const DiscreteState& operator=(const DiscreteState& other)

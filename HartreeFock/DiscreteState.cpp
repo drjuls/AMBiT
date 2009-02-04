@@ -50,7 +50,7 @@ std::string DiscreteState::Name() const
     return StateInfo(this).Name();
 }
 
-bool DiscreteState::CheckSize(double tolerance)
+bool DiscreteState::CheckSize(Lattice* lattice, double tolerance)
 {
     double maximum = 0.;
     unsigned int i = 0;
@@ -62,7 +62,7 @@ bool DiscreteState::CheckSize(double tolerance)
         }
         i++;
     }
-    
+
     if(maximum < tolerance*100)
     {   *errstream << "DiscreteState::Checksize: Zero function. " << std::endl;
         PAUSE
@@ -72,51 +72,60 @@ bool DiscreteState::CheckSize(double tolerance)
     i = f.size() - 1;
     while(fabs(f[i])/maximum < tolerance)
         i--;
-    
+
     if(i == f.size() - 1)
     {   // add points to wavefunction
-        unsigned int max = f.size()-1;
-        double f_max = fabs(f[max]);
-        double f_ratio = f[max]/f[max-1],
-               g_ratio = g[max]/g[max-1];
+        unsigned int max = f.size();
+        double f_max, f_ratio, g_ratio;
+        double log_f_ratio, log_g_ratio, dr_max;
 
-        // Strip off any inconsistency at tail end,
-        // usually just caused by numerical wobbles.
-        while(f_ratio >= 1.)
+        // Strip off any nearby node
+        do
         {   max--;
             f_max = fabs(f[max]);
             f_ratio = f[max]/f[max-1];
             g_ratio = g[max]/g[max-1];
-        }
+        }while(f_ratio < 0. || g_ratio < 0.);
 
-        // ...and this keeps the size from blowing up if we
-        // end up at a plateau.
+        // Make sure we are tailing off
         if(f_ratio > 0.96)
             f_ratio = 0.96;
         if(g_ratio > 0.96)
             g_ratio = 0.96;
 
+        log_f_ratio = log(f_ratio);
+        log_g_ratio = log(g_ratio);
+        dr_max = lattice->R(max)-lattice->R(max-1);
+
+        // Resize the state (this is a slight overestimate assuming dr is constant).
         unsigned int old_size = max;
         while(f_max/maximum >= tolerance)
         {   max++;
             f_max = f_max * f_ratio;
         }
-
         ReSize(max+1);
-        for(unsigned int i=old_size; i<max+1; i++)
-        {   f[i] = f[i-1]*f_ratio;
-            g[i] = g[i-1]*g_ratio;
-        }
 
-        // Check lattice is okay
-        //lattice->R(max);
-        return false;
-    }
-    else
-    {   // Reduce size
+        // Exponential decay (assumes dr changes slowly).
+        unsigned int i = old_size;
+        while((i < max) && (fabs(f[i])/maximum > tolerance))
+        {
+            double d2r = (lattice->R(i+1) - lattice->R(i))/dr_max -1.;
+
+            f[i+1] = f[i] * f_ratio * (1. + log_f_ratio * d2r);
+            g[i+1] = g[i] * g_ratio * (1. + log_g_ratio * d2r);
+
+            i++;
+        }
         ReSize(i+1);
+
         return false;
     }
+    else if(i+2 < f.size())
+    {   // Reduce size
+        ReSize(i+2);
+        return false;
+    }
+    else return true;
 }
 
 void DiscreteState::ReNormalise(const Lattice* lattice, double norm)

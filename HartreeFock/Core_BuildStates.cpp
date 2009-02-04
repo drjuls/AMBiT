@@ -94,7 +94,8 @@ void Core::Update()
 
             // Renormalise core states (should be close already) and update energy.
             core_state->ReNormalise(lattice);
-            
+            core_state->CheckSize(lattice, StateParameters::WavefunctionTolerance);
+
             double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
             core_state->SetEnergy(energy);
             *new_state = *core_state;
@@ -327,7 +328,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
     I.SetAdamsOrder(10);
 
     if(s->Size() > (I.AdamsOrder()-1))
-        s->CheckSize(StateParameters::WavefunctionTolerance);
+        s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
     else
     {   double r_cutoff = (2. * Charge * (s->Nu()) + 10.) * (s->Nu());
         s->ReSize(lattice->real_to_lattice(r_cutoff));
@@ -386,7 +387,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
         s->SetNu(s->Nu() - delta);
         s->ReNormalise(lattice);
 
-        s->CheckSize(StateParameters::WavefunctionTolerance);
+        s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
         if(lattice->Size() > HFPotential.size())
         {   // Lengthen potential if necessary. Local exchange is zero outside the core.
             ExtendPotential();
@@ -411,7 +412,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     BI.SetAdamsOrder(10);
 
     if(s->Size() > (I.AdamsOrder()-1))
-        s->CheckSize(StateParameters::WavefunctionTolerance);
+        s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
     else
     {   double r_cutoff = (2. * Charge * (s->Nu()) + 10.) * (s->Nu());
         s->ReSize(lattice->real_to_lattice(r_cutoff));
@@ -485,8 +486,6 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     s->SetEnergy(old_energy + delta_E);
 
     // Solve Dirac equation again with new energy
-    s->CheckSize(StateParameters::WavefunctionTolerance);
-
     s0 = *s;
     sInf = *s;
 
@@ -516,7 +515,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
                     - exchange->f[i]) *dR[i];
     }
 
-    s->CheckSize(StateParameters::WavefunctionTolerance);
+    s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
     return delta_E;
 }
 
