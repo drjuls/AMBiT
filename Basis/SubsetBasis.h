@@ -16,8 +16,8 @@ public:
      */
     virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l);
 
-    /** This does nothing because we don't own the states. */
-    virtual void Update() {}
+    /** This doesn't change the states because we don't own them. */
+    virtual void Update() { ClearSigmas(); }
 
     /** Do not delete states: they are owned by superset basis. */
     virtual void Clear();

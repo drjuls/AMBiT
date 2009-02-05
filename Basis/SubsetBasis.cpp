@@ -48,14 +48,8 @@ void SubsetBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 
 void SubsetBasis::Clear()
 {
+    ClearSigmas();
     AllStates.clear();
-
-    SigmaMap::iterator sigma = SecondOrderSigma.begin();
-    while(sigma != SecondOrderSigma.end())
-    {   delete sigma->second;
-        sigma++;
-    }
-    SecondOrderSigma.clear();
 }
 
 const ExcitedStates* SubsetBasis::GetSuperset() const

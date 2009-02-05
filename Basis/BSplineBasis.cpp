@@ -312,5 +312,6 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
 void BSplineBasis::Update()
 {
+    ClearSigmas();
     CreateExcitedStates(NumStatesPerL);
 }
