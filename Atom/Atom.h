@@ -36,22 +36,12 @@ public:
     void Read();
 
 public:
-    /** Get energy of state given kappa and principal quantum number. */
-    double GetEnergy(const StateInfo& info);
-
-    /** TODO: Create a "complete" Hartree-Fock basis, including discrete and continuum states. */
-
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
     void CreateRBasis(bool UseMBPT = false);
     void CreateBSplineBasis(bool UseMBPT = false);
     void CreateBSplineBasis(double radius);
     void CreateCustomBasis(bool UseMBPT = false);
     void CreateHartreeFockBasis(bool UseMBPT = false);
-
-    void DoClosedShellSMS(bool include_mbpt = true);
-    void DoClosedShellFSModifyR(bool include_mbpt = true);
-    void DoClosedShellVolumeShift(bool include_mbpt = true);
-    void DoClosedShellAlphaVar(bool include_mbpt = true);
 
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,

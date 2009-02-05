@@ -97,45 +97,29 @@ void Atom::Run()
     mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
     //mbpt->UpdateIntegrals(excited);
 
-    core->SetNuclearRadius(0.0);
-    core->Update();
-    excited->Update();
-    if(excited_mbpt)
-        excited_mbpt->Update();
-
-    StateInfo si(5, 3);
-    const DiscreteState* ds = excited->GetState(si);
-    //ds->Print(ds->Name() + ".txt", lattice);
-
-    double dE = excited->CreateSecondOrderSigma(si, *mbpt);
-
-    if(excited->RetrieveSecondOrderSigma(si))
-    {
-        DiscreteState brueckner = excited->GetStateWithSigma(si);
-        *outstream << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
-        for(unsigned int i = 0; i < 100; i+=10)
-            *outstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
-    }
-    return;
-
     ConstStateIterator it = excited->GetConstStateIterator();
     while(!it.AtEnd())
     {
         StateInfo si = it.GetStateInfo();
         const DiscreteState* ds = it.GetState();
-        //ds->Print(ds->Name() + ".txt", lattice);
 
-        double dE = excited->CreateSecondOrderSigma(si, *mbpt);
+        if(excited->RetrieveSecondOrderSigma(si))
+        {
+            double dE = excited->GetSigmaMatrixElement(si);
+            *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
 
-//        if(excited->RetrieveSecondOrderSigma(si))
-//        {
-//            DiscreteState brueckner = excited->GetStateWithSigma(si);
-//            *outstream << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
-//        }
+            DiscreteState brueckner = excited->GetStateWithSigma(si);
+            *outstream << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
+            *outstream << "\n" << brueckner.Name() << std::endl;
+            for(unsigned int i = 0; i < 100; i+=10)
+            {
+                *outstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+            }
+        }
 
 //        *outstream << ds->Name() << ": " << ds->Energy() * Constant::HartreeEnergy_cm
 //                   << " + dE = " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
-        *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
+//        *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
         it.Next();
     }
 }
@@ -176,6 +160,100 @@ Atom::~Atom(void)
         delete sigma3;
     delete core;
     delete lattice;
+}
+
+void Atom::CreateBasis(bool UseMBPT)
+{
+    std::vector<unsigned int> num_states;
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
+    num_states.push_back(1);
+
+    if(UseMBPT)
+    {   // Add extra states and waves to mbpt basis
+        std::vector<unsigned int> num_states_mbpt;
+        num_states_mbpt.push_back(2);
+        num_states_mbpt.push_back(2);
+        num_states_mbpt.push_back(3);
+        num_states_mbpt.push_back(4);
+        num_states_mbpt.push_back(4);
+        num_states_mbpt.push_back(3);
+
+        for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
+            num_states_mbpt[i] += 16;
+
+        excited_mbpt->CreateExcitedStates(num_states_mbpt);        
+    }
+
+    excited->SetIdentifier(identifier);
+    excited->CreateExcitedStates(num_states);
+}
+
+void Atom::CreateRBasis(bool UseMBPT)
+{
+    if(UseMBPT)
+    {   excited_mbpt = new RSinStates(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new RSinStates(lattice, core);
+    }
+
+    CreateBasis(UseMBPT);
+}
+
+void Atom::CreateBSplineBasis(bool UseMBPT)
+{
+    BSplineBasis* basis;
+
+    if(UseMBPT)
+    {   excited_mbpt = new BSplineBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+        basis = dynamic_cast<BSplineBasis*>(excited_mbpt);
+    }
+    else
+    {   excited = new BSplineBasis(lattice, core);
+        basis = dynamic_cast<BSplineBasis*>(excited);
+    }
+
+    basis->SetParameters(40, 7, 50.);
+    CreateBasis(UseMBPT);
+}
+
+void Atom::CreateBSplineBasis(double radius)
+{
+    excited = new BSplineBasis(lattice, core);
+    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, radius);
+
+    CreateBasis(false);
+}
+
+void Atom::CreateCustomBasis(bool UseMBPT)
+{
+    if(UseMBPT)
+    {   excited_mbpt = new CustomBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new CustomBasis(lattice, core);
+    }
+
+    CreateBasis(UseMBPT);
+}
+
+void Atom::CreateHartreeFockBasis(bool UseMBPT)
+{
+    if(UseMBPT)
+    {   excited_mbpt = new HartreeFockBasis(lattice, core);
+        excited = new SubsetBasis(lattice, excited_mbpt);
+    }
+    else
+    {   excited = new HartreeFockBasis(lattice, core);
+    }
+
+    CreateBasis(UseMBPT);
 }
 
 void Atom::Write() const
@@ -241,295 +319,6 @@ void Atom::Read()
 
         fclose(fp);
     }
-}
-
-double Atom::GetEnergy(const StateInfo& info)
-{
-    DiscreteState ds = excited->GetStateWithSigma(info);
-    return ds.Energy();
-}
-
-void Atom::CreateBasis(bool UseMBPT)
-{
-    std::vector<unsigned int> num_states;
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
-
-    if(UseMBPT)
-    {   // Add extra states and waves to mbpt basis
-        std::vector<unsigned int> num_states_mbpt;
-        num_states_mbpt.push_back(2);
-        num_states_mbpt.push_back(2);
-        num_states_mbpt.push_back(3);
-        num_states_mbpt.push_back(4);
-        num_states_mbpt.push_back(4);
-        num_states_mbpt.push_back(3);
-
-        for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += -1;
-
-        excited_mbpt->CreateExcitedStates(num_states_mbpt);        
-    }
-
-    excited->SetIdentifier(identifier);
-    excited->CreateExcitedStates(num_states);
-}
-
-void Atom::CreateRBasis(bool UseMBPT)
-{
-    if(UseMBPT)
-    {   excited_mbpt = new RSinStates(lattice, core);
-        excited = new SubsetBasis(lattice, excited_mbpt);
-    }
-    else
-    {   excited = new RSinStates(lattice, core);
-    }
-
-    CreateBasis(UseMBPT);
-}
-
-void Atom::CreateBSplineBasis(bool UseMBPT)
-{
-    BSplineBasis* basis;
-
-    if(UseMBPT)
-    {   excited_mbpt = new BSplineBasis(lattice, core);
-        excited = new SubsetBasis(lattice, excited_mbpt);
-        basis = dynamic_cast<BSplineBasis*>(excited_mbpt);
-    }
-    else
-    {   excited = new BSplineBasis(lattice, core);
-        basis = dynamic_cast<BSplineBasis*>(excited);
-    }
-
-    basis->SetParameters(40, 7, 45.);
-    CreateBasis(UseMBPT);
-}
-
-void Atom::CreateBSplineBasis(double radius)
-{
-    excited = new BSplineBasis(lattice, core);
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, radius);
-
-    CreateBasis(false);
-}
-
-void Atom::CreateCustomBasis(bool UseMBPT)
-{
-    if(UseMBPT)
-    {   excited_mbpt = new CustomBasis(lattice, core);
-        excited = new SubsetBasis(lattice, excited_mbpt);
-    }
-    else
-    {   excited = new CustomBasis(lattice, core);
-    }
-
-    CreateBasis(UseMBPT);
-}
-
-void Atom::CreateHartreeFockBasis(bool UseMBPT)
-{
-    if(UseMBPT)
-    {   excited_mbpt = new HartreeFockBasis(lattice, core);
-        excited = new SubsetBasis(lattice, excited_mbpt);
-    }
-    else
-    {   excited = new HartreeFockBasis(lattice, core);
-    }
-
-    CreateBasis(UseMBPT);
-}
-
-void Atom::DoClosedShellSMS(bool include_mbpt)
-{
-    CoreMBPTCalculator mbpt(lattice, core, excited);
-    const unsigned int max_k = 3;
-    double totals[max_k];
-
-    for(double ais = -0.002; ais <= 0.002; ais += 0.001)
-    {
-        core->SetNuclearInverseMass(ais);
-        core->Update();
-        excited->Update();
-
-        const DiscreteState* ds;
-        int k2;
-        for(k2 = 1; k2 <= max_k; k2++)
-        {
-            int kappa = k2/2;
-            if(k2%2)
-                kappa = -kappa-1;
-
-            if(k2 <= 3)
-                ds = excited->GetState(StateInfo(2, kappa));
-            else
-                ds = excited->GetState(StateInfo(5, kappa));
-
-            if(include_mbpt)
-            {   totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
-            }
-            else
-                totals[k2-1] = ds->Energy();
-        }
-
-        *outstream << "\nNuclearInverseMass = " << ais << std::endl;
-        for(k2 = 0; k2 < max_k; k2++)
-            *outstream << std::setprecision(15) << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
-        *outstream << std::endl;
-    }
-}
-
-void Atom::DoClosedShellFSModifyR(bool include_mbpt)
-{
-    DebugOptions.OutputHFExcited(true);
-    DebugOptions.HartreeEnergyUnits(true);
-
-    CreateHartreeFockBasis(include_mbpt);
-    //CreateRBasis(include_mbpt);
-
-    DebugOptions.OutputHFExcited(false);
-
-    // Report ordering of excited states
-    ConstStateIterator it = excited->GetConstStateIterator();
-    while(!it.AtEnd())
-    {   *outstream << it.GetStateInfo().Name() << std::endl;
-        it.Next();
-    }
-
-    if(include_mbpt)
-         mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-
-    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
-
-    for(double r = 6.9264; r <= 7.; r += .05)
-    {
-        *outstream << "\nRadius    = " << std::setprecision(3) << r << std::endl;
-
-        core->SetNuclearRadius(r/Constant::AtomicToFermi);
-        core->Update();
-        excited->Update();
-        if(include_mbpt)
-        {   excited_mbpt->Update();
-            mbpt->UpdateIntegrals(excited);
-        }
-
-        // Calculate for all excited states
-        it = excited->GetConstStateIterator();
-        while(!it.AtEnd())
-        {
-            StateInfo si = it.GetStateInfo();
-            const DiscreteState* ds = it.GetState();
-            double dE = 0.;
-            if(include_mbpt)
-                dE = mbpt->GetOneElectronDiagrams(si, si);
-
-            *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
-            it.Next();
-        }
-    }
-}
-
-void Atom::DoClosedShellVolumeShift(bool include_mbpt)
-{
-    DebugOptions.OutputHFExcited(true);
-    DebugOptions.HartreeEnergyUnits(true);
-
-    double deltaR = 0.05;
-    core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
-
-    CreateHartreeFockBasis(include_mbpt);
-    DebugOptions.OutputHFExcited(false);
-
-    // Report ordering of excited states
-    ConstStateIterator it = excited->GetConstStateIterator();
-    while(!it.AtEnd())
-    {   *outstream << it.GetStateInfo().Name() << std::endl;
-        it.Next();
-    }
-
-    if(include_mbpt)
-         mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-
-    *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
-    *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
-    *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR;
-
-    for(double ais = -1.; ais <= 1.; ais += .5)
-    {
-        *outstream << "\nVolumeShiftParameter = " << ais << std::endl;
-
-        core->SetVolumeShiftParameter(ais);
-        core->Update();
-        excited->Update();
-        if(include_mbpt)
-        {   excited_mbpt->Update();
-            mbpt->UpdateIntegrals(excited);
-        }
-
-        // Calculate for all excited states
-        it = excited->GetConstStateIterator();
-        while(!it.AtEnd())
-        {
-            StateInfo si = it.GetStateInfo();
-            const DiscreteState* ds = it.GetState();
-            double dE = 0.;
-            if(include_mbpt)
-                dE = mbpt->GetOneElectronDiagrams(si, si);
-
-            *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
-            it.Next();
-        }
-    }
-
-    core->SetVolumeShiftParameter(0.);
-}
-
-void Atom::DoClosedShellAlphaVar(bool include_mbpt)
-{
-    CoreMBPTCalculator mbpt(lattice, core, excited);
-    const unsigned int max_k = 5;
-    double totals[max_k];
-
-    double alpha0 = Constant::Alpha;
-
-    for(double x = -0.25; x <= 0.25; x += 0.125)
-    {
-        Constant::Alpha = alpha0 * sqrt(x+1.);
-        Constant::AlphaSquared = alpha0 * alpha0 * (x+1.);
-
-        core->Update();
-        excited->Update();
-
-        const DiscreteState* ds;
-        int k2;
-        for(k2 = 1; k2 <= max_k; k2++)
-        {
-            int kappa = k2/2;
-            if(k2%2)
-                kappa = -kappa-1;
-
-            if(k2 <= 3)
-                ds = excited->GetState(StateInfo(5, kappa));
-            else
-                ds = excited->GetState(StateInfo(5, kappa));
-
-            if(include_mbpt)
-                totals[k2-1] = mbpt.GetOneElectronDiagrams(ds, ds);
-            else
-                totals[k2-1] = ds->Energy();
-        }
-
-        *outstream << "\nx = " << x << std::endl;
-        for(k2 = 0; k2 < max_k; k2++)
-            *outstream << totals[k2]*Constant::HartreeEnergy_cm << std::endl;
-        *outstream << std::endl;
-    }
-
-    Constant::Alpha = alpha0;
-    Constant::AlphaSquared = alpha0 * alpha0;
 }
 
 void Atom::GenerateCowanInputFile()

@@ -19,9 +19,9 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
     DebugOptions.LogMBPT(false);
 
     //CreateCustomBasis(include_mbpt);
-    CreateRBasis(include_mbpt);
+    //CreateRBasis(include_mbpt);
     //CreateBSplineBasis(include_mbpt);
-    //CreateHartreeFockBasis(include_mbpt);
+    CreateHartreeFockBasis(include_mbpt);
 
     DebugOptions.OutputHFExcited(false);
 
@@ -85,14 +85,20 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
     {   // Nuclear radius in fermi
         double parameter = 0.;
         
+        multiple_parameters.push_back(6.80502);
+        multiple_parameters.push_back(6.86598);
+        multiple_parameters.push_back(6.9264);
+        multiple_parameters.push_back(6.9863);
+        multiple_parameters.push_back(7.04569);
+
         for(i = 0; i < 5; i++)
         {
             std::stringstream ss;
-            multiple_parameters.push_back(parameter);
+            //multiple_parameters.push_back(parameter);
             ss << (int)(parameter);
             multiple_ids.push_back(identifier + '_' + ss.str());
 
-            parameter += 3.;
+            parameter += 1.;
         }
 
         *outstream << "\nThickness = " << std::setprecision(3)
@@ -354,7 +360,7 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
         while(!it.AtEnd())
         {
             StateInfo si = it.GetStateInfo();
-            if(brueckner)
+            if(include_mbpt && brueckner)
             {   excited->CreateSecondOrderSigma(si, *mbpt);
                 DiscreteState ds = excited->GetStateWithSigma(si);
                 *outstream << std::setprecision(15) << ds.Energy() * Constant::HartreeEnergy_cm << std::endl;
