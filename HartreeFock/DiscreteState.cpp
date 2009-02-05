@@ -135,6 +135,45 @@ void DiscreteState::ReNormalise(const Lattice* lattice, double norm)
         Scale(scaling);
 }
 
+unsigned int DiscreteState::NumNodes() const
+{
+    // Count number of zeros
+    unsigned int zeros = 0;
+
+    // Get maximum point. This is generally past the last node.
+    // We want to ignore small oscillations at the tail of the wavefunction,
+    // these are due to the exchange interaction.
+    double fmax = 0.;
+    unsigned int i_fmax = 0;
+    unsigned int i = 0;
+    while(i < f.size())
+    {   if(fabs(f[i]) > fmax)
+        {   fmax = fabs(f[i]);
+            i_fmax = i;
+        }
+        i++;
+    }
+    
+    // Get effective end point
+    unsigned int end = f.size() - 1;
+    while(fabs(f[end]) < 1.e-2 * fmax)
+        end--;
+
+    // Get effective start point
+    i = 0;
+    double prev = f[i];
+    while(fabs(prev) < 1.e-7 * fmax)
+        prev = f[i++];
+
+    while(i < end)
+    {   if(f[i] * prev < 0.)
+            zeros++;
+        prev = f[i];
+        i++;
+    }
+    return zeros;
+}
+
 void DiscreteState::Write(FILE* fp) const
 {
     // As well as the CoupledFunction vectors, we need to output some other things

@@ -79,6 +79,17 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     count++;
                     pqn++;
                 }
+
+                // Delete unwanted higher states
+                StateSet::iterator it = AllStates.find(StateInfo(pqn, kappa));
+                while(it != AllStates.end())
+                {
+                    it->second.DeleteState();
+                    AllStates.erase(it);
+
+                    pqn++;
+                    it = AllStates.find(StateInfo(pqn, kappa));
+                }
             }
         }
     }

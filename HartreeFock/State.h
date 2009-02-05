@@ -22,7 +22,6 @@ public:
     virtual double Energy() const = 0;
     /** Nu is the effective principal quantum number */
     double Nu() const { return nu; }
-    unsigned int NumZeroes() const;
     
     int Kappa() const { return kappa; }
     unsigned int L() const;

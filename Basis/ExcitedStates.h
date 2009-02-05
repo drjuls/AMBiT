@@ -22,9 +22,6 @@ public:     // Methods for StateManager role
 
     virtual void AddState(DiscreteState* s);
 
-    /** Get a copy of the state, including iterating sigma (if available). */
-    virtual DiscreteState GetStateWithSigma(const StateInfo& info) const;
-
 public:     // Methods for managing excited single particle basis states
     /** Create virtual states above the core.
         num_states_per_l is simply a vector to say how many states
@@ -43,6 +40,12 @@ public:     // Methods for managing sigma
     
     /** Clear all sigmas. */
     void ClearSigmas();
+
+    /** Calculate the matrix element  < s | Sigma | s >. */
+    double GetSigmaMatrixElement(const StateInfo& info) const;
+
+    /** Get a copy of the state, including iterating sigma (if available). */
+    virtual DiscreteState GetStateWithSigma(const StateInfo& info) const;
 
     /** Create a sigma operator for the given state to second order.
         This operator will henceforth be included in the exchange potential of

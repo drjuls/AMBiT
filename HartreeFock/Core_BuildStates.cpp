@@ -345,8 +345,6 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
     }
 
     double delta=0.;
-    double old_delta1 = 0.;
-
     unsigned int loop = 0;
 
     do
@@ -583,10 +581,10 @@ unsigned int Core::CalculateExcitedState(State* s) const
         }
 
         // Calculate wavefunction with local exchange approximation.
-        // Check that the number of zeroes of the wavefunction is correct, otherwise
+        // Check that the number of nodes of the wavefunction is correct, otherwise
         // adjust nu and start again.
 
-        int zero_difference = 0;    // Difference between required and actual number of zeroes of wavefunction
+        int zero_difference = 0;    // Difference between required and actual number of nodes of wavefunction
 
         do
         {   loop = ConvergeStateApproximation(ds);
@@ -599,15 +597,10 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 exit(1);
             }
 
-            zero_difference = ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
+            zero_difference = ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
 
             if(zero_difference)
-            {   *logstream << "    " << ds->Name()
-                           << std::setprecision(7) << "  E = " << ds->Energy()
-                           << "  loops: " << loop  << "  size: " << ds->Size()
-                           << "  zerodiff: " << zero_difference << std::endl;
-
-                // This moves the state one pqn at a time
+            {   // This moves the state one pqn at a time
                 trial_nu = ds->Nu() - zero_difference/abs(zero_difference)/Charge;
                 ds->SetNu(trial_nu);
                 ds->Clear();
@@ -634,7 +627,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
                     new_ds->SetNu(trial_nu);
                 }
                 deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
-                zero_difference = new_ds->NumZeroes() + ds->L() + 1 - ds->RequiredPQN();
+                zero_difference = new_ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
             } while(zero_difference);
 
             if(debugHF)

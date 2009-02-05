@@ -56,6 +56,22 @@ void ExcitedStates::ClearSigmas()
     SecondOrderAmount.clear();
 }
 
+double ExcitedStates::GetSigmaMatrixElement(const StateInfo& info) const
+{
+    double matrix_element = 0.;
+    const DiscreteState* s = GetState(info);
+    const SigmaPotential* sigma = NULL;
+    SigmaMap::const_iterator it = SecondOrderSigma.find(info.Kappa());
+    if(it != SecondOrderSigma.end())
+        sigma = it->second;
+
+    if(s && sigma)
+    {   matrix_element = sigma->GetMatrixElement(s->f, s->f);
+    }
+
+    return matrix_element;
+}
+
 double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt)
 {
     DiscreteState* s = GetState(info);

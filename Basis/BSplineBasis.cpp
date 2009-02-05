@@ -15,8 +15,6 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         return;
 
     NumStatesPerL = num_states_per_l;
-    Clear();
-
     bool debug = DebugOptions.OutputHFExcited();
 
     double dr0;
@@ -267,13 +265,36 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                                     *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
                                                << " norm: " << ds->Norm(lattice) - 1. << std::endl;
                             }
-                            AddState(ds);
+
+                            // Check if state already exists
+                            DiscreteState* existing = GetState(StateInfo(pqn, kappa));
+                            if(existing)
+                            {   *existing = *ds;
+                                delete ds;
+                            }
+                            else
+                                AddState(ds);
                             count++;
                         }
                     }
                     pqn++;
                     i++;
                 }
+
+                // Delete unwanted higher states
+                StateSet::iterator it = AllStates.find(StateInfo(pqn, kappa));
+                while(it != AllStates.end())
+                {
+                    it->second.DeleteState();
+                    AllStates.erase(it);
+
+                    pqn++;
+                    it = AllStates.find(StateInfo(pqn, kappa));
+                }
+            }
+            else
+            {   *errstream << "BSplineBasis: SolveMatrixEquation failed" << std::endl;
+                exit(1);
             }
         }   // kappa loop
         

@@ -149,7 +149,7 @@ void Core::BuildFirstApproximation()
             DiscreteState* s = it.GetState();
             unsigned int iterations = 0;
             double nu_change_factor = 0.5;
-            int zero_difference = 0;        // Difference between required and actual number of zeroes of wavefunction
+            int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction
 
             double trial_nu = s->Nu();
 
@@ -172,7 +172,7 @@ void Core::BuildFirstApproximation()
                     }
                 }
 
-                zero_difference = s->NumZeroes() + s->L() + 1 - s->RequiredPQN();
+                zero_difference = s->NumNodes() + s->L() + 1 - s->RequiredPQN();
 
                 if(zero_difference)
                 {   

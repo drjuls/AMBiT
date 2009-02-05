@@ -14,41 +14,6 @@ State::State(const State& other):
     CoupledFunction(other), kappa(other.kappa), nu(other.nu)
 {}
 
-unsigned int State::NumZeroes() const
-{
-    // Count number of zeroes
-    unsigned int zeroes = 0;
-
-    // Get maximum point
-    double fmax = 0.;
-    unsigned int i_fmax = 0;
-    unsigned int i = 0;
-    while(i < f.size())
-    {   if(fabs(f[i]) > fmax)
-        {   fmax = fabs(f[i]);
-            i_fmax = i;
-        }
-        i++;
-    }
-    
-    // Get effective end point
-    unsigned int end = f.size() - 1;
-    while(fabs(f[end]) < 1.e-7 * fmax)
-        end--;
-
-    i = 0;
-    double prev = f[i];
-    while(fabs(prev) < 1.e-7 * fmax)
-        prev = f[i++];
-    while(i < end)
-    {   if(f[i] * prev < 0.)
-            zeroes++;
-        prev = f[i];
-        i++;
-    }
-    return zeroes;
-}
-
 void State::Read(FILE* fp)
 {
     CoupledFunction::Read(fp);
