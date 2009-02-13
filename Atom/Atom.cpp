@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
 
     try
     {   Atom A(90, 4, "ThIV", true);
-        A.RunMultiple(true, true);
-//        A.Run();
+//        A.RunMultiple(true);
+        A.RunOpen();
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -165,11 +165,14 @@ Atom::~Atom(void)
 void Atom::CreateBasis(bool UseMBPT)
 {
     std::vector<unsigned int> num_states;
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
-    num_states.push_back(1);
+    num_states.push_back(2);
+    num_states.push_back(2);
+    num_states.push_back(3);
+    num_states.push_back(4);
+    num_states.push_back(4);
+
+    for(unsigned int i = 0; i < num_states.size(); i++)
+        num_states[i] += 10;
 
     if(UseMBPT)
     {   // Add extra states and waves to mbpt basis

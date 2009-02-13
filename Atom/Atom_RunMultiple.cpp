@@ -20,8 +20,8 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
 
     //CreateCustomBasis(include_mbpt);
     //CreateRBasis(include_mbpt);
-    //CreateBSplineBasis(include_mbpt);
-    CreateHartreeFockBasis(include_mbpt);
+    CreateBSplineBasis(include_mbpt);
+    //CreateHartreeFockBasis(include_mbpt);
 
     DebugOptions.OutputHFExcited(false);
 

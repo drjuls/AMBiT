@@ -38,11 +38,11 @@ void Atom::RunOpen(double radius)
 //    double mbpt_delta = 0.0;
 
     // Uncomment to include sigma3.
-    sigma3 = new Sigma3Calculator(lattice, core, excited);
+    //sigma3 = new Sigma3Calculator(lattice, core, excited);
     //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
 
-//    GenerateIntegralsMBPT(true);
-    GenerateIntegrals(true);
+    //GenerateIntegralsMBPT(true);
+    GenerateIntegrals(false);
     ChooseSymmetries();
 
     //CheckMatrixSizes();
@@ -146,7 +146,7 @@ void Atom::GenerateIntegrals(bool MBPT_CI)
 {
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
-    Read();
+    //Read();
     //Write();
     core->ToggleClosedShellCore();
 
@@ -171,13 +171,13 @@ void Atom::ChooseSymmetries()
     unsigned int two_j;
 
     // Even parity
-    for(two_j =3; two_j <= 9; two_j += 6)
+    for(two_j =0; two_j <= 12; two_j += 2)
     {
         SymEigenstates[Symmetry(two_j, even)] = NULL;
     }
 
     // Odd parity
-    for(two_j = 9; two_j <= 11; two_j += 2)
+    for(two_j = 0; two_j <= 12; two_j += 2)
     {
         SymEigenstates[Symmetry(two_j, odd)] = NULL;
     }
@@ -186,7 +186,7 @@ void Atom::ChooseSymmetries()
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read)
 {
     // Number of electron excitations (e.g. 2 for SD-CI) .
-    unsigned int electron_excitations = 0;
+    unsigned int electron_excitations = 2;
 
     // Generate non-relativistic configs from file.
     bool GenerateFromFile = false;
@@ -207,10 +207,9 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym, bool try_read
         std::set<Configuration> leading_configs;
 
         Configuration config1;
-        config1.SetOccupancy(NonRelInfo(3, 2), 2);
-        config1.SetOccupancy(NonRelInfo(4, 0), 1);
+        config1.SetOccupancy(NonRelInfo(6, 2), 2);
         leading_configs.insert(config1);
-
+/*
         Configuration config2;
         config2.SetOccupancy(NonRelInfo(3, 2), 2);
         config2.SetOccupancy(NonRelInfo(4, 1), 1);
