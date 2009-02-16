@@ -55,9 +55,9 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(90, 4, "ThIV", true);
+    {   Atom A(90, 4, "ThIII001");
 //        A.RunMultiple(true);
-        A.RunOpen();
+        A.RunOpen(true);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -126,7 +126,8 @@ void Atom::Run()
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    SD_CI(false), MBPT_CI(false), NumSolutions(6),
+    NumSolutions(6), check_size_only(false), generate_mbpt_integrals(false),
+    save_configurations (false), save_eigenstates(false),
     excited(NULL), excited_mbpt(NULL), valence_mbpt(NULL),
     integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
@@ -294,7 +295,9 @@ void Atom::Read()
     std::string filename = identifier + ".core.atom";
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
+    {   *errstream << "Atom::Read(): Unable to open file: " << filename << std::endl;
         exit(1);
+    }
 
     // Check that the stored ion is the same as this one!
     double stored_Z, stored_Charge;
@@ -313,6 +316,10 @@ void Atom::Read()
     if(excited)
     {   filename = identifier + ".excited.atom";
         fp = fopen(filename.c_str(), "rb");
+        if(!fp)
+        {   *errstream << "Atom::Read(): Unable to open file: " << filename << std::endl;
+            exit(1);
+        }
         excited->Read(fp);
 
         if(excited_mbpt)
@@ -322,6 +329,18 @@ void Atom::Read()
 
         fclose(fp);
     }
+}
+
+void Atom::ReadOrWriteBasis()
+{
+    std::string filename = identifier + ".core.atom";
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(fp)
+    {   fclose(fp);
+        Read();
+    }
+    else
+        Write();
 }
 
 void Atom::GenerateCowanInputFile()

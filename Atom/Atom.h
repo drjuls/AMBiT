@@ -13,11 +13,6 @@
 class Atom
 {
 public:
-    // Main program
-    void Run();
-    void RunOpen(double radius = 0.0);
-
-public:
     Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read = false);
     ~Atom();
 
@@ -34,6 +29,14 @@ public:
         initial Hartree-Fock values are not calculated (just to save computational time).
       */
     void Read();
+
+    /** Read core and excited states if core file exists, otherwise write them. */
+    void ReadOrWriteBasis();
+
+public:
+    // Main program
+    void Run();
+    void RunOpen(bool include_mbpt = false);
 
 public:
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
@@ -63,9 +66,11 @@ public:
     void ChooseSymmetries();
     
     /** Generate configurations, projections, and JStates for a symmetry, and store on disk.
-        if(try_read), then it checks to see if the configurations exist on file already.
+        If(save_configurations)
+          - checks to see if the configurations exist on file already
+          - saves them to disk if not
      */
-    ConfigGenerator* GenerateConfigurations(const Symmetry& sym, bool try_read = true);
+    ConfigGenerator* GenerateConfigurations(const Symmetry& sym);
 
     /** Check sizes of matrices before doing full scale calculation. */
     void CheckMatrixSizes();
@@ -79,7 +84,7 @@ public:
     /** Run atomic energy code multiple times, varying some parameter like
         alpha, NuclearInverseMass (for SMS), or volume shift parameter.
      */
-    void RunMultiple(bool include_mbpt = true, bool closed_shell = false);
+    void RunMultiple(bool include_mbpt = false, bool closed_shell = false);
 
     /** Set up core, excited states, and integrals some value of the varying parameter.
         PRE: Need to have initialised CIIntegrals* integrals, core and excited states.
@@ -138,11 +143,14 @@ private:
 
     SymmetryEigenstatesMap SymEigenstates;
 
-    // Configuration Interaction parameters
-    bool SD_CI;     // Only use single and double excitations in CI.
-    bool MBPT_CI;   // Include MBPT effects
+    // CI + MBPT parameters
     unsigned int NumSolutions;
+    bool check_size_only;           // Check integral and CI sizes
+    bool save_configurations;       // Save and retrieve generated relativistic configurations
+    bool save_eigenstates;          // Save eigenstates (previous saves are always retrieved)
+    bool generate_mbpt_integrals;   // Generate MBPT integrals on this run
 
+    // Multiple run parameters
     bool multiple_SMS;
     bool multiple_alpha;
     bool multiple_volume;

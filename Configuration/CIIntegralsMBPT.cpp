@@ -64,7 +64,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
         }
         it_1.Next();
     }
-    *logstream << "Num one-electron integrals: " << size1 << std::endl;
+    *outstream << "Num one-electron integrals: " << size1 << std::endl;
 
     // Two-electron integrals
     it_2.First(); i2 = 0;
@@ -142,7 +142,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
         }
         it_2.Next(); i2++;
     }
-    *logstream << "Num two-electron integrals: " << size2 << std::endl;
+    *outstream << "Num two-electron integrals: " << size2 << std::endl;
 
     // Count box diagrams with wrong parity
     if(include_extra_box)
@@ -220,7 +220,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
             }
             it_2.Next(); i2++;
         }
-        *logstream << "Num extra box integrals: " << size3 << std::endl;
+        *outstream << "Num extra box integrals: " << size3 << std::endl;
     }
 
     return (size1 + size2 + size3);
