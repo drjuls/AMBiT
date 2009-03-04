@@ -107,9 +107,7 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
             if(abs(int(n.TwoJ()) - int(alpha.TwoJ())) > 2 * k)
                 k += 2;
 
-            kmax = n.L() + alpha.L();
-            if(n.TwoJ() + alpha.TwoJ() < 2 * kmax)
-                kmax -= 2;
+            kmax = (n.TwoJ() + alpha.TwoJ())/2;
 
             while(k <= kmax)
             {
@@ -333,7 +331,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
             if(abs(int(n.TwoJ()) - int(alpha.TwoJ())) > 2 * k)
                 k += 2;
 
-            kmax = n.TwoJ() + alpha.TwoJ();
+            kmax = (n.TwoJ() + alpha.TwoJ())/2;
 
             // Get density
             if(k <= kmax)
