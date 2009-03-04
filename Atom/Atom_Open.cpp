@@ -13,8 +13,8 @@
 
 void Atom::RunOpen(bool include_mbpt)
 {
-    check_size_only = true;
-    generate_mbpt_integrals = true;
+    check_size_only = false;
+    generate_mbpt_integrals = false;
 
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
@@ -44,9 +44,9 @@ void Atom::RunOpen(bool include_mbpt)
         //sigma3 = new Sigma3Calculator(lattice, core, excited);
         //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
 
-        GenerateIntegralsMBPT(true, false, mbpt_delta);
+        //GenerateIntegralsMBPT(true, false, mbpt_delta);
         if(!check_size_only)
-            CollateIntegralsMBPT(NumProcessors);
+            CollateIntegralsMBPT(16);
     }
     else
         GenerateIntegrals(include_mbpt);
@@ -96,11 +96,11 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     else
         valence_mbpt = NULL;
 
-    integralsMBPT->SetTwoElectronStorageLimits(8, 8);
+    integralsMBPT->SetTwoElectronStorageLimits(7, 7);
 
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    integralsMBPT->SetExtraBoxDiagramLimits(8, 8);
+    integralsMBPT->SetExtraBoxDiagramLimits(7, 7);
 
     if(mbpt)
         mbpt->SetEnergyShift(delta/Constant::HartreeEnergy_cm);
@@ -154,7 +154,8 @@ void Atom::GenerateIntegrals(bool MBPT_CI)
 {
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
-    Read();
+    if(MBPT_CI)
+      Read();
     core->ToggleClosedShellCore();
 
     if(MBPT_CI)
@@ -317,7 +318,7 @@ void Atom::CalculateEnergies()
             #ifdef _SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", -3.45, *E, true);
+                MpiH->SolveScalapack("temp.matrix", -1.47, *E, true);
             #else
                 H->SolveMatrix(NumSolutions, *E, true);
             #endif

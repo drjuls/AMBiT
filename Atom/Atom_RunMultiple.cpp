@@ -114,15 +114,15 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
             mbpt_delta.push_back(delta[i]);
 
         // Uncomment to include sigma3.
-        sigma3 = new Sigma3Calculator(lattice, core, excited);
+        //sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-        GenerateMultipleIntegralsMBPT(true, false, delta);
+        //GenerateMultipleIntegralsMBPT(true, false, delta);
         //CollateMultipleIntegralsMBPT(32);
-        //GenerateMultipleIntegrals(true);
-        //ChooseSymmetries();
+        GenerateMultipleIntegrals(true);
+        ChooseSymmetries();
 
         //CheckMatrixSizes();
-        //CalculateMultipleEnergies();
+        CalculateMultipleEnergies();
     }
 }
 
@@ -309,10 +309,10 @@ void Atom::CalculateMultipleEnergies()
                 #ifdef _SCALAPACK
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                    if(multiple_parameters[i] == 0.0)  // Get g-factors
-                        MpiH->SolveScalapack("temp.matrix", -0.45, *E, true);
+                    if(multiple_parameters[i])// == 0.0)  // Get g-factors
+                        MpiH->SolveScalapack("temp.matrix", -1.43, *E, true);
                     else
-                        MpiH->SolveScalapack("temp.matrix", -0.45, *E);
+                        MpiH->SolveScalapack("temp.matrix", -1.43, *E);
                 #else
                     if(multiple_parameters[i] == 0.0)  // Get g-factors
                         H->SolveMatrix(NumSolutions, *E, true);
