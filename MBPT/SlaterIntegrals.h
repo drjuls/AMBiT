@@ -1,28 +1,9 @@
 #ifndef SLATER_INTEGRALS_H
 #define SLATER_INTEGRALS_H
 
-/** Set one of these to use a hash map to store the Slater integrals.
- *    hash_map is smaller than map, and is fast
- *    google::sparse_hash_map is very space-efficient, but can take a long time to build
- */
-#define USE_HASH_MAP 0
-#define USE_GOOGLE_SPARSEHASH 1
-
 #include "Basis/ExcitedStates.h"
 
-#if USE_HASH_MAP
-#include <ext/hash_map>
-#elif USE_GOOGLE_SPARSEHASH
-#include <google/sparse_hash_map>
-#endif
-
 #define LongKey unsigned long long int
-
-struct LongKey_hash_function
-{   std::size_t operator()(LongKey x) const
-    {   return (x >> 12)^x;
-    }
-};
 
 class SlaterIntegrals
 {
@@ -99,13 +80,7 @@ protected:
     std::map<unsigned int, double> OneElectronIntegrals;
 
     // TwoElectronIntegrals(k, i, j, l, m) = R_k(ij, lm): i->l, j->m
-#if USE_HASH_MAP
-    __gnu_cxx::hash_map<LongKey, double, LongKey_hash_function> TwoElectronIntegrals;
-#elif USE_GOOGLE_SPARSEHASH
-    google::sparse_hash_map<LongKey, double, LongKey_hash_function> TwoElectronIntegrals;
-#else
     std::map<LongKey, double> TwoElectronIntegrals;
-#endif
 
     // SMSIntegrals(i, j) = <i|p|j>
     std::map<unsigned int, double> SMSIntegrals;

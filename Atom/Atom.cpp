@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
 
     try
     {   Atom A(90, 4, "ThIII001");
-//        A.RunMultiple(true);
-        A.RunOpen(true);
+        A.RunMultiple(false);
+//        A.RunOpen(true);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -170,9 +170,9 @@ void Atom::CreateBasis(bool UseMBPT)
     num_states.push_back(2);
     num_states.push_back(3);
     num_states.push_back(4);
-    num_states.push_back(4);
+    num_states.push_back(2);
 
-    for(unsigned int i = 0; i < num_states.size(); i++)
+    for(unsigned int i = 0; i < 4; i++)
         num_states[i] += 10;
 
     if(UseMBPT)
@@ -186,7 +186,7 @@ void Atom::CreateBasis(bool UseMBPT)
         num_states_mbpt.push_back(3);
 
         for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += 16;
+            num_states_mbpt[i] += 24;
 
         excited_mbpt->CreateExcitedStates(num_states_mbpt);        
     }
@@ -287,6 +287,10 @@ void Atom::Write() const
             fclose(fp);
         }
     }
+    #ifdef _MPI
+        // Wait for root node to finish writing, then update integrals.
+        MPI::COMM_WORLD.Barrier();
+    #endif
 }
 
 void Atom::Read()
