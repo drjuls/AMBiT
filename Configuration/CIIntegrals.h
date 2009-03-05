@@ -98,10 +98,10 @@ public:
      */
 
     /** Write single electron integrals to binary *.one.int file. */
-    void WriteOneElectronIntegrals() const;
+    void WriteOneElectronIntegrals(bool use_read_id = false) const;
 
     /** Write two-electron integrals to binary *.two.int file. */
-    void WriteTwoElectronIntegrals() const;
+    void WriteTwoElectronIntegrals(bool use_read_id = false) const;
 
 protected:
     /** Change ordering of states so that it corresponds to a stored integral.

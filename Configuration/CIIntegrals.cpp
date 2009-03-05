@@ -699,9 +699,13 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
     }
 }
 
-void CIIntegrals::WriteOneElectronIntegrals() const
+void CIIntegrals::WriteOneElectronIntegrals(bool use_read_id) const
 {
-    std::string filename = write_id + ".one.int";
+    std::string filename;
+    if(use_read_id)
+        filename = read_id + ".one.int";
+    else
+        filename = write_id + ".one.int";
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)
@@ -758,9 +762,13 @@ void CIIntegrals::WriteOneElectronIntegrals() const
     }
 }
 
-void CIIntegrals::WriteTwoElectronIntegrals() const
+void CIIntegrals::WriteTwoElectronIntegrals(bool use_read_id) const
 {
-    std::string filename = write_id + ".two.int";
+    std::string filename;
+    if(use_read_id)
+        filename = read_id + ".one.int";
+    else
+        filename = write_id + ".one.int";
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)

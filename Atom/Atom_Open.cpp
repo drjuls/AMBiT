@@ -31,12 +31,13 @@ void Atom::RunOpen(bool include_mbpt)
 
     DebugOptions.OutputHFExcited(false);
 
+    core->SetNuclearInverseMass(0.);
     if(include_mbpt)
         ReadOrWriteBasis();
 
     core->ToggleClosedShellCore();
 
-    if(include_mbpt && generate_mbpt_integrals)
+    if(include_mbpt)
     {
         double mbpt_delta = 0.0;
 
@@ -44,13 +45,21 @@ void Atom::RunOpen(bool include_mbpt)
         //sigma3 = new Sigma3Calculator(lattice, core, excited);
         //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
 
-        //GenerateIntegralsMBPT(true, false, mbpt_delta);
-        if(!check_size_only)
-            CollateIntegralsMBPT(16);
-    }
-    else
-        GenerateIntegrals(include_mbpt);
+        if(generate_mbpt_integrals)
+        {   // Gather integrals from any previous runs
+            if(!check_size_only)
+                CollateIntegralsMBPT(NumProcessors);
 
+            // Generate new MBPT integrals
+            GenerateIntegralsMBPT(true, false, mbpt_delta);
+
+            // Collate all integrals
+            if(!check_size_only)
+                CollateIntegralsMBPT(NumProcessors);
+        }
+    }
+
+    GenerateIntegrals(include_mbpt);
     ChooseSymmetries();
 
     if(check_size_only)
@@ -64,7 +73,6 @@ void Atom::RunOpen(bool include_mbpt)
 void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 {
     core->ToggleOpenShellCore();
-    core->SetNuclearInverseMass(0.);
 
     integrals = new CIIntegralsMBPT(*excited);
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
@@ -116,8 +124,11 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 
 void Atom::CollateIntegralsMBPT(unsigned int num_processors)
 {
+    bool integrals_previously_exist = true;
+
     if(!integrals)
-    {   integrals = new CIIntegralsMBPT(*excited);
+    {   integrals_previously_exist = false;
+        integrals = new CIIntegralsMBPT(*excited);
         integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
     }
     else if(integralsMBPT)
@@ -136,22 +147,29 @@ void Atom::CollateIntegralsMBPT(unsigned int num_processors)
     if(ProcessorRank == 0)
     {   integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, num_processors);
         integralsMBPT->ReadMultipleTwoElectronIntegrals(identifier, num_processors);
-        integrals->WriteOneElectronIntegrals();
-        integrals->WriteTwoElectronIntegrals();
+        integrals->WriteOneElectronIntegrals(true);
+        integrals->WriteTwoElectronIntegrals(true);
     }
 
     core->ToggleClosedShellCore();
 
     #ifdef _MPI
-        // Wait for root node to finish writing, then update integrals.
+        // Wait for root node to finish writing
         MPI::COMM_WORLD.Barrier();
     #endif
 
-    integrals->Update();
+    if(!integrals_previously_exist)
+    {   delete integrals;
+        integrals = NULL;
+        integralsMBPT = NULL;
+    }
 }
 
 void Atom::GenerateIntegrals(bool MBPT_CI)
 {
+    if(integrals)
+        delete integrals;
+
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
     if(MBPT_CI)

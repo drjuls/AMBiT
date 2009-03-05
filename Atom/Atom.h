@@ -91,12 +91,6 @@ public:
      */
     void SetMultipleIntegralsAndCore(unsigned int index);
 
-    /** Generate multiple integrals with MBPT. */
-    void GenerateMultipleIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false, double* delta = NULL);
-
-    /** Collate multiple integrals generated from CIIntegralsMBPT. */
-    void CollateMultipleIntegralsMBPT(unsigned int num_processors = 0);
-
     /** Read stored integrals and calculate any remaining without MBPT.
         The MBPT_CI flag tells it whether to use CIIntegralsMBPT or not (CIIntegralsMBPT stores around
         twice as many integrals because of the loss of symmetry due to box diagrams).
@@ -156,6 +150,7 @@ private:
     bool multiple_volume;
     bool multiple_radius;
     std::vector<double> multiple_parameters;
+    std::string original_id;
     std::vector<std::string> multiple_ids;
     std::vector<double> mbpt_delta;
 

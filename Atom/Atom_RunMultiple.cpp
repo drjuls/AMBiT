@@ -12,6 +12,8 @@
 
 void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
 {
+    generate_mbpt_integrals = false;
+
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(true);
@@ -105,6 +107,8 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
                    << core->GetNuclearThickness()*Constant::AtomicToFermi << std::endl;
     }
 
+    original_id = identifier;
+
     if(closed_shell)
         CalculateMultipleClosedShell(include_mbpt);
     else
@@ -113,100 +117,58 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
         for(unsigned int i = 0; i < 5; i++)
             mbpt_delta.push_back(delta[i]);
 
-        // Uncomment to include sigma3.
-        //sigma3 = new Sigma3Calculator(lattice, core, excited);
+        // check_size_only should be off
+        check_size_only = false;
 
-        //GenerateMultipleIntegralsMBPT(true, false, delta);
-        //CollateMultipleIntegralsMBPT(32);
-        GenerateMultipleIntegrals(true);
-        ChooseSymmetries();
+        if(include_mbpt)
+        {
+            // Uncomment to include sigma3.
+            //sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-        //CheckMatrixSizes();
-        CalculateMultipleEnergies();
-    }
-}
+            for(unsigned int i = 0; i < multiple_ids.size(); i++)
+            {
+                // Save orbitals
+                SetMultipleIntegralsAndCore(i);
 
-void Atom::GenerateMultipleIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double* delta)
-{
-    integrals = new CIIntegralsMBPT(*excited);
-    integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-
-    if(CoreMBPT)
-    {   mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeMBPT1(true, mbpt);
-        integralsMBPT->IncludeMBPT2(true, mbpt);
-        integralsMBPT->IncludeExtraBoxDiagrams(true);
-    }
-    else
-    {   if(mbpt)
-            delete mbpt;
-        mbpt = NULL;
-    }
-
-    if(ValenceMBPT)
-    {   valence_mbpt = new ValenceCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeValenceMBPT1(true, valence_mbpt);
-        integralsMBPT->IncludeValenceMBPT2(true, valence_mbpt);
-        integralsMBPT->IncludeValenceExtraBoxDiagrams(true);
-    }
-    else
-    {   if(valence_mbpt)
-            delete valence_mbpt;
-        valence_mbpt = NULL;
-    }
-
-    integralsMBPT->SetTwoElectronStorageLimits(4, 4);
-
-    // Affects both core and valence MBPT if extra box diagrams are included.
-    // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    integralsMBPT->SetExtraBoxDiagramLimits(4, 4);
-
-    //integrals->GetStorageSize();
-    //return;
-
-    for(unsigned int i = 0; i < multiple_parameters.size(); i++)
-    {
-        if(mbpt && delta)
-            mbpt->SetEnergyShift(delta[i]/Constant::HartreeEnergy_cm);
-        if(valence_mbpt && delta)
-            valence_mbpt->SetEnergyShift(delta[i]/Constant::HartreeEnergy_cm);
-
-        SetMultipleIntegralsAndCore(i);
-    }
-}
-
-void Atom::CollateMultipleIntegralsMBPT(unsigned int num_processors)
-{
-    if(!integrals)
-    {   integrals = new CIIntegralsMBPT(*excited);
-        integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-    }
-    else if(integralsMBPT)
-    {   // Stop doing MBPT calculations
-        integralsMBPT->IncludeMBPT1(false);
-        integralsMBPT->IncludeMBPT2(false);
-        integralsMBPT->IncludeExtraBoxDiagrams(false);
-        integralsMBPT->IncludeValenceMBPT1(false);
-        integralsMBPT->IncludeValenceMBPT2(false);
-        integralsMBPT->IncludeValenceExtraBoxDiagrams(false);
-    }
-
-    for(unsigned int i = 0; i < multiple_ids.size(); i++)
-    {
-        integrals->SetIdentifier(multiple_ids[i]);
-        integrals->Clear();
-
-        if(ProcessorRank == 0)
-        {   integralsMBPT->ReadMultipleOneElectronIntegrals(multiple_ids[i], num_processors);
-            integralsMBPT->ReadMultipleTwoElectronIntegrals(multiple_ids[i], num_processors);
-            integrals->WriteOneElectronIntegrals();
-            integrals->WriteTwoElectronIntegrals();
+                if(generate_mbpt_integrals)
+                {   // See RunOpen() for explanation of the order of these
+                    CollateIntegralsMBPT(NumProcessors);
+                    GenerateIntegralsMBPT(true, false, mbpt_delta[i]);
+                    CollateIntegralsMBPT(NumProcessors);
+                }
+            }
         }
+
+        GenerateMultipleIntegrals(include_mbpt);
+
+        // Save integrals, if we haven't just generated mbpt integrals.
+        if(!generate_mbpt_integrals)
+        {
+            for(unsigned int i = 0; i < multiple_ids.size(); i++)
+            {
+                SetMultipleIntegralsAndCore(i);
+
+                if(ProcessorRank == 0)
+                {   integrals->WriteOneElectronIntegrals(true);
+                    integrals->WriteTwoElectronIntegrals(true);
+                }
+                #ifdef _MPI
+                    // Wait for root node to finish writing
+                    MPI::COMM_WORLD.Barrier();
+                #endif
+            }
+        }
+
+        ChooseSymmetries();
+        CalculateMultipleEnergies();
     }
 }
 
 void Atom::GenerateMultipleIntegrals(bool MBPT_CI)
 {
+    if(integrals)
+        delete integrals;
+
     if(MBPT_CI)
         integrals = new CIIntegralsMBPT(*excited);
     else
@@ -221,8 +183,6 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
     {   *errstream << "SetMultipleIntegralsAndCore: index " << index << " out of bounds" << std::endl;
         exit(1);
     }
-
-    std::string original_identifier = identifier;
 
     core->ToggleOpenShellCore();
     identifier = multiple_ids[index];   // For updating core
@@ -260,8 +220,7 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
     excited->Update();
     if(excited_mbpt)
         excited_mbpt->Update();
-    //Read();
-    //Write();
+    ReadOrWriteBasis();
     core->ToggleClosedShellCore();
 
     if(integrals)
@@ -269,8 +228,6 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
         integrals->Update();
     }
 
-    identifier = original_identifier;
-    
     if(sigma3)
     {   sigma3->UpdateIntegrals(excited);
         sigma3->SetEnergyShift(mbpt_delta[index]/Constant::HartreeEnergy_cm);
@@ -283,6 +240,7 @@ void Atom::CalculateMultipleEnergies()
 
     while(it != SymEigenstates.end())
     {
+        identifier = original_id;
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
 
         for(unsigned int i = 0; i < multiple_ids.size(); i++)
