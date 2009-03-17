@@ -1,4 +1,6 @@
-Version information. The versions are tagged in CVS using the naming convention
+Version information. Tagged in git using the naming convention
+  v1.1.1
+Old versions were tagged in CVS using the naming convention
   Atomic1_1_1
 Changes sorted as follows
 Bug: Bug fixes.
@@ -8,11 +10,20 @@ Add: Added functionality.
 Del: Removed functionality.
 -------------------------------------------------------------------------------
 
+1.7.0 - 17/03/09
+** Moved to AMBiT **
+Bug: DisceteState::CheckSize() changed to deal correctly with exponential grid
+     and accommodate tail oscillations.
 Add: HartreeFockBasis class created. ReadBasis generalised to read other GRASP0
      files. Added ExcitedStates::TestOrthogonalityIncludingCore(); itoa() in
      Include.cpp. Added SubsetBasis which is formed by taking pointers to
      another ExcitedStates set. Unlike other StateManagers, SubsetBasis does
-     not own its states, and shouldn't delete them.
+     not own its states, and shouldn't delete them. RunMultiple() now works for
+     both open and closed shell atoms, including Brueckner orbitals.
+     Options for CI+MBPT, including Atom::ReadOrWriteBasis(), check_size_only,
+     save_configurations, save_eigenstates, and generate_mbpt_integrals.
+Opt: Added hash_map functionality to SlaterIntegrals for storing
+     TwoElectronIntegrals.
 Alt: Modified ExcitedStates to use external CoreMBPTCalculator when creating
      SigmaPotentials. Core::CalculateExcitedState() uses incoming trial value
      of s->Nu() if it is non zero. Cleaned up CreateBasis functions in Atom.
