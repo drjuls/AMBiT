@@ -55,9 +55,9 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {   Atom A(90, 4, "ThIII001");
-        A.RunMultiple(false);
-//        A.RunOpen(true);
+    {   Atom A(90, 4, "ThIII002");
+//        A.RunMultiple(false);
+        A.RunOpen(true);
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;
@@ -170,10 +170,10 @@ void Atom::CreateBasis(bool UseMBPT)
     num_states.push_back(2);
     num_states.push_back(3);
     num_states.push_back(4);
-    num_states.push_back(2);
+    num_states.push_back(4);
 
-    for(unsigned int i = 0; i < 4; i++)
-        num_states[i] += 10;
+    for(unsigned int i = 0; i < 5; i++)
+        num_states[i] += 6;
 
     if(UseMBPT)
     {   // Add extra states and waves to mbpt basis
@@ -186,7 +186,7 @@ void Atom::CreateBasis(bool UseMBPT)
         num_states_mbpt.push_back(3);
 
         for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += 24;
+            num_states_mbpt[i] += 12;
 
         excited_mbpt->CreateExcitedStates(num_states_mbpt);        
     }
@@ -344,7 +344,12 @@ void Atom::ReadOrWriteBasis()
         Read();
     }
     else
+    {   // Wait until all nodes find there is nothing to read
+        #ifdef _MPI
+            MPI::COMM_WORLD.Barrier();
+        #endif
         Write();
+    }
 }
 
 void Atom::GenerateCowanInputFile()

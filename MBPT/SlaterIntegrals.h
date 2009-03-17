@@ -6,7 +6,7 @@
  *    google::sparse_hash_map is very space-efficient, but can take a long time to build
  */
 #define USE_HASH_MAP 0
-#define USE_GOOGLE_SPARSEHASH 1
+#define USE_GOOGLE_SPARSEHASH 0
 
 #include "Basis/ExcitedStates.h"
 
