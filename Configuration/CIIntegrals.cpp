@@ -766,9 +766,9 @@ void CIIntegrals::WriteTwoElectronIntegrals(bool use_read_id) const
 {
     std::string filename;
     if(use_read_id)
-        filename = read_id + ".one.int";
+        filename = read_id + ".two.int";
     else
-        filename = write_id + ".one.int";
+        filename = write_id + ".two.int";
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(fp)
