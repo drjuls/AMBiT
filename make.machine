@@ -9,11 +9,11 @@ HOSTNAME = $(shell hostname)
 
 MACHINE = default
 
-ifeq ($(findstring ac, $(HOSTNAME)), ac)
-  MACHINE = apacac
+ifeq ($(findstring vayu, $(HOSTNAME)), vayu)
+  MACHINE = ncixe
 endif
-ifeq ($(findstring lc, $(HOSTNAME)), lc)
-  MACHINE = apaclc
+ifeq ($(findstring xe, $(HOSTNAME)), xe)
+  MACHINE = ncixe
 endif
 ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
   MACHINE = newt
@@ -49,18 +49,20 @@ ifeq ($(MACHINE), default)
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), apacac)
+ifeq ($(MACHINE), ncixe)
   CC  = icc
-  CXX = icpc
+  CXX = mpiCC
   F77 = ifort
 
-  LINK      = icpc
-  LINKFLAGS =
-  LIBDIR    = /opt/intel-fc/9.1.051/lib
-  LIBS      = sdsm scs mpi++ ifcore
+  LINK      = mpiCC
+  LINKFLAGS = 
+  LIBDIR    = $(MKL)/lib/em64t
+  LIBOBJ    = $(MKL)/lib/em64t/libmkl_scalapack_lp64.a \
+              $(MKL)/lib/em64t/libmkl_blacs_openmpi_lp64.a
+  LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core mkl_em64t guide pthread
 
   INCLUDE  +=
-  CXXFLAGS += -wd1125 -D_FUS=1 -D_MPI -D_SCALAPACK
+  CXXFLAGS += -wd1125 -D_MPI -D_SCALAPACK
 
   ifdef debug
     BUILD     = Debug
@@ -68,37 +70,9 @@ ifeq ($(MACHINE), apacac)
     CXXFLAGS += -g
   else
     BUILD     = Release
-    CFLAGS   += -O3
+    CFLAGS   += -O2
     CXXFLAGS += -O2
-    F77FLAGS += -O2
-  endif
-
-  CCDEP   = gcc
-  DEPFLAG = -MM
-endif
-
-ifeq ($(MACHINE), apaclc)
-  CC  = icc
-  CXX = icpc
-  F77 = ifort
-
-  LINK      = icpc
-  LINKFLAGS =
-  LIBDIR    = $$LAMHOME/lib
-  LIBS      = blas lapack lammpi++ mpi lam g2c pthread dl
-
-  INCLUDE  += $$$$LAMHOME/include
-  CXXFLAGS += -wd1125 -D_MPI
-
-  ifdef debug
-    BUILD     = Debug
-    CFLAGS   += -g
-    CXXFLAGS += -g
-  else
-    BUILD     = Release
-    CFLAGS   += -O3
-    CXXFLAGS += -O3
-    F77FLAGS += -O3
+    F77FLAGS += -O2 -fpe0 -static -nofor_main
   endif
 
   CCDEP   = gcc
