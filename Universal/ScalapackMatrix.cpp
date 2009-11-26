@@ -8,7 +8,7 @@
 
 // Diagonaliser can use pdsyev or pdsyevd. pdsyevd is faster and
 // guarantees orthogonality between eigenvectors, but requires more memory.
-#define USE_PDSYEVD true
+#define USE_PDSYEVD false
 
 #if !(_FUS)
     #define sl_init_        sl_init
