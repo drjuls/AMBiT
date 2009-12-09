@@ -59,7 +59,8 @@ void Atom::RunOpen(bool include_mbpt)
         }
     }
 
-    GenerateIntegrals(include_mbpt);
+    if(!include_mbpt || !generate_mbpt_integrals)
+        GenerateIntegrals(include_mbpt);
     ChooseSymmetries();
 
     if(check_size_only)
