@@ -19,6 +19,7 @@ class Configuration
 public:
     Configuration() { First(); }
     Configuration(const Configuration& other);
+    Configuration(const std::string& name);
     virtual ~Configuration(void) {}
 
     // Controllers for built-in state iterator

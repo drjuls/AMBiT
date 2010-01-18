@@ -1,6 +1,7 @@
 #include "Include.h"
 #include "Configuration.h"
 #include "HartreeFock/NonRelInfo.h"
+#include "Universal/Constant.h"
 
 Configuration::Configuration(const Configuration& other):
     Config(other.Config)
@@ -9,6 +10,51 @@ Configuration::Configuration(const Configuration& other):
         it = Config.end();
     else
         it = Config.find(other.GetInfo());
+}
+
+Configuration::Configuration(const std::string& name)
+{
+    // Set num_states[L] to highest pqn
+    unsigned int p = 0;
+    const char* all_states = name.c_str();
+    unsigned int pqn, L, occupancy;
+
+    // Skip whitespace
+    while(all_states[p] && isspace(all_states[p]))
+        p++;
+
+    while(all_states[p])
+    {
+        // Get pqn
+        pqn = atoi(all_states + p);
+        while(all_states[p] && isdigit(all_states[p]))
+            p++;
+        // Get L
+        if(all_states[p])
+        {
+            // Get L
+            for(L = 0; L < 10; L++)
+            {   if(Constant::SpectroscopicNotation[L] == all_states[p])
+                    break;
+            }
+            p++;
+        }
+        // Get occupancy
+        occupancy = atoi(all_states + p);
+        while(all_states[p] && isdigit(all_states[p]))
+            p++;
+
+        // Check everything is okay and skip any whitespace
+        if((L >= 10) || (pqn < L+1) || (occupancy > 4*L + 2))
+        {   *errstream << "Configuration() initialised with problematic string " << name << std::endl;
+            exit(1);
+        }
+        SetOccupancy(NonRelInfo(pqn, L), occupancy);
+        while(all_states[p] && isspace(all_states[p]))
+            p++;
+    }
+
+    First();
 }
 
 void Configuration::SetIterator(const StateInfo& info) const

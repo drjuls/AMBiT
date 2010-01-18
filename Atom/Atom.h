@@ -1,6 +1,8 @@
 #ifndef ATOM_H
 #define ATOM_H
 
+#include <Atom/GetPot>
+
 #include "Universal/Constant.h"
 #include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
@@ -12,6 +14,12 @@
 
 class Atom
 {
+public:
+    Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier);
+
+    // Calculate or read Hartree-Fock and set up basis. Call single or multiple electron routines.
+    bool Run();
+
 public:
     Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read = false);
     ~Atom();
@@ -25,6 +33,10 @@ public:
     /** Write the atomic state to file, including all known electron wavefunctions. */
     void Write() const;
 
+    /** Attempt to read core. Return success.
+      */
+    bool ReadCore();
+
     /** Read should be called immediately after initialisation of the atom, in order that
         initial Hartree-Fock values are not calculated (just to save computational time).
       */
@@ -33,16 +45,15 @@ public:
     /** Read core and excited states if core file exists, otherwise write them. */
     void ReadOrWriteBasis();
 
-public:
-    // Main program
-    void Run();
-    void RunOpen(bool include_mbpt = false);
+protected:
+    // Main structure calculation routines
+    void RunSingleElectron();
+    void RunMultipleElectron();
 
 public:
     /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
     void CreateRBasis(bool UseMBPT = false);
     void CreateBSplineBasis(bool UseMBPT = false);
-    void CreateBSplineBasis(double radius);
     void CreateCustomBasis(bool UseMBPT = false);
     void CreateHartreeFockBasis(bool UseMBPT = false);
 
@@ -60,7 +71,7 @@ public:
     void CollateIntegralsMBPT(unsigned int num_processors = 0);
 
     /** Read stored integrals and calculate any remaining without MBPT. */
-    void GenerateIntegrals(bool MBPT_CI);
+    void GenerateIntegrals();
 
     /** Fill symmetries in Symmetry-Eigenstates map.*/
     void ChooseSymmetries();
@@ -117,13 +128,20 @@ public:
     void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
 
 protected:
+    /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */
+    bool ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states);
+
     /** Assumes excited object has been created (and excited_mbpt, if UseMBPT is true). */
     void CreateBasis(bool UseMBPT);
 
-private:
+protected:
+    GetPot userInput_;
+
     std::string identifier;
-    const double Z;         // Nuclear charge
-    const double Charge;    // Degree of ionisation
+    double Z;         // Nuclear charge
+    double Charge;    // Degree of ionisation
+
+    unsigned int numValenceElectrons_;
 
     Lattice* lattice;
     Core* core;

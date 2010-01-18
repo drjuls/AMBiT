@@ -1,27 +1,35 @@
-// Fortran namelist-style input for AMBiT. Use ! or // for comments.
+// Fortran namelist-style input for AMBiT. Use // for comments.
 // One entry per line; extra whitespace ignored.
 
+--check-size-only
+
 // Hartree-Fock properties
-ID  = "Sm15+001"
+ID  = Sm15+001
 Z = 62
 N = 46
-NumElectrons = 2
+
+// Type of calculation implied here
+NumValenceElectrons = 2
+
+// What calculation?
+multiple/doalpha
 
 // Basis properties
-UseBSplineBasis = true
+--bspline-basis
+ValenceBasis = 16spdfg
 
 // CI Ignored if NumElectrons = 1
-CIBasis = 16spdfg
-LeadingConfigurations = 5s2, 3d7, 3d6 4s1, 3d5 4s2, 3d5 4s1 4p1
+LeadingConfigurations = '5s2, 5s1 4f1'
 ElectronExcitations = 2
-OddSymmetryTwoJ =   {0, 2, 4, 6, 8, 10, 12}
-EvenSymmetryTwoJ =  {0, 2, 4, 6, 8, 10, 12}
+OddParityTwoJ =   '0, 2, 4, 6, 8, 10, 12'
+EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
 MaxEnergy = -19.03	// Only used if _SCALAPACK is on
 
 // MBPT
+//--use-mbpt
 MBPTBasis = 30spdfgh
-!MBPTDelta = 0.0
+//MBPTDelta = 0.0
 IncludeSigma3 = false
-TwoElectronStorageLimits = {7, 7}
+TwoElectronStorageLimits = 7, 7
 
 END

@@ -11,10 +11,13 @@
 #include "Basis/BSplineBasis.h"
 #include "Basis/ReadBasis.h"
 
-void Atom::RunOpen(bool include_mbpt)
+void Atom::RunMultipleElectron()
 {
-    check_size_only = false;
-    generate_mbpt_integrals = false;
+    check_size_only = userInput_.search("--check-size-only");
+    generate_mbpt_integrals = userInput_.search("--generate-integrals-mbpt")
+                             && userInput_.search("MBPTBasis");
+
+    bool collate_mbpt_integrals = generate_mbpt_integrals || userInput_.search("--collate-integrals-mbpt");
 
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
@@ -23,44 +26,26 @@ void Atom::RunOpen(bool include_mbpt)
     DebugOptions.LogMBPT(false);
     //DebugOptions.LogAugerRate(true);
 
-    core->ToggleOpenShellCore();
-
-    //CreateCustomBasis(include_mbpt);
-    //CreateRBasis(include_mbpt);
-    CreateBSplineBasis(include_mbpt);
-
-    DebugOptions.OutputHFExcited(false);
-
-    core->SetNuclearInverseMass(0.);
-    if(include_mbpt)
-        ReadOrWriteBasis();
-
     core->ToggleClosedShellCore();
 
-    if(include_mbpt)
-    {
-        double mbpt_delta = 0.0;
+    if(!check_size_only && collate_mbpt_integrals)
+        CollateIntegralsMBPT(NumProcessors);
 
-        // Uncomment to include sigma3.
-        //sigma3 = new Sigma3Calculator(lattice, core, excited);
-        //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
+    double mbpt_delta = userInput_("MBPTDelta", 0.0);
 
-        if(generate_mbpt_integrals)
-        {   // Gather integrals from any previous runs
-            if(!check_size_only)
-                CollateIntegralsMBPT(NumProcessors);
+    // Uncomment to include sigma3.
+    //sigma3 = new Sigma3Calculator(lattice, core, excited);
+    //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
 
-            // Generate new MBPT integrals
-            GenerateIntegralsMBPT(true, false, mbpt_delta);
+    if(generate_mbpt_integrals)
+    {   GenerateIntegralsMBPT(true, false, mbpt_delta);
 
-            // Collate all integrals
-            if(!check_size_only)
-                CollateIntegralsMBPT(NumProcessors);
-        }
+        // Collate new integrals
+        if(!check_size_only)
+            CollateIntegralsMBPT(NumProcessors);
     }
 
-    if(!include_mbpt || !generate_mbpt_integrals)
-        GenerateIntegrals(include_mbpt);
+    GenerateIntegrals();
     ChooseSymmetries();
 
     if(check_size_only)
@@ -166,18 +151,19 @@ void Atom::CollateIntegralsMBPT(unsigned int num_processors)
     }
 }
 
-void Atom::GenerateIntegrals(bool MBPT_CI)
+void Atom::GenerateIntegrals()
 {
     if(integrals)
         delete integrals;
 
     core->ToggleOpenShellCore();
     core->SetNuclearInverseMass(0.);
-    if(MBPT_CI)
-      Read();
+    //if(MBPT_CI)
+    //  Read();
     core->ToggleClosedShellCore();
 
-    if(MBPT_CI)
+    // Are we using MBPT?
+    if(userInput_.search("--use-mbpt"))
         integrals = new CIIntegralsMBPT(*excited);
     else
         integrals = new CIIntegrals(*excited);
@@ -197,25 +183,35 @@ void Atom::GenerateIntegrals(bool MBPT_CI)
 
 void Atom::ChooseSymmetries()
 {
-    unsigned int two_j;
+    int i, num_symmetries;
+    int two_j;
 
     // Even parity
-    for(two_j =0; two_j <= 12; two_j += 2)
+    num_symmetries = userInput_.vector_variable_size("EvenParityTwoJ");
+    for(i = 0; i < num_symmetries; i++)
     {
+        two_j = userInput_("EvenParityTwoJ", 0, i);
         SymEigenstates[Symmetry(two_j, even)] = NULL;
     }
 
     // Odd parity
-    for(two_j = 0; two_j <= 12; two_j += 2)
+    num_symmetries = userInput_.vector_variable_size("OddParityTwoJ");
+    for(i = 0; i < num_symmetries; i++)
     {
+        two_j = userInput_("OddParityTwoJ", 0, i);
         SymEigenstates[Symmetry(two_j, odd)] = NULL;
+    }
+
+    if(SymEigenstates.empty())
+    {   *errstream << "USAGE: No symmetries requested (EvenParityTwoJ or OddParityTwoJ)" << std::endl;
+        exit(1);
     }
 }
 
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
 {
     // Number of electron excitations (e.g. 2 for SD-CI) .
-    unsigned int electron_excitations = 2;
+    unsigned int electron_excitations = userInput_("ElectronExcitations", 2);
 
     // Generate non-relativistic configs from file.
     bool GenerateFromFile = false;
@@ -235,28 +231,28 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     {
         std::set<Configuration> leading_configs;
 
-        Configuration config1;
-        config1.SetOccupancy(NonRelInfo(6, 2), 2);
-        leading_configs.insert(config1);
-/*
-        Configuration config2;
-        config2.SetOccupancy(NonRelInfo(3, 2), 2);
-        config2.SetOccupancy(NonRelInfo(4, 1), 1);
-        leading_configs.insert(config2);
-/*
-        Configuration config3;
-        config3.SetOccupancy(NonRelInfo(3, 2), 2);
-        config3.SetOccupancy(NonRelInfo(4, 1), 2);
-        leading_configs.insert(config3);
-/*
-        Configuration config4;
-        config4.SetOccupancy(NonRelInfo(2, 1), 1);
-        config4.SetOccupancy(NonRelInfo(4, 3), 1);
-        leading_configs.insert(config4);
-*/
+        int num_configs = userInput_.vector_variable_size("LeadingConfigurations");
+
+        if(num_configs < 1)
+        {   *errstream << "USAGE: Need LeadingConfigurations (e.g. 3d7, 4s2 3d5)" << std::endl;
+            exit(1);
+        }
+
         generator->Clear();
-        generator->AddLeadingConfigurations(leading_configs);
-        
+        for(int i = 0; i < num_configs; i++)
+        {
+            const std::string name = userInput_("LeadingConfigurations", "", i);
+            Configuration config(name);
+
+            // Check that the configuration gels with the number of electrons
+            if(config.NumParticles() != numValenceElectrons_)
+            {   *errstream << "USAGE: LeadingConfiguration " << name
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            generator->AddLeadingConfiguration(config);
+        }
+
         if(GenerateFromFile)
         {   ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
             filegenerator->SetInputFile("PercentagesIn.txt");

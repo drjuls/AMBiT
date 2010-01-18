@@ -23,66 +23,100 @@
 #include "HartreeFock/StateIntegrator.h"
 #include <fstream>
 
-#ifdef _MPI
-    #ifdef _SCALAPACK
-    #if !(_FUS)
-        #define blacs_exit_ blacs_exit
-    #endif
-    extern "C"{
-    void blacs_exit_(const int*);
-    }
-    #endif
-#endif
-// MPI details (if not used, we can have NumProcessors == 1)
-unsigned int NumProcessors;
-unsigned int ProcessorRank;
-
-// The debug options for the whole program.
-Debug DebugOptions;
-
-int main(int argc, char* argv[])
+Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier):
+    userInput_(userInput), Z(atomic_number), identifier(atom_identifier)
 {
-    #ifdef _MPI
-        MPI::Init(argc, argv);
-        MPI::Intracomm& comm_world = MPI::COMM_WORLD; // Alias
-        NumProcessors = comm_world.Get_size();
-        ProcessorRank = comm_world.Get_rank();
-    #else
-        NumProcessors = 1;
-        ProcessorRank = 0;
-    #endif
+    Charge = Z - num_electrons;
 
-    OutStreams::InitialiseStreams();
+    lattice = NULL;
+    core = NULL;
+    excited = NULL;
+    excited_mbpt = NULL;
+    integrals = NULL;
+    integralsMBPT = NULL;
+    mbpt = NULL;
+    valence_mbpt = NULL;
+    sigma3 = NULL;
 
-    try
-    {   Atom A(90, 4, "ThIII002");
-//        A.RunMultiple(false);
-        A.RunOpen(true);
-    }
-    catch(std::bad_alloc& ba)
-    {   *errstream << ba.what() << std::endl;
-        exit(1);
-    }
+    // CI + MBPT parameters
+    NumSolutions = 6;
+    check_size_only = false;        // Check integral and CI sizes
+    save_configurations = false;    // Save and retrieve generated relativistic configurations
+    save_eigenstates = true;        // Save eigenstates (previous saves are always retrieved)
+    generate_mbpt_integrals = false;    // Generate MBPT integrals on this run
 
-    #ifdef _MPI
-        comm_world.Barrier();
-        #ifdef _SCALAPACK
-            // Continue should be non-zero, otherwise MPI_Finalise is called.
-            int cont = 1;
-            blacs_exit_(&cont);
-        #endif
+    // Multiple run parameters
+    multiple_SMS = false;
+    multiple_alpha = false;
+    multiple_volume = false;
+    multiple_radius = false;
 
-        MPI::Finalize();
-    #endif
+    // Lattice parameters
+    int num_points = userInput_("lattice/numpoints", 1000);
+    double first_point = userInput_("lattice/startpoint", 1.e-6);
+    double lattice_size = userInput_("lattice/endpoint", 50.);
+    lattice = new Lattice(num_points, first_point, lattice_size);
 
-    *outstream << "\nFinished" << std::endl;
-    OutStreams::FinaliseStreams();
-
-    PAUSE
-    return 0;
+    //TODO: lattice = new ExpLattice(300, 1.e-5, 0.05);
 }
 
-void Atom::Run()
+bool Atom::Run()
+{
+    DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogHFIterations(true);
+    DebugOptions.OutputHFExcited(true);
+    DebugOptions.HartreeEnergyUnits(true);
+
+    // Check for numValenceElectrons
+    numValenceElectrons_ = userInput_("NumValenceElectrons", 0);
+    if(numValenceElectrons_ <= 0)
+    {   *errstream << "USAGE: must have NumValenceElectrons set." << std::endl;
+        return false;
+    }
+
+    // Relativistic Hartree-Fock
+    core = new Core(lattice, Z, Charge);
+
+    if(userInput_.search("--hartree-fock") || !ReadCore())
+        core->Initialise();
+
+    // Create Basis
+    bool bsplinebasis = userInput_.search("--bspline-basis");
+    bool hfbasis = userInput_.search("--hf-basis");
+    bool rbasis  = userInput_.search("--r-basis");
+    bool custombasis = userInput_.search("--custom-basis");
+
+    // Generate larger mbpt basis even if this run will not actually run the MBPT part,
+    // unless it specifically says don't save.
+    bool generate_mbpt_basis = userInput_.search("MBPTBasis")&&
+                               !userInput_.search(2, "-d", "--dont-save");
+
+    if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
+        CreateBSplineBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
+        CreateHartreeFockBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
+        CreateRBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
+        CreateCustomBasis(generate_mbpt_basis);
+    else
+    {   *errstream << "USAGE: must have one and only one basis option (e.g. --bspline-basis)" << std::endl;
+        return false;
+    }
+
+//    if(include_mbpt)
+//        ReadOrWriteBasis();
+
+    // Go do single-electron or many-electron work.
+    if(numValenceElectrons_ == 1)
+        RunSingleElectron();
+    else
+        RunMultipleElectron();
+
+    return true;
+}
+
+void Atom::RunSingleElectron()
 {
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
@@ -163,36 +197,101 @@ Atom::~Atom(void)
     delete lattice;
 }
 
-void Atom::CreateBasis(bool UseMBPT)
+bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states)
 {
-    std::vector<unsigned int> num_states;
-    num_states.push_back(2);
-    num_states.push_back(2);
-    num_states.push_back(3);
-    num_states.push_back(4);
-    num_states.push_back(4);
+    unsigned int p = 0;
+    unsigned int L, max_L = 0;
 
-    for(unsigned int i = 0; i < 5; i++)
-        num_states[i] += 6;
+    // Get Maximum L
+    while(basis_def[p])
+    {
+        if(!isdigit(basis_def[p]))
+        {
+            for(L = 0; L < 10; L++)
+            {   if(Constant::SpectroscopicNotation[L] == tolower(basis_def[p]))
+                    break;
+            }
+            if(L >= 10)
+                return false;
+            max_L = mmax(L, max_L);
+        }
 
-    if(UseMBPT)
-    {   // Add extra states and waves to mbpt basis
-        std::vector<unsigned int> num_states_mbpt;
-        num_states_mbpt.push_back(2);
-        num_states_mbpt.push_back(2);
-        num_states_mbpt.push_back(3);
-        num_states_mbpt.push_back(4);
-        num_states_mbpt.push_back(4);
-        num_states_mbpt.push_back(3);
+        p++;
+    }
+    num_states.resize(max_L+1, 0);
 
-        for(unsigned int i = 0; i < num_states_mbpt.size(); i++)
-            num_states_mbpt[i] += 12;
+    // Set num_states[L] to highest pqn
+    p = 0;
+    while(basis_def[p])
+    {
+        int pqn = atoi(basis_def + p);
+        while(basis_def[p] && isdigit(basis_def[p]))
+            p++;
+        while(basis_def[p] && !isdigit(basis_def[p]))
+        {
+            // Get L
+            for(L = 0; L < 10; L++)
+            {   if(Constant::SpectroscopicNotation[L] == basis_def[p])
+                    break;
+            }
 
-        excited_mbpt->CreateExcitedStates(num_states_mbpt);        
+            num_states[L] = pqn;
+            p++;
+        }
     }
 
+    // Remove core states
+    std::vector<unsigned int> max_pqn_in_core(max_L+1);
+    for(L = 0; L <= max_L; L++)
+        max_pqn_in_core[L] = L;
+
+    core->ToggleClosedShellCore();
+    ConstStateIterator it = core->GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {   L = it.GetStateInfo().L();
+        max_pqn_in_core[L] = mmax(max_pqn_in_core[L], it.GetStateInfo().PQN());
+        it.Next();
+    }
+
+    for(L = 0; L <= max_L; L++)
+    {   if(max_pqn_in_core[L] > num_states[L])
+            return false;
+
+        num_states[L] -= max_pqn_in_core[L];
+    }
+
+    return true;
+}
+
+void Atom::CreateBasis(bool UseMBPT)
+{
+    std::vector<unsigned int> CI_basis_states;
+    std::vector<unsigned int> MBPT_basis_states;
+
+    std::string CI_basis_string = userInput_("ValenceBasis", "");
+    if(CI_basis_string != "")
+        if(!ParseBasisSize(CI_basis_string.c_str(), CI_basis_states))
+        {   *errstream << "USAGE: ValenceBasis = " << CI_basis_string << " has problems" << std::endl;
+            exit(1);
+        }
+
+    if(UseMBPT)
+    {   std::string MBPT_basis_string = userInput_("MBPTBasis", "");
+        if(MBPT_basis_string != "")
+        {   if(!ParseBasisSize(MBPT_basis_string.c_str(), MBPT_basis_states))
+            {   *errstream << "USAGE: MBPTBasis = " << MBPT_basis_string << " has problems" << std::endl;
+                exit(1);
+            }
+
+            excited_mbpt->CreateExcitedStates(MBPT_basis_states);
+        }
+        *outstream << "MBPT    " << MBPT_basis_string << std::endl;
+    }
+    *outstream << "Valence " << CI_basis_string << std::endl;
+
     excited->SetIdentifier(identifier);
-    excited->CreateExcitedStates(num_states);
+    excited->CreateExcitedStates(CI_basis_states);
 }
 
 void Atom::CreateRBasis(bool UseMBPT)
@@ -224,14 +323,6 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
 
     basis->SetParameters(40, 7, 50.);
     CreateBasis(UseMBPT);
-}
-
-void Atom::CreateBSplineBasis(double radius)
-{
-    excited = new BSplineBasis(lattice, core);
-    dynamic_cast<BSplineBasis*>(excited)->SetParameters(40, 7, radius);
-
-    CreateBasis(false);
 }
 
 void Atom::CreateCustomBasis(bool UseMBPT)
@@ -291,6 +382,31 @@ void Atom::Write() const
         // Wait for root node to finish writing, then update integrals.
         MPI::COMM_WORLD.Barrier();
     #endif
+}
+
+bool Atom::ReadCore()
+{
+    // Read core electron states
+    std::string filename = identifier + ".core.atom";
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        return false;
+
+    // Check that the stored ion is the same as this one!
+    double stored_Z, stored_Charge;
+    fread(&stored_Z, sizeof(double), 1, fp);
+    fread(&stored_Charge, sizeof(double), 1, fp);
+    if((stored_Z != Z) || (stored_Charge != Charge))
+    {   fclose(fp);
+        *errstream << "\nAtom::ReadCore: " << filename
+                   << "\n    Incorrect stored state:"
+                   << "\n    Z = " << stored_Z << ", Charge = " << stored_Charge << std::endl;
+        exit(1);
+    }
+
+    core->Read(fp);
+    fclose(fp);
+    return true;
 }
 
 void Atom::Read()
