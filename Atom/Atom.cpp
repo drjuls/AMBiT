@@ -38,12 +38,21 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     valence_mbpt = NULL;
     sigma3 = NULL;
 
+    // Operational parameters
+    useRead = true;
+    useWrite = true;
+
     // CI + MBPT parameters
     NumSolutions = 6;
-    check_size_only = false;        // Check integral and CI sizes
-    save_configurations = false;    // Save and retrieve generated relativistic configurations
-    save_eigenstates = true;        // Save eigenstates (previous saves are always retrieved)
-    generate_mbpt_integrals = false;    // Generate MBPT integrals on this run
+    MaxEnergy = 0.0;
+    mbptBasisString = "";
+    ciBasisString = "";
+    check_size_only = false;
+    save_eigenstates = false;
+    generate_mbpt_integrals = false;
+    includeSigma1 = false;
+    includeSigma2 = false;
+    includeSigma3 = false;
 
     // Multiple run parameters
     multiple_SMS = false;
@@ -77,7 +86,12 @@ bool Atom::Run()
     // Relativistic Hartree-Fock
     core = new Core(lattice, Z, Charge);
 
-    if(userInput_.search("--hartree-fock") || !ReadCore())
+    if(userInput_.search(2, "-c", "--clean"))
+        useRead = false;
+    if(userInput_.search(2, "-d", "--dont-save"))
+        useWrite = false;
+
+    if(!useRead || !ReadCore())
         core->Initialise();
 
     // Create Basis
@@ -86,10 +100,9 @@ bool Atom::Run()
     bool rbasis  = userInput_.search("--r-basis");
     bool custombasis = userInput_.search("--custom-basis");
 
-    // Generate larger mbpt basis even if this run will not actually run the MBPT part,
-    // unless it specifically says don't save.
-    bool generate_mbpt_basis = userInput_.search("MBPTBasis")&&
-                               !userInput_.search(2, "-d", "--dont-save");
+    // Generate larger mbpt basis even if this run will not actually run the MBPT part
+    mbptBasisString = userInput_("MBPTBasis", "");
+    bool generate_mbpt_basis = (mbptBasisString != "");
 
     if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
         CreateBSplineBasis(generate_mbpt_basis);
@@ -100,12 +113,18 @@ bool Atom::Run()
     else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
         CreateCustomBasis(generate_mbpt_basis);
     else
-    {   *errstream << "USAGE: must have one and only one basis option (e.g. --bspline-basis)" << std::endl;
+    {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
         return false;
     }
 
-//    if(include_mbpt)
-//        ReadOrWriteBasis();
+    if(useRead && useWrite)
+        ReadOrWriteBasis();
+    else if(useWrite)
+        Write();
+    else if(useRead)
+        Read();
+
+    // TODO: PrintBasis only option
 
     // Go do single-electron or many-electron work.
     if(numValenceElectrons_ == 1)
@@ -118,16 +137,6 @@ bool Atom::Run()
 
 void Atom::RunSingleElectron()
 {
-    DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited(true);
-    DebugOptions.HartreeEnergyUnits(true);
-
-    //CreateCustomBasis();
-    //CreateHartreeFockBasis(false);
-    CreateRBasis(true);
-    //CreateBSplineBasis();
-
     mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
     //mbpt->UpdateIntegrals(excited);
 
@@ -161,7 +170,6 @@ void Atom::RunSingleElectron()
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
     Z(atomic_number), Charge(charge), identifier(atom_identifier),
     NumSolutions(6), check_size_only(false), generate_mbpt_integrals(false),
-    save_configurations (false), save_eigenstates(false),
     excited(NULL), excited_mbpt(NULL), valence_mbpt(NULL),
     integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
 {
@@ -269,26 +277,23 @@ void Atom::CreateBasis(bool UseMBPT)
     std::vector<unsigned int> CI_basis_states;
     std::vector<unsigned int> MBPT_basis_states;
 
-    std::string CI_basis_string = userInput_("ValenceBasis", "");
-    if(CI_basis_string != "")
-        if(!ParseBasisSize(CI_basis_string.c_str(), CI_basis_states))
-        {   *errstream << "USAGE: ValenceBasis = " << CI_basis_string << " has problems" << std::endl;
+    ciBasisString = userInput_("ValenceBasis", "");
+    if(ciBasisString != "")
+        if(!ParseBasisSize(ciBasisString.c_str(), CI_basis_states))
+        {   *errstream << "USAGE: ValenceBasis = " << ciBasisString << " has problems" << std::endl;
             exit(1);
         }
 
     if(UseMBPT)
-    {   std::string MBPT_basis_string = userInput_("MBPTBasis", "");
-        if(MBPT_basis_string != "")
-        {   if(!ParseBasisSize(MBPT_basis_string.c_str(), MBPT_basis_states))
-            {   *errstream << "USAGE: MBPTBasis = " << MBPT_basis_string << " has problems" << std::endl;
-                exit(1);
-            }
-
-            excited_mbpt->CreateExcitedStates(MBPT_basis_states);
+    {   if(!ParseBasisSize(mbptBasisString.c_str(), MBPT_basis_states))
+        {   *errstream << "USAGE: MBPTBasis = " << mbptBasisString << " has problems" << std::endl;
+            exit(1);
         }
-        *outstream << "MBPT    " << MBPT_basis_string << std::endl;
+
+        excited_mbpt->CreateExcitedStates(MBPT_basis_states);
+        *outstream << "MBPT    " << mbptBasisString << std::endl;
     }
-    *outstream << "Valence " << CI_basis_string << std::endl;
+    *outstream << "Valence " << ciBasisString << std::endl;
 
     excited->SetIdentifier(identifier);
     excited->CreateExcitedStates(CI_basis_states);
@@ -409,36 +414,15 @@ bool Atom::ReadCore()
     return true;
 }
 
-void Atom::Read()
+bool Atom::Read()
 {
-    // Read core electron states
-    std::string filename = identifier + ".core.atom";
-    FILE* fp = fopen(filename.c_str(), "rb");
-    if(!fp)
-    {   *errstream << "Atom::Read(): Unable to open file: " << filename << std::endl;
-        exit(1);
-    }
-
-    // Check that the stored ion is the same as this one!
-    double stored_Z, stored_Charge;
-    fread(&stored_Z, sizeof(double), 1, fp);
-    fread(&stored_Charge, sizeof(double), 1, fp);
-    if((stored_Z != Z) || (stored_Charge != Charge))
-    {   fclose(fp);
-        *errstream << "\nIncorrect stored state." << std::endl;
-        exit(1);
-    }
-
-    core->Read(fp);
-    fclose(fp);
-
-    // Excited states
-    if(excited)
-    {   filename = identifier + ".excited.atom";
-        fp = fopen(filename.c_str(), "rb");
+    bool success = ReadCore();
+    if(success && excited)
+    {   // Read Excited states
+        std::string filename = identifier + ".excited.atom";
+        FILE* fp = fopen(filename.c_str(), "rb");
         if(!fp)
-        {   *errstream << "Atom::Read(): Unable to open file: " << filename << std::endl;
-            exit(1);
+        {   return false;
         }
         excited->Read(fp);
 
@@ -449,6 +433,8 @@ void Atom::Read()
 
         fclose(fp);
     }
+
+    return success;
 }
 
 void Atom::ReadOrWriteBasis()

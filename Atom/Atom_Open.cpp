@@ -13,35 +13,54 @@
 
 void Atom::RunMultipleElectron()
 {
-    check_size_only = userInput_.search("--check-size-only");
+    check_size_only = userInput_.search("--check-sizes");
     generate_mbpt_integrals = userInput_.search("--generate-integrals-mbpt")
-                             && userInput_.search("MBPTBasis");
+                             && (mbptBasisString != "");
 
-    bool collate_mbpt_integrals = generate_mbpt_integrals || userInput_.search("--collate-integrals-mbpt");
+    // Don't generate MBPT integrals if we're not saving them!
+    if(generate_mbpt_integrals && !useWrite && !check_size_only)
+    {   *errstream << "USAGE: Cannot use \"--generate-integrals-mbpt\" with \"--dont-save\" unless\n"
+                   << "       only doing a \"--check-sizes\"." << std::endl;
+        exit(1);
+    }
 
-    DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited(true);
-    DebugOptions.HartreeEnergyUnits(true);
-    DebugOptions.LogMBPT(false);
-    //DebugOptions.LogAugerRate(true);
+    bool collate_mbpt_integrals = (generate_mbpt_integrals || userInput_.search("--collate-integrals-mbpt"))
+                                  && !check_size_only;
 
+    // Get integrals
     core->ToggleClosedShellCore();
 
-    if(!check_size_only && collate_mbpt_integrals)
+    if(collate_mbpt_integrals)
         CollateIntegralsMBPT(NumProcessors);
+
+    // MBPT Options
+    bool includeSall = userInput_.search(2, "-s123", "--include-sigma-all");
+    includeSigma1 = userInput_.search(3, "-s1", "-s12", "--include-sigma1");
+    includeSigma2 = userInput_.search(3, "-s2", "-s12", "--include-sigma2");
+    includeSigma3 = userInput_.search(2, "-s3", "--include-sigma3");
+
+    includeSigma1 = includeSigma1 || includeSall;
+    includeSigma2 = includeSigma2 || includeSall;
+    includeSigma3 = includeSigma3 || includeSall;
+
+    // If not specified for mbpt integral calculation, make both Sigma 1 and Sigma 2
+    if(generate_mbpt_integrals && !includeSigma1 && !includeSigma2)
+    {   includeSigma1 = true;
+        includeSigma2 = true;
+    }
 
     double mbpt_delta = userInput_("MBPTDelta", 0.0);
 
-    // Uncomment to include sigma3.
-    //sigma3 = new Sigma3Calculator(lattice, core, excited);
-    //sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
+    if(includeSigma3)
+    {   sigma3 = new Sigma3Calculator(lattice, core, excited);
+        sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
+    }
 
     if(generate_mbpt_integrals)
     {   GenerateIntegralsMBPT(true, false, mbpt_delta);
 
         // Collate new integrals
-        if(!check_size_only)
+        if(collate_mbpt_integrals)
             CollateIntegralsMBPT(NumProcessors);
     }
 
@@ -52,6 +71,12 @@ void Atom::RunMultipleElectron()
         CheckMatrixSizes();
     else
     {   // Warning: Need to have generated integrals already.
+        #ifdef _SCALAPACK
+            MaxEnergy = userInput_("MaxEnergy", 0.0);
+        #else
+            NumSolutions = userInput_("NumSolutions", 6);
+        #endif
+
         CalculateEnergies();
     }
 }
@@ -62,8 +87,7 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 
     integrals = new CIIntegralsMBPT(*excited);
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-
-    Read();
+    //Read();
     core->ToggleClosedShellCore();
 
     if(mbpt)
@@ -71,9 +95,9 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 
     if(CoreMBPT)
     {   mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeMBPT1(true, mbpt);
-        integralsMBPT->IncludeMBPT2(true, mbpt);
-        integralsMBPT->IncludeExtraBoxDiagrams(true);
+        integralsMBPT->IncludeMBPT1(includeSigma1, mbpt);
+        integralsMBPT->IncludeMBPT2(includeSigma2, mbpt);
+        integralsMBPT->IncludeExtraBoxDiagrams(includeSigma2);
     }
     else
         mbpt = NULL;
@@ -83,18 +107,26 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     
     if(ValenceMBPT)
     {   valence_mbpt = new ValenceCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeValenceMBPT1(true, valence_mbpt);
-        integralsMBPT->IncludeValenceMBPT2(true, valence_mbpt);
-        integralsMBPT->IncludeValenceExtraBoxDiagrams(true);
+        integralsMBPT->IncludeValenceMBPT1(includeSigma1, valence_mbpt);
+        integralsMBPT->IncludeValenceMBPT2(includeSigma2, valence_mbpt);
+        integralsMBPT->IncludeValenceExtraBoxDiagrams(includeSigma2);
     }
     else
         valence_mbpt = NULL;
 
-    integralsMBPT->SetTwoElectronStorageLimits(7, 7);
+    std::vector<int> two_electron_limits;
+    for(unsigned int i = 0; i < 3; i++)
+        two_electron_limits.push_back(userInput_("TwoElectronStorageLimits", 0, i));
+    integralsMBPT->SetTwoElectronStorageLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    integralsMBPT->SetExtraBoxDiagramLimits(7, 7);
+    if(userInput_.vector_variable_size("BoxDiagramStorageLimits") >= 1)
+    {   two_electron_limits.clear();
+        for(unsigned int i = 0; i < 3; i++)
+            two_electron_limits.push_back(userInput_("BoxDiagramStorageLimits", 0, i));
+    }
+    integralsMBPT->SetExtraBoxDiagramLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 
     if(mbpt)
         mbpt->SetEnergyShift(delta/Constant::HartreeEnergy_cm);
@@ -104,7 +136,13 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
     integrals->IncludeValenceSMS(false);
     integrals->SetIdentifier(identifier);    
     integrals->Clear();
-    if(!check_size_only)
+
+    if(check_size_only)
+    {   *outstream << std::endl;
+        unsigned int stored_size = integrals->GetStorageSize();
+        *outstream << "Total calculated MBPT integrals: " << stored_size << std::endl;
+    }
+    else
         integrals->Update();
 }
 
@@ -162,8 +200,7 @@ void Atom::GenerateIntegrals()
     //  Read();
     core->ToggleClosedShellCore();
 
-    // Are we using MBPT?
-    if(userInput_.search("--use-mbpt"))
+    if(includeSigma1 || includeSigma2)
         integrals = new CIIntegralsMBPT(*excited);
     else
         integrals = new CIIntegrals(*excited);
@@ -191,7 +228,7 @@ void Atom::ChooseSymmetries()
     for(i = 0; i < num_symmetries; i++)
     {
         two_j = userInput_("EvenParityTwoJ", 0, i);
-        SymEigenstates[Symmetry(two_j, even)] = NULL;
+        symEigenstates[Symmetry(two_j, even)] = NULL;
     }
 
     // Odd parity
@@ -199,10 +236,10 @@ void Atom::ChooseSymmetries()
     for(i = 0; i < num_symmetries; i++)
     {
         two_j = userInput_("OddParityTwoJ", 0, i);
-        SymEigenstates[Symmetry(two_j, odd)] = NULL;
+        symEigenstates[Symmetry(two_j, odd)] = NULL;
     }
 
-    if(SymEigenstates.empty())
+    if(symEigenstates.empty())
     {   *errstream << "USAGE: No symmetries requested (EvenParityTwoJ or OddParityTwoJ)" << std::endl;
         exit(1);
     }
@@ -224,7 +261,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         generator = new ConfigGenerator(excited, identifier, sym);
 
     bool read_from_disk = false;
-    if(save_configurations)
+    if(useRead)
         read_from_disk = generator->Read();
 
     if(!read_from_disk)
@@ -265,7 +302,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         generator->GenerateRelativisticConfigs();
         generator->GenerateProjections();
 
-        if(save_configurations)
+        if(useWrite)
             generator->Write();
     }
     
@@ -278,9 +315,9 @@ void Atom::CheckMatrixSizes()
     if(integrals)
         *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
 
-    SymmetryEigenstatesMap::iterator it = SymEigenstates.begin();
+    SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
 
-    while(it != SymEigenstates.end())
+    while(it != symEigenstates.end())
     {
         // Generate configurations again; don't read from disk. */
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
@@ -307,14 +344,14 @@ void Atom::CheckMatrixSizes()
 
 void Atom::CalculateEnergies()
 {
-    SymmetryEigenstatesMap::iterator it = SymEigenstates.begin();
+    SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
 
-    while(it != SymEigenstates.end())
+    while(it != symEigenstates.end())
     {
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
         Eigenstates* E = new Eigenstates(identifier, conf_gen);
 
-        if(!E->Read())
+        if(!useRead || !E->Read())
         {
             HamiltonianMatrix* H;
 
@@ -333,7 +370,7 @@ void Atom::CalculateEnergies()
             #ifdef _SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", -1.47, *E, true);
+                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true);
             #else
                 H->SolveMatrix(NumSolutions, *E, true);
             #endif
@@ -354,7 +391,7 @@ void Atom::CalculateEnergies()
         }
 
         it->second = E;
-        if(save_eigenstates)
+        if(useRead && useWrite)
             E->Clear();
         it++;
     }
@@ -362,8 +399,8 @@ void Atom::CalculateEnergies()
 
 Eigenstates* Atom::GetEigenstates(const Symmetry& sym)
 {
-    SymmetryEigenstatesMap::iterator it = SymEigenstates.find(sym);    
-    if(it != SymEigenstates.end())
+    SymmetryEigenstatesMap::iterator it = symEigenstates.find(sym);    
+    if(it != symEigenstates.end())
         return it->second;
     else
         return NULL;

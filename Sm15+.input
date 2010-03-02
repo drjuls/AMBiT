@@ -1,7 +1,9 @@
 // Fortran namelist-style input for AMBiT. Use // for comments.
 // One entry per line; extra whitespace ignored.
 
---check-size-only
+//--check-sizes
+//--generate-integrals-mbpt
+-d
 
 // Hartree-Fock properties
 ID  = Sm15+001
@@ -16,20 +18,19 @@ multiple/doalpha
 
 // Basis properties
 --bspline-basis
-ValenceBasis = 16spdfg
+ValenceBasis = 6spdf
 
 // CI Ignored if NumElectrons = 1
 LeadingConfigurations = '5s2, 5s1 4f1'
 ElectronExcitations = 2
-OddParityTwoJ =   '0, 2, 4, 6, 8, 10, 12'
-EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
+OddParityTwoJ =   '0'
+//EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
 MaxEnergy = -19.03	// Only used if _SCALAPACK is on
 
 // MBPT
-//--use-mbpt
-MBPTBasis = 30spdfgh
+MBPTBasis = 10spdfg
 //MBPTDelta = 0.0
-IncludeSigma3 = false
-TwoElectronStorageLimits = 7, 7
+//--include-sigma-3
+TwoElectronStorageLimits = '7, 7'
 
 END

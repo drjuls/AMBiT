@@ -40,7 +40,7 @@ public:
     /** Read should be called immediately after initialisation of the atom, in order that
         initial Hartree-Fock values are not calculated (just to save computational time).
       */
-    void Read();
+    bool Read();
 
     /** Read core and excited states if core file exists, otherwise write them. */
     void ReadOrWriteBasis();
@@ -153,14 +153,24 @@ protected:
     ValenceCalculator* valence_mbpt;
     Sigma3Calculator* sigma3;
 
-    SymmetryEigenstatesMap SymEigenstates;
+    SymmetryEigenstatesMap symEigenstates;
+
+    // Operational parameters
+    bool useRead;     // Read when possible from file
+    bool useWrite;    // Write when possible
 
     // CI + MBPT parameters
     unsigned int NumSolutions;
+    double MaxEnergy;
+    std::string mbptBasisString;    // User input string
+    std::string ciBasisString;      // User input string
     bool check_size_only;           // Check integral and CI sizes
-    bool save_configurations;       // Save and retrieve generated relativistic configurations
-    bool save_eigenstates;          // Save eigenstates (previous saves are always retrieved)
+    bool save_eigenstates;          // Save final energy eigenstates
     bool generate_mbpt_integrals;   // Generate MBPT integrals on this run
+    // Which MBPT bits to include
+    bool includeSigma1;
+    bool includeSigma2;
+    bool includeSigma3;
 
     // Multiple run parameters
     bool multiple_SMS;

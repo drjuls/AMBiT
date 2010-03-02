@@ -3,7 +3,9 @@
 *.core.atom
 *.excited.atom
 *.sigma
-*.integrals
+*.int
+*.configs
+*.eigenstates
 *.tar
 *.tar.gz
 *.[oa]

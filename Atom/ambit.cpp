@@ -83,12 +83,12 @@ int main(int argc, char* argv[])
         // Must-have arguments. This also checks on the file's existence.
         int Z, N, Charge;
         Z = fileInput("Z", 0);
-        N = fileInput("N", 0);  // Number of electrons
-        if(Z != 0 && N == 0)
+        N = fileInput("N", -1);  // Number of electrons
+        if(Z != 0 && N == -1)
         {   Charge = fileInput("Charge", Z);
             N = Z - Charge;
         }
-        if(Z == 0 || N ==0 || N > Z)
+        if(Z == 0 || N == -1 || N > Z)
         {   *errstream << inputFileName << " must specify Z, and either N (number of electrons) or Charge.\n"
                        << "    Furthermore Z >= N." << std::endl;
             exit(1);

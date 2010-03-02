@@ -236,9 +236,9 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
 
 void Atom::CalculateMultipleEnergies()
 {
-    SymmetryEigenstatesMap::iterator it = SymEigenstates.begin();
+    SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
 
-    while(it != SymEigenstates.end())
+    while(it != symEigenstates.end())
     {
         identifier = original_id;
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
