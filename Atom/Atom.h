@@ -126,6 +126,7 @@ public:
 public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
+    void PrintGraspMCDF();
 
 protected:
     /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */

@@ -61,12 +61,18 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     multiple_radius = false;
 
     // Lattice parameters
-    int num_points = userInput_("lattice/numpoints", 1000);
-    double first_point = userInput_("lattice/startpoint", 1.e-6);
-    double lattice_size = userInput_("lattice/endpoint", 50.);
-    lattice = new Lattice(num_points, first_point, lattice_size);
-
-    //TODO: lattice = new ExpLattice(300, 1.e-5, 0.05);
+    if(userInput_.search("--exp-lattice"))
+    {   int num_points = userInput_("lattice/numpoints", 300);
+        double first_point = userInput_("lattice/startpoint", 1.e-5);
+        double h = userInput_("lattice/h", 0.05);
+        lattice = new ExpLattice(num_points, first_point, h);
+    }
+    else
+    {   int num_points = userInput_("lattice/numpoints", 1000);
+        double first_point = userInput_("lattice/startpoint", 1.e-6);
+        double lattice_size = userInput_("lattice/endpoint", 50.);
+        lattice = new Lattice(num_points, first_point, lattice_size);
+    }
 }
 
 bool Atom::Run()
@@ -124,7 +130,11 @@ bool Atom::Run()
     else if(useRead)
         Read();
 
-    // TODO: PrintBasis only option
+    // Print basis only option
+    if(userInput_.search(2, "--print-basis", "-p"))
+    {   PrintGraspMCDF();
+        return true;
+    }
 
     // Go do single-electron or many-electron work.
     if(numValenceElectrons_ == 1)
@@ -326,7 +336,7 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
         basis = dynamic_cast<BSplineBasis*>(excited);
     }
 
-    basis->SetParameters(40, 7, 50.);
+    basis->SetParameters(40, 7, 30.);
     CreateBasis(UseMBPT);
 }
 
@@ -581,4 +591,111 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
     }
     
     fprintf(fp, "\n");
+}
+
+void Atom::PrintGraspMCDF()
+{
+    FILE* fp = fopen("MCDF.DMP", "wb");
+    int record_size;    // Need to write size of record (bytes) at start and end of each record
+    
+    // Write Record 1 (see GRASP0 documentation from Patrick Norrington's website).
+    record_size = 100;
+    char IHED[80], RECORD[20];
+    memset(IHED, ' ', 80);
+    memset(RECORD, ' ', 20);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(IHED, sizeof(char), 80, fp);
+    fwrite(RECORD, sizeof(char), 20, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    
+    // Record 2
+    int NCMIN = 0;
+    int NW = excited->NumStates();
+    int NCF = 0;
+    int N = lattice->Size();
+    record_size = 4 * sizeof(int);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(&NCMIN, sizeof(int), 1, fp);
+    fwrite(&NW, sizeof(int), 1, fp);
+    fwrite(&NCF, sizeof(int), 1, fp);
+    fwrite(&N, sizeof(int), 1, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    
+    // Record 3
+    double RNT = lattice->R(0);
+    double H = lattice->H();
+    double C = 1/Constant::Alpha;
+    record_size = 4*sizeof(double);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(&Z, sizeof(double), 1, fp);
+    fwrite(&RNT, sizeof(double), 1, fp);
+    fwrite(&H, sizeof(double), 1, fp);
+    fwrite(&C, sizeof(double), 1, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);
+
+    // Record 4 - 6, repeated for each orbital
+    ConstStateIterator it = excited->GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {
+        const DiscreteState* ds = it.GetState();
+
+        // Record 4
+        char NH[2];
+        int NP = ds->RequiredPQN();
+        int NAK = ds->Kappa();
+        double E = fabs(ds->Energy());
+        NH[0] = toupper(Constant::SpectroscopicNotation[ds->L()]);
+        if(NAK > 0)
+            NH[1] = '-';
+        else
+            NH[1] = ' ';
+        record_size = 2 + 2*sizeof(int) + sizeof(double);
+        fwrite(&record_size, sizeof(int), 1, fp);
+        fwrite(&NH, sizeof(char), 2, fp);
+        fwrite(&NP, sizeof(int), 1, fp);
+        fwrite(&NAK, sizeof(int), 1, fp);
+        fwrite(&E, sizeof(double), 1, fp);
+        fwrite(&record_size, sizeof(int), 1, fp);
+
+        // Copy upper and lower components to buffers P and Q
+        double P[N], Q[N];
+        bool switch_sign = (ds->f[0] < 0.0);
+        unsigned int i;
+        for(i = 0; i < ds->Size(); i++)
+        {   if(switch_sign)
+            {   P[i] = -ds->f[i];
+                Q[i] = -ds->g[i]*Constant::Alpha;
+            }
+            else
+            {   P[i] = ds->f[i];
+                Q[i] = ds->g[i]*Constant::Alpha;
+            }
+        }
+        while(i < N)
+        {   P[i] = 0.0;
+            Q[i] = 0.0;
+            i++;
+        }
+
+        // Record 5
+        double PZ = P[0]/RNT;
+        double QZ = Q[0]/RNT;
+        record_size = 2*sizeof(double);
+        fwrite(&record_size, sizeof(int), 1, fp);
+        fwrite(&PZ, sizeof(double), 1, fp);
+        fwrite(&QZ, sizeof(double), 1, fp);
+        fwrite(&record_size, sizeof(int), 1, fp);        
+       
+        // Record 6
+        record_size = 2*N*sizeof(double);
+        fwrite(&record_size, sizeof(int), 1, fp);
+        fwrite(P, sizeof(double), N, fp);
+        fwrite(Q, sizeof(double), N, fp);
+        fwrite(&record_size, sizeof(int), 1, fp);        
+
+        it.Next();
+    }
+
+    fclose(fp);
 }
