@@ -4,7 +4,7 @@
 #
 coremodules = Configuration MBPT Basis HartreeFock Universal
 modules = Atom $(coremodules)
-exes = atom rap.exe
+exes = ambit rap.exe
 
 packname = AtomPack
 # other files that should be included in package
@@ -15,7 +15,7 @@ include make.machine
 corelibnames = $(foreach module, $(coremodules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
-atom: $(libnames)
+ambit: $(libnames)
 	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
 	     $(LIBOBJ) $(addprefix -l, $(LIBS))
 

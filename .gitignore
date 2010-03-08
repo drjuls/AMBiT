@@ -1,4 +1,5 @@
 *.txt
+*.input
 *.out
 *.core.atom
 *.excited.atom
@@ -12,4 +13,4 @@
 *~
 Release
 Debug
-atom
+ambit
