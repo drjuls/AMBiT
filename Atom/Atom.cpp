@@ -59,20 +59,6 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     multiple_alpha = false;
     multiple_volume = false;
     multiple_radius = false;
-
-    // Lattice parameters
-    if(userInput_.search("--exp-lattice"))
-    {   int num_points = userInput_("lattice/numpoints", 300);
-        double first_point = userInput_("lattice/startpoint", 1.e-5);
-        double h = userInput_("lattice/h", 0.05);
-        lattice = new ExpLattice(num_points, first_point, h);
-    }
-    else
-    {   int num_points = userInput_("lattice/numpoints", 1000);
-        double first_point = userInput_("lattice/startpoint", 1.e-6);
-        double lattice_size = userInput_("lattice/endpoint", 50.);
-        lattice = new Lattice(num_points, first_point, lattice_size);
-    }
 }
 
 bool Atom::Run()
@@ -89,38 +75,64 @@ bool Atom::Run()
         return false;
     }
 
-    // Relativistic Hartree-Fock
-    core = new Core(lattice, Z, Charge);
-
     if(userInput_.search(2, "-c", "--clean"))
         useRead = false;
     if(userInput_.search(2, "-d", "--dont-save"))
         useWrite = false;
 
-    if(!useRead || !ReadCore())
-        core->Initialise();
-
-    // Create Basis
-    bool bsplinebasis = userInput_.search("--bspline-basis");
-    bool hfbasis = userInput_.search("--hf-basis");
-    bool rbasis  = userInput_.search("--r-basis");
-    bool custombasis = userInput_.search("--custom-basis");
-
-    // Generate larger mbpt basis even if this run will not actually run the MBPT part
-    mbptBasisString = userInput_("MBPTBasis", "");
-    bool generate_mbpt_basis = (mbptBasisString != "");
-
-    if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
-        CreateBSplineBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
-        CreateHartreeFockBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
-        CreateRBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
-        CreateCustomBasis(generate_mbpt_basis);
+    if(userInput_.search("--read-grasp0"))
+    {   // Read lattice and core and basis orbitals
+        ReadGraspMCDF("MCDF.DAT");
+    }
     else
-    {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
-        return false;
+    {   // Lattice parameters
+        if(userInput_.search("--exp-lattice"))
+        {   int num_points = userInput_("lattice/numpoints", 300);
+            double first_point = userInput_("lattice/startpoint", 1.e-5);
+            double h = userInput_("lattice/h", 0.05);
+            lattice = new ExpLattice(num_points, first_point, h);
+        }
+        else
+        {   int num_points = userInput_("lattice/numpoints", 1000);
+            double first_point = userInput_("lattice/startpoint", 1.e-6);
+            double lattice_size = userInput_("lattice/endpoint", 50.);
+            lattice = new Lattice(num_points, first_point, lattice_size);
+        }
+
+        // Relativistic Hartree-Fock
+        core = new Core(lattice, Z, Charge);
+
+        if(!useRead || !ReadCore())
+        {   DebugOptions.LogFirstBuild(true);
+            DebugOptions.LogHFIterations(true);
+
+            core->Initialise(userInput_("HFConfiguration", ""));
+        }
+
+        // Create Basis
+        bool bsplinebasis = userInput_.search("--bspline-basis");
+        bool hfbasis = userInput_.search("--hf-basis");
+        bool rbasis  = userInput_.search("--r-basis");
+        bool custombasis = userInput_.search("--custom-basis");
+
+        // Generate larger mbpt basis even if this run will not actually run the MBPT part
+        mbptBasisString = userInput_("MBPTBasis", "");
+        bool generate_mbpt_basis = (mbptBasisString != "");
+
+        core->ToggleOpenShellCore();
+
+        if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
+            CreateBSplineBasis(generate_mbpt_basis);
+        else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
+            CreateHartreeFockBasis(generate_mbpt_basis);
+        else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
+            CreateRBasis(generate_mbpt_basis);
+        else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
+            CreateCustomBasis(generate_mbpt_basis);
+        else
+        {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
+            return false;
+        }
     }
 
     if(useRead && useWrite)
@@ -132,7 +144,13 @@ bool Atom::Run()
 
     // Print basis only option
     if(userInput_.search(2, "--print-basis", "-p"))
-    {   PrintGraspMCDF();
+    {   // Check follower for option
+        std::string print_option = userInput_.next("");
+        if(print_option == "Cowan")
+            GenerateCowanInputFile();
+        else
+            WriteGraspMCDF();
+
         return true;
     }
 
@@ -300,12 +318,14 @@ void Atom::CreateBasis(bool UseMBPT)
             exit(1);
         }
 
+        core->ToggleOpenShellCore();
         excited_mbpt->CreateExcitedStates(MBPT_basis_states);
         *outstream << "MBPT    " << mbptBasisString << std::endl;
     }
     *outstream << "Valence " << ciBasisString << std::endl;
 
     excited->SetIdentifier(identifier);
+    core->ToggleOpenShellCore();
     excited->CreateExcitedStates(CI_basis_states);
 }
 
@@ -336,7 +356,7 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
         basis = dynamic_cast<BSplineBasis*>(excited);
     }
 
-    basis->SetParameters(40, 7, 30.);
+    basis->SetParameters(40, 7, 40.);
     CreateBasis(UseMBPT);
 }
 
@@ -365,6 +385,9 @@ void Atom::CreateHartreeFockBasis(bool UseMBPT)
 
     CreateBasis(UseMBPT);
 }
+
+void Atom::CreateReadBasis(bool UseMBPT)
+{}
 
 void Atom::Write() const
 {
@@ -466,9 +489,9 @@ void Atom::ReadOrWriteBasis()
 
 void Atom::GenerateCowanInputFile()
 {
-    FILE* fp = fopen("test.txt", "wt");
+    FILE* fp = fopen("mitch.txt", "wt");
 
-    const DiscreteState* ds = excited->GetState(StateInfo(1, -1));
+    const DiscreteState* ds = core->GetState(StateInfo(1, -1));
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(2, -1));
     PrintWavefunctionCowan(fp, ds);
@@ -476,17 +499,23 @@ void Atom::GenerateCowanInputFile()
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(StateInfo(2, -2));
     PrintWavefunctionCowan(fp, ds);
-/*
-    ds = excited->GetState(StateInfo(4, 1));
-    PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(4, -2));
-    PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(4, 3));
-    PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(4, -4));
-    PrintWavefunctionCowan(fp, ds);
-*/
 
+    ds = excited->GetState(StateInfo(4, -1));
+    PrintWavefunctionCowan(fp, ds);
+//    ds = excited->GetState(StateInfo(4, 1));
+//    PrintWavefunctionCowan(fp, ds);
+//    ds = excited->GetState(StateInfo(4, -2));
+//    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, 2));
+    PrintWavefunctionCowan(fp, ds);
+    ds = excited->GetState(StateInfo(4, -3));
+    PrintWavefunctionCowan(fp, ds);
+//    ds = excited->GetState(StateInfo(4, 3));
+//    PrintWavefunctionCowan(fp, ds);
+//    ds = excited->GetState(StateInfo(4, -4));
+//    PrintWavefunctionCowan(fp, ds);
+
+    return;
     // Ground state
     Eigenstates* E = GetEigenstates(Symmetry(0, even));
     double energy_shift = -324.42474 - E->GetEigenvalues()[0];
@@ -506,6 +535,7 @@ void Atom::GenerateCowanInputFile()
 
 void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
 {
+/*
     // Extract A and B from expansion
     //   f(r) = A * r^g + B * r^(g + 1)
     // where g = |Kappa|.
@@ -530,6 +560,9 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
 
     // Upper component
     fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1], -ds->Energy());
+*/
+    // Upper component
+    fprintf(fp, "     %2d%2d     %5d\n", ds->RequiredPQN(), ds->Kappa(), ds->Size());
 
     unsigned int count = 0;
     unsigned int i;
@@ -542,7 +575,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
             count++;
         fprintf(fp, "%14.7E", ds->f[i]);
     }
-    while(i < lattice->Size())
+/*    while(i < lattice->Size())
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -552,7 +585,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
         fprintf(fp, "%14.7E", 0.0);
         i++;
     }
-    
+/*    
     // Lower component
     R[0] = pow(lattice->R(r0), abs(ds->Kappa()));
     R[1] = pow(lattice->R(r0), abs(ds->Kappa()) + 1.);
@@ -566,8 +599,9 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
     {   *errstream << "PrintWavefunctionCowan: Can't get wavefunction expansion" << std::endl;
         exit(1);
     }
-
-    fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1]);
+*/
+    //fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1]);
+    fprintf(fp, "\n     %2d%2d     %5d\n", ds->RequiredPQN(), ds->Kappa(), ds->Size());
 
     count = 0;
     for(i = 0; i < ds->Size(); i++)
@@ -579,7 +613,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
             count++;
         fprintf(fp, "%14.7E", ds->g[i]*Constant::Alpha);
     }
-    while(i < lattice->Size())
+/*    while(i < lattice->Size())
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -589,11 +623,148 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
         fprintf(fp, "%14.7E", 0.0);
         i++;
     }
-    
+*/    
     fprintf(fp, "\n");
 }
 
-void Atom::PrintGraspMCDF()
+bool Atom::ReadGraspMCDF(const std::string& filename)
+{
+    FILE* fp = fopen(filename.c_str(), "rb");
+    int record_size;    // Need to read size of record (bytes) at start and end of each record
+    unsigned int i;
+
+    // Read Record 1 (see GRASP0 documentation from Patrick Norrington's website).
+    char IHED[80], RECORD[20];
+    fread(&record_size, sizeof(int), 1, fp);
+    fread(IHED, sizeof(char), 80, fp);
+    fread(RECORD, sizeof(char), 20, fp);
+    fread(&record_size, sizeof(int), 1, fp);
+    i = 80;
+    while(i>0 && isspace(IHED[--i]))
+        IHED[i] = 0;
+
+    // Record 2
+    int NCMIN;
+    int NW;     // total number of states
+    int NCF;
+    int N;      // lattice size
+    fread(&record_size, sizeof(int), 1, fp);
+    fread(&NCMIN, sizeof(int), 1, fp);
+    fread(&NW, sizeof(int), 1, fp);
+    fread(&NCF, sizeof(int), 1, fp);
+    fread(&N, sizeof(int), 1, fp);
+    fread(&record_size, sizeof(int), 1, fp);
+
+    // Record 3
+    double RNT; // lattice->R(0)
+    double H;   // lattice->H()
+    double C;   // 1/Constant::Alpha
+    fread(&record_size, sizeof(int), 1, fp);
+    fread(&Z, sizeof(double), 1, fp);
+    fread(&RNT, sizeof(double), 1, fp);
+    fread(&H, sizeof(double), 1, fp);
+    fread(&C, sizeof(double), 1, fp);
+    fread(&record_size, sizeof(int), 1, fp);
+
+    lattice = new ExpLattice(N, RNT, H);
+    Constant::Alpha = 1./C;
+    Constant::AlphaSquared = Constant::Alpha*Constant::Alpha;
+    core = new Core(lattice, Z, Charge);
+    excited = new ReadBasis(lattice, core);
+
+    // Record 4 - 6, repeated for each orbital
+    unsigned int orbital_count = 0;
+
+    // Need to know where the orbital belongs: core or valence or excited
+    std::string configuration = userInput_("HFConfiguration", "");
+    if(!configuration.size())
+    {   *outstream << "USAGE: --read-grasp0 requires \"HFConfiguration\" set in input file." << std::endl;
+        exit(1);
+    }
+    std::string closed_shell_string;
+    std::string open_shell_string;
+
+    unsigned int colon_pos = configuration.find(':');
+    if(colon_pos == std::string::npos)
+        closed_shell_string = configuration;
+    else
+    {   closed_shell_string = configuration.substr(0, colon_pos);
+        open_shell_string = configuration.substr(colon_pos+1, configuration.size()-colon_pos-1);
+    }
+
+    Configuration closed_shell_config(closed_shell_string);
+    Configuration open_shell_config(open_shell_string);
+
+    if(closed_shell_config.NumParticles() + open_shell_config.NumParticles() != Z - Charge)
+    {   *errstream << "Core::BuildFirstApproximation: Incorrect electron count in configuration." << std::endl;
+        exit(1);
+    }
+    
+    while(orbital_count < NW)
+    {
+        // Record 4
+        char NH[2];
+        int NP;     // ds->RequiredPQN()
+        int NAK;    // ds->Kappa()
+        double E;   // fabs(ds->Energy())
+        fread(&record_size, sizeof(int), 1, fp);
+        fread(&NH, sizeof(char), 2, fp);
+        fread(&NP, sizeof(int), 1, fp);
+        fread(&NAK, sizeof(int), 1, fp);
+        fread(&E, sizeof(double), 1, fp);
+        fread(&record_size, sizeof(int), 1, fp);
+
+        DiscreteState* ds = new DiscreteState(NP, NAK);
+        ds->SetEnergy(-E);
+
+        // Record 5
+        double PZ;
+        double QZ;
+        record_size = 2*sizeof(double);
+        fread(&record_size, sizeof(int), 1, fp);
+        fread(&PZ, sizeof(double), 1, fp);
+        fread(&QZ, sizeof(double), 1, fp);
+        fread(&record_size, sizeof(int), 1, fp);        
+
+        // Record 6
+        double P[N], Q[N];  // upper and lower components
+        fread(&record_size, sizeof(int), 1, fp);
+        fread(P, sizeof(double), N, fp);
+        fread(Q, sizeof(double), N, fp);
+        fread(&record_size, sizeof(int), 1, fp);
+        
+        i = N - 1;
+        while((i > 0) && (P[i] == 0.0) && (Q[i] == 0.0))
+            i--;
+        ds->ReSize(i+1);
+        for(i = 0; i < ds->Size(); i++)
+        {   ds->f[i] = P[i];
+            ds->g[i] = Q[i]/Constant::Alpha;
+        }
+
+        if(closed_shell_config.GetOccupancy(ds))
+        {   ds->SetOccupancy(closed_shell_config.GetOccupancy(ds));
+            core->AddState(ds);
+        }
+        else
+        {   if(open_shell_config.GetOccupancy(ds))
+            {   ds->SetOccupancy(open_shell_config.GetOccupancy(ds));
+                core->AddState(ds);
+                core->SetOpenShellState(ds, ds->Occupancy());
+            }
+
+            excited->AddState(ds);
+        }
+        *outstream << "Read state " << ds->Name() << std::endl;
+
+        orbital_count++;
+    }
+
+    fclose(fp);
+    return true;
+}
+
+void Atom::WriteGraspMCDF() const
 {
     FILE* fp = fopen("MCDF.DMP", "wb");
     int record_size;    // Need to write size of record (bytes) at start and end of each record
@@ -609,8 +780,9 @@ void Atom::PrintGraspMCDF()
     fwrite(&record_size, sizeof(int), 1, fp);
     
     // Record 2
+    core->ToggleClosedShellCore();  // Avoid double counting valence states
     int NCMIN = 0;
-    int NW = excited->NumStates();
+    int NW = core->NumStates() + excited->NumStates();
     int NCF = 0;
     int N = lattice->Size();
     record_size = 4 * sizeof(int);
@@ -634,68 +806,83 @@ void Atom::PrintGraspMCDF()
     fwrite(&record_size, sizeof(int), 1, fp);
 
     // Record 4 - 6, repeated for each orbital
-    ConstStateIterator it = excited->GetConstStateIterator();
+    ConstStateIterator it = core->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
     {
         const DiscreteState* ds = it.GetState();
+        WriteGraspMcdfOrbital(fp, ds, N);
+        it.Next();
+    }
 
-        // Record 4
-        char NH[2];
-        int NP = ds->RequiredPQN();
-        int NAK = ds->Kappa();
-        double E = fabs(ds->Energy());
-        NH[0] = toupper(Constant::SpectroscopicNotation[ds->L()]);
-        if(NAK > 0)
-            NH[1] = '-';
-        else
-            NH[1] = ' ';
-        record_size = 2 + 2*sizeof(int) + sizeof(double);
-        fwrite(&record_size, sizeof(int), 1, fp);
-        fwrite(&NH, sizeof(char), 2, fp);
-        fwrite(&NP, sizeof(int), 1, fp);
-        fwrite(&NAK, sizeof(int), 1, fp);
-        fwrite(&E, sizeof(double), 1, fp);
-        fwrite(&record_size, sizeof(int), 1, fp);
-
-        // Copy upper and lower components to buffers P and Q
-        double P[N], Q[N];
-        bool switch_sign = (ds->f[0] < 0.0);
-        unsigned int i;
-        for(i = 0; i < ds->Size(); i++)
-        {   if(switch_sign)
-            {   P[i] = -ds->f[i];
-                Q[i] = -ds->g[i]*Constant::Alpha;
-            }
-            else
-            {   P[i] = ds->f[i];
-                Q[i] = ds->g[i]*Constant::Alpha;
-            }
-        }
-        while(i < N)
-        {   P[i] = 0.0;
-            Q[i] = 0.0;
-            i++;
-        }
-
-        // Record 5
-        double PZ = P[0]/RNT;
-        double QZ = Q[0]/RNT;
-        record_size = 2*sizeof(double);
-        fwrite(&record_size, sizeof(int), 1, fp);
-        fwrite(&PZ, sizeof(double), 1, fp);
-        fwrite(&QZ, sizeof(double), 1, fp);
-        fwrite(&record_size, sizeof(int), 1, fp);        
-       
-        // Record 6
-        record_size = 2*N*sizeof(double);
-        fwrite(&record_size, sizeof(int), 1, fp);
-        fwrite(P, sizeof(double), N, fp);
-        fwrite(Q, sizeof(double), N, fp);
-        fwrite(&record_size, sizeof(int), 1, fp);        
-
+    it = excited->GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {
+        const DiscreteState* ds = it.GetState();
+        WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
     }
 
     fclose(fp);
+}
+
+void Atom::WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int lattice_size) const
+{
+    unsigned int record_size;
+    unsigned int N = lattice_size;
+
+    // Record 4
+    char NH[2];
+    int NP = ds->RequiredPQN();
+    int NAK = ds->Kappa();
+    double E = fabs(ds->Energy());
+    NH[0] = toupper(Constant::SpectroscopicNotation[ds->L()]);
+    if(NAK > 0)
+        NH[1] = '-';
+    else
+        NH[1] = ' ';
+    record_size = 2 + 2*sizeof(int) + sizeof(double);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(&NH, sizeof(char), 2, fp);
+    fwrite(&NP, sizeof(int), 1, fp);
+    fwrite(&NAK, sizeof(int), 1, fp);
+    fwrite(&E, sizeof(double), 1, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);
+
+    // Copy upper and lower components to buffers P and Q
+    double P[N], Q[N];
+    bool switch_sign = (ds->f[0] < 0.0);
+    unsigned int i;
+    for(i = 0; i < ds->Size(); i++)
+    {   if(switch_sign)
+        {   P[i] = -ds->f[i];
+            Q[i] = -ds->g[i]*Constant::Alpha;
+        }
+        else
+        {   P[i] = ds->f[i];
+            Q[i] = ds->g[i]*Constant::Alpha;
+        }
+    }
+    while(i < N)
+    {   P[i] = 0.0;
+        Q[i] = 0.0;
+        i++;
+    }
+
+    // Record 5
+    double PZ = P[0]/lattice->R(0);
+    double QZ = Q[0]/lattice->R(0);
+    record_size = 2*sizeof(double);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(&PZ, sizeof(double), 1, fp);
+    fwrite(&QZ, sizeof(double), 1, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);        
+   
+    // Record 6
+    record_size = 2*N*sizeof(double);
+    fwrite(&record_size, sizeof(int), 1, fp);
+    fwrite(P, sizeof(double), N, fp);
+    fwrite(Q, sizeof(double), N, fp);
+    fwrite(&record_size, sizeof(int), 1, fp);        
 }

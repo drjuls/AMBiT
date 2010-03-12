@@ -1,8 +1,10 @@
 #include "Include.h"
 #include "Core.h"
 #include "Universal/Constant.h"
+#include "Configuration/Configuration.h"
+#include "NonRelInfo.h"
 
-void Core::BuildFirstApproximation()
+void Core::BuildFirstApproximation(std::string configuration)
 {
     /** A very complex function. It does the following
         1. Assign electrons to states
@@ -12,50 +14,113 @@ void Core::BuildFirstApproximation()
         5. Introduce the nuclear potential
      */
 
-    if(!GetConfigData())
+    if(!configuration.size())
     {
-        *errstream << "Failed to get intitial states from config.txt" << std::endl;
-        *outstream << "Failed to get intitial states from config.txt" << std::endl;
-
-        // Get needed states
-        unsigned int number_electrons = (unsigned int)(Z - Charge);
-        unsigned int electron_count = 0;
-
-        // First, get special states
-        electron_count = GetSpecialStates();
-
-        unsigned int pqn = 0;
-        int kappa;
-        do
-        {   pqn++;
-            for(int k=0; k < 2*(int)pqn-1; k++)
-            {   if((double)k/2. == (double)(k/2))
-                    kappa = -k/2 - 1;
-                else
-                    kappa = (k+1)/2;
-                
-                // Make sure state doesn't already exist
-                if(!GetState(StateInfo(pqn, kappa)))
-                {
-                    DiscreteState* s = new DiscreteState(pqn, kappa);
-
-                    if(electron_count + 2*abs(kappa) <= number_electrons)
-                    {   electron_count = electron_count + 2*abs(kappa);
-                    }
-                    else
-                    {   // Open shell
-                        s->SetOccupancy(number_electrons - electron_count);
-                        electron_count = number_electrons;
-                    }
-
-                    AddState(s);
-                }
-
-                if(electron_count == number_electrons)
-                    break;
-            }
+        configuration = GetConfigData();
+        if(!configuration.size())
+        {   *errstream << "Core::BuildFirstApproximation: Failed to get intitial states from config.txt" << std::endl;
+            *outstream << "Core::BuildFirstApproximation: Failed to get intitial states from config.txt" << std::endl;
+            exit(1);
         }
-        while(electron_count < number_electrons);
+    }
+
+    std::string closed_shell_string;
+    std::string open_shell_string;
+
+    unsigned int colon_pos = configuration.find(':');
+    if(colon_pos == std::string::npos)
+        closed_shell_string = configuration;
+    else
+    {   closed_shell_string = configuration.substr(0, colon_pos);
+        open_shell_string = configuration.substr(colon_pos+1, configuration.size()-colon_pos-1);
+    }
+
+    Configuration closed_shell_config(closed_shell_string);
+    Configuration open_shell_config(open_shell_string);
+
+    if(closed_shell_config.NumParticles() + open_shell_config.NumParticles() != Z - Charge)
+    {   *errstream << "Core::BuildFirstApproximation: Incorrect electron count in configuration." << std::endl;
+        exit(1);
+    }
+
+    // Split non-relativistic configuration into relativistic states
+    closed_shell_config.First();
+    while(!closed_shell_config.AtEnd())
+    {
+        DiscreteState* s1 = NULL;
+        DiscreteState* s2 = NULL;
+
+        NonRelInfo info(closed_shell_config.GetInfo());
+        double occupancy = closed_shell_config.GetOccupancy();
+        int L = info.L();
+
+        if(L == 0)
+        {   s2 = new DiscreteState(info.PQN(), -1);
+            s2->SetOccupancy(double(closed_shell_config.GetOccupancy()));
+        }
+        else
+        {   // Split electrons between subshells
+            s1 = new DiscreteState(info.PQN(), L);
+            s2 = new DiscreteState(info.PQN(), -(L+1));
+
+            double occ1 = double(2*L)/double(4*L+2) * occupancy;
+            double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
+            s1->SetOccupancy(occ1);
+            s2->SetOccupancy(occ2);
+        }
+
+        if(s1)
+            AddState(s1);
+        if(s2)
+            AddState(s2);
+        closed_shell_config.Next();
+    }
+    
+    open_shell_config.First();
+    while(!open_shell_config.AtEnd())
+    {
+        DiscreteState* s1 = NULL;
+        DiscreteState* s2 = NULL;
+
+        NonRelInfo info(open_shell_config.GetInfo());
+        double occupancy = closed_shell_config.GetOccupancy();
+        int L = info.L();
+
+        if(L == 0)
+        {   s2 = new DiscreteState(info.PQN(), -1);
+            s2->SetOccupancy(double(open_shell_config.GetOccupancy()));
+        }
+        else
+        {   // Split electrons between subshells
+            s1 = new DiscreteState(info.PQN(), L);
+            s2 = new DiscreteState(info.PQN(), -(L+1));
+
+            double occ1 = double(2*L)/double(4*L+2) * occupancy;
+            double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
+            s1->SetOccupancy(occ1);
+            s2->SetOccupancy(occ2);
+
+            // Routine for splitting electrons keeping integer occupancies
+            //unsigned int occ1 = occupancy/2;
+            //occ1 = mmin(occ1, unsigned int(2*L));
+            //if(occ1)
+            //{   s1 = new DiscreteState(pqn, L);
+            //    s1->SetOccupancy(occ1);
+            //}
+
+            //s2 = new DiscreteState(pqn, -(L+1));
+            //s2->SetOccupancy(mmin(occupancy-occ1, unsigned int(2*L + 2)));
+        }
+
+        if(s1)
+        {   AddState(s1);
+            SetOpenShellState(s1, s1->Occupancy());
+        }
+        if(s2)
+        {   AddState(s2);
+            SetOpenShellState(s2, s2->Occupancy());
+        }
+        open_shell_config.Next();
     }
 
     // Get first approximation to state energies
@@ -197,11 +262,9 @@ void Core::BuildFirstApproximation()
 
         UpdateHFPotential(0.4, true);
     }
-
-    //Update();
 }
 
-bool Core::GetConfigData()
+std::string Core::GetConfigData()
 {
     FILE* fp = fopen("config.txt", "r");
     if(fp == NULL)
@@ -231,163 +294,14 @@ bool Core::GetConfigData()
             NuclearThickness = thickness/Constant::AtomicToFermi;
             found = true;
         }
-        else
-            fgets(buffer, 200, fp); // skip next line
+
+        fgets(buffer, 200, fp);
     }
 
-    if(!found)
-        return false;
+    std::string ret;
+    if(found)
+        ret = buffer;
 
-    int L, pqn, occupancy;
-    int electron_count = 0;
-
-    fgets(buffer, 200, fp);
     fclose(fp);
-
-    bool in_core = true;
-    char tempbuf[20];
-    unsigned int i = 0;
-
-    // Move to first configuration
-    while(!isdigit(buffer[i]) && buffer[i] != '\0')
-    {   if(buffer[i] == ':')
-            in_core = false;
-        i++;
-    }
-
-    while(buffer[i] != '\0')
-    {
-        unsigned int j=0;
-
-        // Get config
-        while(isdigit(buffer[i]))
-        {   tempbuf[j] = buffer[i];
-            i++; j++;
-        }
-        tempbuf[j] = 0;
-        pqn = atoi(tempbuf);
-
-        // Get L
-        for(L = 0; L < 10; L++)
-        {   if(Constant::SpectroscopicNotation[L] == buffer[i])
-                break;
-        }
-        i++;
-
-        // Get occupancy
-        j = 0;
-        while(isdigit(buffer[i]))
-        {   tempbuf[j] = buffer[i];
-            i++; j++;
-        }
-        tempbuf[j] = 0;
-        occupancy = atoi(tempbuf);
-        electron_count += occupancy;
-
-        DiscreteState* s1 = NULL;
-        DiscreteState* s2 = NULL;
-
-        if(L == 0)
-        {   s2 = new DiscreteState(pqn, -1);
-            s2->SetOccupancy(double(occupancy));
-        }
-        else
-        {   // Split electrons between subshells
-            s1 = new DiscreteState(pqn, L);
-            s2 = new DiscreteState(pqn, -(L+1));
-
-            double occ1 = double(2*L)/double(4*L+2) * double(occupancy);
-            double occ2 = double(2*L+2)/double(4*L+2) * double(occupancy);
-            s1->SetOccupancy(occ1);
-            s2->SetOccupancy(occ2);
-
-            // Routine for splitting electrons keeping integer occupancies
-            //unsigned int occ1 = occupancy/2;
-            //occ1 = mmin(occ1, unsigned int(2*L));
-            //if(occ1)
-            //{   s1 = new DiscreteState(pqn, L);
-            //    s1->SetOccupancy(occ1);
-            //}
-
-            //s2 = new DiscreteState(pqn, -(L+1));
-            //s2->SetOccupancy(mmin(occupancy-occ1, unsigned int(2*L + 2)));
-        }
-
-        if(s1)
-            AddState(s1);
-        if(s2)
-            AddState(s2);
-        
-        if(!in_core)
-        {   if(s1)
-            {   OpenShellStates[StateInfo(s1)] = s1->Occupancy();
-            }
-            if(s2)
-            {   OpenShellStates[StateInfo(s2)] = s2->Occupancy();
-            }
-        }
-
-        // End of core?
-        if(buffer[i] == ':')
-        {   in_core = false;
-            i++;
-        }
-
-        // Next configuration term
-        while(!isdigit(buffer[i]) && buffer[i] != '\0')
-            i++;
-    }
-
-    if(electron_count == Z - Charge)
-        return true;
-    else
-    {   *errstream << "Incorrect electron count in config.txt." << std::endl;
-        return false;
-    }
-}
-
-unsigned int Core::GetSpecialStates()
-{
-    int number_electrons = int(Z - Charge);
-    unsigned int number_electrons_assigned = 0;
-
-    FILE* fp = fopen("mendel.tab", "r");
-    if(fp == NULL)
-    {   *errstream << "Failed to open file \"mendel.tab\"" << std::endl;
-        getchar();
-        exit(1);
-    }
-    
-    char buffer[100];
-    int count, kappa, zeros, occupancy;
-    unsigned int L, pqn;
-    while(fgets(buffer, 100, fp))
-    {
-        std::stringstream s(buffer);
-        s >> count;
-
-        if(count == number_electrons)
-        {
-            s >> kappa;
-            s >> zeros;
-            s >> occupancy;
-
-            if(kappa > 0)
-                L = kappa;
-            else
-                L = -kappa-1;
-
-            pqn = L + zeros + 1;
-
-            // Make state
-            DiscreteState* s = new DiscreteState(pqn, kappa);
-            s->SetOccupancy(occupancy);
-            AddState(s);
-
-            number_electrons_assigned += occupancy;
-        }
-    }
-    fclose(fp);
-
-    return number_electrons_assigned;
+    return ret;
 }

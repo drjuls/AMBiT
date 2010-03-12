@@ -6,7 +6,7 @@
 
 Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
     StateManager(lat, atomic_number, ion_charge),
-    NuclearRadius(0.00001), NuclearThickness(0.000001),
+    NuclearRadius(0.0), NuclearThickness(0.0),
     NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0), ClosedShellRadius(0.)
 {}
 
@@ -61,10 +61,10 @@ Core::Core(const Core& other, Lattice* new_lattice):
     }
 }
 
-void Core::Initialise()
+void Core::Initialise(std::string configuration)
 {
     Clear();
-    BuildFirstApproximation();
+    BuildFirstApproximation(configuration);
 
     // Some default values for the nuclear parameters.
     UpdateNuclearPotential();

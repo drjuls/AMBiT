@@ -76,3 +76,8 @@ bool Core::IsOpenShellCore() const
 {
     return (OpenShellStates.size() != 0);
 }
+
+void Core::SetOpenShellState(const StateInfo& info, double occupancy)
+{
+    OpenShellStates[info] = occupancy;
+}

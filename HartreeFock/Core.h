@@ -21,7 +21,7 @@ public:     // Methods for StateManager role
     virtual ~Core() {}
 
     /** This method must be called before any other, except for Read() or GetDebugOptions(). */
-    virtual void Initialise();
+    virtual void Initialise(std::string configuration = "");
 
     /** Writes stored open shell states also. */
     virtual void Write(FILE* fp) const;
@@ -118,6 +118,9 @@ public:
     /** Test whether the core has open shells. */
     virtual bool IsOpenShellCore() const;
 
+    /** Set open shell state occupancy. */
+    virtual void SetOpenShellState(const StateInfo& info, double occupancy);
+
 protected:
     /** Delete all currently stored states. */
     virtual void Clear();
@@ -153,15 +156,10 @@ protected:
     std::vector<double> CalculateNuclearDensity(double radius, double thickness) const;
 
     /** Build the first approximation to the atom state */
-    void BuildFirstApproximation();
+    void BuildFirstApproximation(std::string configuration);
 
     /** Used by BuildFirstApproximation to get the configuration, if it has been done before. */
-    bool GetConfigData();
-
-    /** Used by BuildFirstApproximation to get states which don't fit into the standard
-        electron filling scheme. Returns number of electrons allocated.
-     */
-    unsigned int GetSpecialStates();
+    std::string GetConfigData();
 
 protected:
     double NuclearRadius;

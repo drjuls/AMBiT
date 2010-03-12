@@ -56,6 +56,7 @@ public:
     void CreateBSplineBasis(bool UseMBPT = false);
     void CreateCustomBasis(bool UseMBPT = false);
     void CreateHartreeFockBasis(bool UseMBPT = false);
+    void CreateReadBasis(bool UseMBPT = false);
 
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
@@ -126,7 +127,9 @@ public:
 public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
-    void PrintGraspMCDF();
+    bool ReadGraspMCDF(const std::string& filename);
+    void WriteGraspMCDF() const;
+    void WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int lattice_size) const;
 
 protected:
     /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */
