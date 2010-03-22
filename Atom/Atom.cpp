@@ -18,6 +18,7 @@
 #include "Universal/ScalapackMatrix.h"
 #include "Universal/ExpLattice.h"
 #include "Universal/Eigensolver.h"
+#include "Universal/Interpolator.h"
 #include "RateCalculator.h"
 #include "HartreeFock/ContinuumBuilder.h"
 #include "HartreeFock/StateIntegrator.h"
@@ -108,31 +109,31 @@ bool Atom::Run()
 
             core->Initialise(userInput_("HFConfiguration", ""));
         }
+    }
 
-        // Create Basis
-        bool bsplinebasis = userInput_.search("--bspline-basis");
-        bool hfbasis = userInput_.search("--hf-basis");
-        bool rbasis  = userInput_.search("--r-basis");
-        bool custombasis = userInput_.search("--custom-basis");
+    // Create Basis
+    bool bsplinebasis = userInput_.search("--bspline-basis");
+    bool hfbasis = userInput_.search("--hf-basis");
+    bool rbasis  = userInput_.search("--r-basis");
+    bool custombasis = userInput_.search("--custom-basis");
 
-        // Generate larger mbpt basis even if this run will not actually run the MBPT part
-        mbptBasisString = userInput_("MBPTBasis", "");
-        bool generate_mbpt_basis = (mbptBasisString != "");
+    // Generate larger mbpt basis even if this run will not actually run the MBPT part
+    mbptBasisString = userInput_("MBPTBasis", "");
+    bool generate_mbpt_basis = (mbptBasisString != "");
 
-        core->ToggleOpenShellCore();
+    core->ToggleOpenShellCore();
 
-        if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
-            CreateBSplineBasis(generate_mbpt_basis);
-        else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
-            CreateHartreeFockBasis(generate_mbpt_basis);
-        else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
-            CreateRBasis(generate_mbpt_basis);
-        else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
-            CreateCustomBasis(generate_mbpt_basis);
-        else
-        {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
-            return false;
-        }
+    if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
+        CreateBSplineBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
+        CreateHartreeFockBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
+        CreateRBasis(generate_mbpt_basis);
+    else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
+        CreateCustomBasis(generate_mbpt_basis);
+    else
+    {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
+        return false;
     }
 
     if(useRead && useWrite)
@@ -165,6 +166,12 @@ bool Atom::Run()
 
 void Atom::RunSingleElectron()
 {
+    core->ToggleClosedShellCore();
+
+    StateIntegrator SI(lattice);
+    DiscreteState* ds = core->GetState(StateInfo(1, -1));
+    *outstream << std::setprecision(10) << SI.HamiltonianMatrixElement(*ds, *ds, *core);
+/*
     mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
     //mbpt->UpdateIntegrals(excited);
 
@@ -193,6 +200,7 @@ void Atom::RunSingleElectron()
 //        *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
         it.Next();
     }
+*/
 }
 
 Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
@@ -362,14 +370,20 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
 
 void Atom::CreateCustomBasis(bool UseMBPT)
 {
+    std::string filename = userInput_("BasisFile", "CustomBasis.txt");
+    CustomBasis* basis;
+
     if(UseMBPT)
     {   excited_mbpt = new CustomBasis(lattice, core);
         excited = new SubsetBasis(lattice, excited_mbpt);
+        basis = dynamic_cast<CustomBasis*>(excited_mbpt);
     }
     else
     {   excited = new CustomBasis(lattice, core);
+        basis = dynamic_cast<CustomBasis*>(excited);
     }
 
+    basis->SetFile(filename);
     CreateBasis(UseMBPT);
 }
 
@@ -500,20 +514,26 @@ void Atom::GenerateCowanInputFile()
     ds = excited->GetState(StateInfo(2, -2));
     PrintWavefunctionCowan(fp, ds);
 
-    ds = excited->GetState(StateInfo(4, -1));
-    PrintWavefunctionCowan(fp, ds);
-//    ds = excited->GetState(StateInfo(4, 1));
-//    PrintWavefunctionCowan(fp, ds);
-//    ds = excited->GetState(StateInfo(4, -2));
-//    PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(4, 2));
-    PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(4, -3));
-    PrintWavefunctionCowan(fp, ds);
-//    ds = excited->GetState(StateInfo(4, 3));
-//    PrintWavefunctionCowan(fp, ds);
-//    ds = excited->GetState(StateInfo(4, -4));
-//    PrintWavefunctionCowan(fp, ds);
+    for(int n = 3; n <= 5; n++)
+    {
+        ds = excited->GetState(StateInfo(n, -1));
+        PrintWavefunctionCowan(fp, ds);
+//        ds = excited->GetState(StateInfo(n, 1));
+//        PrintWavefunctionCowan(fp, ds);
+//        ds = excited->GetState(StateInfo(n, -2));
+//        PrintWavefunctionCowan(fp, ds);
+        ds = excited->GetState(StateInfo(n, 2));
+        PrintWavefunctionCowan(fp, ds);
+        ds = excited->GetState(StateInfo(n, -3));
+        PrintWavefunctionCowan(fp, ds);
+//        if(n > 3)
+//        {
+//            ds = excited->GetState(StateInfo(n, 3));
+//            PrintWavefunctionCowan(fp, ds);
+//            ds = excited->GetState(StateInfo(n, -4));
+//            PrintWavefunctionCowan(fp, ds);
+//        }
+    }
 
     return;
     // Ground state
@@ -666,11 +686,24 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     fread(&C, sizeof(double), 1, fp);
     fread(&record_size, sizeof(int), 1, fp);
 
+    // Create lattice and core
     lattice = new ExpLattice(N, RNT, H);
     Constant::Alpha = 1./C;
     Constant::AlphaSquared = Constant::Alpha*Constant::Alpha;
     core = new Core(lattice, Z, Charge);
-    excited = new ReadBasis(lattice, core);
+
+    // Create Basis
+    if(userInput_.search("--hf-basis"))
+        excited = new HartreeFockBasis(lattice, core);
+    else if(userInput_.search("--r-basis"))
+        excited = new RStates(lattice, core);
+    else if(userInput_.search("--custom-basis"))
+        excited = new CustomBasis(lattice, core);
+    else
+    {   *outstream << "USAGE: --read-grasp0 requires basis specified as\n"
+                   << "       --hf-basis, --r-basis, or --custom-basis." << std::endl;
+        exit(1);
+    }
 
     // Record 4 - 6, repeated for each orbital
     unsigned int orbital_count = 0;
@@ -742,20 +775,32 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
             ds->g[i] = Q[i]/Constant::Alpha;
         }
 
-        if(closed_shell_config.GetOccupancy(ds))
-        {   ds->SetOccupancy(closed_shell_config.GetOccupancy(ds));
+        // Get derivatives
+        Interpolator interp(lattice);
+        unsigned int order = 6;
+        interp.GetDerivative(ds->f, ds->df, order);
+        interp.GetDerivative(ds->g, ds->dg, order);
+
+        // Split electrons between subshells
+        double occupancy = 2.*fabs(ds->Kappa()) / (4.*ds->L()+2.);
+
+        // Check non-rel configurations with a non-rel info
+        NonRelInfo non_rel_info(ds->RequiredPQN(), ds->L());
+
+        if(closed_shell_config.GetOccupancy(non_rel_info))
+        {   ds->SetOccupancy(occupancy * closed_shell_config.GetOccupancy(non_rel_info));
             core->AddState(ds);
         }
         else
-        {   if(open_shell_config.GetOccupancy(ds))
-            {   ds->SetOccupancy(open_shell_config.GetOccupancy(ds));
+        {   if(open_shell_config.GetOccupancy(non_rel_info))
+            {   ds->SetOccupancy(occupancy * open_shell_config.GetOccupancy(non_rel_info));
                 core->AddState(ds);
                 core->SetOpenShellState(ds, ds->Occupancy());
             }
 
             excited->AddState(ds);
         }
-        *outstream << "Read state " << ds->Name() << std::endl;
+        *outstream << "Read state " << ds->Name() << " " << ds->Energy() << std::endl;
 
         orbital_count++;
     }
@@ -774,6 +819,7 @@ void Atom::WriteGraspMCDF() const
     char IHED[80], RECORD[20];
     memset(IHED, ' ', 80);
     memset(RECORD, ' ', 20);
+    memcpy(IHED, identifier.c_str(), identifier.size());
     fwrite(&record_size, sizeof(int), 1, fp);
     fwrite(IHED, sizeof(char), 80, fp);
     fwrite(RECORD, sizeof(char), 20, fp);
@@ -784,7 +830,19 @@ void Atom::WriteGraspMCDF() const
     int NCMIN = 0;
     int NW = core->NumStates() + excited->NumStates();
     int NCF = 0;
-    int N = lattice->Size();
+    int N = 0;      // Largest orbital size
+    ConstStateIterator it = core->GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {   N = mmax(N, it.GetState()->Size());
+        it.Next();
+    }
+    it = excited->GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {   N = mmax(N, it.GetState()->Size());
+        it.Next();
+    }
     record_size = 4 * sizeof(int);
     fwrite(&record_size, sizeof(int), 1, fp);
     fwrite(&NCMIN, sizeof(int), 1, fp);
@@ -805,12 +863,14 @@ void Atom::WriteGraspMCDF() const
     fwrite(&C, sizeof(double), 1, fp);
     fwrite(&record_size, sizeof(int), 1, fp);
 
+    *logstream << "Writing grasp file. Num orbitals = " << NW << std::endl;
     // Record 4 - 6, repeated for each orbital
-    ConstStateIterator it = core->GetConstStateIterator();
+    it = core->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
     {
         const DiscreteState* ds = it.GetState();
+        *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
     }
@@ -820,6 +880,7 @@ void Atom::WriteGraspMCDF() const
     while(!it.AtEnd())
     {
         const DiscreteState* ds = it.GetState();
+        *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
     }

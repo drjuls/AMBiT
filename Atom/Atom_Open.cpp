@@ -194,8 +194,8 @@ void Atom::GenerateIntegrals()
     if(integrals)
         delete integrals;
 
-    core->ToggleOpenShellCore();
-    core->SetNuclearInverseMass(0.);
+    //core->ToggleOpenShellCore();
+    //core->SetNuclearInverseMass(0.);
     //if(MBPT_CI)
     //  Read();
     core->ToggleClosedShellCore();

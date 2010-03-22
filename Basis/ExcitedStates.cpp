@@ -348,12 +348,12 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
         it.Next();
     }
 
-    // Orthogonalise to other excited states that have smaller pqn.
+    // Orthogonalise to other excited states.
     ConstStateIterator ex_it = GetConstStateIterator();
     while(!ex_it.AtEnd())
     {
         const DiscreteState* other = ex_it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() < current->RequiredPQN())
+        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() != current->RequiredPQN())
            && !core->GetState(StateInfo(other)))
         {
             double S = 0.;
@@ -383,6 +383,9 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
     ConstStateIterator it = GetConstStateIterator();
     ConstStateIterator jt = GetConstStateIterator();
 
+    const State* max_i;
+    const State* max_j;
+
     it.First();
     while(!it.AtEnd())
     {
@@ -393,7 +396,10 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
         {
             double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
             if(orth > max_orth)
-                max_orth = orth;
+            {   max_orth = orth;
+                max_i = it.GetState();
+                max_j = jt.GetState();
+            }
 
             jt.Next();
         }
@@ -405,13 +411,19 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
         {
             double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
             if(orth > max_orth)
-                max_orth = orth;
+            {   max_orth = orth;
+                max_i = it.GetState();
+                max_j = jt.GetState();
+            }
 
             jt.Next();
         }
         it.Next();
     }
 
+    if(DebugOptions.OutputHFExcited())
+    {   *outstream << "<" << max_i->Name() << " | " << max_j->Name() << "> = " << max_orth << std::endl;
+    }
     return max_orth;
 }
 

@@ -83,9 +83,9 @@ int main(int argc, char* argv[])
         // Must-have arguments. This also checks on the file's existence.
         int Z, N, Charge;
         Z = fileInput("Z", 0);
-        N = fileInput("N", -1);  // Number of electrons
+        N = fileInput("HF/N", -1);  // Number of electrons
         if(Z != 0 && N == -1)
-        {   Charge = fileInput("Charge", Z);
+        {   Charge = fileInput("HF/Charge", -1);
             N = Z - Charge;
         }
         if(Z == 0 || N == -1 || N > Z)

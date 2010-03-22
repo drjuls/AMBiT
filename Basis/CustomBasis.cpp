@@ -4,9 +4,9 @@
 
 void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
 {
-    FILE* fp = fopen("CustomBasis.txt", "r");
+    FILE* fp = fopen(filename.c_str(), "r");
     if(fp == NULL)
-    {   *errstream << "Unable to open file CustomBasis.txt" << std::endl;
+    {   *errstream << "Unable to open file " << filename << std::endl;
         PAUSE;
         exit(1);
     }
@@ -45,8 +45,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
             if(!strcmp(tempbuf, "HF"))
             {
                 if(!core->IsOpenShellState(final.GetFirstRelativisticInfo()) && (core->GetState(final.GetFirstRelativisticInfo()) != NULL))
-                {   *errstream << "Error in \"CustomBasis.txt\": " << final.Name() << " is in HF core." << std::endl;
-                    PAUSE
+                {   *errstream << "Error in " << filename << ": " << final.Name() << " is in HF core." << std::endl;
                     exit(1);
                 }
 
@@ -112,12 +111,12 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
             else    // Not HF
             {
                 NonRelInfo prev = ReadNonRelInfo(buffer, i);
-                if((!strcmp(tempbuf, "RS") && (prev.L() + 1 != final.L())) ||
-                   (strcmp(tempbuf, "RS") && (prev.L() != final.L())))
-                {   *errstream << "Error in \"CustomBasis.txt\", " << prev.Name() << " -> " << final.Name() << std::endl;
-                    PAUSE
-                    exit(1);
-                }
+//                if((!strcmp(tempbuf, "RS") && (prev.L() + 1 != final.L())) ||
+//                   (strcmp(tempbuf, "RS") && (prev.L() != final.L())))
+//                {   *errstream << "Error in " << filename << ", " << prev.Name() << " -> " << final.Name() << std::endl;
+//                    PAUSE
+//                    exit(1);
+//                }
 
                 DiscreteState* ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
@@ -129,7 +128,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 if(previous == NULL)
                     previous = core->GetState(prev.GetFirstRelativisticInfo());
                 if(previous == NULL)
-                {   *errstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
+                {   *errstream << "Error in " << filename << ": " << prev.Name() << " undefined." << std::endl;
                     PAUSE
                     exit(1);
                 }
@@ -141,7 +140,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 else if(!strcmp(tempbuf, "RS"))
                     MultiplyByRSinR(previous, ds);
                 else
-                {   *errstream << "Error in \"CustomBasis.txt\": " << tempbuf << " unknown." << std::endl;
+                {   *errstream << "Error in " << filename << ": " << tempbuf << " unknown." << std::endl;
                     PAUSE
                     exit(1);
                 }
@@ -172,7 +171,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     if(previous == NULL)
                         previous = core->GetState(prev.GetSecondRelativisticInfo());
                     if(previous == NULL)
-                    {   *outstream << "Error in \"CustomBasis.txt\": " << prev.Name() << " undefined." << std::endl;
+                    {   *outstream << "Error in " << filename << ": " << prev.Name() << " undefined." << std::endl;
                         PAUSE
                         exit(1);
                     }
@@ -202,15 +201,34 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
         }
     }
 
+    // Repeat orthogonalisation
+    StateIterator it = GetStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {   Orthogonalise(it.GetState());
+        it.Next();
+    }
+
     fclose(fp);
     if(DebugOptions.OutputHFExcited())
         *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
+}
+
+void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, const std::string& file)
+{
+    SetFile(file);
+    CreateExcitedStates(num_states_per_l);
 }
 
 /** Update all of the excited states because the core has changed. */
 void CustomBasis::Update()
 {
     CreateExcitedStates(NumStatesPerL);
+}
+
+void CustomBasis::SetFile(const std::string& file)
+{
+    filename = file;
 }
 
 NonRelInfo CustomBasis::ReadNonRelInfo(char* buffer, unsigned int& num_read)
