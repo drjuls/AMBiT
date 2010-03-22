@@ -1,5 +1,0 @@
-cxxobjects = RMatrixPrimer.o OutStreams.o
-cobjects = 
-fobjects =
-
-include $(SRCDIR)/make.instructions

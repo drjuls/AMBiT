@@ -88,15 +88,15 @@ bool Atom::Run()
     else
     {   // Lattice parameters
         if(userInput_.search("--exp-lattice"))
-        {   int num_points = userInput_("lattice/numpoints", 300);
-            double first_point = userInput_("lattice/startpoint", 1.e-5);
-            double h = userInput_("lattice/h", 0.05);
+        {   int num_points = userInput_("Lattice/NumPoints", 300);
+            double first_point = userInput_("Lattice/StartPoint", 1.e-5);
+            double h = userInput_("Lattice/H", 0.05);
             lattice = new ExpLattice(num_points, first_point, h);
         }
         else
-        {   int num_points = userInput_("lattice/numpoints", 1000);
-            double first_point = userInput_("lattice/startpoint", 1.e-6);
-            double lattice_size = userInput_("lattice/endpoint", 50.);
+        {   int num_points = userInput_("Lattice/NumPoints", 1000);
+            double first_point = userInput_("Lattice/StartPoint", 1.e-6);
+            double lattice_size = userInput_("Lattice/EndPoint", 50.);
             lattice = new Lattice(num_points, first_point, lattice_size);
         }
 
@@ -107,18 +107,18 @@ bool Atom::Run()
         {   DebugOptions.LogFirstBuild(true);
             DebugOptions.LogHFIterations(true);
 
-            core->Initialise(userInput_("HFConfiguration", ""));
+            core->Initialise(userInput_("HF/Configuration", ""));
         }
     }
 
     // Create Basis
-    bool bsplinebasis = userInput_.search("--bspline-basis");
-    bool hfbasis = userInput_.search("--hf-basis");
-    bool rbasis  = userInput_.search("--r-basis");
-    bool custombasis = userInput_.search("--custom-basis");
+    bool bsplinebasis = userInput_.search("Basis/--bspline-basis");
+    bool hfbasis = userInput_.search("Basis/--hf-basis");
+    bool rbasis  = userInput_.search("Basis/--r-basis");
+    bool custombasis = userInput_.search("Basis/--custom-basis");
 
     // Generate larger mbpt basis even if this run will not actually run the MBPT part
-    mbptBasisString = userInput_("MBPTBasis", "");
+    mbptBasisString = userInput_("MBPT/Basis", "");
     bool generate_mbpt_basis = (mbptBasisString != "");
 
     core->ToggleOpenShellCore();
@@ -313,16 +313,16 @@ void Atom::CreateBasis(bool UseMBPT)
     std::vector<unsigned int> CI_basis_states;
     std::vector<unsigned int> MBPT_basis_states;
 
-    ciBasisString = userInput_("ValenceBasis", "");
+    ciBasisString = userInput_("Basis/ValenceBasis", "");
     if(ciBasisString != "")
         if(!ParseBasisSize(ciBasisString.c_str(), CI_basis_states))
-        {   *errstream << "USAGE: ValenceBasis = " << ciBasisString << " has problems" << std::endl;
+        {   *errstream << "USAGE: Basis/ValenceBasis = " << ciBasisString << " has problems" << std::endl;
             exit(1);
         }
 
     if(UseMBPT)
     {   if(!ParseBasisSize(mbptBasisString.c_str(), MBPT_basis_states))
-        {   *errstream << "USAGE: MBPTBasis = " << mbptBasisString << " has problems" << std::endl;
+        {   *errstream << "USAGE: MBPT/Basis = " << mbptBasisString << " has problems" << std::endl;
             exit(1);
         }
 
@@ -370,7 +370,7 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
 
 void Atom::CreateCustomBasis(bool UseMBPT)
 {
-    std::string filename = userInput_("BasisFile", "CustomBasis.txt");
+    std::string filename = userInput_("Basis/CustomFile", "CustomBasis.txt");
     CustomBasis* basis;
 
     if(UseMBPT)
@@ -693,11 +693,11 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     core = new Core(lattice, Z, Charge);
 
     // Create Basis
-    if(userInput_.search("--hf-basis"))
+    if(userInput_.search("Basis/--hf-basis"))
         excited = new HartreeFockBasis(lattice, core);
-    else if(userInput_.search("--r-basis"))
+    else if(userInput_.search("Basis/--r-basis"))
         excited = new RStates(lattice, core);
-    else if(userInput_.search("--custom-basis"))
+    else if(userInput_.search("Basis/--custom-basis"))
         excited = new CustomBasis(lattice, core);
     else
     {   *outstream << "USAGE: --read-grasp0 requires basis specified as\n"
@@ -709,7 +709,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     unsigned int orbital_count = 0;
 
     // Need to know where the orbital belongs: core or valence or excited
-    std::string configuration = userInput_("HFConfiguration", "");
+    std::string configuration = userInput_("HF/Configuration", "");
     if(!configuration.size())
     {   *outstream << "USAGE: --read-grasp0 requires \"HFConfiguration\" set in input file." << std::endl;
         exit(1);

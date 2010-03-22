@@ -4,11 +4,11 @@
 #
 coremodules = Configuration MBPT Basis HartreeFock Universal
 modules = Atom $(coremodules)
-exes = ambit rap.exe
+exes = ambit
 
 packname = AtomPack
 # other files that should be included in package
-packfiles = Include.h config.txt mendel.tab CustomBasis.txt Atom/make.RMatrixPrimer
+packfiles = Include.h config.txt CustomBasis.txt
 
 include make.machine
 
@@ -18,10 +18,6 @@ libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX
 ambit: $(libnames)
 	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
 	     $(LIBOBJ) $(addprefix -l, $(LIBS))
-
-rap.exe: Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX) $(corelibnames)
-	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
-	     $(addprefix -l, $(LIBS))
 
 .EXPORT_ALL_VARIABLES:
 
@@ -60,13 +56,3 @@ pack:
 unpack:
 	gunzip $(packname).tar.gz
 	-tar xvf $(packname).tar
-
-unpackbackend:
-	gunzip $(packname).tar.gz
-	cp Atom/Atom.cpp Atom/Atom.cpp.save
-	cp Atom/Atom_Open.cpp Atom/Atom_Open.cpp.save
-	cp Atom/RMatrixPrimer.cpp Atom/RMatrixPrimer.cpp.save
-	-tar xvf $(packname).tar
-	mv Atom/Atom.cpp.save Atom/Atom.cpp
-	mv Atom/Atom_Open.cpp.save Atom/Atom_Open.cpp
-	mv Atom/RMatrixPrimer.cpp.save Atom/RMatrixPrimer.cpp

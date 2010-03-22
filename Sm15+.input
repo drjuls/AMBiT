@@ -3,34 +3,36 @@
 
 //--check-sizes
 //--generate-integrals-mbpt
+-c
 -d
 
-// Hartree-Fock properties
-ID  = Sm15+001
 Z = 62
-N = 46
-
-// Type of calculation implied here
-NumValenceElectrons = 2
+ID  = Sm15+001
 
 // What calculation?
 multiple/doalpha
 
+// Type of calculation implied here
+NumValenceElectrons = 2
+
+[HF]  // Hartree-Fock properties
+N = 46
+
 // Basis properties
+[Basis]
 --bspline-basis
 ValenceBasis = 6spdf
 
 // CI Ignored if NumElectrons = 1
+[CI]
 LeadingConfigurations = '5s2, 5s1 4f1'
 ElectronExcitations = 2
 OddParityTwoJ =   '0'
 //EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
 MaxEnergy = -19.03	// Only used if _SCALAPACK is on
 
-// MBPT
-MBPTBasis = 10spdfg
-//MBPTDelta = 0.0
+[MBPT]
+Basis = 10spdfg
+//Delta = 0.0
 //--include-sigma-3
 TwoElectronStorageLimits = '7, 7'
-
-END

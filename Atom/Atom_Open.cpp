@@ -49,7 +49,7 @@ void Atom::RunMultipleElectron()
         includeSigma2 = true;
     }
 
-    double mbpt_delta = userInput_("MBPTDelta", 0.0);
+    double mbpt_delta = userInput_("MBPT/Delta", 0.0);
 
     if(includeSigma3)
     {   sigma3 = new Sigma3Calculator(lattice, core, excited);
@@ -72,9 +72,9 @@ void Atom::RunMultipleElectron()
     else
     {   // Warning: Need to have generated integrals already.
         #ifdef _SCALAPACK
-            MaxEnergy = userInput_("MaxEnergy", 0.0);
+            MaxEnergy = userInput_("CI/MaxEnergy", 0.0);
         #else
-            NumSolutions = userInput_("NumSolutions", 6);
+            NumSolutions = userInput_("CI/NumSolutions", 6);
         #endif
 
         CalculateEnergies();
@@ -116,15 +116,15 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
 
     std::vector<int> two_electron_limits;
     for(unsigned int i = 0; i < 3; i++)
-        two_electron_limits.push_back(userInput_("TwoElectronStorageLimits", 0, i));
+        two_electron_limits.push_back(userInput_("CI/TwoElectronStorageLimits", 0, i));
     integralsMBPT->SetTwoElectronStorageLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    if(userInput_.vector_variable_size("BoxDiagramStorageLimits") >= 1)
+    if(userInput_.vector_variable_size("CI/BoxDiagramStorageLimits") >= 1)
     {   two_electron_limits.clear();
         for(unsigned int i = 0; i < 3; i++)
-            two_electron_limits.push_back(userInput_("BoxDiagramStorageLimits", 0, i));
+            two_electron_limits.push_back(userInput_("CI/BoxDiagramStorageLimits", 0, i));
     }
     integralsMBPT->SetExtraBoxDiagramLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 
@@ -224,18 +224,18 @@ void Atom::ChooseSymmetries()
     int two_j;
 
     // Even parity
-    num_symmetries = userInput_.vector_variable_size("EvenParityTwoJ");
+    num_symmetries = userInput_.vector_variable_size("CI/EvenParityTwoJ");
     for(i = 0; i < num_symmetries; i++)
     {
-        two_j = userInput_("EvenParityTwoJ", 0, i);
+        two_j = userInput_("CI/EvenParityTwoJ", 0, i);
         symEigenstates[Symmetry(two_j, even)] = NULL;
     }
 
     // Odd parity
-    num_symmetries = userInput_.vector_variable_size("OddParityTwoJ");
+    num_symmetries = userInput_.vector_variable_size("CI/OddParityTwoJ");
     for(i = 0; i < num_symmetries; i++)
     {
-        two_j = userInput_("OddParityTwoJ", 0, i);
+        two_j = userInput_("CI/OddParityTwoJ", 0, i);
         symEigenstates[Symmetry(two_j, odd)] = NULL;
     }
 
@@ -268,17 +268,17 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     {
         std::set<Configuration> leading_configs;
 
-        int num_configs = userInput_.vector_variable_size("LeadingConfigurations");
+        int num_configs = userInput_.vector_variable_size("CI/LeadingConfigurations");
 
         if(num_configs < 1)
-        {   *errstream << "USAGE: Need LeadingConfigurations (e.g. 3d7, 4s2 3d5)" << std::endl;
+        {   *errstream << "USAGE: Need CI/LeadingConfigurations (e.g. '3d7, 4s2 3d5')" << std::endl;
             exit(1);
         }
 
         generator->Clear();
         for(int i = 0; i < num_configs; i++)
         {
-            const std::string name = userInput_("LeadingConfigurations", "", i);
+            const std::string name = userInput_("CI/LeadingConfigurations", "", i);
             Configuration config(name);
 
             // Check that the configuration gels with the number of electrons
