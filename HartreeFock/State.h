@@ -6,7 +6,8 @@
 #include "Universal/CoupledFunction.h"
 #include "Universal/Lattice.h"
 #include <string>
-#include <math.h>
+#include <cmath>
+#include <stdlib.h>
 
 class State : public CoupledFunction
 {

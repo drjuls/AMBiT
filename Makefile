@@ -8,7 +8,7 @@ exes = ambit
 
 packname = AtomPack
 # other files that should be included in package
-packfiles = Include.h config.txt CustomBasis.txt
+packfiles = Include.h config.txt CustomBasis.txt Atom/GetPot
 
 include make.machine
 

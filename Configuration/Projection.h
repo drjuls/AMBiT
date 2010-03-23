@@ -72,8 +72,6 @@ protected:
 
 const Configuration& Projection::GetNonRelConfiguration() const
 {
-    if(NonRelConfiguration.Empty())
-        exit(44);
     return NonRelConfiguration;
 }
 
