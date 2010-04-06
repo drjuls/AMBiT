@@ -81,13 +81,13 @@ bool Atom::Run()
     if(userInput_.search(2, "-d", "--dont-save"))
         useWrite = false;
 
-    if(userInput_.search("--read-grasp0"))
+    if(userInput_.search("HF/--read-grasp0"))
     {   // Read lattice and core and basis orbitals
         ReadGraspMCDF("MCDF.DAT");
     }
     else
     {   // Lattice parameters
-        if(userInput_.search("--exp-lattice"))
+        if(userInput_.search("Lattice/--exp-lattice"))
         {   int num_points = userInput_("Lattice/NumPoints", 300);
             double first_point = userInput_("Lattice/StartPoint", 1.e-5);
             double h = userInput_("Lattice/H", 0.05);

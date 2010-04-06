@@ -248,7 +248,7 @@ void Atom::ChooseSymmetries()
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
 {
     // Number of electron excitations (e.g. 2 for SD-CI) .
-    unsigned int electron_excitations = userInput_("ElectronExcitations", 2);
+    unsigned int electron_excitations = userInput_("CI/ElectronExcitations", 2);
 
     // Generate non-relativistic configs from file.
     bool GenerateFromFile = false;
