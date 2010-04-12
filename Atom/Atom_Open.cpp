@@ -19,7 +19,7 @@ void Atom::RunMultipleElectron()
 
     // Don't generate MBPT integrals if we're not saving them!
     if(generate_mbpt_integrals && !useWrite && !check_size_only)
-    {   *errstream << "USAGE: Cannot use \"--generate-integrals-mbpt\" with \"--dont-save\" unless\n"
+    {   *outstream << "USAGE: Cannot use \"--generate-integrals-mbpt\" with \"--dont-save\" unless\n"
                    << "       only doing a \"--check-sizes\"." << std::endl;
         exit(1);
     }
@@ -27,11 +27,14 @@ void Atom::RunMultipleElectron()
     bool collate_mbpt_integrals = (generate_mbpt_integrals || userInput_.search("--collate-integrals-mbpt"))
                                   && !check_size_only;
 
-    // Get integrals
-    core->ToggleClosedShellCore();
-
     if(collate_mbpt_integrals)
-        CollateIntegralsMBPT(NumProcessors);
+    {
+        while(!RunIndexAtEnd())
+        {   CollateIntegralsMBPT(NumProcessors);
+            RunIndexNext();
+        }
+        RunIndexBegin();
+    }
 
     // MBPT Options
     bool includeSall = userInput_.search(2, "-s123", "--include-sigma-all");
@@ -49,22 +52,68 @@ void Atom::RunMultipleElectron()
         includeSigma2 = true;
     }
 
-    double mbpt_delta = userInput_("MBPT/Delta", 0.0);
+    unsigned int num_mbpt_delta = userInput_.vector_variable_size("MBPT/Delta");
+    if((num_mbpt_delta > 1) && (num_mbpt_delta != multiple_length))
+    {   *outstream << "ERROR: MBPT/Delta has too few elements. Must match multiple run length." << std::endl;
+        exit(1);
+    }
+    for(unsigned int i = 0; i < num_mbpt_delta; i++)
+    {   mbpt_delta.push_back(userInput_("MBPT/Delta", 0.0, i));
+    }
+
+    // Generate the MBPT integrals
+    if(generate_mbpt_integrals)
+    {
+        InitialiseIntegralsMBPT(true, false);
+
+        if(check_size_only)
+        {   *outstream << std::endl;
+            unsigned int stored_size = integrals->GetStorageSize();
+            *outstream << "Total calculated MBPT integrals: " << stored_size << std::endl;
+        }
+        else
+        {   // Generate all MBPT integrals
+            while(!RunIndexAtEnd())
+            {
+                SetRunParameters();
+                SetRunCore();
+                SetRunIntegrals();  // This does the actual calculations
+
+                RunIndexNext();
+            }
+            RunIndexBegin();
+
+            // Collate new integrals
+            if(collate_mbpt_integrals)
+            {
+                while(!RunIndexAtEnd())
+                {   CollateIntegralsMBPT(NumProcessors);
+                    RunIndexNext();
+                }
+                RunIndexBegin();
+            }
+        }
+    }
+
+    // We have finished generating MBPT integrals and collated them.
+    // Create the integral sets for creating Hamiltonian
+    if(integrals)
+        delete integrals;
+
+    if(includeSigma2)
+        integrals = new CIIntegralsMBPT(*excited);
+    else
+        integrals = new CIIntegrals(*excited);
+    integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
 
     if(includeSigma3)
-    {   sigma3 = new Sigma3Calculator(lattice, core, excited);
-        sigma3->SetEnergyShift(mbpt_delta/Constant::HartreeEnergy_cm);
-    }
+        sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-    if(generate_mbpt_integrals)
-    {   GenerateIntegralsMBPT(true, false, mbpt_delta);
+    SetRunParameters();
+    SetRunCore();
+    SetRunIntegrals(true);
 
-        // Collate new integrals
-        if(collate_mbpt_integrals)
-            CollateIntegralsMBPT(NumProcessors);
-    }
-
-    GenerateIntegrals();
+    // Choose J, Parity symmetries for CI run.
     ChooseSymmetries();
 
     if(check_size_only)
@@ -81,13 +130,11 @@ void Atom::RunMultipleElectron()
     }
 }
 
-void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
+void Atom::InitialiseIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT)
 {
-    core->ToggleOpenShellCore();
-
     integrals = new CIIntegralsMBPT(*excited);
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-    //Read();
+
     core->ToggleClosedShellCore();
 
     if(mbpt)
@@ -127,23 +174,6 @@ void Atom::GenerateIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT, double delta)
             two_electron_limits.push_back(userInput_("CI/BoxDiagramStorageLimits", 0, i));
     }
     integralsMBPT->SetExtraBoxDiagramLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
-
-    if(mbpt)
-        mbpt->SetEnergyShift(delta/Constant::HartreeEnergy_cm);
-    if(valence_mbpt)
-        valence_mbpt->SetEnergyShift(delta/Constant::HartreeEnergy_cm);
-
-    integrals->IncludeValenceSMS(false);
-    integrals->SetIdentifier(identifier);    
-    integrals->Clear();
-
-    if(check_size_only)
-    {   *outstream << std::endl;
-        unsigned int stored_size = integrals->GetStorageSize();
-        *outstream << "Total calculated MBPT integrals: " << stored_size << std::endl;
-    }
-    else
-        integrals->Update();
 }
 
 void Atom::CollateIntegralsMBPT(unsigned int num_processors)
@@ -169,13 +199,15 @@ void Atom::CollateIntegralsMBPT(unsigned int num_processors)
     integrals->Clear();
 
     if(ProcessorRank == 0)
-    {   integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, num_processors);
-        integralsMBPT->ReadMultipleTwoElectronIntegrals(identifier, num_processors);
-        integrals->WriteOneElectronIntegrals(true);
-        integrals->WriteTwoElectronIntegrals(true);
+    {   if(includeSigma1)
+        {   integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, num_processors);
+            integrals->WriteOneElectronIntegrals(true);
+        }
+        if(includeSigma2)
+        {   integralsMBPT->ReadMultipleTwoElectronIntegrals(identifier, num_processors);
+            integrals->WriteTwoElectronIntegrals(true);
+        }
     }
-
-    core->ToggleClosedShellCore();
 
     #ifdef _MPI
         // Wait for root node to finish writing
@@ -256,9 +288,9 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     ConfigGenerator* generator;
 
     if(GenerateFromFile)
-        generator = new ConfigFileGenerator(excited, identifier, sym);
+        generator = new ConfigFileGenerator(excited, original_id, sym);
     else
-        generator = new ConfigGenerator(excited, identifier, sym);
+        generator = new ConfigGenerator(excited, original_id, sym);
 
     bool read_from_disk = false;
     if(useRead)
@@ -349,50 +381,70 @@ void Atom::CalculateEnergies()
     while(it != symEigenstates.end())
     {
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
-        Eigenstates* E = new Eigenstates(identifier, conf_gen);
 
-        if(!useRead || !E->Read())
+        while(!RunIndexAtEnd())
         {
-            HamiltonianMatrix* H;
+            bool give_conf_gen_to_eigenstates = false;
+            if(NumberRunsSelected() == 1)
+                give_conf_gen_to_eigenstates = true;
+            Eigenstates* E = new Eigenstates(identifier, conf_gen, give_conf_gen_to_eigenstates);
 
-            #ifdef _MPI
-                H = new MPIHamiltonianMatrix(*integrals, conf_gen);
-            #else
-                H = new HamiltonianMatrix(*integrals, conf_gen);
-            #endif
+            SetRunCore();
+            SetRunIntegrals();
 
-            if(sigma3)
-                H->IncludeSigma3(sigma3);
+            if(!useRead || !E->Read())
+            {
+                HamiltonianMatrix* H;
 
-            H->GenerateMatrix();
-            //H->PollMatrix();
+                #ifdef _MPI
+                    H = new MPIHamiltonianMatrix(*integrals, conf_gen);
+                #else
+                    H = new HamiltonianMatrix(*integrals, conf_gen);
+                #endif
 
-            #ifdef _SCALAPACK
-                H->WriteToFile("temp.matrix");
-                MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true);
-            #else
-                H->SolveMatrix(NumSolutions, *E, true);
-            #endif
+                if(sigma3)
+                    H->IncludeSigma3(sigma3);
 
-            delete H;
+                H->GenerateMatrix();
+                //H->PollMatrix();
 
-            ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
-            if(filegenerator)
-            {   filegenerator->SetOutputFile("PercentagesOut.txt");
-                filegenerator->WriteConfigs();
+                #ifdef _SCALAPACK
+                    H->WriteToFile("temp.matrix");
+                    MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
+                    MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true);
+                #else
+                    H->SolveMatrix(NumSolutions, *E, true);
+                #endif
+
+                delete H;
+
+                ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
+                if(filegenerator)
+                {   filegenerator->SetOutputFile("PercentagesOut.txt");
+                    filegenerator->WriteConfigs();
+                }
+
+                if(save_eigenstates)
+                    E->Write();
+            }
+            else
+            {   E->Print();
             }
 
-            if(save_eigenstates)
-                E->Write();
-        }
-        else
-        {   E->Print();
+            // Keep E if not multiple run
+            if(NumberRunsSelected() == 1)
+            {   it->second = E;
+                if(save_eigenstates)
+                    E->Clear();
+            }
+            else
+            {   delete E;
+            }
+
+            RunIndexNext();
         }
 
-        it->second = E;
-        if(useRead && useWrite)
-            E->Clear();
+        RunIndexBegin();
         it++;
     }
 }

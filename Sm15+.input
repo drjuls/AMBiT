@@ -1,16 +1,12 @@
 // Fortran namelist-style input for AMBiT. Use // for comments.
 // One entry per line; extra whitespace ignored.
 
-//--check-sizes
 //--generate-integrals-mbpt
--c
--d
 
 Z = 62
 ID  = Sm15+001
 
-// What calculation?
-multiple/doalpha
+NuclearInverseMass = '-0.002, 0.002'
 
 // Type of calculation implied here
 NumValenceElectrons = 2
@@ -25,10 +21,10 @@ ValenceBasis = 6spdf
 
 // CI Ignored if NumElectrons = 1
 [CI]
-LeadingConfigurations = '5s2, 5s1 4f1'
+LeadingConfigurations = '5s2'
 ElectronExcitations = 2
 OddParityTwoJ =   '0'
-//EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
+EvenParityTwoJ =  '0'
 MaxEnergy = -19.03	// Only used if _SCALAPACK is on
 
 [MBPT]

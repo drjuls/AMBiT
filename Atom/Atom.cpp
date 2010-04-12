@@ -56,10 +56,25 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     includeSigma3 = false;
 
     // Multiple run parameters
-    multiple_SMS = false;
-    multiple_alpha = false;
-    multiple_volume = false;
-    multiple_radius = false;
+    multiple_length = 0;
+    current_run_index = 0;
+    original_id = identifier;
+}
+
+Atom::~Atom(void)
+{
+    if(integrals)
+        delete integrals;
+    if(excited)
+        delete excited;
+    if(excited_mbpt)
+        delete excited_mbpt;
+    if(mbpt)
+        delete mbpt;
+    if(sigma3)
+        delete sigma3;
+    delete core;
+    delete lattice;
 }
 
 bool Atom::Run()
@@ -76,10 +91,20 @@ bool Atom::Run()
         return false;
     }
 
+    InitialiseRunIndex();
+
     if(userInput_.search(2, "-c", "--clean"))
         useRead = false;
+
     if(userInput_.search(2, "-d", "--dont-save"))
-        useWrite = false;
+    {   // Cannot use "-d" with multiple runs
+        if(NumberRunsSelected() > 1)
+        {   *errstream << "USAGE:  \"-d\" ignored: cannot use with multiple runs." << std::endl;
+            useWrite = true;
+        }
+        else
+            useWrite = false;
+    }
 
     if(userInput_.search("HF/--read-grasp0"))
     {   // Read lattice and core and basis orbitals
@@ -102,6 +127,9 @@ bool Atom::Run()
 
         // Relativistic Hartree-Fock
         core = new Core(lattice, Z, Charge);
+
+        InitialiseParameters();
+        RunIndexBegin();
 
         if(!useRead || !ReadCore())
         {   DebugOptions.LogFirstBuild(true);
@@ -132,7 +160,7 @@ bool Atom::Run()
     else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
         CreateCustomBasis(generate_mbpt_basis);
     else
-    {   *errstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
+    {   *outstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
         return false;
     }
 
@@ -142,6 +170,36 @@ bool Atom::Run()
         Write();
     else if(useRead)
         Read();
+
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(false);
+
+    // Loop through all multiple runs saving the basis
+    if(NumberRunsSelected() > 1)
+    {
+        RunIndexNext();
+        while(!RunIndexAtEnd())
+        {
+            core->ToggleOpenShellCore();
+
+            // Try read, if it fails then update and write
+            if(!useRead || !Read())
+            {
+                if(!useRead || !ReadCore())
+                    core->Update();
+                excited->Update();
+                if(excited_mbpt)
+                    excited_mbpt->Update();
+                Write();
+            }
+
+            RunIndexNext();
+        }
+        RunIndexBegin();
+
+        // From now on, read core and basis
+        useRead = true;
+    }
 
     // Print basis only option
     if(userInput_.search(2, "--print-basis", "-p"))
@@ -201,44 +259,6 @@ void Atom::RunSingleElectron()
         it.Next();
     }
 */
-}
-
-Atom::Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read):
-    Z(atomic_number), Charge(charge), identifier(atom_identifier),
-    NumSolutions(6), check_size_only(false), generate_mbpt_integrals(false),
-    excited(NULL), excited_mbpt(NULL), valence_mbpt(NULL),
-    integrals(NULL), integralsMBPT(NULL), mbpt(NULL), sigma3(NULL)
-{
-    lattice = new Lattice(1000, 1.e-6, 50.);
-    //        lattice->real_to_lattice(200.);
-    //lattice = new ExpLattice(300, 1.e-5, 0.05);
-    core = new Core(lattice, atomic_number, charge);
-    DebugOptions.LogFirstBuild(true);
-    DebugOptions.LogHFIterations(true);
-    //DebugOptions.HartreeEnergyUnits(true);
-
-    if(read)
-    {   Read();
-        core->Update();
-    }
-    else
-        core->Initialise();
-}
-
-Atom::~Atom(void)
-{
-    if(integrals)
-        delete integrals;
-    if(excited)
-        delete excited;
-    if(excited_mbpt)
-        delete excited_mbpt;
-    if(mbpt)
-        delete mbpt;
-    if(sigma3)
-        delete sigma3;
-    delete core;
-    delete lattice;
 }
 
 bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states)
@@ -690,7 +710,11 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     lattice = new ExpLattice(N, RNT, H);
     Constant::Alpha = 1./C;
     Constant::AlphaSquared = Constant::Alpha*Constant::Alpha;
+    *outstream << "Speed of light (1/alpha) = " << C << std::endl;
     core = new Core(lattice, Z, Charge);
+
+    InitialiseParameters();
+    RunIndexBegin();
 
     // Create Basis
     if(userInput_.search("Basis/--hf-basis"))

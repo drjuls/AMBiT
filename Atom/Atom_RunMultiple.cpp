@@ -10,6 +10,276 @@
 #include "Configuration/MPIHamiltonianMatrix.h"
 #include "Basis/BSplineBasis.h"
 
+void Atom::InitialiseRunIndex()
+{
+    // Set up any multiple run options that may be used
+    multiple_length = 0;
+    unsigned int multiple_options_used = 0;  // Number of multiple options being used.
+    unsigned int length;
+    unsigned int i;
+
+    // Typical values for NuclearInverseMass: -0.002 -> 0.002
+    length = userInput_.vector_variable_size("NuclearInverseMass");
+    for(i = 0; i < length; i++)
+    {   multiple_SMS.push_back(userInput_("NuclearInverseMass", 0.0, i));
+    }
+    multiple_length = mmax(multiple_length, length);
+    if(length > 1)
+    {   multiple_options_used++;
+        multiple_parameters = &multiple_SMS;
+    }
+
+    // Typical values for AlphaSquaredVariation: -0.25 -> 0.25
+    length = userInput_.vector_variable_size("AlphaSquaredVariation");
+    for(i = 0; i < length; i++)
+    {   multiple_alpha.push_back(userInput_("AlphaSquaredVariation", 0.0, i));
+    }
+    multiple_length = mmax(multiple_length, length);
+    if(length > 1)
+    {   multiple_options_used++;
+        multiple_parameters = &multiple_alpha;
+    }
+
+    // Typical values for NuclearVolumeVariation: -1. -> 1.
+    // with R ~ 4 fm and dR = 0.05 fm
+    length = userInput_.vector_variable_size("NuclearVolumeVariation");
+    for(i = 0; i < length; i++)
+    {   multiple_volume.push_back(userInput_("NuclearVolumeVariation", 0.0, i));
+    }
+    multiple_length = mmax(multiple_length, length);
+    if(length > 1)
+    {   multiple_options_used++;
+        multiple_parameters = &multiple_volume;
+    }
+
+    // Typical values for NuclearRadius is a few fm.
+    length = userInput_.vector_variable_size("NuclearRadius");
+    for(i = 0; i < length; i++)
+    {   multiple_radius.push_back(userInput_("NuclearRadius", 0.0, i));
+    }
+    multiple_length = mmax(multiple_length, length);
+    if(length > 1)
+    {   multiple_options_used++;
+        multiple_parameters = &multiple_radius;
+    }
+
+    if(multiple_options_used > 1)
+    {   *errstream << "Error: Used more than one multiple run option." << std::endl;
+        exit(1);
+    }
+
+    original_id = identifier;
+
+    // Choose which of the multiple run options are being used in the current calculation
+    current_run_selection.clear();
+    unsigned int total_run_selections = userInput_.vector_variable_size("-r");
+
+    if((multiple_length <= 1) || userInput_.search("--check-sizes"))
+    {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
+        current_run_selection.push_back(0);
+    }
+    else if(total_run_selections)
+    {
+        for(i = 0; i < total_run_selections; i++)
+        {
+            int selection = userInput_("-r", 0, i);
+
+            if(selection == 0)
+            {   // "-r=0" is shorthand for "just do the zero variation variety"
+                if(total_run_selections > 1)
+                {   *outstream << "USAGE: \"-r=0\" can only be used by itself." << std::endl;
+                    exit(1);
+                }
+
+                for(unsigned int j = 0; j < multiple_length; j++)
+                    if((*multiple_parameters)[j] == 0.0)
+                    {   current_run_selection.push_back(j);
+                        break;
+                    }
+
+                if(current_run_selection.size() == 0)
+                {   *outstream << "ERROR: Multiple run option couldn't find zero-variation option." << std::endl;
+                    exit(1);
+                }
+            }
+            else if((selection < 0) || (selection > multiple_length))
+            {   *outstream << "USAGE: Option \"-r\" included index outside of multiple run range." << std::endl;
+                exit(1);
+            }
+            else
+            {   // Subtract one from the user's selection to make it start at zero
+                current_run_selection.push_back(selection-1);
+            }
+        }
+    }
+    else
+    {   // If "-r" is not found, do all of the multiple run options
+        for(i = 0; i < multiple_length; i++)
+            current_run_selection.push_back(i);
+    }
+}
+
+unsigned int Atom::NumberRunsSelected()
+{
+    return current_run_selection.size();
+}
+
+void Atom::RunIndexBegin()
+{
+    current_run_index = 0;
+    if(multiple_length > 1)
+        identifier = original_id + "_" + itoa(current_run_selection[current_run_index]);
+    SetRunParameters();
+}
+
+void Atom::RunIndexNext()
+{
+    current_run_index++;
+    if(!RunIndexAtEnd())
+    {   identifier = original_id + "_" + itoa(current_run_selection[current_run_index]);
+        SetRunParameters();
+    }
+}
+
+bool Atom::RunIndexAtEnd()
+{
+    return (current_run_index >= NumberRunsSelected());
+}
+
+void Atom::InitialiseParameters()
+{
+    *outstream << "Physical Parameters:" << std::endl;
+
+    // Nuclear Radius
+    if(multiple_radius.size() == 1)
+        core->SetNuclearRadius(multiple_radius[0]/Constant::AtomicToFermi);
+    if(multiple_radius.size() <= 1)
+        *outstream << "NuclearRadius = " << std::setprecision(3)
+                   << core->GetNuclearRadius()*Constant::AtomicToFermi << std::endl;
+
+    // Nuclear Thickness
+    double nuclear_thickness = userInput_("NuclearThickness", -1.);
+    if(nuclear_thickness < 0.0) // Not found
+    {   if(core->GetNuclearRadius() < 1.5)
+            nuclear_thickness = 0.0;
+        else
+            nuclear_thickness = 2.3;    // Standard value
+    }
+    core->SetNuclearThickness(nuclear_thickness/Constant::AtomicToFermi);
+    *outstream << "NuclearThickness = " << std::setprecision(3) << nuclear_thickness << std::endl;
+
+    if(multiple_volume.size())
+    {   // Field shift radius
+        double deltaR = userInput_("DeltaNuclearRadius", 0.05);
+        core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
+        *outstream << "delta(NuclearRadius) = " << std::setprecision(3) << deltaR << std::endl;
+    }
+
+    if(multiple_SMS.size() == 1)
+    {   core->SetNuclearInverseMass(multiple_SMS[0]);
+        *outstream << "NuclearInverseMass = " << core->GetNuclearInverseMass() << std::endl;
+    }
+
+    if(multiple_alpha.size() == 1)
+    {   alpha0 = Constant::Alpha;
+        Constant::Alpha = alpha0 * sqrt(1.0 + multiple_alpha[0]);
+        Constant::AlphaSquared = alpha0 * alpha0 * (1.0 + multiple_alpha[0]);
+        *outstream << "AlphaSquaredVariation (x) = " << multiple_alpha[0] << std::endl;
+   }
+}
+
+void Atom::SetRunParameters()
+{
+    unsigned int index = current_run_selection[current_run_index];
+
+    if(multiple_SMS.size() > 1)
+    {   core->SetNuclearInverseMass(multiple_SMS[index]);
+        *outstream << "\nNuclearInverseMass = " << multiple_SMS[index] << std::endl;
+        if(integrals)
+        {   if(multiple_SMS[index])
+                integrals->IncludeValenceSMS(true);
+            else
+                integrals->IncludeValenceSMS(false);
+        }
+    }
+    if(multiple_alpha.size() > 1)
+    {   Constant::Alpha = alpha0 * sqrt(multiple_alpha[index]+1.);
+        Constant::AlphaSquared = alpha0 * alpha0 * (multiple_alpha[index]+1.);
+        *outstream << "\nAlphaSquaredVariation (x) = " << multiple_alpha[index] << std::endl;
+    }
+    if(multiple_volume.size() > 1)
+    {   core->SetVolumeShiftParameter(multiple_volume[index]);
+        *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_volume[index] << std::endl;
+    }
+    if(multiple_radius.size() > 1)
+    {   core->SetNuclearRadius(multiple_radius[index]/Constant::AtomicToFermi);
+        *outstream << "\nNuclearRadius = " << std::setprecision(3) << multiple_radius[index] << std::endl;
+    }
+}
+
+void Atom::SetRunCore(bool force)
+{
+    static int previous_index = -1;
+    unsigned int index = current_run_selection[current_run_index];
+
+    if(force || (previous_index != index))
+    {
+        core->ToggleOpenShellCore();
+
+        // Try read, if it fails then update
+        if(!useRead || !Read())
+        {
+            if(!useRead || !ReadCore())
+                core->Update();
+            if(excited)
+                excited->Update();
+            if(excited_mbpt)
+                excited_mbpt->Update();
+        }
+
+        core->ToggleClosedShellCore();
+        previous_index = index;
+    }
+}
+
+void Atom::SetRunIntegrals(bool force)
+{
+    static int previous_index = -1;
+    unsigned int index = current_run_selection[current_run_index];
+
+    if(force || (previous_index != index))
+    {
+        unsigned int index = current_run_selection[current_run_index];
+
+        double delta;
+        if(mbpt || valence_mbpt || sigma3)
+        {   if(mbpt_delta.size() == 0)
+                delta = 0.0;
+            else if(mbpt_delta.size() == 1)
+                delta = mbpt_delta[0];
+            else
+                delta = mbpt_delta[index];
+        }
+
+        if(mbpt)
+            mbpt->SetEnergyShift(delta);
+        if(valence_mbpt)
+            valence_mbpt->SetEnergyShift(delta);
+
+        if(integrals)
+        {   integrals->SetIdentifier(identifier);
+            integrals->Clear();
+            integrals->Update();
+        }
+
+        if(sigma3)
+        {   sigma3->UpdateIntegrals(excited);
+            sigma3->SetEnergyShift(delta);
+        }
+        previous_index = index;
+    }
+}
+/*
 void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
 {
     generate_mbpt_integrals = false;
@@ -179,40 +449,6 @@ void Atom::GenerateMultipleIntegrals(bool MBPT_CI)
 
 void Atom::SetMultipleIntegralsAndCore(unsigned int index)
 {
-    if(index >= multiple_ids.size())
-    {   *errstream << "SetMultipleIntegralsAndCore: index " << index << " out of bounds" << std::endl;
-        exit(1);
-    }
-
-    core->ToggleOpenShellCore();
-    identifier = multiple_ids[index];   // For updating core
-
-    if(multiple_SMS)
-    {   core->SetNuclearInverseMass(multiple_parameters[index]);
-        *outstream << "\nNuclearInverseMass = " << multiple_parameters[index] << std::endl;
-        if(integrals)
-            integrals->IncludeValenceSMS(true);
-    }
-    else if(multiple_alpha)
-    {   Constant::Alpha = alpha0 * sqrt(multiple_parameters[index]+1.);
-        Constant::AlphaSquared = alpha0 * alpha0 * (multiple_parameters[index]+1.);
-        *outstream << "\nx = " << multiple_parameters[index] << std::endl;
-        if(integrals)
-            integrals->IncludeValenceSMS(false);
-    }
-    else if(multiple_volume)
-    {   core->SetVolumeShiftParameter(multiple_parameters[index]);
-        *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_parameters[index] << std::endl;
-        if(integrals)
-            integrals->IncludeValenceSMS(false);
-    }
-    else if(multiple_radius)
-    {   core->SetNuclearRadius(multiple_parameters[index]/Constant::AtomicToFermi);
-        *outstream << "\nRadius = " << std::setprecision(3) << multiple_parameters[index] << std::endl;
-        if(integrals)
-            integrals->IncludeValenceSMS(false);
-    }
-
     if(integrals)
         integrals->SetIdentifier(identifier);
 
@@ -335,3 +571,4 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
         }
     }
 }
+*/

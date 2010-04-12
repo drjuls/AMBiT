@@ -63,7 +63,7 @@ public:
         each processor with a separate file.
         Optionally include delta (cm-1). (eg: delta = E_CI - E_HF for the ground state)
      */
-    void GenerateIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false, double delta = 0.0);
+    void InitialiseIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false);
 
     /** Collate integrals generated from CIIntegralsMBPT.
         num_processors is the number of stored files to collate.
@@ -93,6 +93,22 @@ public:
     void CalculateEnergies();
 
 public:
+    /** Initialise multiple run index. */
+    void InitialiseRunIndex();
+
+    /** Total number of runs selected for this calculation. */
+    unsigned int NumberRunsSelected();
+
+    /** Manipulate run index for multiple runs. */
+    void RunIndexBegin();
+    void RunIndexNext();
+    bool RunIndexAtEnd();
+
+    void InitialiseParameters();
+    void SetRunParameters();
+    void SetRunCore(bool force = false);
+    void SetRunIntegrals(bool force = false);
+
     /** Run atomic energy code multiple times, varying some parameter like
         alpha, NuclearInverseMass (for SMS), or volume shift parameter.
      */
@@ -177,14 +193,18 @@ protected:
     bool includeSigma3;
 
     // Multiple run parameters
-    bool multiple_SMS;
-    bool multiple_alpha;
-    bool multiple_volume;
-    bool multiple_radius;
-    std::vector<double> multiple_parameters;
+    unsigned int multiple_length;
+    std::vector<unsigned int> current_run_selection;
+    unsigned int current_run_index;
+
     std::string original_id;
-    std::vector<std::string> multiple_ids;
+    std::vector<double> multiple_SMS;
+    std::vector<double> multiple_alpha;
+    std::vector<double> multiple_volume;
+    std::vector<double> multiple_radius;
     std::vector<double> mbpt_delta;
+
+    std::vector<double>* multiple_parameters;
 
     double alpha0;  // Original value of alpha.
 };

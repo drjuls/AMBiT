@@ -207,15 +207,11 @@ public:
 inline void Core::SetNuclearRadius(double rnuc)
 {
     NuclearRadius = rnuc;
-    UpdateNuclearPotential();
-    Update();
 }
 
 inline void Core::SetNuclearThickness(double dnuc)
 {   
     NuclearThickness = dnuc;
-    UpdateNuclearPotential();
-    Update();
 }
 
 inline void Core::SetNuclearInverseMass(double inv_mass)
@@ -231,13 +227,11 @@ inline void Core::SetVolumeShiftParameter(double vol_shift)
 inline void Core::SetPolarisability(double pol)
 {
     Polarisability = pol;
-    CalculateClosedShellRadius();
 }
 
 inline void Core::SetEnergyTolerance(double tolerance)
 {
     StateParameters::EnergyTolerance = tolerance;
-    Update();
 }
 
 #endif
