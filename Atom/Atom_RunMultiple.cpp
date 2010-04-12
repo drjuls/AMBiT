@@ -34,6 +34,7 @@ void Atom::InitialiseRunIndex()
     for(i = 0; i < length; i++)
     {   multiple_alpha.push_back(userInput_("AlphaSquaredVariation", 0.0, i));
     }
+    alpha0 = Constant::Alpha;
     multiple_length = mmax(multiple_length, length);
     if(length > 1)
     {   multiple_options_used++;

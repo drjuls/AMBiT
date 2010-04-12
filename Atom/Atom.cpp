@@ -384,7 +384,7 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
         basis = dynamic_cast<BSplineBasis*>(excited);
     }
 
-    basis->SetParameters(40, 7, 40.);
+    basis->SetParameters(40, 7, 50.);
     CreateBasis(UseMBPT);
 }
 

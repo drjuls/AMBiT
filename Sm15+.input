@@ -6,7 +6,7 @@
 Z = 62
 ID  = Sm15+001
 
-NuclearInverseMass = '-0.002, 0.002'
+AlphaSquaredVariation = '-0.125, 0.0, 0.125'
 
 // Type of calculation implied here
 NumValenceElectrons = 2
@@ -23,8 +23,8 @@ ValenceBasis = 6spdf
 [CI]
 LeadingConfigurations = '5s2'
 ElectronExcitations = 2
-OddParityTwoJ =   '0'
-EvenParityTwoJ =  '0'
+EvenParityTwoJ =  '0, 2, 4, 6, 8, 10, 12'
+OddParityTwoJ =   '4, 6, 8'
 MaxEnergy = -19.03	// Only used if _SCALAPACK is on
 
 [MBPT]

@@ -7,8 +7,11 @@ class NonRelInfo : public StateInfo
 {
     /** Stores a non-relativistic single particle state info. */
 public:
-    NonRelInfo(unsigned int principal_qn, unsigned int l):
-        StateInfo(principal_qn, -(int(l) + 1))
+    NonRelInfo(unsigned int principal_qn, unsigned int ll):
+        StateInfo(principal_qn, -(int(ll) + 1))
+    {}
+    NonRelInfo(const NonRelInfo& other):
+        StateInfo(other.pqn, other.kappa)
     {}
     NonRelInfo(const StateInfo& other):
         StateInfo(other.PQN(), -(int(other.L()) + 1))
