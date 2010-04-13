@@ -100,12 +100,12 @@ public:
     unsigned int NumberRunsSelected();
 
     /** Manipulate run index for multiple runs. */
-    void RunIndexBegin();
-    void RunIndexNext();
+    void RunIndexBegin(bool print = true);
+    void RunIndexNext(bool print = true);
     bool RunIndexAtEnd();
 
     void InitialiseParameters();
-    void SetRunParameters();
+    void SetRunParameters(bool print = true);
     void SetRunCore(bool force = false);
     void SetRunIntegrals(bool force = false);
 

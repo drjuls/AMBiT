@@ -129,7 +129,7 @@ bool Atom::Run()
         core = new Core(lattice, Z, Charge);
 
         InitialiseParameters();
-        RunIndexBegin();
+        RunIndexBegin(true);
 
         if(!useRead || !ReadCore())
         {   DebugOptions.LogFirstBuild(true);
@@ -177,7 +177,7 @@ bool Atom::Run()
     // Loop through all multiple runs saving the basis
     if(NumberRunsSelected() > 1)
     {
-        RunIndexNext();
+        RunIndexNext(false);
         while(!RunIndexAtEnd())
         {
             core->ToggleOpenShellCore();
@@ -193,9 +193,9 @@ bool Atom::Run()
                 Write();
             }
 
-            RunIndexNext();
+            RunIndexNext(false);
         }
-        RunIndexBegin();
+        RunIndexBegin(false);
 
         // From now on, read core and basis
         useRead = true;
@@ -384,7 +384,10 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
         basis = dynamic_cast<BSplineBasis*>(excited);
     }
 
-    basis->SetParameters(40, 7, 50.);
+    unsigned int n = userInput_("Basis/BSpline/N", 40);
+    unsigned int k = userInput_("Basis/BSpline/K", 7);
+    double Rmax = userInput_("Basis/BSpline/Rmax", 50.);
+    basis->SetParameters(n, k, Rmax);
     CreateBasis(UseMBPT);
 }
 

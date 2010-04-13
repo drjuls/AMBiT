@@ -125,20 +125,20 @@ unsigned int Atom::NumberRunsSelected()
     return current_run_selection.size();
 }
 
-void Atom::RunIndexBegin()
+void Atom::RunIndexBegin(bool print)
 {
     current_run_index = 0;
     if(multiple_length > 1)
         identifier = original_id + "_" + itoa(current_run_selection[current_run_index]);
-    SetRunParameters();
+    SetRunParameters(print);
 }
 
-void Atom::RunIndexNext()
+void Atom::RunIndexNext(bool print)
 {
     current_run_index++;
     if(!RunIndexAtEnd())
     {   identifier = original_id + "_" + itoa(current_run_selection[current_run_index]);
-        SetRunParameters();
+        SetRunParameters(print);
     }
 }
 
@@ -189,13 +189,14 @@ void Atom::InitialiseParameters()
    }
 }
 
-void Atom::SetRunParameters()
+void Atom::SetRunParameters(bool print)
 {
     unsigned int index = current_run_selection[current_run_index];
 
     if(multiple_SMS.size() > 1)
     {   core->SetNuclearInverseMass(multiple_SMS[index]);
-        *outstream << "\nNuclearInverseMass = " << multiple_SMS[index] << std::endl;
+        if(print)
+            *outstream << "\nNuclearInverseMass = " << multiple_SMS[index] << std::endl;
         if(integrals)
         {   if(multiple_SMS[index])
                 integrals->IncludeValenceSMS(true);
@@ -206,15 +207,18 @@ void Atom::SetRunParameters()
     if(multiple_alpha.size() > 1)
     {   Constant::Alpha = alpha0 * sqrt(multiple_alpha[index]+1.);
         Constant::AlphaSquared = alpha0 * alpha0 * (multiple_alpha[index]+1.);
-        *outstream << "\nAlphaSquaredVariation (x) = " << multiple_alpha[index] << std::endl;
+        if(print)
+            *outstream << "\nAlphaSquaredVariation (x) = " << multiple_alpha[index] << std::endl;
     }
     if(multiple_volume.size() > 1)
     {   core->SetVolumeShiftParameter(multiple_volume[index]);
-        *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_volume[index] << std::endl;
+        if(print)
+            *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_volume[index] << std::endl;
     }
     if(multiple_radius.size() > 1)
     {   core->SetNuclearRadius(multiple_radius[index]/Constant::AtomicToFermi);
-        *outstream << "\nNuclearRadius = " << std::setprecision(3) << multiple_radius[index] << std::endl;
+        if(print)
+            *outstream << "\nNuclearRadius = " << std::setprecision(3) << multiple_radius[index] << std::endl;
     }
 }
 

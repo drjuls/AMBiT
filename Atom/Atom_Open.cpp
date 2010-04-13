@@ -31,9 +31,9 @@ void Atom::RunMultipleElectron()
     {
         while(!RunIndexAtEnd())
         {   CollateIntegralsMBPT(NumProcessors);
-            RunIndexNext();
+            RunIndexNext(false);
         }
-        RunIndexBegin();
+        RunIndexBegin(false);
     }
 
     // MBPT Options
@@ -75,22 +75,22 @@ void Atom::RunMultipleElectron()
         {   // Generate all MBPT integrals
             while(!RunIndexAtEnd())
             {
-                SetRunParameters();
+                SetRunParameters(false);
                 SetRunCore();
                 SetRunIntegrals();  // This does the actual calculations
 
-                RunIndexNext();
+                RunIndexNext(false);
             }
-            RunIndexBegin();
+            RunIndexBegin(false);
 
             // Collate new integrals
             if(collate_mbpt_integrals)
             {
                 while(!RunIndexAtEnd())
                 {   CollateIntegralsMBPT(NumProcessors);
-                    RunIndexNext();
+                    RunIndexNext(false);
                 }
-                RunIndexBegin();
+                RunIndexBegin(false);
             }
         }
     }
@@ -109,7 +109,7 @@ void Atom::RunMultipleElectron()
     if(includeSigma3)
         sigma3 = new Sigma3Calculator(lattice, core, excited);
 
-    SetRunParameters();
+    SetRunParameters(false);
     SetRunCore();
     SetRunIntegrals(true);
 
@@ -389,6 +389,7 @@ void Atom::CalculateEnergies()
                 give_conf_gen_to_eigenstates = true;
             Eigenstates* E = new Eigenstates(identifier, conf_gen, give_conf_gen_to_eigenstates);
 
+            SetRunParameters(true);
             SetRunCore();
             SetRunIntegrals();
 
@@ -441,10 +442,10 @@ void Atom::CalculateEnergies()
             {   delete E;
             }
 
-            RunIndexNext();
+            RunIndexNext(false);
         }
 
-        RunIndexBegin();
+        RunIndexBegin(false);
         it++;
     }
 }
