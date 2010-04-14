@@ -556,8 +556,8 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
     }
 
     // Calculate g-Factors
-    double* g_factors;
-    if(gFactors)
+    double* g_factors = NULL;
+    if(gFactors && eigenstates.GetTwoJ())
         g_factors = new double[NumSolutions];
 
     unsigned int i, j, count;
@@ -586,7 +586,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
         if(i == 0)
             eigenstates.SetEigenvectors(V, NumSolutions);
 
-        if(gFactors)
+        if(g_factors)
             GetgFactors(NumSolutions, V, eigenstates.GetTwoJ(), g_factors);
 
         for(count = 0; count < NumSolutions; count++)
@@ -641,7 +641,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
                 if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
                     config_file_gen->AddPercentages(percentages);
 
-                if(gFactors)
+                if(g_factors)
                     *outstream << "    g-factor = " << std::setprecision(5) << g_factors[count] << std::endl;
 
                 *outstream << std::endl;
@@ -651,7 +651,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
         }
     }
 
-    if(gFactors)
+    if(g_factors)
         delete[] g_factors;
 
     if(multiple_chunks)

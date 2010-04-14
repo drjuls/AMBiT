@@ -163,15 +163,15 @@ void Atom::InitialiseIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT)
 
     std::vector<int> two_electron_limits;
     for(unsigned int i = 0; i < 3; i++)
-        two_electron_limits.push_back(userInput_("CI/TwoElectronStorageLimits", 0, i));
+        two_electron_limits.push_back(userInput_("MBPT/TwoElectronStorageLimits", 0, i));
     integralsMBPT->SetTwoElectronStorageLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 
     // Affects both core and valence MBPT if extra box diagrams are included.
     // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    if(userInput_.vector_variable_size("CI/BoxDiagramStorageLimits") >= 1)
+    if(userInput_.vector_variable_size("MBPT/BoxDiagramStorageLimits") >= 1)
     {   two_electron_limits.clear();
         for(unsigned int i = 0; i < 3; i++)
-            two_electron_limits.push_back(userInput_("CI/BoxDiagramStorageLimits", 0, i));
+            two_electron_limits.push_back(userInput_("MBPT/BoxDiagramStorageLimits", 0, i));
     }
     integralsMBPT->SetExtraBoxDiagramLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
 }
