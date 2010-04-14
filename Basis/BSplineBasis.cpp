@@ -255,18 +255,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                             delete ds;
                         }
                         else
-                        {   if(debug)
-                            {   if(s)
-                                {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                                    *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                               << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
-                                }
-                                else
-                                    *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                               << " norm: " << ds->Norm(lattice) - 1. << std::endl;
-                            }
-
-                            // Check if state already exists
+                        {   // Check if state already exists
                             DiscreteState* existing = GetState(StateInfo(pqn, kappa));
                             if(existing)
                             {   *existing = *ds;
@@ -290,6 +279,31 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                     pqn++;
                     it = AllStates.find(StateInfo(pqn, kappa));
+                }
+
+                // Repeat orthogonalisation and print
+                StateIterator basis_it = GetStateIterator();
+                basis_it.First();
+                while(!basis_it.AtEnd())
+                {
+                    if(basis_it.GetState()->Kappa() == kappa)
+                    {
+                        Orthogonalise(basis_it.GetState());
+
+                        if(debug)
+                        {   const DiscreteState* ds = basis_it.GetState();
+                            s = core->GetState(StateInfo(pqn, kappa));
+                            if(s)
+                            {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
+                                *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                           << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
+                            }
+                            else
+                                *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                           << " norm: " << ds->Norm(lattice) - 1. << std::endl;
+                        }
+                    }
+                    basis_it.Next();
                 }
             }
             else

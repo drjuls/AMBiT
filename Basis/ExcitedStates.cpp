@@ -374,6 +374,8 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
         }
         ex_it.Next();
     }
+    StateIntegrator I(lattice);
+    current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
 double ExcitedStates::TestOrthogonalityIncludingCore() const
