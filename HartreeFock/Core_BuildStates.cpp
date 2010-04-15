@@ -14,6 +14,7 @@ void Core::Update()
     // Check that there is something to start with
     if((Z > 1.) && Empty())
         BuildFirstApproximation("");
+    UpdateNuclearPotential();
     UpdateHFPotential();
 
     bool debug = DebugOptions.LogHFIterations();
@@ -598,6 +599,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
             }
 
             zero_difference = ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
+            *logstream << ds->Name() << " zero diff: " << zero_difference << ", E = " << ds->Energy() << std::endl;
 
             if(zero_difference)
             {   // This moves the state one pqn at a time

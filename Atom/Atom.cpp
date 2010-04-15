@@ -226,9 +226,39 @@ void Atom::RunSingleElectron()
 {
     core->ToggleClosedShellCore();
 
-    StateIntegrator SI(lattice);
-    DiscreteState* ds = core->GetState(StateInfo(1, -1));
-    *outstream << std::setprecision(10) << SI.HamiltonianMatrixElement(*ds, *ds, *core);
+    mbpt = NULL;
+    if(excited_mbpt)
+        mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
+
+    while(!RunIndexAtEnd())
+    {
+        SetRunParameters(true);
+        SetRunCore();
+
+        if(mbpt)
+            mbpt->UpdateIntegrals(excited);
+
+        StateIterator it = excited->GetStateIterator();
+        it.First();
+        while(!it.AtEnd())
+        {
+            StateInfo si = it.GetStateInfo();
+            DiscreteState* ds = it.GetState();
+            *outstream << "\n" << ds->Name() << "\n";
+            *outstream << std::setprecision(12);
+            *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
+
+            if(mbpt)
+            {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+            }
+
+            it.Next();
+        }
+
+        RunIndexNext(false);
+    }
+    RunIndexBegin(false);
 /*
     mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
     //mbpt->UpdateIntegrals(excited);

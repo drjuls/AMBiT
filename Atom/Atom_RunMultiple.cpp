@@ -161,7 +161,7 @@ void Atom::InitialiseParameters()
     // Nuclear Thickness
     double nuclear_thickness = userInput_("NuclearThickness", -1.);
     if(nuclear_thickness < 0.0) // Not found
-    {   if(core->GetNuclearRadius() < 1.5)
+    {   if(core->GetNuclearRadius() < 1.5/Constant::AtomicToFermi)
             nuclear_thickness = 0.0;
         else
             nuclear_thickness = 2.3;    // Standard value
