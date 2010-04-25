@@ -1,0 +1,230 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{url}
+\usepackage{anysize}
+\usepackage[T1]{fontenc}
+\usepackage{courier}
+
+\include{phys_jdf}
+
+\newcommand{\option}[1]{\paragraph{\texttt{#1}}}
+\marginsize{30mm}{25mm}{20mm}{20mm}
+
+\begin{document}
+
+\title{AMBiT documentation}
+\author{Julian Berengut}
+
+\maketitle
+
+\begin{centering}
+
+jcb@phys.unsw.edu.au
+
+\url{http://www.phys.unsw.edu.au/~jcb/}
+
+\end{centering}
+
+\section{Introduction}
+
+AMBiT is a parallel-processor implementation of the CI+MBPT (Configuration Interaction + Many-Body Perturbation Theory) method, first described in~\cite{dzuba96pra}. Briefly this requires the following course of action:
+\begin{itemize}
+\item Dirac-Fock (DF) for the core electrons.
+\item Creation of a basis states above the core, including valence states and perhaps a large basis for MBPT.
+\item Many-body perturbation theory (MBPT) calculation of core-valence correlations, and creation of modified radial integrals for the CI calculation.
+\item Configuration Interaction (CI) calculation including creation of the angular coefficients and radial integrals.
+\end{itemize}
+Of course, the user may want to perform only part of this process. For example, a regular CI calculation, or only DF+MBPT for a single-valence electron above closed shells.
+
+AMBiT supports two complementary methods of input: command line and input file. In any given run, both of these are concatenated and parsed together. Any input can be given by the user in either place. On the other hand, there tends to be a natural separation between the input file, which resembles a plan for all stages of the entire calculation, and command line options which tend to tell AMBiT which part of the calculation to do on this run.
+
+\section{Installation}
+
+Building AMBiT on a new computer system can be done by altering ``make.machine''. At a minimum, AMBiT requires a working BLAS and LAPACK library, a c++ compiler and a fortran compiler. To run in parallel-processor mode requires MPI, and optionally SCALAPACK.
+
+\section{Input}
+
+AMBiT takes input from the command line and an input file. In principle, all parameters can be place in either. An exception is the directive to find the input file, which \emph{must} be placed in the command line using the -f option or by including a filename ending in .input, e.g.:
+\begin{quote}
+\begin{verbatim}
+> ambit -f myFile.txt
+> ambit -f "Carbon.inp"
+> ambit FeIV.input
+\end{verbatim}
+\end{quote}
+
+Most input parameters are optional, and if they're not given AMBiT will make something up. If you miss something really important, AMBiT will tell you. AMBiT uses ``GetPot'' to parse input files (http://getpot.sourceforge.net/) which means that the \textbf{input is structured}. The ordering of input is not important, however where a parameter or option appears in the structure is important. For example to use a B-spline basis, the input can be given like this
+\begin{quote}
+\begin{verbatim}
+[HF]
+// Just use a closed Ar core
+N = 18
+
+[Basis]
+--bspline-basis
+ValenceBasis = 6spdf
+[./BSpline]
+N = 40
+K = 7
+Rmax = 50.   // These are the default values for B-spline basis
+...
+\end{verbatim}
+\end{quote}
+or (in the root of the tree structure)
+\begin{quote}
+\begin{verbatim}
+Basis/--bspline-basis
+Basis/ValenceBasis = 6spdf
+HF/N = 16
+Basis/BSpline/N = 40
+...
+\end{verbatim}
+\end{quote}
+which is usually messier.
+Note that the input file lets you have spaces and comments (marked with `//') while any options given in the command line must not have additional spaces, e.g.:
+\begin{quote}
+\begin{verbatim}
+> ambit FeIV.input Basis/--bspline-basis Basis/BSpline/Rmax=30.0
+\end{verbatim}
+\end{quote}
+
+Lists of parameters are given as comma-separated values, enclosed in apostrophes:
+\begin{quote}
+\begin{verbatim}
+CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'
+\end{verbatim}
+\end{quote}
+
+\subsection{Options}
+The following input parameters are given in their correct place in the tree structure. They are all optional unless otherwise stated.
+
+\option{-f \emph{filename}} \textbf{[compulsory, command line]} names the input file as \emph{filename}. If this is not present, AMBiT searches the command line for an option of the form \emph{*.input} which it assumes is the input filename. 
+
+\option{-c, -{}-clean} Don't read from previously written data files.
+\option{-{}-check-sizes} check sizes of integral files and Hamiltonian matrices, after calculating or reading one of the core+basis sets.
+\option{-d, -{}-dont-save} Don't write to file. This is ignored if AMBiT is generating MBPT orbitals.
+
+\option{-h, -{}-help} Print usage message.
+
+\option{-p, -{}-print-basis} Write out the basis as a Grasp0 ``MCDF.DMP'' file.
+
+\option{-r} select a subset of the possible runs for this run. Used when there are multiple runs. e.g.~\texttt{-r='1,2'} means just run the first two. \texttt{-r=0} is a special case which only runs the case where the varying parameter equals zero. For example if the input file contains
+\begin{quote}
+\begin{verbatim}
+AlphaSquaredVariation = '-0.2, -0.1, 0.0, 0.1, 0.2'
+\end{verbatim}
+\end{quote}
+then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
+
+\subsection{Parameters}
+
+\option{Z} \textbf{[compulsory]} nuclear charge.
+
+\option{ID} a name for the run, used for filenames when saving various stages of the calculation. If not present identity is taken from the prefix of the ``*.input'' file. If this cannot be found (for example if the input file name does not have this suffix) then a fatal error is issued.
+
+\option{NumValenceElectrons} \textbf{[compulsory]} AMBiT knows what kind of calculation to do from the number of valence electrons. \texttt{NumValenceElectrons = 1} is used for HF+MBPT calculations; otherwise \textbf{NumValenceElectrons} tells AMBiT how many valence electrons will be included in the CI calculation.
+
+\option{NuclearRadius} nuclear radius in fermi. The nucleus is specified as a fermi surface with a radius and thickness parameter.
+
+\option{NuclearThickness} nuclear thickness. Set to zero for hard-core nucleus.
+
+% Lattice
+\subsection*{[Lattice]}
+Default is a lattice that starts exponential at small $r$ and then becomes constant spacing at larger $r$. The relevant formula is $x = r + \beta*\ln(r/r_{min})$ where $x$ is a lattice with constant spacing $H$.
+\option{NumPoints} [1000] number of points in lattice. This may be increased by AMBiT as necessary.
+\option{StartPoint} [1.e-6] first point in lattice (non-zero).
+\option{EndPoint} [50.] last point in lattice (size in real space).
+
+\option{-{}-exp-lattice} use pure exponential lattice instead: $r = r_{min}\exp(x)$ where $x$ is a lattice with constant spacing $H$. Defaults become NumPoints = 300 and StartPoint = 1.e-5 to correspond to a typical Grasp0 lattice.
+\option{H} [0.05] spacing of regular lattice $x$ (only used with \texttt{-{}-exp-lattice}).
+
+% HF
+\subsection*{[HF]: Relativistic Hartree-Fock options for building core.}
+\option{N} \textbf{[compulsory]} number of electrons included in HF procedure.
+\option{Charge} can be used instead of HF/N: Charge = Z - N.
+\option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6 3d4'}.
+\option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
+
+%Basis
+\subsection*{[Basis]: Details of electron orbital construction.}
+One of the basis options must be specified.
+\option{ValenceBasis} \textbf{[compulsory]} set of orbitals to include in CI (if \mbox{\texttt{NumValenceElectrons}$>1$}) or HF/MBPT. This is specified by the largest principal quantum number followed by angular momenta. For example:
+\texttt{6spd5f} = 1s -- 6s, 2p -- 6p, 3d -- 6d, 4f -- 5f.
+
+\option{-{}-bspline-basis} construct basis from B-splines~\cite{johnson88pra}.
+\option{BSpline/N} [40] number of splines.
+\option{BSpline/K} [7]  order of splines.
+\option{BSpline/Rmax} [50.0] maximum radius of splines.
+
+\option{-{}-hf-basis} Use spectroscopic (relativistic Hartree-Fock) basis.
+\option{-{}-r-basis} Use $\times r$ basis where the lowest state in each wave is spectroscopic and higher energy states are created by multiplication of the previous state by the radial function and normalisation.
+\option{-{}-custom-basis} construct basis according to the prescription in \texttt{Basis/CustomFile}.
+\option{Basis/CustomFile} ['CustomBasis.txt'] the prescription used to create a customised basis when using \texttt{-{}-custom-basis}  
+
+%MBPT
+\subsection*{[MBPT]: Many-body perturbation theory.}
+
+\option{-s1, -{}-include-sigma1} create one-body core-valence correlation diagrams. These are stored in ``[ID].one.integrals''.
+\option{-s2, -{}-include-sigma2} create two-body core-valence correlation diagrams. These are stored in ``[ID].two.integrals''.
+\option{-s3, -{}-include-sigma3} Include effective three-body interactions in the Hamiltonian. These diagrams are calculated during construction of the Hamiltonian (as opposed to calculated beforehand and stored), and can slow down the CI process considerably.
+\option{-s12} [default if running MBPT] = \texttt{-s1} + \texttt{-s2}
+\option{-s123} = = \texttt{-s1} + \texttt{-s2} + \texttt{-s3}
+
+\option{Basis} must be a superset of \texttt{Basis/ValenceBasis} using the same format, e.g.~\texttt{MBPT/Basis = 24spdfg}.
+
+\option{TwoElectronStorageLimits} defines limits on for which radial integrals MBPT is calculated. e.g.~\texttt{MBPT/TwoElectronStorageLimits = 7} means that one of the orbitals must have principal quantum number $n <= 7$; \texttt{'7, 8'} means that, in addition, one of the other orbitals must have $n <= 8$, etc. Up to four principal quantum numbers can be specified.
+
+\option{BoxDiagramStorageLimits} same as \texttt{MBPT/TwoElectronStorageLimits} but for diagrams that violate the usual parity selection rules.
+
+\option{Delta} [0.0] a number to add to the denominator of every MBPT diagram. Could be equal, for example, to the difference between the HF and the CI energy~\cite{kozlov99os,berengut08jpb}.
+
+%CI
+\subsection*{[CI]: Configuration interaction and energy level options.}
+\option{LeadingConfigurations} lists all leading configurations from which to excite electrons when forming the Hamiltonian, e.g.~\texttt{CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'} lists three leading configurations each with seven valence electrons. The number of valence electrons should be equal to \texttt{NumValenceElectrons}.
+
+\option{ElectronExcitations} [2] number of electrons to excite from leading configurations. e.g. default 2 corresponds to SD-CI.
+
+\option{EvenParityTwoJ} list of angular momenta of even parity to create Hamiltonians and serve. e.g.~\texttt{CI/EvenParityTwoJ = '0, 2, 4, 6, 8, 10, 12'} does all even parity levels from J = 0 to 6.
+
+\option{OddParityTwoJ} list of angular momenta calculations to do for odd parity states.
+
+\option{MaxEnergy} AMBiT calculates all levels up to this energy eigenvalue. Only used when \_SCALAPACK is on.
+\option{NumSolutions} [6] calculate the first \texttt{NumSolutions} eigenvalues of the Hamiltonian (when \texttt{CI/MaxEnergy} is not used).
+
+\section{Multiple runs}
+
+It is very useful to be able to perform multiple runs using the same basic setup except varying a single parameter throughout the process. To do this the user simply has to turn the varying parameter into a list. For example, to determine sensitivity to $\alpha$ ($q$-coefficients) one can use
+\begin{quote}
+\begin{verbatim}
+AlphaSquaredVariation = '-0.25, -0.125, 0.0, 0.125, 0.25'
+\end{verbatim}
+\end{quote}
+and the code will run five times exactly the same but varying $x = \alpha^2 - 1$. To make the code calculate a subset of these options in a given run, use the parameter \texttt{-r}. For example \texttt{-r = '1, 5'} will run the first and last only. \texttt{-r = 0} searches for the case where the varying parameter equals zero and runs that one only.
+
+The user may additionally wish to vary \texttt{MBPT/Delta} for each of the runs. This is done using, for example
+\begin{quote}
+\begin{verbatim}
+MBPT/Delta = '0.55, 0.56, 0.57, 0.58, 0.59'
+\end{verbatim}
+\end{quote}
+
+The following options can be varied over multiple runs:
+\option{NuclearInverseMass} used for calculating specific mass shift ($\sim 1/M$), see~\cite{berengut03pra,berengut05pra,berengut06pra}. Typical values are $-0.002 \rightarrow 0.002$.
+\option{NuclearRadius} radius of the nucleus in fermi. The nuclear charge is distributed according to the Fermi distribution
+\[
+\rho(r) \sim \frac{1}{1 + e^{(r - C)/B}}
+\]
+where $C = \texttt{NuclearRadius}$ and $B = \texttt{NuclearThickness}/4\ln 3$.
+
+\option{NuclearVolumeVariation} is used with \texttt{\textbf{DeltaNuclearRadius}} to provide an alternative method of calculating field shift~\cite{berengut03pra}. AMBiT will calculate the change in nuclear potential due to \texttt{DeltaNuclearRadius}: $\Delta U = U(R+\Delta R) - U(R)$ where $R$ is the nuclear radius. This can then be scaled using \texttt{NuclearVolumeVariation} $=\lambda$ and used in calculations as
+\[
+	U(r) = U_R(r) + \lambda\, \Delta U(r)\ .
+\]
+
+\option{AlphaSquaredVariation} (described above) varies $x = (\alpha/\alpha_0)^2-1$~\cite{dzuba99pra}.
+
+\bibliographystyle{apsrev}
+\bibliography{references}
+
+\end{document}
