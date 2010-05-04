@@ -56,20 +56,38 @@ std::vector<double> CoulombIntegrator::CoulombFunction::Coeff2(void) const
 
 void CoulombIntegrator::CoulombIntegrate(std::vector<double>& density, std::vector<double>& potential, unsigned int k, double charge)
 {
+    // Increase size of density function so that zeros are at the end
+    density.resize(density.size()+adams_N, 0.0);
+    lattice->R(density.size()-1);
+
     // First part of Coulomb integration
     CoulombFunction function(lattice, density, k);
     std::vector<double> y(density.size());
     std::vector<double> dy(density.size());
+
+    // Start integration
+    unsigned int i;
+    double integral = 0.;
+    for(i = 0; i < adams_N-1; i++)
+    {   integral += pow(lattice->R(i), k) * density[i] * lattice->dR(i);
+        y[i] = 1./pow(lattice->R(i), double(k+1)) * integral;
+        dy[i] = (-double(k+1) * y[i] + density[i])/lattice->R(i) * lattice->dR(i);
+    }
     Integrate(function, y, dy, (adams_N-1), density.size());
 
     // Renormalise
     if(charge != 0.)
-    {   double norm = y[density.size()-1] * lattice->R(density.size()-1);
+    {   double norm = y[density.size()-1] * pow(lattice->R(density.size()-1),k+1);
         norm = charge/norm;
-        for(unsigned int i=0; i<density.size(); i++)
+        for(i=0; i<density.size(); i++)
         {   y[i] = y[i] * norm;
             dy[i] = dy[i] * norm;
             density[i] = density[i] * norm;
+        }
+        // Adjust tail
+        for(i=density.size()-1; i>density.size()-adams_N; i--)
+        {   y[i] = charge/pow(lattice->R(i), k+1);
+            dy[i] = -double(k+1) * y[i]/lattice->R(i) * lattice->dR(i);
         }
     }
 
@@ -81,7 +99,7 @@ void CoulombIntegrator::CoulombIntegrate(std::vector<double>& density, std::vect
     {   /* For k == 0 we can use a special trick to improve accuracy,
              dI/dr = -I1/r
          */
-        for(unsigned int i=density.size()-1; i>density.size()-adams_N; i--)
+        for(i=density.size()-1; i>density.size()-adams_N; i--)
         {   potential[i] = y[i];
             dy[i] = -y[i]/lattice->R(i)*lattice->dR(i);
         }
@@ -94,14 +112,14 @@ void CoulombIntegrator::CoulombIntegrate(std::vector<double>& density, std::vect
         dy.resize(density.size());
         function.SetDensity(density);
         function.SetDirection(false);
-        unsigned int i;
-        for(i=density.size()-1; i>density.size()-adams_N; i--)
-            density[i] = 0.;
         Integrate(function, potential, dy, density.size()-adams_N, -1);
         for(i=0; i<density.size(); i++)
         {   potential[i] = potential[i] + y[i];
         }
     }
+
+    density.resize(density.size()-adams_N);
+    potential.resize(density.size());
 }
 
 void CoulombIntegrator::FastCoulombIntegrate(const std::vector<double>& density, std::vector<double>& potential, unsigned int k)

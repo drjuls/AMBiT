@@ -230,7 +230,7 @@ void Core::UpdateNuclearPotential()
     {   // Point nucleus
         NuclearPotential.clear();
     }
-    else if(NuclearThickness < 0.1/Constant::AtomicToFermi)
+    else if(NuclearThickness < 0.05/Constant::AtomicToFermi)
     {   // Uniform hard sphere
         NuclearPotential.resize(lattice->real_to_lattice(NuclearRadius));
         for(unsigned int i=0; i<NuclearPotential.size(); i++)
@@ -250,19 +250,33 @@ void Core::UpdateNuclearPotential()
 std::vector<double> Core::CalculateNuclearDensity(double radius, double thickness) const
 {
     std::vector<double> density(lattice->Size());
-    double B = 4.*log(3.)/thickness;
-    double A = 3.*Z/(radius * (pow(radius,2.) + pow(Constant::Pi/B, 2.)));
-    for(unsigned int i=0; i<lattice->Size(); i++)
-    {   
-        double X = B * (lattice->R(i) - radius);
-        if(X <= -20.)
-            density[i] = A * pow(lattice->R(i), 2.);
-        else if(X < 50)
-            density[i] = A/(1. + exp(X)) * pow(lattice->R(i), 2.);
-        else
-        {   density.resize(i);
-            break;
+
+    if(thickness*Constant::AtomicToFermi > 0.05)
+    {
+        double B = 4.*log(3.)/thickness;
+        double A = 3.*Z/(radius * (pow(radius,2.) + pow(Constant::Pi/B, 2.)));
+        for(unsigned int i=0; i<lattice->Size(); i++)
+        {   
+            double X = B * (lattice->R(i) - radius);
+            if(X <= -20.)
+                density[i] = A * lattice->R(i) * lattice->R(i);
+            else if(X < 50)
+                density[i] = A/(1. + exp(X)) * lattice->R(i) * lattice->R(i);
+            else
+            {   density.resize(i);
+                break;
+            }
         }
+    }
+    else
+    {   // zero thickness
+        double A = 3.*Z/(radius * radius * radius);
+        unsigned int i;
+        for(i = 0; i < lattice->real_to_lattice(radius); i++)
+        {
+            density[i] = A * lattice->R(i) * lattice->R(i);
+        }
+        density.resize(i);
     }
 
     return density;

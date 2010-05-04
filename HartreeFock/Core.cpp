@@ -181,10 +181,15 @@ void Core::Read(FILE* fp)
 
 void Core::CalculateVolumeShiftPotential(double radius_difference)
 {
-    std::vector<double> new_density = CalculateNuclearDensity(NuclearRadius + radius_difference, NuclearThickness);
-    std::vector<double> new_potential;
-    CoulombIntegrator I(lattice);
-    I.CoulombIntegrate(new_density, new_potential, 0, Z);
+    // Calculate new potential
+    double old_radius = NuclearRadius;
+    NuclearRadius = NuclearRadius + radius_difference;
+    UpdateNuclearPotential();
+    std::vector<double> new_potential(NuclearPotential);
+
+    // Return to old potential
+    NuclearRadius = old_radius;
+    UpdateNuclearPotential();
 
     unsigned int oldsize = NuclearPotential.size(),
                  newsize = new_potential.size();
@@ -202,9 +207,6 @@ void Core::CalculateVolumeShiftPotential(double radius_difference)
     {   VolumeShiftPotential[i] = Z/lattice->R(i) - NuclearPotential[i];
         i++;
     }
-
-    if(VolumeShiftParameter)
-        Update();
 }
 
 std::vector<double> Core::GetHFPotential() const
