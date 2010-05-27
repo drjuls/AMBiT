@@ -230,6 +230,8 @@ void Atom::RunSingleElectron()
     if(excited_mbpt)
         mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
 
+    bool sigma_potential = userInput_.search("Basis/Valence/--sigma-potential") && mbpt;
+
     while(!RunIndexAtEnd())
     {
         SetRunParameters(true);
@@ -248,7 +250,36 @@ void Atom::RunSingleElectron()
             *outstream << std::setprecision(12);
             *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
 
-            if(mbpt)
+            if(sigma_potential)
+            {
+                // Create sigma, if it doesn't exist, and find matrix element
+                double dE = 0.0;
+                if(!excited->RetrieveSecondOrderSigma(si))
+                    dE = excited->CreateSecondOrderSigma(si, *mbpt);
+                else
+                    dE = excited->GetSigmaMatrixElement(si);
+                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                
+                // Iterate to create Brueckner orbital
+                DiscreteState brueckner = excited->GetStateWithSigma(si);
+                *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
+
+                // Set energy to known value, if requested
+                double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
+                if(E_experiment)
+                {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
+                    brueckner = excited->GetStateWithSigma(si);
+                }
+
+                // Log ratio
+                *logstream << "\n" << brueckner.Name() << std::endl;
+                for(unsigned int i = 0; i < 100; i+=10)
+                {
+                    *logstream << lattice->R(i) << "\t";
+                    *logstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+                }
+            }
+            else if(mbpt)
             {   double dE = mbpt->GetOneElectronDiagrams(si, si);
                 *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
             }
@@ -256,39 +287,10 @@ void Atom::RunSingleElectron()
             it.Next();
         }
 
+        excited->ClearSigmas();
         RunIndexNext(false);
     }
     RunIndexBegin(false);
-/*
-    mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-    //mbpt->UpdateIntegrals(excited);
-
-    ConstStateIterator it = excited->GetConstStateIterator();
-    while(!it.AtEnd())
-    {
-        StateInfo si = it.GetStateInfo();
-        const DiscreteState* ds = it.GetState();
-
-        if(excited->RetrieveSecondOrderSigma(si))
-        {
-            double dE = excited->GetSigmaMatrixElement(si);
-            *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
-
-            DiscreteState brueckner = excited->GetStateWithSigma(si);
-            *outstream << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
-            *outstream << "\n" << brueckner.Name() << std::endl;
-            for(unsigned int i = 0; i < 100; i+=10)
-            {
-                *outstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
-            }
-        }
-
-//        *outstream << ds->Name() << ": " << ds->Energy() * Constant::HartreeEnergy_cm
-//                   << " + dE = " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
-//        *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;
-        it.Next();
-    }
-*/
 }
 
 bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states)

@@ -146,7 +146,7 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
     double old_energy = s->Energy();
     double amount = 1.0;
     DiscreteState sigma_s(*ds);
-    unsigned int iterations = core->UpdateExcitedState(&sigma_s);
+    unsigned int iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
     double current_energy = sigma_s.Energy();
 
     *outstream << "  Wanted energy:  " << std::setprecision(12) << energy * Constant::HartreeEnergy_cm << std::endl;
