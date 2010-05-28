@@ -777,7 +777,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     std::string closed_shell_string;
     std::string open_shell_string;
 
-    unsigned int colon_pos = configuration.find(':');
+    size_t colon_pos = configuration.find(':');
     if(colon_pos == std::string::npos)
         closed_shell_string = configuration;
     else
