@@ -527,6 +527,7 @@ bool Atom::Read()
         {   return false;
         }
         excited->Read(fp);
+        excited->SetIdentifier(identifier);
 
         if(excited_mbpt)
         {   fp = freopen(filename.c_str(), "rb", fp);

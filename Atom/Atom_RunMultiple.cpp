@@ -242,6 +242,9 @@ void Atom::SetRunCore(bool force)
                 excited_mbpt->Update();
         }
 
+        if(excited)
+            excited->SetIdentifier(identifier);
+
         core->ToggleClosedShellCore();
         previous_index = index;
     }
