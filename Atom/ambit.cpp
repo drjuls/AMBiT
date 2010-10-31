@@ -4,6 +4,7 @@
 #include "Include.h"
 #include "OutStreams.h"
 #include "Atom.h"
+#include "RateCalculator.h"
 
 #include <Atom/GetPot>
 
@@ -109,16 +110,14 @@ int main(int argc, char* argv[])
         // That's all we need to start the Atom class
         Atom A(fileInput, Z, N, identifier);
         A.Run();
-/*
-        InputParser userinput("Sm15+.input");
-        *outstream << userinput.Parse() << std::endl;
-        int val[20];
-        unsigned int nval = userinput.GetMultipleValues("OddSymmetryTwoJ", val, 20);
-        *outstream << nval;
-        for(unsigned int i=0; i<nval; i++)
-            *outstream << ":" << val[i];
-        *outstream << std::endl;
-*/
+
+//        RateCalculator RC(A.GetBasis());
+//        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 0, false, true);
+//        *outstream << std::endl;
+//        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 1, false, true);
+//        *outstream << std::endl;
+//        RC.CalculateAllDipoleStrengths(&A, Symmetry(8, odd), 0, false, true);
+//        *outstream << std::endl;
     }
     catch(std::bad_alloc& ba)
     {   *errstream << ba.what() << std::endl;

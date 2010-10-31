@@ -185,8 +185,8 @@ double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsig
         Symmetry sym2(TwoJ, other_P);
         Eigenstates* eigenstates2 = A->GetEigenstates(sym2);
         if(!eigenstates2 || !eigenstates2->Restore())
-        {   *outstream << sym2.GetString() << "eigenstates restore failed" << std::endl;
-            return 0.;
+        {   *outstream << "WARNING: " << sym2.GetString() << "eigenstates restore failed" << std::endl;
+            continue;
         }
 
         const double* V2 = eigenstates2->GetEigenvectors();
@@ -290,15 +290,15 @@ double RateCalculator::CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsig
 
         if(print_oscillator_strengths)
         {   *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
-                       << ": i) weighted oscillator strengths (g.f)" << std::endl;
+                       << ": i) reduced E1 amplitudes and weighted oscillator strengths (g.f)" << std::endl;
 
             for(solution2 = 0; solution2 < num_solutions2; solution2++)
             {   // Oscillator strength
                 double deltaE = fabs(E1[solution1] - E2[solution2]);
-                *outstream << "  " << solution2 << "  " << deltaE * total[solution2]/3. << std::endl;
+                *outstream << "  " << solution2 << "  " << sqrt(total[solution2])
+                           << "  " << deltaE * total[solution2]/3. << std::endl;
             }
         }
-
 
         if(print_rates)
             *outstream << "(" << sym1.GetString() << ": " << solution1 << ") -> (" << sym2.GetString()
