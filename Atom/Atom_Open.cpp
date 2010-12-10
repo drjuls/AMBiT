@@ -122,6 +122,10 @@ void Atom::RunMultipleElectron()
     {   // Warning: Need to have generated integrals already.
         #ifdef _SCALAPACK
             MaxEnergy = userInput_("CI/MaxEnergy", 0.0);
+            if(userInput_.search("CI/MaxEnergy"))
+                NumSolutions = userInput_("CI/NumSolutions", 0);
+            else
+                NumSolutions = userInput_("CI/NumSolutions", 6);
         #else
             NumSolutions = userInput_("CI/NumSolutions", 6);
         #endif
@@ -412,7 +416,7 @@ void Atom::CalculateEnergies()
                 #ifdef _SCALAPACK
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                    MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true);
+                    MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
                 #else
                     H->SolveMatrix(NumSolutions, *E, true);
                 #endif

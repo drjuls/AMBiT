@@ -515,7 +515,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int NumSolutions, const double* 
 }
 
 #ifdef _SCALAPACK
-void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, Eigenstates& eigenstates, bool gFactors)
+void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, Eigenstates& eigenstates, bool gFactors, unsigned int max_num_solutions)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -535,10 +535,12 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
 
     *outstream << "\nFinding solutions" << std::endl;
 
-    unsigned int NumSolutions = mmin(50, N);
+    if(max_num_solutions == 0)
+        max_num_solutions = N;
+    unsigned int ChunkSize = mmin(50, max_num_solutions);
 
     double* E = new double[N];
-    double* V = new double[NumSolutions * N];
+    double* V = new double[ChunkSize * N];
 
     bool multiple_chunks = false;
 
@@ -558,38 +560,38 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
     // Calculate g-Factors
     double* g_factors = NULL;
     if(gFactors && eigenstates.GetTwoJ())
-        g_factors = new double[NumSolutions];
+        g_factors = new double[ChunkSize];
 
     unsigned int i, j, count;
 
     i = 0;
-    while((i < N) && (E[i] < eigenvalue_limit))
+    while((i < max_num_solutions) && (E[i] < eigenvalue_limit))
     {
         // Second pass: keep the first chunk, and continue with the others
         if((i > 0) && !multiple_chunks)
         {
             multiple_chunks = true;
-            V = new double[NumSolutions * N];
+            V = new double[ChunkSize * N];
         }
 
-        // Do a chunk of eigenvectors, maximum size NumSolutions
-        for(count = 0; (count < NumSolutions) && (i+count < N) &&
+        // Do a chunk of eigenvectors, maximum size ChunkSize
+        for(count = 0; (count < ChunkSize) && (i+count < max_num_solutions) &&
                                     (E[i+count] < eigenvalue_limit); count++)
         {
             SM->GetColumn(i+count, &V[count*N]);
         }
 
-        // Change NumSolutions for GetgFactors(), in case we aren't doing a maximum-sized chunk
-        NumSolutions = count;
+        // Change ChunkSize for GetgFactors(), in case we aren't doing a maximum-sized chunk
+        ChunkSize = count;
 
         // Save first chunk
         if(i == 0)
-            eigenstates.SetEigenvectors(V, NumSolutions);
+            eigenstates.SetEigenvectors(V, ChunkSize);
 
         if(g_factors)
-            GetgFactors(NumSolutions, V, eigenstates.GetTwoJ(), g_factors);
+            GetgFactors(ChunkSize, V, eigenstates.GetTwoJ(), g_factors);
 
-        for(count = 0; count < NumSolutions; count++)
+        for(count = 0; count < ChunkSize; count++)
         {
             if(ProcessorRank == 0)
             {
