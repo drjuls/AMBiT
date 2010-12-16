@@ -53,8 +53,11 @@ ScalapackMatrix::ScalapackMatrix(unsigned int size):
     num_proc_rows = (int)sqrt(double(NumProcessors));
     num_proc_cols = NumProcessors/num_proc_rows;
     
-    if(num_proc_cols * num_proc_rows != NumProcessors)
-        *errstream << "ScalapackMatrix: Decomposition of matrix wastes processors." << std::endl;
+    while(num_proc_cols * num_proc_rows != NumProcessors)
+    {   num_proc_rows--;
+        num_proc_cols = NumProcessors/num_proc_rows;
+    }
+    *logstream << "ScalapackMatrix decomposition: " << num_proc_rows << " * " << num_proc_cols << std::endl;
 
     // Initialise process grid
     sl_init_(&ICTXT, &num_proc_rows, &num_proc_cols);
