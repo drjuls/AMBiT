@@ -83,7 +83,7 @@ void Core::BuildFirstApproximation(std::string configuration)
         DiscreteState* s2 = NULL;
 
         NonRelInfo info(open_shell_config.GetInfo());
-        double occupancy = closed_shell_config.GetOccupancy();
+        double occupancy = open_shell_config.GetOccupancy();
         int L = info.L();
 
         if(L == 0)

@@ -292,9 +292,9 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                         if(debug)
                         {   const DiscreteState* ds = basis_it.GetState();
-                            s = core->GetState(StateInfo(pqn, kappa));
+                            s = core->GetState(StateInfo(ds->RequiredPQN(), kappa));
                             if(s)
-                            {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
+                            {   double diff = fabs((s->Energy() - ds->Energy())/s->Energy());
                                 *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
                                            << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
                             }
