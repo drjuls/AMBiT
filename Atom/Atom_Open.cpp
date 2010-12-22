@@ -386,11 +386,12 @@ void Atom::CalculateEnergies()
     {
         ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
 
+        bool give_conf_gen_to_eigenstates = false;
+        if(NumberRunsSelected() == 1)
+            give_conf_gen_to_eigenstates = true;
+
         while(!RunIndexAtEnd())
         {
-            bool give_conf_gen_to_eigenstates = false;
-            if(NumberRunsSelected() == 1)
-                give_conf_gen_to_eigenstates = true;
             Eigenstates* E = new Eigenstates(identifier, conf_gen, give_conf_gen_to_eigenstates);
 
             SetRunParameters(true);
@@ -436,11 +437,10 @@ void Atom::CalculateEnergies()
             {   E->Print();
             }
 
-            // Keep E if not multiple run
-            if(NumberRunsSelected() == 1)
+            // Keep E if not multiple run and save_eigenstates is true
+            if(save_eigenstates && NumberRunsSelected() == 1)
             {   it->second = E;
-                if(save_eigenstates)
-                    E->Clear();
+                E->Clear();
             }
             else
             {   delete E;
@@ -448,6 +448,9 @@ void Atom::CalculateEnergies()
 
             RunIndexNext(false);
         }
+
+        if(!give_conf_gen_to_eigenstates)
+            delete conf_gen;
 
         RunIndexBegin(false);
         it++;
