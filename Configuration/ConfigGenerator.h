@@ -61,16 +61,19 @@ public:
     /** Add to the set of leading configurations. */
     void AddLeadingConfiguration(const Configuration& config);
     void AddLeadingConfigurations(const std::set<Configuration> config_set);
-    
+    void AddNonRelConfiguration(const Configuration& config);
+
     /** Generate all non-relativistic configurations possible by exciting num_excitations
         electrons. Append the new configurations to the list.
         All new configurations must have the same parity as the first.
         Returns a sorted, unique list and appends that list to local nrlist.
      */
     void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations);
+    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to);
 
     /** Call GenerateMultipleExcitations() with leading configurations as input. */
     void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_electrons);
+    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to);
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
@@ -100,6 +103,7 @@ protected:
         of the original list. Append the new configurations to the list.
      */
     void GenerateExcitations(ConfigList& configlist);
+    void GenerateExcitations(ConfigList& configlist, std::vector<unsigned int> states_to_be_excited_to);
 
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When config.AtEnd(), add it to rlist.

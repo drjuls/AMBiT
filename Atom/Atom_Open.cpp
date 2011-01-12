@@ -283,12 +283,32 @@ void Atom::ChooseSymmetries()
 
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
 {
-    // Number of electron excitations (e.g. 2 for SD-CI) .
-    unsigned int electron_excitations = userInput_("CI/ElectronExcitations", 2);
+    bool allow_different_excitations = false;
+    unsigned int electron_excitations = 0;
+    // Number of electron excitations (e.g. 2 for SD-CI)
+    if(userInput_.vector_variable_size("CI/ElectronExcitations") == 1 && (userInput_("CI/ElectronExcitations", 2) == 1 || userInput_("CI/ElectronExcitations", 1) == 2)) {
+        electron_excitations = userInput_("CI/ElectronExcitations", 2);
+        *outstream << "Case 2" << std::endl;
+    } else if(userInput_.vector_variable_size("CI/ElectronExcitations")%2 != 0) {
+        if(userInput_.vector_variable_size("CI/ElectronExcitations")%2 == 0) {
+            electron_excitations = userInput_("CI/ElectronExcitations", 2);
+        } else {
+            *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
+            exit(1);
+        }
+    } else {
+        allow_different_excitations = true;
+
+        // ATTENTION: NEED TO MAKE INPUT PARSER LESS TOUCHY TO SPACES, INCLUDING A SPACE BREAKS ParseBasisSize!
+        *outstream << "Advanced CI parameters enabled!" << std::endl;
+        for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) {
+            *outstream << userInput_("CI/ElectronExcitations", "", i) << " excitations to " << userInput_("CI/ElectronExcitations", "", i+1) << std::endl;
+        }
+    }
 
     // Generate non-relativistic configs from file.
     bool GenerateFromFile = false;
-    
+
     ConfigGenerator* generator;
 
     if(GenerateFromFile)
@@ -326,13 +346,50 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
             generator->AddLeadingConfiguration(config);
         }
 
+
+        if(userInput_.search("CI/ExtraConfigurations")) {
+            int num_extra_configs = userInput_.vector_variable_size("CI/ExtraConfigurations");
+            for(int i = 0; i < num_extra_configs; i++) {
+                const std::string extraname = userInput_("CI/ExtraConfigurations", "", i);
+                Configuration extraconfig(extraname);
+
+                if(extraconfig.NumParticles() != numValenceElectrons_) {
+                    *errstream << "USAGE: LeadingConfiguration " << extraname
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+                }
+                generator->AddNonRelConfiguration(extraconfig);
+            }
+        }
+
         if(GenerateFromFile)
         {   ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
             filegenerator->SetInputFile("PercentagesIn.txt");
             filegenerator->ReadConfigs(0.05);
         }
-        else
-        {   generator->GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations);
+        else if(allow_different_excitations)
+        {
+            unsigned int CI_num_excitations[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
+            std::vector<unsigned int> CI_electron_excitation_states[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
+
+            for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) {
+                CI_num_excitations[i/2] = atoi(userInput_("CI/ElectronExcitations", "", i).c_str());
+            }
+
+            for(int k = 1; k < userInput_.vector_variable_size("CI/ElectronExcitations"); k +=2) {
+                if(!ParseBasisSize(userInput_("CI/ElectronExcitations", "", k).c_str(), CI_electron_excitation_states[k/2])) {
+                    *errstream << "USAGE: CI/ElectronExcitations = " << userInput_("CI/ElectronExcitations", "", k) << " incorrectly specified." << std::endl;
+                    exit(1);
+                }
+            }
+
+            for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations")/2; i++) {
+                //excited->CreateExcitedStates(CI_electron_excitation_states[i]);
+                generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations[i], CI_electron_excitation_states[i]);
+            }
+        }
+        else {
+            generator->GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations);
         }
 
         generator->GenerateRelativisticConfigs();
