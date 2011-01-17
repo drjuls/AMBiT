@@ -46,10 +46,7 @@ class NonRelInfoSet : public std::set<NonRelInfo>
 public:
     //void AddConfigs(std::vector<unsigned int> config_vector);
     void AddConfigs(const char* basis_def);
-    
     void EraseConfigs(const char* basis_def);
-
-    void print() const;
 };
 
 #endif

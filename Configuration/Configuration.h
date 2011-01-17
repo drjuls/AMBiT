@@ -61,7 +61,11 @@ protected:
     mutable std::map<StateInfo, unsigned int>::const_iterator it;
 };
 
-typedef std::list<Configuration> ConfigList;
+class ConfigList : public std::list<Configuration> 
+{
+public:
+    void print();
+};
 
 inline void Configuration::First() const
 {

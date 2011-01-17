@@ -292,3 +292,12 @@ void Configuration::Read(FILE* fp)
     
     First();
 }
+
+void ConfigList::print() {
+    ConfigList::iterator it = begin();
+    while(it != end())
+    {   *outstream << it->Name() << " ";
+        it++;
+    }
+    *outstream << std::endl;
+}

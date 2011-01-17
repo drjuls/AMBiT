@@ -83,14 +83,3 @@ void NonRelInfoSet::EraseConfigs(const char* basis_def)
         p++;
     }
 }
-
-void NonRelInfoSet::print() const {
-    NonRelInfoSet::iterator it;
-
-    for(it = this->begin(); it != this->end(); it++) {
-        it->print();
-    }
-
-    return;
-}
-

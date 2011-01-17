@@ -283,11 +283,14 @@ void Atom::ChooseSymmetries()
 
 ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
 {
-    //*outstream << "Start GenerateConfigurations" << std::endl;
     bool allow_different_excitations = false;
     unsigned int electron_excitations = 0;
     int num_electron_excitation_inputs = userInput_.vector_variable_size("CI/ElectronExcitations");
-    // Number of electron excitations (e.g. 2 for SD-CI)
+
+    // Default if no input detected is 2 electron excitations.
+    // If input is detected it can either be a number, which would set electron_excitations and use ValenceBasis to determine states to excite to,
+    // otherwise if input is of the form 'X, Y, ...' where X is the pqn and Y is the string with the basis (eg. 8spdf) then the code will
+    // allow X excitations to the states in Y
     if(userInput_.vector_variable_size("CI/ElectronExcitations") < 1) 
     {
         electron_excitations = 2;
@@ -359,8 +362,8 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
             generator->AddLeadingConfiguration(config);
         }
 
-
-        if(userInput_.search("CI/ExtraConfigurations")) 
+        // Adds extra configurations not to be considered leading configurations.
+        if(userInput_.search("CI/ExtraConfigurations"))
         {
             int num_extra_configs = userInput_.vector_variable_size("CI/ExtraConfigurations");
             for(int i = 0; i < num_extra_configs; i++) 
@@ -385,7 +388,6 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         }
         else if(allow_different_excitations)
         {
-            //*outstream << "Allowing multiple types of excitations!" << std::endl;
             unsigned int CI_num_excitations[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
             std::vector<unsigned int> CI_electron_excitation_states[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
 
@@ -398,11 +400,13 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
             {
                 // ATTENTION: STATIC ARRAY VULNERABILITY
                 basis_def[i/2] = new char[20];
+                if(strlen(userInput_("CI/ElectronExcitations", "", i).c_str()) > 18)
+                {   *errstream << "Buffer overflow in CI/ElectronExcitations, input element " << i << std::endl;
+                    exit(1);
+                }
                 strcpy(basis_def[i/2], userInput_("CI/ElectronExcitations", "", i).c_str());
-                //*outstream << basis_def[i] << std::endl;
             }
 
-            // Only used for error checking
             for(int k = 1; k < userInput_.vector_variable_size("CI/ElectronExcitations"); k +=2)
             {
                 if(!ParseBasisSize(userInput_("CI/ElectronExcitations", "", k).c_str(), CI_electron_excitation_states[k/2]))
@@ -415,42 +419,31 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
             NonRelInfoSet nrset;
             StateIterator si = core->GetStateIterator();
 
-            //*outstream << "Arrived!" << std::endl;
-            //*outstream << "Detected " << num_electron_excitation_inputs << " input parameters" << std::endl;
             for(int i = 0; i < num_electron_excitation_inputs/2; i++)
             {
-                //excited->CreateExcitedStates(CI_electron_excitation_states[i]);
-                //ATTENTION: FIX!!!
-
                 nrset.clear();
-                //*outstream << "Trying to add configuration: " << basis_def[i] <<std::endl;
                 nrset.AddConfigs(basis_def[i]);
-                //*outstream << "nrset size is: " << nrset.size() << std::endl;
+
                 for(si.First(); !si.AtEnd(); si.Next())
                 {
                     nrset.erase(si.GetStateInfo());
                 }
-                //nrset.print();
-                //generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations[i], CI_electron_excitation_states[i]);
+
                 generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations[i], nrset);
             }
-            //*outstream << "Ended!" << std::endl;
         }
         else
         {
             generator->GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations);
         }
 
-        //*outstream << "Trying to generate rel configs" << std::endl;
         generator->GenerateRelativisticConfigs();
-        //*outstream << "Trying to generate projections" << std::endl;
         generator->GenerateProjections();
-        //*outstream << "Really ended!" << std::endl;
 
         if(useWrite)
             generator->Write();
     }
-
+    
     return generator;
 }
 

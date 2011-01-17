@@ -21,15 +21,6 @@ bool StateIterator::AtEnd()
 {
     return (it == manager->AllStates.end());
 }
-    /*
-void StateIterator::print() const
-{
-    StateIterator si;
-
-    for(si = First(); !si.AtEnd(); si.Next()) {
-        si->GetStateInfo()->print();
-    }
-}                */
 
 DiscreteState* StateIterator::GetState()
 {
