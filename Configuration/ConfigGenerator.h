@@ -69,11 +69,11 @@ public:
         Returns a sorted, unique list and appends that list to local nrlist.
      */
     void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations);
-    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to);
+    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, NonRelInfoSet AllowedStateSet);
 
     /** Call GenerateMultipleExcitations() with leading configurations as input. */
     void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_electrons);
-    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to);
+    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, NonRelInfoSet AllowedStateSet);
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
@@ -103,7 +103,7 @@ protected:
         of the original list. Append the new configurations to the list.
      */
     void GenerateExcitations(ConfigList& configlist);
-    void GenerateExcitations(ConfigList& configlist, std::vector<unsigned int> states_to_be_excited_to);
+    void GenerateExcitations(ConfigList& configlist, NonRelInfoSet states_to_be_excited_to);
 
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When config.AtEnd(), add it to rlist.

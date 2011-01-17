@@ -1,6 +1,7 @@
 #ifndef NON_REL_INFO_H
 #define NON_REL_INFO_H
 
+#include <set>
 #include "StateInfo.h"
 
 class NonRelInfo : public StateInfo
@@ -38,5 +39,17 @@ inline StateInfo NonRelInfo::GetSecondRelativisticInfo() const
     else
         return StateInfo(pqn, l);
 }
+
+
+class NonRelInfoSet : public std::set<NonRelInfo>
+{
+public:
+    //void AddConfigs(std::vector<unsigned int> config_vector);
+    void AddConfigs(const char* basis_def);
+    
+    void EraseConfigs(const char* basis_def);
+
+    void print() const;
+};
 
 #endif

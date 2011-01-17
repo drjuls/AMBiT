@@ -50,3 +50,7 @@ std::string StateInfo::Name() const
 
     return ret;
 }
+
+void StateInfo::print() const {
+    *outstream << Name() << std::endl;
+}

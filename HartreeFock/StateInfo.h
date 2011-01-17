@@ -28,6 +28,8 @@ public:
     inline unsigned int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
+    void print() const;
+
 protected:
     unsigned int pqn;
     int kappa;

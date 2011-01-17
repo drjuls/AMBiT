@@ -19,6 +19,8 @@ public:
 
     virtual double Weight() { return 1.; }
     virtual StateIterator& operator=(const StateIterator& other);
+    
+    //void print() const;
 
 protected:
     StateManager* manager;

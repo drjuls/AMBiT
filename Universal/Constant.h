@@ -47,4 +47,7 @@ private:
     static std::map<int, double> Symbols3j;
 };
 
+char ToSpectroscopicNotation(unsigned int l);
+unsigned int GetLFromSpectroscopicNotation(char comparison);
+
 #endif

@@ -137,7 +137,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     nrlist.unique();
 }
 
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to) {
+void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, NonRelInfoSet states_to_be_excited_to) {
 
     // Check to see if we haven't restored nrlist since a read.
     if(nrlist.empty() && !rlist.empty())
@@ -172,7 +172,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     nrlist.unique();
 }
 
-void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, std::vector<unsigned int> states_to_be_excited_to)
+void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, NonRelInfoSet states_to_be_excited_to)
 {
     // Move leading configs to configlist
     ConfigList configlist;
@@ -212,7 +212,7 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
     // Go through the set of initial configurations
     ConfigList::const_iterator it = old_list.begin();
     while(it != old_list.end())
-    {   
+    {
         // For each single particle state in the configuration
         Configuration start(*it);
         start.First();
@@ -240,12 +240,8 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
     }
 }
 
-void ConfigGenerator::GenerateExcitations(ConfigList& configlist, std::vector<unsigned int> states_to_be_excited_to)
+void ConfigGenerator::GenerateExcitations(ConfigList& configlist, NonRelInfoSet AllowedStateSet)
 {
-    // ATTENTION
-    std::set<NonRelInfo> AllowedStatesSet;
-
-
 
     ConfigList old_list(configlist);
     // Go through the set of initial configurations
@@ -261,8 +257,8 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, std::vector<un
             other.RemoveSingleParticle(start.GetInfo());
 
             // Get another single particle state to move to
-            std::set<NonRelInfo>::const_iterator nrit = AllowedStatesSet.begin();
-            while(nrit != AllowedStatesSet.end())
+            std::set<NonRelInfo>::const_iterator nrit = AllowedStateSet.begin();
+            while(nrit != AllowedStateSet.end())
             {
                 // If the new state is not the same as the old one
                 if(*nrit != start.GetInfo())
