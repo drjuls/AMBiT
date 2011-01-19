@@ -316,10 +316,10 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
 
         // ATTENTION: NEED TO MAKE INPUT PARSER LESS TOUCHY TO SPACES, INCLUDING A SPACE BREAKS ParseBasisSize!
         //*outstream << "Advanced CI parameters enabled!" << std::endl;
-        for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) 
+/*        for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2)
         {
             *outstream << userInput_("CI/ElectronExcitations", "", i) << " excitations to " << userInput_("CI/ElectronExcitations", "", i+1) << std::endl;
-        }
+        }    */
     }
 
     // Generate non-relativistic configs from file.
@@ -363,7 +363,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         }
 
         // Adds extra configurations not to be considered leading configurations.
-        if(userInput_.search("CI/ExtraConfigurations"))
+        if(userInput_.vector_variable_size("CI/ExtraConfigurations") > 0)
         {
             int num_extra_configs = userInput_.vector_variable_size("CI/ExtraConfigurations");
             for(int i = 0; i < num_extra_configs; i++) 
@@ -398,7 +398,6 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
             char* basis_def[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
             for(int i = 1; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) 
             {
-                // ATTENTION: STATIC ARRAY VULNERABILITY
                 basis_def[i/2] = new char[20];
                 if(strlen(userInput_("CI/ElectronExcitations", "", i).c_str()) > 18)
                 {   *errstream << "Buffer overflow in CI/ElectronExcitations, input element " << i << std::endl;
@@ -443,7 +442,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         if(useWrite)
             generator->Write();
     }
-    
+
     return generator;
 }
 

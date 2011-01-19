@@ -296,7 +296,7 @@ void Configuration::Read(FILE* fp)
 void ConfigList::print() {
     ConfigList::iterator it = begin();
     while(it != end())
-    {   *outstream << it->Name() << " ";
+    {   *outstream << it->Name() << ",";
         it++;
     }
     *outstream << std::endl;

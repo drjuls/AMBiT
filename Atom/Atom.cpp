@@ -307,9 +307,8 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
             {   if(Constant::SpectroscopicNotation[L] == tolower(basis_def[p]))
                     break;
             }
-            if(L >= 10) 
-            {   return false;
-            }
+            if(L >= 10)
+                return false;
             max_L = mmax(L, max_L);
         }
 
@@ -352,10 +351,8 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
     }
 
     for(L = 0; L <= max_L; L++)
-    {   if(max_pqn_in_core[L] > num_states[L]) {
+    {   if(max_pqn_in_core[L] > num_states[L])
             return false;
-        }
-
 
         num_states[L] -= max_pqn_in_core[L];
     }

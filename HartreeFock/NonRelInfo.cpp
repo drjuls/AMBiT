@@ -24,15 +24,14 @@ void NonRelInfoSet::AddConfigs(const char* basis_def)
     unsigned int L = 0;
     
     unsigned int p = 0;
-    bool ReadSpectroscopicInput = false;
+    bool ReadSpectroscopicInput = true;
     while(basis_def[p]) {
         if(isdigit(basis_def[p])) 
         {
             if(ReadSpectroscopicInput) 
             {
-                pqn = 0;
+                pqn = atoi(&basis_def[p]);
             }
-            pqn = 10*pqn + atoi(&basis_def[p]);
             ReadSpectroscopicInput = false;
         } 
         else
@@ -55,17 +54,16 @@ void NonRelInfoSet::EraseConfigs(const char* basis_def)
 {
     unsigned int pqn = 0;
     unsigned int L = 0;
-    
+
     unsigned int p = 0;
-    bool ReadSpectroscopicInput = false;
+    bool ReadSpectroscopicInput = true;
     while(basis_def[p]) {
         if(isdigit(basis_def[p])) 
         {
-            if(ReadSpectroscopicInput) 
+            if(ReadSpectroscopicInput)
             {
-                pqn = 0;
+                pqn = atoi(&basis_def[p]);
             }
-            pqn = 10*pqn + atoi(&basis_def[p]);
             ReadSpectroscopicInput = false;
         } else 
         {
