@@ -412,7 +412,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -494,7 +494,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
                 largest_percentage = it->second;
             }
 
-            if(it->second > 1.)
+            if(it->second > min_percentage)
                 *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
                     << it->second << "%" << std::endl;
             it++;

@@ -520,7 +520,8 @@ void Atom::CalculateEnergies()
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                     MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
                 #else
-                    H->SolveMatrix(NumSolutions, *E, true);
+                    double min_percent_displayed = userInput_("CI/MinimumDisplayedPercentage", 1.);
+                    H->SolveMatrix(NumSolutions, *E, true, min_percent_displayed);
                 #endif
 
                 delete H;

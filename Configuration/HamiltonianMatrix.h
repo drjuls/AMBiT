@@ -26,8 +26,9 @@ public:
 
     /** Solve the matrix that has been generated.
         If gFactors are required, set boolean to true.
+        min_percentage is the threshold whereby leading configurations are printed
      */
-    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false);
+    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage = 1.);
 
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 
