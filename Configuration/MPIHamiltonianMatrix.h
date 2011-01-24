@@ -15,7 +15,7 @@ public:
     virtual void GenerateMatrix();
     virtual void WriteToFile(const std::string& filename);
     virtual void PollMatrix();
-    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false);
+    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false, double min_percentage = 1.);
 
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 
