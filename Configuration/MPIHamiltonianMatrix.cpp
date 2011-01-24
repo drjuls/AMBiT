@@ -167,7 +167,7 @@ void MPIHamiltonianMatrix::PollMatrix()
     }
 }
 
-void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage = 1.)
+void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
