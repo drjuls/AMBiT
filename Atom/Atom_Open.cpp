@@ -295,9 +295,9 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     {
         electron_excitations = 2;
     }
-    else if(userInput_.vector_variable_size("CI/ElectronExcitations") == 1 && (userInput_("CI/ElectronExcitations", 2) == 1 || userInput_("CI/ElectronExcitations", 1) == 2)) 
+    else if(userInput_.vector_variable_size("CI/ElectronExcitations") == 1 && ((int) userInput_("CI/ElectronExcitations", 2)) >= 0)
     {
-        electron_excitations = userInput_("CI/ElectronExcitations", 2);
+        electron_excitations = (int) userInput_("CI/ElectronExcitations", 2);
     } 
     else if(userInput_.vector_variable_size("CI/ElectronExcitations")%2 != 0)
     {
@@ -313,13 +313,6 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     else
     {
         allow_different_excitations = true;
-
-        // ATTENTION: NEED TO MAKE INPUT PARSER LESS TOUCHY TO SPACES, INCLUDING A SPACE BREAKS ParseBasisSize!
-        //*outstream << "Advanced CI parameters enabled!" << std::endl;
-/*        for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2)
-        {
-            *outstream << userInput_("CI/ElectronExcitations", "", i) << " excitations to " << userInput_("CI/ElectronExcitations", "", i+1) << std::endl;
-        }    */
     }
 
     // Generate non-relativistic configs from file.

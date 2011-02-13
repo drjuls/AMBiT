@@ -17,18 +17,22 @@ const double Constant::InvCmToMHz = 29979.2458;
 const char Constant::SpectroscopicNotation[10] 
     = {'s', 'p', 'd', 'f', 'g', 'h', 'i', 'j', 'k', 'l'};
     
-char ToSpectroscopicNotation(unsigned int l) {
+char Constant::ToSpectroscopicNotation(unsigned int l) 
+{
     return Constant::SpectroscopicNotation[l];
 }
 
-unsigned int GetLFromSpectroscopicNotation(char comparison) {
+unsigned int Constant::GetLFromSpectroscopicNotation(char comparison) 
+{
     unsigned int i;
-    for(i = 0; i < 10; i++) {
-        if(Constant::SpectroscopicNotation[i] == comparison) {
+    for(i = 0; i < 10; i++) 
+    {
+        if(Constant::SpectroscopicNotation[i] == comparison) 
+        {
             break;
         }
     }
-    
+
     return i;
 }
 

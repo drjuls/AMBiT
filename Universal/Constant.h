@@ -40,6 +40,8 @@ public:
     const static double InvCmToMHz;         // Multiply by speed of light
 
     static const char SpectroscopicNotation[10];
+    static char ToSpectroscopicNotation(unsigned int l);
+    static unsigned int GetLFromSpectroscopicNotation(char comparison);
 
 private:
     const static unsigned int MaxStoredTwoJ;
@@ -47,7 +49,6 @@ private:
     static std::map<int, double> Symbols3j;
 };
 
-char ToSpectroscopicNotation(unsigned int l);
-unsigned int GetLFromSpectroscopicNotation(char comparison);
+
 
 #endif

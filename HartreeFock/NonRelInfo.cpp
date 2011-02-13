@@ -12,11 +12,6 @@ std::string NonRelInfo::Name() const
     return ret;
 }
 
-/*
-void NonRelInfoSet::AddConfigs(std::vector<unsigned int> config_vector) {
-
-}       */
-
 void NonRelInfoSet::AddConfigs(const char* basis_def) 
 {
 
@@ -38,9 +33,9 @@ void NonRelInfoSet::AddConfigs(const char* basis_def)
         {
             for(int i = 0; i <= pqn; i++) 
             {
-                if(i > GetLFromSpectroscopicNotation((char) basis_def[p]))
+                if(i > Constant::GetLFromSpectroscopicNotation((char) basis_def[p]))
                 {
-                    insert(NonRelInfo(i, GetLFromSpectroscopicNotation((char) basis_def[p])));
+                    insert(NonRelInfo(i, Constant::GetLFromSpectroscopicNotation((char) basis_def[p])));
                 }
             }
             ReadSpectroscopicInput = true;
@@ -69,7 +64,7 @@ void NonRelInfoSet::EraseConfigs(const char* basis_def)
         {
             for(int i = 0; i <= pqn; i++) 
             {
-                NonRelInfoSet::iterator it = find(NonRelInfo(i, GetLFromSpectroscopicNotation((char) basis_def[p])));
+                NonRelInfoSet::iterator it = find(NonRelInfo(i, Constant::GetLFromSpectroscopicNotation((char) basis_def[p])));
                 if(it != end()){
                     erase(it);
                 }
