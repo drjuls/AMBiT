@@ -291,25 +291,19 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
     // If input is detected it can either be a number, which would set electron_excitations and use ValenceBasis to determine states to excite to,
     // otherwise if input is of the form 'X, Y, ...' where X is the pqn and Y is the string with the basis (eg. 8spdf) then the code will
     // allow X excitations to the states in Y
-    if(userInput_.vector_variable_size("CI/ElectronExcitations") < 1) 
+    if(num_electron_excitation_inputs < 1) 
     {
         electron_excitations = 2;
     }
-    else if(userInput_.vector_variable_size("CI/ElectronExcitations") == 1 && ((int) userInput_("CI/ElectronExcitations", 2)) >= 0)
+    else if(num_electron_excitation_inputs == 1 && ((int) userInput_("CI/ElectronExcitations", 2)) >= 0)
     {
         electron_excitations = (int) userInput_("CI/ElectronExcitations", 2);
-    } 
-    else if(userInput_.vector_variable_size("CI/ElectronExcitations")%2 != 0)
+    }
+    else if(num_electron_excitation_inputs%2 != 0)  // Input should come in pairs
     {
-        if(userInput_.vector_variable_size("CI/ElectronExcitations")%2 == 0) 
-        {
-            electron_excitations = userInput_("CI/ElectronExcitations", 2);
-        } else 
-        {
-            *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
-            exit(1);
-        }
-    } 
+        *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
+        exit(1);
+    }
     else
     {
         allow_different_excitations = true;
@@ -368,7 +362,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
                 {
                     *errstream << "USAGE: LeadingConfiguration " << extraname
                            << " does not have correct number of valence electrons." << std::endl;
-                exit(1);
+                    exit(1);
                 }
                 generator->AddNonRelConfiguration(extraconfig);
             }
@@ -381,47 +375,33 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
         }
         else if(allow_different_excitations)
         {
-            unsigned int CI_num_excitations[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
-            std::vector<unsigned int> CI_electron_excitation_states[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
-
-            for(int i = 0; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) {
-                CI_num_excitations[i/2] = atoi(userInput_("CI/ElectronExcitations", "", i).c_str());
-            }
-            
-            char* basis_def[userInput_.vector_variable_size("CI/ElectronExcitations")/2];
-            for(int i = 1; i < userInput_.vector_variable_size("CI/ElectronExcitations"); i += 2) 
-            {
-                basis_def[i/2] = new char[20];
-                if(strlen(userInput_("CI/ElectronExcitations", "", i).c_str()) > 18)
-                {   *errstream << "Buffer overflow in CI/ElectronExcitations, input element " << i << std::endl;
-                    exit(1);
-                }
-                strcpy(basis_def[i/2], userInput_("CI/ElectronExcitations", "", i).c_str());
-            }
-
-            for(int k = 1; k < userInput_.vector_variable_size("CI/ElectronExcitations"); k +=2)
-            {
-                if(!ParseBasisSize(userInput_("CI/ElectronExcitations", "", k).c_str(), CI_electron_excitation_states[k/2]))
-                {
-                    *errstream << "USAGE: CI/ElectronExcitations = " << userInput_("CI/ElectronExcitations", "", k) << " incorrectly specified." << std::endl;
-                    exit(1);
-                }
-            }
+            unsigned int CI_num_excitations;
+            std::vector<unsigned int> CI_electron_excitation_states;
+            std::string CI_basis_string;
 
             NonRelInfoSet nrset;
-            StateIterator si = core->GetStateIterator();
+            ConstStateIterator si = core->GetConstStateIterator();
 
-            for(int i = 0; i < num_electron_excitation_inputs/2; i++)
+            for(int i = 0; i < num_electron_excitation_inputs; i += 2)
             {
-                nrset.clear();
-                nrset.AddConfigs(basis_def[i]);
+                CI_num_excitations = atoi(userInput_("CI/ElectronExcitations", "", i).c_str());
+                CI_basis_string = userInput_("CI/ElectronExcitations", "", i+1);
 
+                if(!ParseBasisSize(CI_basis_string.c_str(), CI_electron_excitation_states))
+                {
+                    *errstream << "USAGE: CI/ElectronExcitations = " << CI_basis_string << " incorrectly specified." << std::endl;
+                    exit(1);
+                }
+
+                nrset.clear();
+                nrset.AddConfigs(CI_basis_string.c_str());
+                // Erase core set
                 for(si.First(); !si.AtEnd(); si.Next())
                 {
                     nrset.erase(si.GetStateInfo());
                 }
 
-                generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations[i], nrset);
+                generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset);
             }
         }
         else

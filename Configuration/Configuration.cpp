@@ -293,7 +293,7 @@ void Configuration::Read(FILE* fp)
     First();
 }
 
-void ConfigList::print() 
+void ConfigList::Print()
 {
     ConfigList::iterator it = begin();
     while(it != end())

@@ -87,7 +87,8 @@ void ConfigGenerator::AddLeadingConfiguration(const Configuration& config)
     leading_configs.insert(config);
 }
 
-void ConfigGenerator::AddNonRelConfiguration(const Configuration& config) {
+void ConfigGenerator::AddNonRelConfiguration(const Configuration& config)
+{
     nrlist.push_back(config);
     nrlist.sort();
     nrlist.unique();
@@ -102,43 +103,8 @@ void ConfigGenerator::AddLeadingConfigurations(const std::set<Configuration> con
     }
 }
 
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations)
+void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to)
 {
-    // Check to see if we haven't restored nrlist since a read.
-    if(nrlist.empty() && !rlist.empty())
-        RestoreNonRelConfigs();
-
-    configlist.sort();
-    configlist.unique();
-
-    for(unsigned int i=0; i<num_excitations; i++)
-    {
-        GenerateExcitations(configlist);
-        configlist.sort();
-        configlist.unique();
-    }
-
-    // Remove states of wrong parity
-    ConfigList::iterator it = configlist.begin();
-
-    while(it != configlist.end())
-    {   
-        if(it->GetParity() != symmetry.GetParity())
-        {   //std::cout << "                              " << it->Name() << std::endl;
-            it = configlist.erase(it);
-        }
-        else
-            it++;
-    }
-    
-    // Append new configurations to nrlist.
-    nrlist.insert(nrlist.end(), configlist.begin(), configlist.end());
-    nrlist.sort();
-    nrlist.unique();
-}
-
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, NonRelInfoSet states_to_be_excited_to) {
-
     // Check to see if we haven't restored nrlist since a read.
     if(nrlist.empty() && !rlist.empty())
         RestoreNonRelConfigs();
@@ -172,7 +138,7 @@ void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsign
     nrlist.unique();
 }
 
-void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, NonRelInfoSet states_to_be_excited_to)
+void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to)
 {
     // Move leading configs to configlist
     ConfigList configlist;
@@ -187,61 +153,14 @@ void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int
     GenerateMultipleExcitations(configlist, num_excitations, states_to_be_excited_to);
 }
 
-void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations)
+void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* AllowedStateSet)
 {
-    // Move leading configs to configlist
-    ConfigList configlist;
-    
-    std::set<Configuration>::const_iterator it = leading_configs.begin();
-    while(it != leading_configs.end())
-    {   configlist.push_back(*it);
-        it++;
+    const NonRelInfoSet* allowed_state_set = AllowedStateSet;
+    if(allowed_state_set == NULL)
+    {   if(NonRelSet.empty())
+            SetExcitedStates(states);
+        allowed_state_set = &NonRelSet;
     }
-    
-    // Generate excitations
-    GenerateMultipleExcitations(configlist, num_excitations);
-}
-
-void ConfigGenerator::GenerateExcitations(ConfigList& configlist)
-{
-    if(NonRelSet.empty()) {
-        SetExcitedStates(states);
-    }
-
-    ConfigList old_list(configlist);
-    // Go through the set of initial configurations
-    ConfigList::const_iterator it = old_list.begin();
-    while(it != old_list.end())
-    {
-        // For each single particle state in the configuration
-        Configuration start(*it);
-        start.First();
-        while(!start.AtEnd())
-        {
-            Configuration other(start);
-            other.RemoveSingleParticle(start.GetInfo());
-
-            // Get another single particle state to move to
-            std::set<NonRelInfo>::const_iterator nrit = NonRelSet.begin();
-            while(nrit != NonRelSet.end())
-            {
-                // If the new state is not the same as the old one
-                if(*nrit != start.GetInfo())
-                {
-                    Configuration new_config(other);
-                    if(new_config.AddSingleParticle(*nrit))
-                        configlist.push_back(new_config);
-                }
-                nrit++;
-            }
-            start.Next();
-        }
-        it++;
-    }
-}
-
-void ConfigGenerator::GenerateExcitations(ConfigList& configlist, NonRelInfoSet AllowedStateSet)
-{
 
     ConfigList old_list(configlist);
     // Go through the set of initial configurations
@@ -257,8 +176,8 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, NonRelInfoSet 
             other.RemoveSingleParticle(start.GetInfo());
 
             // Get another single particle state to move to
-            std::set<NonRelInfo>::const_iterator nrit = AllowedStateSet.begin();
-            while(nrit != AllowedStateSet.end())
+            std::set<NonRelInfo>::const_iterator nrit = allowed_state_set->begin();
+            while(nrit != allowed_state_set->end())
             {
                 // If the new state is not the same as the old one
                 if(*nrit != start.GetInfo())
