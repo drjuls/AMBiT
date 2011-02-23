@@ -130,6 +130,7 @@ void Core::Read(FILE* fp)
 {
     Clear();    
     unsigned int num_core, i;
+    unsigned int max_size = 0;
 
     fread(&NuclearRadius, sizeof(double), 1, fp);
     fread(&NuclearThickness, sizeof(double), 1, fp);
@@ -142,6 +143,7 @@ void Core::Read(FILE* fp)
     {
         DiscreteState* ds = new DiscreteState();
         ds->Read(fp);
+        max_size = mmax(max_size, ds->Size());
         AddState(ds);
     }
 
@@ -152,11 +154,15 @@ void Core::Read(FILE* fp)
     {
         DiscreteState* ds = new DiscreteState();
         ds->Read(fp);
+        max_size = mmax(max_size, ds->Size());
 
         StateInfo info(ds);
         StatePointer sp(ds);
         OpenShellStorage.insert(StateSet::value_type(info, sp));
     }
+
+    // Ensure lattice is large enough for all states
+    lattice->R(max_size);
 
     // Read original occupancies
     fread(&num_open, sizeof(unsigned int), 1, fp);

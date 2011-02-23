@@ -152,6 +152,7 @@ void StateManager::Read(FILE* fp)
 {
     unsigned int num_core, i;
     DiscreteState ds;
+    unsigned int max_size = 0;
 
     // Read states
     fread(&num_core, sizeof(unsigned int), 1, fp);
@@ -161,6 +162,10 @@ void StateManager::Read(FILE* fp)
         DiscreteState* current = GetState(StateInfo(&ds));
         if(current)
         {   *current = ds;
+            max_size = mmax(max_size, ds.Size());
         }
     }
+
+    // Ensure lattice is large enough for new states
+    lattice->R(max_size);
 }
