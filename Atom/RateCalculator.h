@@ -2,6 +2,7 @@
 #define RATE_CALCULATOR_H
 
 #include "Atom.h"
+#include "Universal/Enums.h"
 
 class RateCalculator
 {

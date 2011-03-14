@@ -412,7 +412,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage, DisplayOutputType::Enum OutputType)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -482,6 +482,15 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
             list_it++;
         }
         
+        std::multimap<double, Configuration> ordered_percentages;
+        std::map<Configuration, double>::iterator ordering_it = percentages.begin();
+
+        while(ordering_it != percentages.end()) 
+        {
+            ordered_percentages.insert(std::pair<double, Configuration>(ordering_it->second, ordering_it->first));
+            ordering_it++;
+        }
+
         // Find most important configuration, and print all leading configurations.
         std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
         double largest_percentage = 0.0;

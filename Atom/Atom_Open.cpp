@@ -4,6 +4,7 @@
 #include "Include.h"
 #include "Atom.h"
 #include "Universal/Constant.h"
+#include "Universal/Enums.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
@@ -475,6 +476,25 @@ void Atom::CalculateEnergies()
             if(!useRead || !E->Read())
             {
                 HamiltonianMatrix* H;
+                bool ShowgFactors = true;
+                bool ShowPercentages = true;
+                int NumLeadingConfigs = userInput_("CI/Output/NumLeadingConfigs", 1);
+                std::string OutputTypeString = userInput_("CI/Output/Type", "Standard");
+                DisplayOutputType::Enum OutputType = DisplayOutputType::Standard;
+
+                for(int i = DisplayOutputType::Start; i < DisplayOutputType::End; i++)
+                {
+                    // Do stuff
+                }
+
+                if((userInput_("CI/Output/ShowgFactors", "true", 0) == "false") || (userInput_("CI/Output/ShowgFactors", "true", 0) == "0"))
+                {
+                    ShowgFactors = false;
+                }
+                if((userInput_("CI/Output/ShowPercentages", "true", 0) == "false") || (userInput_("CI/Output/ShowPercentages", "true", 0) == "0"))
+                {
+                    ShowPercentages = false;
+                }
 
                 #ifdef _MPI
                     H = new MPIHamiltonianMatrix(*integrals, conf_gen);
@@ -493,8 +513,16 @@ void Atom::CalculateEnergies()
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                     MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
                 #else
-                    double min_percent_displayed = userInput_("CI/MinimumDisplayedPercentage", 1.);
-                    H->SolveMatrix(NumSolutions, *E, true, min_percent_displayed);
+                    double min_percent_displayed;
+
+                    if(ShowPercentages)
+                    {
+                        min_percent_displayed = userInput_("CI/Output/MinimumDisplayedPercentage", 1.);
+                    } else
+                    {
+                        min_percent_displayed = 101.;
+                    }
+                    H->SolveMatrix(NumSolutions, *E, ShowgFactors, min_percent_displayed, OutputType);
                 #endif
 
                 delete H;

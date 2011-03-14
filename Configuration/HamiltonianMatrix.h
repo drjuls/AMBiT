@@ -4,6 +4,7 @@
 #include "RelativisticConfiguration.h"
 #include "CIIntegrals.h"
 #include "Basis/ExcitedStates.h"
+#include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "MBPT/Sigma3Calculator.h"
 
@@ -28,7 +29,7 @@ public:
         If gFactors are required, set boolean to true.
         min_percentage is the threshold whereby leading configurations are printed
      */
-    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false, double min_percentage = 1.);
+    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors = false, double min_percentage = 1., DisplayOutputType::Enum OutputType = DisplayOutputType::Standard);
 
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 

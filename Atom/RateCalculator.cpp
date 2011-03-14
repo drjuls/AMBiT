@@ -3,6 +3,7 @@
 #include "Universal/Constant.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
+#include "Universal/Enums.h"
 #include "HartreeFock/ContinuumBuilder.h"
 
 RateCalculator::RateCalculator(ExcitedStates* basis):
