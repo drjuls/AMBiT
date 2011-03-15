@@ -2,6 +2,7 @@
 #define TRANSITIONS_H
 
 #include "Atom/Atom.h"
+#include "Atom/RateCalculator.h"
 #include "Configuration/Eigenstates.h"
 #include "Configuration/Symmetry.h"
 #include "HartreeFock/StateInfo.h"
@@ -22,15 +23,16 @@ public:
     //static bool ExistsBetweenStates(Symmetry aSymFrom, Symmetry aSymTo, TransitionType aType);
 
     inline MultipolarityType::Enum GetType()
-    {
-        return first;
+    {   return first;
     }
     inline unsigned int GetMultipole()
-    {
-        return second;
+    {   return second;
     }
     
     bool operator<(TransitionType& other);
+    inline bool operator==(TransitionType& other)
+    {    return ((GetType() == other.GetType()) && (GetMultipole() == other.GetMultipole()));
+    }
 };
 
 
@@ -71,9 +73,14 @@ public:
     {   return mSolutionIDTo;
     }
 
+    inline void SetTransitionRate(double aTransitionRate)
+    {   mTransitionRate = aTransitionRate;
+    }
+
     bool operator<(const Transition& other) const;
     bool operator==(const Transition& other) const;
-private:
+
+protected:
     Atom* mAtom;
 
     Configuration* mLeadingConfigurationFrom;
@@ -97,7 +104,7 @@ public:
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
     // Creates a set of Transitions with a specified Type, Symmetry and Configurations from and to
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
-private:
+protected:
 
 };
 

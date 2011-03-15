@@ -3,6 +3,7 @@
 
 #include "Include.h"
 #include "Atom/Atom.h"
+#include "Atom/RateCalculator.h"
 #include "Atom/Transitions.h"
 #include "Configuration/Eigenstates.h"
 #include "Configuration/Symmetry.h"
@@ -160,8 +161,15 @@ mSymmetryFrom(0, even), mSymmetryTo(0, even)
 
 void Transition::Solve(TransitionGaugeType::Enum aGauge)
 {
-    // Do some integrals, put solution into class
-
+    if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
+    {
+        RateCalculator rcalc(GetAtom()->GetBasis());
+        SetTransitionRate(rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
+    }
+    else
+    {
+        SetTransitionRate(0);
+    }
 }
 
 bool Transition::operator<(const Transition& other) const
