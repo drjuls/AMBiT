@@ -84,6 +84,10 @@ protected:
     double* gFactors;
 };
 
-typedef std::map<Symmetry, Eigenstates*> SymmetryEigenstatesMap;
+class SymmetryEigenstatesMap : public std::map<Symmetry, Eigenstates*>
+{
+public:
+    double GetLargestTwoJ(Parity aParity);
+};
 
 #endif

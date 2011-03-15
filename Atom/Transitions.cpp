@@ -11,19 +11,19 @@
 
 TransitionType::TransitionType()
 {
-    mType = MultipolarityType::E;
-    mMultipole = 1;
+    first = MultipolarityType::E;
+    second = 1;
 }
 
 TransitionType::TransitionType(int aType, unsigned int aMultipole)
 {
     if(aType == 0)
     {
-        mType = MultipolarityType::E;
+        first = MultipolarityType::E;
     } 
     else if(aType ==1)
     {
-        mType = MultipolarityType::M;
+        first = MultipolarityType::M;
     }
     else
     {
@@ -31,24 +31,24 @@ TransitionType::TransitionType(int aType, unsigned int aMultipole)
         exit(1);
     }
     
-    mMultipole = aMultipole;
+    second = aMultipole;
 }
 
 TransitionType::TransitionType(MultipolarityType::Enum aType, unsigned int aMultipole)
 {
-    mType = aType;
-    mMultipole = aMultipole;
+    first = aType;
+    second = aMultipole;
 }
 
 bool TransitionType::ChangesParity()
 {
     bool parity_change = false;
 
-    if(mType == MultipolarityType::M)
+    if(GetType() == MultipolarityType::M)
     {
         !parity_change;
     }
-    if(mMultipole%2)
+    if(GetMultipole()%2)
     {
         !parity_change;
     }
@@ -62,7 +62,7 @@ bool TransitionType::IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo)
 
     if((aSymFrom.GetParity() == aSymTo.GetParity()) && !ChangesParity())
     {
-        if((aSymFrom.GetJ() <= ((mMultipole - 1)/2)) && aSymTo.GetJ() <= (mMultipole - aSymFrom.GetJ() - 1))
+        if((aSymFrom.GetJ() <= ((GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (GetMultipole() - aSymFrom.GetJ() - 1))
         {
             return false;
         }
@@ -70,7 +70,7 @@ bool TransitionType::IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo)
     }
     else if((aSymFrom.GetParity() != aSymTo.GetParity()) && ChangesParity())
     {
-        if((aSymFrom.GetJ() <= ((mMultipole - 1)/2)) && aSymTo.GetJ() <= (mMultipole - aSymFrom.GetJ() - 1))
+        if((aSymFrom.GetJ() <= ((GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (GetMultipole() - aSymFrom.GetJ() - 1))
         {
             return false;
         }
@@ -78,6 +78,14 @@ bool TransitionType::IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo)
     }
 
     return false;
+}
+
+bool TransitionType::operator<(TransitionType& other)
+{
+    if(GetType() == other.GetType())
+    {    return GetMultipole()< other.GetMultipole();
+    }
+    return (GetType() < other.GetType());
 }
      /*
 static bool TransitionType::ExistsBetweenStates(Symmetry aSymFrom, Symmetry aSymTo, TransitionType aType)
@@ -109,15 +117,34 @@ std::string TransitionType::Name()
     std::string name = "";
     std::stringstream ss;
 
-    ss << mMultipole;
+    ss << GetMultipole();
 
-    name += MultipolarityType::Name(mType);
+    name += MultipolarityType::Name(GetType());
     name += ss.str();
 
     return name;
 }
 
-Transition::Transition(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry* aSymmetryFrom, unsigned int aSolutionIDFrom, Configuration* aLeadingConfigurationTo, Symmetry* aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge)
+Transition::Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
+mSymmetryFrom(0, even), mSymmetryTo(0, even)
+{
+    mAtom = aAtom;
+    mTransitionType = aTransitionType;
+    mSymmetryFrom = aSymmetryFrom;
+    mSolutionIDFrom = aSolutionIDFrom;
+    mSymmetryTo = aSymmetryTo;
+    mSolutionIDTo = aSolutionIDTo;
+
+    // Add code to determine the leading configurations...
+    // mLeadingConfigurationFrom =
+    // mLeadingConfigurationTo =
+
+    Solve(aGauge);
+}
+
+
+Transition::Transition(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
+mSymmetryFrom(0, even), mSymmetryTo(0, even)
 {
     mAtom = aAtom;
     mTransitionType = aTransitionType;
@@ -137,17 +164,58 @@ void Transition::Solve(TransitionGaugeType::Enum aGauge)
 
 }
 
-TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry* aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry* aSymmetryTo ,TransitionGaugeType::Enum aGauge)
+bool Transition::operator<(const Transition& other) const
 {
-    if(!aTransitionType.IsAllowedTransition(*aSymmetryFrom, *aSymmetryTo))
+    return (GetTransitionType() < other.GetTransitionType());
+}
+
+bool Transition::operator==(const Transition& other) const
+{
+    return (GetAtom() == other.GetAtom() && GetTransitionType() == other.GetTransitionType());
+}
+
+TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge)
+{
+    SymmetryEigenstatesMap::const_iterator from_it, to_it;
+    Symmetry CurrentSymmetryFrom(0, even), CurrentSymmetryTo(0, even);
+    int i, j;
+
+    CurrentSymmetryFrom = aAtom->GetSymmetryEigenstatesMap()->begin()->first;
+    CurrentSymmetryTo = CurrentSymmetryFrom;
+
+    for(from_it = aAtom->GetSymmetryEigenstatesMap()->begin(), i = 0; from_it != aAtom->GetSymmetryEigenstatesMap()->end(); from_it++, i++)
     {
-        *errstream << aTransitionType.Name() <<" transitions are not allowed by selection rules between " << aSymmetryFrom->GetString() << " and " << aSymmetryTo->GetString() << std::endl;
+        if(!(from_it->first == CurrentSymmetryFrom))
+        {
+            i = 0;
+            CurrentSymmetryFrom = from_it->first;
+        }
+        for(to_it = from_it, j = i, CurrentSymmetryTo = CurrentSymmetryFrom; to_it != aAtom->GetSymmetryEigenstatesMap()->end(); to_it++, j++)
+        {
+            if(!(to_it->first == CurrentSymmetryTo))
+            {
+                j = 0;
+                CurrentSymmetryTo = to_it->first;
+            }
+            if(aTransitionType.IsAllowedTransition(from_it->first, to_it->first))
+            {
+                insert(Transition(aAtom, aTransitionType, Symmetry(from_it->first), (unsigned int) i, Symmetry(to_it->first), (unsigned int) j, aGauge));
+            }
+        }
+    }
+}
+
+TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge)
+{
+    if(!aTransitionType.IsAllowedTransition(aSymmetryFrom, aSymmetryTo))
+    {
+        *errstream << aTransitionType.Name() <<" transitions are not allowed by selection rules between " << aSymmetryFrom.GetString() << " and " << aSymmetryTo.GetString() << std::endl;
     }
     else
     {
         int iterator;
-        Eigenstates* EigenstatesFrom = aAtom->GetEigenstates(*aSymmetryFrom);
-        Eigenstates* EigenstatesTo = aAtom->GetEigenstates(*aSymmetryTo);
+        Eigenstates* EigenstatesFrom = aAtom->GetEigenstates(aSymmetryFrom);
+        Eigenstates* EigenstatesTo = aAtom->GetEigenstates(aSymmetryTo);
         std::map<int, Configuration> FromMap;
         std::map<int, Configuration> ToMap;
         int i, j;
@@ -237,19 +305,17 @@ TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Config
         bool found_transitions = false;
         for(from_it = FromMap.begin(); from_it != FromMap.end(); from_it++)
         {
-            /*
-            if(aLeadingConfigurationFrom->Name() == from_it->second.Name())
+            if(*aLeadingConfigurationFrom == from_it->second)
             {
                 for(to_it = ToMap.begin(); to_it != ToMap.end(); to_it++)
                 {
-                    if(aLeadingConfigurationTo->Name() == to_it->second.Name())
+                    if(*aLeadingConfigurationTo == to_it->second)
                     {
-                        insert(Transition(aAtom, aTransitionType, aLeadingConfigurationFrom, aSymmetryFrom, i, aLeadingConfigurationTo, aSymmetryTo, j, aGauge));
+                        insert(Transition(aAtom, aTransitionType, aLeadingConfigurationFrom, aSymmetryFrom, (unsigned int) from_it->first, aLeadingConfigurationTo, aSymmetryTo, (unsigned int) to_it->first, aGauge));
                         found_transitions = true;
                     }
                 }
             }
-            */
         }
     }
 }

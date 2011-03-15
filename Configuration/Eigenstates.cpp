@@ -359,3 +359,18 @@ void Eigenstates::PrintCowan(FILE* fp, double energy_shift) const
     }
     fprintf(fp, "\n\n");
 }
+
+double SymmetryEigenstatesMap::GetLargestTwoJ(Parity aParity)
+{
+    SymmetryEigenstatesMap::iterator it = begin();
+    double largest = 0;
+    while(it != end())
+    {
+        if(it->first.GetParity() == aParity && it->first.GetTwoJ() > largest)
+        {
+            largest = it->first.GetTwoJ();
+        }
+        it++;
+    }
+    return largest;
+}

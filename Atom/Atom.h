@@ -133,6 +133,9 @@ public:
 public:
     /** Get previously calculated Eigenstates of Symmetry sym. */
     Eigenstates* GetEigenstates(const Symmetry& sym);
+    inline const SymmetryEigenstatesMap* GetSymmetryEigenstatesMap() const
+    { return &symEigenstates;
+    }
 
     /** Get the set of atomic core orbitals. */
     Core* GetCore() { return core; }
