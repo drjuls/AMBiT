@@ -41,14 +41,14 @@ protected:
     double GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2);
 
     /** Get the Hamiltonian matrix element <first + continuum | H | second> */
-    double GetProjectionH(const Projection& first, const Projection& second, const ContinuumState* cs, const ElectronInfo& cs_electron) const;
+    double GetProjectionH(const Projection& first, const Projection& second, const ContinuumWave* cs, const ElectronInfo& cs_electron) const;
 
     /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >.
         "sign" provides an additional phase which doesn't affect the results but is multiplied
         by the angular factor when printing debug info.
      */
-    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumState* cs, int sign = 1) const;
-    double SubtractionDiagram(const ContinuumState* sa, const State* sb, const State* sc, const State* sd, unsigned int k) const;
+    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumWave* cs, int sign = 1) const;
+    double SubtractionDiagram(const ContinuumWave* sa, const State* sb, const State* sc, const State* sd, unsigned int k) const;
 };
 
 #endif

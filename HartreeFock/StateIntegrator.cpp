@@ -133,7 +133,7 @@ void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>
     }
 }
 
-unsigned int StateIntegrator::IntegrateContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase)
+unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase)
 {
     // Start calculation outside of the nucleus
     unsigned int start_point = lattice->real_to_lattice(1.e-4);
@@ -268,7 +268,7 @@ double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s
     return E;
 }
 
-void StateIntegrator::SetUpContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point)
+void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point)
 {
     double& Z = nuclear_charge;
     double energy = s.Energy() - Z/lattice->R(start_point) + HFPotential[start_point];

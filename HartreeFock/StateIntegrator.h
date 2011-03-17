@@ -3,7 +3,7 @@
 
 #include "Universal/Integrator.h"
 #include "State.h"
-#include "ContinuumState.h"
+#include "ContinuumWave.h"
 #include "Core.h"
 #include <complex>
 
@@ -64,7 +64,7 @@ public:
         most likely because the lattice isn't big enough.
         POST: actual amplitude as r->Infinity, A = final_amplitude/(2E)^(1/4)
      */
-    unsigned int IntegrateContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
+    unsigned int IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
 
     /** Calculate the matrix element of the Hamiltonian, <s1|H|s2>. */
     double HamiltonianMatrixElement(const State& s1, const State& s2, const Core& core);
@@ -93,7 +93,7 @@ protected:
         maximum of HFPotential.size().
         Initialise four values of state s from start_point to start_point+(adams_N-2).
      */
-    void SetUpContinuum(ContinuumState& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point);
+    void SetUpContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point);
 
     /** Create interpolation using 4 points in function, from zero_point-1 to zero_point+2, inclusive.
         if(calculate_x)

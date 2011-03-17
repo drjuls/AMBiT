@@ -537,8 +537,8 @@ unsigned int Core::CalculateExcitedState(State* s) const
     // Forward continuum states to other method.
     DiscreteState* ds = dynamic_cast<DiscreteState*>(s);
     if(ds == NULL)
-    {   ContinuumState* cs = dynamic_cast<ContinuumState*>(s);
-        return CalculateContinuumState(cs);
+    {   ContinuumWave* cs = dynamic_cast<ContinuumWave*>(s);
+        return CalculateContinuumWave(cs);
     }
 
     // Number of iterations required. Zero shows that the state existed previously.
@@ -698,7 +698,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
     return loop;
 }
 
-unsigned int Core::CalculateContinuumState(ContinuumState* s) const
+unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
 {
     unsigned int loop = 0;
     double final_amplitude, final_phase;
@@ -715,7 +715,7 @@ unsigned int Core::CalculateContinuumState(ContinuumState* s) const
         StateIntegrator I(lattice);
         start_sine = I.IntegrateContinuum(*s, HFPotential, exchange, Z, 0.01, final_amplitude, final_phase);
         if(!start_sine)
-        {   *errstream << "Core::CalculateContinuumState: need to increase lattice size." << std::endl;
+        {   *errstream << "Core::CalculateContinuumWave: need to increase lattice size." << std::endl;
             exit(1);
         }
 

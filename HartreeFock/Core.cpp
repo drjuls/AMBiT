@@ -310,7 +310,7 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
         return loop;
     }
     else
-    {   ContinuumState* cs = dynamic_cast<ContinuumState*>(s);
-        return CalculateContinuumState(cs);
+    {   ContinuumWave* cs = dynamic_cast<ContinuumWave*>(s);
+        return CalculateContinuumWave(cs);
     }
 }

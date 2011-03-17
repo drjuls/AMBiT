@@ -67,13 +67,13 @@ public:
         Return number of loops required for HF convergence.
         Return value of 0 means start_sine was not reached and method failed.
      */
-    unsigned int CalculateContinuumState(ContinuumState* s, Lattice* external_lattice = NULL) const;
+    unsigned int CalculateContinuumWave(ContinuumWave* s, Lattice* external_lattice = NULL) const;
 
     /** Read a continuum wavefunction from file and interpolate onto external_lattice.
         The normalisation type of the continuum builder is set to Unitary.
         Return success.
      */
-    bool ReadContinuumState(ContinuumState* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file);
+    bool ReadContinuumWave(ContinuumWave* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file);
 
 protected:
     Lattice* lattice;

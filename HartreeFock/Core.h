@@ -5,7 +5,7 @@
 #include "StateIterator.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
-#include "ContinuumState.h"
+#include "ContinuumWave.h"
 
 class Core : public StateManager
 {
@@ -139,7 +139,7 @@ protected:
     double IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* exchange) const;
 
     /** Calculate a new continuum state in the HF Potential. */
-    unsigned int CalculateContinuumState(ContinuumState* s) const;
+    unsigned int CalculateContinuumWave(ContinuumWave* s) const;
 
     /** Update the Hartree-Fock potential, which includes the potential due to the nucleus,
         as well as the direct part of all of the core electrons.
