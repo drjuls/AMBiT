@@ -557,7 +557,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
         // Calculate continuum state
         ContinuumWave* cs = new ContinuumWave(cs_energy, cs_kappa);
         if(debug)
-            *logstream << "Continuum State: " << cs->Name() << std::endl;
+            *logstream << "Continuum SingleParticleWavefunction: " << cs->Name() << std::endl;
 
         unsigned int loops = cs_builder.CalculateContinuumWave(cs, core->GetLattice());
         //unsigned int loops = cs_builder.ReadContinuumWave(cs, core->GetLattice(), "fort.64", "fort.65");
@@ -807,10 +807,10 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
     double total = 0.;
 
     // Prepare radial matrix element
-    const State* s_1;
-    const State* s_2 = excited->GetState(e2);
-    const State* s_3 = excited->GetState(e3);
-    const State* s_4 = excited->GetState(e4);
+    const SingleParticleWavefunction* s_1;
+    const SingleParticleWavefunction* s_2 = excited->GetState(e2);
+    const SingleParticleWavefunction* s_3 = excited->GetState(e3);
+    const SingleParticleWavefunction* s_4 = excited->GetState(e4);
     
     if(!s_2 || !s_3 || !s_4)
     {   *errstream << "RateCalculator::CoulombMatrixElement couldn't find state." << std::endl;
@@ -933,7 +933,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
 
 /** Get the subtraction diagram.
  */
-double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const State* sb, const State* sc, const State* sd, unsigned int k) const
+double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const SingleParticleWavefunction* sb, const SingleParticleWavefunction* sc, const SingleParticleWavefunction* sd, unsigned int k) const
 {
     bool debug = DebugOptions.LogAugerRate();
     double total = 0.;
@@ -970,7 +970,7 @@ double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const State* 
     ConstStateIterator it = excited->GetConstStateIterator();
 
     while(!it.AtEnd())
-    {   const State* sa = it.GetState();
+    {   const SingleParticleWavefunction* sa = it.GetState();
 
         if(cs->Kappa() == sa->Kappa())
         {

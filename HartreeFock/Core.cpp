@@ -230,7 +230,7 @@ std::vector<double> Core::GetLocalExchangeApproximation() const
     return LocalExchangeApproximation;
 }
 
-unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, double sigma_amount) const
+unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma, double sigma_amount) const
 {
     Orbital* ds = dynamic_cast<Orbital*>(s);
     if(ds != NULL)

@@ -48,7 +48,7 @@ protected:
         by the angular factor when printing debug info.
      */
     double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumWave* cs, int sign = 1) const;
-    double SubtractionDiagram(const ContinuumWave* sa, const State* sb, const State* sc, const State* sd, unsigned int k) const;
+    double SubtractionDiagram(const ContinuumWave* sa, const SingleParticleWavefunction* sb, const SingleParticleWavefunction* sc, const SingleParticleWavefunction* sd, unsigned int k) const;
 };
 
 #endif

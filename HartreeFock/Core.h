@@ -90,13 +90,13 @@ public:     // Methods for Hartree-Fock calculations and potentials
     /** Calculate the exchange part of the interaction between the current state and all
         of the core states. "exchange" is resized to current.size().
      */
-    void CalculateExchange(const State& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    void CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Calculate a new excited state in the closed core potential. */
-    virtual unsigned int CalculateExcitedState(State* s) const;
+    virtual unsigned int CalculateExcitedState(SingleParticleWavefunction* s) const;
 
     /** Update an existing excited state, in case of changed core or addition of sigma. */
-    unsigned int UpdateExcitedState(State* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    unsigned int UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
 public:
     /** Methods for open shell core. The core calculates states in the V^n scheme.

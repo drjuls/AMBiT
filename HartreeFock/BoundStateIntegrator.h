@@ -11,11 +11,11 @@ public:
     virtual ~BoundStateIntegrator(void) {}
 
 protected:
-    virtual void SetUpForwardsIntegral(State& s, const std::vector<double>& HFPotential, double nuclear_charge);
-    virtual void SetUpBackwardsIntegral(State& s, const std::vector<double>& HFPotential);
+    virtual void SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge);
+    virtual void SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential);
 
 protected:
-    void SolveDiracBoundary(State& s, const std::vector<double>& HFPotential, unsigned int start_point, bool forwards = true);
+    void SolveDiracBoundary(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, unsigned int start_point, bool forwards = true);
 };
 
 #endif

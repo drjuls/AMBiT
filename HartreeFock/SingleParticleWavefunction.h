@@ -1,5 +1,5 @@
-#ifndef STATE_H
-#define STATE_H
+#ifndef SINGLE_PARTICLE_WAVEFUNCTION_H
+#define SINGLE_PARTICLE_WAVEFUNCTION_H
 
 //#define USE_ALT_STATE_NOTATION
 
@@ -9,16 +9,16 @@
 #include <cmath>
 #include <stdlib.h>
 
-class State : public CoupledFunction
+class SingleParticleWavefunction : public CoupledFunction
 {
     /** Electron state. Psi = (        f/r. Y_jlm)
                               (i.alpha.g/r.~Y_jlm)
      */
 public:
-    State();
-    State(int Kappa);
-    State(const State& other);
-    virtual ~State(void) {}
+    SingleParticleWavefunction();
+    SingleParticleWavefunction(int Kappa);
+    SingleParticleWavefunction(const SingleParticleWavefunction& other);
+    virtual ~SingleParticleWavefunction(void) {}
 
     virtual double Energy() const = 0;
     /** Nu is the effective principal quantum number */
@@ -33,7 +33,7 @@ public:
     inline void SetKappa(int kappa) { this->kappa = kappa; }
     inline void SetNu(double nu) { this->nu = nu; }
 
-    const State& operator=(const State& other)
+    const SingleParticleWavefunction& operator=(const SingleParticleWavefunction& other)
     {   CoupledFunction::operator=(other);
         kappa = other.kappa;
         nu = other.nu;
@@ -47,7 +47,7 @@ public:
     virtual void Read(FILE* fp);
 
     /** Get overlap of this state with another. */
-    double Overlap(const State& other, const Lattice* lattice) const;
+    double Overlap(const SingleParticleWavefunction& other, const Lattice* lattice) const;
 
     /** Print state to file, optionally printing lattice. Return success. */
     bool Print(Lattice* lattice = NULL) const;
@@ -59,18 +59,18 @@ protected:
     double nu;          // effective principal quantum number - determines energy
 };
 
-inline unsigned int State::L() const
+inline unsigned int SingleParticleWavefunction::L() const
 {   if (kappa > 0)
         return (unsigned int)(kappa);
     else
         return (unsigned int)(-kappa-1);
 }
 
-inline double State::J() const
+inline double SingleParticleWavefunction::J() const
 {   return (double)abs(kappa) - 0.5;
 }
 
-inline unsigned int State::TwoJ() const
+inline unsigned int SingleParticleWavefunction::TwoJ() const
 {
     return (2*abs(kappa) - 1);
 }

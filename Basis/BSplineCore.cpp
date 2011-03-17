@@ -137,7 +137,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     while(!cs.AtEnd())
     {
         const Orbital& other = cs.GetState();
-        const State* xother = GetState(StateInfo(&other));
+        const SingleParticleWavefunction* xother = GetState(StateInfo(&other));
 
         unsigned int lower_point = b_lower_point;
         unsigned int upper_point = other.Size();

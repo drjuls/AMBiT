@@ -164,7 +164,7 @@ void Core::BuildFirstApproximation(std::string configuration)
     }
     else if(!Empty())
     {
-        State* s = GetStateIterator().GetState();
+        SingleParticleWavefunction* s = GetStateIterator().GetState();
         s->SetNu(1./Z);
     }
 

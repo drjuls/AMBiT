@@ -1,7 +1,7 @@
 #ifndef STATE_POINTER_H
 #define STATE_POINTER_H
 
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 #include "StateInfo.h"
 
 class StatePointer
@@ -9,11 +9,11 @@ class StatePointer
 public:
     StatePointer(Orbital* s = NULL): p(s) {}
 
-    State& operator*() { return *p; }
-    const State& operator*() const { return *p; }
+    SingleParticleWavefunction& operator*() { return *p; }
+    const SingleParticleWavefunction& operator*() const { return *p; }
 
-    State* operator->() { return p; }
-    const State* operator->() const { return p; }
+    SingleParticleWavefunction* operator->() { return p; }
+    const SingleParticleWavefunction* operator->() const { return p; }
 
     bool IsNull() const { return p == NULL; }
     Orbital* GetState() { return p; }

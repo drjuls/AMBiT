@@ -2,7 +2,7 @@
 #include "BoundStateIntegrator.h"
 #include "Universal/Eigensolver.h"
 
-void BoundStateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<double>& HFPotential, double nuclear_charge = 1.)
+void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge = 1.)
 {
     unsigned int i;
 
@@ -32,7 +32,7 @@ void BoundStateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<dou
     }
 }
 
-void BoundStateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>& HFPotential)
+void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential)
 {
     // Get start point
     unsigned int start_point = s.Size() - 1;
@@ -72,7 +72,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<do
     }
 }
 
-void BoundStateIntegrator::SolveDiracBoundary(State& s, const std::vector<double>& HFPotential, unsigned int start_point, bool forwards)
+void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, unsigned int start_point, bool forwards)
 {
     unsigned int i, j;
 

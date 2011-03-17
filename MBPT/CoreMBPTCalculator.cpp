@@ -141,12 +141,12 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const State& sn = *(it_n.GetState());
+        const SingleParticleWavefunction& sn = *(it_n.GetState());
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const State& salpha = *(it_alpha.GetState());
+            const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
 
             if(debug)
             {   count += spacing;
@@ -186,7 +186,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
                     ConstStateIterator it_beta = excited->GetConstStateIterator();
                     while(!it_beta.AtEnd())
                     {
-                        const State& sbeta = *(it_beta.GetState());
+                        const SingleParticleWavefunction& sbeta = *(it_beta.GetState());
 
                         double coeff;
                         if((sa.L() + sbeta.L())%2 == k1%2)
@@ -222,7 +222,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
                     ConstStateIterator it_m = core->GetConstStateIterator();
                     while(!it_m.AtEnd())
                     {
-                        const State& sm = *(it_m.GetState());
+                        const SingleParticleWavefunction& sm = *(it_m.GetState());
 
                         double coeff;
                         if((sa.L() + sm.L())%2 == k1%2)
@@ -291,12 +291,12 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const State& sn = *(it_n.GetState());
+        const SingleParticleWavefunction& sn = *(it_n.GetState());
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const State& salpha = *(it_alpha.GetState());
+            const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
 
             if(debug)
             {   count += spacing;
@@ -333,7 +333,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
                     ConstStateIterator it_beta = excited->GetConstStateIterator();
                     while(!it_beta.AtEnd())
                     {
-                        const State& sbeta = *(it_beta.GetState());
+                        const SingleParticleWavefunction& sbeta = *(it_beta.GetState());
 
                         double C_abeta;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
@@ -447,12 +447,12 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     ConstStateIterator it_alpha = excited->GetConstStateIterator();
     while(!it_alpha.AtEnd())
     {
-        const State& salpha = *(it_alpha.GetState());
+        const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
 
         ConstStateIterator it_n = core->GetConstStateIterator();
         while(!it_n.AtEnd())
         {
-            const State& sn = *(it_n.GetState());
+            const SingleParticleWavefunction& sn = *(it_n.GetState());
 
             if(debug)
             {   count += spacing;
@@ -489,7 +489,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
                     ConstStateIterator it_m = core->GetConstStateIterator();
                     while(!it_m.AtEnd())
                     {
-                        const State& sm = *(it_m.GetState());
+                        const SingleParticleWavefunction& sm = *(it_m.GetState());
 
                         double C_am;
                         if((sa.L() + sm.L() + k1)%2 == 0)

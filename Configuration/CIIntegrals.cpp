@@ -197,8 +197,8 @@ void CIIntegrals::UpdateOneElectronIntegrals()
                 -SI.IsotopeShiftIntegral(*it_j.GetState(), *it_i.GetState())));
 
             // Overlap integrals
-            const State& p1 = *it_i.GetState();
-            const State& p2 = *it_j.GetState();
+            const SingleParticleWavefunction& p1 = *it_i.GetState();
+            const SingleParticleWavefunction& p2 = *it_j.GetState();
             if(p1.L() == p2.L())
             {
                 double overlap = 0.;
@@ -414,10 +414,10 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
-        const State* s_1 = states.GetState(reverse_state_index.find(i1)->second);
-        const State* s_2 = states.GetState(reverse_state_index.find(i2)->second);
-        const State* s_3 = states.GetState(reverse_state_index.find(i3)->second);
-        const State* s_4 = states.GetState(reverse_state_index.find(i4)->second);
+        const SingleParticleWavefunction* s_1 = states.GetState(reverse_state_index.find(i1)->second);
+        const SingleParticleWavefunction* s_2 = states.GetState(reverse_state_index.find(i2)->second);
+        const SingleParticleWavefunction* s_3 = states.GetState(reverse_state_index.find(i3)->second);
+        const SingleParticleWavefunction* s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
         CoulombIntegrator CI(states.GetLattice());

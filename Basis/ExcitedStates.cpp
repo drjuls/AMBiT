@@ -385,8 +385,8 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
     ConstStateIterator it = GetConstStateIterator();
     ConstStateIterator jt = GetConstStateIterator();
 
-    const State* max_i;
-    const State* max_j;
+    const SingleParticleWavefunction* max_i;
+    const SingleParticleWavefunction* max_j;
 
     it.First();
     while(!it.AtEnd())

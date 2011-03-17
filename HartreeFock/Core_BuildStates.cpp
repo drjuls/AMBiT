@@ -532,7 +532,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
     return delta_E;
 }
 
-unsigned int Core::CalculateExcitedState(State* s) const
+unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
 {
     // Forward continuum states to other method.
     Orbital* ds = dynamic_cast<Orbital*>(s);
@@ -753,7 +753,7 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
     return loop;
 }
 
-void Core::CalculateExchange(const State& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
+void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);

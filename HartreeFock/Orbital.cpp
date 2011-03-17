@@ -5,13 +5,13 @@
 #include <math.h>
 
 Orbital::Orbital(unsigned int PrincipalQN, int Kappa):
-    State(Kappa), pqn(PrincipalQN)
+    SingleParticleWavefunction(Kappa), pqn(PrincipalQN)
 {
     occupancy = 2*abs(kappa);
 }
 
 Orbital::Orbital(const Orbital& other):
-    State(other), pqn(other.pqn), occupancy(other.occupancy)
+    SingleParticleWavefunction(other), pqn(other.pqn), occupancy(other.occupancy)
 {}
 
 double Orbital::Energy() const
@@ -182,7 +182,7 @@ void Orbital::Write(FILE* fp) const
     fwrite(&pqn, sizeof(unsigned int), 1, fp);
     fwrite(&occupancy, sizeof(double), 1, fp);
 
-    State::Write(fp);
+    SingleParticleWavefunction::Write(fp);
 }
 
 void Orbital::Read(FILE* fp)
@@ -192,5 +192,5 @@ void Orbital::Read(FILE* fp)
     fread(&pqn, sizeof(unsigned int), 1, fp);
     fread(&occupancy, sizeof(double), 1, fp);
 
-    State::Read(fp);
+    SingleParticleWavefunction::Read(fp);
 }

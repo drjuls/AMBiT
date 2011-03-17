@@ -248,7 +248,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                         if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
                         {   if(debug)
-                                *outstream << "  State removed: energy = " << ds->Energy()
+                                *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
                                            << "  norm = " << ds->Norm(lattice) << std::endl;
                             pqn--;
 

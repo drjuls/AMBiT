@@ -1,12 +1,12 @@
 #ifndef ORBITAL_H
 #define ORBITAL_H
 
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 
-class Orbital : public State  
+class Orbital : public SingleParticleWavefunction  
 {
 public:
-    Orbital(): State() {}
+    Orbital(): SingleParticleWavefunction() {}
     Orbital(unsigned int PrincipalQN, int Kappa);
     Orbital(const Orbital& other);
     virtual ~Orbital(void) {}
@@ -38,7 +38,7 @@ public:
     unsigned int NumNodes() const;
 
     const Orbital& operator=(const Orbital& other)
-    {   State::operator=(other);
+    {   SingleParticleWavefunction::operator=(other);
         pqn = other.pqn;
         occupancy = other.occupancy;
         return *this;

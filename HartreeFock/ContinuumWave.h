@@ -1,12 +1,12 @@
 #ifndef CONTINUUM_WAVE_H
 #define CONTINUUM_WAVE_H
 
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 
-class ContinuumWave: public State
+class ContinuumWave: public SingleParticleWavefunction
 {
 public:
-    ContinuumWave(): State() {}
+    ContinuumWave(): SingleParticleWavefunction() {}
     ContinuumWave(const ContinuumWave& other);
     ContinuumWave(double energy, int Kappa);
     virtual ~ContinuumWave(void) {}

@@ -202,7 +202,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b, it_c;
     const Orbital *sn;
-    const State *sa, *sb, *sc;
+    const SingleParticleWavefunction *sa, *sb, *sc;
     unsigned int k, kmax;
 
     it_n = core_states.begin();

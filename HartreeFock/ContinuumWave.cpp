@@ -3,11 +3,11 @@
 #include "Universal/Constant.h"
 
 ContinuumWave::ContinuumWave(const ContinuumWave& other):
-    State(other)
+    SingleParticleWavefunction(other)
 {}
 
 ContinuumWave::ContinuumWave(double energy, int Kappa):
-    State(Kappa)
+    SingleParticleWavefunction(Kappa)
 {
     SetEnergy(energy);
 }
@@ -50,7 +50,7 @@ void ContinuumWave::Write(FILE* fp) const
     fwrite(&kappa, sizeof(int), 1, fp);
     fwrite(&nu, sizeof(double), 1, fp);
 
-    State::Write(fp);
+    SingleParticleWavefunction::Write(fp);
 }
 
 void ContinuumWave::Read(FILE* fp)
@@ -58,5 +58,5 @@ void ContinuumWave::Read(FILE* fp)
     fread(&kappa, sizeof(int), 1, fp);
     fread(&nu, sizeof(double), 1, fp);
 
-    State::Read(fp);
+    SingleParticleWavefunction::Read(fp);
 }

@@ -2,7 +2,7 @@
 #define STATE_INTEGRATOR_H
 
 #include "Universal/Integrator.h"
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 #include "ContinuumWave.h"
 #include "Core.h"
 #include <complex>
@@ -32,7 +32,7 @@ public:
                 end_point <= exchange.Size()
           exchange may be NULL
      */
-    void IntegrateForwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge = 1.);
+    void IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge = 1.);
 
     /** Set up the wavefunction at r->infinity (points s.Size()-adams_N+1 to s.Size()-1)
         and integrate backwards until (not including) end_point.
@@ -42,9 +42,9 @@ public:
             s.Size()-(adams_N-1) <= exchange.Size()
             exchange may be NULL
         POST:
-            State s may be enlarged if necessary, up to a maximum of HFPotential.size().
+            SingleParticleWavefunction s may be enlarged if necessary, up to a maximum of HFPotential.size().
      */
-    void IntegrateBackwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point);
+    void IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point);
 
     /** Set up the wavefunction at r->infinity and integrate backwards until a peak is reached
         (s.df[] changes sign between two points or equals zero), or end_point is reached.
@@ -53,9 +53,9 @@ public:
             Returns the lattice point of the peak.
             If no peak is reached, returns end_point of integration.
                 Otherwise, s.df[value]/s.df[value+1] <= 0.
-            State s may be enlarged if necessary, up to a maximum of HFPotential.size().
+            SingleParticleWavefunction s may be enlarged if necessary, up to a maximum of HFPotential.size().
      */
-    unsigned int IntegrateBackwardsUntilPeak(State& s, const std::vector<double>& HFPotential, int end_point = -1);
+    unsigned int IntegrateBackwardsUntilPeak(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, int end_point = -1);
 
     /** Set up the wavefunction at r->0 and integrate until the wavefunction
         begins to oscillate sinusoidally (outside range of potential).
@@ -67,27 +67,27 @@ public:
     unsigned int IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
 
     /** Calculate the matrix element of the Hamiltonian, <s1|H|s2>. */
-    double HamiltonianMatrixElement(const State& s1, const State& s2, const Core& core);
+    double HamiltonianMatrixElement(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, const Core& core);
 
     /** Get isotope shift between two states. In the first of these functions,
             f = s1.f
             L = s1.L
      */
-    double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P = NULL);
-    double IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P = NULL);
-    void IsotopeShiftIntegral(unsigned int L, const State& s2, std::vector<double>* P);
+    double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P = NULL);
+    double IsotopeShiftIntegral(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, std::vector<double>* P = NULL);
+    void IsotopeShiftIntegral(unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P);
 
 protected:
     class StateFunction;
 
     /** Set up first points of forward integration (near r=0) using semiclassical approximation. */
-    virtual void SetUpForwardsIntegral(State& s, const std::vector<double>& HFPotential, double nuclear_charge);
+    virtual void SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge);
 
     /** Checks that s is large enough to accomodate wavefunction, otherwise enlarges it to a
         maximum of HFPotential.size().
         Initialise last four values of state s from s.Size()-(adams_N-1) to s.Size()-1.
      */
-    virtual void SetUpBackwardsIntegral(State& s, const std::vector<double>& HFPotential);
+    virtual void SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential);
 
     /** Checks that s is large enough to accomodate wavefunction, otherwise enlarges it to a
         maximum of HFPotential.size().
@@ -120,7 +120,7 @@ protected:
         virtual double Coeff5(int point) const;
         virtual double Coeff6(int point) const;
 
-        void SetState(const State* state)
+        void SetState(const SingleParticleWavefunction* state)
         {   kappa = double(state->Kappa());
             energy = state->Energy();
         }

@@ -2,7 +2,7 @@
 #include "StateIntegrator.h"
 #include "Universal/Constant.h"
 
-void StateIntegrator::IntegrateForwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge)
+void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge)
 {
     const int start_point = 0;
 
@@ -17,7 +17,7 @@ void StateIntegrator::IntegrateForwards(State& s, const std::vector<double>& HFP
     Integrate2(A, s, start_point+(adams_N-1), end_point);
 }
 
-void StateIntegrator::IntegrateBackwards(State& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point)
+void StateIntegrator::IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point)
 {
     // Set initial conditions
     StateFunction A(lattice);
@@ -30,7 +30,7 @@ void StateIntegrator::IntegrateBackwards(State& s, const std::vector<double>& HF
     Integrate2(A, s, s.Size()-adams_N, end_point);
 }
 
-unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(State& s, const std::vector<double>& HFPotential, int end_point)
+unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, int end_point)
 {
     // Set initial conditions
     StateFunction A(lattice);
@@ -50,7 +50,7 @@ unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(State& s, const std::v
     return i;
 }
 
-void StateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<double>& HFPotential, double nuclear_charge)
+void StateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge)
 {
     const int start_point = 0;
 
@@ -86,7 +86,7 @@ void StateIntegrator::SetUpForwardsIntegral(State& s, const std::vector<double>&
     }
 }
 
-void StateIntegrator::SetUpBackwardsIntegral(State& s, const std::vector<double>& HFPotential)
+void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential)
 {
     // Get start point
     unsigned int start_point = s.Size() - 1;
@@ -227,7 +227,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
     return start_sine;
 }
 
-double StateIntegrator::HamiltonianMatrixElement(const State& s1, const State& s2, const Core& core)
+double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, const Core& core)
 {
     double E = 0.;
     const double core_pol = core.GetPolarisability();
@@ -432,7 +432,7 @@ double StateIntegrator::StateFunction::Coeff6(int point) const
     else return 0.;
 }
 
-double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const State& s2, std::vector<double>* P)
+double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P)
 {
     double coeff_f2;
     if(L == s2.L() + 1)
@@ -473,12 +473,12 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
     return SMS;
 }
 
-double StateIntegrator::IsotopeShiftIntegral(const State& s1, const State& s2, std::vector<double>* P)
+double StateIntegrator::IsotopeShiftIntegral(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, std::vector<double>* P)
 {
     return IsotopeShiftIntegral(s1.f, s1.L(), s2, P);
 }
 
-void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const State& s2, std::vector<double>* P)
+void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P)
 {
     double coeff_f2;
     if(L == s2.L() + 1)

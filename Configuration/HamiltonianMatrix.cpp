@@ -2,7 +2,7 @@
 #include "HamiltonianMatrix.h"
 #include "Universal/SmallMatrix.h"
 #include "Universal/SymMatrix.h"
-#include "HartreeFock/State.h"
+#include "HartreeFock/SingleParticleWavefunction.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
 #include "ConfigFileGenerator.h"
