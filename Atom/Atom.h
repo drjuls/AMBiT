@@ -145,10 +145,10 @@ public:
 
 public:
     void GenerateCowanInputFile();
-    void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
+    void PrintWavefunctionCowan(FILE* fp, const Orbital* ds);
     bool ReadGraspMCDF(const std::string& filename);
     void WriteGraspMCDF() const;
-    void WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int lattice_size) const;
+    void WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int lattice_size) const;
 
 protected:
     /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */

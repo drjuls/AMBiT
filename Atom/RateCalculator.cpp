@@ -466,8 +466,8 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
             }
             else
             {
-                const DiscreteState& p1 = *excited->GetState(e1);
-                const DiscreteState& p2 = *excited->GetState(e2);
+                const Orbital& p1 = *excited->GetState(e1);
+                const Orbital& p2 = *excited->GetState(e2);
 
                 const double* R = excited->GetLattice()->R();
                 const double* dR = excited->GetLattice()->dR();
@@ -570,7 +570,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
         ConstStateIterator ex_it = excited->GetConstStateIterator();
         while(!ex_it.AtEnd())
         {
-            const DiscreteState* other = ex_it.GetState();
+            const Orbital* other = ex_it.GetState();
             if(other->Kappa() == cs->Kappa() && other->RequiredPQN() < 15)
             {
                 double S = cs->Overlap(*other, excited->GetLattice());
@@ -741,7 +741,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
         //       continuum first, bound second.
 //        if((cs_electron.M() == s1.M()) && (cs_electron.Kappa() == s1.Kappa()))
 //        {
-//            const DiscreteState* sj = excited->GetState(s1);
+//            const Orbital* sj = excited->GetState(s1);
 //            value = SI.HamiltonianMatrixElement(*cs, *sj, *excited->GetCore()) * sign;
 ////            value = SI.HamiltonianMatrixElement(*sj, *cs, *excited->GetCore()) * sign;
 //

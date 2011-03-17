@@ -182,7 +182,7 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
 
     std::set<unsigned int>::const_iterator it_n, it_alpha;
 
-    const DiscreteState* sn;
+    const Orbital* sn;
     const State* salpha;
 
     StateIntegrator SI(core.GetLattice());
@@ -310,7 +310,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
     // where n and m are core; a is valence; alpha and beta are excited (superset of valence)
 
     std::set<unsigned int>::const_iterator it_n, it_m, it_a, it_alpha, it_beta;
-    const DiscreteState *sn, *sm;
+    const Orbital *sn, *sm;
     const State *sa, *salpha, *sbeta;
     unsigned int k, kmax;
 

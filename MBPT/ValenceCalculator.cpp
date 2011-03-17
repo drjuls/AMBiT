@@ -51,7 +51,7 @@ double ValenceCalculator::CalculateOneElectronValence1(const State& si, const St
 
     ConstStateIterator it4 = excited->GetConstStateIterator();
     while(!it4.AtEnd())
-    {   const DiscreteState& s4 = *(it4.GetState());
+    {   const Orbital& s4 = *(it4.GetState());
 
         if(s4.RequiredPQN() >= 5 && s4.Kappa() == si.Kappa())
         {
@@ -101,12 +101,12 @@ double ValenceCalculator::CalculateTwoElectronValence1(const State& sa, const St
 
     ConstStateIterator it3 = excited->GetConstStateIterator();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
         unsigned int J3 = (unsigned int)(s3.J() * 2.);
 
         ConstStateIterator it4 = excited->GetConstStateIterator();
         while(!it4.AtEnd())
-        {   const DiscreteState& s4 = *(it4.GetState());
+        {   const Orbital& s4 = *(it4.GetState());
             unsigned int J4 = (unsigned int)(s4.J() * 2.);
 
             if(debug)
@@ -232,7 +232,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const State& sa, const St
 
     ConstStateIterator it3 = excited->GetConstStateIterator();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
 
         if(s3.RequiredPQN() >= 5 && s3.Kappa() == sa.Kappa())
         {
@@ -277,7 +277,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const State& sa, const St
 
     it3.First();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
 
         if(s3.RequiredPQN() >= 5 && s3.Kappa() == sb.Kappa())
         {

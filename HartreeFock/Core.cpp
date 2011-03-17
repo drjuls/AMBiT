@@ -39,7 +39,7 @@ Core::Core(const Core& other, Lattice* new_lattice):
         const StatePointer ds_old = it->second;
 
         // Copy kappa, pqn, etc.
-        DiscreteState* ds = new DiscreteState(*ds_old.GetState());
+        Orbital* ds = new Orbital(*ds_old.GetState());
 
         if(interpolate)
         {
@@ -141,7 +141,7 @@ void Core::Read(FILE* fp)
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        DiscreteState* ds = new DiscreteState();
+        Orbital* ds = new Orbital();
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
         AddState(ds);
@@ -152,7 +152,7 @@ void Core::Read(FILE* fp)
     fread(&num_open, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_open; i++)
     {
-        DiscreteState* ds = new DiscreteState();
+        Orbital* ds = new Orbital();
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
 
@@ -232,13 +232,13 @@ std::vector<double> Core::GetLocalExchangeApproximation() const
 
 unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, double sigma_amount) const
 {
-    DiscreteState* ds = dynamic_cast<DiscreteState*>(s);
+    Orbital* ds = dynamic_cast<Orbital*>(s);
     if(ds != NULL)
     {
         // Number of iterations required. Zero shows that the state existed previously.
         unsigned int loop = 0;
 
-        const DiscreteState* core_state = GetState(StateInfo(ds));
+        const Orbital* core_state = GetState(StateInfo(ds));
         StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
         if(core_state != NULL)
         {   // Try to find in core (probably open shells).
@@ -253,13 +253,13 @@ unsigned int Core::UpdateExcitedState(State* s, const SigmaPotential* sigma, dou
             bool debugHF = DebugOptions.LogHFIterations();
 
             double deltaE;
-            DiscreteState* new_ds = new DiscreteState(*ds);
+            Orbital* new_ds = new Orbital(*ds);
             double prop_new = 0.5;
             do
             {   loop++;
                 CoupledFunction exchange;
                 CalculateExchange(*new_ds, exchange, sigma, sigma_amount);
-                deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+                deltaE = IterateOrbitalGreens(new_ds, &exchange);
 
                 if(debugHF)
                     *logstream << "  " << std::setw(4) << ds->Name() 

@@ -22,17 +22,17 @@ ExcitedStates::~ExcitedStates()
     }
 }
 
-void ExcitedStates::AddState(DiscreteState* s)
+void ExcitedStates::AddState(Orbital* s)
 {
     StateManager::AddState(s);
 }
 
-DiscreteState ExcitedStates::GetStateWithSigma(const StateInfo& info) const
+Orbital ExcitedStates::GetStateWithSigma(const StateInfo& info) const
 {
-    const DiscreteState* s = GetState(info);
+    const Orbital* s = GetState(info);
 
     if(s != NULL)
-    {   DiscreteState ds(*s);
+    {   Orbital ds(*s);
 
         SigmaMap::const_iterator it = SecondOrderSigma.find(ds.Kappa());
         if((it != SecondOrderSigma.end()) && GetSigmaAmount(info))
@@ -41,7 +41,7 @@ DiscreteState ExcitedStates::GetStateWithSigma(const StateInfo& info) const
         return ds;
     }
     else
-        return DiscreteState();
+        return Orbital();
 }
 
 void ExcitedStates::ClearSigmas()
@@ -59,7 +59,7 @@ void ExcitedStates::ClearSigmas()
 double ExcitedStates::GetSigmaMatrixElement(const StateInfo& info) const
 {
     double matrix_element = 0.;
-    const DiscreteState* s = GetState(info);
+    const Orbital* s = GetState(info);
     const SigmaPotential* sigma = NULL;
     SigmaMap::const_iterator it = SecondOrderSigma.find(info.Kappa());
     if(it != SecondOrderSigma.end())
@@ -74,7 +74,7 @@ double ExcitedStates::GetSigmaMatrixElement(const StateInfo& info) const
 
 double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt)
 {
-    DiscreteState* s = GetState(info);
+    Orbital* s = GetState(info);
     if(s == NULL)
     {   *errstream << "CreateSecondOrderSigma: " << info.Name() << " is not part of ExcitedStates." << std::endl;
         exit(1);
@@ -128,13 +128,13 @@ bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
 
 void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
 {
-    DiscreteState* s = GetState(info);
+    Orbital* s = GetState(info);
     if(s == NULL)
-    {   s = new DiscreteState(info.PQN(), info.Kappa());
+    {   s = new Orbital(info.PQN(), info.Kappa());
         core->CalculateExcitedState(s);
     }
 
-    DiscreteState* ds = s;
+    Orbital* ds = s;
 
     SigmaPotential* sigma;
     if(SecondOrderSigma.find(s->Kappa()) == SecondOrderSigma.end())
@@ -145,7 +145,7 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
 
     double old_energy = s->Energy();
     double amount = 1.0;
-    DiscreteState sigma_s(*ds);
+    Orbital sigma_s(*ds);
     unsigned int iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
     double current_energy = sigma_s.Energy();
 
@@ -181,7 +181,7 @@ double ExcitedStates::GetSigmaAmount(const StateInfo& info) const
         return 0.;
 }
 
-void ExcitedStates::MultiplyByR(const DiscreteState* previous, DiscreteState* current) const
+void ExcitedStates::MultiplyByR(const Orbital* previous, Orbital* current) const
 {
     current->ReSize(previous->Size());
 
@@ -222,7 +222,7 @@ void ExcitedStates::MultiplyByR(const DiscreteState* previous, DiscreteState* cu
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::MultiplyBySinR(const DiscreteState* previous, DiscreteState* current) const
+void ExcitedStates::MultiplyBySinR(const Orbital* previous, Orbital* current) const
 {
     current->ReSize(previous->Size());
 
@@ -268,7 +268,7 @@ void ExcitedStates::MultiplyBySinR(const DiscreteState* previous, DiscreteState*
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::MultiplyByRSinR(const DiscreteState* previous, DiscreteState* current) const
+void ExcitedStates::MultiplyByRSinR(const Orbital* previous, Orbital* current) const
 {
     current->ReSize(previous->Size());
 
@@ -318,7 +318,7 @@ void ExcitedStates::MultiplyByRSinR(const DiscreteState* previous, DiscreteState
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::Orthogonalise(DiscreteState* current) const
+void ExcitedStates::Orthogonalise(Orbital* current) const
 {
     const double* dR = lattice->dR();
     current->ReNormalise(lattice);
@@ -327,7 +327,7 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
     ConstStateIterator it = core->GetConstStateIterator();
     while(!it.AtEnd())
     {
-        const DiscreteState* other = it.GetState();
+        const Orbital* other = it.GetState();
         if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() != current->RequiredPQN())
             && !core->IsOpenShellState(StateInfo(other)))
         {
@@ -353,7 +353,7 @@ void ExcitedStates::Orthogonalise(DiscreteState* current) const
     ConstStateIterator ex_it = GetConstStateIterator();
     while(!ex_it.AtEnd())
     {
-        const DiscreteState* other = ex_it.GetState();
+        const Orbital* other = ex_it.GetState();
         if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() < current->RequiredPQN()))
         {
             double S = 0.;

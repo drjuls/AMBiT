@@ -130,13 +130,13 @@ protected:
         Returns the number of iterations necessary to achieve convergence.
         If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
      */
-    unsigned int ConvergeStateApproximation(DiscreteState* s, bool include_exch = true) const;
+    unsigned int ConvergeStateApproximation(Orbital* s, bool include_exch = true) const;
 
     /** Solve the Dirac eqn in the current HF potential once and adjust the energy
         to renormalise. The exchange may be resized to the new size of s.
         Returns the change in the energy needed for renormalisation (delta_E).
      */
-    double IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* exchange) const;
+    double IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const;
 
     /** Calculate a new continuum state in the HF Potential. */
     unsigned int CalculateContinuumWave(ContinuumWave* s) const;

@@ -27,10 +27,10 @@ StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
     it.First();
     while(!it.AtEnd())
     {
-        const DiscreteState* ds_old = it.GetState();
+        const Orbital* ds_old = it.GetState();
 
         // Copy kappa, pqn, etc.
-        DiscreteState* ds = new DiscreteState(*ds_old);
+        Orbital* ds = new Orbital(*ds_old);
 
         if(interpolate)
         {
@@ -58,7 +58,7 @@ StateManager::~StateManager(void)
     Clear();
 }
 
-const DiscreteState* StateManager::GetState(const StateInfo& info) const
+const Orbital* StateManager::GetState(const StateInfo& info) const
 {
     StateSet::const_iterator it;
 
@@ -68,7 +68,7 @@ const DiscreteState* StateManager::GetState(const StateInfo& info) const
         return NULL;
 }
 
-DiscreteState* StateManager::GetState(const StateInfo& info)
+Orbital* StateManager::GetState(const StateInfo& info)
 {
     StateSet::iterator it;
 
@@ -78,7 +78,7 @@ DiscreteState* StateManager::GetState(const StateInfo& info)
         return NULL;
 }
 
-void StateManager::AddState(DiscreteState* s)
+void StateManager::AddState(Orbital* s)
 {
     StateInfo info(s);
     StatePointer sp(s);
@@ -151,7 +151,7 @@ void StateManager::Write(FILE* fp) const
 void StateManager::Read(FILE* fp)
 {
     unsigned int num_core, i;
-    DiscreteState ds;
+    Orbital ds;
     unsigned int max_size = 0;
 
     // Read states
@@ -159,7 +159,7 @@ void StateManager::Read(FILE* fp)
     for(i = 0; i<num_core; i++)
     {
         ds.Read(fp);
-        DiscreteState* current = GetState(StateInfo(&ds));
+        Orbital* current = GetState(StateInfo(&ds));
         if(current)
         {   *current = ds;
             max_size = mmax(max_size, ds.Size());

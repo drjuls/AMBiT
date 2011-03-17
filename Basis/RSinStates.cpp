@@ -21,8 +21,8 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 unsigned int pqn = k + 1;
 
                 // Get first state by HF iteration
-                const DiscreteState* s;
-                const DiscreteState* previous_state = NULL;
+                const Orbital* s;
+                const Orbital* previous_state = NULL;
                 while(count == 0)
                 {
                     s = NULL;
@@ -35,7 +35,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     {   // Check if state already exists
                         s = GetState(StateInfo(pqn, kappa));
                         if(s == NULL)
-                        {   DiscreteState* ds = new DiscreteState(pqn, kappa);
+                        {   Orbital* ds = new Orbital(pqn, kappa);
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -44,7 +44,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                             previous_state = ds;
                         }
                         else
-                        {   DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                        {   Orbital* ds = GetState(StateInfo(pqn, kappa));
                             unsigned int loop = core->UpdateExcitedState(ds);
                             if(loop)
                                 Orthogonalise(ds);
@@ -59,9 +59,9 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 bool TimesR = true;
                 while(count < num_states_per_l[k])
                 {
-                    DiscreteState* ds = GetState(StateInfo(pqn, kappa));
+                    Orbital* ds = GetState(StateInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = new DiscreteState(pqn, kappa);
+                    {   ds = new Orbital(pqn, kappa);
                         AddState(ds);
                     }
 

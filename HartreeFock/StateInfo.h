@@ -1,7 +1,7 @@
 #ifndef STATE_INFO_H
 #define STATE_INFO_H
 
-#include "DiscreteState.h"
+#include "Orbital.h"
 #include <string>
 
 class StateInfo
@@ -11,7 +11,7 @@ class StateInfo
      */
 public:
     StateInfo(unsigned int principal_qn, int kappa);
-    StateInfo(const DiscreteState* s);
+    StateInfo(const Orbital* s);
     StateInfo(const StateInfo& other);
     virtual ~StateInfo(void) {}
 
@@ -34,7 +34,7 @@ protected:
     unsigned int l;
 };
 
-inline StateInfo::StateInfo(const DiscreteState* s)
+inline StateInfo::StateInfo(const Orbital* s)
 {
     pqn = s->RequiredPQN();
     kappa = s->Kappa();

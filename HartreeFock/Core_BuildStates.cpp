@@ -25,7 +25,7 @@ void Core::Update()
     StateIterator core_it(this);
     core_it.First();
     while(!core_it.AtEnd())
-    {   next_states.AddState(new DiscreteState(*core_it.GetState()));
+    {   next_states.AddState(new Orbital(*core_it.GetState()));
         core_it.Next();
     }
 
@@ -53,12 +53,12 @@ void Core::Update()
         it.First();
         while(!it.AtEnd())
         {
-            DiscreteState* new_state = it.GetState();
+            Orbital* new_state = it.GetState();
             double old_energy = new_state->Energy();
 
             CoupledFunction exchange;
             CalculateExchange(*new_state, exchange);
-            deltaE = IterateDiscreteStateGreens(new_state, &exchange);
+            deltaE = IterateOrbitalGreens(new_state, &exchange);
 
             if(debug)
                 *logstream << "  " << std::setw(4) << new_state->Name()
@@ -77,8 +77,8 @@ void Core::Update()
         core_it.First();
         while(!core_it.AtEnd())
         {
-            DiscreteState* core_state = core_it.GetState();
-            DiscreteState* new_state = next_states.GetState(StateInfo(core_state));
+            Orbital* core_state = core_it.GetState();
+            Orbital* new_state = next_states.GetState(StateInfo(core_state));
 
             // Add proportion of new states to core states.
             core_state->Scale(1. - prop_new);
@@ -127,7 +127,7 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
     ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& s = *cs.GetState();
+        const Orbital& s = *cs.GetState();
         const std::vector<double>& f = s.f;
         const std::vector<double>& g = s.g;
         double number_electrons = s.Occupancy();
@@ -292,7 +292,7 @@ void Core::CalculateClosedShellRadius()
     ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& s = *cs.GetState();
+        const Orbital& s = *cs.GetState();
         if(OpenShellStates.find(StateInfo(&s)) == OpenShellStates.end())
         {
             const std::vector<double>& f = s.f;
@@ -337,7 +337,7 @@ void Core::CalculateClosedShellRadius()
     ClosedShellRadius = lattice->R(j);
 }
 
-unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exch) const
+unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) const
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
@@ -368,7 +368,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
         // Get forward and backwards meeting point
         unsigned int critical_point = lattice->real_to_lattice((1./Z + s->Nu())/2.);
 
-        DiscreteState no_exchange_state(*s);
+        Orbital no_exchange_state(*s);
         unsigned int peak = I.IntegrateBackwardsUntilPeak(no_exchange_state, Potential, critical_point);
 
         // assert(peak > 3)
@@ -417,7 +417,7 @@ unsigned int Core::ConvergeStateApproximation(DiscreteState* s, bool include_exc
     return loop;
 }
 
-double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* exchange) const
+double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
@@ -443,8 +443,8 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     double delta_E = 0.;
 
     // Solve Dirac equation
-    DiscreteState s0(*s);
-    DiscreteState sInf(*s);
+    Orbital s0(*s);
+    Orbital sInf(*s);
     // This routine can modify the size
     I.IntegrateBackwards(sInf, Potential, NULL, -1);
 
@@ -492,7 +492,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
     delta_E = (1. - norm)/(2. * var);
     // Limit change in energy to 20%. Place warning in error file.
     if(fabs(delta_E/old_energy) > 0.2)
-    {   *errstream << "IterateDiscreteStateGreens: large delta_E (" << s->Name()
+    {   *errstream << "IterateOrbitalGreens: large delta_E (" << s->Name()
             << ") = " << fabs(delta_E/old_energy)*100 << "%" << std::endl;
         delta_E = fabs(old_energy*delta_E*0.2)/delta_E;
     }
@@ -535,7 +535,7 @@ double Core::IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* excha
 unsigned int Core::CalculateExcitedState(State* s) const
 {
     // Forward continuum states to other method.
-    DiscreteState* ds = dynamic_cast<DiscreteState*>(s);
+    Orbital* ds = dynamic_cast<Orbital*>(s);
     if(ds == NULL)
     {   ContinuumWave* cs = dynamic_cast<ContinuumWave*>(s);
         return CalculateContinuumWave(cs);
@@ -544,7 +544,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
 
-    const DiscreteState* core_state = GetState(StateInfo(ds));
+    const Orbital* core_state = GetState(StateInfo(ds));
     StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
     if(core_state != NULL)
     {   // Try to find in core (probably open shells).
@@ -585,7 +585,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
             ConstStateIterator i = GetConstStateIterator();
             while(!i.AtEnd())
             {   
-                const DiscreteState* cs = i.GetState();
+                const Orbital* cs = i.GetState();
                 if((cs->Kappa() == ds->Kappa()) && (cs->RequiredPQN() > largest_core_pqn))
                         largest_core_pqn = cs->RequiredPQN();
                 i.Next();
@@ -631,7 +631,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
 
         double deltaE;
         loop = 0;
-        DiscreteState* new_ds = new DiscreteState(*ds);
+        Orbital* new_ds = new Orbital(*ds);
         double prop_new = 0.4;
         do
         {   loop++;
@@ -642,7 +642,7 @@ unsigned int Core::CalculateExcitedState(State* s) const
                 {   trial_nu = new_ds->Nu() - zero_difference/abs(zero_difference)/Charge;
                     new_ds->SetNu(trial_nu);
                 }
-                deltaE = IterateDiscreteStateGreens(new_ds, &exchange);
+                deltaE = IterateOrbitalGreens(new_ds, &exchange);
                 zero_difference = new_ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
             } while(zero_difference);
 
@@ -761,13 +761,13 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
     exchange.Clear();
     exchange.ReSize(current.Size());
 
-    const DiscreteState* ds_current = dynamic_cast<const DiscreteState*>(&current);
+    const Orbital* ds_current = dynamic_cast<const Orbital*>(&current);
 
     // Sum over all core states
     ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& other = *(cs.GetState());
+        const Orbital& other = *(cs.GetState());
         unsigned int upper_point = mmin(other.Size(), current.Size());
 
         // Get overlap of wavefunctions
@@ -799,7 +799,7 @@ void Core::CalculateExchange(const State& current, CoupledFunction& exchange, co
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const DiscreteState* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
+                        const Orbital* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
 
                         if((ds_current == NULL) || ((StateInfo(ds_current) != StateInfo(&other)) && (StateInfo(ds_current) != StateInfo(ds))))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));

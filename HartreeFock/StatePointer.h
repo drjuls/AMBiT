@@ -7,7 +7,7 @@
 class StatePointer
 {
 public:
-    StatePointer(DiscreteState* s = NULL): p(s) {}
+    StatePointer(Orbital* s = NULL): p(s) {}
 
     State& operator*() { return *p; }
     const State& operator*() const { return *p; }
@@ -16,9 +16,9 @@ public:
     const State* operator->() const { return p; }
 
     bool IsNull() const { return p == NULL; }
-    DiscreteState* GetState() { return p; }
-    const DiscreteState* GetState() const { return p; }
-    void SetState(DiscreteState* s) { p = s; }
+    Orbital* GetState() { return p; }
+    const Orbital* GetState() const { return p; }
+    void SetState(Orbital* s) { p = s; }
 
     void DeleteState()
     {   delete p;
@@ -27,7 +27,7 @@ public:
 
     inline bool operator<(const StatePointer& other) const;
 private:
-    DiscreteState* p;
+    Orbital* p;
 };
 
 inline bool StatePointer::operator<(const StatePointer& other) const

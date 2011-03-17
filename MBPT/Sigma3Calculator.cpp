@@ -132,7 +132,7 @@ void Sigma3Integrals::UpdateOneElectronIntegrals()
     // (l1 + l2 + 1)%2 == 0
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b;
-    const DiscreteState* sn, *sa, *sb;
+    const Orbital* sn, *sa, *sb;
 
     it_b = valence_states.begin();
     while(it_b != valence_states.end())
@@ -201,7 +201,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     // where n is core; a, b and c are valence
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b, it_c;
-    const DiscreteState *sn;
+    const Orbital *sn;
     const State *sa, *sb, *sc;
     unsigned int k, kmax;
 

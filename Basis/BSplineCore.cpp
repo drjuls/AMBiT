@@ -41,14 +41,14 @@ BSplineCore::BSplineCore(BSplineGrid* lat, const Core* core):
 FROM CONSTRUCTOR:
 
     // Interpolate wavefunctions
-    const DiscreteState* hfstate;
-    DiscreteState* s;
+    const Orbital* hfstate;
+    Orbital* s;
     
     ConstStateIterator it = hfcore->GetConstStateIterator();
     while(!it.AtEnd())
     {
         hfstate = it.GetState();
-        s = new DiscreteState(hfstate->RequiredPQN(), hfstate->Kappa());
+        s = new Orbital(hfstate->RequiredPQN(), hfstate->Kappa());
         s->SetOccupancy(hfstate->Occupancy());
         s->SetNu(hfstate->Nu());
 
@@ -133,10 +133,10 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     //}
 
     // Sum over all core states
-    ConstDiscreteStateIterator cs = hfcore->GetConstDiscreteStateIterator();
+    ConstOrbitalIterator cs = hfcore->GetConstOrbitalIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& other = cs.GetState();
+        const Orbital& other = cs.GetState();
         const State* xother = GetState(StateInfo(&other));
 
         unsigned int lower_point = b_lower_point;
@@ -173,7 +173,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const DiscreteState* ds = hfcore->GetState(StateInfo(other.PQN(), other_kappa));
+                        const Orbital* ds = hfcore->GetState(StateInfo(other.PQN(), other_kappa));
 
                         if((kappa != other.Kappa()) && (kappa != ds->Kappa()))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
@@ -287,7 +287,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     ConstStateIterator cs = hfcore->GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const DiscreteState& other = *cs.GetState();
+        const Orbital& other = *cs.GetState();
         unsigned int lower_point = b_lower_point;
         unsigned int upper_point = other.Size();
 
@@ -322,7 +322,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const DiscreteState* ds = hfcore->GetState(StateInfo(other.RequiredPQN(), other_kappa));
+                        const Orbital* ds = hfcore->GetState(StateInfo(other.RequiredPQN(), other_kappa));
 
                         if((kappa != other.Kappa()) && (kappa != ds->Kappa()))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));

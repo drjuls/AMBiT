@@ -208,7 +208,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 unsigned int count = 0;
                 unsigned int pqn = l + 1;
                 i = n;
-                const DiscreteState* s;
+                const Orbital* s;
 
                 while((count < num_states_per_l[l]) && (i < n2))
                 {
@@ -223,7 +223,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         }
                     }
                     else
-                    {   DiscreteState* ds = new DiscreteState(pqn, kappa);
+                    {   Orbital* ds = new Orbital(pqn, kappa);
                         ds->SetEnergy(eigenvalues[i]);
                         ds->ReSize(HF_size);
 
@@ -256,7 +256,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         }
                         else
                         {   // Check if state already exists
-                            DiscreteState* existing = GetState(StateInfo(pqn, kappa));
+                            Orbital* existing = GetState(StateInfo(pqn, kappa));
                             if(existing)
                             {   *existing = *ds;
                                 delete ds;
@@ -291,7 +291,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         Orthogonalise(basis_it.GetState());
 
                         if(debug)
-                        {   const DiscreteState* ds = basis_it.GetState();
+                        {   const Orbital* ds = basis_it.GetState();
                             s = core->GetState(StateInfo(ds->RequiredPQN(), kappa));
                             if(s)
                             {   double diff = fabs((s->Energy() - ds->Energy())/s->Energy());

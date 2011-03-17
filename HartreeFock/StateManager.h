@@ -1,7 +1,7 @@
 #ifndef STATE_MANAGER_H
 #define STATE_MANAGER_H
 
-#include "DiscreteState.h"
+#include "Orbital.h"
 #include "StatePointer.h"
 #include "StateInfo.h"
 #include <set>
@@ -32,8 +32,8 @@ public:
     /** Get pointer to discrete state.
         Return null if no such state exists.
      */
-    virtual const DiscreteState* GetState(const StateInfo& info) const;
-    virtual DiscreteState* GetState(const StateInfo& info);
+    virtual const Orbital* GetState(const StateInfo& info) const;
+    virtual Orbital* GetState(const StateInfo& info);
 
     virtual StateIterator GetStateIterator();
     virtual ConstStateIterator GetConstStateIterator() const;
@@ -54,7 +54,7 @@ public:
      */
     double TestOrthogonality() const;
 
-    virtual void AddState(DiscreteState* s);
+    virtual void AddState(Orbital* s);
 
 protected:
     /** Delete all currently stored states. */
