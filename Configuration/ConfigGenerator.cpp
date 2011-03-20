@@ -331,8 +331,8 @@ void ConfigGenerator::SplitNonRelInfo(Configuration config, RelativisticConfigLi
     }
     else
     {   // rinfo1 has kappa = -(L+1). rinfo2 has kappa = L.
-        StateInfo rinfo1 = nrinfo.GetFirstRelativisticInfo();
-        StateInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
+        OrbitalInfo rinfo1 = nrinfo.GetFirstRelativisticInfo();
+        OrbitalInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
 
         unsigned int num_electrons = config.GetOccupancy();
         unsigned int start = mmin((unsigned int)(0), num_electrons-rinfo2.MaxNumElectrons());

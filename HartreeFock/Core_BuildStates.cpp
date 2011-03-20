@@ -78,7 +78,7 @@ void Core::Update()
         while(!core_it.AtEnd())
         {
             Orbital* core_state = core_it.GetState();
-            Orbital* new_state = next_states.GetState(StateInfo(core_state));
+            Orbital* new_state = next_states.GetState(OrbitalInfo(core_state));
 
             // Add proportion of new states to core states.
             core_state->Scale(1. - prop_new);
@@ -293,7 +293,7 @@ void Core::CalculateClosedShellRadius()
     while(!cs.AtEnd())
     {
         const Orbital& s = *cs.GetState();
-        if(OpenShellStates.find(StateInfo(&s)) == OpenShellStates.end())
+        if(OpenShellStates.find(OrbitalInfo(&s)) == OpenShellStates.end())
         {
             const std::vector<double>& f = s.f;
             const std::vector<double>& g = s.g;
@@ -544,8 +544,8 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
 
-    const Orbital* core_state = GetState(StateInfo(ds));
-    StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
+    const Orbital* core_state = GetState(OrbitalInfo(ds));
+    StateSet::const_iterator it = OpenShellStorage.find(OrbitalInfo(ds));
     if(core_state != NULL)
     {   // Try to find in core (probably open shells).
         *ds = *core_state;
@@ -784,14 +784,14 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
             coefficient = (2 * abs(other.Kappa())) * coefficient * coefficient;
 
             // Open shells need to be scaled
-            if(IsOpenShellState(StateInfo(&other)) && (other.Occupancy() != double(2 * abs(other.Kappa()))))
+            if(IsOpenShellState(OrbitalInfo(&other)) && (other.Occupancy() != double(2 * abs(other.Kappa()))))
             {
                 double ex = 1.;
                 if(NON_REL_SCALING)
                 {   // Average over non-relativistic configurations
                     if(other.Kappa() == -1)
                     {
-                        if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
+                        if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(&other)))
                             ex = other.Occupancy()/double(2 * abs(other.Kappa()));
                         else if(k)
                             ex = (other.Occupancy()-1.)/double(2 * abs(other.Kappa()) - 1);
@@ -799,9 +799,9 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const Orbital* ds = GetState(StateInfo(other.RequiredPQN(), other_kappa));
+                        const Orbital* ds = GetState(OrbitalInfo(other.RequiredPQN(), other_kappa));
 
-                        if((ds_current == NULL) || ((StateInfo(ds_current) != StateInfo(&other)) && (StateInfo(ds_current) != StateInfo(ds))))
+                        if((ds_current == NULL) || ((OrbitalInfo(ds_current) != OrbitalInfo(&other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
                         else if(k)
                             ex = (other.Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())) - 1);
@@ -809,7 +809,7 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
                 }
                 else
                 {   // Average over relativistic configurations
-                    if((ds_current == NULL) || (StateInfo(ds_current) != StateInfo(&other)))
+                    if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(&other)))
                         ex = other.Occupancy()/double(2 * (abs(other.Kappa())));
                     else if(k)
                         ex = (other.Occupancy() - 1.)/double(2 * (abs(other.Kappa())) - 1);

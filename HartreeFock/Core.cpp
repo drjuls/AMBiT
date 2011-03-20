@@ -111,7 +111,7 @@ void Core::Write(FILE* fp) const
     num_open = OpenShellStates.size();
     fwrite(&num_open, sizeof(unsigned int), 1, fp);
 
-    std::map<StateInfo, double>::const_iterator info_it = OpenShellStates.begin();
+    std::map<OrbitalInfo, double>::const_iterator info_it = OpenShellStates.begin();
     while(info_it != OpenShellStates.end())
     {
         unsigned int pqn = info_it->first.PQN();
@@ -156,7 +156,7 @@ void Core::Read(FILE* fp)
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
 
-        StateInfo info(ds);
+        OrbitalInfo info(ds);
         StatePointer sp(ds);
         OpenShellStorage.insert(StateSet::value_type(info, sp));
     }
@@ -176,8 +176,8 @@ void Core::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);
         fread(&occ, sizeof(double), 1, fp);
 
-        StateInfo info(pqn, kappa);
-        OpenShellStates.insert(std::pair<StateInfo, double>(info, occ));
+        OrbitalInfo info(pqn, kappa);
+        OpenShellStates.insert(std::pair<OrbitalInfo, double>(info, occ));
     }
 
     UpdateNuclearPotential();
@@ -238,8 +238,8 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
         // Number of iterations required. Zero shows that the state existed previously.
         unsigned int loop = 0;
 
-        const Orbital* core_state = GetState(StateInfo(ds));
-        StateSet::const_iterator it = OpenShellStorage.find(StateInfo(ds));
+        const Orbital* core_state = GetState(OrbitalInfo(ds));
+        StateSet::const_iterator it = OpenShellStorage.find(OrbitalInfo(ds));
         if(core_state != NULL)
         {   // Try to find in core (probably open shells).
             *ds = *core_state;

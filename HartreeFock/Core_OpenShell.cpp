@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "Core.h"
 
-void Core::Ionise(StateInfo removed_electron)
+void Core::Ionise(OrbitalInfo removed_electron)
 {
     Orbital* from_state = GetState(removed_electron);
     if(from_state != NULL)
@@ -23,7 +23,7 @@ void Core::Ionise(StateInfo removed_electron)
 
 void Core::ToggleClosedShellCore()
 {
-    std::map<StateInfo, double>::iterator it = OpenShellStates.begin();
+    std::map<OrbitalInfo, double>::iterator it = OpenShellStates.begin();
     while(it != OpenShellStates.end())
     {
         Orbital* ds = GetState(it->first);
@@ -42,7 +42,7 @@ void Core::ToggleClosedShellCore()
 
 void Core::ToggleOpenShellCore()
 {
-    std::map<StateInfo, double>::iterator it = OpenShellStates.begin();
+    std::map<OrbitalInfo, double>::iterator it = OpenShellStates.begin();
     while(it != OpenShellStates.end())
     {
         double new_occupancy = it->second;
@@ -67,7 +67,7 @@ void Core::ToggleOpenShellCore()
     OpenShellStorage.clear();
 }
 
-bool Core::IsOpenShellState(const StateInfo& info) const
+bool Core::IsOpenShellState(const OrbitalInfo& info) const
 {
     return (OpenShellStates.find(info) != OpenShellStates.end());
 }
@@ -77,7 +77,7 @@ bool Core::IsOpenShellCore() const
     return (OpenShellStates.size() != 0);
 }
 
-void Core::SetOpenShellState(const StateInfo& info, double occupancy)
+void Core::SetOpenShellState(const OrbitalInfo& info, double occupancy)
 {
     OpenShellStates[info] = occupancy;
 }

@@ -1,8 +1,8 @@
 #include "Include.h"
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 #include "Universal/Constant.h"
 
-bool StateInfo::operator<(const StateInfo& other) const
+bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
     if(this->pqn < other.pqn)
        return true;
@@ -16,7 +16,7 @@ bool StateInfo::operator<(const StateInfo& other) const
     else return (this->kappa > other.kappa);
 }
 
-bool StateInfo::operator==(const StateInfo& other) const
+bool OrbitalInfo::operator==(const OrbitalInfo& other) const
 {
     if((this->pqn == other.pqn) &&
        (this->kappa == other.kappa))
@@ -25,12 +25,12 @@ bool StateInfo::operator==(const StateInfo& other) const
         return false;
 }
 
-bool StateInfo::operator!=(const StateInfo& other) const
+bool OrbitalInfo::operator!=(const OrbitalInfo& other) const
 {
     return !(*this == other);
 }
 
-std::string StateInfo::Name() const
+std::string OrbitalInfo::Name() const
 {
     char buffer[20];
     sprintf(buffer, "%d", pqn);

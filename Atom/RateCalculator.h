@@ -33,7 +33,7 @@ protected:
     ExcitedStates* excited;
 
     unsigned int NumStates;
-    std::map<StateInfo, unsigned int> state_index;
+    std::map<OrbitalInfo, unsigned int> state_index;
 
     // E1Integrals(i, j) = <i|r|j>
     std::map<unsigned int, double> E1Integrals;

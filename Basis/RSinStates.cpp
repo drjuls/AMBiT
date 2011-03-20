@@ -28,12 +28,12 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     s = NULL;
 
                     // If state is not in the open shell part, check whether it is in the core
-                    if(!core->IsOpenShellState(StateInfo(pqn, kappa)))
-                        s = core->GetState(StateInfo(pqn, kappa));
+                    if(!core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
+                        s = core->GetState(OrbitalInfo(pqn, kappa));
 
                     if(s == NULL)
                     {   // Check if state already exists
-                        s = GetState(StateInfo(pqn, kappa));
+                        s = GetState(OrbitalInfo(pqn, kappa));
                         if(s == NULL)
                         {   Orbital* ds = new Orbital(pqn, kappa);
                             unsigned int loop = core->CalculateExcitedState(ds);
@@ -44,7 +44,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                             previous_state = ds;
                         }
                         else
-                        {   Orbital* ds = GetState(StateInfo(pqn, kappa));
+                        {   Orbital* ds = GetState(OrbitalInfo(pqn, kappa));
                             unsigned int loop = core->UpdateExcitedState(ds);
                             if(loop)
                                 Orthogonalise(ds);
@@ -59,7 +59,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 bool TimesR = true;
                 while(count < num_states_per_l[k])
                 {
-                    Orbital* ds = GetState(StateInfo(pqn, kappa));
+                    Orbital* ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
                     {   ds = new Orbital(pqn, kappa);
                         AddState(ds);
@@ -81,14 +81,14 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 }
 
                 // Delete unwanted higher states
-                StateSet::iterator it = AllStates.find(StateInfo(pqn, kappa));
+                StateSet::iterator it = AllStates.find(OrbitalInfo(pqn, kappa));
                 while(it != AllStates.end())
                 {
                     it->second.DeleteState();
                     AllStates.erase(it);
 
                     pqn++;
-                    it = AllStates.find(StateInfo(pqn, kappa));
+                    it = AllStates.find(OrbitalInfo(pqn, kappa));
                 }
             }
         }

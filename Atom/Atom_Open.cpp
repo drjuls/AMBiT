@@ -399,7 +399,7 @@ ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
                 // Erase core set
                 for(si.First(); !si.AtEnd(); si.Next())
                 {
-                    nrset.erase(si.GetStateInfo());
+                    nrset.erase(si.GetOrbitalInfo());
                 }
 
                 generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset);

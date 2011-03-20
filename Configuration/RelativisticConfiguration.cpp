@@ -14,17 +14,17 @@ RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfigura
     }
 }
 
-StateInfo RelativisticConfiguration::GetInfo() const
+OrbitalInfo RelativisticConfiguration::GetInfo() const
 {
-    return StateInfo(Configuration::GetInfo());
+    return OrbitalInfo(Configuration::GetInfo());
 }
 
-bool RelativisticConfiguration::AddSingleParticle(const StateInfo& info)
+bool RelativisticConfiguration::AddSingleParticle(const OrbitalInfo& info)
 {
-    std::map<StateInfo, unsigned int>::iterator a_it = Config.find(info);
+    std::map<OrbitalInfo, unsigned int>::iterator a_it = Config.find(info);
     if(a_it != Config.end())
     {
-        StateInfo rel_info(a_it->first);
+        OrbitalInfo rel_info(a_it->first);
         if(a_it->second >= (unsigned int)(2*abs(rel_info.Kappa()))) // maximum number of electrons
         {   a_it->second = 2*abs(rel_info.Kappa());
             return false;
@@ -53,7 +53,7 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
     First();
     while(!AtEnd())
     {
-        StateInfo rinfo = GetInfo();
+        OrbitalInfo rinfo = GetInfo();
         for(unsigned int i=0; i<GetOccupancy(); i++)
         {   electrons.push_back(ElectronInfo(rinfo.PQN(), rinfo.Kappa(), 0));
         }
@@ -98,7 +98,7 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
         if(index != 0)
         {
             const ElectronInfo& prev_info = electrons[index-1];
-            if(StateInfo(e_info) == StateInfo(prev_info))
+            if(OrbitalInfo(e_info) == OrbitalInfo(prev_info))
             {   
                 two_m = prev_info.TwoM() + 2;
                 if(two_m > int(e_info.TwoJ()))
@@ -122,7 +122,7 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
 
 int RelativisticConfiguration::GetTwiceMaxProjection() const
 {
-    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
     int proj = 0;
     while(m_it != Config.end())
     {
@@ -140,11 +140,11 @@ int RelativisticConfiguration::GetTwiceMaxProjection() const
 
 std::string RelativisticConfiguration::Name() const
 {
-    std::map<StateInfo, unsigned int>::const_iterator m_it = Config.begin();
+    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
     std::string name;
     while(m_it != Config.end())
     {
-        name.append(" " + StateInfo(m_it->first).Name());
+        name.append(" " + OrbitalInfo(m_it->first).Name());
 
         char buffer[20];
         sprintf(buffer, "%d", m_it->second);
@@ -324,7 +324,7 @@ Configuration RelativisticConfiguration::GetNonRelConfiguration() const
 {
     Configuration ret;
 
-    std::map<StateInfo, unsigned int>::const_iterator c_it = Config.begin();
+    std::map<OrbitalInfo, unsigned int>::const_iterator c_it = Config.begin();
     while(c_it != Config.end())
     {
         ret.SetIterator(NonRelInfo(c_it->first));
@@ -349,7 +349,7 @@ void RelativisticConfiguration::Write(FILE* fp) const
     unsigned int size = Config.size();
     fwrite(&size, sizeof(unsigned int), 1, fp);    
 
-    std::map<StateInfo, unsigned int>::const_iterator cit;
+    std::map<OrbitalInfo, unsigned int>::const_iterator cit;
     cit = Config.begin();
 
     while(cit != Config.end())
@@ -405,7 +405,7 @@ void RelativisticConfiguration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);    
         fread(&occupancy, sizeof(unsigned int), 1, fp);    
 
-        SetOccupancy(StateInfo(pqn, kappa), occupancy);
+        SetOccupancy(OrbitalInfo(pqn, kappa), occupancy);
     }
 
     // Generate projections and check that the same number were stored.

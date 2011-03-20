@@ -212,10 +212,10 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                 while((count < num_states_per_l[l]) && (i < n2))
                 {
-                    s = core->GetState(StateInfo(pqn, kappa));
+                    s = core->GetState(OrbitalInfo(pqn, kappa));
 
                     // If state is not in the open shell part, check whether it is in the core
-                    if(s != NULL && !core->IsOpenShellState(StateInfo(pqn, kappa)))
+                    if(s != NULL && !core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
                     {   if(debug)
                         {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
                             *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
@@ -256,7 +256,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         }
                         else
                         {   // Check if state already exists
-                            Orbital* existing = GetState(StateInfo(pqn, kappa));
+                            Orbital* existing = GetState(OrbitalInfo(pqn, kappa));
                             if(existing)
                             {   *existing = *ds;
                                 delete ds;
@@ -271,14 +271,14 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 }
 
                 // Delete unwanted higher states
-                StateSet::iterator it = AllStates.find(StateInfo(pqn, kappa));
+                StateSet::iterator it = AllStates.find(OrbitalInfo(pqn, kappa));
                 while(it != AllStates.end())
                 {
                     it->second.DeleteState();
                     AllStates.erase(it);
 
                     pqn++;
-                    it = AllStates.find(StateInfo(pqn, kappa));
+                    it = AllStates.find(OrbitalInfo(pqn, kappa));
                 }
 
                 // Repeat orthogonalisation and print
@@ -292,7 +292,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                         if(debug)
                         {   const Orbital* ds = basis_it.GetState();
-                            s = core->GetState(StateInfo(ds->RequiredPQN(), kappa));
+                            s = core->GetState(OrbitalInfo(ds->RequiredPQN(), kappa));
                             if(s)
                             {   double diff = fabs((s->Energy() - ds->Energy())/s->Energy());
                                 *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()

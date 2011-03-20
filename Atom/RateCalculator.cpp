@@ -18,7 +18,7 @@ RateCalculator::RateCalculator(ExcitedStates* basis):
     it_i.First(); i = 0;
     while(!it_i.AtEnd())
     {
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
+        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
         it_i.Next(); i++;
     }
 }
@@ -515,7 +515,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
     ContinuumBuilder cs_builder(A->GetCore());
     cs_builder.SetNormalisationType(Unitary);
 //    Core* cs_core = cs_builder.GetCore();
-//    cs_core->Ionise(StateInfo(1, -1));
+//    cs_core->Ionise(OrbitalInfo(1, -1));
 
 //    core->ToggleClosedShellCore();
 

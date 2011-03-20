@@ -145,18 +145,18 @@ void Core::BuildFirstApproximation(std::string configuration)
         if(((56 < Z) && (Z < 72)) || (Z == 81))
         {
             // Alter 6s state
-            Orbital* s = GetState(StateInfo(6, -1));
+            Orbital* s = GetState(OrbitalInfo(6, -1));
             if(s != NULL)
             {   s->SetNu(1.4);
             }
 
             // Alter 4f state
-            s = GetState(StateInfo(4, 3));
+            s = GetState(OrbitalInfo(4, 3));
             if(s != NULL)
             {   s->SetNu(1.);
             }
             // Alter 4f* state
-            s = GetState(StateInfo(4, -4));
+            s = GetState(OrbitalInfo(4, -4));
             if(s != NULL)
             {   s->SetNu(1.);
             }

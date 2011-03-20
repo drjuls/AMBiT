@@ -28,8 +28,8 @@ void SlaterIntegrals::UpdateStateIndexes(const ExcitedStates& valence)
     while(!it_i.AtEnd())
     {
         core_states.insert(i);
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, StateInfo(it_i.GetState())));
+        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
+        reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, OrbitalInfo(it_i.GetState())));
 
         it_i.Next(); i++;
     }
@@ -38,12 +38,12 @@ void SlaterIntegrals::UpdateStateIndexes(const ExcitedStates& valence)
     it_i.First();
     while(!it_i.AtEnd())
     {
-        StateInfo info(it_i.GetState());
+        OrbitalInfo info(it_i.GetState());
 
         // Check not already present from open shell core
         if(state_index.find(info) == state_index.end())
-        {   state_index.insert(std::pair<StateInfo, unsigned int>(info, i));
-            reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, info));
+        {   state_index.insert(std::pair<OrbitalInfo, unsigned int>(info, i));
+            reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, info));
         }
 
         excited_states.insert(i);
@@ -72,7 +72,7 @@ void SlaterIntegrals::Update(const ExcitedStates& valence)
     UpdateTwoElectronIntegrals();
 }
 
-double SlaterIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const
+double SlaterIntegrals::GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -83,7 +83,7 @@ double SlaterIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateI
         return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double SlaterIntegrals::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const
+double SlaterIntegrals::GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -119,7 +119,7 @@ bool SlaterIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int
     return sms_sign;
 }
 
-double SlaterIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double SlaterIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;

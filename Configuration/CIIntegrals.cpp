@@ -141,8 +141,8 @@ void CIIntegrals::UpdateStateIndexes()
     it_i.First(); i = 0;
     while(!it_i.AtEnd())
     {
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, StateInfo(it_i.GetState())));
+        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
+        reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, OrbitalInfo(it_i.GetState())));
 
         it_i.Next(); i++;
     }
@@ -351,7 +351,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     }
 }
 
-double CIIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -362,7 +362,7 @@ double CIIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo&
         return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -373,7 +373,7 @@ double CIIntegrals::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) con
         return -SMSIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetOverlapIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -384,7 +384,7 @@ double CIIntegrals::GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2)
         return OverlapIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -516,7 +516,7 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
 {
     // Make state index for stored integrals
     // Get start and end principal quantum numbers for each L
-    std::map<unsigned int, StateInfo> stored_state_index;
+    std::map<unsigned int, OrbitalInfo> stored_state_index;
     unsigned int max_l, L;
     fread(&max_l, sizeof(unsigned int), 1, fp);
     
@@ -542,10 +542,10 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
         {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
             {
                 if(L != 0)
-                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                {   stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, int(L))));
                     index++;
                 }
-                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, -int(L+1))));
                 index++;
             }
         }
@@ -563,7 +563,7 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
     unsigned int i, stored_key, new_key;
     unsigned int stored_s1, stored_s2;
     unsigned int i1, i2;
-    std::map<StateInfo, unsigned int>::const_iterator it;
+    std::map<OrbitalInfo, unsigned int>::const_iterator it;
     double value;
 
     for(i=0; i<size; i++)
@@ -601,7 +601,7 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
 {
     // Make state index for stored integrals
     // Get start and end principal quantum numbers for each L
-    std::map<unsigned int, StateInfo> stored_state_index;
+    std::map<unsigned int, OrbitalInfo> stored_state_index;
     unsigned int max_l, L;
     fread(&max_l, sizeof(unsigned int), 1, fp);
     
@@ -627,10 +627,10 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
         {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
             {
                 if(L != 0)
-                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                {   stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, int(L))));
                     index++;
                 }
-                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, -int(L+1))));
                 index++;
             }
         }
@@ -648,7 +648,7 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
     unsigned int i, stored_key, new_key;
     unsigned int k, stored_s1, stored_s2, stored_s3, stored_s4;
     unsigned int i1, i2, i3, i4;
-    std::map<StateInfo, unsigned int>::const_iterator it;
+    std::map<OrbitalInfo, unsigned int>::const_iterator it;
     double value;
 
     for(i=0; i<size; i++)
@@ -712,7 +712,7 @@ void CIIntegrals::WriteOneElectronIntegrals(bool use_read_id) const
     {   // Store information about the basis
         // Get number of states in each wave
         unsigned int max_l = 0;
-        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        std::map<OrbitalInfo, unsigned int>::const_iterator it = state_index.begin();
         while(it != state_index.end())
         {   if(it->first.L() > max_l)
                 max_l = it->first.L();
@@ -775,7 +775,7 @@ void CIIntegrals::WriteTwoElectronIntegrals(bool use_read_id) const
     {   // Store information about the basis
         // Get number of states in each wave
         unsigned int max_l = 0;
-        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        std::map<OrbitalInfo, unsigned int>::const_iterator it = state_index.begin();
         while(it != state_index.end())
         {   if(it->first.L() > max_l)
                 max_l = it->first.L();

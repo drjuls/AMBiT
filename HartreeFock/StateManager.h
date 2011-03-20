@@ -3,11 +3,11 @@
 
 #include "Orbital.h"
 #include "StatePointer.h"
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 #include <set>
 #include <map>
 
-typedef std::map<StateInfo, StatePointer> StateSet;
+typedef std::map<OrbitalInfo, StatePointer> StateSet;
 
 class StateIterator;
 class ConstStateIterator;
@@ -32,8 +32,8 @@ public:
     /** Get pointer to discrete state.
         Return null if no such state exists.
      */
-    virtual const Orbital* GetState(const StateInfo& info) const;
-    virtual Orbital* GetState(const StateInfo& info);
+    virtual const Orbital* GetState(const OrbitalInfo& info) const;
+    virtual Orbital* GetState(const OrbitalInfo& info);
 
     virtual StateIterator GetStateIterator();
     virtual ConstStateIterator GetConstStateIterator() const;

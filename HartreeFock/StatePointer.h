@@ -2,7 +2,7 @@
 #define STATE_POINTER_H
 
 #include "SingleParticleWavefunction.h"
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 
 class StatePointer
 {
@@ -32,8 +32,8 @@ private:
 
 inline bool StatePointer::operator<(const StatePointer& other) const
 {
-    StateInfo first_info(this->p);
-    StateInfo second_info(other.p);
+    OrbitalInfo first_info(this->p);
+    OrbitalInfo second_info(other.p);
 
     return (first_info < second_info);
 }

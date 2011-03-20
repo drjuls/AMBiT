@@ -244,7 +244,7 @@ void Atom::RunSingleElectron()
         it.First();
         while(!it.AtEnd())
         {
-            StateInfo si = it.GetStateInfo();
+            OrbitalInfo si = it.GetOrbitalInfo();
             Orbital* ds = it.GetState();
             *outstream << "\n" << ds->Name() << "\n";
             *outstream << std::setprecision(12);
@@ -345,8 +345,8 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
     ConstStateIterator it = core->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
-    {   L = it.GetStateInfo().L();
-        max_pqn_in_core[L] = mmax(max_pqn_in_core[L], it.GetStateInfo().PQN());
+    {   L = it.GetOrbitalInfo().L();
+        max_pqn_in_core[L] = mmax(max_pqn_in_core[L], it.GetOrbitalInfo().PQN());
         it.Next();
     }
 
@@ -561,32 +561,32 @@ void Atom::GenerateCowanInputFile()
 {
     FILE* fp = fopen("mitch.txt", "wt");
 
-    const Orbital* ds = core->GetState(StateInfo(1, -1));
+    const Orbital* ds = core->GetState(OrbitalInfo(1, -1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, -1));
+    ds = excited->GetState(OrbitalInfo(2, -1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, 1));
+    ds = excited->GetState(OrbitalInfo(2, 1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, -2));
+    ds = excited->GetState(OrbitalInfo(2, -2));
     PrintWavefunctionCowan(fp, ds);
 
     for(int n = 3; n <= 5; n++)
     {
-        ds = excited->GetState(StateInfo(n, -1));
+        ds = excited->GetState(OrbitalInfo(n, -1));
         PrintWavefunctionCowan(fp, ds);
-//        ds = excited->GetState(StateInfo(n, 1));
+//        ds = excited->GetState(OrbitalInfo(n, 1));
 //        PrintWavefunctionCowan(fp, ds);
-//        ds = excited->GetState(StateInfo(n, -2));
+//        ds = excited->GetState(OrbitalInfo(n, -2));
 //        PrintWavefunctionCowan(fp, ds);
-        ds = excited->GetState(StateInfo(n, 2));
+        ds = excited->GetState(OrbitalInfo(n, 2));
         PrintWavefunctionCowan(fp, ds);
-        ds = excited->GetState(StateInfo(n, -3));
+        ds = excited->GetState(OrbitalInfo(n, -3));
         PrintWavefunctionCowan(fp, ds);
 //        if(n > 3)
 //        {
-//            ds = excited->GetState(StateInfo(n, 3));
+//            ds = excited->GetState(OrbitalInfo(n, 3));
 //            PrintWavefunctionCowan(fp, ds);
-//            ds = excited->GetState(StateInfo(n, -4));
+//            ds = excited->GetState(OrbitalInfo(n, -4));
 //            PrintWavefunctionCowan(fp, ds);
 //        }
     }

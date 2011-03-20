@@ -137,7 +137,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
     while(!cs.AtEnd())
     {
         const Orbital& other = cs.GetState();
-        const SingleParticleWavefunction* xother = GetState(StateInfo(&other));
+        const SingleParticleWavefunction* xother = GetState(OrbitalInfo(&other));
 
         unsigned int lower_point = b_lower_point;
         unsigned int upper_point = other.Size();
@@ -173,7 +173,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const Orbital* ds = hfcore->GetState(StateInfo(other.PQN(), other_kappa));
+                        const Orbital* ds = hfcore->GetState(OrbitalInfo(other.PQN(), other_kappa));
 
                         if((kappa != other.Kappa()) && (kappa != ds->Kappa()))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
@@ -322,7 +322,7 @@ void BSplineCore::CalculateExchange(unsigned int bspline, int kappa, bool upper,
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const Orbital* ds = hfcore->GetState(StateInfo(other.RequiredPQN(), other_kappa));
+                        const Orbital* ds = hfcore->GetState(OrbitalInfo(other.RequiredPQN(), other_kappa));
 
                         if((kappa != other.Kappa()) && (kappa != ds->Kappa()))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));

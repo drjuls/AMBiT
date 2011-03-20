@@ -218,14 +218,14 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         }
 
         // Check whether this is a core state
-        const Orbital* existing = core->GetState(StateInfo(pqn, kappa));
+        const Orbital* existing = core->GetState(OrbitalInfo(pqn, kappa));
 
         // If state is not in the open shell part, check whether it is in the core
-        if(existing != NULL && !core->IsOpenShellState(StateInfo(pqn, kappa)))
+        if(existing != NULL && !core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
         {
             // Replace core states if atom_core != NULL
             if(atom_core)
-            {   Orbital* ds_replace = atom_core->GetState(StateInfo(pqn, kappa));
+            {   Orbital* ds_replace = atom_core->GetState(OrbitalInfo(pqn, kappa));
                 *ds_replace = *ds;
             }
         }

@@ -104,7 +104,7 @@ public:
       */
 
     /** Remove one electron from outer shell. Good for making a V^(n-1) core. */
-    virtual void Ionise(StateInfo removed_electron);
+    virtual void Ionise(OrbitalInfo removed_electron);
     
     /** Remove all electrons until just the closed shell core is left. */
     virtual void ToggleClosedShellCore();
@@ -113,13 +113,13 @@ public:
     virtual void ToggleOpenShellCore();
 
     /** Test whether a state is in the open shells of the core. */
-    virtual bool IsOpenShellState(const StateInfo& info) const;
+    virtual bool IsOpenShellState(const OrbitalInfo& info) const;
 
     /** Test whether the core has open shells. */
     virtual bool IsOpenShellCore() const;
 
     /** Set open shell state occupancy. */
-    virtual void SetOpenShellState(const StateInfo& info, double occupancy);
+    virtual void SetOpenShellState(const OrbitalInfo& info, double occupancy);
 
 protected:
     /** Delete all currently stored states. */
@@ -183,7 +183,7 @@ protected:
 
     StateSet OpenShellStorage;  // Store currently unused open shell states.
                                 // Only storing each state in one place helps memory management.
-    std::map<StateInfo, double> OpenShellStates; // Original occupancies
+    std::map<OrbitalInfo, double> OpenShellStates; // Original occupancies
 
 public:
     class StateParameters

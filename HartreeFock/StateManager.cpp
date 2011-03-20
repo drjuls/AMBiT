@@ -58,7 +58,7 @@ StateManager::~StateManager(void)
     Clear();
 }
 
-const Orbital* StateManager::GetState(const StateInfo& info) const
+const Orbital* StateManager::GetState(const OrbitalInfo& info) const
 {
     StateSet::const_iterator it;
 
@@ -68,7 +68,7 @@ const Orbital* StateManager::GetState(const StateInfo& info) const
         return NULL;
 }
 
-Orbital* StateManager::GetState(const StateInfo& info)
+Orbital* StateManager::GetState(const OrbitalInfo& info)
 {
     StateSet::iterator it;
 
@@ -80,7 +80,7 @@ Orbital* StateManager::GetState(const StateInfo& info)
 
 void StateManager::AddState(Orbital* s)
 {
-    StateInfo info(s);
+    OrbitalInfo info(s);
     StatePointer sp(s);
 
     AllStates.insert(StateSet::value_type(info, sp));
@@ -159,7 +159,7 @@ void StateManager::Read(FILE* fp)
     for(i = 0; i<num_core; i++)
     {
         ds.Read(fp);
-        Orbital* current = GetState(StateInfo(&ds));
+        Orbital* current = GetState(OrbitalInfo(&ds));
         if(current)
         {   *current = ds;
             max_size = mmax(max_size, ds.Size());

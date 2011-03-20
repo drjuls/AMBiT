@@ -32,7 +32,7 @@ public:
     virtual void Update(const std::string& sigma_id);
 
     /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
     /** Include single-particle MBPT diagrams via sigma matrix.
         This option requires sigma matrices to exist, otherwise it will create them

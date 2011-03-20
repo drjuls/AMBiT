@@ -10,7 +10,7 @@
 #include <vector>
 
 typedef std::map<int, SigmaPotential*> SigmaMap;
-typedef std::map<StateInfo, double> SigmaAmount;
+typedef std::map<OrbitalInfo, double> SigmaAmount;
 
 class CoreMBPTCalculator;
 
@@ -42,28 +42,28 @@ public:     // Methods for managing sigma
     void ClearSigmas();
 
     /** Calculate the matrix element  < s | Sigma | s >. */
-    double GetSigmaMatrixElement(const StateInfo& info) const;
+    double GetSigmaMatrixElement(const OrbitalInfo& info) const;
 
     /** Get a copy of the state, including iterating sigma (if available). */
-    virtual Orbital GetStateWithSigma(const StateInfo& info) const;
+    virtual Orbital GetStateWithSigma(const OrbitalInfo& info) const;
 
     /** Create a sigma operator for the given state to second order.
         This operator will henceforth be included in the exchange potential of
         the state (to turn this off set SigmaAmount to zero).
         Return value is the energy of the state including second order matrix elements.
      */
-    double CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt);
+    double CreateSecondOrderSigma(const OrbitalInfo& info, const CoreMBPTCalculator& mbpt);
 
     /** Retreive a sigma operator that already exists. Return true if successful. */
-    bool RetrieveSecondOrderSigma(const StateInfo& info);
+    bool RetrieveSecondOrderSigma(const OrbitalInfo& info);
 
     /** Set SigmaAmount to give correct energy (in Hartree units).
      */
-    void SetEnergyViaSigma(const StateInfo& info, double energy);
+    void SetEnergyViaSigma(const OrbitalInfo& info, double energy);
 
     /** Get/Set the amount of sigma to be used when calculating state for which sigma exists. */
-    void SetSigmaAmount(const StateInfo& info, double amount);
-    double GetSigmaAmount(const StateInfo& info) const;
+    void SetSigmaAmount(const OrbitalInfo& info, double amount);
+    double GetSigmaAmount(const OrbitalInfo& info) const;
 
     const Core* GetCore() const { return core; }
 

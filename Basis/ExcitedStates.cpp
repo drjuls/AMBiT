@@ -27,7 +27,7 @@ void ExcitedStates::AddState(Orbital* s)
     StateManager::AddState(s);
 }
 
-Orbital ExcitedStates::GetStateWithSigma(const StateInfo& info) const
+Orbital ExcitedStates::GetStateWithSigma(const OrbitalInfo& info) const
 {
     const Orbital* s = GetState(info);
 
@@ -56,7 +56,7 @@ void ExcitedStates::ClearSigmas()
     SecondOrderAmount.clear();
 }
 
-double ExcitedStates::GetSigmaMatrixElement(const StateInfo& info) const
+double ExcitedStates::GetSigmaMatrixElement(const OrbitalInfo& info) const
 {
     double matrix_element = 0.;
     const Orbital* s = GetState(info);
@@ -72,7 +72,7 @@ double ExcitedStates::GetSigmaMatrixElement(const StateInfo& info) const
     return matrix_element;
 }
 
-double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMBPTCalculator& mbpt)
+double ExcitedStates::CreateSecondOrderSigma(const OrbitalInfo& info, const CoreMBPTCalculator& mbpt)
 {
     Orbital* s = GetState(info);
     if(s == NULL)
@@ -102,7 +102,7 @@ double ExcitedStates::CreateSecondOrderSigma(const StateInfo& info, const CoreMB
     return energy;
 }
 
-bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
+bool ExcitedStates::RetrieveSecondOrderSigma(const OrbitalInfo& info)
 {
     std::string sigma_file = identifier + "." + itoa(info.Kappa()) + ".sigma";
     SigmaPotential* sigma = new SigmaPotential(lattice, sigma_file);
@@ -126,7 +126,7 @@ bool ExcitedStates::RetrieveSecondOrderSigma(const StateInfo& info)
     }
 }
 
-void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
+void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
 {
     Orbital* s = GetState(info);
     if(s == NULL)
@@ -167,12 +167,12 @@ void ExcitedStates::SetEnergyViaSigma(const StateInfo& info, double energy)
                << std::setprecision(12) << current_energy * Constant::HartreeEnergy_cm << ")" << std::endl;
 }
 
-void ExcitedStates::SetSigmaAmount(const StateInfo& info, double amount)
+void ExcitedStates::SetSigmaAmount(const OrbitalInfo& info, double amount)
 {
     SecondOrderAmount[info] = amount;
 }
 
-double ExcitedStates::GetSigmaAmount(const StateInfo& info) const
+double ExcitedStates::GetSigmaAmount(const OrbitalInfo& info) const
 {
     SigmaAmount::const_iterator it = SecondOrderAmount.find(info);
     if(it != SecondOrderAmount.end())
@@ -329,7 +329,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     {
         const Orbital* other = it.GetState();
         if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() != current->RequiredPQN())
-            && !core->IsOpenShellState(StateInfo(other)))
+            && !core->IsOpenShellState(OrbitalInfo(other)))
         {
             double S = 0.;
             unsigned int i;
@@ -396,7 +396,7 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
         jt.First();
         while(!jt.AtEnd())
         {
-            if(it.GetStateInfo() != jt.GetStateInfo() && !core->IsOpenShellState(jt.GetStateInfo()))
+            if(it.GetOrbitalInfo() != jt.GetOrbitalInfo() && !core->IsOpenShellState(jt.GetOrbitalInfo()))
             {
                 double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
                 if(orth > max_orth)

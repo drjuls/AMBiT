@@ -1,7 +1,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include "HartreeFock/StateInfo.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include <map>
 #include <list>
 #include <string>
@@ -26,20 +26,20 @@ public:
     inline void First() const;
     inline void Next() const;
     inline bool AtEnd() const;
-    void SetIterator(const StateInfo& info) const;
+    void SetIterator(const OrbitalInfo& info) const;
 
-    StateInfo GetInfo() const;
+    OrbitalInfo GetInfo() const;
     unsigned int GetOccupancy() const;
     void SetOccupancy(unsigned int occupancy);
 
     // Get occupancy of a particular single particle state.
     // (zero if absent)
-    unsigned int GetOccupancy(const StateInfo& info) const;
+    unsigned int GetOccupancy(const OrbitalInfo& info) const;
 
     // These return the success of the operation.
-    virtual bool RemoveSingleParticle(const StateInfo& info);
-    virtual bool AddSingleParticle(const StateInfo& info);
-    virtual bool SetOccupancy(const StateInfo& info, unsigned int occupancy);
+    virtual bool RemoveSingleParticle(const OrbitalInfo& info);
+    virtual bool AddSingleParticle(const OrbitalInfo& info);
+    virtual bool SetOccupancy(const OrbitalInfo& info, unsigned int occupancy);
 
     void Clear();
     bool Empty() const;
@@ -57,8 +57,8 @@ public:
 
 protected:
     /** Map single particle state to occupancy. */
-    std::map<StateInfo, unsigned int> Config;
-    mutable std::map<StateInfo, unsigned int>::const_iterator it;
+    std::map<OrbitalInfo, unsigned int> Config;
+    mutable std::map<OrbitalInfo, unsigned int>::const_iterator it;
 };
 
 class ConfigList : public std::list<Configuration>

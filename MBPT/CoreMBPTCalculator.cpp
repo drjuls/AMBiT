@@ -43,7 +43,7 @@ void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma) c
     CalculateCorrelation4(kappa, sigma);
 }
 
-double CoreMBPTCalculator::GetOneElectronDiagrams(const StateInfo& s1, const StateInfo& s2) const
+double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     if(s1.Kappa() != s2.Kappa())
         return 0.;
@@ -58,7 +58,7 @@ double CoreMBPTCalculator::GetOneElectronDiagrams(const StateInfo& s1, const Sta
     return (term1 + term2 + term4);
 }
 
-double CoreMBPTCalculator::GetOneElectronSubtraction(const StateInfo& s1, const StateInfo& s2) const
+double CoreMBPTCalculator::GetOneElectronSubtraction(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     if(s1.Kappa() != s2.Kappa())
         return 0.;
@@ -73,7 +73,7 @@ double CoreMBPTCalculator::GetOneElectronSubtraction(const StateInfo& s1, const 
     return (term1 + term2 + term3);
 }
 
-double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
         *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
@@ -90,7 +90,7 @@ double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const StateInf
     return term;
 }
 
-double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
         *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
@@ -104,7 +104,7 @@ double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const State
     return term;
 }
 
-double CoreMBPTCalculator::GetTwoElectronSubtraction(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CoreMBPTCalculator::GetTwoElectronSubtraction(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
         *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
@@ -119,7 +119,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
     unsigned int MaxStateSize = core->GetConstHFPotential().size();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
 
-    StateInfo sa(100, kappa);
+    OrbitalInfo sa(100, kappa);
 
     std::vector<double> density(MaxStateSize);
     std::vector<double> P_nalpha(MaxStateSize);
@@ -267,7 +267,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
     unsigned int MaxStateSize = core->GetConstHFPotential().size();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
 
-    StateInfo sa(100, kappa);
+    OrbitalInfo sa(100, kappa);
 
     std::vector<double> density(MaxStateSize);
     std::vector<double> P_nalpha(MaxStateSize);
@@ -423,7 +423,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     unsigned int MaxStateSize = core->GetConstHFPotential().size();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
 
-    StateInfo sa(100, kappa);
+    OrbitalInfo sa(100, kappa);
 
     std::vector<double> density(MaxStateSize);
     std::vector<double> P_nalpha(MaxStateSize);
@@ -574,7 +574,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     }
 }
 
-double CoreMBPTCalculator::CalculateCorrelation1and3(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -590,13 +590,13 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const StateInfo& sa, const 
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             k1 = kmin(sn, salpha);
@@ -616,7 +616,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const StateInfo& sa, const 
                     ConstStateIterator it_beta = excited->GetConstStateIterator();
                     while(!it_beta.AtEnd())
                     {
-                        const StateInfo sbeta = it_beta.GetStateInfo();
+                        const OrbitalInfo sbeta = it_beta.GetOrbitalInfo();
                         const double Ebeta = it_beta.GetState()->Energy();
 
                         double coeff;
@@ -644,7 +644,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const StateInfo& sa, const 
                     ConstStateIterator it_m = core->GetConstStateIterator();
                     while(!it_m.AtEnd())
                     {
-                        const StateInfo sm = it_m.GetStateInfo();
+                        const OrbitalInfo sm = it_m.GetOrbitalInfo();
                         const double Em = it_m.GetState()->Energy();
 
                         double coeff;
@@ -681,7 +681,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const StateInfo& sa, const 
     return energy1 + energy3;
 }
 
-double CoreMBPTCalculator::CalculateCorrelation2(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -698,13 +698,13 @@ double CoreMBPTCalculator::CalculateCorrelation2(const StateInfo& sa, const Stat
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             k1 = kmin(sn, salpha);
@@ -721,7 +721,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const StateInfo& sa, const Stat
                     ConstStateIterator it_beta = excited->GetConstStateIterator();
                     while(!it_beta.AtEnd())
                     {
-                        const StateInfo sbeta = it_beta.GetStateInfo();
+                        const OrbitalInfo sbeta = it_beta.GetOrbitalInfo();
                         const double Ebeta = it_beta.GetState()->Energy();
 
                         double C_abeta;
@@ -778,7 +778,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const StateInfo& sa, const Stat
     return energy;    
 }
 
-double CoreMBPTCalculator::CalculateCorrelation4(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -795,13 +795,13 @@ double CoreMBPTCalculator::CalculateCorrelation4(const StateInfo& sa, const Stat
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             k1 = kmin(sn, salpha);
@@ -818,7 +818,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const StateInfo& sa, const Stat
                     ConstStateIterator it_m = core->GetConstStateIterator();
                     while(!it_m.AtEnd())
                     {
-                        const StateInfo sm = it_m.GetStateInfo();
+                        const OrbitalInfo sm = it_m.GetOrbitalInfo();
                         const double Em = it_m.GetState()->Energy();
 
                         double C_am;
@@ -873,7 +873,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const StateInfo& sa, const Stat
     return energy;    
 }
 
-double CoreMBPTCalculator::CalculateSubtraction1(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -885,13 +885,13 @@ double CoreMBPTCalculator::CalculateSubtraction1(const StateInfo& sa, const Stat
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             if(sn.Kappa() == salpha.Kappa())
@@ -919,7 +919,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const StateInfo& sa, const Stat
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateSubtraction2(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
     if(debug)
@@ -932,13 +932,13 @@ double CoreMBPTCalculator::CalculateSubtraction2(const StateInfo& sa, const Stat
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             if(sn.Kappa() == salpha.Kappa())
@@ -976,7 +976,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const StateInfo& sa, const Stat
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateSubtraction3(const StateInfo& sa, const StateInfo& sb) const
+double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -989,7 +989,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const StateInfo& sa, const Stat
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         if(sn.Kappa() == sa.Kappa())
@@ -1007,7 +1007,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const StateInfo& sa, const Stat
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -1019,13 +1019,13 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const StateInfo
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             double coeff;
@@ -1061,7 +1061,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const StateInfo
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -1079,13 +1079,13 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const StateInfo
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             double C_nalpha;
@@ -1170,12 +1170,12 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const StateInfo
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron3(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron3(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     return CalculateTwoElectron2(k, sc, sd, sa, sb);
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -1194,13 +1194,13 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const StateInfo
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         ConstStateIterator it_alpha = excited->GetConstStateIterator();
         while(!it_alpha.AtEnd())
         {
-            const StateInfo salpha = it_alpha.GetStateInfo();
+            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
             const double Ealpha = it_alpha.GetState()->Energy();
 
             double C_nalpha;
@@ -1268,12 +1268,12 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const StateInfo
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron5(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron5(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     return CalculateTwoElectron4(k, sb, sa, sd, sc);
 }
 
-double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -1294,13 +1294,13 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const StateInfo
     ConstStateIterator it_m = core->GetConstStateIterator();
     while(!it_m.AtEnd())
     {
-        const StateInfo sm = it_m.GetStateInfo();
+        const OrbitalInfo sm = it_m.GetOrbitalInfo();
         const double Em = it_m.GetState()->Energy();
 
         ConstStateIterator it_n = core->GetConstStateIterator();
         while(!it_n.AtEnd())
         {
-            const StateInfo sn = it_n.GetStateInfo();
+            const OrbitalInfo sn = it_n.GetOrbitalInfo();
             const double En = it_n.GetState()->Energy();
 
             double coeff_mn;
@@ -1370,7 +1370,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const StateInfo
     return energy;
 }
 
-double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const
+double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const
 {
     const bool debug = DebugOptions.LogMBPT();
 
@@ -1388,7 +1388,7 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const StateIn
     ConstStateIterator it_n = core->GetConstStateIterator();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         if(sn.Kappa() == sa.Kappa())
@@ -1410,7 +1410,7 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const StateIn
     it_n.First();
     while(!it_n.AtEnd())
     {
-        const StateInfo sn = it_n.GetStateInfo();
+        const OrbitalInfo sn = it_n.GetOrbitalInfo();
         const double En = it_n.GetState()->Energy();
 
         if(sn.Kappa() == sb.Kappa())

@@ -5,7 +5,7 @@
 #include "Atom/RateCalculator.h"
 #include "Configuration/Eigenstates.h"
 #include "Configuration/Symmetry.h"
-#include "HartreeFock/StateInfo.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include "Universal/Enums.h"
 
 // Class storage for a transition type (E1, M1, E2 etc.) based on std::pair

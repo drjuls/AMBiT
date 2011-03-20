@@ -7,7 +7,7 @@
 #include "Atom/Transitions.h"
 #include "Configuration/Eigenstates.h"
 #include "Configuration/Symmetry.h"
-#include "HartreeFock/StateInfo.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include "Universal/Enums.h"
 
 TransitionType::TransitionType()

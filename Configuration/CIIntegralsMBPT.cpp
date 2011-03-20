@@ -735,7 +735,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
 }
 
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -946,10 +946,10 @@ void CIIntegralsMBPT::AddSMSToTwoElectronIntegrals(const std::string& name)
         if(k == 1)
         {
             // Get states
-            StateInfo& s1 = reverse_state_index.find(i1)->second;
-            StateInfo& s2 = reverse_state_index.find(i2)->second;
-            StateInfo& s3 = reverse_state_index.find(i3)->second;
-            StateInfo& s4 = reverse_state_index.find(i4)->second;
+            OrbitalInfo& s1 = reverse_state_index.find(i1)->second;
+            OrbitalInfo& s2 = reverse_state_index.find(i2)->second;
+            OrbitalInfo& s3 = reverse_state_index.find(i3)->second;
+            OrbitalInfo& s4 = reverse_state_index.find(i4)->second;
 
             // Check for correct parity (as opposed to box diagrams)
             if(((s1.L() + s3.L() + k)%2 == 0) && ((s2.L() + s4.L() + k)%2 == 0))

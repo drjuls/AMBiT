@@ -537,7 +537,7 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
     // Report ordering of excited states
     ConstStateIterator it = excited->GetConstStateIterator();
     while(!it.AtEnd())
-    {   *outstream << it.GetStateInfo().Name() << std::endl;
+    {   *outstream << it.GetOrbitalInfo().Name() << std::endl;
         it.Next();
     }
 
@@ -561,7 +561,7 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
         it = excited->GetConstStateIterator();
         while(!it.AtEnd())
         {
-            StateInfo si = it.GetStateInfo();
+            OrbitalInfo si = it.GetOrbitalInfo();
             if(include_mbpt && brueckner)
             {   excited->CreateSecondOrderSigma(si, *mbpt);
                 Orbital ds = excited->GetStateWithSigma(si);

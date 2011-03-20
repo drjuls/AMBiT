@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "Orbital.h"
 #include "Universal/Constant.h"
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 #include <math.h>
 
 Orbital::Orbital(unsigned int PrincipalQN, int Kappa):
@@ -47,7 +47,7 @@ double Orbital::Norm(const Lattice* lattice) const
 
 std::string Orbital::Name() const
 {
-    return StateInfo(this).Name();
+    return OrbitalInfo(this).Name();
 }
 
 bool Orbital::CheckSize(Lattice* lattice, double tolerance)
