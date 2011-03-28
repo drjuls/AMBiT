@@ -522,7 +522,7 @@ void Atom::CalculateEnergies()
                     {
                         min_percent_displayed = 101.;
                     }
-                    H->SolveMatrix(NumSolutions, *E, ShowgFactors, min_percent_displayed, OutputType);
+                    H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, min_percent_displayed);
                 #endif
 
                 delete H;

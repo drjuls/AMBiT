@@ -6,6 +6,8 @@
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
 #include "ConfigFileGenerator.h"
+#include "Universal/Enums.h"
+#include "Universal/Solution.h"
 
 #define SMALL_MATRIX_LIM 2000
 
@@ -412,7 +414,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage, DisplayOutputType::Enum OutputType)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, double min_percentage)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -481,7 +483,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
 
             list_it++;
         }
-        
+
         std::multimap<double, Configuration> ordered_percentages;
         std::map<Configuration, double>::iterator ordering_it = percentages.begin();
 
@@ -517,6 +519,28 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
             *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
         *outstream << std::endl;
+        if(g_factors)
+        {
+            if(eigenstates.GetParity() == even)
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages, g_factors[solution])));
+            }
+            else
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages, g_factors[solution])));
+            }
+        }
+        else
+        {
+            if(eigenstates.GetParity() == even)
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages)));
+            }
+            else
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages)));
+            }
+        }
     }
 }
 

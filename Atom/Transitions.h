@@ -54,9 +54,6 @@ public:
     inline TransitionType GetTransitionType() const
     {   return mTransitionType;
     }
-    inline double GetTransitionProbability() const
-    {   return mTransitionProbability;
-    }
     inline double GetTransitionRate() const
     {   return mTransitionRate;
     }
@@ -81,6 +78,7 @@ public:
     bool operator==(const Transition& other) const;
 
 protected:
+    // Might want to consider removing the transition knowing about Atom...
     Atom* mAtom;
 
     Configuration* mLeadingConfigurationFrom;
@@ -92,15 +90,15 @@ protected:
     Symmetry mSymmetryTo;
     unsigned int mSolutionIDTo;
 
-    double mTransitionProbability;
     double mTransitionRate;
 
     void Solve(TransitionGaugeType::Enum aGauge);
 };
 
-class TransitionSet : std::set<Transition>
+class TransitionSet : public std::set<Transition>
 {
 public:
+    TransitionSet();
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
     // Creates a set of Transitions with a specified Type, Symmetry and Configurations from and to
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);

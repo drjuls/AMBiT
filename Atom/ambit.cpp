@@ -110,6 +110,8 @@ int main(int argc, char* argv[])
         // That's all we need to start the Atom class
         Atom A(fileInput, Z, N, identifier);
         A.Run();
+        
+        A.GetSolutionMap()->Print();
 
 //        RateCalculator RC(A.GetBasis());
 //        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 0, false, true);

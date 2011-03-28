@@ -302,3 +302,19 @@ void ConfigList::Print()
     }
     *outstream << std::endl;
 }
+
+ConfigurationPair::ConfigurationPair(const Configuration& aConfiguration, const double& aDouble)
+{
+    first = aConfiguration;
+    second = aDouble;
+
+}
+
+void ConfigurationSet::Print()
+{
+    ConfigurationSet::iterator cs_it;
+    for(cs_it = begin(); cs_it != end(); cs_it++)
+    {
+        *outstream << cs_it->first.Name() << " " << cs_it->second << "%" << std::endl;
+    }
+}

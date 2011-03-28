@@ -1,6 +1,8 @@
 #ifndef ENUMS_H
 #define ENUMS_H
 
+#include <string>
+
 namespace DisplayOutputType
 {
     enum Enum 
@@ -67,6 +69,30 @@ namespace TransitionGaugeType
                 return "Length";
             case Velocity:
                 return "Velocity";
+            default:
+                return "";
+        }
+    }
+}
+
+namespace ParityType
+{
+    enum Enum 
+    {
+        Start,
+        Even = 0,
+        Odd,
+        End
+    };
+
+    inline std::string Name(Enum from)
+    {
+        switch(from)
+        {
+            case Even:
+                return "Even";
+            case Odd:
+                return "Odd";
             default:
                 return "";
         }

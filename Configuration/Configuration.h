@@ -3,6 +3,7 @@
 
 #include "HartreeFock/OrbitalInfo.h"
 #include <map>
+#include <set>
 #include <list>
 #include <string>
 
@@ -92,5 +93,25 @@ inline bool Configuration::Empty() const
 {
     return Config.empty();
 }
+
+class ConfigurationPair : public std::pair<Configuration, double>
+{
+public:
+    ConfigurationPair(const Configuration& aConfiguration, const double& aDouble);
+};
+
+class ConfigurationPairCompare 
+{
+public:
+    bool operator() (const ConfigurationPair& lhs, const ConfigurationPair& rhs) const
+    {   return lhs.second > rhs.second;
+    }
+};
+
+class ConfigurationSet : public std::set<ConfigurationPair, ConfigurationPairCompare>
+{
+public:
+    void Print();
+};
 
 #endif

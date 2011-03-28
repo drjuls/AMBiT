@@ -3,14 +3,15 @@
 
 #include <Atom/GetPot>
 
-#include "Universal/Constant.h"
-#include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
 #include "Configuration/CIIntegrals.h"
 #include "Configuration/CIIntegralsMBPT.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/Eigenstates.h"
+#include "HartreeFock/Core.h"
+#include "Universal/Constant.h"
+#include "Universal/Solution.h"
 
 class Atom
 {
@@ -143,6 +144,8 @@ public:
     /** Get the set of valence orbitals. */
     ExcitedStates* GetBasis() { return excited; }
 
+    SolutionMap* GetSolutionMap() { return &mSolutionMap; }
+
 public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, const Orbital* ds);
@@ -177,6 +180,7 @@ protected:
     Sigma3Calculator* sigma3;
 
     SymmetryEigenstatesMap symEigenstates;
+    SolutionMap mSolutionMap;
 
     // Operational parameters
     bool useRead;     // Read when possible from file
