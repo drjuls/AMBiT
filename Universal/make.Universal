@@ -1,7 +1,7 @@
 cxxobjects = Constant.o CoulombIntegrator.o CoupledFunction.o \
              Eigensolver.o ExpLattice.o Include.o Integrator.o \
              Interpolator.o Lattice.o ScalapackMatrix.o SmallMatrix.o \
-             Solution.o SymMatrix.o
+             SymMatrix.o
 cobjects =
 fobjects = Davidson.o
 

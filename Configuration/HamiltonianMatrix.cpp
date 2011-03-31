@@ -7,7 +7,6 @@
 #include "Universal/Constant.h"
 #include "ConfigFileGenerator.h"
 #include "Universal/Enums.h"
-#include "Universal/Solution.h"
 
 #define SMALL_MATRIX_LIM 2000
 

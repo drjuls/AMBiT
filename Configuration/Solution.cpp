@@ -1,8 +1,8 @@
 #include <sstream>
 
 #include "Include.h"
+#include "Configuration/Solution.h"
 #include "Universal/Enums.h"
-#include "Universal/Solution.h"
 
 SolutionID::SolutionID(double aJ, ParityType::Enum aParity, unsigned int aID)
 {

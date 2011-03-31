@@ -2,7 +2,7 @@
 #define MPI_HAMILTONIAN_MATRIX_H
 
 #include "HamiltonianMatrix.h"
-#include "Universal/Solution.h"
+#include "Configuration/Solution.h"
 
 class MPIHamiltonianMatrix: public HamiltonianMatrix
 {

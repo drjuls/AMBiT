@@ -4,10 +4,10 @@
 #include "RelativisticConfiguration.h"
 #include "CIIntegrals.h"
 #include "Basis/ExcitedStates.h"
+#include "Configuration/Solution.h"
 #include "MBPT/Sigma3Calculator.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
-#include "Universal/Solution.h"
 
 #include "ConfigFileGenerator.h"
 #include "Eigenstates.h"

@@ -9,9 +9,9 @@
 #include "Configuration/CIIntegralsMBPT.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/Eigenstates.h"
+#include "Configuration/Solution.h"
 #include "HartreeFock/Core.h"
 #include "Universal/Constant.h"
-#include "Universal/Solution.h"
 
 class Atom
 {
