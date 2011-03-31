@@ -174,13 +174,59 @@ Parity Configuration::GetParity() const
         return odd;
 }
 
-std::string Configuration::Name() const
+std::string Configuration::Name(bool aSpaceFirst) const
+{
+    std::string name;
+    if(aSpaceFirst)
+    {
+        std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
+
+        while(m_it != Config.end())
+        {
+            name.append(" " + NonRelInfo(m_it->first).Name());
+    
+            char buffer[20];
+            sprintf(buffer, "%d", m_it->second);
+            name.append(buffer);
+    
+            m_it++;
+        }
+    }
+    else
+    {
+        std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
+
+        bool IsFirstTerm = true;
+        while(m_it != Config.end())
+        {
+            if(IsFirstTerm)
+            {
+                name.append(NonRelInfo(m_it->first).Name());
+                IsFirstTerm = false;
+            }
+            else
+            {
+                name.append(" " + NonRelInfo(m_it->first).Name());
+            }
+
+    
+            char buffer[20];
+            sprintf(buffer, "%d", m_it->second);
+            name.append(buffer);
+    
+            m_it++;
+        }
+    }
+    return name;
+}
+
+std::string Configuration::ShortName() const
 {
     std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
     std::string name;
     while(m_it != Config.end())
     {
-        name.append(" " + NonRelInfo(m_it->first).Name());
+        name.append(NonRelInfo(m_it->first).Name());
 
         char buffer[20];
         sprintf(buffer, "%d", m_it->second);
@@ -315,6 +361,6 @@ void ConfigurationSet::Print()
     ConfigurationSet::iterator cs_it;
     for(cs_it = begin(); cs_it != end(); cs_it++)
     {
-        *outstream << cs_it->first.Name() << " " << cs_it->second << "%" << std::endl;
+        *outstream << std::setw(20) << cs_it->first.Name() << "  " << std::setprecision(2) << cs_it->second << "%" << std::endl;
     }
 }

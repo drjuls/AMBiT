@@ -5,6 +5,7 @@
 #include "OutStreams.h"
 #include "Atom.h"
 #include "RateCalculator.h"
+#include "Universal/Enums.h"
 
 #include <Atom/GetPot>
 
@@ -82,9 +83,10 @@ int main(int argc, char* argv[])
         fileInput.absorb(lineInput);
 
         // Must-have arguments. This also checks on the file's existence.
-        int Z, N, Charge;
+        int Z, ZIterations, N, Charge;
         Z = fileInput("Z", 0);
         N = fileInput("HF/N", -1);  // Number of electrons
+        ZIterations = fileInput("ZIterations", 1);
         if(Z != 0 && N == -1)
         {   Charge = fileInput("HF/Charge", -1);
             N = Z - Charge;
@@ -107,11 +109,49 @@ int main(int argc, char* argv[])
             }
         }
 
+        if(ZIterations > 1 && fileInput("NumValenceElectrons", 1) > 1)
+        {
+            *errstream << "Configuration interaction for multiple atoms with differing charge is not supported yet." << std::endl;
+            exit(1);
+        }
+
         // That's all we need to start the Atom class
         Atom A(fileInput, Z, N, identifier);
         A.Run();
-        
-        A.GetSolutionMap()->Print();
+        if(ZIterations > 1)
+        {
+            int ZCounter = 1;
+            while(ZCounter < ZIterations) {
+                Atom aA(fileInput, Z + ZCounter, N, identifier);
+                aA.Run();
+                ZCounter++;
+            }
+        }
+
+        DisplayOutputType::Enum OutputType;
+        std::string TypeString = fileInput("CI/Output/Type", "");
+        if(TypeString == "Standard")
+        {
+            OutputType = DisplayOutputType::Standard;
+        }
+        else if(TypeString == "CommaSeparated")
+        {
+            OutputType = DisplayOutputType::CommaSeparated;
+        }
+        else if(TypeString == "SpaceSeparated")
+        {
+            OutputType = DisplayOutputType::SpaceSeparated;
+        }
+        else if(TypeString == "TabSeparated")
+        {
+            OutputType = DisplayOutputType::TabSeparated;
+        }
+
+        if(TypeString != "" && fileInput("NumValenceElectrons", 1) > 1)
+        {
+            A.GetSolutionMap()->Print(OutputType);
+        }
+
 
 //        RateCalculator RC(A.GetBasis());
 //        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 0, false, true);

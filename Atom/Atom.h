@@ -105,7 +105,7 @@ public:
     void RunIndexNext(bool print = true);
     bool RunIndexAtEnd();
 
-    void InitialiseParameters();
+    void InitialiseParameters(bool print = true);
     void SetRunParameters(bool print = true);
     void SetRunCore(bool force = false);
     void SetRunIntegrals(bool force = false);

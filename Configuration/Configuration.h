@@ -50,7 +50,8 @@ public:
     Parity GetParity() const;
     bool operator<(const Configuration& other) const;
     bool operator==(const Configuration& other) const;
-    virtual std::string Name() const;
+    virtual std::string Name(bool aSpaceFirst = true) const;
+    virtual std::string ShortName() const;
 
     // File storage (binary)
     virtual void Write(FILE* fp) const;
@@ -111,6 +112,7 @@ public:
 class ConfigurationSet : public std::set<ConfigurationPair, ConfigurationPairCompare>
 {
 public:
+    ConfigurationSet::iterator GetLargestConfiguration() { return begin(); }
     void Print();
 };
 

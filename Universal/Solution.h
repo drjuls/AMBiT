@@ -18,6 +18,9 @@ public:
     inline bool operator==(const SolutionID& other)
     {   return ((mJ == other.mJ) && (mParity == other.mParity) && (mID == other.mID));
     }
+    inline bool SameJP(const SolutionID& other) const
+    {   return ((mJ == other.mJ) && (mParity == other.mParity));
+    };
     
     double GetJ() const { return mJ; }
     ParityType::Enum GetParity() const { return mParity; }
@@ -58,7 +61,7 @@ protected:
 class SolutionMap : public std::map<SolutionID, Solution>
 {
 public:
-    void Print();
+    void Print(DisplayOutputType::Enum aDisplayOutputType = DisplayOutputType::Standard);
 protected:
 };
 

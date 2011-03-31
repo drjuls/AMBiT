@@ -9,7 +9,9 @@ namespace DisplayOutputType
     {
         Start,
         Standard = 0,
-        Short,
+        CommaSeparated,
+        SpaceSeparated,
+        TabSeparated,
         End
     };
     
@@ -19,8 +21,12 @@ namespace DisplayOutputType
         {
             case Standard:
                 return "Standard";
-            case Short:
-                return "Short";
+            case CommaSeparated:
+                return "Comma Separated";
+            case SpaceSeparated:
+                return "Space Separated";
+            case TabSeparated:
+                return "Tab Separated";
             default:
                 return "";
         }
@@ -93,6 +99,32 @@ namespace ParityType
                 return "Even";
             case Odd:
                 return "Odd";
+            default:
+                return "";
+        }
+    }
+    
+    inline std::string LowerName(Enum from)
+    {
+        switch(from)
+        {
+            case Even:
+                return "even";
+            case Odd:
+                return "odd";
+            default:
+                return "";
+        }
+    }
+
+    inline std::string ShortName(Enum from)
+    {
+        switch(from)
+        {
+            case Even:
+                return "+1";
+            case Odd:
+                return "-1";
             default:
                 return "";
         }

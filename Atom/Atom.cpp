@@ -81,7 +81,7 @@ bool Atom::Run()
 {
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited(true);
+    DebugOptions.OutputHFExcited((userInput_("Z", Z) == Z) && (userInput_("ZIterations", 1) == 1));
     DebugOptions.HartreeEnergyUnits(true);
 
     // Check for numValenceElectrons
@@ -128,7 +128,7 @@ bool Atom::Run()
         // Relativistic Hartree-Fock
         core = new Core(lattice, Z, Charge);
 
-        InitialiseParameters();
+        InitialiseParameters(userInput_("Z", Z) == Z);
         RunIndexBegin(true);
 
         if(!useRead || !ReadCore())
@@ -242,49 +242,123 @@ void Atom::RunSingleElectron()
 
         StateIterator it = excited->GetStateIterator();
         it.First();
-        while(!it.AtEnd())
+        int ZIterations = (int) userInput_("ZIterations", 1);
+        if(ZIterations == 1)
         {
-            OrbitalInfo si = it.GetOrbitalInfo();
-            Orbital* ds = it.GetState();
-            *outstream << "\n" << ds->Name() << "\n";
-            *outstream << std::setprecision(12);
-            *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
-
-            if(sigma_potential)
+            while(!it.AtEnd())
             {
-                // Create sigma, if it doesn't exist, and find matrix element
-                double dE = 0.0;
-                if(!excited->RetrieveSecondOrderSigma(si))
-                    dE = excited->CreateSecondOrderSigma(si, *mbpt);
-                else
-                    dE = excited->GetSigmaMatrixElement(si);
-                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
-                
-                // Iterate to create Brueckner orbital
-                Orbital brueckner = excited->GetStateWithSigma(si);
-                *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
-
-                // Set energy to known value, if requested
-                double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
-                if(E_experiment)
-                {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
-                    brueckner = excited->GetStateWithSigma(si);
-                }
-
-                // Log ratio
-                *logstream << "\n" << brueckner.Name() << std::endl;
-                for(unsigned int i = 0; i < 100; i+=10)
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << "\n" << ds->Name() << "\n";
+                *outstream << std::setprecision(12);
+                *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
+    
+                if(sigma_potential)
                 {
-                    *logstream << lattice->R(i) << "\t";
-                    *logstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+                    // Create sigma, if it doesn't exist, and find matrix element
+                    double dE = 0.0;
+                    if(!excited->RetrieveSecondOrderSigma(si))
+                        dE = excited->CreateSecondOrderSigma(si, *mbpt);
+                    else
+                        dE = excited->GetSigmaMatrixElement(si);
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                    
+                    // Iterate to create Brueckner orbital
+                    Orbital brueckner = excited->GetStateWithSigma(si);
+                    *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
+    
+                    // Set energy to known value, if requested
+                    double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
+                    if(E_experiment)
+                    {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
+                        brueckner = excited->GetStateWithSigma(si);
+                    }
+    
+                    // Log ratio
+                    *logstream << "\n" << brueckner.Name() << std::endl;
+                    for(unsigned int i = 0; i < 100; i+=10)
+                    {
+                        *logstream << lattice->R(i) << "\t";
+                        *logstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+                    }
                 }
+                else if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                }
+    
+                it.Next();
             }
-            else if(mbpt)
-            {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+        }
+        else if(ZIterations > 1)
+        {
+            if(userInput_("Z", Z) == Z)
+            {
+                *outstream << std::endl;
+                *outstream << identifier << " ";
+
+                it = core->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                it = excited->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                *outstream << std::endl;
+            }
+            
+            *outstream << Z << " ";
+            
+            it = core->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
             }
 
-            it.Next();
+            it = excited->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            *outstream << std::endl;
         }
 
         excited->ClearSigmas();
@@ -382,7 +456,8 @@ void Atom::CreateBasis(bool UseMBPT)
         excited_mbpt->CreateExcitedStates(MBPT_basis_states);
         *outstream << "MBPT    " << mbptBasisString << std::endl;
     }
-    *outstream << "Valence " << ciBasisString << std::endl;
+    if(userInput_("Z", Z) == Z)
+        *outstream << "Valence " << ciBasisString << std::endl;
 
     excited->SetIdentifier(identifier);
     core->ToggleOpenShellCore();
