@@ -129,6 +129,19 @@ namespace ParityType
                 return "";
         }
     }
+    
+    inline std::string VeryShortName(Enum from)
+    {
+        switch(from)
+        {
+            case Even:
+                return "e";
+            case Odd:
+                return "o";
+            default:
+                return "";
+        }
+    }
 }
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <map>
 #include "Configuration/Configuration.h"
+#include "Configuration/Symmetry.h"
 #include "Universal/Constant.h"
 #include "Universal/Enums.h"
 
@@ -18,13 +19,13 @@ public:
     inline bool operator==(const SolutionID& other)
     {   return ((mJ == other.mJ) && (mParity == other.mParity) && (mID == other.mID));
     }
-    inline bool SameJP(const SolutionID& other) const
-    {   return ((mJ == other.mJ) && (mParity == other.mParity));
-    };
     
     double GetJ() const { return mJ; }
     ParityType::Enum GetParity() const { return mParity; }
     unsigned int GetID() const { return mID; }
+    Symmetry GetSymmetry() const;
+    
+    std::string GetIdentifier() const;
 
 protected:
     double mJ;
@@ -51,6 +52,9 @@ public:
     inline ConfigurationSet* GetConfigurationSet()
     {   return &mConfigurationSet;
     }
+    inline Configuration GetLeadingConfiguration()
+    {   return GetConfigurationSet()->GetLargestConfiguration();
+    }
 
 protected:
     double mEnergy;
@@ -62,6 +66,10 @@ class SolutionMap : public std::map<SolutionID, Solution>
 {
 public:
     void Print(DisplayOutputType::Enum aDisplayOutputType = DisplayOutputType::Standard);
+    void PrintID();
+    void PrintSolution(SolutionMap::iterator aSolutionIterator);
+
+    SolutionMap::iterator FindByIdentifier(const std::string& aIdentifier);
 protected:
 };
 

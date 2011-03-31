@@ -109,10 +109,12 @@ public:
     }
 };
 
+// Stores a set of configurations and their composition numbers sorted by descending order
 class ConfigurationSet : public std::set<ConfigurationPair, ConfigurationPairCompare>
 {
 public:
-    ConfigurationSet::iterator GetLargestConfiguration() { return begin(); }
+    ConfigurationSet::iterator GetLargestConfigurationPair() { return begin(); }
+    Configuration GetLargestConfiguration() { return begin()->first; }
     void Print();
 };
 
