@@ -1,14 +1,7 @@
 #include <string>
 #include <sstream>
 
-#include "Include.h"
-#include "Atom/Atom.h"
-#include "Atom/RateCalculator.h"
 #include "Atom/Transitions.h"
-#include "Configuration/Eigenstates.h"
-#include "Configuration/Symmetry.h"
-#include "HartreeFock/OrbitalInfo.h"
-#include "Universal/Enums.h"
 
 TransitionType::TransitionType()
 {

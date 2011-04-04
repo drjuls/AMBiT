@@ -13,6 +13,9 @@
 #include "HartreeFock/Core.h"
 #include "Universal/Constant.h"
 
+class SolutionMap;
+class Sigma3Calculator;
+
 class Atom
 {
 public:
@@ -144,7 +147,7 @@ public:
     /** Get the set of valence orbitals. */
     ExcitedStates* GetBasis() { return excited; }
 
-    SolutionMap* GetSolutionMap() { return &mSolutionMap; }
+    SolutionMap* GetSolutionMap() { return mSolutionMap; }
 
 public:
     void GenerateCowanInputFile();
@@ -180,7 +183,7 @@ protected:
     Sigma3Calculator* sigma3;
 
     SymmetryEigenstatesMap symEigenstates;
-    SolutionMap mSolutionMap;
+    SolutionMap* mSolutionMap;
 
     // Operational parameters
     bool useRead;     // Read when possible from file

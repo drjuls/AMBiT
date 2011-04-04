@@ -59,6 +59,8 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     multiple_length = 0;
     current_run_index = 0;
     original_id = identifier;
+    
+    mSolutionMap = new SolutionMap();
 }
 
 Atom::~Atom(void)

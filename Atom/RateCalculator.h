@@ -4,6 +4,9 @@
 #include "Atom.h"
 #include "Universal/Enums.h"
 
+class Atom;
+class Symmetry;
+
 class RateCalculator
 {
 public:

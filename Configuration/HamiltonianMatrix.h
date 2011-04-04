@@ -12,6 +12,8 @@
 #include "ConfigFileGenerator.h"
 #include "Eigenstates.h"
 
+class SolutionMap;
+
 class HamiltonianMatrix
 {
 public:

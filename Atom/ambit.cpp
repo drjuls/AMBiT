@@ -127,7 +127,11 @@ int main(int argc, char* argv[])
                 ZCounter++;
             }
         }
+        
+        // At this stage, we are ready to run calculations with the
+        // calculated energy levels
 
+        // Print the solutions currently available after CI calculation
         DisplayOutputType::Enum OutputType;
         std::string TypeString = fileInput("CI/Output/Type", "");
         if(TypeString == "Standard")
@@ -165,8 +169,8 @@ int main(int argc, char* argv[])
                     A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
             }
         }
-
-
+        
+        // Transition calculations should be performed here!
 
 //        RateCalculator RC(A.GetBasis());
 //        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 0, false, true);

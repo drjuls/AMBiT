@@ -8,6 +8,8 @@
 #include "HartreeFock/OrbitalInfo.h"
 #include "Universal/Enums.h"
 
+class Atom;
+
 // Class storage for a transition type (E1, M1, E2 etc.) based on std::pair
 class TransitionType : public std::pair<MultipolarityType::Enum, unsigned int>
 {
@@ -98,7 +100,9 @@ protected:
 class TransitionSet : public std::set<Transition>
 {
 public:
-    TransitionSet();
+    TransitionSet() : std::set<Transition>()
+    {
+    }
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
     // Creates a set of Transitions with a specified Type, Symmetry and Configurations from and to
     TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);

@@ -2,10 +2,14 @@
 #define SOLUTION_H
 
 #include <map>
+#include "Include.h"
+#include "Atom/Transitions.h"
 #include "Configuration/Configuration.h"
 #include "Configuration/Symmetry.h"
 #include "Universal/Constant.h"
 #include "Universal/Enums.h"
+
+class TransitionSet;
 
 // Effectively a hash function for converting
 // J, Pi and solution position in the list
@@ -14,7 +18,7 @@ class SolutionID
 {
 public:
     SolutionID(double aJ, ParityType::Enum aParity, unsigned int aID);
-    
+
     bool operator<(const SolutionID& other) const;
     inline bool operator==(const SolutionID& other)
     {   return ((mJ == other.mJ) && (mParity == other.mParity) && (mID == other.mID));
@@ -24,7 +28,7 @@ public:
     ParityType::Enum GetParity() const { return mParity; }
     unsigned int GetID() const { return mID; }
     Symmetry GetSymmetry() const;
-    
+
     std::string GetIdentifier() const;
 
 protected:
@@ -50,16 +54,20 @@ public:
     {   return mgFactor;
     }
     inline ConfigurationSet* GetConfigurationSet()
-    {   return &mConfigurationSet;
+    {   return mConfigurationSet;
     }
     inline Configuration GetLeadingConfiguration()
     {   return GetConfigurationSet()->GetLargestConfiguration();
+    }
+    inline TransitionSet* GetTransitionSet()
+    {   return mTransitionSet;
     }
 
 protected:
     double mEnergy;
     double mgFactor;
-    ConfigurationSet mConfigurationSet;
+    ConfigurationSet* mConfigurationSet;
+    TransitionSet* mTransitionSet;
 };
 
 class SolutionMap : public std::map<SolutionID, Solution>

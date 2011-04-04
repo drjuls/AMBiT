@@ -1,8 +1,6 @@
 #include <sstream>
 
-#include "Include.h"
 #include "Configuration/Solution.h"
-#include "Universal/Enums.h"
 
 SolutionID::SolutionID(double aJ, ParityType::Enum aParity, unsigned int aID)
 {
@@ -60,19 +58,23 @@ Solution::Solution(double aEnergy, double agFactor)
 {
     mEnergy = aEnergy;
     mgFactor = agFactor;
+    mConfigurationSet = new ConfigurationSet();
+    mTransitionSet = new TransitionSet();
 }
 
 Solution::Solution(double aEnergy, std::map<Configuration, double> aPercentagesMap, double agFactor)
 {
     mEnergy = aEnergy;
     mgFactor = agFactor;
-    
+    mConfigurationSet = new ConfigurationSet();
+    mTransitionSet = new TransitionSet();
+
     std::map<Configuration, double>::iterator cd_it;
     for(cd_it = aPercentagesMap.begin(); cd_it != aPercentagesMap.end(); cd_it++)
     {
         if(cd_it->second > 1)
         {
-            mConfigurationSet.insert(ConfigurationPair(cd_it->first, cd_it->second));
+            mConfigurationSet->insert(ConfigurationPair(cd_it->first, cd_it->second));
         }
     }
 }
