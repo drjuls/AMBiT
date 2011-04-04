@@ -76,6 +76,10 @@ void Eigenstates::SetgFactors(double* g_factors)
         gFactors = g_factors;
 }
 
+const double* Eigenstates::GetgFactors() const
+{   return gFactors;
+}
+
 void Eigenstates::SetIdentifier(const std::string& atom_identifier)
 {   identifier = atom_identifier;
 }

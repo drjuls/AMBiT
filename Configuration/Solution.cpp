@@ -1,3 +1,4 @@
+#include <map>
 #include <sstream>
 
 #include "Configuration/Solution.h"
@@ -6,6 +7,20 @@ SolutionID::SolutionID(double aJ, ParityType::Enum aParity, unsigned int aID)
 {
     mJ = aJ;
     mParity = aParity;
+    mID = aID;
+}
+
+SolutionID::SolutionID(Symmetry aSymmetry, unsigned int aID)
+{
+    mJ = aSymmetry.GetJ();
+    if(aSymmetry.GetParity() == even)
+    {
+        mParity = ParityType::Even;
+    }
+    else
+    {
+        mParity = ParityType::Odd;
+    }    
     mID = aID;
 }
 

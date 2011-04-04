@@ -136,18 +136,19 @@ mSymmetryFrom(0, even), mSymmetryTo(0, even)
     Solve(aGauge);
 }
 
-
-Transition::Transition(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
+Transition::Transition(Atom* aAtom, TransitionType aTransitionType, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
 mSymmetryFrom(0, even), mSymmetryTo(0, even)
 {
     mAtom = aAtom;
     mTransitionType = aTransitionType;
-    mLeadingConfigurationFrom = aLeadingConfigurationFrom;
-    mSymmetryFrom = aSymmetryFrom;
-    mSolutionIDFrom = aSolutionIDFrom;
-    mLeadingConfigurationTo = aLeadingConfigurationTo;
-    mSymmetryTo = aSymmetryTo;
-    mSolutionIDTo = aSolutionIDTo;
+    mSymmetryFrom = aSolutionIDFrom.GetSymmetry();
+    mSolutionIDFrom = aSolutionIDFrom.GetID();
+    mSymmetryTo = aSolutionIDTo.GetSymmetry();
+    mSolutionIDTo = aSolutionIDTo.GetID();
+
+    // Add code to determine the leading configurations...
+    // mLeadingConfigurationFrom =
+    // mLeadingConfigurationTo =
 
     Solve(aGauge);
 }
@@ -175,6 +176,7 @@ bool Transition::operator==(const Transition& other) const
     return (GetAtom() == other.GetAtom() && GetTransitionType() == other.GetTransitionType());
 }
 
+/*
 TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge)
 {
     SymmetryEigenstatesMap::const_iterator from_it, to_it;
@@ -312,7 +314,7 @@ TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Config
                 {
                     if(*aLeadingConfigurationTo == to_it->second)
                     {
-                        insert(Transition(aAtom, aTransitionType, aLeadingConfigurationFrom, aSymmetryFrom, (unsigned int) from_it->first, aLeadingConfigurationTo, aSymmetryTo, (unsigned int) to_it->first, aGauge));
+                        insert(Transition(aAtom, aTransitionType, aSymmetryFrom, (unsigned int) from_it->first, aSymmetryTo, (unsigned int) to_it->first, aGauge));
                         found_transitions = true;
                     }
                 }
@@ -320,3 +322,4 @@ TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Config
         }
     }
 }
+*/

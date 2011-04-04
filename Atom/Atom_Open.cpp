@@ -543,10 +543,10 @@ void Atom::CalculateEnergies()
             // Keep E if not multiple run and save_eigenstates is true
             if(save_eigenstates && NumberRunsSelected() == 1)
             {   it->second = E;
-                E->Clear();
+                //E->Clear();
             }
             else
-            {   delete E;
+            {   //delete E;
             }
 
             RunIndexNext(false);

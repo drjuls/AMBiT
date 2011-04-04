@@ -131,6 +131,7 @@ int main(int argc, char* argv[])
         // At this stage, we are ready to run calculations with the
         // calculated energy levels
 
+        A.WriteEigenstatesToSolutionMap();
         // Print the solutions currently available after CI calculation
         DisplayOutputType::Enum OutputType;
         std::string TypeString = fileInput("CI/Output/Type", "");
@@ -171,6 +172,8 @@ int main(int argc, char* argv[])
         }
         
         // Transition calculations should be performed here!
+        //A.GetSolutionMap()->FindByIdentifier("0e0")->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier("0e0")->first, A.GetSolutionMap()->FindByIdentifier("2o0")->first));
+        //A.GetSolutionMap()->FindByIdentifier("0e0")->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier("0e0")->first, A.GetSolutionMap()->FindByIdentifier("2o1")->first));
 
 //        RateCalculator RC(A.GetBasis());
 //        RC.CalculateAllDipoleStrengths(&A, Symmetry(6, odd), 0, false, true);

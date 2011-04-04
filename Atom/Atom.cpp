@@ -49,7 +49,7 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     mbptBasisString = "";
     ciBasisString = "";
     check_size_only = false;
-    save_eigenstates = false;
+    save_eigenstates = true;
     generate_mbpt_integrals = false;
     includeSigma1 = false;
     includeSigma2 = false;
@@ -1083,4 +1083,64 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int latti
     fwrite(P, sizeof(double), N, fp);
     fwrite(Q, sizeof(double), N, fp);
     fwrite(&record_size, sizeof(int), 1, fp);        
+}
+
+void Atom::WriteEigenstatesToSolutionMap()
+{
+    if(GetSymmetryEigenstatesMap()->empty())
+    {
+        *errstream << "Could not find eigenstates. Generate or read them first." << std::endl;
+    }
+    if(!GetSolutionMap()->empty())
+    {
+        GetSolutionMap()->clear();
+    }
+
+    SymmetryEigenstatesMap::const_iterator sem_it;
+    for(sem_it = GetSymmetryEigenstatesMap()->begin(); sem_it != GetSymmetryEigenstatesMap()->end(); sem_it++)
+    {
+        for(int i = 0; i < sem_it->second->GetNumEigenvalues(); i++)
+        {
+            ConfigGenerator* confgen = GenerateConfigurations(sem_it->first);
+            const RelativisticConfigList* configs = confgen->GetRelConfigs();
+            RelativisticConfigList::const_iterator list_it = configs->begin();
+            std::map<Configuration, double> percentages;
+            unsigned int N = 0;
+            while(list_it != configs->end())
+            {   N += list_it->NumJStates();
+                list_it++;
+            }
+
+            int j = 0;
+            list_it = configs->begin();
+            while(list_it != configs->end())
+            {
+                Configuration nrconfig(list_it->GetNonRelConfiguration());
+                if(percentages.find(nrconfig) == percentages.end())
+                    percentages[nrconfig] = 0.;
+        
+                for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
+                {
+                    double coeff = sem_it->second->GetEigenvectors()[i*N + j];
+                    coeff = coeff * coeff * 100;
+        
+                    percentages[nrconfig] += coeff;
+                    j++;
+                }
+        
+                list_it++;
+            }
+
+            if(sem_it->second->GetgFactors() != NULL)
+            {
+                GetSolutionMap()->insert(std::pair<SolutionID, Solution>(SolutionID(sem_it->first, i),Solution(sem_it->second->GetEigenvalues()[i], percentages, sem_it->second->GetgFactors()[i])));
+            }
+            else
+            {
+                GetSolutionMap()->insert(std::pair<SolutionID, Solution>(SolutionID(sem_it->first, i),Solution(sem_it->second->GetEigenvalues()[i], percentages)));
+            }
+        }
+    }
+
+
 }

@@ -1,14 +1,18 @@
 #ifndef TRANSITIONS_H
 #define TRANSITIONS_H
 
+#include <set>
+
 #include "Atom/Atom.h"
 #include "Atom/RateCalculator.h"
 #include "Configuration/Eigenstates.h"
+#include "Configuration/Solution.h"
 #include "Configuration/Symmetry.h"
 #include "HartreeFock/OrbitalInfo.h"
 #include "Universal/Enums.h"
 
 class Atom;
+class SolutionID;
 
 // Class storage for a transition type (E1, M1, E2 etc.) based on std::pair
 class TransitionType : public std::pair<MultipolarityType::Enum, unsigned int>
@@ -41,17 +45,11 @@ public:
 class Transition
 {
 public:
-    Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
-    Transition(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
+    Transition(Atom* aAtom, TransitionType aTransitionType, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
+    Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge);
 
     inline Atom* GetAtom() const
     {   return mAtom;
-    }
-    inline Configuration* GetLeadingConfigurationFrom() const
-    {   return mLeadingConfigurationFrom;
-    }
-    inline Configuration* GetLeadingConfigurationTo() const
-    {   return mLeadingConfigurationTo;
     }
     inline TransitionType GetTransitionType() const
     {   return mTransitionType;
@@ -80,11 +78,8 @@ public:
     bool operator==(const Transition& other) const;
 
 protected:
-    // Might want to consider removing the transition knowing about Atom...
     Atom* mAtom;
 
-    Configuration* mLeadingConfigurationFrom;
-    Configuration* mLeadingConfigurationTo;
     TransitionType mTransitionType;
 
     Symmetry mSymmetryFrom;
@@ -103,9 +98,6 @@ public:
     TransitionSet() : std::set<Transition>()
     {
     }
-    TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
-    // Creates a set of Transitions with a specified Type, Symmetry and Configurations from and to
-    TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
 protected:
 
 };

@@ -1,6 +1,7 @@
 #ifndef EIGENSTATES_H
 #define EIGENSTATES_H
 
+#include <map>
 #include "ConfigGenerator.h"
 #include "RelativisticConfiguration.h"
 #include "Symmetry.h"
@@ -44,6 +45,7 @@ public:
     const double* GetEigenvectors() const;
 
     void SetgFactors(double* g_factors);
+    const double* GetgFactors() const;
 
     void SetIdentifier(const std::string& atom_identifier);
 
@@ -68,7 +70,6 @@ public:
     void Print(unsigned int solution, double config_fraction_limit = 0.0) const;
     
     void PrintCowan(FILE* fp, double energy_shift = 0.0) const;
-
 protected:
     std::string identifier;
 

@@ -2,6 +2,8 @@
 #define SOLUTION_H
 
 #include <map>
+#include <string>
+
 #include "Include.h"
 #include "Atom/Transitions.h"
 #include "Configuration/Configuration.h"
@@ -18,6 +20,7 @@ class SolutionID
 {
 public:
     SolutionID(double aJ, ParityType::Enum aParity, unsigned int aID);
+    SolutionID(Symmetry aSymmetry, unsigned int aID);
 
     bool operator<(const SolutionID& other) const;
     inline bool operator==(const SolutionID& other)

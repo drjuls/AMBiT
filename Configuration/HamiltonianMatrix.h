@@ -1,6 +1,7 @@
 #ifndef HAMILTONIAN_MATRIX_H
 #define HAMILTONIAN_MATRIX_H
 
+#include <map>
 #include "RelativisticConfiguration.h"
 #include "CIIntegrals.h"
 #include "Basis/ExcitedStates.h"
@@ -12,6 +13,8 @@
 #include "ConfigFileGenerator.h"
 #include "Eigenstates.h"
 
+class Eigenstates;
+class SymmetryEigenstatesMap;
 class SolutionMap;
 
 class HamiltonianMatrix

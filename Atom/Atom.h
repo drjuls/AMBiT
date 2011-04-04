@@ -2,6 +2,7 @@
 #define ATOM_H
 
 #include <Atom/GetPot>
+#include <map>
 
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
@@ -148,6 +149,7 @@ public:
     ExcitedStates* GetBasis() { return excited; }
 
     SolutionMap* GetSolutionMap() { return mSolutionMap; }
+    void WriteEigenstatesToSolutionMap();
 
 public:
     void GenerateCowanInputFile();
