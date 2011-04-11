@@ -23,6 +23,7 @@
 #include "HartreeFock/ContinuumBuilder.h"
 #include "HartreeFock/StateIntegrator.h"
 #include <fstream>
+#include <sstream>
 
 Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier):
     userInput_(userInput), Z(atomic_number), identifier(atom_identifier)
@@ -83,7 +84,7 @@ bool Atom::Run()
 {
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited((userInput_("Z", Z) == Z) && (userInput_("ZIterations", 1) == 1));
+    DebugOptions.OutputHFExcited((userInput_("Z", Z) == Z) && (userInput_("ZIterations", 1) == 1) && !userInput_.search("--recursive-build"));
     DebugOptions.HartreeEnergyUnits(true);
 
     // Check for numValenceElectrons
@@ -130,7 +131,7 @@ bool Atom::Run()
         // Relativistic Hartree-Fock
         core = new Core(lattice, Z, Charge);
 
-        InitialiseParameters(userInput_("Z", Z) == Z);
+        InitialiseParameters((userInput_("Z", Z) == Z && !userInput_.search("--recursive-build")));
         RunIndexBegin(true);
 
         if(!useRead || !ReadCore())
@@ -245,7 +246,8 @@ void Atom::RunSingleElectron()
         StateIterator it = excited->GetStateIterator();
         it.First();
         int ZIterations = (int) userInput_("ZIterations", 1);
-        if(ZIterations == 1)
+        bool UseRecursive = userInput_.search("--recursive-build");
+        if(ZIterations == 1 && !UseRecursive)
         {
             while(!it.AtEnd())
             {
@@ -362,11 +364,162 @@ void Atom::RunSingleElectron()
 
             *outstream << std::endl;
         }
+        else if(UseRecursive)
+        {
+            if(true)
+            {
+                *outstream << identifier << " ";
+
+                it = core->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                it = excited->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                *outstream << std::endl;
+            }
+            
+            *outstream << userInput_("N", 1) << " ";
+            
+            it = core->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            it = excited->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            *outstream << std::endl;
+        }
 
         excited->ClearSigmas();
         RunIndexNext(false);
     }
     RunIndexBegin(false);
+}
+
+StateIterator Atom::GetIteratorToNextOrbitalToFill()
+{
+    core->ToggleClosedShellCore();
+    StateIterator si = core->GetStateIterator();
+    si.First();
+
+    std::string result = "";
+    double lowestEnergy = 0;
+    StateIterator lowestsi = si;
+
+    while(!si.AtEnd())
+    {
+        OrbitalInfo oi = si.GetOrbitalInfo();
+        Orbital* orb = si.GetState();
+        if((orb->Energy() < lowestEnergy) && ((int) orb->Occupancy() < (int) oi.MaxNumElectrons()))
+        {
+            lowestEnergy = orb->Energy();
+            lowestsi = si;
+        }
+        si.Next();
+    }
+    si = excited->GetStateIterator();
+    si.First();
+    while(!si.AtEnd())
+    {
+        OrbitalInfo oi = si.GetOrbitalInfo();
+        Orbital* orb = si.GetState();
+        if((orb->Energy() < lowestEnergy))
+        {
+            lowestEnergy = orb->Energy();
+            lowestsi = si;
+        }
+        si.Next();
+    }
+
+    return lowestsi;
+}
+
+std::string Atom::GetNextConfigString()
+{
+    std::stringstream configstring (std::stringstream::in | std::stringstream::out);
+    std::stringstream resultstring (std::stringstream::in | std::stringstream::out);
+    configstring << userInput_("HF/Configuration", "");
+    int mPQN, aPQN;
+    char mL, aL;
+    int mOccupancy;
+    bool foundExisting = false;
+
+    std::stringstream addthis (std::stringstream::in | std::stringstream::out);
+    addthis << GetIteratorToNextOrbitalToFill().GetState()->Name();
+    addthis >> aPQN >> aL;
+    
+    configstring.seekg(0, std::ios::end);
+    int length = configstring.tellg();
+    configstring.seekg(0, std::ios::beg);
+    
+    while(configstring.tellg() < length && configstring.tellg() != -1)
+    {
+        mPQN = 0;
+        mOccupancy = 0;
+        configstring >> mPQN >> mL >> mOccupancy;
+        if(mPQN == aPQN && mL == aL)
+        {
+            resultstring << mPQN << mL << mOccupancy + 1 << " ";
+            foundExisting = true;
+        }
+        else
+        {
+            if(mOccupancy > 0)
+            {
+                resultstring << mPQN << mL << mOccupancy << " ";
+            }
+        }
+    }
+    if(foundExisting == false)
+    {
+        resultstring << aPQN << aL << 1 << " ";
+    }
+
+    return resultstring.str();
 }
 
 bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states)
@@ -458,7 +611,7 @@ void Atom::CreateBasis(bool UseMBPT)
         excited_mbpt->CreateExcitedStates(MBPT_basis_states);
         *outstream << "MBPT    " << mbptBasisString << std::endl;
     }
-    if(userInput_("Z", Z) == Z)
+    if(userInput_("Z", Z) == Z && !userInput_.search("--recursive-build"))
         *outstream << "Valence " << ciBasisString << std::endl;
 
     excited->SetIdentifier(identifier);

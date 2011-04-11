@@ -150,6 +150,9 @@ public:
 
     SolutionMap* GetSolutionMap() { return mSolutionMap; }
     void WriteEigenstatesToSolutionMap();
+    
+    StateIterator GetIteratorToNextOrbitalToFill();
+    std::string GetNextConfigString();
 
 public:
     void GenerateCowanInputFile();
