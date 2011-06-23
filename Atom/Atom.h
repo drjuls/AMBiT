@@ -1,7 +1,7 @@
 #ifndef ATOM_H
 #define ATOM_H
 
-#include <Atom/GetPot>
+#include "Atom/GetPot"
 
 #include "Universal/Constant.h"
 #include "HartreeFock/Core.h"

@@ -6,7 +6,7 @@
 #include "Atom.h"
 #include "RateCalculator.h"
 
-#include <Atom/GetPot>
+#include "Atom/GetPot"
 
 #ifdef _MPI
     #ifdef _SCALAPACK
