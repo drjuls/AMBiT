@@ -1243,10 +1243,16 @@ void Atom::WriteEigenstatesToSolutionMap()
     if(GetSymmetryEigenstatesMap()->empty())
     {
         *errstream << "Could not find eigenstates. Generate or read them first." << std::endl;
+        exit(1);
     }
     if(!GetSolutionMap()->empty())
     {
         GetSolutionMap()->clear();
+    }
+    if(!GetSymmetryEigenstatesMap()->empty() && GetSymmetryEigenstatesMap()->begin()->second == NULL)
+    {
+        *errstream << "SymmetryEigenstatesMap was previously generated but Eigenstates have been deleted, regenerate them first." << std::endl;
+        exit(1);
     }
 
     SymmetryEigenstatesMap::const_iterator sem_it;
@@ -1294,6 +1300,4 @@ void Atom::WriteEigenstatesToSolutionMap()
             }
         }
     }
-
-
 }

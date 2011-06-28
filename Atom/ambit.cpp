@@ -96,14 +96,14 @@ int main(int argc, char* argv[])
                 *errstream << "Error: Could not open file 'temp.out' for use in recursive building." << std::endl;
                 exit(1);
             }
-            std::string configstring = fileInput("HF/Configuration", "1s1");
+            std::string configstring = fileInput("HF/Configuration", "1s1:");
             outfile << "ID = " << fileInput("ID", "") << "N" << fileInput("N", 1) << std::endl << "Z = " << Z << std::endl << "N = " << fileInput("N", 1) << std::endl << "NumValenceElectrons = " << 1 << std::endl;
             outfile << "-c" << std::endl << "-d" << std::endl;
             outfile << "--recursive-build" << std::endl << std::endl;
             outfile << "NuclearRadius = " << fileInput("NuclearRadius", 0) << std::endl << "NuclearThickness = " << fileInput("NuclearThickness", 0) << std::endl << std::endl;
             outfile << "[Lattice]" << std::endl << "NumPoints = " << fileInput("Lattice/NumPoints", 1000) << std::endl;
             outfile << "StartPoint = " << fileInput("Lattice/StartPoint", 1.e-6) << std::endl << "EndPoint = " << fileInput("Lattice/EndPoint", 50.) << std::endl << std::endl;
-            outfile << "[HF]" << std::endl << "Configuration = '" << configstring << ":'" << std::endl << std::endl;
+            outfile << "[HF]" << std::endl << "Configuration = '" << configstring << "'" << std::endl << std::endl;
             outfile << "[Basis]" << std::endl << "--bspline-basis" << std::endl << "ValenceBasis = " << fileInput("Basis/ValenceBasis", "4spdf") << std::endl << std::endl;
             outfile << "BSpline/N = " << fileInput("Basis/BSpline/N", 40) << std::endl << "BSpline/K = " << fileInput("Basis/BSpline/K", 7) << std::endl;
             outfile << "BSpline/Rmax = " << fileInput("Basis/BSpline/Rmax", 50.) << std::endl << std::endl;
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
                     outfile << "NuclearRadius = " << fileInput("NuclearRadius", 0) << std::endl << "NuclearThickness = " << fileInput("NuclearThickness", 0) << std::endl << std::endl;
                     outfile << "[Lattice]" << std::endl << "NumPoints = " << fileInput("Lattice/NumPoints", 1000) << std::endl;
                     outfile << "StartPoint = " << fileInput("Lattice/StartPoint", 1.e-6) << std::endl << "EndPoint = " << fileInput("Lattice/EndPoint", 50.) << std::endl << std::endl;
-                    outfile << "[HF]" << std::endl << "Configuration = '" << configstring << ":'" << std::endl << std::endl;
+                    outfile << "[HF]" << std::endl << "Configuration = '" << configstring << "'" << std::endl << std::endl;
                     outfile << "[Basis]" << std::endl << "--bspline-basis" << std::endl << "ValenceBasis = " << fileInput("Basis/ValenceBasis", "4spdf") << std::endl << std::endl;
                     outfile << "BSpline/N = " << fileInput("Basis/BSpline/N", 40) << std::endl << "BSpline/K = " << fileInput("Basis/BSpline/K", 7) << std::endl;
                     outfile << "BSpline/Rmax = " << fileInput("Basis/BSpline/Rmax", 50.) << std::endl << std::endl;
@@ -220,11 +220,31 @@ int main(int argc, char* argv[])
             if(fileInput.search("--interactive"))
             {
                 std::string input;
-                while(input != "quit")
+                while(input != "quit" && input != "q")
                 {
                     std::cin >> input;
-                    if(input != "quit")
-                        A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
+                    if(input != "quit" && input != "q")
+		    {
+                        if(strcspn(input.c_str(), "eo") > 0 && strlen(input.c_str()) > strcspn(input.c_str(), "eo") + 1 && strchr(input.c_str(), '>') == NULL)
+			{
+			    if(A.GetSolutionMap()->FindByIdentifier(input) != A.GetSolutionMap()->end())
+			    {
+			        A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
+			    }
+			    else
+			    {
+			        *outstream << "Level " << input << " not found." << std::endl;
+			    }
+			}
+			else if(strchr(input.c_str(), '>') != NULL)
+			{
+			    char input_cstring[strlen(input.c_str()) + 1];
+			    strcpy(input_cstring, input.c_str());
+			    char* token1 = strtok(input_cstring, " ->");
+			    char* token2 = strtok(NULL, " ->");
+			    A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+			}
+		    }
                 }
             }
         }
