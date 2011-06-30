@@ -1,21 +1,21 @@
 #ifndef ELECTRON_INFO_H
 #define ELECTRON_INFO_H
 
-#include "HartreeFock/StateInfo.h"
+#include "HartreeFock/OrbitalInfo.h"
 
-class ElectronInfo : public StateInfo
+class ElectronInfo : public OrbitalInfo
 {
     /** Stores a projection of angular momentum, M.
         Since M is half-integer, use TwoM which is always integer.
      */
 public:
     ElectronInfo(unsigned int principal_qn, int kappa, int two_m):
-        StateInfo(principal_qn, kappa)
+        OrbitalInfo(principal_qn, kappa)
     {
         this->two_m = two_m;
     }
     ElectronInfo(const ElectronInfo& other):
-        StateInfo(other), two_m(other.two_m)
+        OrbitalInfo(other), two_m(other.two_m)
     {}
     virtual ~ElectronInfo(void) {}
 

@@ -2,7 +2,7 @@ cxxobjects = CIIntegrals.o CIIntegralsMBPT.o \
              ConfigGenerator.o ConfigFileGenerator.o Configuration.o \
              Eigenstates.o ElectronInfo.o HamiltonianMatrix.o \
              MPIHamiltonianMatrix.o MPIMatrix.o Projection.o \
-             RelativisticConfiguration.o Symmetry.o
+             RelativisticConfiguration.o Solution.o Symmetry.o
 cobjects =
 fobjects =
 

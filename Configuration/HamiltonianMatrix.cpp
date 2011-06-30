@@ -2,7 +2,7 @@
 #include "HamiltonianMatrix.h"
 #include "Universal/SmallMatrix.h"
 #include "Universal/SymMatrix.h"
-#include "HartreeFock/State.h"
+#include "HartreeFock/SingleParticleWavefunction.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Constant.h"
 #include "ConfigFileGenerator.h"
@@ -412,7 +412,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, double min_percentage)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -481,7 +481,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
 
             list_it++;
         }
-        
+
         // Find most important configuration, and print all leading configurations.
         std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
         double largest_percentage = 0.0;
@@ -495,7 +495,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
             }
 
             if(it->second > min_percentage)
-                *outstream << std::setw(20) << it->first.Name() << "  "<< std::setprecision(2)
+                *outstream << std::setw(20) << it->first.Name() << "  " << std::setprecision(2)
                     << it->second << "%" << std::endl;
             it++;
         }
@@ -508,6 +508,28 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
             *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
         *outstream << std::endl;
+        if(g_factors)
+        {
+            if(eigenstates.GetParity() == even)
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages, g_factors[solution])));
+            }
+            else
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages, g_factors[solution])));
+            }
+        }
+        else
+        {
+            if(eigenstates.GetParity() == even)
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages)));
+            }
+            else
+            {
+                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages)));
+            }
+        }
     }
 }
 

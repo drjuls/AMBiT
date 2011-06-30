@@ -76,6 +76,10 @@ void Eigenstates::SetgFactors(double* g_factors)
         gFactors = g_factors;
 }
 
+const double* Eigenstates::GetgFactors() const
+{   return gFactors;
+}
+
 void Eigenstates::SetIdentifier(const std::string& atom_identifier)
 {   identifier = atom_identifier;
 }
@@ -358,4 +362,19 @@ void Eigenstates::PrintCowan(FILE* fp, double energy_shift) const
         it++; i++;
     }
     fprintf(fp, "\n\n");
+}
+
+double SymmetryEigenstatesMap::GetLargestTwoJ(Parity aParity)
+{
+    SymmetryEigenstatesMap::iterator it = begin();
+    double largest = 0;
+    while(it != end())
+    {
+        if(it->first.GetParity() == aParity && it->first.GetTwoJ() > largest)
+        {
+            largest = it->first.GetTwoJ();
+        }
+        it++;
+    }
+    return largest;
 }

@@ -31,8 +31,8 @@ unsigned int CIIntegrals::GetStorageSize() const
         it_2 = it_1;
         while(!it_2.AtEnd())
         {
-            const DiscreteState* si = it_1.GetState();
-            const DiscreteState* sj = it_2.GetState();
+            const Orbital* si = it_1.GetState();
+            const Orbital* sj = it_2.GetState();
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -48,11 +48,11 @@ unsigned int CIIntegrals::GetStorageSize() const
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
     {
-        const DiscreteState* s_2 = it_2.GetState();
+        const Orbital* s_2 = it_2.GetState();
         it_4 = it_2; i4 = i2;
         while(!it_4.AtEnd())
         {
-            const DiscreteState* s_4 = it_4.GetState();
+            const Orbital* s_4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -69,7 +69,7 @@ unsigned int CIIntegrals::GetStorageSize() const
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
                 {
-                    const DiscreteState* s_1 = it_1.GetState();
+                    const Orbital* s_1 = it_1.GetState();
 
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -79,7 +79,7 @@ unsigned int CIIntegrals::GetStorageSize() const
                         i3_limit = num_states;
                     while((i3 <= i3_limit) && !it_3.AtEnd())
                     {
-                        const DiscreteState* s_3 = it_3.GetState();
+                        const Orbital* s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
@@ -141,8 +141,8 @@ void CIIntegrals::UpdateStateIndexes()
     it_i.First(); i = 0;
     while(!it_i.AtEnd())
     {
-        state_index.insert(std::pair<StateInfo, unsigned int>(StateInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, StateInfo>(i, StateInfo(it_i.GetState())));
+        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
+        reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, OrbitalInfo(it_i.GetState())));
 
         it_i.Next(); i++;
     }
@@ -175,8 +175,8 @@ void CIIntegrals::UpdateOneElectronIntegrals()
         it_j = it_i; j = i;
         while(!it_j.AtEnd())
         {
-            const DiscreteState* si = it_i.GetState();
-            const DiscreteState* sj = it_j.GetState();
+            const Orbital* si = it_i.GetState();
+            const Orbital* sj = it_j.GetState();
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -197,8 +197,8 @@ void CIIntegrals::UpdateOneElectronIntegrals()
                 -SI.IsotopeShiftIntegral(*it_j.GetState(), *it_i.GetState())));
 
             // Overlap integrals
-            const State& p1 = *it_i.GetState();
-            const State& p2 = *it_j.GetState();
+            const SingleParticleWavefunction& p1 = *it_i.GetState();
+            const SingleParticleWavefunction& p2 = *it_j.GetState();
             if(p1.L() == p2.L())
             {
                 double overlap = 0.;
@@ -251,11 +251,11 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
     {
-        const DiscreteState* s_2 = it_2.GetState();
+        const Orbital* s_2 = it_2.GetState();
         it_4 = it_2; i4 = i2;
         while(!it_4.AtEnd())
         {
-            const DiscreteState* s_4 = it_4.GetState();
+            const Orbital* s_4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -282,7 +282,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
                 {
-                    const DiscreteState* s_1 = it_1.GetState();
+                    const Orbital* s_1 = it_1.GetState();
 
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -292,7 +292,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                         i3_limit = NumStates;
                     while((i3 <= i3_limit) && !it_3.AtEnd())
                     {
-                        const DiscreteState* s_3 = it_3.GetState();
+                        const Orbital* s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
@@ -351,7 +351,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     }
 }
 
-double CIIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -362,7 +362,7 @@ double CIIntegrals::GetOneElectronIntegral(const StateInfo& s1, const StateInfo&
         return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -373,7 +373,7 @@ double CIIntegrals::GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) con
         return -SMSIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2) const
+double CIIntegrals::GetOverlapIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -384,7 +384,7 @@ double CIIntegrals::GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2)
         return OverlapIntegrals.find(i2 * NumStates + i1)->second;
 }
 
-double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -414,10 +414,10 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, 
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
-        const State* s_1 = states.GetState(reverse_state_index.find(i1)->second);
-        const State* s_2 = states.GetState(reverse_state_index.find(i2)->second);
-        const State* s_3 = states.GetState(reverse_state_index.find(i3)->second);
-        const State* s_4 = states.GetState(reverse_state_index.find(i4)->second);
+        const SingleParticleWavefunction* s_1 = states.GetState(reverse_state_index.find(i1)->second);
+        const SingleParticleWavefunction* s_2 = states.GetState(reverse_state_index.find(i2)->second);
+        const SingleParticleWavefunction* s_3 = states.GetState(reverse_state_index.find(i3)->second);
+        const SingleParticleWavefunction* s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
         CoulombIntegrator CI(states.GetLattice());
@@ -516,7 +516,7 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
 {
     // Make state index for stored integrals
     // Get start and end principal quantum numbers for each L
-    std::map<unsigned int, StateInfo> stored_state_index;
+    std::map<unsigned int, OrbitalInfo> stored_state_index;
     unsigned int max_l, L;
     fread(&max_l, sizeof(unsigned int), 1, fp);
     
@@ -542,10 +542,10 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
         {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
             {
                 if(L != 0)
-                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                {   stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, int(L))));
                     index++;
                 }
-                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, -int(L+1))));
                 index++;
             }
         }
@@ -563,7 +563,7 @@ void CIIntegrals::ReadOneElectronIntegrals(FILE* fp)
     unsigned int i, stored_key, new_key;
     unsigned int stored_s1, stored_s2;
     unsigned int i1, i2;
-    std::map<StateInfo, unsigned int>::const_iterator it;
+    std::map<OrbitalInfo, unsigned int>::const_iterator it;
     double value;
 
     for(i=0; i<size; i++)
@@ -601,7 +601,7 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
 {
     // Make state index for stored integrals
     // Get start and end principal quantum numbers for each L
-    std::map<unsigned int, StateInfo> stored_state_index;
+    std::map<unsigned int, OrbitalInfo> stored_state_index;
     unsigned int max_l, L;
     fread(&max_l, sizeof(unsigned int), 1, fp);
     
@@ -627,10 +627,10 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
         {   if((pqn >= start_pqn[L]) && (pqn <= end_pqn[L]))
             {
                 if(L != 0)
-                {   stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, int(L))));
+                {   stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, int(L))));
                     index++;
                 }
-                stored_state_index.insert(std::pair<unsigned int, StateInfo>(index, StateInfo(pqn, -int(L+1))));
+                stored_state_index.insert(std::pair<unsigned int, OrbitalInfo>(index, OrbitalInfo(pqn, -int(L+1))));
                 index++;
             }
         }
@@ -648,7 +648,7 @@ void CIIntegrals::ReadTwoElectronIntegrals(FILE* fp)
     unsigned int i, stored_key, new_key;
     unsigned int k, stored_s1, stored_s2, stored_s3, stored_s4;
     unsigned int i1, i2, i3, i4;
-    std::map<StateInfo, unsigned int>::const_iterator it;
+    std::map<OrbitalInfo, unsigned int>::const_iterator it;
     double value;
 
     for(i=0; i<size; i++)
@@ -712,7 +712,7 @@ void CIIntegrals::WriteOneElectronIntegrals(bool use_read_id) const
     {   // Store information about the basis
         // Get number of states in each wave
         unsigned int max_l = 0;
-        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        std::map<OrbitalInfo, unsigned int>::const_iterator it = state_index.begin();
         while(it != state_index.end())
         {   if(it->first.L() > max_l)
                 max_l = it->first.L();
@@ -775,7 +775,7 @@ void CIIntegrals::WriteTwoElectronIntegrals(bool use_read_id) const
     {   // Store information about the basis
         // Get number of states in each wave
         unsigned int max_l = 0;
-        std::map<StateInfo, unsigned int>::const_iterator it = state_index.begin();
+        std::map<OrbitalInfo, unsigned int>::const_iterator it = state_index.begin();
         while(it != state_index.end())
         {   if(it->first.L() > max_l)
                 max_l = it->first.L();

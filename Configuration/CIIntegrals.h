@@ -63,18 +63,18 @@ public:
     }
 
     /** GetOneElectronIntegral(i, j) = <i|H|j> */
-    double GetOneElectronIntegral(const StateInfo& s1, const StateInfo& s2) const;
+    double GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
 
     /** GetSMSIntegral(i, j) = <i|p|j> */
-    double GetSMSIntegral(const StateInfo& s1, const StateInfo& s2) const;
+    double GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
     
     /** GetOverlapIntegral(i, j) = <i|j>.
         PRE: i.L() == j.L()
      */
-    double GetOverlapIntegral(const StateInfo& s1, const StateInfo& s2) const;
+    double GetOverlapIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
     
     /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
     inline double GetNuclearInverseMass() const
     {   return states.GetCore()->GetNuclearInverseMass();
@@ -126,8 +126,8 @@ protected:
 
     unsigned int NumStates;
     // The ordering of states is not arbitrary; they should be ordered by pqn first.
-    std::map<StateInfo, unsigned int> state_index;
-    std::map<unsigned int, StateInfo> reverse_state_index;
+    std::map<OrbitalInfo, unsigned int> state_index;
+    std::map<unsigned int, OrbitalInfo> reverse_state_index;
 
     // Storage for one and two electron integrals.
     // If these are null, it means that there is not enough space in memory to store them,

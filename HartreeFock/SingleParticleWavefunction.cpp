@@ -1,25 +1,25 @@
 #include "Include.h"
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 #include "Universal/Constant.h"
 
-State::State():
+SingleParticleWavefunction::SingleParticleWavefunction():
     CoupledFunction(), nu(0.), kappa(0)
 {}
 
-State::State(int Kappa):
+SingleParticleWavefunction::SingleParticleWavefunction(int Kappa):
     CoupledFunction(), nu(0.), kappa(Kappa)
 {}
 
-State::State(const State& other):
+SingleParticleWavefunction::SingleParticleWavefunction(const SingleParticleWavefunction& other):
     CoupledFunction(other), kappa(other.kappa), nu(other.nu)
 {}
 
-void State::Read(FILE* fp)
+void SingleParticleWavefunction::Read(FILE* fp)
 {
     CoupledFunction::Read(fp);
 }
 
-double State::Overlap(const State& other, const Lattice* lattice) const
+double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction& other, const Lattice* lattice) const
 {
     double total = 0.;
 
@@ -36,12 +36,12 @@ double State::Overlap(const State& other, const Lattice* lattice) const
     return total;
 }
 
-bool State::Print(Lattice* lattice) const
+bool SingleParticleWavefunction::Print(Lattice* lattice) const
 {
     return Print(Name() + "_orbital.txt", lattice);
 }
 
-bool State::Print(const std::string& filename, Lattice* lattice) const
+bool SingleParticleWavefunction::Print(const std::string& filename, Lattice* lattice) const
 {
     FILE* fp = fopen(filename.c_str(), "wt");
 
@@ -54,7 +54,7 @@ bool State::Print(const std::string& filename, Lattice* lattice) const
         return false;
 }
 
-bool State::Print(FILE* fp, Lattice* lattice) const
+bool SingleParticleWavefunction::Print(FILE* fp, Lattice* lattice) const
 {
     if(lattice)
         for(unsigned int i = 0; i < Size(); i++)

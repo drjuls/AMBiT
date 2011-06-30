@@ -24,11 +24,11 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
         it_alpha = excited_states.begin();
         while(it_alpha != excited_states.end())
         {
-            StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
             if(n.Kappa() == alpha.Kappa())
                 size1++;
 
@@ -53,12 +53,12 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
     it_alpha = excited_states.begin();
     while(it_alpha != excited_states.end())
     {
-        StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+        OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
     
         it_n = core_states.begin();
         while(it_n != core_states.end())
         {
-            StateInfo n = reverse_state_index.find(*it_n)->second;
+            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
 
             if((abs(alpha.TwoJ() - n.TwoJ()) <= 2) &&
                ((n.L() + alpha.L() + 1)%2 == 0))
@@ -70,7 +70,7 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
         it_a = valence_states.begin();
         while((it_a != valence_states.end()) && (*it_a <= *it_alpha))
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
             if((abs(alpha.TwoJ() - a.TwoJ()) <= 2) &&
                ((a.L() + alpha.L() + 1)%2 == 0))
@@ -95,12 +95,12 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
         
         it_alpha = excited_states.begin();
         while(it_alpha != excited_states.end())
         {
-            StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
 
             // (n, alpha) -> limits on k
             k = abs(int(n.L()) - int(alpha.L()));
@@ -114,7 +114,7 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
                 it_beta = excited_states.begin();
                 while(it_beta != excited_states.end())
                 {
-                    StateInfo beta = reverse_state_index.find(*it_beta)->second;
+                    OrbitalInfo beta = reverse_state_index.find(*it_beta)->second;
 
                     unsigned int Lsum = beta.L() + k;
                     unsigned int TwoJmin = abs(2*k - int(beta.TwoJ()));
@@ -131,7 +131,7 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
 
                     while((it_a != valence_states.end()) && (*it_a <= alimit))
                     {
-                        StateInfo a = reverse_state_index.find(*it_a)->second;
+                        OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
                         if((a.TwoJ() >= TwoJmin) &&
                            (a.TwoJ() <= TwoJmax) &&
@@ -148,7 +148,7 @@ unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
 
                     while(it_m != core_states.end())
                     {
-                        StateInfo m = reverse_state_index.find(*it_m)->second;
+                        OrbitalInfo m = reverse_state_index.find(*it_m)->second;
 
                         if((m.TwoJ() >= TwoJmin) &&
                            (m.TwoJ() <= TwoJmax) &&
@@ -182,8 +182,8 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
 
     std::set<unsigned int>::const_iterator it_n, it_alpha;
 
-    const DiscreteState* sn;
-    const State* salpha;
+    const Orbital* sn;
+    const SingleParticleWavefunction* salpha;
 
     StateIntegrator SI(core.GetLattice());
 
@@ -193,13 +193,13 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
         sn = core.GetState(n);
         
         it_alpha = excited_states.begin();
         while(it_alpha != excited_states.end())
         {
-            StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
 
             if(n.Kappa() == alpha.Kappa())
             {
@@ -227,18 +227,18 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
     // (l1 + l2 + 1)%2 == 0
 
     std::set<unsigned int>::const_iterator it_a;
-    const State* sa;
+    const SingleParticleWavefunction* sa;
 
     it_alpha = excited_states.begin();
     while(it_alpha != excited_states.end())
     {
-        StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+        OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
         salpha = excited.GetState(alpha);
 
         it_n = core_states.begin();
         while(it_n != core_states.end())
         {
-            StateInfo n = reverse_state_index.find(*it_n)->second;
+            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
 
             if((abs(alpha.TwoJ() - n.TwoJ()) <= 2) &&
                ((n.L() + alpha.L() + 1)%2 == 0))
@@ -265,7 +265,7 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
         it_a = valence_states.begin();
         while((it_a != valence_states.end()) && (*it_a <= alimit))
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
             if((abs(alpha.TwoJ() - a.TwoJ()) <= 2) &&
                ((a.L() + alpha.L() + 1)%2 == 0))
@@ -310,20 +310,20 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
     // where n and m are core; a is valence; alpha and beta are excited (superset of valence)
 
     std::set<unsigned int>::const_iterator it_n, it_m, it_a, it_alpha, it_beta;
-    const DiscreteState *sn, *sm;
-    const State *sa, *salpha, *sbeta;
+    const Orbital *sn, *sm;
+    const SingleParticleWavefunction *sa, *salpha, *sbeta;
     unsigned int k, kmax;
 
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
         sn = core.GetState(n);
 
         it_alpha = excited_states.begin();
         while(it_alpha != excited_states.end())
         {
-            StateInfo alpha = reverse_state_index.find(*it_alpha)->second;
+            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
             salpha = excited.GetState(alpha);
 
             // (n, alpha) -> limits on k
@@ -348,7 +348,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
                 it_beta = excited_states.begin();
                 while(it_beta != excited_states.end())
                 {
-                    StateInfo beta = reverse_state_index.find(*it_beta)->second;
+                    OrbitalInfo beta = reverse_state_index.find(*it_beta)->second;
                     sbeta = excited.GetState(beta);
 
                     unsigned int Lsum = beta.L() + k;
@@ -366,7 +366,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
 
                     while((it_a != valence_states.end()) && (*it_a <= alimit))
                     {
-                        StateInfo a = reverse_state_index.find(*it_a)->second;
+                        OrbitalInfo a = reverse_state_index.find(*it_a)->second;
                         sa = excited.GetState(a);
 
                         if((a.TwoJ() >= TwoJmin) &&
@@ -408,7 +408,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
 
                     while(it_m != core_states.end())
                     {
-                        StateInfo m = reverse_state_index.find(*it_m)->second;
+                        OrbitalInfo m = reverse_state_index.find(*it_m)->second;
                         sm = core.GetState(m);
 
                         if((m.TwoJ() >= TwoJmin) &&

@@ -167,7 +167,7 @@ void MPIHamiltonianMatrix::PollMatrix()
     }
 }
 
-void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, bool gFactors, double min_percentage)
+void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, double min_percentage)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -265,6 +265,28 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
                 *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
 
             *outstream << std::endl;
+            if(g_factors)
+            {
+                if(eigenstates.GetParity() == even)
+                {
+                    aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], g_factors[solution])));
+                }
+                else
+                {
+                    aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], g_factors[solution])));
+                }
+            }
+            else
+            {
+                if(eigenstates.GetParity() == even)
+                {
+                    aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution])));
+                }
+                else
+                {
+                    aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution])));
+                }
+            }
         }
     }
 }

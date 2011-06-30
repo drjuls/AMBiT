@@ -2,15 +2,20 @@
 #define ATOM_H
 
 #include "Atom/GetPot"
-
-#include "Universal/Constant.h"
-#include "HartreeFock/Core.h"
 #include "Basis/ExcitedStates.h"
 #include "Configuration/Configuration.h"
 #include "Configuration/CIIntegrals.h"
 #include "Configuration/CIIntegralsMBPT.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/Eigenstates.h"
+#include "Configuration/Solution.h"
+#include "HartreeFock/Core.h"
+#include "Universal/Constant.h"
+
+#include <map>
+
+class SolutionMap;
+class Sigma3Calculator;
 
 class Atom
 {
@@ -104,7 +109,7 @@ public:
     void RunIndexNext(bool print = true);
     bool RunIndexAtEnd();
 
-    void InitialiseParameters();
+    void InitialiseParameters(bool print = true);
     void SetRunParameters(bool print = true);
     void SetRunCore(bool force = false);
     void SetRunIntegrals(bool force = false);
@@ -133,6 +138,9 @@ public:
 public:
     /** Get previously calculated Eigenstates of Symmetry sym. */
     Eigenstates* GetEigenstates(const Symmetry& sym);
+    inline const SymmetryEigenstatesMap* GetSymmetryEigenstatesMap() const
+    { return &symEigenstates;
+    }
 
     /** Get the set of atomic core orbitals. */
     Core* GetCore() { return core; }
@@ -140,12 +148,18 @@ public:
     /** Get the set of valence orbitals. */
     ExcitedStates* GetBasis() { return excited; }
 
+    SolutionMap* GetSolutionMap() { return mSolutionMap; }
+    void WriteEigenstatesToSolutionMap();
+    
+    StateIterator GetIteratorToNextOrbitalToFill();
+    std::string GetNextConfigString();
+
 public:
     void GenerateCowanInputFile();
-    void PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds);
+    void PrintWavefunctionCowan(FILE* fp, const Orbital* ds);
     bool ReadGraspMCDF(const std::string& filename);
     void WriteGraspMCDF() const;
-    void WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int lattice_size) const;
+    void WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int lattice_size) const;
 
 protected:
     /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */
@@ -174,6 +188,7 @@ protected:
     Sigma3Calculator* sigma3;
 
     SymmetryEigenstatesMap symEigenstates;
+    SolutionMap* mSolutionMap;
 
     // Operational parameters
     bool useRead;     // Read when possible from file

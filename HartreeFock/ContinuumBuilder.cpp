@@ -60,7 +60,7 @@ void ContinuumBuilder::CreateNewCore(unsigned int atomic_number, int ion_charge)
     core->Initialise();
 }
 
-unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattice* external_lattice) const
+unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice* external_lattice) const
 {
     const std::vector<double>& HFPotential = core->GetConstHFPotential();
 
@@ -83,7 +83,7 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
         {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
             lattice_extensions++;
             if(lattice_extensions > 5)
-            {   *errstream << "ContinuumBuilder::CalculateContinuumState:\n"
+            {   *errstream << "ContinuumBuilder::CalculateContinuumWave:\n"
                            << "    start_sine not reached; lattice_extensions = " << lattice_extensions << std::endl;
                 return 0;
             }
@@ -136,7 +136,7 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
     if(external_lattice && !(*external_lattice == *lattice))
     {
         // Copy current state
-        ContinuumState cs_old(*s);
+        ContinuumWave cs_old(*s);
 
         Interpolator interp(lattice);
         const double* extR = external_lattice->R();
@@ -178,7 +178,7 @@ unsigned int ContinuumBuilder::CalculateContinuumState(ContinuumState* s, Lattic
     return loop;
 }
 
-bool ContinuumBuilder::ReadContinuumState(ContinuumState* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
+bool ContinuumBuilder::ReadContinuumWave(ContinuumWave* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
 {
     SetNormalisationType(Unitary);
 
@@ -197,11 +197,11 @@ bool ContinuumBuilder::ReadContinuumState(ContinuumState* s, Lattice* external_l
         fscanf(fp_lower, "%lf%d", &energy_lower, &l_lower);
         s->SetEnergy(energy_upper);
         if(energy_upper != energy_lower)
-        {   *errstream << "ReadContinuumState: energy doesn't match" << std::endl;
+        {   *errstream << "ReadContinuumWave: energy doesn't match" << std::endl;
             return false;
         }
         if((l_upper != l_lower) || (l_lower != s->L()))
-        {   *errstream << "ReadContinuumState: l doesn't match" << std::endl;
+        {   *errstream << "ReadContinuumWave: l doesn't match" << std::endl;
             return false;
         }
 
@@ -217,7 +217,7 @@ bool ContinuumBuilder::ReadContinuumState(ContinuumState* s, Lattice* external_l
         unsigned int i = 0;
         while(fscanf(fp_lower, "%lf%lf", &r, &val) == 2)
         {   if(R[i] != r)
-            {   *errstream << "ReadContinuumState: lattice points don't match at "
+            {   *errstream << "ReadContinuumWave: lattice points don't match at "
                            << R[i] << " (i = " << i << ")" << std::endl;
                 return false;
             }

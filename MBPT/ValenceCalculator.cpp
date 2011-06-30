@@ -10,7 +10,7 @@ ValenceCalculator::ValenceCalculator(Lattice* lattice, const Core* atom_core, co
     MBPTCalculator(lattice, atom_core, excited_states)
 {}
 
-double ValenceCalculator::GetOneElectronValence(const State* s1, const State* s2)
+double ValenceCalculator::GetOneElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -20,7 +20,7 @@ double ValenceCalculator::GetOneElectronValence(const State* s1, const State* s2
     return CalculateOneElectronValence1(*s1, *s2);
 }
 
-double ValenceCalculator::GetTwoElectronValence(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -31,14 +31,14 @@ double ValenceCalculator::GetTwoElectronValence(const State* s1, const State* s2
     return term;
 }
 
-double ValenceCalculator::GetTwoElectronBoxValence(const State* s1, const State* s2, const State* s3, const State* s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronBoxValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
     return CalculateTwoElectronValence1(*s1, *s2, *s3, *s4, k);
 }
 
-double ValenceCalculator::CalculateOneElectronValence1(const State& si, const State& sf) const
+double ValenceCalculator::CalculateOneElectronValence1(const SingleParticleWavefunction& si, const SingleParticleWavefunction& sf) const
 {
     const bool debug = DebugOptions.LogMBPT();
     StateIntegrator SI(lattice);
@@ -51,7 +51,7 @@ double ValenceCalculator::CalculateOneElectronValence1(const State& si, const St
 
     ConstStateIterator it4 = excited->GetConstStateIterator();
     while(!it4.AtEnd())
-    {   const DiscreteState& s4 = *(it4.GetState());
+    {   const Orbital& s4 = *(it4.GetState());
 
         if(s4.RequiredPQN() >= 5 && s4.Kappa() == si.Kappa())
         {
@@ -68,7 +68,7 @@ double ValenceCalculator::CalculateOneElectronValence1(const State& si, const St
     return energy;
 }
 
-double ValenceCalculator::CalculateTwoElectronValence1(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const
+double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const
 {
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
@@ -101,12 +101,12 @@ double ValenceCalculator::CalculateTwoElectronValence1(const State& sa, const St
 
     ConstStateIterator it3 = excited->GetConstStateIterator();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
         unsigned int J3 = (unsigned int)(s3.J() * 2.);
 
         ConstStateIterator it4 = excited->GetConstStateIterator();
         while(!it4.AtEnd())
-        {   const DiscreteState& s4 = *(it4.GetState());
+        {   const Orbital& s4 = *(it4.GetState());
             unsigned int J4 = (unsigned int)(s4.J() * 2.);
 
             if(debug)
@@ -200,7 +200,7 @@ double ValenceCalculator::CalculateTwoElectronValence1(const State& sa, const St
     return energy;
 }
 
-double ValenceCalculator::CalculateTwoElectronValence2(const State& sa, const State& sb, const State& sc, const State& sd, unsigned int k) const
+double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const
 {
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
@@ -232,7 +232,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const State& sa, const St
 
     ConstStateIterator it3 = excited->GetConstStateIterator();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
 
         if(s3.RequiredPQN() >= 5 && s3.Kappa() == sa.Kappa())
         {
@@ -277,7 +277,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const State& sa, const St
 
     it3.First();
     while(!it3.AtEnd())
-    {   const DiscreteState& s3 = *(it3.GetState());
+    {   const Orbital& s3 = *(it3.GetState());
 
         if(s3.RequiredPQN() >= 5 && s3.Kappa() == sb.Kappa())
         {

@@ -2,7 +2,7 @@
 #define RELATIVISTIC_CONFIGURATION_H
 
 #include "Configuration.h"
-#include "HartreeFock/StateInfo.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include "Projection.h"
 #include <string>
 
@@ -28,8 +28,8 @@ public:
             delete[] j_coefficients;
     }
 
-    StateInfo GetInfo() const;
-    virtual bool AddSingleParticle(const StateInfo& info);
+    OrbitalInfo GetInfo() const;
+    virtual bool AddSingleParticle(const OrbitalInfo& info);
 
     /** Return whether a suitable projection with J = M = two_m/2 was found.
      */

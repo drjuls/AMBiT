@@ -1,5 +1,5 @@
 cxxobjects = ambit.o Atom.o Atom_Open.o Atom_RunMultiple.o \
-             OutStreams.o RateCalculator.o
+             OutStreams.o RateCalculator.o Transitions.o
 cobjects = 
 fobjects =
 

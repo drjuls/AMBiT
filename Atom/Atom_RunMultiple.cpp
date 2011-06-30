@@ -147,16 +147,18 @@ bool Atom::RunIndexAtEnd()
     return (current_run_index >= NumberRunsSelected());
 }
 
-void Atom::InitialiseParameters()
+void Atom::InitialiseParameters(bool print)
 {
-    *outstream << "Physical Parameters:" << std::endl;
+    if(print)
+        *outstream << "Physical Parameters:" << std::endl;
 
     // Nuclear Radius
     if(multiple_radius.size() == 1)
         core->SetNuclearRadius(multiple_radius[0]/Constant::AtomicToFermi);
     if(multiple_radius.size() <= 1)
-        *outstream << "NuclearRadius = " << std::setprecision(3)
-                   << core->GetNuclearRadius()*Constant::AtomicToFermi << std::endl;
+        if(print)
+            *outstream << "NuclearRadius = " << std::setprecision(3)
+                       << core->GetNuclearRadius()*Constant::AtomicToFermi << std::endl;
 
     // Nuclear Thickness
     double nuclear_thickness = userInput_("NuclearThickness", -1.);
@@ -167,25 +169,29 @@ void Atom::InitialiseParameters()
             nuclear_thickness = 2.3;    // Standard value
     }
     core->SetNuclearThickness(nuclear_thickness/Constant::AtomicToFermi);
-    *outstream << "NuclearThickness = " << std::setprecision(3) << nuclear_thickness << std::endl;
+    if(print)
+        *outstream << "NuclearThickness = " << std::setprecision(3) << nuclear_thickness << std::endl;
 
     if(multiple_volume.size())
     {   // Field shift radius
         double deltaR = userInput_("DeltaNuclearRadius", 0.05);
         core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
-        *outstream << "delta(NuclearRadius) = " << std::setprecision(3) << deltaR << std::endl;
+        if(print)
+            *outstream << "delta(NuclearRadius) = " << std::setprecision(3) << deltaR << std::endl;
     }
 
     if(multiple_SMS.size() == 1)
     {   core->SetNuclearInverseMass(multiple_SMS[0]);
-        *outstream << "NuclearInverseMass = " << core->GetNuclearInverseMass() << std::endl;
+        if(print)
+            *outstream << "NuclearInverseMass = " << core->GetNuclearInverseMass() << std::endl;
     }
 
     if(multiple_alpha.size() == 1)
     {   alpha0 = Constant::Alpha;
         Constant::Alpha = alpha0 * sqrt(1.0 + multiple_alpha[0]);
         Constant::AlphaSquared = alpha0 * alpha0 * (1.0 + multiple_alpha[0]);
-        *outstream << "AlphaSquaredVariation (x) = " << multiple_alpha[0] << std::endl;
+        if(print)
+            *outstream << "AlphaSquaredVariation (x) = " << multiple_alpha[0] << std::endl;
    }
 }
 
@@ -537,7 +543,7 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
     // Report ordering of excited states
     ConstStateIterator it = excited->GetConstStateIterator();
     while(!it.AtEnd())
-    {   *outstream << it.GetStateInfo().Name() << std::endl;
+    {   *outstream << it.GetOrbitalInfo().Name() << std::endl;
         it.Next();
     }
 
@@ -561,14 +567,14 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
         it = excited->GetConstStateIterator();
         while(!it.AtEnd())
         {
-            StateInfo si = it.GetStateInfo();
+            OrbitalInfo si = it.GetOrbitalInfo();
             if(include_mbpt && brueckner)
             {   excited->CreateSecondOrderSigma(si, *mbpt);
-                DiscreteState ds = excited->GetStateWithSigma(si);
+                Orbital ds = excited->GetStateWithSigma(si);
                 *outstream << std::setprecision(15) << ds.Energy() * Constant::HartreeEnergy_cm << std::endl;
             }
             else
-            {   const DiscreteState* ds = it.GetState();
+            {   const Orbital* ds = it.GetState();
                 double dE = 0.;
                 if(include_mbpt)
                     dE = mbpt->GetOneElectronDiagrams(si, si);

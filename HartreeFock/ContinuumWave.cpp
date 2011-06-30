@@ -1,18 +1,18 @@
 #include "Include.h"
-#include "ContinuumState.h"
+#include "ContinuumWave.h"
 #include "Universal/Constant.h"
 
-ContinuumState::ContinuumState(const ContinuumState& other):
-    State(other)
+ContinuumWave::ContinuumWave(const ContinuumWave& other):
+    SingleParticleWavefunction(other)
 {}
 
-ContinuumState::ContinuumState(double energy, int Kappa):
-    State(Kappa)
+ContinuumWave::ContinuumWave(double energy, int Kappa):
+    SingleParticleWavefunction(Kappa)
 {
     SetEnergy(energy);
 }
 
-std::string ContinuumState::Name() const
+std::string ContinuumWave::Name() const
 {
     char buffer[20];
     sprintf(buffer, "%5.4f", nu);
@@ -33,30 +33,30 @@ std::string ContinuumState::Name() const
     return ret;
 }
 
-void ContinuumState::SetEnergy(double energy)
+void ContinuumWave::SetEnergy(double energy)
 {
     if(energy > 0)
         nu = sqrt(0.5/energy);
     else
-    {   *errstream << "ContinuumState: energy <= 0" << std::endl;
+    {   *errstream << "ContinuumWave: energy <= 0" << std::endl;
         exit(1);
     }
 }
 
 
-void ContinuumState::Write(FILE* fp) const
+void ContinuumWave::Write(FILE* fp) const
 {
     // As well as the CoupledFunction vectors, we need to output some other things
     fwrite(&kappa, sizeof(int), 1, fp);
     fwrite(&nu, sizeof(double), 1, fp);
 
-    State::Write(fp);
+    SingleParticleWavefunction::Write(fp);
 }
 
-void ContinuumState::Read(FILE* fp)
+void ContinuumWave::Read(FILE* fp)
 {
     fread(&kappa, sizeof(int), 1, fp);
     fread(&nu, sizeof(double), 1, fp);
 
-    State::Read(fp);
+    SingleParticleWavefunction::Read(fp);
 }

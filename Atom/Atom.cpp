@@ -23,6 +23,7 @@
 #include "HartreeFock/ContinuumBuilder.h"
 #include "HartreeFock/StateIntegrator.h"
 #include <fstream>
+#include <sstream>
 
 Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier):
     userInput_(userInput), Z(atomic_number), identifier(atom_identifier)
@@ -49,7 +50,7 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     mbptBasisString = "";
     ciBasisString = "";
     check_size_only = false;
-    save_eigenstates = false;
+    save_eigenstates = true;
     generate_mbpt_integrals = false;
     includeSigma1 = false;
     includeSigma2 = false;
@@ -59,6 +60,8 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     multiple_length = 0;
     current_run_index = 0;
     original_id = identifier;
+    
+    mSolutionMap = new SolutionMap();
 }
 
 Atom::~Atom(void)
@@ -81,7 +84,7 @@ bool Atom::Run()
 {
     DebugOptions.LogFirstBuild(false);
     DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited(true);
+    DebugOptions.OutputHFExcited((userInput_("Z", Z) == Z) && (userInput_("ZIterations", 1) == 1) && !userInput_.search("--recursive-build"));
     DebugOptions.HartreeEnergyUnits(true);
 
     // Check for numValenceElectrons
@@ -128,7 +131,7 @@ bool Atom::Run()
         // Relativistic Hartree-Fock
         core = new Core(lattice, Z, Charge);
 
-        InitialiseParameters();
+        InitialiseParameters((userInput_("Z", Z) == Z && !userInput_.search("--recursive-build")));
         RunIndexBegin(true);
 
         if(!useRead || !ReadCore())
@@ -242,55 +245,281 @@ void Atom::RunSingleElectron()
 
         StateIterator it = excited->GetStateIterator();
         it.First();
-        while(!it.AtEnd())
+        int ZIterations = (int) userInput_("ZIterations", 1);
+        bool UseRecursive = userInput_.search("--recursive-build");
+        if(ZIterations == 1 && !UseRecursive)
         {
-            StateInfo si = it.GetStateInfo();
-            DiscreteState* ds = it.GetState();
-            *outstream << "\n" << ds->Name() << "\n";
-            *outstream << std::setprecision(12);
-            *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
-
-            if(sigma_potential)
+            while(!it.AtEnd())
             {
-                // Create sigma, if it doesn't exist, and find matrix element
-                double dE = 0.0;
-                if(!excited->RetrieveSecondOrderSigma(si))
-                    dE = excited->CreateSecondOrderSigma(si, *mbpt);
-                else
-                    dE = excited->GetSigmaMatrixElement(si);
-                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
-                
-                // Iterate to create Brueckner orbital
-                DiscreteState brueckner = excited->GetStateWithSigma(si);
-                *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
-
-                // Set energy to known value, if requested
-                double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
-                if(E_experiment)
-                {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
-                    brueckner = excited->GetStateWithSigma(si);
-                }
-
-                // Log ratio
-                *logstream << "\n" << brueckner.Name() << std::endl;
-                for(unsigned int i = 0; i < 100; i+=10)
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << "\n" << ds->Name() << "\n";
+                *outstream << std::setprecision(12);
+                *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
+    
+                if(sigma_potential)
                 {
-                    *logstream << lattice->R(i) << "\t";
-                    *logstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+                    // Create sigma, if it doesn't exist, and find matrix element
+                    double dE = 0.0;
+                    if(!excited->RetrieveSecondOrderSigma(si))
+                        dE = excited->CreateSecondOrderSigma(si, *mbpt);
+                    else
+                        dE = excited->GetSigmaMatrixElement(si);
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                    
+                    // Iterate to create Brueckner orbital
+                    Orbital brueckner = excited->GetStateWithSigma(si);
+                    *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
+    
+                    // Set energy to known value, if requested
+                    double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
+                    if(E_experiment)
+                    {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
+                        brueckner = excited->GetStateWithSigma(si);
+                    }
+    
+                    // Log ratio
+                    *logstream << "\n" << brueckner.Name() << std::endl;
+                    for(unsigned int i = 0; i < 100; i+=10)
+                    {
+                        *logstream << lattice->R(i) << "\t";
+                        *logstream << brueckner.f[i]/ds->f[i] << "\t" << brueckner.g[i]/ds->g[i] << std::endl;
+                    }
                 }
+                else if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                }
+    
+                it.Next();
             }
-            else if(mbpt)
-            {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+        }
+        else if(ZIterations > 1)
+        {
+            if(userInput_("Z", Z) == Z)
+            {
+                *outstream << std::endl;
+                *outstream << identifier << " ";
+
+                it = core->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                it = excited->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                *outstream << std::endl;
+            }
+            
+            *outstream << Z << " ";
+            
+            it = core->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
             }
 
-            it.Next();
+            it = excited->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            *outstream << std::endl;
+        }
+        else if(UseRecursive)
+        {
+            if(true)
+            {
+                *outstream << identifier << " ";
+
+                it = core->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                it = excited->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    *outstream << it.GetState()->Name() << " ";
+                    it.Next();
+                }
+                *outstream << std::endl;
+            }
+            
+            *outstream << userInput_("N", 1) << " ";
+            
+            it = core->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            it = excited->GetStateIterator();
+            it.First();
+
+            while(!it.AtEnd())
+            {
+                OrbitalInfo si = it.GetOrbitalInfo();
+                Orbital* ds = it.GetState();
+                *outstream << std::setprecision(12);
+
+                if(mbpt)
+                {   double dE = mbpt->GetOneElectronDiagrams(si, si);
+                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                }
+                else
+                {
+                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                }
+    
+                it.Next();
+            }
+
+            *outstream << std::endl;
         }
 
         excited->ClearSigmas();
         RunIndexNext(false);
     }
     RunIndexBegin(false);
+}
+
+StateIterator Atom::GetIteratorToNextOrbitalToFill()
+{
+    core->ToggleClosedShellCore();
+    StateIterator si = core->GetStateIterator();
+    si.First();
+
+    std::string result = "";
+    double lowestEnergy = 0;
+    StateIterator lowestsi = si;
+
+    while(!si.AtEnd())
+    {
+        OrbitalInfo oi = si.GetOrbitalInfo();
+        Orbital* orb = si.GetState();
+        if((orb->Energy() < lowestEnergy) && ((int) orb->Occupancy() < (int) oi.MaxNumElectrons()))
+        {
+            lowestEnergy = orb->Energy();
+            lowestsi = si;
+        }
+        si.Next();
+    }
+    si = excited->GetStateIterator();
+    si.First();
+    while(!si.AtEnd())
+    {
+        OrbitalInfo oi = si.GetOrbitalInfo();
+        Orbital* orb = si.GetState();
+        if((orb->Energy() < lowestEnergy))
+        {
+            lowestEnergy = orb->Energy();
+            lowestsi = si;
+        }
+        si.Next();
+    }
+
+    return lowestsi;
+}
+
+std::string Atom::GetNextConfigString()
+{
+    std::stringstream configstring (std::stringstream::in | std::stringstream::out);
+    std::stringstream resultstring (std::stringstream::in | std::stringstream::out);
+    configstring << userInput_("HF/Configuration", "");
+    int mPQN, aPQN;
+    char mL, aL;
+    int mOccupancy;
+    bool foundExisting = false;
+
+    std::stringstream addthis (std::stringstream::in | std::stringstream::out);
+    addthis << GetIteratorToNextOrbitalToFill().GetState()->Name();
+    addthis >> aPQN >> aL;
+    
+    configstring.seekg(0, std::ios::end);
+    int length = configstring.tellg();
+    configstring.seekg(0, std::ios::beg);
+    
+    while(configstring.tellg() < length && configstring.tellg() != -1)
+    {
+        mPQN = 0;
+        mOccupancy = 0;
+        configstring >> mPQN >> mL >> mOccupancy;
+        if(mPQN == aPQN && mL == aL)
+        {
+            resultstring << mPQN << mL << mOccupancy + 1 << " ";
+            foundExisting = true;
+        }
+        else
+        {
+            if(mOccupancy > 0)
+            {
+                resultstring << mPQN << mL << mOccupancy << " ";
+            }
+        }
+    }
+    if(foundExisting == false)
+    {
+        resultstring << aPQN << aL << 1 << " ";
+    }
+
+    return resultstring.str();
 }
 
 bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states)
@@ -345,8 +574,8 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
     ConstStateIterator it = core->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
-    {   L = it.GetStateInfo().L();
-        max_pqn_in_core[L] = mmax(max_pqn_in_core[L], it.GetStateInfo().PQN());
+    {   L = it.GetOrbitalInfo().L();
+        max_pqn_in_core[L] = mmax(max_pqn_in_core[L], it.GetOrbitalInfo().PQN());
         it.Next();
     }
 
@@ -382,7 +611,8 @@ void Atom::CreateBasis(bool UseMBPT)
         excited_mbpt->CreateExcitedStates(MBPT_basis_states);
         *outstream << "MBPT    " << mbptBasisString << std::endl;
     }
-    *outstream << "Valence " << ciBasisString << std::endl;
+    if(userInput_("Z", Z) == Z && !userInput_.search("--recursive-build"))
+        *outstream << "Valence " << ciBasisString << std::endl;
 
     excited->SetIdentifier(identifier);
     core->ToggleOpenShellCore();
@@ -561,32 +791,32 @@ void Atom::GenerateCowanInputFile()
 {
     FILE* fp = fopen("mitch.txt", "wt");
 
-    const DiscreteState* ds = core->GetState(StateInfo(1, -1));
+    const Orbital* ds = core->GetState(OrbitalInfo(1, -1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, -1));
+    ds = excited->GetState(OrbitalInfo(2, -1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, 1));
+    ds = excited->GetState(OrbitalInfo(2, 1));
     PrintWavefunctionCowan(fp, ds);
-    ds = excited->GetState(StateInfo(2, -2));
+    ds = excited->GetState(OrbitalInfo(2, -2));
     PrintWavefunctionCowan(fp, ds);
 
     for(int n = 3; n <= 5; n++)
     {
-        ds = excited->GetState(StateInfo(n, -1));
+        ds = excited->GetState(OrbitalInfo(n, -1));
         PrintWavefunctionCowan(fp, ds);
-//        ds = excited->GetState(StateInfo(n, 1));
+//        ds = excited->GetState(OrbitalInfo(n, 1));
 //        PrintWavefunctionCowan(fp, ds);
-//        ds = excited->GetState(StateInfo(n, -2));
+//        ds = excited->GetState(OrbitalInfo(n, -2));
 //        PrintWavefunctionCowan(fp, ds);
-        ds = excited->GetState(StateInfo(n, 2));
+        ds = excited->GetState(OrbitalInfo(n, 2));
         PrintWavefunctionCowan(fp, ds);
-        ds = excited->GetState(StateInfo(n, -3));
+        ds = excited->GetState(OrbitalInfo(n, -3));
         PrintWavefunctionCowan(fp, ds);
 //        if(n > 3)
 //        {
-//            ds = excited->GetState(StateInfo(n, 3));
+//            ds = excited->GetState(OrbitalInfo(n, 3));
 //            PrintWavefunctionCowan(fp, ds);
-//            ds = excited->GetState(StateInfo(n, -4));
+//            ds = excited->GetState(OrbitalInfo(n, -4));
 //            PrintWavefunctionCowan(fp, ds);
 //        }
     }
@@ -609,7 +839,7 @@ void Atom::GenerateCowanInputFile()
     fclose(fp);
 }
 
-void Atom::PrintWavefunctionCowan(FILE* fp, const DiscreteState* ds)
+void Atom::PrintWavefunctionCowan(FILE* fp, const Orbital* ds)
 {
 /*
     // Extract A and B from expansion
@@ -807,7 +1037,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         fread(&E, sizeof(double), 1, fp);
         fread(&record_size, sizeof(int), 1, fp);
 
-        DiscreteState* ds = new DiscreteState(NP, NAK);
+        Orbital* ds = new Orbital(NP, NAK);
         ds->SetEnergy(-E);
 
         // Record 5
@@ -929,7 +1159,7 @@ void Atom::WriteGraspMCDF() const
     it.First();
     while(!it.AtEnd())
     {
-        const DiscreteState* ds = it.GetState();
+        const Orbital* ds = it.GetState();
         *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
@@ -939,7 +1169,7 @@ void Atom::WriteGraspMCDF() const
     it.First();
     while(!it.AtEnd())
     {
-        const DiscreteState* ds = it.GetState();
+        const Orbital* ds = it.GetState();
         *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
@@ -948,7 +1178,7 @@ void Atom::WriteGraspMCDF() const
     fclose(fp);
 }
 
-void Atom::WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int lattice_size) const
+void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int lattice_size) const
 {
     unsigned int record_size;
     unsigned int N = lattice_size;
@@ -1006,4 +1236,68 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, const DiscreteState* ds, unsigned int
     fwrite(P, sizeof(double), N, fp);
     fwrite(Q, sizeof(double), N, fp);
     fwrite(&record_size, sizeof(int), 1, fp);        
+}
+
+void Atom::WriteEigenstatesToSolutionMap()
+{
+    if(GetSymmetryEigenstatesMap()->empty())
+    {
+        *errstream << "Could not find eigenstates. Generate or read them first." << std::endl;
+        exit(1);
+    }
+    if(!GetSolutionMap()->empty())
+    {
+        GetSolutionMap()->clear();
+    }
+    if(!GetSymmetryEigenstatesMap()->empty() && GetSymmetryEigenstatesMap()->begin()->second == NULL)
+    {
+        *errstream << "SymmetryEigenstatesMap was previously generated but Eigenstates have been deleted, regenerate them first." << std::endl;
+        exit(1);
+    }
+
+    SymmetryEigenstatesMap::const_iterator sem_it;
+    for(sem_it = GetSymmetryEigenstatesMap()->begin(); sem_it != GetSymmetryEigenstatesMap()->end(); sem_it++)
+    {
+        for(int i = 0; i < sem_it->second->GetNumEigenvalues(); i++)
+        {
+            ConfigGenerator* confgen = GenerateConfigurations(sem_it->first);
+            const RelativisticConfigList* configs = confgen->GetRelConfigs();
+            RelativisticConfigList::const_iterator list_it = configs->begin();
+            std::map<Configuration, double> percentages;
+            unsigned int N = 0;
+            while(list_it != configs->end())
+            {   N += list_it->NumJStates();
+                list_it++;
+            }
+
+            int j = 0;
+            list_it = configs->begin();
+            while(list_it != configs->end())
+            {
+                Configuration nrconfig(list_it->GetNonRelConfiguration());
+                if(percentages.find(nrconfig) == percentages.end())
+                    percentages[nrconfig] = 0.;
+        
+                for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
+                {
+                    double coeff = sem_it->second->GetEigenvectors()[i*N + j];
+                    coeff = coeff * coeff * 100;
+        
+                    percentages[nrconfig] += coeff;
+                    j++;
+                }
+        
+                list_it++;
+            }
+
+            if(sem_it->second->GetgFactors() != NULL)
+            {
+                GetSolutionMap()->insert(std::pair<SolutionID, Solution>(SolutionID(sem_it->first, i),Solution(sem_it->second->GetEigenvalues()[i], percentages, sem_it->second->GetgFactors()[i])));
+            }
+            else
+            {
+                GetSolutionMap()->insert(std::pair<SolutionID, Solution>(SolutionID(sem_it->first, i),Solution(sem_it->second->GetEigenvalues()[i], percentages)));
+            }
+        }
+    }
 }

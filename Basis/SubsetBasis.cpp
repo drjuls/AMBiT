@@ -24,7 +24,7 @@ void SubsetBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
     it.First();
     while(!it.AtEnd())
     {
-        StateInfo si(it.GetStateInfo());
+        OrbitalInfo si(it.GetOrbitalInfo());
         if(si.L() < num_states_per_l.size())
         {
             int kappa = si.Kappa();

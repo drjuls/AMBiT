@@ -34,7 +34,7 @@ void MBPTCalculator::SetValenceEnergies()
             // Get leading state (for energy denominator)
             it_i.First();
             while(!it_i.AtEnd())
-            {   const DiscreteState* ds = it_i.GetState();
+            {   const Orbital* ds = it_i.GetState();
                 if((ds->Kappa() == kappa) && (ds->RequiredPQN() < pqn))
                 {   pqn = ds->RequiredPQN();
                     valence_energy = ds->Energy();

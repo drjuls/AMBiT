@@ -24,12 +24,12 @@ unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
     it_b = valence_states.begin();
     while(it_b != valence_states.end())
     {
-        StateInfo b = reverse_state_index.find(*it_b)->second;
+        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
 
         it_n = core_states.begin();
         while(it_n != core_states.end())
         {
-            StateInfo n = reverse_state_index.find(*it_n)->second;
+            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
 
             if((abs(b.TwoJ() - n.TwoJ()) <= 2) &&
                ((n.L() + b.L() + 1)%2 == 0))
@@ -41,7 +41,7 @@ unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
         it_a = valence_states.begin();
         while((it_a != valence_states.end()) && (*it_a <= *it_b))
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
             if((abs(b.TwoJ() - a.TwoJ()) <= 2) &&
                ((a.L() + b.L() + 1)%2 == 0))
@@ -65,12 +65,12 @@ unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
 
         it_a = valence_states.begin();
         while(it_a != valence_states.end())
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
             // (n, a) -> limits on k
             k = abs(int(n.L()) - int(a.L()));
@@ -84,7 +84,7 @@ unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
                 it_c = valence_states.begin();
                 while(it_c != valence_states.end())
                 {
-                    StateInfo c = reverse_state_index.find(*it_c)->second;
+                    OrbitalInfo c = reverse_state_index.find(*it_c)->second;
 
                     unsigned int Lsum = c.L() + k;
                     unsigned int TwoJmin = abs(int(2*k) - int(c.TwoJ()));
@@ -93,7 +93,7 @@ unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
                     it_b = valence_states.begin();
                     while((it_b != valence_states.end()) && (*it_b <= *it_c))
                     {
-                        StateInfo b = reverse_state_index.find(*it_b)->second;
+                        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
 
                         if((b.TwoJ() >= TwoJmin) &&
                            (b.TwoJ() <= TwoJmax) &&
@@ -132,18 +132,18 @@ void Sigma3Integrals::UpdateOneElectronIntegrals()
     // (l1 + l2 + 1)%2 == 0
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b;
-    const DiscreteState* sn, *sa, *sb;
+    const Orbital* sn, *sa, *sb;
 
     it_b = valence_states.begin();
     while(it_b != valence_states.end())
     {
-        StateInfo b = reverse_state_index.find(*it_b)->second;
+        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
         sb = excited.GetState(b);
 
         it_n = core_states.begin();
         while(it_n != core_states.end())
         {
-            StateInfo n = reverse_state_index.find(*it_n)->second;
+            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
 
             if((abs(b.TwoJ() - n.TwoJ()) <= 2) &&
                ((n.L() + b.L() + 1)%2 == 0))
@@ -163,7 +163,7 @@ void Sigma3Integrals::UpdateOneElectronIntegrals()
         it_a = valence_states.begin();
         while((it_a != valence_states.end()) && (*it_a <= *it_b))
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
 
             if((abs(b.TwoJ() - a.TwoJ()) <= 2) &&
                ((a.L() + b.L() + 1)%2 == 0))
@@ -201,20 +201,20 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     // where n is core; a, b and c are valence
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b, it_c;
-    const DiscreteState *sn;
-    const State *sa, *sb, *sc;
+    const Orbital *sn;
+    const SingleParticleWavefunction *sa, *sb, *sc;
     unsigned int k, kmax;
 
     it_n = core_states.begin();
     while(it_n != core_states.end())
     {
-        StateInfo n = reverse_state_index.find(*it_n)->second;
+        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
         sn = core.GetState(n);
 
         it_a = valence_states.begin();
         while(it_a != valence_states.end())
         {
-            StateInfo a = reverse_state_index.find(*it_a)->second;
+            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
             sa = excited.GetState(a);
 
             // (n, a) -> limits on k
@@ -239,7 +239,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
                 it_c = valence_states.begin();
                 while(it_c != valence_states.end())
                 {
-                    StateInfo c = reverse_state_index.find(*it_c)->second;
+                    OrbitalInfo c = reverse_state_index.find(*it_c)->second;
                     sc = excited.GetState(c);
 
                     unsigned int Lsum = c.L() + k;
@@ -249,7 +249,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
                     it_b = valence_states.begin();
                     while((it_b != valence_states.end()) && (*it_b <= *it_c))
                     {
-                        StateInfo b = reverse_state_index.find(*it_b)->second;
+                        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
                         sb = excited.GetState(b);
 
                         if((b.TwoJ() >= TwoJmin) &&
@@ -292,7 +292,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     }
 }
 
-double Sigma3Integrals::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double Sigma3Integrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -428,7 +428,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                     ConstStateIterator itn = core->GetConstStateIterator();
                     while(!itn.AtEnd())
                     {
-                        const StateInfo sn = itn.GetStateInfo();
+                        const OrbitalInfo sn = itn.GetOrbitalInfo();
                         unsigned int two_Jn = sn.TwoJ();
 
                         if((two_Jn >= abs(two_mn)) && (sn.L()%2 == ln_parity))

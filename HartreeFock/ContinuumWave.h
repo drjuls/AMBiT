@@ -1,15 +1,15 @@
-#ifndef CONTINUUM_STATE_H
-#define CONTINUUM_STATE_H
+#ifndef CONTINUUM_WAVE_H
+#define CONTINUUM_WAVE_H
 
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 
-class ContinuumState: public State
+class ContinuumWave: public SingleParticleWavefunction
 {
 public:
-    ContinuumState(): State() {}
-    ContinuumState(const ContinuumState& other);
-    ContinuumState(double energy, int Kappa);
-    virtual ~ContinuumState(void) {}
+    ContinuumWave(): SingleParticleWavefunction() {}
+    ContinuumWave(const ContinuumWave& other);
+    ContinuumWave(double energy, int Kappa);
+    virtual ~ContinuumWave(void) {}
 
     /** Store the state. File pointer fp must be open and writable. */
     virtual void Write(FILE* fp) const;

@@ -1,23 +1,23 @@
-#ifndef STATE_INFO_H
-#define STATE_INFO_H
+#ifndef ORBITAL_INFO_H
+#define ORBITAL_INFO_H
 
-#include "DiscreteState.h"
+#include "Orbital.h"
 #include <string>
 
-class StateInfo
+class OrbitalInfo
 {
     /** Single particle state information.
         Stores pqn and kappa (L). Has an inbuilt ordering.
      */
 public:
-    StateInfo(unsigned int principal_qn, int kappa);
-    StateInfo(const DiscreteState* s);
-    StateInfo(const StateInfo& other);
-    virtual ~StateInfo(void) {}
+    OrbitalInfo(unsigned int principal_qn, int kappa);
+    OrbitalInfo(const Orbital* s);
+    OrbitalInfo(const OrbitalInfo& other);
+    virtual ~OrbitalInfo(void) {}
 
-    virtual bool operator<(const StateInfo& other) const;
-    virtual bool operator==(const StateInfo& other) const;
-    virtual bool operator!=(const StateInfo& other) const;
+    virtual bool operator<(const OrbitalInfo& other) const;
+    virtual bool operator==(const OrbitalInfo& other) const;
+    virtual bool operator!=(const OrbitalInfo& other) const;
 
     inline unsigned int PQN() const { return pqn; }
     inline int Kappa() const { return kappa; }
@@ -34,7 +34,7 @@ protected:
     unsigned int l;
 };
 
-inline StateInfo::StateInfo(const DiscreteState* s)
+inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {
     pqn = s->RequiredPQN();
     kappa = s->Kappa();
@@ -44,7 +44,7 @@ inline StateInfo::StateInfo(const DiscreteState* s)
         l = (unsigned int)(-kappa-1);
 }
 
-inline StateInfo::StateInfo(unsigned int principal_qn, int kap):
+inline OrbitalInfo::OrbitalInfo(unsigned int principal_qn, int kap):
     pqn(principal_qn), kappa(kap)
 {
     if(kappa > 0)
@@ -53,16 +53,16 @@ inline StateInfo::StateInfo(unsigned int principal_qn, int kap):
         l = (unsigned int)(-kappa-1);
 }
 
-inline StateInfo::StateInfo(const StateInfo& other):
+inline OrbitalInfo::OrbitalInfo(const OrbitalInfo& other):
     pqn(other.pqn), kappa(other.kappa), l(other.l)
 {}
 
-inline double StateInfo::J() const
+inline double OrbitalInfo::J() const
 {
     return fabs(double(kappa)) - 0.5;
 }
 
-inline unsigned int StateInfo::TwoJ() const
+inline unsigned int OrbitalInfo::TwoJ() const
 {
     return (2*abs(kappa) - 1);
 }

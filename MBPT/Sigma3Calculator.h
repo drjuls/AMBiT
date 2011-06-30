@@ -28,7 +28,7 @@ public:
                         ( 1/2 -1/2  0 )   ( 1/2 -1/2  0 )
         where [j1] = 2 * j1 + 1, etc.
      */
-    virtual double GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
 protected:
     /** No one-electron Hamiltonian integrals, but SMS integrals are still needed. */

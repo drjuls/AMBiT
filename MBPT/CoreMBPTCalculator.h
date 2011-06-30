@@ -32,21 +32,21 @@ public:
     void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;
 
     /** Return value is the matrix element < s1 | Sigma1 | s2 >. */
-    double GetOneElectronDiagrams(const StateInfo& s1, const StateInfo& s2) const;
+    double GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
 
     /** Returns subtraction diagrams for the matrix element < s1 | Sigma1 | s2 >. */
-    double GetOneElectronSubtraction(const StateInfo& s1, const StateInfo& s2) const;
+    double GetOneElectronSubtraction(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
 
     /** Returns <s1, s2 | Sigma2(k) | s3, s4>. Only calculates in Brillouin-Wigner PT. */
-    double GetTwoElectronDiagrams(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    double GetTwoElectronDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
     /** Returns subtraction diagrams for the matrix element <s1, s2 | Sigma2(k) | s3, s4>. */
-    double GetTwoElectronSubtraction(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    double GetTwoElectronSubtraction(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
     /** Returns "box" diagrams of <s1, s2 | Sigma2(k) | s3, s4> (numbers 4, 5, and 6).
         Only calculates in Brillouin-Wigner PT.
      */
-    double GetTwoElectronBoxDiagrams(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const;
+    double GetTwoElectronBoxDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
     /** Add a constant, delta, to the energy denominator in all diagrams.
         This corresponds to H_0 -> H_0 + delta, so V -> V - delta
@@ -73,9 +73,9 @@ protected:
     void CalculateCorrelation2(int kappa, SigmaPotential* sigma) const;
     void CalculateCorrelation4(int kappa, SigmaPotential* sigma) const;
 
-    double CalculateCorrelation1and3(const StateInfo& sa, const StateInfo& sb) const;
-    double CalculateCorrelation2(const StateInfo& sa, const StateInfo& sb) const;
-    double CalculateCorrelation4(const StateInfo& sa, const StateInfo& sb) const;
+    double CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
+    double CalculateCorrelation2(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
+    double CalculateCorrelation4(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     
     /** Calculate subtraction diagrams of second order (shown here 1 through 3).
         ->>------------->>--  ->>-------------<---  ->>------<------>>--
@@ -88,9 +88,9 @@ protected:
          PRE: sa.kappa == sb.kappa
          NOTE: diagrams 1 and 2 each represent two diagrams (swapping the interaction lines)
      */
-    double CalculateSubtraction1(const StateInfo& sa, const StateInfo& sb) const;
-    double CalculateSubtraction2(const StateInfo& sa, const StateInfo& sb) const;
-    double CalculateSubtraction3(const StateInfo& sa, const StateInfo& sb) const;
+    double CalculateSubtraction1(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
+    double CalculateSubtraction2(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
+    double CalculateSubtraction3(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
 
     /** Calculate two-electron screening diagrams of second order (shown here 1 through 3).
         ->>------------->>--  ->>-------------<---  ->>------------->>--
@@ -103,9 +103,9 @@ protected:
           b              d      b              d      n              d
          NOTE: each diagram has a mirror (swapping a<->b and c<->d)
      */
-    double CalculateTwoElectron1(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
-    double CalculateTwoElectron2(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
-    double CalculateTwoElectron3(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
+    double CalculateTwoElectron1(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
+    double CalculateTwoElectron2(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
+    double CalculateTwoElectron3(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
     /** Calculate two-electron screening "box" diagrams of second order (shown here 4 through 6).
         ->>-------------<---  ->>------>------>>--  ->>-------------<---
@@ -121,9 +121,9 @@ protected:
                                                       n              d  
          NOTE: diagrams 4 and 5 are mirrors of each other (swapping a<->b and c<->d)
      */
-    double CalculateTwoElectron4(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
-    double CalculateTwoElectron5(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
-    double CalculateTwoElectron6(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
+    double CalculateTwoElectron4(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
+    double CalculateTwoElectron5(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
+    double CalculateTwoElectron6(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
     /** Calculate two-electron subtraction diagram of second order.
                      x
@@ -138,7 +138,7 @@ protected:
         ->>------------->>--
           b              d  
      */
-    double CalculateTwoElectronSub(unsigned int k, const StateInfo& sa, const StateInfo& sb, const StateInfo& sc, const StateInfo& sd) const;
+    double CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
 protected:
     CoreValenceIntegrals* integrals;

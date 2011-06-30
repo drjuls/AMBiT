@@ -2,42 +2,42 @@
 #define NON_REL_INFO_H
 
 #include <set>
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 
-class NonRelInfo : public StateInfo
+class NonRelInfo : public OrbitalInfo
 {
     /** Stores a non-relativistic single particle state info. */
 public:
     NonRelInfo(unsigned int principal_qn, unsigned int ll):
-        StateInfo(principal_qn, -(int(ll) + 1))
+        OrbitalInfo(principal_qn, -(int(ll) + 1))
     {}
     NonRelInfo(const NonRelInfo& other):
-        StateInfo(other.pqn, other.kappa)
+        OrbitalInfo(other.pqn, other.kappa)
     {}
-    NonRelInfo(const StateInfo& other):
-        StateInfo(other.PQN(), -(int(other.L()) + 1))
+    NonRelInfo(const OrbitalInfo& other):
+        OrbitalInfo(other.PQN(), -(int(other.L()) + 1))
     {}
     virtual ~NonRelInfo(void) {}
 
     /** Get relativistic state info corresponding to kappa = -(L+1). */
-    StateInfo GetFirstRelativisticInfo() const;
+    OrbitalInfo GetFirstRelativisticInfo() const;
     /** Get relativistic state info corresponding to kappa = L. */
-    StateInfo GetSecondRelativisticInfo() const;
+    OrbitalInfo GetSecondRelativisticInfo() const;
 
     virtual std::string Name() const;
 };
 
-inline StateInfo NonRelInfo::GetFirstRelativisticInfo() const
+inline OrbitalInfo NonRelInfo::GetFirstRelativisticInfo() const
 {
-    return StateInfo(pqn, kappa);
+    return OrbitalInfo(pqn, kappa);
 }
 
-inline StateInfo NonRelInfo::GetSecondRelativisticInfo() const
+inline OrbitalInfo NonRelInfo::GetSecondRelativisticInfo() const
 {
     if(l == 0)
-        return StateInfo(pqn, -1);
+        return OrbitalInfo(pqn, -1);
     else
-        return StateInfo(pqn, l);
+        return OrbitalInfo(pqn, l);
 }
 
 

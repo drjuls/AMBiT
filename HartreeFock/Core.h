@@ -5,7 +5,7 @@
 #include "StateIterator.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
-#include "ContinuumState.h"
+#include "ContinuumWave.h"
 
 class Core : public StateManager
 {
@@ -90,13 +90,13 @@ public:     // Methods for Hartree-Fock calculations and potentials
     /** Calculate the exchange part of the interaction between the current state and all
         of the core states. "exchange" is resized to current.size().
      */
-    void CalculateExchange(const State& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    void CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Calculate a new excited state in the closed core potential. */
-    virtual unsigned int CalculateExcitedState(State* s) const;
+    virtual unsigned int CalculateExcitedState(SingleParticleWavefunction* s) const;
 
     /** Update an existing excited state, in case of changed core or addition of sigma. */
-    unsigned int UpdateExcitedState(State* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    unsigned int UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
 public:
     /** Methods for open shell core. The core calculates states in the V^n scheme.
@@ -104,7 +104,7 @@ public:
       */
 
     /** Remove one electron from outer shell. Good for making a V^(n-1) core. */
-    virtual void Ionise(StateInfo removed_electron);
+    virtual void Ionise(OrbitalInfo removed_electron);
     
     /** Remove all electrons until just the closed shell core is left. */
     virtual void ToggleClosedShellCore();
@@ -113,13 +113,13 @@ public:
     virtual void ToggleOpenShellCore();
 
     /** Test whether a state is in the open shells of the core. */
-    virtual bool IsOpenShellState(const StateInfo& info) const;
+    virtual bool IsOpenShellState(const OrbitalInfo& info) const;
 
     /** Test whether the core has open shells. */
     virtual bool IsOpenShellCore() const;
 
     /** Set open shell state occupancy. */
-    virtual void SetOpenShellState(const StateInfo& info, double occupancy);
+    virtual void SetOpenShellState(const OrbitalInfo& info, double occupancy);
 
 protected:
     /** Delete all currently stored states. */
@@ -130,16 +130,16 @@ protected:
         Returns the number of iterations necessary to achieve convergence.
         If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
      */
-    unsigned int ConvergeStateApproximation(DiscreteState* s, bool include_exch = true) const;
+    unsigned int ConvergeStateApproximation(Orbital* s, bool include_exch = true) const;
 
     /** Solve the Dirac eqn in the current HF potential once and adjust the energy
         to renormalise. The exchange may be resized to the new size of s.
         Returns the change in the energy needed for renormalisation (delta_E).
      */
-    double IterateDiscreteStateGreens(DiscreteState* s, CoupledFunction* exchange) const;
+    double IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const;
 
     /** Calculate a new continuum state in the HF Potential. */
-    unsigned int CalculateContinuumState(ContinuumState* s) const;
+    unsigned int CalculateContinuumWave(ContinuumWave* s) const;
 
     /** Update the Hartree-Fock potential, which includes the potential due to the nucleus,
         as well as the direct part of all of the core electrons.
@@ -183,7 +183,7 @@ protected:
 
     StateSet OpenShellStorage;  // Store currently unused open shell states.
                                 // Only storing each state in one place helps memory management.
-    std::map<StateInfo, double> OpenShellStates; // Original occupancies
+    std::map<OrbitalInfo, double> OpenShellStates; // Original occupancies
 
 public:
     class StateParameters

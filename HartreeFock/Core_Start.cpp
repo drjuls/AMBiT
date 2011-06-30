@@ -47,21 +47,21 @@ void Core::BuildFirstApproximation(std::string configuration)
     closed_shell_config.First();
     while(!closed_shell_config.AtEnd())
     {
-        DiscreteState* s1 = NULL;
-        DiscreteState* s2 = NULL;
+        Orbital* s1 = NULL;
+        Orbital* s2 = NULL;
 
         NonRelInfo info(closed_shell_config.GetInfo());
         double occupancy = closed_shell_config.GetOccupancy();
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new DiscreteState(info.PQN(), -1);
+        {   s2 = new Orbital(info.PQN(), -1);
             s2->SetOccupancy(double(closed_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new DiscreteState(info.PQN(), L);
-            s2 = new DiscreteState(info.PQN(), -(L+1));
+            s1 = new Orbital(info.PQN(), L);
+            s2 = new Orbital(info.PQN(), -(L+1));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -79,21 +79,21 @@ void Core::BuildFirstApproximation(std::string configuration)
     open_shell_config.First();
     while(!open_shell_config.AtEnd())
     {
-        DiscreteState* s1 = NULL;
-        DiscreteState* s2 = NULL;
+        Orbital* s1 = NULL;
+        Orbital* s2 = NULL;
 
         NonRelInfo info(open_shell_config.GetInfo());
         double occupancy = open_shell_config.GetOccupancy();
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new DiscreteState(info.PQN(), -1);
+        {   s2 = new Orbital(info.PQN(), -1);
             s2->SetOccupancy(double(open_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new DiscreteState(info.PQN(), L);
-            s2 = new DiscreteState(info.PQN(), -(L+1));
+            s1 = new Orbital(info.PQN(), L);
+            s2 = new Orbital(info.PQN(), -(L+1));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -104,11 +104,11 @@ void Core::BuildFirstApproximation(std::string configuration)
             //unsigned int occ1 = occupancy/2;
             //occ1 = mmin(occ1, unsigned int(2*L));
             //if(occ1)
-            //{   s1 = new DiscreteState(pqn, L);
+            //{   s1 = new Orbital(pqn, L);
             //    s1->SetOccupancy(occ1);
             //}
 
-            //s2 = new DiscreteState(pqn, -(L+1));
+            //s2 = new Orbital(pqn, -(L+1));
             //s2->SetOccupancy(mmin(occupancy-occ1, unsigned int(2*L + 2)));
         }
 
@@ -145,18 +145,18 @@ void Core::BuildFirstApproximation(std::string configuration)
         if(((56 < Z) && (Z < 72)) || (Z == 81))
         {
             // Alter 6s state
-            DiscreteState* s = GetState(StateInfo(6, -1));
+            Orbital* s = GetState(OrbitalInfo(6, -1));
             if(s != NULL)
             {   s->SetNu(1.4);
             }
 
             // Alter 4f state
-            s = GetState(StateInfo(4, 3));
+            s = GetState(OrbitalInfo(4, 3));
             if(s != NULL)
             {   s->SetNu(1.);
             }
             // Alter 4f* state
-            s = GetState(StateInfo(4, -4));
+            s = GetState(OrbitalInfo(4, -4));
             if(s != NULL)
             {   s->SetNu(1.);
             }
@@ -164,7 +164,7 @@ void Core::BuildFirstApproximation(std::string configuration)
     }
     else if(!Empty())
     {
-        State* s = GetStateIterator().GetState();
+        SingleParticleWavefunction* s = GetStateIterator().GetState();
         s->SetNu(1./Z);
     }
 
@@ -211,7 +211,7 @@ void Core::BuildFirstApproximation(std::string configuration)
         StateIterator it = GetStateIterator();
         while(!it.AtEnd())
         {
-            DiscreteState* s = it.GetState();
+            Orbital* s = it.GetState();
             unsigned int iterations = 0;
             double nu_change_factor = 0.5;
             int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction

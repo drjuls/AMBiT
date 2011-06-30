@@ -1,20 +1,20 @@
 #include "Include.h"
-#include "DiscreteState.h"
+#include "Orbital.h"
 #include "Universal/Constant.h"
-#include "StateInfo.h"
+#include "OrbitalInfo.h"
 #include <math.h>
 
-DiscreteState::DiscreteState(unsigned int PrincipalQN, int Kappa):
-    State(Kappa), pqn(PrincipalQN)
+Orbital::Orbital(unsigned int PrincipalQN, int Kappa):
+    SingleParticleWavefunction(Kappa), pqn(PrincipalQN)
 {
     occupancy = 2*abs(kappa);
 }
 
-DiscreteState::DiscreteState(const DiscreteState& other):
-    State(other), pqn(other.pqn), occupancy(other.occupancy)
+Orbital::Orbital(const Orbital& other):
+    SingleParticleWavefunction(other), pqn(other.pqn), occupancy(other.occupancy)
 {}
 
-double DiscreteState::Energy() const
+double Orbital::Energy() const
 {   if(nu > 0.)
         return -1./(2.*nu*nu);
     else if(nu < 0.)
@@ -23,7 +23,7 @@ double DiscreteState::Energy() const
         return 0.;
 }
 
-double DiscreteState::Norm(const Lattice* lattice) const
+double Orbital::Norm(const Lattice* lattice) const
 {
     double norm = 0.;
     unsigned int i;
@@ -45,12 +45,12 @@ double DiscreteState::Norm(const Lattice* lattice) const
     return norm;
 }
 
-std::string DiscreteState::Name() const
+std::string Orbital::Name() const
 {
-    return StateInfo(this).Name();
+    return OrbitalInfo(this).Name();
 }
 
-bool DiscreteState::CheckSize(Lattice* lattice, double tolerance)
+bool Orbital::CheckSize(Lattice* lattice, double tolerance)
 {
     double maximum = 0.;
     unsigned int i = 0;
@@ -64,7 +64,7 @@ bool DiscreteState::CheckSize(Lattice* lattice, double tolerance)
     }
 
     if(maximum < tolerance*100)
-    {   *errstream << "DiscreteState::Checksize: Zero function. " << std::endl;
+    {   *errstream << "Orbital::Checksize: Zero function. " << std::endl;
         PAUSE
         exit(1);
     }
@@ -128,14 +128,14 @@ bool DiscreteState::CheckSize(Lattice* lattice, double tolerance)
     else return true;
 }
 
-void DiscreteState::ReNormalise(const Lattice* lattice, double norm)
+void Orbital::ReNormalise(const Lattice* lattice, double norm)
 {
     double scaling = sqrt(norm/Norm(lattice));
     if(scaling)
         Scale(scaling);
 }
 
-unsigned int DiscreteState::NumNodes() const
+unsigned int Orbital::NumNodes() const
 {
     // Count number of zeros
     unsigned int zeros = 0;
@@ -174,7 +174,7 @@ unsigned int DiscreteState::NumNodes() const
     return zeros;
 }
 
-void DiscreteState::Write(FILE* fp) const
+void Orbital::Write(FILE* fp) const
 {
     // As well as the CoupledFunction vectors, we need to output some other things
     fwrite(&kappa, sizeof(int), 1, fp);
@@ -182,15 +182,15 @@ void DiscreteState::Write(FILE* fp) const
     fwrite(&pqn, sizeof(unsigned int), 1, fp);
     fwrite(&occupancy, sizeof(double), 1, fp);
 
-    State::Write(fp);
+    SingleParticleWavefunction::Write(fp);
 }
 
-void DiscreteState::Read(FILE* fp)
+void Orbital::Read(FILE* fp)
 {
     fread(&kappa, sizeof(int), 1, fp);
     fread(&nu, sizeof(double), 1, fp);
     fread(&pqn, sizeof(unsigned int), 1, fp);
     fread(&occupancy, sizeof(double), 1, fp);
 
-    State::Read(fp);
+    SingleParticleWavefunction::Read(fp);
 }

@@ -1,15 +1,15 @@
-#ifndef DISCRETE_STATE_H
-#define DISCRETE_STATE_H
+#ifndef ORBITAL_H
+#define ORBITAL_H
 
-#include "State.h"
+#include "SingleParticleWavefunction.h"
 
-class DiscreteState : public State  
+class Orbital : public SingleParticleWavefunction  
 {
 public:
-    DiscreteState(): State() {}
-    DiscreteState(unsigned int PrincipalQN, int Kappa);
-    DiscreteState(const DiscreteState& other);
-    virtual ~DiscreteState(void) {}
+    Orbital(): SingleParticleWavefunction() {}
+    Orbital(unsigned int PrincipalQN, int Kappa);
+    Orbital(const Orbital& other);
+    virtual ~Orbital(void) {}
 
     virtual double Energy() const;
     double Norm(const Lattice* lattice) const;
@@ -37,8 +37,8 @@ public:
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;
 
-    const DiscreteState& operator=(const DiscreteState& other)
-    {   State::operator=(other);
+    const Orbital& operator=(const Orbital& other)
+    {   SingleParticleWavefunction::operator=(other);
         pqn = other.pqn;
         occupancy = other.occupancy;
         return *this;
@@ -55,12 +55,12 @@ protected:
     double occupancy;
 };
 
-inline void DiscreteState::SetOccupancy(double number_electrons)
+inline void Orbital::SetOccupancy(double number_electrons)
 {   if(number_electrons <= (double)(2*abs(kappa)))
         occupancy = number_electrons;
 }
 
-inline void DiscreteState::SetEnergy(double energy)
+inline void Orbital::SetEnergy(double energy)
 {
     if (energy < 0.)
         nu = 1./sqrt(-2.*energy);

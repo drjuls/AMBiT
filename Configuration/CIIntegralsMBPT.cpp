@@ -53,8 +53,8 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
         it_2 = it_1;
         while(!it_2.AtEnd())
         {
-            const DiscreteState* si = it_1.GetState();
-            const DiscreteState* sj = it_2.GetState();
+            const Orbital* si = it_1.GetState();
+            const Orbital* sj = it_2.GetState();
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -69,11 +69,11 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
     // Two-electron integrals
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
-    {   const DiscreteState* s2 = it_2.GetState();
+    {   const Orbital* s2 = it_2.GetState();
 
         it_4.First(); i4 = 0;
         while(!it_4.AtEnd())
-        {   const DiscreteState* s4 = it_4.GetState();
+        {   const Orbital* s4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s2->L()) - int(s4->L()));
@@ -89,7 +89,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
-                {   const DiscreteState* s1 = it_1.GetState();
+                {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -98,7 +98,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                     else
                         i3_limit = num_states;
                     while((i3 <= i3_limit) && !it_3.AtEnd())
-                    {   const DiscreteState* s3 = it_3.GetState();
+                    {   const Orbital* s3 = it_3.GetState();
                        
                         // Check conditions:
                         //     if(i1 == i4)  i2 <= i3
@@ -149,11 +149,11 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
     {
         it_2.First(); i2 = 0;
         while(!it_2.AtEnd())
-        {   const DiscreteState* s2 = it_2.GetState();
+        {   const Orbital* s2 = it_2.GetState();
 
             it_4.First(); i4 = 0;
             while(!it_4.AtEnd())
-            {   const DiscreteState* s4 = it_4.GetState();
+            {   const Orbital* s4 = it_4.GetState();
 
                 // Limits on k; start at wrong parity
                 k = (unsigned int)fabs(s2->J() - s4->J());
@@ -167,7 +167,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                     // s1 is the smallest
                     it_1.First(); i1 = 0;
                     while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
-                    {   const DiscreteState* s1 = it_1.GetState();
+                    {   const Orbital* s1 = it_1.GetState();
                         
                         it_3 = it_1; i3 = i1;
                         unsigned int i3_limit;
@@ -177,7 +177,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                             i3_limit = NumStates;
 
                         while((i3 <= i3_limit) && !it_3.AtEnd())
-                        {   const DiscreteState* s3 = it_3.GetState();
+                        {   const Orbital* s3 = it_3.GetState();
                            
                             // Check conditions:
                             //     if(i1 == i4)  i2 <= i3
@@ -333,8 +333,8 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
         it_j = it_i; j = i;
         while(!it_j.AtEnd())
         {
-            const DiscreteState* si = it_i.GetState();
-            const DiscreteState* sj = it_j.GetState();
+            const Orbital* si = it_i.GetState();
+            const Orbital* sj = it_j.GetState();
 
             // calculate one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -387,8 +387,8 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 -SI.IsotopeShiftIntegral(*it_j.GetState(), *it_i.GetState())));
 
             // Overlap integrals
-            const State& p1 = *it_i.GetState();
-            const State& p2 = *it_j.GetState();
+            const SingleParticleWavefunction& p1 = *it_i.GetState();
+            const SingleParticleWavefunction& p2 = *it_j.GetState();
             if(p1.L() == p2.L())
             {
                 double overlap = 0.;
@@ -449,11 +449,11 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
-    {   const DiscreteState* s2 = it_2.GetState();
+    {   const Orbital* s2 = it_2.GetState();
 
         it_4.First(); i4 = 0;
         while(!it_4.AtEnd())
-        {   const DiscreteState* s4 = it_4.GetState();
+        {   const Orbital* s4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s2->L()) - int(s4->L()));
@@ -479,7 +479,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
-                {   const DiscreteState* s1 = it_1.GetState();
+                {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -489,7 +489,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                         i3_limit = NumStates;
 
                     while((i3 <= i3_limit) && !it_3.AtEnd())
-                    {   const DiscreteState* s3 = it_3.GetState();
+                    {   const Orbital* s3 = it_3.GetState();
                        
                         // Check conditions:
                         //     if(i1 == i4)  i2 <= i3
@@ -625,11 +625,11 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
 
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
-    {   const DiscreteState* s2 = it_2.GetState();
+    {   const Orbital* s2 = it_2.GetState();
 
         it_4.First(); i4 = 0;
         while(!it_4.AtEnd())
-        {   const DiscreteState* s4 = it_4.GetState();
+        {   const Orbital* s4 = it_4.GetState();
 
             // Limits on k; start at wrong parity
             k = (unsigned int)fabs(s2->J() - s4->J());
@@ -643,7 +643,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
-                {   const DiscreteState* s1 = it_1.GetState();
+                {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -653,7 +653,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                         i3_limit = NumStates;
 
                     while((i3 <= i3_limit) && !it_3.AtEnd())
-                    {   const DiscreteState* s3 = it_3.GetState();
+                    {   const Orbital* s3 = it_3.GetState();
                        
                         // Check conditions:
                         //     if(i1 == i4)  i2 <= i3
@@ -735,7 +735,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
 }
 
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
-double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& s1, const StateInfo& s2, const StateInfo& s3, const StateInfo& s4) const
+double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = state_index.find(s1)->second;
     unsigned int i2 = state_index.find(s2)->second;
@@ -765,10 +765,10 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const StateInfo& 
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
-        const State* s_1 = states.GetState(reverse_state_index.find(i1)->second);
-        const State* s_2 = states.GetState(reverse_state_index.find(i2)->second);
-        const State* s_3 = states.GetState(reverse_state_index.find(i3)->second);
-        const State* s_4 = states.GetState(reverse_state_index.find(i4)->second);
+        const SingleParticleWavefunction* s_1 = states.GetState(reverse_state_index.find(i1)->second);
+        const SingleParticleWavefunction* s_2 = states.GetState(reverse_state_index.find(i2)->second);
+        const SingleParticleWavefunction* s_3 = states.GetState(reverse_state_index.find(i3)->second);
+        const SingleParticleWavefunction* s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
         CoulombIntegrator CI(states.GetLattice());
@@ -946,10 +946,10 @@ void CIIntegralsMBPT::AddSMSToTwoElectronIntegrals(const std::string& name)
         if(k == 1)
         {
             // Get states
-            StateInfo& s1 = reverse_state_index.find(i1)->second;
-            StateInfo& s2 = reverse_state_index.find(i2)->second;
-            StateInfo& s3 = reverse_state_index.find(i3)->second;
-            StateInfo& s4 = reverse_state_index.find(i4)->second;
+            OrbitalInfo& s1 = reverse_state_index.find(i1)->second;
+            OrbitalInfo& s2 = reverse_state_index.find(i2)->second;
+            OrbitalInfo& s3 = reverse_state_index.find(i3)->second;
+            OrbitalInfo& s4 = reverse_state_index.find(i4)->second;
 
             // Check for correct parity (as opposed to box diagrams)
             if(((s1.L() + s3.L() + k)%2 == 0) && ((s2.L() + s4.L() + k)%2 == 0))

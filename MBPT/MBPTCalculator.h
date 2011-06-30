@@ -37,7 +37,7 @@ protected:
           triangle(a.J(), b.J(), kmin)
           eps(a.L() + b.L() + kmin)
     */
-    unsigned int kmin(const StateInfo& a, const StateInfo& b) const;
+    unsigned int kmin(const OrbitalInfo& a, const OrbitalInfo& b) const;
 
     /** Return minimum value of k such that
           triangle(a.J(), b.J(), kmin)
@@ -46,18 +46,18 @@ protected:
           triangle(c.J(), d.J(), kmin)
           eps(c.L() + d.L() + kmin)
     */
-    unsigned int kmin(const StateInfo& a, const StateInfo& b, const StateInfo& c, const StateInfo& d) const;
+    unsigned int kmin(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
 
     /** Return maximum value of k that satisfies
           triangle(a.J(), b.J(), kmax)
     */
-    unsigned int kmax(const StateInfo& a, const StateInfo& b) const;
+    unsigned int kmax(const OrbitalInfo& a, const OrbitalInfo& b) const;
 
     /** Return maximum value of k that satisfies
           triangle(a.J(), b.J(), kmax)
           triangle(c.J(), d.J(), kmax)
     */
-    unsigned int kmax(const StateInfo& a, const StateInfo& b, const StateInfo& c, const StateInfo& d) const;
+    unsigned int kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
     
 protected:
     Lattice* lattice;
@@ -76,7 +76,7 @@ inline unsigned int MBPTCalculator::absdiff(unsigned int i, unsigned int j) cons
     return abs(int(i) - int(j));
 }
 
-inline unsigned int MBPTCalculator::kmin(const StateInfo& a, const StateInfo& b) const
+inline unsigned int MBPTCalculator::kmin(const OrbitalInfo& a, const OrbitalInfo& b) const
 {
     // ensure eps(a.L() + b.L() + kmin)
     unsigned int ret = absdiff(a.L(), b.L());
@@ -88,7 +88,7 @@ inline unsigned int MBPTCalculator::kmin(const StateInfo& a, const StateInfo& b)
     return ret;
 }
 
-inline unsigned int MBPTCalculator::kmin(const StateInfo& a, const StateInfo& b, const StateInfo& c, const StateInfo& d) const
+inline unsigned int MBPTCalculator::kmin(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const
 {
     unsigned int opt1 = kmin(a, b);
     unsigned int opt2 = kmin(c, d);
@@ -96,12 +96,12 @@ inline unsigned int MBPTCalculator::kmin(const StateInfo& a, const StateInfo& b,
     return mmax(opt1, opt2);
 }
 
-inline unsigned int MBPTCalculator::kmax(const StateInfo& a, const StateInfo& b) const
+inline unsigned int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b) const
 {
     return (a.TwoJ() + b.TwoJ())/2;
 }
 
-inline unsigned int MBPTCalculator::kmax(const StateInfo& a, const StateInfo& b, const StateInfo& c, const StateInfo& d) const
+inline unsigned int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const
 {
     return mmin(a.TwoJ() + b.TwoJ(), c.TwoJ() + d.TwoJ())/2;
 }
