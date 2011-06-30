@@ -412,7 +412,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, double min_percentage)
+void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, bool TruncateDisplayAtMaxEnergy, double min_percentage,  double DavidsonMaxEnergy)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -455,6 +455,11 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
     for(i=0; i<NumSolutions; i++)
     {
         unsigned int solution = i;
+
+        if(TruncateDisplayAtMaxEnergy && E[solution] > DavidsonMaxEnergy)
+        {
+            continue;  
+        }
 
         *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
             << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;

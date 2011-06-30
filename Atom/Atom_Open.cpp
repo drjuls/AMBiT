@@ -478,6 +478,12 @@ void Atom::CalculateEnergies()
                 HamiltonianMatrix* H;
                 bool ShowgFactors = true;
                 bool ShowPercentages = true;
+                bool TruncateDisplayAtMaxEnergy = userInput_.vector_variable_size("CI/Output/MaxDisplayedEnergy");
+                double DavidsonMaxEnergy = 0;
+                if(TruncateDisplayAtMaxEnergy)
+                {
+                    DavidsonMaxEnergy = userInput_("CI/Output/MaxDisplayedEnergy", 0);
+                }
                 int NumLeadingConfigs = userInput_("CI/Output/NumLeadingConfigs", 1);
                 std::string OutputTypeString = userInput_("CI/Output/Type", "Standard");
                 DisplayOutputType::Enum OutputType = DisplayOutputType::Standard;
@@ -522,7 +528,7 @@ void Atom::CalculateEnergies()
                     {
                         min_percent_displayed = 101.;
                     }
-                    H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, min_percent_displayed);
+                    H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, TruncateDisplayAtMaxEnergy, min_percent_displayed, DavidsonMaxEnergy);
                 #endif
 
                 delete H;

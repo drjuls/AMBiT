@@ -214,11 +214,10 @@ int main(int argc, char* argv[])
                 A.GetSolutionMap()->Print(OutputType);
             }
     
-            A.GetSolutionMap()->PrintID();
-    
             // Interactive mode
             if(fileInput.search("--interactive"))
             {
+                A.GetSolutionMap()->PrintID();
                 std::string input;
                 while(input != "quit" && input != "q")
                 {

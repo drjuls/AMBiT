@@ -35,7 +35,7 @@ public:
         If gFactors are required, set boolean to true.
         min_percentage is the threshold whereby leading configurations are printed
      */
-    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors = false, double min_percentage = 1.);
+    virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors = false, bool TruncateDisplayAtMaxEnergy = false, double min_percentage = 1., double DavidsonMaxEnergy = 0.0);
 
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 
