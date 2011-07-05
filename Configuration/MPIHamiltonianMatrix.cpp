@@ -215,7 +215,7 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
             
             if(TruncateDisplayAtMaxEnergy && E[solution] > DavidsonMaxEnergy)
             {
-                continue;  
+                break;
             }
 
             *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "

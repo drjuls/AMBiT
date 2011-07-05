@@ -458,7 +458,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
 
         if(TruncateDisplayAtMaxEnergy && E[solution] > DavidsonMaxEnergy)
         {
-            continue;  
+            break;  
         }
 
         *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
