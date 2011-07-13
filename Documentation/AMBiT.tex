@@ -45,7 +45,7 @@ Building AMBiT on a new computer system can be done by altering ``make.machine''
 
 \section{Input}
 
-AMBiT takes input from the command line and an input file. In principle, all parameters can be place in either. An exception is the directive to find the input file, which \emph{must} be placed in the command line using the -f option or by including a filename ending in .input, e.g.:
+AMBiT takes input from the command line and an input file. A template input file can be found in the root AMBiT directory, named template.input. In principle, all parameters can be place in either. An exception is the directive to find the input file, which \emph{must} be placed in the command line using the -f option or by including a filename ending in .input, e.g.:
 \begin{quote}
 \begin{verbatim}
 > ambit -f myFile.txt
@@ -110,6 +110,7 @@ The following input parameters are given in their correct place in the tree stru
 \option{-p, -{}-print-basis} Write out the basis as a Grasp0 ``MCDF.DMP'' file.
 
 \option{-r} select a subset of the possible runs for this run. Used when there are multiple runs. e.g.~\texttt{-r='1,2'} means just run the first two. \texttt{-r=0} is a special case which only runs the case where the varying parameter equals zero. For example if the input file contains
+
 \begin{quote}
 \begin{verbatim}
 AlphaSquaredVariation = '-0.2, -0.1, 0.0, 0.1, 0.2'
@@ -117,9 +118,14 @@ AlphaSquaredVariation = '-0.2, -0.1, 0.0, 0.1, 0.2'
 \end{quote}
 then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
 
+\option{-{}-interactive} Enable interactive mode at the end of a singular run. This will cause AMBiT to wait for input after completing all calculations so that the results can be further manipulated within the program.
+\option{-{}-recursive-build} Sets AMBiT to run in recursive mode to build all atoms with a given charge, iterating from a starting value of N and progressively adding electrons in the next lowest orbital until a final N is reached.
+
 \subsection{Parameters}
 
 \option{Z} \textbf{[compulsory]} nuclear charge.
+
+\option{ZIterations} This is used when NumValenceElectrons = 1. It specifies the number of times to increment Z and recalculate the energy levels before terminating.
 
 \option{ID} a name for the run, used for filenames when saving various stages of the calculation. If not present identity is taken from the prefix of the ``*.input'' file. If this cannot be found (for example if the input file name does not have this suffix) then a fatal error is issued.
 
@@ -141,7 +147,7 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 
 % HF
 \subsection*{[HF]: Relativistic Hartree-Fock options for building core.}
-\option{N} \textbf{[compulsory]} number of electrons included in HF procedure.
+\option{N} \textbf{[compulsory]} number of electrons included in HF procedure. In recursive building mode, this instead specifies the number of electrons the initial atom should have.
 \option{Charge} can be used instead of HF/N: Charge = Z - N.
 \option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6 3d4'}.
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
@@ -192,6 +198,15 @@ One of the basis options must be specified.
 \option{MaxEnergy} AMBiT calculates all levels up to this energy eigenvalue. Only used when \_SCALAPACK is on.
 \option{NumSolutions} [6] calculate the first \texttt{NumSolutions} eigenvalues of the Hamiltonian (when \texttt{CI/MaxEnergy} is not used).
 
+\subsubsection{[CI/Output]: Configuration interaction display options.}
+
+\option{Type} Sets the type of output the program should generate, Standard is the default, other options are CommaSeparated, TabSeparated or SpaceSeparated
+\option{ShowgFactors} Determines if g-factors should be displayed in the final solutions or otherwise
+\option{ShowPercentages} Determines if percentages for solutions with mixed configurations should be displayed or not
+\option{NumLeadingConfigurations} Sets the maximal number of leading configurations for each solution the program should display
+\option{MinimumDisplayedPercentage} The percentage threshold for displaying mixing, default is 1\%
+\option{MaxDisplayedEnergy} The maximum energy to display when solving in Davidson method, in eV
+
 \section{Multiple runs}
 
 It is very useful to be able to perform multiple runs using the same basic setup except varying a single parameter throughout the process. To do this the user simply has to turn the varying parameter into a list. For example, to determine sensitivity to $\alpha$ ($q$-coefficients) one can use
@@ -223,6 +238,14 @@ where $C = \texttt{NuclearRadius}$ and $B = \texttt{NuclearThickness}/4\ln 3$.
 \]
 
 \option{AlphaSquaredVariation} (described above) varies $x = (\alpha/\alpha_0)^2-1$~\cite{dzuba99pra}.
+
+\section{Recursive Builds}
+
+Enable to perform an automated run, which increments N from a specified N (default is 1) until N = Z. It will automatically fill the next lowest available state while building the next atom. To avoid instability in the computation, N should not be too much smaller than Z.
+
+\section{Interactive Mode}
+
+Interactive mode, enabled with -{}-interactive, is provided for when the level structure of the atom being computed is not known in advance, yet one wishes to perform transition calculations based on the results. Interactive mode currently prints all the solutions in a short-hand format after the conclusion of the computation, assigning each solution level a unique identifier consisting of a number followed by 'e' or 'o' and then followed by a second number. The first number represents twice the total angular momentum J, 'e' is assigned to even parity states and 'o' to odd parity states, and the final number represents the position of the solution with that particular J and parity to all other solutions with the same J and parity. Entering the unique ID alone will cause AMBiT to print the information for that level again. To compute a transition, AMBiT accepts a solution ID followed by a dash (-), greater than sign (>) or both, followed by another solution ID. After computing the transition, it prints the result and stores the numbers in memory, so that the results can be recalled without additional computation. Interactive mode can be terminated with the input 'quit'.
 
 \bibliographystyle{apsrev}
 \bibliography{references}

@@ -2,6 +2,7 @@
 // Input that follows // is treated as a comment which
 // is ignored by the input parser
 
+//--interactive // Prevents AMBiT from terminating directly after a run, allowing for further manipulation of the computed results.
 //--recursive-build // Enable to perform an automated run, which increments N from a specified N (default is 1) until N = Z. It will automatically fill the next lowest available state while building the next atom.
 //-c // Enable to perform a clean run, which does not read from existing .atom and .configs files
 //-d // Enable to prevent saving of .atom and .configs files, ignored if AlphaSquaredVariation is enabled

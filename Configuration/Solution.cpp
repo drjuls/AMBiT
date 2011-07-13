@@ -102,7 +102,7 @@ void SolutionMap::Print(DisplayOutputType::Enum aDisplayOutputType)
         SolutionID LastSolutionID(-1, ParityType::Even, 0);
         for(sm_it = begin(); sm_it != end(); sm_it++)
         {
-            if(sm_it->first.GetSymmetry() == LastSolutionID.GetSymmetry())
+            if(!(sm_it->first.GetSymmetry() == LastSolutionID.GetSymmetry()))
             {
                 *outstream << "Solutions for J = " << sm_it->first.GetJ() << ", P = " << ParityType::LowerName(sm_it->first.GetParity()) << ":" << std::endl;
             }
