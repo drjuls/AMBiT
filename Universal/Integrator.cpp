@@ -236,3 +236,51 @@ void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<doub
         df[i] = df[i] * lattice->dR(i);
     }
 }
+
+double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point)
+{
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+    double result = 0;
+    
+    if(start_point < end_point)
+    {
+        for(int i = start_point; i < end_point; i++)
+        {
+            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+        }
+    }
+    else
+    {
+        for(int i = start_point; i > end_point; i--)
+        {
+            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+        }
+    }
+    
+    return result;
+}
+
+double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> *function, int start_point, int end_point)
+{
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+    double result = 0;
+    
+    if(start_point < end_point)
+    {
+        for(int i = start_point; i < end_point; i++)
+        {
+            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+        }
+    }
+    else
+    {
+        for(int i = start_point; i > end_point; i--)
+        {
+            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+        }
+    }
+    
+    return result;
+}

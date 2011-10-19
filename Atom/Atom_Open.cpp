@@ -9,6 +9,7 @@
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/MPIHamiltonianMatrix.h"
+#include "Configuration/MPIMatrix.h"
 #include "Basis/BSplineBasis.h"
 #include "Basis/ReadBasis.h"
 
@@ -513,7 +514,31 @@ void Atom::CalculateEnergies()
 
                 H->GenerateMatrix();
                 //H->PollMatrix();
-
+                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", "false") == "1"))
+                {
+                    RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
+                    while(rel_it != conf_gen->GetRelConfigs()->end())
+                    {
+                        *outstream << rel_it->Name();
+                        if(rel_it++ != conf_gen->GetRelConfigs()->end())
+                        {
+                            *outstream << ",";
+                        }
+                    }
+                    *outstream << std::endl;
+                    
+                    *outstream << std::setprecision(12);
+                    *outstream << "Matrix Before:" << std::endl;
+                    for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
+                    {
+                        for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
+                        {
+                            *outstream << H->GetMatrix()->At(i,j) << " ";
+                        }
+                        *outstream << std::endl;
+                    }
+                }
+                
                 #ifdef _SCALAPACK
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
@@ -530,6 +555,20 @@ void Atom::CalculateEnergies()
                     }
                     H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, TruncateDisplayAtMaxEnergy, min_percent_displayed, DavidsonMaxEnergy);
                 #endif
+                
+                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", "false") == "1"))
+                {
+                    *outstream << std::setprecision(12);
+                    *outstream << "Matrix After:" << std::endl;
+                    for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
+                    {
+                        for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
+                        {
+                            *outstream << H->GetMatrix()->At(i,j) << " ";
+                        }
+                        *outstream << std::endl;
+                    }
+                }
 
                 delete H;
 

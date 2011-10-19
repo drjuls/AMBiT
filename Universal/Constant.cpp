@@ -13,6 +13,9 @@ const double Constant::HartreeEnergy_eV = 27.211383;
 const double Constant::HartreeEnergy_cm = 219474.631371;
 const double Constant::SpeedOfLight = 299792458;
 const double Constant::InvCmToMHz = 29979.2458;
+const double Constant::BohrRadiusSI = 5.2917720859e-11;
+const double Constant::RydbergConstant = 10973731.6;
+const double Constant::AtomicFrequencyToSI = 4.0 * Pi * RydbergConstant * SpeedOfLight;
 
 const char Constant::SpectroscopicNotation[10] 
     = {'s', 'p', 'd', 'f', 'g', 'h', 'i', 'j', 'k', 'l'};

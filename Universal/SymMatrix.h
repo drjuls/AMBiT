@@ -19,7 +19,7 @@ public:
     virtual void MatrixMultiply(int m, double* b, double* c) const;
     virtual void GetDiagonal(double* diag) const;
 
-protected:
+public:
     double** M;  // Pointers to matrix rows (N rows)
 };
 

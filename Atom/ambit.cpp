@@ -6,12 +6,16 @@
 #include "Atom.h"
 #include "RateCalculator.h"
 #include "Universal/Enums.h"
+#include "Universal/Function.h"
+#include "Universal/Integrator.h"
 #include "Atom/GetPot"
+#include <boost/math/special_functions/bessel.hpp>
 
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <boost/bind.hpp>
 
 #ifdef _MPI
     #ifdef _SCALAPACK
@@ -184,6 +188,25 @@ int main(int argc, char* argv[])
                     ZCounter++;
                 }
             }
+
+            if(fileInput.search("--print-wf"))
+            {                
+                StateIterator it = A.GetCore()->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    it.GetState()->Print("core" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
+                    it.Next();
+                }
+                
+                it = A.GetBasis()->GetStateIterator();
+                it.First();
+                while(!it.AtEnd())
+                {
+                    it.GetState()->Print("excited" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
+                    it.Next();
+                }
+            }
     
             // At this stage, we are ready to run calculations with the
             // calculated energy levels
@@ -223,27 +246,45 @@ int main(int argc, char* argv[])
                 {
                     std::cin >> input;
                     if(input != "quit" && input != "q")
-		    {
+                    {
                         if(strcspn(input.c_str(), "eo") > 0 && strlen(input.c_str()) > strcspn(input.c_str(), "eo") + 1 && strchr(input.c_str(), '>') == NULL)
-			{
-			    if(A.GetSolutionMap()->FindByIdentifier(input) != A.GetSolutionMap()->end())
-			    {
-			        A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
-			    }
-			    else
-			    {
-			        *outstream << "Level " << input << " not found." << std::endl;
-			    }
-			}
-			else if(strchr(input.c_str(), '>') != NULL)
-			{
-			    char input_cstring[strlen(input.c_str()) + 1];
-			    strcpy(input_cstring, input.c_str());
-			    char* token1 = strtok(input_cstring, " ->");
-			    char* token2 = strtok(NULL, " ->");
-			    A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
-			}
-		    }
+                        {
+                            if(A.GetSolutionMap()->FindByIdentifier(input) != A.GetSolutionMap()->end())
+                            {
+                                A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
+                            }
+                            else
+                            {
+                                *outstream << "Level " << input << " not found." << std::endl;
+                            }
+                        }
+                        else if(strchr(input.c_str(), '>') != NULL)
+                        {
+                            char input_cstring[strlen(input.c_str()) + 1];
+                            strcpy(input_cstring, input.c_str());
+                            char* token1 = strtok(input_cstring, " ->");
+                            char* token2 = strtok(NULL, " ->");
+                            if(strchr(input.c_str(), '|') != NULL)
+                            {
+                                strcpy(input_cstring, input.c_str());
+                                char* token3 = strtok(input_cstring, " |");
+                                char* token4 = strtok(NULL, " |");
+                                if(TransitionType::StringSpecifiesTransitionType(token4))
+                                {
+                                    A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(token4), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                }
+                                else
+                                {
+                                    A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                 }
+                            }
+                            else
+                            {
+                                A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                            }
+                            //A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                        }
+                    }
                 }
             }
         }

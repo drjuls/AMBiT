@@ -38,6 +38,11 @@ public:
     virtual void SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors = false, bool TruncateDisplayAtMaxEnergy = false, double min_percentage = 1., double DavidsonMaxEnergy = 0.0);
 
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
+    
+    Matrix* GetMatrix()
+    {
+        return M;
+    }
 
 public:
     /** Include Sigma3 in the leading configurations. */

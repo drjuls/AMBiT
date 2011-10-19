@@ -147,6 +147,11 @@ public:
 
     /** Get the set of valence orbitals. */
     ExcitedStates* GetBasis() { return excited; }
+    
+    /** Get the lattice */
+    Lattice* GetLattice() { return lattice; }
+
+    CIIntegrals* GetCIIntegrals() { return integrals; }
 
     SolutionMap* GetSolutionMap() { return mSolutionMap; }
     void WriteEigenstatesToSolutionMap();

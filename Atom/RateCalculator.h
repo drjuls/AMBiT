@@ -19,6 +19,7 @@ public:
      */
     double CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigned int solution1, bool print_rates = true, bool print_oscillator_strengths = false);
     double CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2);
+    double CalculateMultipoleStrength(MultipolarityType::Enum MType, unsigned int J, Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2);
 
     /** Calculate Auger rates of num_solutions levels above the continuum energy.
         The continuum energy will be the energy of the atom ground state plus the ionization potential.
@@ -42,6 +43,7 @@ protected:
     std::map<unsigned int, double> E1Integrals;
 
     double GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2);
+    double GetM1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2);
 
     /** Get the Hamiltonian matrix element <first + continuum | H | second> */
     double GetProjectionH(const Projection& first, const Projection& second, const ContinuumWave* cs, const ElectronInfo& cs_electron) const;
@@ -52,6 +54,9 @@ protected:
      */
     double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumWave* cs, int sign = 1) const;
     double SubtractionDiagram(const ContinuumWave* sa, const SingleParticleWavefunction* sb, const SingleParticleWavefunction* sc, const SingleParticleWavefunction* sd, unsigned int k) const;
+    
+    double GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2);
+    double GetMJMatrixElement(Atom* A, unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2);
 };
 
 #endif

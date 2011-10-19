@@ -2,6 +2,7 @@
 #define INTEGRATOR_H
 
 #include <vector>
+#include <boost/function.hpp>
 #include "Lattice.h"
 #include "Function.h"
 #include "CoupledFunction.h"
@@ -72,6 +73,9 @@ public:
         Requires f to be known from (end_point-(adams_N-1)) to (end_point-1)
      */
     virtual void GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point);
+    
+    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > *function, int start_point, int end_point);
+    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point);
 
 protected:
     Lattice* lattice;

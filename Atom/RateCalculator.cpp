@@ -6,6 +6,9 @@
 #include "Universal/Enums.h"
 #include "HartreeFock/ContinuumBuilder.h"
 
+#include <boost/math/special_functions/bessel.hpp>
+#include <boost/math/special_functions/factorials.hpp>
+
 RateCalculator::RateCalculator(ExcitedStates* basis):
     excited(basis)
 {
@@ -406,9 +409,11 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
                                         * coefficients_j[jstate_j*proj_j_size + pj]
                                         * V1[solution1*N1 + i + jstate_i]
                                         * V2[solution2*N2 + j + jstate_j];
+                                //*outstream << "Coefficient = " << coefficients_i[jstate_i*proj_i_size + pi] * coefficients_j[jstate_j*proj_j_size + pj] * V1[solution1*N1 + i + jstate_i] * V2[solution2*N2 + j + jstate_j] << " = " << coefficients_i[jstate_i*proj_i_size + pi] << " * " << coefficients_j[jstate_j*proj_j_size + pj] << " * " << V1[solution1*N1 + i + jstate_i] << " * " << V2[solution2*N2 + j + jstate_j] << std::endl;
                             }
                         }
                         
+                        //*outstream << list_it->Name() << " to " << list_jt->Name() << ": " << matrix_element * coeff << " (" << matrix_element << " * " << coeff << ")" << std::endl;
                         total += matrix_element * coeff;
                     }
 
@@ -426,7 +431,10 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
 
     *outstream << std::setprecision(5);
 
+    //*outstream << "jcb simple sum = " << total << std::endl;
+    //*outstream << "3j modifier = " << 1.0/Constant::Electron3j(sym1.GetTwoJ(), sym2.GetTwoJ(), 1, -sym1.GetTwoJ(), sym2.GetTwoJ()) << std::endl;
     total = total/Constant::Electron3j(sym1.GetTwoJ(), sym2.GetTwoJ(), 1, -sym1.GetTwoJ(), sym2.GetTwoJ());
+    *outstream << "E1 reduced matrix element = " << total << std::endl;
     total = total * total;
     *outstream << "E1 reduced matrix element squared (S) = " << total << std::endl;
     
@@ -440,8 +448,225 @@ double RateCalculator::CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned 
     return total;
 }
 
+double RateCalculator::CalculateMultipoleStrength(MultipolarityType::Enum MType, unsigned int J, Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2)
+{
+    if(MType != MultipolarityType::M && MType != MultipolarityType::E)
+    {
+        *errstream << "RateCalculator::multipole_moment_integral: Unknown MultipolarityType" << (int) MType << "received" << std::endl;
+        return 0.0;
+    }
+    
+    Eigenstates* eigenstates1 = A->GetEigenstates(sym1);
+    if(!eigenstates1 || !eigenstates1->Restore())
+    {   *errstream << "eigenstates1 restore failed " << std::endl;
+    return 0.0;
+    }
+    
+    Eigenstates* eigenstates2 = A->GetEigenstates(sym2);
+    if(!eigenstates2 || !eigenstates2->Restore())
+    {   *errstream << "eigenstates2 restore failed" << std::endl;
+    return 0.0;
+    }
+    
+    const double* V1 = eigenstates1->GetEigenvectors();
+    unsigned int N1 = eigenstates1->GetEigenvectorLength();
+    
+    const double* V2 = eigenstates2->GetEigenvectors();
+    unsigned int N2 = eigenstates2->GetEigenvectorLength();
+    
+    RelativisticConfigList* configs1 = eigenstates1->GetRelConfigs();
+    RelativisticConfigList* configs2 = eigenstates2->GetRelConfigs();
+    
+    unsigned int diff[4];   // Storage for projection differences.
+    double total = 0.0;
+    
+    // Iterate over different relativistic configurations
+    unsigned int i=0, j;
+    RelativisticConfigList::const_iterator list_it = configs1->begin();
+    while(list_it != configs1->end())
+    {
+        const ProjectionSet& proj_i = list_it->GetProjections();
+        unsigned int proj_i_size = proj_i.size();
+        unsigned int num_states_i = list_it->NumJStates();
+        const double* coefficients_i = list_it->GetJCoefficients();
+        
+        RelativisticConfigList::const_iterator list_jt = configs2->begin();
+        j = 0;
+        while(list_jt != configs2->end())
+        {
+            //*outstream << "Relativisitic config from" << list_it->Name() << " to" << list_jt->Name() << std::endl;
+            const ProjectionSet& proj_j = list_jt->GetProjections();
+            unsigned int proj_j_size = proj_j.size();
+            unsigned int num_states_j = list_jt->NumJStates();
+            const double* coefficients_j = list_jt->GetJCoefficients();
+            
+            // Iterate over projections
+            ProjectionSet::const_iterator pi_it = proj_i.begin();
+            unsigned int pi = 0;
+            while(pi_it != proj_i.end())
+            {
+                ProjectionSet::const_iterator pj_it = proj_j.begin();
+                unsigned int pj = 0;
+                while(pj_it != proj_j.end())
+                {
+                    // <pi| q | pj>
+                    double matrix_element = 0.0;
+                    int num_diff = Projection::GetProjectionDifferences(*pi_it, *pj_it, diff);
+                    //*outstream << pi_it->Name() << " to " << pj_it->Name() << std::endl;
+
+                    // If the configuration including projections are exactly the same
+                    if(num_diff == 0)
+                    {
+                        // Determine if the operator acts on states with
+                        // the same parity, if it does,
+                        // apply the operator to all the electrons
+                        // Warning: assumes all core states are closed shells!
+                        if(!TransitionType(MType, J).ChangesParity())
+                        {
+                            if(MType == MultipolarityType::M)
+                            {
+                                for(unsigned int i=0; i<configs1->front().NumParticles(); i++)
+                                {
+                                    matrix_element += GetMJMatrixElement(A, J, (*pi_it)[i], (*pi_it)[i]);
+                                }
+                            }
+                            else if(MType == MultipolarityType::E)
+                            {
+                                for(unsigned int i=0; i<configs1->front().NumParticles(); i++)
+                                {
+                                    matrix_element += GetEJMatrixElement(J, (*pi_it)[i], (*pi_it)[i]);
+                                }
+                            }
+                            //*outstream << "Matrix element for 0 diff: " << matrix_element << std::endl;
+                        }
+                    }
+                    
+                    // If there is exactly one electron different between the configurations
+                    // Act on the different electron with the operator
+                    if(abs(num_diff) == 1)
+                    {
+                        if(MType == MultipolarityType::M)
+                        {
+                            matrix_element += GetMJMatrixElement(A, J, (*pi_it)[diff[0]], (*pj_it)[diff[1]]);
+                        }
+                        else if(MType == MultipolarityType::E)
+                        {
+                            matrix_element = GetEJMatrixElement(J, (*pi_it)[diff[0]], (*pj_it)[diff[1]]);
+                        }
+                        
+                        // Reverse the sign of the matrix element if the state I (X + e1) required
+                        // an odd number of states to reach state J (X + e2)
+                        // where X have exactly the same order and e1 and e2 are the different electrons
+                        if(num_diff == -1)
+                        {
+                            matrix_element = -matrix_element;
+                        }
+                    }
+                    
+                    // The correct coefficient for the state was the amount of mixing calculated
+                    // from previous calculations
+                    if(matrix_element)
+                    {
+                        double coeff = 0.;
+                        for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
+                        {
+                            for(unsigned int jstate_j = 0; jstate_j < num_states_j; jstate_j++)
+                            {                                                                                                                                   
+                                coeff += coefficients_i[jstate_i*proj_i_size + pi] * coefficients_j[jstate_j*proj_j_size + pj] * V1[solution1*N1 + i + jstate_i] * V2[solution2*N2 + j + jstate_j];
+                            }
+                        }
+                        
+                        //*outstream << list_it->Name() << " to " << list_jt->Name() << ": " << matrix_element * coeff << " (" << matrix_element << " * " << coeff << ")" << std::endl;
+                        //*outstream << "Contribution = " << matrix_element * coeff  << " = " << matrix_element << " * " << coeff << std::endl;
+                        total += (matrix_element * coeff);
+                        if(list_it->Name() == list_jt->Name())
+                        {
+                            if(MType == MultipolarityType::M)
+                            {
+                                total += (matrix_element * coeff);
+                                //total -= (matrix_element * coeff) * 2;
+                            }
+                        }
+                    }
+                    
+                    pj_it++; 
+                    pj++;
+                }
+                
+                pi_it++;
+                pi++;
+            }
+            
+            list_jt++; j+=num_states_j;
+        }
+        
+        list_it++; i+=num_states_i;
+    }
+    
+    *outstream << std::setprecision(5);
+    // Use Wigner-Eckart to convert from matrix element to reduced matrix element
+    // Note that the projection of the state is always M = J
+    total = total/Constant::Electron3j(sym2.GetTwoJ(), sym1.GetTwoJ(), J, sym2.GetTwoJ(), -sym1.GetTwoJ())/pow(-1.0, (((double) sym1.GetTwoJ())/2.0) - (((double) sym1.GetTwoJ())/2.0));
+
+    *outstream << MultipolarityType::Name(MType) << J << " reduced matrix element = " << total << std::endl;
+    total = total * total;
+    *outstream << MultipolarityType::Name(MType) << J << " reduced matrix element squared (S) = " << total << std::endl;
+    
+    double deltaE = fabs((eigenstates1->GetEigenvalues())[solution1] - (eigenstates2->GetEigenvalues())[solution2]);
+    //*outstream << "Weighted oscillator strength (g.f) = " << 2. * deltaE * total/3. << std::endl;
+    
+    double sig = deltaE * Constant::HartreeEnergy_cm;
+    *outstream << "sigma = " << sig << std::endl;
+    
+    double initialJ = sym1.GetJ();
+    double finalJ = sym2.GetJ();
+    
+    if((eigenstates1->GetEigenvalues())[solution1] < (eigenstates2->GetEigenvalues())[solution2] )
+    {
+        initialJ = sym2.GetJ();
+        finalJ = sym1.GetJ();
+    }
+    
+    // Einstein A coefficient
+    double EinsteinA = ((2.0 * ((double) J)) + 2.0) * ((2.0 * ((double) J)) + 1.0) /((double) J);
+    EinsteinA /= boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0);
+    EinsteinA /= boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0);
+    
+    // Convert from wavenumber representation to wavelength representation
+    // Convert wavelength from atomic units to meters (factor of Bohr radius)
+    // Convert 1/m to 1/cm
+    EinsteinA *= pow(2.0 * Constant::Pi * Constant::BohrRadiusSI, (2.0 * ((double) J)) + 1.0);
+    EinsteinA *= pow(100.0, (2.0 * ((double) J)) + 1.0);
+    
+    EinsteinA /= ((2.0 * initialJ) + 1.0);
+    
+    // The magnetic operator is defined with additional factor of 2c
+    // This must be removed in order to calculate the Einstein A coefficient
+    if(MType == MultipolarityType::M)
+    {
+        EinsteinA *= Constant::AlphaSquared;
+        EinsteinA /= 4.0;
+    }
+
+    // Sigma = 1/wavelength in cm-1
+    EinsteinA *= pow(sig, ((2.0 * ((double) J))) + 1.0);
+    EinsteinA *= total;
+    
+    // Convert from A.U. to SI
+    EinsteinA *= Constant::AtomicFrequencyToSI;
+    
+    // Equal to the Einstein A coefficient
+    *outstream << "Probability per unit time for emission (/sec) = " << EinsteinA << std::endl;
+    
+    // Degeneracy of final state times Einstein A coefficient
+    *outstream << "Weighted probability per unit time (/sec) = " << EinsteinA * ((2.0 * initialJ) + 1.0) << std::endl;
+    
+    return total;
+}
+
 double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2)
 {
+    //*outstream << "Electron from " << e1.Name() << " to " << e2.Name() << std::endl;
     double matrix_element = 0.0;
 
     // Check e1.L() + e2.L() + 1 is even
@@ -452,6 +677,7 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
         if(coeff)
         {   coeff = coeff * Constant::Electron3j(e1.TwoJ(), e2.TwoJ(), 1, 1, -1)
                           * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons()));
+
 
             if((abs(e1.TwoM() + 1)/2)%2)
                 coeff = -coeff;
@@ -482,6 +708,29 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
     }
     
     return matrix_element;
+}
+
+// Old M1 calculator code
+double RateCalculator::GetM1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2)
+{
+    double coeff_j = delta_function(e1.J(), e2.J()) * delta_function(e1.L(), e2.L()) * delta_function(e1.PQN(), e2.PQN()) * pow(e1.J() * (e1.J() + 1.0) * ((2.0 * e1.J()) + 1.0), 0.5);
+    coeff_j *= pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), 1, e2.M(), -e1.M());
+    
+    double coeff_s = delta_function(e1.L(), e2.L()) * delta_function(e1.PQN(), e2.PQN()) * pow(-1.0, e1.L() + 0.5 + e1.J() + 1.0);
+    coeff_s *= pow(((2.0 * e1.J()) + 1.0) * ((2.0 * e2.J()) + 1.0), 0.5);
+    coeff_s *= Constant::Wigner6j(e1.L(), 0.5, e1.J(), 1, e2.J(), 0.5);
+    coeff_s *= pow(0.5 * 1.5 * 2.0, 0.5);
+    coeff_s *= pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), 1, e2.M(), -e1.M());
+
+    /* Debug
+    *outstream << pow(((2.0 * e1.J()) + 1.0) * ((2.0 * e2.J()) + 1.0), 0.5) << " * " << Constant::Wigner6j(e1.L(), 0.5, e1.J(), 1, e2.J(), 0.5) << " * " << pow(0.5 * 1.5 * 2.0, 0.5) << std::endl;
+    *outstream << "coeff_j + s = " << coeff_j + coeff_s << " = " << coeff_j << " + " << coeff_s << std::endl;
+    *outstream << "Electron from " << e1.Name() << " to " << e2.Name() << " with ";
+    *outstream << "Reduced Matrix Element = " << (coeff_j + coeff_s) << std::endl;
+    *outstream << "Matrix Element: " << (coeff_j + coeff_s) * pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M()) << std::endl;
+    */
+    
+    return (coeff_j + coeff_s);
 }
 
 double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int solution1, double continuum_energy)
@@ -1003,4 +1252,159 @@ double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const SingleP
     }
 
     return total;
+}
+
+double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2)
+{
+    *outstream << "Electron from " << e1.Name() << " to " << e2.Name() << std::endl;
+    double matrix_element = 0.0;
+    
+    // This is the reduced matrix element of the spherical tensor CJ
+    double coeff = Constant::Wigner3j(e1.L(), J, e2.L(), 0.0, 0.0, 0.0);
+    coeff *= pow(-1.0, e1.L()) * pow((2.0 * e1.L()) + 1.0, 0.5) * pow((2.0 * e2.L()) + 1.0, 0.5);
+
+    // This factor is (-1)^(L + S + J' + k) [J, J']^(1/2) {L  S  J }
+    //                                                    {J' k  L'}
+    // Because the operator depends only on L (kappa)/J
+    coeff *= pow(-1.0, e1.L() + e2.J() + 0.5 + J) * pow((2.0 * e1.J()) + 1.0, 0.5) * pow((2.0 * e2.J()) + 1.0, 0.5) * Constant::Wigner6j(e1.L(), 0.5, e1.J(), e2.J(), J, e2.L());
+    
+    // Convert from reduced matrix element to full matrix element
+    coeff *= pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M());
+    
+    // Don't bother computing the overlap if the angular part is zero
+    if(coeff == 0)
+    {
+        return 0.0;
+    }
+    
+    double overlap = 0.;
+    
+    const Orbital& p1 = *excited->GetState(e1);
+    const Orbital& p2 = *excited->GetState(e2);
+    const double* R = excited->GetLattice()->R();
+    const double* dR = excited->GetLattice()->dR();
+    
+    // k = omega/c, in atomic units
+    // omega = Energy_1 - Energy_2 also in atomic units
+    double k = (double) fabs((double) (p1.Energy() - p2.Energy())) * (double) Constant::Alpha;
+    
+    if(k == 0)
+    {
+        // For the same state to itself, a special case is needed to compute the
+        // overlap, because dependence of the spherical bessel function on k
+        // exactly cancels the k dependence added by reintroducing dimensionality
+        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        {
+            overlap += ((p1.f[x] * p2.f[x]) + (Constant::AlphaSquared * p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
+        }
+        
+        matrix_element = coeff * overlap;
+        matrix_element = ((double) boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0)) * matrix_element;
+    }
+    else
+    {
+        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        {
+            overlap += ((p1.f[x] * p2.f[x]) + (Constant::AlphaSquared * p1.g[x] * p2.g[x])) * boost::math::sph_bessel(J, R[x] * k) * dR[x];
+            overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * Constant::Alpha * boost::math::sph_bessel(J + 1, R[x] * k) * ((((double) e1.Kappa()) - ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
+            overlap += ((p1.f[x] * p2.g[x]) - (p1.g[x] * p2.f[x])) * Constant::Alpha * boost::math::sph_bessel(J + 1, R[x] * k) * dR[x];
+        }
+        matrix_element = coeff * overlap;
+        
+        // This is the matrix operator with dimensions in atomic units
+        matrix_element = ((double) boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0)/pow((double) k, J)) * matrix_element;
+        *outstream << "Reduced matrix element = " << matrix_element/(pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M())) << std::endl;
+    }
+    
+    
+    //*outstream << "matrix_element (dim) = " << matrix_element << std::endl;
+
+    return matrix_element;
+}
+
+double RateCalculator::GetMJMatrixElement(Atom* A, unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2)
+{   
+    //*outstream << "Electron from " << e1.Name() << " to " << e2.Name() << std::endl;
+    
+    double matrix_element = 0.0;
+    double coeff = 0.0;
+    
+    // Determine the effective L of the transition
+    // L initial is replaced by L initial - 1 if Kappa > 0
+    // otherwise it is replaced by L initial + 1
+    // Note in the end this function must be symmetric on exchange of e1 and e2
+    if(e1.Kappa() > 0)
+    {
+        // This is the reduced matrix element of the spherical tensor CJ
+        coeff = Constant::Wigner3j((e1.L() - 1.0), J, e2.L(), 0.0, 0.0, 0.0);
+        coeff *= pow(-1.0, e1.L() - 1.0) * pow((2.0 * (e1.L() - 1.0)) + 1.0, 0.5) * pow((2.0 * e2.L()) + 1.0, 0.5);
+        
+        // This factor is (-1)^(L + S + J' + k) [J, J']^(1/2) {L  S  J }
+        //                                                    {J' k  L'}
+        // Because the operator depends only on L (kappa)/J
+        coeff *= pow(-1.0, (e1.L() - 1.0) + e2.J() + J + 0.5) * pow((2.0 * e1.J()) + 1.0, 0.5) * pow((2.0 * e2.J()) + 1.0, 0.5) * Constant::Wigner6j((e1.L() - 1.0), 0.5, e1.J(), e2.J(), J, e2.L());
+    }
+    else if(e1.Kappa() < 0)
+    {
+        // This is the reduced matrix element of the spherical tensor CJ
+        coeff = Constant::Wigner3j((e1.L() + 1.0), J, e2.L(), 0.0, 0.0, 0.0);
+        coeff *= pow(-1.0, e1.L() + 1.0) * pow((2.0 * (e1.L() + 1.0)) + 1.0, 0.5) * pow((2.0 * e2.L()) + 1.0, 0.5);
+        
+        // This factor is (-1)^(L + S + J' + k) [J, J']^(1/2) {L  S  J }
+        //                                                    {J' k  L'}
+        // Because the operator depends only on L (kappa)/J
+        coeff *= pow(-1.0, (e1.L() + 1.0) + e2.J() + J + 0.5) * pow((2.0 * e1.J()) + 1.0, 0.5) * pow((2.0 * e2.J()) + 1.0, 0.5) * Constant::Wigner6j((e1.L() + 1.0), 0.5, e1.J(), e2.J(), J, e2.L());
+    }
+    
+    // Convert from reduced matrix element to full matrix element
+    coeff *= pow(-1.0, e1.J() - e1.M()) * Constant::Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M());
+    
+    // Don't bother computing the overlap if the angular part is zero
+    if(coeff == 0)
+    {
+        return 0.0;
+    }
+
+    double overlap = 0.;
+    
+    const Orbital& p1 = *excited->GetState(e1);
+    const Orbital& p2 = *excited->GetState(e2);
+    const double* R = excited->GetLattice()->R();
+    const double* dR = excited->GetLattice()->dR();
+    
+    // k = omega/c, in atomic units
+    // omega = Energy_1 - Energy_2 also in atomic units
+    double k = fabs(p1.Energy() - p2.Energy()) * (double) Constant::Alpha;
+    
+    if(k == 0)
+    {
+        // For the same state to itself, a special case is needed to compute the
+        // overlap, because dependence of the spherical bessel function on k
+        // exactly cancels the k dependence added by reintroducing dimensionality
+        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        {
+            overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * Constant::Alpha * sph_bessel_small_limit(J, R[x]) * ((((double) e1.Kappa()) + ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
+        }
+        
+        matrix_element = coeff * overlap;
+        
+        // This is the matrix operator with dimensions in atomic units
+        matrix_element = boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0) * matrix_element * 2.0 * (1.0 / Constant::Alpha);
+        //*outstream << "k = 0, Matrix element (dim) = " << matrix_element << std::endl;
+    }
+    else
+    {
+        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        {
+            overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * Constant::Alpha * boost::math::sph_bessel(J, R[x] * k) * ((((double) e1.Kappa()) + ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
+        }
+        
+        matrix_element = coeff * overlap;
+        
+        // This is the matrix operator with dimensions in atomic units
+        matrix_element = (boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0)/pow((double) k, J)) * matrix_element * 2.0 * (1.0 / Constant::Alpha);
+        //*outstream << "Matrix element (dim) = " << matrix_element << std::endl;
+    }
+
+    return matrix_element;
 }

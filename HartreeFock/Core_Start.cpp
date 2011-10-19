@@ -215,6 +215,8 @@ void Core::BuildFirstApproximation(std::string configuration)
             unsigned int iterations = 0;
             double nu_change_factor = 0.5;
             int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction
+            int previous_zero_difference = 0;
+            bool is_first_iteration = true;
 
             double trial_nu = s->Nu();
 
@@ -245,8 +247,13 @@ void Core::BuildFirstApproximation(std::string configuration)
                         *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
                     s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
                     trial_nu = s->Nu();
-                    nu_change_factor = nu_change_factor * 0.75;
+                    if(!(((zero_difference > 0) && (previous_zero_difference > 0)) || ((zero_difference < 0) && (previous_zero_difference < 0))) && !is_first_iteration)
+                    {
+                        nu_change_factor = nu_change_factor * 0.75;
+                    }
                 }
+                previous_zero_difference = zero_difference;
+                is_first_iteration = false;
             }
             while(zero_difference);
 

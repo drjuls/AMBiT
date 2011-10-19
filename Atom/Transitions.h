@@ -21,8 +21,10 @@ public:
     TransitionType();
     TransitionType(int aType, unsigned int aMultipole);
     TransitionType(MultipolarityType::Enum aType, unsigned int aMultipole);
+    TransitionType(std::string astring);
 
     bool ChangesParity();
+    static bool StringSpecifiesTransitionType(std::string astring);
 
     virtual std::string Name();
     bool IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo);
@@ -46,6 +48,7 @@ class Transition
 {
 public:
     Transition(Atom* aAtom, TransitionType aTransitionType, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
+    Transition(Atom* aAtom, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
     Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge);
 
     inline Atom* GetAtom() const

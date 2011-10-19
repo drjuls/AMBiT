@@ -1,5 +1,5 @@
 cxxobjects = Constant.o CoulombIntegrator.o CoupledFunction.o \
-             Eigensolver.o ExpLattice.o Include.o Integrator.o \
+             Eigensolver.o ExpLattice.o Function.o Include.o Integrator.o \
              Interpolator.o Lattice.o ScalapackMatrix.o SmallMatrix.o \
              SymMatrix.o
 cobjects =

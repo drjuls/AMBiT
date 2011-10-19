@@ -34,6 +34,21 @@ TransitionType::TransitionType(MultipolarityType::Enum aType, unsigned int aMult
     second = aMultipole;
 }
 
+TransitionType::TransitionType(std::string astring)
+{
+    assert(StringSpecifiesTransitionType(astring));
+    
+    if(astring[0] == 'E' || astring[0] == 'e')
+    {
+        first = MultipolarityType::E;
+    }
+    if(astring[0] == 'M' || astring[0] == 'm')
+    {
+        first = MultipolarityType::M;
+    }
+    second = atoi(astring.substr(1).c_str());
+}
+
 bool TransitionType::ChangesParity()
 {
     bool parity_change = false;
@@ -71,6 +86,24 @@ bool TransitionType::IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo)
         return true;
     }
 
+    return false;
+}
+
+bool TransitionType::StringSpecifiesTransitionType(std::string astring)
+{
+    if(astring.size() < 2)
+    {
+        return false;
+    }
+
+    if(astring[0] == 'E' || astring[0] == 'M' || astring[0] == 'e' || astring[0] == 'm')
+    {
+        if(atoi(astring.substr(1).c_str()) > 0)
+        {
+            return true;
+        }
+    }
+    
     return false;
 }
 
@@ -153,17 +186,71 @@ mSymmetryFrom(0, even), mSymmetryTo(0, even)
     Solve(aGauge);
 }
 
+Transition::Transition(Atom* aAtom, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
+mSymmetryFrom(0, even), mSymmetryTo(0, even)
+{
+    mAtom = aAtom;
+    mSymmetryFrom = aSolutionIDFrom.GetSymmetry();
+    mSolutionIDFrom = aSolutionIDFrom.GetID();
+    mSymmetryTo = aSolutionIDTo.GetSymmetry();
+    mSolutionIDTo = aSolutionIDTo.GetID();
+    
+    // Determine dominant transition type
+    double JFrom = mSymmetryFrom.GetJ();
+    double JTo = mSymmetryTo.GetJ();
+    double ChangeJ = fabs(JFrom - JTo);
+    
+    bool ParityChange = (mSymmetryFrom.GetParity() != mSymmetryTo.GetParity());
+    unsigned int multipole = ChangeJ;
+    if(multipole == 0)
+    {
+        multipole = 1;
+    }
+    
+    if(JTo == 0.0 && JFrom == 0.0)
+    {
+        *outstream << "Warning! Attempting to calculate transition from J = 0 to J = 0." << std::endl;
+    }
+    
+    MultipolarityType::Enum mType;
+    if((pow(-1.0, multipole) == 1.0 && !ParityChange) || (pow(-1.0, multipole) == -1.0 && ParityChange))
+    {
+        mType = MultipolarityType::E;
+    }
+    else
+    {
+        mType = MultipolarityType::M;
+    }
+    
+    mTransitionType = TransitionType(mType, multipole);
+    
+    // Add code to determine the leading configurations...
+    // mLeadingConfigurationFrom =
+    // mLeadingConfigurationTo =
+    
+    Solve(aGauge);
+}
+
 void Transition::Solve(TransitionGaugeType::Enum aGauge)
 {
+    RateCalculator rcalc(GetAtom()->GetBasis());
+    SetTransitionRate(rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
+    
+    if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
+    {
+        rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
+    }
+    /*
     if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
     {
         RateCalculator rcalc(GetAtom()->GetBasis());
-        SetTransitionRate(rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
+        SetTransitionRate(rcalc.CalculateMultipoleStrength(MultipolarityType::M, 1, GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
+        //rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
     }
     else
     {
         SetTransitionRate(0);
-    }
+    }*/
 }
 
 bool Transition::operator<(const Transition& other) const
@@ -173,7 +260,14 @@ bool Transition::operator<(const Transition& other) const
 
 bool Transition::operator==(const Transition& other) const
 {
-    return (GetAtom() == other.GetAtom() && GetTransitionType() == other.GetTransitionType());
+    bool isEqual = (GetAtom() == other.GetAtom());
+    isEqual = isEqual && (GetTransitionType() == other.GetTransitionType());
+    isEqual = isEqual && (GetSymmetryFrom() == other.GetSymmetryFrom());
+    isEqual = isEqual && (GetSolutionIDFrom() == other.GetSolutionIDFrom());
+    isEqual = isEqual && (GetSymmetryTo() == other.GetSymmetryTo());
+    isEqual = isEqual && (GetSolutionIDTo() == other.GetSolutionIDTo());
+    
+    return isEqual;
 }
 
 /*

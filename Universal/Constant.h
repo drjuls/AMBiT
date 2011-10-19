@@ -38,6 +38,9 @@ public:
     const static double HartreeEnergy_cm;
     const static double SpeedOfLight;       // In SI units (m/s)
     const static double InvCmToMHz;         // Multiply by speed of light
+    const static double BohrRadiusSI;
+    const static double RydbergConstant;    // In SI units (/m)
+    const static double AtomicFrequencyToSI;// Multiply a frequency in atomic units by this factor to get frequency in SI units
 
     static const char SpectroscopicNotation[10];
     static char ToSpectroscopicNotation(unsigned int l);
