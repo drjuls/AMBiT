@@ -234,22 +234,15 @@ mSymmetryFrom(0, even), mSymmetryTo(0, even)
 void Transition::Solve(TransitionGaugeType::Enum aGauge)
 {
     RateCalculator rcalc(GetAtom()->GetBasis());
-    SetTransitionRate(rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
+    SetTransitionRate(rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), aGauge));
+    //rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Length, TransitionCalculationMethod::ZenonasRudzikas);
     
-    if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
-    {
-        rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
-    }
     /*
     if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
     {
-        RateCalculator rcalc(GetAtom()->GetBasis());
-        SetTransitionRate(rcalc.CalculateMultipoleStrength(MultipolarityType::M, 1, GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo()));
-        //rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
-    }
-    else
-    {
-        SetTransitionRate(0);
+        rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Length, TransitionCalculationMethod::ZenonasRudzikas);
+        rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Velocity);
+        rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
     }*/
 }
 

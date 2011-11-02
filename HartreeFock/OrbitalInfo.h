@@ -24,6 +24,8 @@ public:
     inline unsigned int L() const { return l; }
     inline double J() const;
     inline unsigned int TwoJ() const;
+    // Return the value of L for the lower component of the wavefunction
+    inline unsigned int L_Prime() const;
 
     inline unsigned int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
@@ -60,6 +62,20 @@ inline OrbitalInfo::OrbitalInfo(const OrbitalInfo& other):
 inline double OrbitalInfo::J() const
 {
     return fabs(double(kappa)) - 0.5;
+}
+
+// Returns the value of L for the lower component of the wavefunction
+inline unsigned int OrbitalInfo::L_Prime() const
+{
+    // The lower component has L corresponding to -Kappa
+    if(kappa < 0)
+    {
+        return (L() + 1);
+    }
+    else
+    {
+        return (L() - 1);
+    }
 }
 
 inline unsigned int OrbitalInfo::TwoJ() const

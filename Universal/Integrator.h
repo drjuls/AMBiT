@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <boost/function.hpp>
+#include <boost/bind.hpp>
+#include <boost/math/special_functions.hpp>
 #include "Lattice.h"
 #include "Function.h"
 #include "CoupledFunction.h"
@@ -73,10 +75,15 @@ public:
         Requires f to be known from (end_point-(adams_N-1)) to (end_point-1)
      */
     virtual void GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point);
-    
-    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > *function, int start_point, int end_point);
-    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point);
 
+    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point);
+    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
+    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > *function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
+
+    double AIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
+    double AIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
+    double BIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
+    double BIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
 protected:
     Lattice* lattice;
     unsigned int adams_N;

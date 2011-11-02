@@ -261,7 +261,7 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
     return result;
 }
 
-double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> *function, int start_point, int end_point)
+double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
@@ -271,16 +271,68 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
     {
         for(int i = start_point; i < end_point; i++)
         {
-            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
         }
     }
     else
     {
         for(int i = start_point; i > end_point; i--)
         {
-            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
         }
     }
     
     return result;
+}
+
+double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> *function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
+{
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+    double result = 0;
+    
+    if(start_point < end_point)
+    {
+        for(int i = start_point; i < end_point; i++)
+        {
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
+        }
+    }
+    else
+    {
+        for(int i = start_point; i > end_point; i--)
+        {
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
+        }
+    }
+    
+    return result;
+}
+
+double Integrator::AIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+{
+    boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
+    
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 1, 0, 0, 0);
+}
+
+double Integrator::AIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+{
+    boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
+    
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 0, 0, 1, 1, 1);
+}
+
+double Integrator::BIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+{
+    boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
+
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 0, 0, 1, 1);
+}
+
+double Integrator::BIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+{
+    boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
+
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 0, 1, 1, 0, 1);
 }

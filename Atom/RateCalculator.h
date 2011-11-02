@@ -1,6 +1,7 @@
 #ifndef RATE_CALCULATOR_H
 #define RATE_CALCULATOR_H
 
+#include <complex>
 #include "Atom.h"
 #include "Universal/Enums.h"
 
@@ -19,7 +20,7 @@ public:
      */
     double CalculateAllDipoleStrengths(Atom* A, Symmetry sym1, unsigned int solution1, bool print_rates = true, bool print_oscillator_strengths = false);
     double CalculateDipoleStrength(Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2);
-    double CalculateMultipoleStrength(MultipolarityType::Enum MType, unsigned int J, Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2);
+    double CalculateMultipoleStrength(MultipolarityType::Enum MType, unsigned int J, Atom* A, Symmetry sym1, unsigned int solution1, Symmetry sym2, unsigned int solution2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length, TransitionCalculationMethod::Enum aMethod = TransitionCalculationMethod::WalterJohnson);
 
     /** Calculate Auger rates of num_solutions levels above the continuum energy.
         The continuum energy will be the energy of the atom ground state plus the ionization potential.
@@ -55,7 +56,8 @@ protected:
     double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumWave* cs, int sign = 1) const;
     double SubtractionDiagram(const ContinuumWave* sa, const SingleParticleWavefunction* sb, const SingleParticleWavefunction* sc, const SingleParticleWavefunction* sd, unsigned int k) const;
     
-    double GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2);
+    double GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);
+    std::complex<double> GetEJMatrixElementZenonas(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);
     double GetMJMatrixElement(Atom* A, unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2);
 };
 

@@ -144,4 +144,31 @@ namespace ParityType
     }
 }
 
+namespace TransitionCalculationMethod
+{
+    enum Enum 
+    {
+        Start,
+        WalterJohnson = 0,
+        RobertCowan,
+        ZenonasRudzikas,
+        End
+    };
+    
+    inline std::string Name(Enum from)
+    {
+        switch(from)
+        {
+            case WalterJohnson:
+                return "Walter R. Johnson";
+            case RobertCowan:
+                return "Robert D. Cowan";
+            case ZenonasRudzikas:
+                return "ZenonasRudzikas";
+            default:
+                return "";
+        }
+    }
+}
+
 #endif

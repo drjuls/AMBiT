@@ -52,8 +52,17 @@ inline double SimpleFunction(double r)
     return r;
 }
 
+double triangular_condition(double a, double b, double c);
+double triangular_condition_even(double a, double b, double c);
+
+double AIntegralFunction(unsigned int J, double k, double r);
+double BIntegralFunction(unsigned int J, double k, double r);
+double SphericalTensorReducedMatrixElement(unsigned int rank, int kappa1, int kappa2);
+
+double sph_bessel(unsigned int v, double x);
 double sph_bessel_prime(unsigned int v, double x);
 double sph_bessel_small_limit(unsigned int v, double x);
 double delta_function(double i, double j);
+inline double identity_function(double r) { return r; }
 
 #endif

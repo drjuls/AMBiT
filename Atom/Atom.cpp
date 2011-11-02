@@ -217,7 +217,7 @@ bool Atom::Run()
     }
 
     // Go do single-electron or many-electron work.
-    if(numValenceElectrons_ == 1)
+    if(numValenceElectrons_ == 1 && !userInput_.search(2, "--force-ci", "-x"))
         RunSingleElectron();
     else
         RunMultipleElectron();
