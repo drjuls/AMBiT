@@ -496,7 +496,7 @@ std::string Atom::GetNextConfigString()
     int length = configstring.tellg();
     configstring.seekg(0, std::ios::beg);
     
-    while(configstring.tellg() < length && configstring.tellg() != -1)
+    while(configstring.tellg() < length && (int) configstring.tellg() != (int) -1)
     {
         mPQN = 0;
         mOccupancy = 0;
