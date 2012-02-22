@@ -853,7 +853,7 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
 // Standard tolerances:
 //    EnergyTolerance = 1.e-14
 //    WavefunctionTolerance = 1.e-11
-const unsigned int Core::StateParameters::MaxHFIterations = 300;
+const unsigned int Core::StateParameters::MaxHFIterations = 1000;
 double Core::StateParameters::WavefunctionTolerance = 1.E-11;
 double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-8;
 //double Core::StateParameters::FirstBuildEnergyTolerance = 1.E-14;

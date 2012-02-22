@@ -213,12 +213,15 @@ void Core::BuildFirstApproximation(std::string configuration)
         {
             Orbital* s = it.GetState();
             unsigned int iterations = 0;
-            double nu_change_factor = 0.5;
+            double nu_change_factor = 0.25;
             int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction
             int previous_zero_difference = 0;
             bool is_first_iteration = true;
 
             double trial_nu = s->Nu();
+            double starting_nu = trial_nu;
+            double starting_nu_change_factor = nu_change_factor;
+            double starting_nu_percentage = 1.00;
 
             do
             {   s->Clear();
@@ -254,6 +257,17 @@ void Core::BuildFirstApproximation(std::string configuration)
                 }
                 previous_zero_difference = zero_difference;
                 is_first_iteration = false;
+                if(s->Nu() < 1.0e-5)
+                {
+                    starting_nu_percentage -= 0.1;
+                    if(starting_nu_percentage <= 0.0)
+                    {
+                        *errstream << "Core::BuildFirstApproximation: Cannot converge Hartree Fock energy." << std::endl;
+                        exit(1); 
+                    }
+                    trial_nu = starting_nu;
+                    nu_change_factor = starting_nu_change_factor * starting_nu_percentage;
+                }
             }
             while(zero_difference);
 
