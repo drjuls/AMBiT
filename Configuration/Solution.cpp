@@ -170,7 +170,7 @@ SolutionMap::iterator SolutionMap::FindByIdentifier(const std::string& aIdentifi
 {
     const char* IdentifierString = aIdentifier.c_str();
 
-    int i;
+    int i = 0;
     int TwoJ = atoi(IdentifierString);
     ParityType::Enum Parity;
     int ID = 0;
