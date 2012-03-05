@@ -131,15 +131,15 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                     A[i*n2 + j] += (-int_V);
                     A[(n+i)*n2 + (n+j)] += -2./Constant::AlphaSquared * int_1 - int_V; // (-2. * int_1 - Constant::AlphaSquared * int_V)
-                    A[(n+i)*n2 + j] += -int_KappaOnR/Constant::Alpha; // int_KappaOnR
-                    A[i*n2 + (n+j)] += -int_KappaOnR/Constant::Alpha; // int_KappaOnR
+                    A[(n+i)*n2 + j] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
+                    A[i*n2 + (n+j)] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
 
                     if(i != j)
                     {
                         A[j*n2 + i] += (-int_V);
                         A[(n+j)*n2 + (n+i)] += -2./Constant::AlphaSquared * int_1 - int_V; // (-2. * int_1 - Constant::AlphaSquared * int_V)
-                        A[(n+j)*n2 + i] += -int_KappaOnR/Constant::Alpha; // int_KappaOnR
-                        A[j*n2 + (n+i)] += -int_KappaOnR/Constant::Alpha; // int_KappaOnR
+                        A[(n+j)*n2 + i] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
+                        A[j*n2 + (n+i)] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
                     }
                 }
             }
@@ -171,12 +171,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         int_Egg += B[j*size + point] * exg.g[point] * dR[point];// * Constant::AlphaSquared;
                     }
 
-                    A[i*n2 + (n+j)] += int_ddR/Constant::Alpha; // -int_ddR;
-                    A[(n+i)*n2 + j] += -int_ddR/Constant::Alpha;
+                    A[i*n2 + (n+j)] += -int_ddR/Constant::Alpha; // -int_ddR;
+                    A[(n+i)*n2 + j] += int_ddR/Constant::Alpha;
 
                     A[j*n2 + i] += (- int_Eff);
-                    A[(n+j)*n2 + i] +=  int_Efg * Constant::Alpha; //(- Constant::AlphaSquared * int_Efg);
-                    A[j*n2 + (n+i)] +=  int_Egf * Constant::Alpha;
+                    A[(n+j)*n2 + i] +=  -int_Efg * Constant::Alpha; //(- Constant::AlphaSquared * int_Efg);
+                    A[j*n2 + (n+i)] +=  -int_Egf * Constant::Alpha;
                     A[(n+j)*n2 + (n+i)] +=  - int_Egg * Constant::AlphaSquared; //(- Constant::AlphaSquared * int_Egg);
                 }
             }
@@ -288,7 +288,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 {
                     if(basis_it.GetState()->Kappa() == kappa)
                     {
-                        Orthogonalise(basis_it.GetState());
+                        //Orthogonalise(basis_it.GetState());
 
                         if(debug)
                         {   const Orbital* ds = basis_it.GetState();
