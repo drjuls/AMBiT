@@ -91,6 +91,7 @@ public:     // Methods for Hartree-Fock calculations and potentials
         of the core states. "exchange" is resized to current.size().
      */
     void CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    void CalculateExchange(const CoupledFunction& current, int kappa, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Calculate a new excited state in the closed core potential. */
     virtual unsigned int CalculateExcitedState(SingleParticleWavefunction* s) const;
