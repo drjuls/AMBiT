@@ -313,23 +313,29 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     ds->SetEnergy(eigenvalues[i]);
                     ds->ReSize(HF_size);
 
-                    for(unsigned int j=0; j<n2; j++)
+                    for(j=0; j<n2; j++)
                         bcoef[j] = A[i*n2 + j];
 
-                    int jderiv;
+//                    int jderiv;
                     double x;
 
-                    for(point = 0; point < HF_size; point++)
-                    {
-                        x = HF_R[point];
+                    for(j=0; j<n2; j++)
+                    {   for(point = 0; point < HF_size; point++)
+                        {
+                            x = HF_R[point];
 
-                        jderiv = 0;
-                        ds->f[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv);
-                        ds->g[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv);// /Constant::Alpha;
+    //                        jderiv = 0;
+    //                        ds->f[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv);
+    //                        ds->g[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv);// /Constant::Alpha;
 
-                        jderiv = 1;
-                        ds->df[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv)*HF_dR[point];
-                        ds->dg[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point];// /Constant::Alpha;
+                            ds->f[point] += bcoef[j] * B_lattice[j].f[point];
+                            ds->g[point] += bcoef[j] * B_lattice[j].g[point];
+                            ds->df[point] += bcoef[j] * B_lattice[j].df[point] * HF_dR[point];
+                            ds->dg[point] += bcoef[j] * B_lattice[j].dg[point] * HF_dR[point];
+    //                        jderiv = 1;
+    //                        ds->df[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv)*HF_dR[point];
+    //                        ds->dg[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point];// /Constant::Alpha;
+                        }
                     }
 
                     if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
