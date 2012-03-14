@@ -15,6 +15,9 @@ endif
 ifeq ($(findstring xe, $(HOSTNAME)), xe)
   MACHINE = ncixe
 endif
+ifeq ($(findstring katana, $(HOSTNAME)), katana)
+  MACHINE = katana
+endif
 ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
   MACHINE = newt
 endif
@@ -79,6 +82,35 @@ ifeq ($(MACHINE), ncixe)
   DEPFLAG = -MM
 endif
 
+ifeq ($(MACHINE), katana)
+  CC  = icc
+  CXX = mpiCC
+  F77 = ifort
+
+  LINK      = mpiCC
+  LINKFLAGS = 
+  LIBDIR    = 
+  LIBOBJ    = 
+  LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core guide pthread
+
+  INCLUDE  +=
+  CXXFLAGS += -wd1125 -D_MPI # -D_SCALAPACK
+
+  ifdef debug
+    BUILD     = Debug
+    CFLAGS   += -g
+    CXXFLAGS += -g
+  else
+    BUILD     = Release
+    CFLAGS   += -O2
+    CXXFLAGS += -O3
+    F77FLAGS += -O2 -fpe0 -static -nofor_main
+  endif
+
+  CCDEP   = gcc
+  DEPFLAG = -MM
+endif
+
 ifeq ($(MACHINE), newt)
   CC  = gcc34
   CXX = g++34
@@ -106,63 +138,6 @@ ifeq ($(MACHINE), newt)
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), seaborg)
-  CC  = xlc
-  CXX = mpCC_r -cpp
-  F77 = xlf
-
-  LINK      = mpCC_r
-  LINKFLAGS = -cpp $$SCALAPACK $$LAPACK $$PBLAS $$BLACS
-  LIBDIR    = 
-  LIBS      = essl xlf90
-
-  INCLUDE  +=
-  CXXFLAGS += -D_MPI -D_SCALAPACK -D_FUS=0 -qrtti=all
-  F77FLAGS += -qnoextname
-
-  ifdef debug
-    BUILD     = Debug
-    CXXFLAGS += -g
-    CFLAGS   += -g
-  else
-    BUILD     = Release
-    CXXFLAGS += -O3 -qstrict -qarch=auto -qtune=auto
-    CFLAGS   += -O3 -qstrict -qarch=auto -qtune=auto
-    F77FLAGS += -O3 -qstrict -qarch=pwr3 -qtune=pwr3
-  endif
-
-  CCDEP   = gcc
-  DEPFLAG = -MM
-endif
-
-ifeq ($(MACHINE), franklin)
-  CC  = cc
-  CXX = CC
-  F77 = ftn
-
-  LINK      = CC
-  LINKFLAGS = -pgf90libs
-  LIBDIR    = 
-  LIBS      = pgf90 pgf90_rpm1 pgf902 pgf90rtl pgftnrtl
-
-  INCLUDE  +=
-  CXXFLAGS += -D_FUS=1 -D_MPI -D_SCALAPACK
-  F77FLAGS +=
-
-  ifdef debug
-    BUILD     = Debug
-    CXXFLAGS += -g
-    CFLAGS   += -g
-  else
-    BUILD     = Release
-    CXXFLAGS += -fastsse --diag_suppress 997 --display_error_number
-    CFLAGS   += -fastsse
-    F77FLAGS += -fastsse
-  endif
-
-  CCDEP   = gcc
-  DEPFLAG = -MM
-endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
 CFLAGS   += $(addprefix -I, $(INCLUDE))
