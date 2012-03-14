@@ -18,6 +18,16 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     NumStatesPerL = num_states_per_l;
     bool debug = DebugOptions.OutputHFExcited();
 
+    if(spline_type == Reno)
+    {   // Fix k. k should be at least lmax + 3
+        unsigned int lmax = num_states_per_l.size() - 1;
+        if(k < lmax + 3)
+        {   k = lmax + 3;
+            *errstream << "Order of Bsplines (k) too small for maximum l = " << lmax << ".\n";
+            *errstream << "k changed to " << k << "." << std::endl;
+        }
+    }
+
     double dr0;
 
     Eigensolver E;
