@@ -755,11 +755,6 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
 
 void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
-    CalculateExchange(current, current.Kappa(), exchange, sigma, sigma_amount);
-}
-
-void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
-{
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
 
@@ -767,6 +762,8 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
     exchange.ReSize(current.Size());
 
     const Orbital* ds_current = dynamic_cast<const Orbital*>(&current);
+    if(GetState(OrbitalInfo(ds_current)) == NULL)
+       ds_current = NULL;
 
     // Sum over all core states
     ConstStateIterator cs = GetConstStateIterator();
@@ -782,17 +779,10 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
             density[i] = current.f[i] * other.f[i] + Constant::AlphaSquared * current.g[i] * other.g[i];
         }
 
-        int L;
-        double J = (double)abs(kappa) - 0.5;
-        if(kappa < 0)
-            L = -kappa-1;
-        else
-            L = kappa;
-    
         // Sum over all k
-        for(unsigned int k = abs((int)other.L() - L); k <= (other.L() + L); k+=2)
+        for(unsigned int k = abs((int)other.L() - (int)current.L()); k <= (other.L() + current.L()); k+=2)
         {
-            double coefficient = Constant::Wigner3j(k, J, other.J(), 0., .5, -.5);
+            double coefficient = Constant::Wigner3j(k, current.J(), other.J(), 0., .5, -.5);
             coefficient = (2 * abs(other.Kappa())) * coefficient * coefficient;
 
             // Open shells need to be scaled
@@ -803,7 +793,7 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
                 {   // Average over non-relativistic configurations
                     if(other.Kappa() == -1)
                     {
-                        if((ds_current == NULL && kappa != other.Kappa()) || (ds_current && OrbitalInfo(ds_current) != OrbitalInfo(&other)))
+                        if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(&other)))
                             ex = other.Occupancy()/double(2 * abs(other.Kappa()));
                         else if(k)
                             ex = (other.Occupancy()-1.)/double(2 * abs(other.Kappa()) - 1);
@@ -813,8 +803,8 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
                         int other_kappa = - other.Kappa() - 1;
                         const Orbital* ds = GetState(OrbitalInfo(other.RequiredPQN(), other_kappa));
 
-                        if((ds_current == NULL && kappa != other.Kappa() && kappa != other_kappa)
-                                || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(&other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))
+                        if((!ds_current && current.L() != other.L())
+                           || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(&other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))
                             ex = (other.Occupancy() + ds->Occupancy())/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())));
                         else if(k)
                             ex = (other.Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other.Kappa()) + abs(ds->Kappa())) - 1);
@@ -822,7 +812,7 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
                 }
                 else
                 {   // Average over relativistic configurations
-                    if((ds_current == NULL && kappa != other.Kappa()) || (ds_current && OrbitalInfo(ds_current) != OrbitalInfo(&other)))
+                    if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(&other)))
                         ex = other.Occupancy()/double(2 * (abs(other.Kappa())));
                     else if(k)
                         ex = (other.Occupancy() - 1.)/double(2 * (abs(other.Kappa())) - 1);
@@ -844,7 +834,7 @@ void Core::CalculateExchange(const CoupledFunction& current, int kappa, CoupledF
             if(NuclearInverseMass && (k == 1))
             {
                 std::vector<double> P(upper_point);
-                double sms = SI.IsotopeShiftIntegral(current.f, L, other, &P);
+                double sms = SI.IsotopeShiftIntegral(current, other, &P);
                 
                 for(unsigned int i=0; i<upper_point; i++)
                 {

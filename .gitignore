@@ -15,3 +15,8 @@ Release
 Test
 Debug
 ambit
+
+*.aux
+*.log
+*.dvi
+*.pdf

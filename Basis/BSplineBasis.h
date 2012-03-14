@@ -5,9 +5,12 @@
 
 class BSplineBasis : public ExcitedStates
 {
+protected:
+    enum SplineType {NotreDame, Reno, Vanderbilt};
+
 public:
     BSplineBasis(Lattice* lattice, Core* atom_core):
-        ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.) {}
+        ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.), spline_type(Reno) {}
     virtual ~BSplineBasis() {}
 
     /** Create virtual states above the core.
@@ -30,6 +33,20 @@ protected:
     int n;     // Number of splines
     int k;      // Order of splines. Maximum of k is 15.
     double rmax;
+
+protected:
+    class BSpline : public Orbital
+    {
+        /** Not really an Orbital. This is abuse of the class. But it should work well for us. */
+    public:
+        BSpline(int Kappa, unsigned int size = 0): Orbital()
+        {
+            SetKappa(Kappa);
+            ReSize(size);
+        }
+    };
+
+    SplineType spline_type;
 };
 
 inline void BSplineBasis::SetParameters(int num_splines, int order, double r)

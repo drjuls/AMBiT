@@ -24,41 +24,55 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
     for(unsigned int l=0; l<num_states_per_l.size(); l++)
     {
-    if(num_states_per_l[l])
-    {
+        if(!num_states_per_l[l])
+            continue;
+
     for(int kappa = - int(l+1); kappa <= int(l); kappa += 2*int(l) + 1)
     {
         if(kappa == 0)
             break;
-                
-        // Set up grid and splines
-        switch(l)
-        {   case 0:
-            case 1:
-                dr0 = 0.0001;
-                break;
-            case 2:
-            case 3:
-                dr0 = 0.001;
-                break;
-            default:
-                dr0 = 0.01;
-                break;
+
+        if(spline_type == NotreDame)
+        {
+            // Set up grid and splines
+            switch(l)
+            {   case 0:
+                case 1:
+                    dr0 = 0.0001;
+                    break;
+                case 2:
+                case 3:
+                    dr0 = 0.001;
+                    break;
+                default:
+                    dr0 = 0.01;
+                    break;
+            }
         }
+        else
+            dr0 = 0.0001;
 
-        // Get values of splines on grid
+        // Total number of splines, including zeroed ones.
+        unsigned int num_splines;
+        if(spline_type == Reno)
+            num_splines = n + abs(kappa) + 1;
+        else if(spline_type == NotreDame)
+            num_splines = n;
+        else if(spline_type == Vanderbilt)
+            num_splines = n + 1;
 
-        BSplineGrid grid(n, k, dr0, rmax);
+        BSplineGrid grid(num_splines, k, dr0, rmax);
         unsigned int size = grid.Size();
         const double* R_grid = grid.R();
         const double* dR_grid = grid.dR();
 
-        double* B_gauss = new double[n*size];
-        double* dB_gauss = new double[n*size];
-        memset(B_gauss, 0, n*size*sizeof(double));
-        memset(dB_gauss, 0, n*size*sizeof(double));
+        // Get values of splines on grid
+        double* B_gauss = new double[num_splines*size];
+        double* dB_gauss = new double[num_splines*size];
+        memset(B_gauss, 0, num_splines*size*sizeof(double));
+        memset(dB_gauss, 0, num_splines*size*sizeof(double));
 
-        int nderiv = 2;     // Number of derivatives of spline (including zeroth)
+        int nderiv = 3;     // Number of derivatives of spline (including zeroth)
         double* fspline_buf = new double[nderiv * MaximumK];
 
         const double* knots = grid.GetSplineKnots();
@@ -95,10 +109,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         const double* R_lattice = core->GetLattice()->R();
         const double* dR_lattice = core->GetLattice()->dR();
 
-        std::vector<CoupledFunction> B_lattice(n*2, CoupledFunction(lattice_size));
+        std::vector<BSpline> B_lattice(num_splines*2, BSpline(kappa, lattice_size));
 
         point = 0;//core->GetLattice()->real_to_lattice(dr0);
         left = k-1;
+
+        std::vector<double> Potential(core->GetHFPotential());
 
         while(point < lattice_size)
         {
@@ -112,37 +128,83 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
             // Transfer spline values from fspline_buf
             for(unsigned int s = 0; s < k; s++)
-            {   B_lattice[s + left + 1 - k].f[point] = fspline_buf[s];
-                B_lattice[s + left + 1 - k].df[point] = fspline_buf[s + MaximumK];
+            {
+                BSpline& Bupper = B_lattice[s + left + 1 - k];      // B_i, i < n
+                BSpline& Blower = B_lattice[num_splines + s + left + 1 - k];  // B_i, i > n
 
-                B_lattice[n + s + left + 1 - k].g[point] = fspline_buf[s];
-                B_lattice[n + s + left + 1 - k].dg[point] = fspline_buf[s + MaximumK];
+                Bupper.f[point] = fspline_buf[s];
+                Bupper.df[point] = fspline_buf[s + MaximumK];
+
+                Blower.g[point] = fspline_buf[s];
+                Blower.dg[point] = fspline_buf[s + MaximumK];
+
+                if(spline_type == Reno || spline_type == Vanderbilt)
+                {
+                    // Calculate small component
+                    Bupper.g[point] = (Bupper.df[point] + kappa/x * Bupper.f[point])/2.;
+                    Bupper.dg[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.df[point] - kappa/(x*x) * Bupper.f[point])/2.;
+
+                    Blower.f[point] = Constant::AlphaSquared * (Blower.dg[point] - kappa/x * Blower.g[point])/2.;
+                    Blower.df[point] = Constant::AlphaSquared * (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dg[point] + kappa/(x*x) * Blower.g[point])/2.;
+                }
             }
 
             point++;
         }
 
         delete[] fspline_buf;
+        unsigned int i = 0;
+
+        if(spline_type == Reno)
+        {
+            // Drop the splines at zero and Rmax to satisfy boundary conditions
+            std::vector<BSpline>::iterator it;
+            it = B_lattice.begin();
+            B_lattice.erase(it, it + abs(kappa));
+            it = B_lattice.begin() + n;
+            B_lattice.erase(it, it + abs(kappa) + 1);        
+            B_lattice.erase(B_lattice.end() - 1);
+
+            // Renormalise splines
+//            it = B_lattice.begin();
+//            while(it != B_lattice.end())
+//            {   it->ReNormalise(core->GetLattice());
+//                it++;
+//            }
+        }
+        else if(spline_type == Vanderbilt)
+        {
+            std::vector<BSpline>::iterator it;
+            it = B_lattice.begin();
+            B_lattice.erase(it);
+            it = B_lattice.begin() + n;
+            B_lattice.erase(it);
+        }
 
         // Wavefunctions are expanded in terms of B-splines as
         //     f = Sum_i (c_i. B_i)
         //     g = Sum_i (d_i. B_i)
         // To make integrals b(i,j) = <Bi|Bj> and A(i,j) = <Bi|H|Bj>
 
-        unsigned int n2 = 2 * n;      // Size of the matrices A and b
+        unsigned int n2 = B_lattice.size();      // Size of the matrices A and b
         double* b = new double[n2*n2];
         double* A = new double[n2*n2];
         double* eigenvalues = new double[n2];
-        double* bcoef = new double[n2];
 
         BSplineCore spline_core(&grid, core);
-        std::vector<double> potential = spline_core.GetPotential();
+        std::vector<double> potential_grid = spline_core.GetPotential();
 
+        unsigned int j;
+        memset(b, 0, n2*n2*sizeof(double));
+        memset(A, 0, n2*n2*sizeof(double));
 
-        unsigned int i, j;
-        for(i=0; i<n2*n2; i++)
-            b[i] = A[i] = 0.;
+//        for(i=0; i<n2; i++)
+//        {
+//            std::string filename = "spline_" + itoa(i) + ".txt";
+//            B_lattice[i].Print(filename, core->GetLattice());
+//        }
 
+/*
         // Loop over Bsplines and add to A, b as needed
         for(i=0; i<n; i++)
         {
@@ -157,7 +219,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 {
                     double BB = B_gauss[i*size + point] * B_gauss[j*size + point] * dR_grid[point];
                     int_1 += BB;
-                    int_V += BB * potential[point];
+                    int_V += BB * potential_grid[point];
                     int_KappaOnR += BB * kappa/R_grid[point];
                 }
 
@@ -176,7 +238,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     A[(n+j)*n2 + i] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
                     A[j*n2 + (n+i)] += int_KappaOnR/Constant::Alpha; // int_KappaOnR
                 }
- */
+ 
             }
         }
 
@@ -238,21 +300,20 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         }
 */
         StateIntegrator SI(core->GetLattice());
-        std::vector<double> Potential(core->GetHFPotential());
 
         for(j=0; j<n2; j++)
         {
-            CoupledFunction& Bj = B_lattice[j];
+            BSpline& Bj = B_lattice[j];
 
             CoupledFunction exchange;
-            core->CalculateExchange(Bj, kappa, exchange);
+            core->CalculateExchange(Bj, exchange);
             exchange.ReSize(Bj.Size());
 
-            for(i=0; i<n2; i++)
+            for(i=j; i<n2; i++)
             {
-                CoupledFunction& Bi = B_lattice[i];
+                BSpline& Bi = B_lattice[i];
 
-                double E = 0.;
+                double En = 0.;
                 for(unsigned int p=0; p<mmin(Bi.Size(), Bj.Size()); p++)
                 {
                     double EQ1 = (Bj.df[p] + kappa*Bj.f[p]/R_lattice[p])
@@ -260,25 +321,54 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                                 - Constant::AlphaSquared * exchange.g[p];
                     double EQ2 = (Bj.dg[p] - kappa*Bj.g[p]/R_lattice[p]) + Potential[p]*Bj.f[p] + exchange.f[p];
 
-                    E = E - (Bi.f[p] * EQ2 - Bi.g[p] * EQ1)*dR_lattice[p];
+                    En = En - (Bi.f[p] * EQ2 - Bi.g[p] * EQ1)*dR_lattice[p];
                 }
 
-                A[i * n2 + j] = E;
+                A[i * n2 + j] = A[j * n2 + i] = En;
+                b[i * n2 + j] = b[j * n2 + i] = Bi.Overlap(Bj, core->GetLattice());
             }
         }
-        
-        // Account for non-zero boundary conditions on splines
-        if(kappa < 0)
-            A[0] += 1./Constant::Alpha;
-        else
-            A[0] += 2./Constant::AlphaSquared;
-        A[0*n2 + n] += 0.5;
-        A[n*n2 + 0] += -0.5;
 
-        A[(n-1)*n2 + (n-1)] += 0.5/Constant::Alpha;
-        A[(n-1)*n2 + (n2-1)] += -0.5;
-        A[(n2-1)*n2 + (n-1)] += 0.5;
-        A[(n2-1)*n2 + (n2-1)] += -0.5*Constant::Alpha;
+//        FILE* fA = fopen("Amatrix.txt", "wt");
+//        FILE* fb = fopen("bmatrix.txt", "wt");
+//
+//        for(i = 0; i < n2; i++)
+//        {
+//            for(j=0; j < n2-1; j++)
+//            {   fprintf(fA, "%f, ", A[i*n2+j]);
+//                fprintf(fb, "%f, ", b[i*n2+j]);
+//            }
+//            fprintf(fA, "%f\n", A[i*n2+j]);
+//            fprintf(fb, "%f\n", b[i*n2+j]);
+//        }
+//        fclose(fA);
+//        fclose(fb);
+
+        if(spline_type == NotreDame)
+        {
+            // Account for boundary conditions on splines.
+            // At r = 0, this is effectively a delta function to push spurious states to high energy.
+            if(kappa < 0)
+                A[0] += 1./Constant::Alpha;
+            else
+                A[0] += 2./Constant::AlphaSquared;
+            A[0*n2 + n] += 0.5;
+            A[n*n2 + 0] += -0.5;
+
+            // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
+            A[(n-1)*n2 + (n-1)] += 0.5/Constant::Alpha;
+            A[(n-1)*n2 + (n2-1)] += -0.5;
+            A[(n2-1)*n2 + (n-1)] += 0.5;
+            A[(n2-1)*n2 + (n2-1)] += -0.5*Constant::Alpha;
+        }
+        else if(spline_type == Vanderbilt)
+        {
+            // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
+            A[(n-1)*n2 + (n-1)] += 0.5/Constant::Alpha;
+            A[(n-1)*n2 + (n2-1)] += -0.5;
+            A[(n2-1)*n2 + (n-1)] += 0.5;
+            A[(n2-1)*n2 + (n2-1)] += -0.5*Constant::Alpha;
+        }
 
         // Solve A*p[i] = energy*B*p[i]
         if(E.SolveMatrixEquation(A, b, eigenvalues, n2))
@@ -293,7 +383,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
             unsigned int count = 0;
             unsigned int pqn = l + 1;
-            i = n;
+            i = n2/2;
             const Orbital* s;
 
             while((count < num_states_per_l[l]) && (i < n2))
@@ -313,29 +403,18 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     ds->SetEnergy(eigenvalues[i]);
                     ds->ReSize(HF_size);
 
-                    for(j=0; j<n2; j++)
-                        bcoef[j] = A[i*n2 + j];
-
-//                    int jderiv;
-                    double x;
+                    double* coeff = &A[i*n2];
 
                     for(j=0; j<n2; j++)
-                    {   for(point = 0; point < HF_size; point++)
+                    {
+                        for(point = 0; point < HF_size; point++)
                         {
-                            x = HF_R[point];
-
-    //                        jderiv = 0;
-    //                        ds->f[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv);
-    //                        ds->g[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv);// /Constant::Alpha;
-
-                            ds->f[point] += bcoef[j] * B_lattice[j].f[point];
-                            ds->g[point] += bcoef[j] * B_lattice[j].g[point];
-                            ds->df[point] += bcoef[j] * B_lattice[j].df[point] * HF_dR[point];
-                            ds->dg[point] += bcoef[j] * B_lattice[j].dg[point] * HF_dR[point];
-    //                        jderiv = 1;
-    //                        ds->df[point] = bvalue_(knots, bcoef, &n, &k, &x, &jderiv)*HF_dR[point];
-    //                        ds->dg[point] = - bvalue_(knots, bcoef + n, &n, &k, &x, &jderiv)*HF_dR[point];// /Constant::Alpha;
+                            ds->f[point] += *coeff * B_lattice[j].f[point];
+                            ds->g[point] += *coeff * B_lattice[j].g[point];
+                            ds->df[point] += *coeff * B_lattice[j].df[point] * HF_dR[point];
+                            ds->dg[point] += *coeff * B_lattice[j].dg[point] * HF_dR[point];
                         }
+                        coeff++;
                     }
 
                     if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
@@ -404,13 +483,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         }
         
         delete[] eigenvalues;
-        delete[] bcoef;
         delete[] A;
         delete[] b;
         delete[] B_gauss;
         delete[] dB_gauss;
-            }   // kappa loop
-    }   }
+        }   // kappa loop
+    }
 
     if(debug)
         *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
