@@ -72,6 +72,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             num_splines = n + 1;
 
         BSplineGrid grid(num_splines, k, dr0, rmax);
+        /*
         unsigned int size = grid.Size();
         const double* R_grid = grid.R();
         const double* dR_grid = grid.dR();
@@ -81,6 +82,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         double* dB_gauss = new double[num_splines*size];
         memset(B_gauss, 0, num_splines*size*sizeof(double));
         memset(dB_gauss, 0, num_splines*size*sizeof(double));
+         */
 
         int nderiv = 3;     // Number of derivatives of spline (including zeroth)
         double* fspline_buf = new double[nderiv * MaximumK];
@@ -91,6 +93,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         unsigned int m = 0;
         unsigned int left = k-1;
 
+        /*
         while(point < size)
         {
             if(m == k)
@@ -113,6 +116,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             point++;
             m++;
         }
+         */
 
         // Get values of splines on HF lattice
         unsigned int lattice_size = core->GetLattice()->real_to_lattice(rmax);
@@ -121,7 +125,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
         std::vector<BSpline> B_lattice(num_splines*2, BSpline(kappa, lattice_size));
 
-        point = 0;//core->GetLattice()->real_to_lattice(dr0);
+        point = 0;
         left = k-1;
 
         std::vector<double> Potential(core->GetHFPotential());
@@ -201,12 +205,13 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         double* A = new double[n2*n2];
         double* eigenvalues = new double[n2];
 
-        BSplineCore spline_core(&grid, core);
-        std::vector<double> potential_grid = spline_core.GetPotential();
+//        BSplineCore spline_core(&grid, core);
+//        std::vector<double> potential_grid = spline_core.GetPotential();
 
         unsigned int j;
         memset(b, 0, n2*n2*sizeof(double));
         memset(A, 0, n2*n2*sizeof(double));
+        memset(eigenvalues, 0, n2*sizeof(double));
 
 //        for(i=0; i<n2; i++)
 //        {
@@ -495,8 +500,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         delete[] eigenvalues;
         delete[] A;
         delete[] b;
-        delete[] B_gauss;
-        delete[] dB_gauss;
+        //delete[] B_gauss;
+        //delete[] dB_gauss;
         }   // kappa loop
     }
 
