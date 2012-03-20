@@ -456,6 +456,33 @@ void Atom::CheckMatrixSizes()
 
 void Atom::CalculateEnergies()
 {
+    // Set up output options
+    bool ShowgFactors = true;
+    if((userInput_("CI/Output/ShowgFactors", "true") == "false") || (userInput_("CI/Output/ShowgFactors", 1) == 0))
+    {   ShowgFactors = false;
+    }
+
+    bool ShowPercentages = true;
+    if((userInput_("CI/Output/ShowPercentages", "true") == "false") || (userInput_("CI/Output/ShowPercentages", 1) == 0))
+    {   ShowPercentages = false;
+    }
+    double min_percent_displayed;
+    
+    if(ShowPercentages)
+    {   min_percent_displayed = userInput_("CI/Output/MinimumDisplayedPercentage", 1.);
+    }
+    else
+    {   min_percent_displayed = 101.;
+    }
+
+    bool TruncateDisplayAtMaxEnergy = userInput_.search("CI/Output/MaxDisplayedEnergy");
+    double DavidsonMaxEnergy = 0.;
+    if(TruncateDisplayAtMaxEnergy)
+    {
+        DavidsonMaxEnergy = userInput_("CI/Output/MaxDisplayedEnergy", 0.);
+    }
+
+    // Create and solve Hamiltonian matrix for all symmetries
     SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
 
     while(it != symEigenstates.end())
@@ -477,31 +504,6 @@ void Atom::CalculateEnergies()
             if(!useRead || !E->Read())
             {
                 HamiltonianMatrix* H;
-                bool ShowgFactors = true;
-                bool ShowPercentages = true;
-                bool TruncateDisplayAtMaxEnergy = userInput_.vector_variable_size("CI/Output/MaxDisplayedEnergy");
-                double DavidsonMaxEnergy = 0.;
-                if(TruncateDisplayAtMaxEnergy)
-                {
-                    DavidsonMaxEnergy = userInput_("CI/Output/MaxDisplayedEnergy", 0.);
-                }
-                int NumLeadingConfigs = userInput_("CI/Output/NumLeadingConfigs", 1);
-                std::string OutputTypeString = userInput_("CI/Output/Type", "Standard");
-                DisplayOutputType::Enum OutputType = DisplayOutputType::Standard;
-
-                for(int i = DisplayOutputType::Start; i < DisplayOutputType::End; i++)
-                {
-                    // Do stuff
-                }
-
-                if((userInput_("CI/Output/ShowgFactors", "true", 0) == "false") || (userInput_("CI/Output/ShowgFactors", "true", 0) == "0"))
-                {
-                    ShowgFactors = false;
-                }
-                if((userInput_("CI/Output/ShowPercentages", "true", 0) == "false") || (userInput_("CI/Output/ShowPercentages", "true", 0) == "0"))
-                {
-                    ShowPercentages = false;
-                }
 
                 #ifdef _MPI
                     H = new MPIHamiltonianMatrix(*integrals, conf_gen);
@@ -514,29 +516,34 @@ void Atom::CalculateEnergies()
 
                 H->GenerateMatrix();
                 //H->PollMatrix();
-                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", "false") == "1"))
+
+                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", 0) == 1))
                 {
-                    RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
-                    while(rel_it != conf_gen->GetRelConfigs()->end())
-                    {
-                        *outstream << rel_it->Name();
-                        if(rel_it++ != conf_gen->GetRelConfigs()->end())
+                    #ifdef _MPI
+                        dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile("blah", false);
+                    #else
+                        RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
+                        while(rel_it != conf_gen->GetRelConfigs()->end())
                         {
-                            *outstream << ",";
-                        }
-                    }
-                    *outstream << std::endl;
-                    
-                    *outstream << std::setprecision(12);
-                    *outstream << "Matrix Before:" << std::endl;
-                    for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
-                    {
-                        for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
-                        {
-                            *outstream << H->GetMatrix()->At(i,j) << " ";
+                            *outstream << rel_it->Name();
+                            if(rel_it++ != conf_gen->GetRelConfigs()->end())
+                            {
+                                *outstream << ",";
+                            }
                         }
                         *outstream << std::endl;
-                    }
+                        
+                        *outstream << std::setprecision(12);
+                        *outstream << "Matrix Before:" << std::endl;
+                        for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
+                        {
+                            for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
+                            {
+                                *outstream << H->GetMatrix()->At(i,j) << " ";
+                            }
+                            *outstream << std::endl;
+                        }
+                    #endif
                 }
                 
                 #ifdef _SCALAPACK
@@ -544,15 +551,6 @@ void Atom::CalculateEnergies()
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                     MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
                 #else
-                    double min_percent_displayed;
-
-                    if(ShowPercentages)
-                    {
-                        min_percent_displayed = userInput_("CI/Output/MinimumDisplayedPercentage", 1.);
-                    } else
-                    {
-                        min_percent_displayed = 101.;
-                    }
                     H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, TruncateDisplayAtMaxEnergy, min_percent_displayed, DavidsonMaxEnergy);
                 #endif
                 

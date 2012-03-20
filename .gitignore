@@ -1,3 +1,4 @@
+# Input and output files
 *.txt
 *.input
 *.out
@@ -7,6 +8,8 @@
 *.int
 *.configs
 *.eigenstates
+
+# Build files, build locations, and packages
 *.tar
 *.tar.gz
 *.[oa]
@@ -15,3 +18,9 @@ Release
 Test
 Debug
 ambit
+
+# Auxillary documentation files
+*.aux
+*.dvi
+*.log
+*.pdf
