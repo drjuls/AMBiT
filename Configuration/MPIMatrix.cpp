@@ -163,7 +163,7 @@ void MPIMatrix::WriteToFile(const std::string& filename, bool binary)
         }
         else
         {   fp = fopen(filename.c_str(), "wt");
-            fprintf(fp, "%d\n", N);
+            // fprintf(fp, "%d\n", N);
         }
 
         // Buffer for temporary storage.
@@ -186,8 +186,12 @@ void MPIMatrix::WriteToFile(const std::string& filename, bool binary)
             if(binary)
                 fwrite(buf, sizeof(double), N-i, fp);
             else
-            {   for(unsigned int k = 0; k < (N-i); k++)
+            {   unsigned int k;
+	        for(k = 0; k < i; k++)
+		    fprintf(fp, "%18.10E ", 0.);
+	        for(k = 0; k < (N-i); k++)
                     fprintf(fp, "%18.10E ", buf[k]);
+		fprintf(fp, "\n");
             }
         }
         else if(M[i])

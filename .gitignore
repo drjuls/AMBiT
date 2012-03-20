@@ -7,6 +7,7 @@
 *.sigma
 *.int
 *.configs
+*.matrix
 *.eigenstates
 
 # Build files, build locations, and packages

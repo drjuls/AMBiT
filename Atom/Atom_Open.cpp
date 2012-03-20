@@ -520,7 +520,8 @@ void Atom::CalculateEnergies()
                 if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", 0) == 1))
                 {
                     #ifdef _MPI
-                        dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile("blah", false);
+		        std::string filename = identifier + "." + it->first.GetString() + ".matrix";
+                        dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
                     #else
                         RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
                         while(rel_it != conf_gen->GetRelConfigs()->end())
@@ -553,20 +554,6 @@ void Atom::CalculateEnergies()
                 #else
                     H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, TruncateDisplayAtMaxEnergy, min_percent_displayed, DavidsonMaxEnergy);
                 #endif
-                
-                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", "false") == "1"))
-                {
-                    *outstream << std::setprecision(12);
-                    *outstream << "Matrix After:" << std::endl;
-                    for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
-                    {
-                        for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
-                        {
-                            *outstream << H->GetMatrix()->At(i,j) << " ";
-                        }
-                        *outstream << std::endl;
-                    }
-                }
 
                 delete H;
 
