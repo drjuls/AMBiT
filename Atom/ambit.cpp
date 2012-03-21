@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
                 it.First();
                 while(!it.AtEnd())
                 {
-                    it.GetState()->Print("core" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
+                    it.GetState()->Print(identifier + "_core" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
                     it.Next();
                 }
                 
@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
                 it.First();
                 while(!it.AtEnd())
                 {
-                    it.GetState()->Print("excited" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
+                    it.GetState()->Print(identifier + "_excited" + it.GetOrbitalInfo().Name() + ".out", A.GetLattice());
                     it.Next();
                 }
             }

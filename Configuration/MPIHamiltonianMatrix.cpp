@@ -95,10 +95,10 @@ void MPIHamiltonianMatrix::GenerateMatrix()
     *logstream << "Matrix Generated" << std::endl;
 }
 
-void MPIHamiltonianMatrix::WriteToFile(const std::string& filename)
+void MPIHamiltonianMatrix::WriteToFile(const std::string& filename, bool binary)
 {
     if(dynamic_cast<MPIMatrix*>(M))
-        dynamic_cast<MPIMatrix*>(M)->WriteToFile(filename);
+        dynamic_cast<MPIMatrix*>(M)->WriteToFile(filename, binary);
 }
 
 void MPIHamiltonianMatrix::PollMatrix()
