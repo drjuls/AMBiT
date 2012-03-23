@@ -1,3 +1,6 @@
+#ifdef _MPI
+#include <mpi.h>
+#endif
 #include "Include.h"
 #include "CIIntegralsMBPT.h"
 #include "HartreeFock/StateIntegrator.h"
@@ -405,7 +408,12 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     }
 
     if((include_mbpt1 && PT) || (include_valence_mbpt1 && ValencePT))
+    {
         WriteOneElectronIntegrals();
+    #ifdef _MPI
+        MPI::COMM_WORLD.Barrier();
+    #endif
+    }
 }
 
 void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
@@ -597,7 +605,12 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     }
 
     if((include_mbpt2 && PT) || (include_valence_mbpt2 && ValencePT))
+    {
         WriteTwoElectronIntegrals();
+    #ifdef _MPI
+        MPI::COMM_WORLD.Barrier();
+    #endif
+    }
 }
 
 void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
@@ -732,6 +745,9 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
     }
 
     WriteTwoElectronIntegrals();
+#ifdef _MPI
+    MPI::COMM_WORLD.Barrier();
+#endif
 }
 
 /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */

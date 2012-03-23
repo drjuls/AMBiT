@@ -187,11 +187,11 @@ void MPIMatrix::WriteToFile(const std::string& filename, bool binary)
                 fwrite(buf, sizeof(double), N-i, fp);
             else
             {   unsigned int k;
-	        for(k = 0; k < i; k++)
-		    fprintf(fp, "%18.10E ", 0.);
-	        for(k = 0; k < (N-i); k++)
+                for(k = 0; k < i; k++)
+                    fprintf(fp, "%18.10E ", 0.);
+                for(k = 0; k < (N-i); k++)
                     fprintf(fp, "%18.10E ", buf[k]);
-		fprintf(fp, "\n");
+                fprintf(fp, "\n");
             }
         }
         else if(M[i])

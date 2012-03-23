@@ -520,7 +520,7 @@ void Atom::CalculateEnergies()
                 if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", 0) == 1))
                 {
                     #ifdef _MPI
-		        std::string filename = identifier + "." + it->first.GetString() + ".matrix";
+                        std::string filename = identifier + "." + it->first.GetString() + ".matrix";
                         dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
                     #else
                         RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
