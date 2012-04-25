@@ -15,6 +15,7 @@
 *.tar.gz
 *.[oa]
 *~
+gitInfo.h
 Release
 Test
 Debug

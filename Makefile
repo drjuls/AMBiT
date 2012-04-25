@@ -8,7 +8,7 @@ exes = ambit
 
 packname = AtomPack
 # other files that should be included in package
-packfiles = Include.h config.txt CustomBasis.txt Atom/GetPot
+packfiles = Include.h CustomBasis.txt Atom/GetPot getGitInfo.sh
 
 include make.machine
 
@@ -21,14 +21,13 @@ ambit: $(libnames)
 
 .EXPORT_ALL_VARIABLES:
 
-$(libnames): %$(LIBSUFFIX): FORCE
+$(libnames): %$(LIBSUFFIX): gitInfo.h FORCE
 	-@mkdir $(notdir $*)/$(BUILD)
 	$(MAKE) -C $(notdir $*) -f make.$(notdir $*) module=$(notdir $*)
 
-# RMatrixPrimer is special because it resides in directory "Atom".
-Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX): %$(LIBSUFFIX): FORCE
-	-@mkdir Atom/$(BUILD)
-	$(MAKE) -C Atom -f make.$(notdir $*) module=$(notdir $*)
+# Always rebuild gitInfo.h for the latest compile info
+gitInfo.h: FORCE
+	sh getGitInfo.sh > gitInfo.h
 
 #if a command fails, delete the target
 .DELETE_ON_ERROR:
@@ -36,7 +35,6 @@ Atom/$(BUILD)/RMatrixPrimer$(LIBSUFFIX): %$(LIBSUFFIX): FORCE
 .PHONY: FORCE clean veryclean pack unpack unpackbackend
 
 # FORCE is used to always rebuild subdirectories.
-# Could also use .PHONY, but this is easier for, e.g., RMatrixPrimer.
 FORCE:
 
 clean:

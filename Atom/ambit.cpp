@@ -3,6 +3,7 @@
 #endif
 #include "Include.h"
 #include "OutStreams.h"
+#include "gitInfo.h"
 #include "Atom.h"
 #include "RateCalculator.h"
 #include "Universal/Enums.h"
@@ -50,6 +51,9 @@ int main(int argc, char* argv[])
     #endif
 
     OutStreams::InitialiseStreams();
+
+    *outstream << "BUILD INFO: git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
+    *outstream << "            compiled:   " << COMPILE_DATE << std::endl;
 
     try
     {
