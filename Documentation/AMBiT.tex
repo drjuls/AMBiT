@@ -162,6 +162,8 @@ One of the basis options must be specified.
 \option{BSpline/N} [40] number of splines.
 \option{BSpline/K} [7]  order of splines.
 \option{BSpline/Rmax} [50.0] maximum radius of splines.
+\option{BSpline/SplineType} [Reno] Decides what boundary conditions to enforce to remove spurious states. Allowed types: Reno/DKB, NotreDame/Johnson, Vanderbilt
+\option{BSpline/-{}-reorthogonalise} perform secondary Gram-Schmidt orthogonalisation on the final basis states after the matrix diagonalisation.
 
 \option{-{}-hf-basis} Use spectroscopic (relativistic Hartree-Fock) basis.
 \option{-{}-r-basis} Use $\times r$ basis where the lowest state in each wave is spectroscopic and higher energy states are created by multiplication of the previous state by the radial function and normalisation.

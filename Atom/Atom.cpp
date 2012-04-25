@@ -649,7 +649,21 @@ void Atom::CreateBSplineBasis(bool UseMBPT)
     unsigned int n = userInput_("Basis/BSpline/N", 40);
     unsigned int k = userInput_("Basis/BSpline/K", 7);
     double Rmax = userInput_("Basis/BSpline/Rmax", 50.);
-    basis->SetParameters(n, k, Rmax);
+
+    BSplineBasis::SplineType spline_type = BSplineBasis::Reno;
+    std::string spline = userInput_("Basis/BSpline/SplineType", "Reno");
+    if(spline.compare("Reno") == 0 || spline.compare("DKB") == 0)
+        spline_type = BSplineBasis::Reno;
+    else if(spline.compare("Vanderbilt") == 0)
+        spline_type = BSplineBasis::Vanderbilt;
+    else if(spline.compare("NotreDame") == 0 || spline.compare("Johnson") == 0)
+        spline_type = BSplineBasis::NotreDame;
+
+    basis->SetParameters(n, k, Rmax, spline_type);
+
+    bool reorth = userInput_.search("Basis/BSpline/--reorthogonalise");
+    basis->OrthogonaliseAgain(reorth);
+
     CreateBasis(UseMBPT);
 }
 

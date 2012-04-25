@@ -5,12 +5,12 @@
 
 class BSplineBasis : public ExcitedStates
 {
-protected:
+public:
     enum SplineType {NotreDame, Reno, Vanderbilt};
 
 public:
     BSplineBasis(Lattice* lattice, Core* atom_core):
-        ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.), spline_type(Reno) {}
+        ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.), spline_type(Reno), orthogonalise_again(false) {}
     virtual ~BSplineBasis() {}
 
     /** Create virtual states above the core.
@@ -25,7 +25,10 @@ public:
     virtual void Update();
 
     /** Set the number of splines and their order, as well as the cavity radius. */
-    inline void SetParameters(int num_splines, int order, double r = 50.);
+    inline void SetParameters(int num_splines, int order, double r = 50., SplineType splinetype = Reno);
+
+    /** Perform Gram-Schmidt orthogonalisation on excited states. */
+    inline void OrthogonaliseAgain(bool reorthogonalise);
 
 protected:
     std::vector<unsigned int> NumStatesPerL;
@@ -47,12 +50,19 @@ protected:
     };
 
     SplineType spline_type;
+    bool orthogonalise_again;
 };
 
-inline void BSplineBasis::SetParameters(int num_splines, int order, double r)
+inline void BSplineBasis::SetParameters(int num_splines, int order, double r, SplineType splinetype)
 {   n = num_splines;
     k = order;
     rmax = r;
+    spline_type = splinetype;
+}
+
+inline void BSplineBasis::OrthogonaliseAgain(bool reorthogonalise)
+{
+    orthogonalise_again = reorthogonalise;
 }
 
 #endif
