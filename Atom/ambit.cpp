@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
 
     OutStreams::InitialiseStreams();
 
-    *outstream << "BUILD INFO: git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
-    *outstream << "            compiled:   " << COMPILE_DATE << std::endl;
+    *outstream << "AMBiT git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
+    *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
 
     try
     {

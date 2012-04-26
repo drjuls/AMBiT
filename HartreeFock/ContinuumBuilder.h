@@ -42,11 +42,6 @@ public:
      */
     void CopyCore(const Core* other_core, bool import_lattice = false);
 
-    /** Create new core using config.txt.
-        PRE: Lattice must already exist.
-     */
-    void CreateNewCore(unsigned int atomic_number, int ion_charge);
-
     /** Use GetCore() to make modifications (such as ionization of an electron). */
     Core* GetCore() { return core; }
     const Core* GetCore() const { return core; }

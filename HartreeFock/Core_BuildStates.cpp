@@ -11,9 +11,6 @@
 
 void Core::Update()
 {
-    // Check that there is something to start with
-    if((Z > 1.) && Empty())
-        BuildFirstApproximation("");
     UpdateNuclearPotential();
     UpdateHFPotential();
 

@@ -14,16 +14,6 @@ void Core::BuildFirstApproximation(std::string configuration)
         5. Introduce the nuclear potential
      */
 
-    if(!configuration.size())
-    {
-        configuration = GetConfigData();
-        if(!configuration.size())
-        {   *errstream << "Core::BuildFirstApproximation: Failed to get intitial states from config.txt" << std::endl;
-            *outstream << "Core::BuildFirstApproximation: Failed to get intitial states from config.txt" << std::endl;
-            exit(1);
-        }
-    }
-
     std::string closed_shell_string;
     std::string open_shell_string;
 
@@ -283,46 +273,4 @@ void Core::BuildFirstApproximation(std::string configuration)
 
         UpdateHFPotential(0.4, true);
     }
-}
-
-std::string Core::GetConfigData()
-{
-    FILE* fp = fopen("config.txt", "r");
-    if(fp == NULL)
-    {   *errstream << "Failed to open file \"config.txt\"" << std::endl;
-        getchar();
-        exit(1);
-    }
-
-    char buffer[200];
-
-    bool found = false;
-    int new_Z, new_Charge;
-
-    while(!found && fgets(buffer, 200, fp))
-    {
-        // Get Z, charge
-        std::stringstream ss(buffer);
-        ss >> new_Z;
-        ss >> new_Charge;
-
-        if((Z == new_Z) && (Charge == new_Charge))
-        {
-            double radius, thickness;
-            ss >> radius;
-            ss >> thickness;
-            NuclearRadius = radius/Constant::AtomicToFermi;
-            NuclearThickness = thickness/Constant::AtomicToFermi;
-            found = true;
-        }
-
-        fgets(buffer, 200, fp);
-    }
-
-    std::string ret;
-    if(found)
-        ret = buffer;
-
-    fclose(fp);
-    return ret;
 }

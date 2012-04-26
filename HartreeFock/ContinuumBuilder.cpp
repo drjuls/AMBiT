@@ -51,15 +51,6 @@ void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
     core = new Core(*other_core, lattice);
 }
 
-void ContinuumBuilder::CreateNewCore(unsigned int atomic_number, int ion_charge)
-{
-    if(core)
-        delete core;
-
-    core = new Core(lattice, atomic_number, ion_charge);
-    core->Initialise();
-}
-
 unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice* external_lattice) const
 {
     const std::vector<double>& HFPotential = core->GetConstHFPotential();
