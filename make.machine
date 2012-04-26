@@ -65,7 +65,7 @@ ifeq ($(MACHINE), ncixe)
   LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core mkl_em64t guide pthread
 
   INCLUDE  +=
-  CXXFLAGS += -wd1125 -D_MPI -D_SCALAPACK
+  CXXFLAGS += -wd1125 -D_MPI #-D_SCALAPACK
 
   ifdef debug
     BUILD     = Debug

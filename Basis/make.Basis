@@ -1,4 +1,4 @@
-cxxobjects = BSplineBasis.o BSplineCore.o BSplineGrid.o \
+cxxobjects = BSplineBasis.o BSplineGrid.o \
              CustomBasis.o ExcitedStates.o HartreeFockBasis.o \
              ReadBasis.o RSinStates.o RStates.o SubsetBasis.o
 cobjects = 
