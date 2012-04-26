@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 function echo_git_info {
     if [[ $(which git 2> /dev/null) ]]

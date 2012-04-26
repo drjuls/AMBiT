@@ -2,7 +2,6 @@
 #include "BSplineGrid.h"
 #include "Include.h"
 #include "Spline.h"
-#include "Universal/Interpolator.h"
 #include "Universal/CoupledFunction.h"
 #include "Universal/Constant.h"
 #include "Universal/Eigensolver.h"
@@ -300,8 +299,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         {
                             ds->f[point] += *coeff * B_lattice[j].f[point];
                             ds->g[point] += *coeff * B_lattice[j].g[point];
-                            ds->df[point] += *coeff * B_lattice[j].df[point] * dR_lattice[point];
-                            ds->dg[point] += *coeff * B_lattice[j].dg[point] * dR_lattice[point];
+                            ds->df[point] += *coeff * B_lattice[j].df[point];
+                            ds->dg[point] += *coeff * B_lattice[j].dg[point];
                         }
                         coeff++;
                     }

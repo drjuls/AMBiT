@@ -27,7 +27,7 @@ $(libnames): %$(LIBSUFFIX): gitInfo.h FORCE
 
 # Always rebuild gitInfo.h for the latest compile info
 gitInfo.h: FORCE
-	sh getGitInfo.sh > gitInfo.h
+	./getGitInfo.sh > gitInfo.h
 
 #if a command fails, delete the target
 .DELETE_ON_ERROR:
