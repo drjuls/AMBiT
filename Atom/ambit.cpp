@@ -214,77 +214,79 @@ int main(int argc, char* argv[])
     
             // At this stage, we are ready to run calculations with the
             // calculated energy levels
-    
-            A.WriteEigenstatesToSolutionMap();
-            // Print the solutions currently available after CI calculation
-            DisplayOutputType::Enum OutputType;
-            std::string TypeString = fileInput("CI/Output/Type", "");
-            if(TypeString == "Standard")
+            if(fileInput.vector_variable_size("AlphaSquaredVariation") <= 1)
             {
-                OutputType = DisplayOutputType::Standard;
-            }
-            else if(TypeString == "CommaSeparated")
-            {
-                OutputType = DisplayOutputType::CommaSeparated;
-            }
-            else if(TypeString == "SpaceSeparated")
-            {
-                OutputType = DisplayOutputType::SpaceSeparated;
-            }
-            else if(TypeString == "TabSeparated")
-            {
-                OutputType = DisplayOutputType::TabSeparated;
-            }
-    
-            if(TypeString != "" && fileInput("NumValenceElectrons", 1) > 1)
-            {
-                A.GetSolutionMap()->Print(OutputType);
-            }
-    
-            // Interactive mode
-            if(fileInput.search("--interactive"))
-            {
-                A.GetSolutionMap()->PrintID();
-                std::string input;
-                while(input != "quit" && input != "q")
+                A.WriteEigenstatesToSolutionMap();
+                // Print the solutions currently available after CI calculation
+                DisplayOutputType::Enum OutputType;
+                std::string TypeString = fileInput("CI/Output/Type", "");
+                if(TypeString == "Standard")
                 {
-                    std::cin >> input;
-                    if(input != "quit" && input != "q")
+                    OutputType = DisplayOutputType::Standard;
+                }
+                else if(TypeString == "CommaSeparated")
+                {
+                    OutputType = DisplayOutputType::CommaSeparated;
+                }
+                else if(TypeString == "SpaceSeparated")
+                {
+                    OutputType = DisplayOutputType::SpaceSeparated;
+                }
+                else if(TypeString == "TabSeparated")
+                {
+                    OutputType = DisplayOutputType::TabSeparated;
+                }
+        
+                if(TypeString != "" && fileInput("NumValenceElectrons", 1) > 1)
+                {
+                    A.GetSolutionMap()->Print(OutputType);
+                }
+        
+                // Interactive mode
+                if(fileInput.search("--interactive"))
+                {
+                    A.GetSolutionMap()->PrintID();
+                    std::string input;
+                    while(input != "quit" && input != "q")
                     {
-                        if(strcspn(input.c_str(), "eo") > 0 && strlen(input.c_str()) > strcspn(input.c_str(), "eo") + 1 && strchr(input.c_str(), '>') == NULL)
+                        std::cin >> input;
+                        if(input != "quit" && input != "q")
                         {
-                            if(A.GetSolutionMap()->FindByIdentifier(input) != A.GetSolutionMap()->end())
+                            if(strcspn(input.c_str(), "eo") > 0 && strlen(input.c_str()) > strcspn(input.c_str(), "eo") + 1 && strchr(input.c_str(), '>') == NULL)
                             {
-                                A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
-                            }
-                            else
-                            {
-                                *outstream << "Level " << input << " not found." << std::endl;
-                            }
-                        }
-                        else if(strchr(input.c_str(), '>') != NULL)
-                        {
-                            char input_cstring[strlen(input.c_str()) + 1];
-                            strcpy(input_cstring, input.c_str());
-                            char* token1 = strtok(input_cstring, " ->");
-                            char* token2 = strtok(NULL, " ->");
-                            if(strchr(input.c_str(), '|') != NULL)
-                            {
-                                strcpy(input_cstring, input.c_str());
-                                char* token3 = strtok(input_cstring, " |");
-                                char* token4 = strtok(NULL, " |");
-                                if(TransitionType::StringSpecifiesTransitionType(token4))
+                                if(A.GetSolutionMap()->FindByIdentifier(input) != A.GetSolutionMap()->end())
                                 {
-                                    A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(token4), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                    A.GetSolutionMap()->PrintSolution(A.GetSolutionMap()->FindByIdentifier(input));
+                                }
+                                else
+                                {
+                                    *outstream << "Level " << input << " not found." << std::endl;
+                                }
+                            }
+                            else if(strchr(input.c_str(), '>') != NULL)
+                            {
+                                char input_cstring[strlen(input.c_str()) + 1];
+                                strcpy(input_cstring, input.c_str());
+                                char* token1 = strtok(input_cstring, " ->");
+                                char* token2 = strtok(NULL, " ->");
+                                if(strchr(input.c_str(), '|') != NULL)
+                                {
+                                    strcpy(input_cstring, input.c_str());
+                                    char* token3 = strtok(input_cstring, " |");
+                                    char* token4 = strtok(NULL, " |");
+                                    if(TransitionType::StringSpecifiesTransitionType(token4))
+                                    {
+                                        A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, TransitionType(token4), A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                    }
+                                    else
+                                    {
+                                        A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                    }
                                 }
                                 else
                                 {
                                     A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
-                                 }
-                            }
-                            else
-                            {
-                                A.GetSolutionMap()->FindByIdentifier(token1)->second.GetTransitionSet()->insert(Transition(&A, A.GetSolutionMap()->FindByIdentifier(token1)->first, A.GetSolutionMap()->FindByIdentifier(token2)->first));
+                                }
                             }
                         }
                     }
