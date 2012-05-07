@@ -215,12 +215,16 @@ void SolutionMapMap::Print()
 {
     *outstream << "Solution summary for " << size() << " runs." << std::endl;
     SolutionMapMap::iterator smm_it, smm_first;
-    *outstream << "J,P,ID,E";
+    *outstream << "J,P,ID,";
     for(smm_it = begin(); smm_it != end(); smm_it++)
     {
-        *outstream << "," << smm_it->first;
+        *outstream << "," << "E" << smm_it->first;
     }
-    *outstream << std::endl;
+    for(smm_it = begin(); smm_it != end(); smm_it++)
+    {
+        *outstream << "," << "g" << smm_it->first;
+    }
+    *outstream << ",Config" << std::endl;
     
     
     smm_first = begin();
@@ -232,14 +236,32 @@ void SolutionMapMap::Print()
         for(smm_it = begin(); smm_it != end(); smm_it++)
         {
             *outstream  << "," << std::setprecision(12) << (smm_it->second.find(sm_it->first))->second.GetEnergyInversecm();
+        }
+        for(smm_it = begin(); smm_it != end(); smm_it++)
+        {
+            *outstream  << "," << std::setprecision(5) << (smm_it->second.find(sm_it->first))->second.GetgFactor();
+        }
+        *outstream << "," << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.Name(false);
+        bool difference_found = false;
+        for(smm_it = begin(); smm_it != end(); smm_it++)
+        {
             if(sm_it->second.GetgFactor() != 0)
             {
-                if(fabs((smm_it->second.find(sm_it->first))->second.GetgFactor() - sm_it->second.GetgFactor())/sm_it->second.GetgFactor() > 0.1)
+                if(fabs(((smm_it->second.find(sm_it->first))->second.GetgFactor() - sm_it->second.GetgFactor())/sm_it->second.GetgFactor()) > 0.1)
                 {
-                    *outstream << "*";
+                    difference_found = true;
                 }
             }
+            if((smm_it->second.find(sm_it->first))->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.Name(false) != sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.Name(false))
+            {
+                difference_found = true;
+            }
         }
+        if(difference_found)
+        {
+            *outstream << "*";
+        }
+        
         *outstream << std::endl;
     }
     
