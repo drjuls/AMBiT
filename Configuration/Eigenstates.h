@@ -34,6 +34,10 @@ public:
     {   return num_eigenvectors;
     }
 
+    unsigned int GetNumGFactors() const
+    {   return num_gFactors;
+    }
+
     unsigned int GetEigenvectorLength() const
     {   return N;
     }
@@ -44,7 +48,7 @@ public:
     void SetEigenvectors(double* vectors, unsigned int num_vectors);
     const double* GetEigenvectors() const;
 
-    void SetgFactors(double* g_factors);
+    void SetgFactors(double* g_factors, unsigned int num_gfactors);
     const double* GetgFactors() const;
 
     void SetIdentifier(const std::string& atom_identifier);
@@ -81,7 +85,7 @@ protected:
     double* eigenvalues;
     unsigned int num_eigenvectors;  // number of eigenvectors stored
     double* eigenvectors;
-
+    unsigned int num_gFactors;
     double* gFactors;
 };
 

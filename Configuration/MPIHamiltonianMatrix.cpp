@@ -196,7 +196,7 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
     if(gFactors && eigenstates.GetTwoJ())
     {   g_factors = new double[NumSolutions];
         GetgFactors(eigenstates, g_factors);
-        eigenstates.SetgFactors(g_factors);
+        eigenstates.SetgFactors(g_factors, NumSolutions);
     }
 
     if(ProcessorRank == 0)

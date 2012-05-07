@@ -441,7 +441,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
     if(gFactors && eigenstates.GetTwoJ())
     {   g_factors = new double[NumSolutions];
         GetgFactors(eigenstates, g_factors);
-        eigenstates.SetgFactors(g_factors);
+        eigenstates.SetgFactors(g_factors, NumSolutions);
     }
 
     unsigned int i, j;

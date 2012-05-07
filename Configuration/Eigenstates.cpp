@@ -6,14 +6,14 @@
 
 Eigenstates::Eigenstates(const std::string& atom_identifier, ConfigGenerator* configlist, bool configlist_owner):
     identifier(atom_identifier), configs(configlist), config_owner(configlist_owner),
-    num_eigenvalues(0), num_eigenvectors(0), eigenvalues(NULL), eigenvectors(NULL), gFactors(NULL)
+    num_eigenvalues(0), num_eigenvectors(0), num_gFactors(0), eigenvalues(NULL), eigenvectors(NULL), gFactors(NULL)
 {
     N = configs->GetNumJStates();
 }
 
 Eigenstates::Eigenstates(const Eigenstates& other):
     configs(other.configs), N(other.N), config_owner(other.config_owner),
-    num_eigenvalues(other.num_eigenvalues), num_eigenvectors(other.num_eigenvectors),
+    num_eigenvalues(other.num_eigenvalues), num_eigenvectors(other.num_eigenvectors), num_gFactors(other.num_gFactors),
     eigenvalues(other.eigenvalues), eigenvectors(other.eigenvectors), gFactors(other.gFactors)
 {}
 
@@ -25,7 +25,7 @@ Eigenstates::~Eigenstates()
         delete[] eigenvalues;
     if(num_eigenvectors && eigenvectors)
         delete[] eigenvectors;
-    if(gFactors)
+    if(num_gFactors && gFactors)
         delete[] gFactors;
 }
 
@@ -67,13 +67,16 @@ const double* Eigenstates::GetEigenvectors() const
 {   return eigenvectors;
 }
 
-void Eigenstates::SetgFactors(double* g_factors)
+void Eigenstates::SetgFactors(double* g_factors, unsigned int num_gfactors)
 {
     if(gFactors)
         delete[] gFactors;
+    num_gFactors = 0;
 
     if(GetTwoJ())
+    {   num_gFactors = num_gfactors;
         gFactors = g_factors;
+    }
 }
 
 const double* Eigenstates::GetgFactors() const
@@ -102,6 +105,16 @@ void Eigenstates::Write() const
         // Write eigenvectors
         fwrite(&num_eigenvectors, sizeof(unsigned int), 1, fp);
         fwrite(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
+
+        // Write g-factors
+        if(GetTwoJ() && num_gFactors && gFactors)
+        {   fwrite(&num_gFactors, sizeof(unsigned int), 1, fp);
+            fwrite(gFactors, sizeof(double), num_gFactors, fp);
+        }
+        else
+        {   unsigned int zero = 0;
+            fwrite(&zero, sizeof(unsigned int), 1, fp);
+        }
 
         fclose(fp);
     }
@@ -132,13 +145,25 @@ bool Eigenstates::Read()
     eigenvalues = new double[num_eigenvalues];
     fread(eigenvalues, sizeof(double), num_eigenvalues, fp);
 
-    // Write eigenvectors
+    // Read eigenvectors
     if(eigenvectors)
         delete[] eigenvectors;
 
     fread(&num_eigenvectors, sizeof(unsigned int), 1, fp);
     eigenvectors = new double[N * num_eigenvectors];
     fread(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
+
+    // Read g-factors
+    if(GetTwoJ() && gFactors)
+        delete[] gFactors;
+
+    fread(&num_gFactors, sizeof(unsigned int), 1, fp);
+    if(num_gFactors)
+    {   gFactors = new double[num_gFactors];
+        fread(gFactors, sizeof(double), num_gFactors, fp);
+    }
+    else
+        gFactors = NULL;
 
     fclose(fp);
     
