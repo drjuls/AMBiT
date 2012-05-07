@@ -84,4 +84,10 @@ public:
 protected:
 };
 
+class SolutionMapMap : public std::map<unsigned int, SolutionMap>
+{
+public:
+    void Print();
+};
+
 #endif

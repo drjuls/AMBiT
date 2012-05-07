@@ -211,3 +211,38 @@ void SolutionMap::PrintSolution(SolutionMap::iterator aSolutionIterator)
     }
 }
 
+void SolutionMapMap::Print()
+{
+    *outstream << "Solution summary for " << size() << " runs." << std::endl;
+    SolutionMapMap::iterator smm_it, smm_first;
+    *outstream << "J,P,ID,E";
+    for(smm_it = begin(); smm_it != end(); smm_it++)
+    {
+        *outstream << "," << smm_it->first;
+    }
+    *outstream << std::endl;
+    
+    
+    smm_first = begin();
+    SolutionMap::iterator sm_it;
+    // Use labelling from first run
+    for(sm_it = smm_first->second.begin(); sm_it != smm_first->second.end(); sm_it++)
+    {
+        *outstream << sm_it->first.GetJ() << "," << ParityType::ShortName(sm_it->first.GetParity()) << "," << sm_it->first.GetID();
+        for(smm_it = begin(); smm_it != end(); smm_it++)
+        {
+            *outstream  << "," << std::setprecision(12) << (smm_it->second.find(sm_it->first))->second.GetEnergyInversecm();
+            if(sm_it->second.GetgFactor() != 0)
+            {
+                if(fabs((smm_it->second.find(sm_it->first))->second.GetgFactor() - sm_it->second.GetgFactor())/sm_it->second.GetgFactor() > 0.1)
+                {
+                    *outstream << "*";
+                }
+            }
+        }
+        *outstream << std::endl;
+    }
+    
+    *outstream << std::endl;
+}
+

@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
                     ZCounter++;
                 }
             }
+            
 
             if(fileInput.search("--print-wf"))
             {                
@@ -211,10 +212,10 @@ int main(int argc, char* argv[])
                     it.Next();
                 }
             }
-    
+            
             // At this stage, we are ready to run calculations with the
             // calculated energy levels
-            if(fileInput.vector_variable_size("AlphaSquaredVariation") <= 1)
+            if(A.NumberRunsSelected() <= 1)
             {
                 A.WriteEigenstatesToSolutionMap();
                 // Print the solutions currently available after CI calculation
@@ -291,6 +292,48 @@ int main(int argc, char* argv[])
                         }
                     }
                 }
+            }
+            else
+            {
+                A.RunIndexBegin(true);
+                SolutionMapMap SMapMap;
+                while(!A.RunIndexAtEnd())
+                {
+                    if(!A.RestoreAllEigenstates())
+                    {
+                        *errstream << "int main: An error occurred while trying to restore all eigenstates." << std::endl;
+                    }
+                    
+                    A.WriteEigenstatesToSolutionMap();
+                    SMapMap.insert(std::pair<unsigned int, SolutionMap>(A.GetCurrentRunSelection()[A.GetCurrentRunIndex()],(*(A.GetSolutionMap()))));
+                    
+                    DisplayOutputType::Enum OutputType;
+                    std::string TypeString = fileInput("CI/Output/Type", "");
+                    if(TypeString == "Standard")
+                    {
+                        OutputType = DisplayOutputType::Standard;
+                    }
+                    else if(TypeString == "CommaSeparated")
+                    {
+                        OutputType = DisplayOutputType::CommaSeparated;
+                    }
+                    else if(TypeString == "SpaceSeparated")
+                    {
+                        OutputType = DisplayOutputType::SpaceSeparated;
+                    }
+                    else if(TypeString == "TabSeparated")
+                    {
+                        OutputType = DisplayOutputType::TabSeparated;
+                    }
+                    
+                    if(TypeString != "")
+                    {
+                        A.GetSolutionMap()->Print(OutputType);
+                    }
+                    
+                    A.RunIndexNext(true);
+                }
+                SMapMap.Print();
             }
         }
         

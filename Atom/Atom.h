@@ -141,6 +141,8 @@ public:
     inline const SymmetryEigenstatesMap* GetSymmetryEigenstatesMap() const
     { return &symEigenstates;
     }
+    
+    bool RestoreAllEigenstates();
 
     /** Get the set of atomic core orbitals. */
     Core* GetCore() { return core; }
@@ -158,6 +160,9 @@ public:
     
     StateIterator GetIteratorToNextOrbitalToFill();
     std::string GetNextConfigString();
+    
+    unsigned int GetCurrentRunIndex() { return current_run_index; }
+    std::vector<unsigned int> GetCurrentRunSelection() { return current_run_selection; }
 
 public:
     void GenerateCowanInputFile();

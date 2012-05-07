@@ -293,6 +293,29 @@ void Atom::SetRunIntegrals(bool force)
         previous_index = index;
     }
 }
+
+bool Atom::RestoreAllEigenstates()
+{
+    SymmetryEigenstatesMap* nonconst_symeigenstates = const_cast<SymmetryEigenstatesMap*>(GetSymmetryEigenstatesMap());
+    SymmetryEigenstatesMap::iterator it = nonconst_symeigenstates->begin();
+    while(it != nonconst_symeigenstates->end())
+    {
+        if(it->second == NULL)
+        {
+            it->second = new Eigenstates(identifier, GenerateConfigurations(it->first), true);
+        }
+        else
+        {
+            delete it->second;
+            it->second = new Eigenstates(identifier, GenerateConfigurations(it->first), true);
+        }
+        
+        it++;
+    }
+    
+    return nonconst_symeigenstates->RestoreAll();
+}
+
 /*
 void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
 {

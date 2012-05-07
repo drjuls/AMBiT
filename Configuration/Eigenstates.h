@@ -93,6 +93,7 @@ class SymmetryEigenstatesMap : public std::map<Symmetry, Eigenstates*>
 {
 public:
     double GetLargestTwoJ(Parity aParity);
+    bool RestoreAll();
 };
 
 #endif

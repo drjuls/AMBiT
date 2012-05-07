@@ -403,3 +403,19 @@ double SymmetryEigenstatesMap::GetLargestTwoJ(Parity aParity)
     }
     return largest;
 }
+
+bool SymmetryEigenstatesMap::RestoreAll()
+{
+    bool result = true;
+    SymmetryEigenstatesMap::iterator it = begin();
+    while(it != end())
+    {
+        if(it->second != NULL)
+        {
+            result = result && it->second->Restore();
+        }
+        it++;
+    }
+    
+    return result;
+}
