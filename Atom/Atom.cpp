@@ -1312,6 +1312,7 @@ void Atom::WriteEigenstatesToSolutionMap()
             {
                 GetSolutionMap()->insert(std::pair<SolutionID, Solution>(SolutionID(sem_it->first, i),Solution(sem_it->second->GetEigenvalues()[i], percentages)));
             }
+            delete confgen;
         }
     }
 }
