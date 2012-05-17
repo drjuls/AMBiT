@@ -215,7 +215,7 @@ void SolutionMapMap::Print()
 {
     *outstream << "Solution summary for " << size() << " runs." << std::endl;
     SolutionMapMap::iterator smm_it, smm_first;
-    *outstream << "J,P,ID,";
+    *outstream << "J,P,ID";
     for(smm_it = begin(); smm_it != end(); smm_it++)
     {
         *outstream << "," << "E" << smm_it->first;
