@@ -52,9 +52,6 @@ int main(int argc, char* argv[])
 
     OutStreams::InitialiseStreams();
 
-    *outstream << "AMBiT git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
-    *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
-
     try
     {
         GetPot lineInput(argc, argv, ",");
@@ -62,6 +59,13 @@ int main(int argc, char* argv[])
         // Check for help message
         if(lineInput.size() == 1 || lineInput.search(2, "--help", "-h"))
             PrintHelp(lineInput[0]);
+
+        *outstream << "AMBiT version:    " << GIT_LAST_TAG << std::endl;
+        *outstream << "      git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
+        *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
+
+        if(lineInput.search("--version"))
+            return 0;
 
         // Find .input file
         std::string inputFileName = "";
@@ -374,7 +378,35 @@ int main(int argc, char* argv[])
 
 void PrintHelp(const std::string& ApplicationName)
 {
-    *outstream << std::endl;
-    *outstream << ApplicationName << " Usage Message" << std::endl;
+    *outstream << ApplicationName << std::endl;
+    *outstream
+        << "usage: ambit [--version] [-h|--help] [-f] <file.input>\n"
+        << "             <options> <atomic data and commands>\n"
+        << "\n"
+        << "Input file must be specified either with \"-f anyfile\" or \"file.input\".\n"
+        << "Options may be specified in the command line or input file.\n"
+        << "Most commands, data, and options are structured.\n\n"
+        << "Important data:\n"
+        << "   ID =       identifier for all save files\n"
+        << "   Z  =       nuclear charge\n"
+        << "   NumValenceElectrons =\n"
+        << "              determines the type of calculation to run (CI or MBPT)\n"
+        << "   HF/N =     number of electrons included in HF potential\n"
+        << "\n"
+        << "Common data structures in the input file include:\n"
+        << "   [Lattice]  numerical grid\n"
+        << "   [HF]       (mandatory) details for how to perform Hartree-Fock\n"
+        << "   [Basis]    basis set (e.g. B-splines)\n"
+        << "   [CI]       configuration interaction\n"
+        << "   [MBPT]     many-body perturbation theory\n"
+        << "\n"
+        << "Options include:\n"
+        << "   -d|--dont-save   don't save any files\n"
+        << "   -s12             include one-body and two-body MBPT diagrams\n"
+        << "   --check-sizes    calculate CI matrix size and/or\n"
+        << "                        number of MBPT integrals\n"
+        << "   --generate-integrals-mbpt\n"
+        << "                    calculate specified MBPT integrals\n\n"
+        << "Sample input files are included with the documentation." << std::endl;
     exit(0);
 }
