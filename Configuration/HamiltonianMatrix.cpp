@@ -745,24 +745,35 @@ void HamiltonianMatrix::GetgFactors(const Eigenstates& eigenstates, double* g_fa
 double HamiltonianMatrix::GetSz(const ElectronInfo& e) const
 {
     if(e.Kappa() > 0)   // J = L - 1/2
-        return - e.M()/(2.*e.L() + 1.);
+        return -e.M()/(2.*e.L() + 1.);
     else
         return e.M()/(2.*e.L() + 1.);
 }
 
 double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const
 {
+    double val = 0.;
+
     if((e1.L() == e2.L()) &&
        (e1.TwoM() == e2.TwoM()))
     {
         double overlap = integrals.GetOverlapIntegral(e1, e2);
 
-        double Lplushalf = double(e1.L()) + 0.5;
-        double M = e1.M();
-        return -sqrt((Lplushalf + M)*(Lplushalf - M))/(2.*Lplushalf) * overlap;
+        if(e1.Kappa() == e2.Kappa())
+        {   val = e1.M()/(2*e1.L() + 1.);
+
+            if(e1.Kappa() > 0)
+                val = -val;
+        }
+        else
+        {   double Lplushalf = double(e1.L()) + 0.5;
+            double M = e1.M();
+            val = -sqrt((Lplushalf + M)*(Lplushalf - M))/(2.*Lplushalf);
+        }
+        val = val * overlap;
     }
-    else
-        return 0.;
+
+    return val;
 }
 
 double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const

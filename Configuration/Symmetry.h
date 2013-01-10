@@ -41,7 +41,6 @@ public:
     bool operator<(const Symmetry& other) const;
     bool operator==(const Symmetry& other) const;
     const Symmetry& operator=(const Symmetry& other);
-    Symmetry operator++();
 
 protected:
     unsigned int twoJ;

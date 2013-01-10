@@ -38,8 +38,3 @@ const Symmetry& Symmetry::operator=(const Symmetry& other)
     
     return *this;
 }
-
-Symmetry Symmetry::operator++()
-{
-    twoJ++;
-}
