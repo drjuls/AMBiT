@@ -1,5 +1,6 @@
 #include "Include.h"
-#include "Integrator.h"
+#include "Universal/Integrator.h"
+#include "Universal/PhysicalConstant.h"
 
 static const double adams_10[10]
 = {2082753./7257600., 9449717./7257600., -11271304./7257600., 16002320./7257600., -17283646./7257600.,
@@ -241,20 +242,21 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     double result = 0;
     
     if(start_point < end_point)
     {
         for(int i = start_point; i < end_point; i++)
         {
-            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+            result += ((s1.f[i] * s2.f[i]) + (alphasquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
         }
     }
     else
     {
         for(int i = start_point; i > end_point; i--)
         {
-            result += ((s1.f[i] * s2.f[i]) + (Constant::AlphaSquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
+            result += ((s1.f[i] * s2.f[i]) + (alphasquared * s1.g[i] *s2.g[i])) * (*function)(R[i]) * dR[i];
         }
     }
     
@@ -265,20 +267,22 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     double result = 0;
     
     if(start_point < end_point)
     {
         for(int i = start_point; i < end_point; i++)
         {
-            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (alphasquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
         }
     }
     else
     {
         for(int i = start_point; i > end_point; i--)
         {
-            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (alphasquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (function)(R[i]) * dR[i];
         }
     }
     
@@ -289,20 +293,22 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     double result = 0;
     
     if(start_point < end_point)
     {
         for(int i = start_point; i < end_point; i++)
         {
-            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (alphasquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
         }
     }
     else
     {
         for(int i = start_point; i > end_point; i--)
         {
-            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (Constant::AlphaSquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * Constant::Alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
+            result += ((f1factor * s1.f[i] * f2factor * s2.f[i]) + (alphasquared * g1factor * s1.g[i] * g2factor * s2.g[i]) + (crossfactor * alpha * ((g1factor * s1.g[i] * f2factor * s2.f[i]) + (f1factor * s1.f[i] * g2factor * s2.g[i])))) * (*function)(R[i]) * dR[i];
         }
     }
     

@@ -4,7 +4,7 @@
 #include "Universal/SymMatrix.h"
 #include "HartreeFock/SingleParticleWavefunction.h"
 #include "Universal/Eigensolver.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 #include "ConfigFileGenerator.h"
 
 #define SMALL_MATRIX_LIM 2000
@@ -198,16 +198,18 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
 
     double total = 0.;
 
+    MathConstant* constants = MathConstant::Instance();
+
     while(k <= kmax)
     {
         double coeff = 0.;
         if(fabs(q) <= k)
-            coeff = Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-                    Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+            coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                    constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
             
         if(coeff)
-            coeff = coeff * Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-                            Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+            coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
 
         if(coeff)
         {
@@ -241,12 +243,12 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
         {
             double coeff = 0.;
             if(fabs(q) <= k)
-                coeff = Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-                        Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+                coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
                 
             if(coeff)
-                coeff = coeff * Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-                                Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+                coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
 
             if(coeff)
             {
@@ -348,15 +350,17 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
 
     double total = 0.;
 
+    MathConstant* constants = MathConstant::Instance();
+
     // k == 1 only
     double coeff = 0.;
     if(fabs(q) <= k)
-        coeff = Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-                Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+        coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
         
     if(coeff)
-        coeff = coeff * Constant::Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-                        Constant::Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+        coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
 
     if(coeff)
     {
@@ -462,7 +466,7 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
         }
 
         *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
-            << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+            << std::setprecision(12) << E[solution]*MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm" << std::endl;
 
         // Get non-rel configuration percentages
         RelativisticConfigList::const_iterator list_it = configs->begin();
@@ -623,7 +627,7 @@ void HamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
     for(solution = 0; solution < NumSolutions; solution++)
         *outstream << solution << ": " 
             << std::setprecision(8) << total[solution] << "    "
-            << total[solution]*Constant::HartreeEnergy_cm
+            << total[solution]*MathConstant::Instance()->HartreeEnergyInInvCm()
             << " /cm" << std::endl;
 
     delete[] total;

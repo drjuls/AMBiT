@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "OrbitalInfo.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
@@ -36,7 +36,7 @@ std::string OrbitalInfo::Name() const
     sprintf(buffer, "%d", pqn);
     std::string ret(buffer);
 
-    ret.append(1, Constant::SpectroscopicNotation[L()]);
+    ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));
 
 #ifdef USE_ALT_STATE_NOTATION
     if(kappa > 0)

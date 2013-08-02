@@ -1,5 +1,5 @@
 #include "CoreMBPTCalculator.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/StateIntegrator.h"
 
@@ -126,6 +126,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
     std::vector<double> Y(MaxStateSize); unsigned int Y_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 1+3:  ";
@@ -134,6 +135,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
     unsigned int i;
 
     const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance()->Instance();
 
     unsigned int k1, k1max;
 
@@ -164,7 +166,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -174,7 +176,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + Constant::AlphaSquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -190,7 +192,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                         double coeff;
                         if((sa.L() + sbeta.L())%2 == k1%2)
-                            coeff = Constant::Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
+                            coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
 
@@ -226,7 +228,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                         double coeff;
                         if((sa.L() + sm.L())%2 == k1%2)
-                            coeff =  Constant::Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
+                            coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             coeff = 0.;
 
@@ -276,6 +278,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 2:    ";
@@ -284,6 +287,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
     unsigned int i;
 
     const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance();
 
     unsigned int k1, k1max;
     unsigned int k2, k2max;
@@ -314,7 +318,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -322,7 +326,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + Constant::AlphaSquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -337,7 +341,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
 
                         double C_abeta;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
-                            C_abeta = Constant::Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
+                            C_abeta = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
 
@@ -358,16 +362,16 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
                             while(k2 <= k2max)
                             {
                                 double coeff
-                                    = C_abeta * C_nalpha * Constant::Electron3j(sa.TwoJ(), salpha.TwoJ(), k2)
-                                    * Constant::Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
-                                    * Constant::Wigner6j(sa.J(), sbeta.J(), k1, sn.J(), salpha.J(), k2);
+                                    = C_abeta * C_nalpha * constants->Electron3j(sa.TwoJ(), salpha.TwoJ(), k2)
+                                    * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
+                                    * constants->Wigner6j(sa.J(), sbeta.J(), k1, sn.J(), salpha.J(), k2);
                                     // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
 
                                 if(coeff)
                                 {
                                     for(i=0; i<mmin(sn.Size(), sbeta.Size()); i++)
                                     {
-                                        density[i] = sn.f[i] * sbeta.f[i] + Constant::AlphaSquared * sn.g[i] * sbeta.g[i];
+                                        density[i] = sn.f[i] * sbeta.f[i] + alphasquared * sn.g[i] * sbeta.g[i];
                                     }
                                     I.FastCoulombIntegrate(density, P_nbeta, k2, mmin(sn.Size(), sbeta.Size()));
 
@@ -432,6 +436,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 4:    ";
@@ -440,6 +445,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     unsigned int i;
 
     const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance();
 
     unsigned int k1, k1max;
     unsigned int k2, k2max;
@@ -470,7 +476,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -478,7 +484,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + Constant::AlphaSquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -493,7 +499,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
 
                         double C_am;
                         if((sa.L() + sm.L() + k1)%2 == 0)
-                            C_am = Constant::Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
+                            C_am = constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             C_am = 0.;
 
@@ -516,15 +522,15 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
                             while(k2 <= k2max)
                             {
                                 double coeff
-                                    = C_am * C_nalpha * Constant::Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
-                                    * Constant::Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
-                                    * Constant::Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
+                                    = C_am * C_nalpha * constants->Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
+                                    * constants->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
+                                    * constants->Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
 
                                 if(coeff)
                                 {
                                     for(i=0; i<mmin(sm.Size(), salpha.Size()); i++)
                                     {
-                                        density[i] = sm.f[i] * salpha.f[i] + Constant::AlphaSquared * sm.g[i] * salpha.g[i];
+                                        density[i] = sm.f[i] * salpha.f[i] + alphasquared * sm.g[i] * salpha.g[i];
                                     }
                                     I.FastCoulombIntegrate(density, P_malpha, k2, mmin(sm.Size(), salpha.Size()));
 
@@ -582,6 +588,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
         *outstream << "Cor 1+3:  ";
 
     const double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
+    MathConstant* constants = MathConstant::Instance();
 
     unsigned int k1, k1max;
     double energy1 = 0., energy3 = 0.;
@@ -604,7 +611,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -621,7 +628,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 
                         double coeff;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
-                            coeff = Constant::Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
+                            coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
 
@@ -649,7 +656,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 
                         double coeff;
                         if((sa.L() + sm.L() + k1)%2 == 0)
-                            coeff =  Constant::Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
+                            coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             coeff = 0.;
 
@@ -676,8 +683,8 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
     }
     
     if(debug)
-        *outstream << "  " << energy1 * Constant::HartreeEnergy_cm
-                   << "  " << energy3 * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy1 * constants->HartreeEnergyInInvCm()
+                   << "  " << energy3 * constants->HartreeEnergyInInvCm() << std::endl;
     return energy1 + energy3;
 }
 
@@ -712,7 +719,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -726,7 +733,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
 
                         double C_abeta;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
-                            C_abeta = Constant::Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
+                            C_abeta = MathConstant::Instance()->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
 
@@ -745,9 +752,9 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                             while(k2 <= k2max)
                             {
                                 double coeff
-                                    = C_abeta * C_nalpha * Constant::Electron3j(sa.TwoJ(), salpha.TwoJ(), k2)
-                                    * Constant::Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
-                                    * Constant::Wigner6j(sa.J(), sbeta.J(), k1, sn.J(), salpha.J(), k2);
+                                    = C_abeta * C_nalpha * MathConstant::Instance()->Electron3j(sa.TwoJ(), salpha.TwoJ(), k2)
+                                    * MathConstant::Instance()->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
+                                    * MathConstant::Instance()->Wigner6j(sa.J(), sbeta.J(), k1, sn.J(), salpha.J(), k2);
                                     // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
 
                                 if(coeff)
@@ -774,8 +781,8 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
     }
     
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
-    return energy;    
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+    return energy;
 }
 
 double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const OrbitalInfo& sb) const
@@ -809,7 +816,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
             while(k1 <= k1max)
             {
-                double C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                double C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
 
                 if(C_nalpha)
                 {
@@ -823,7 +830,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
                         double C_am;
                         if((sa.L() + sm.L() + k1)%2 == 0)
-                            C_am = Constant::Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
+                            C_am = MathConstant::Instance()->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             C_am = 0.;
 
@@ -842,9 +849,9 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                             while(k2 <= k2max)
                             {
                                 double coeff
-                                    = C_am * C_nalpha * Constant::Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
-                                    * Constant::Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
-                                    * Constant::Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
+                                    = C_am * C_nalpha * MathConstant::Instance()->Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
+                                    * MathConstant::Instance()->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
+                                    * MathConstant::Instance()->Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
 
                                 if(coeff)
                                 {   // R1 = R_k1 (a alpha, m n)
@@ -869,7 +876,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;    
 }
 
@@ -915,7 +922,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -952,7 +959,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
 
                 while(k1 <= k1max)
                 {
-                    double coeff = Constant::Electron3j(sa.TwoJ(), sn.TwoJ(), k1);
+                    double coeff = MathConstant::Instance()->Electron3j(sa.TwoJ(), sn.TwoJ(), k1);
                     coeff = - coeff * coeff * C_nalpha;
 
                     if(coeff)
@@ -972,7 +979,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1003,7 +1010,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1032,7 +1039,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
             if((sn.L() + salpha.L() + k)%2)
                 coeff = 0.;
             else
-                coeff = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
+                coeff = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
 
             if(coeff)
             {
@@ -1057,7 +1064,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1069,8 +1076,8 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
         *outstream << "TwoE 2/3: ";
 
     double energy = 0.;
-    const double coeff_ac = Constant::Electron3j(sa.TwoJ(), sc.TwoJ(), k);
-    const double coeff_bd = Constant::Electron3j(sb.TwoJ(), sd.TwoJ(), k);
+    const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
+    const double coeff_bd = MathConstant::Instance()->Electron3j(sb.TwoJ(), sd.TwoJ(), k);
     if(!coeff_ac || !coeff_bd)
         return energy;
 
@@ -1092,7 +1099,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
             if((sn.L() + salpha.L() + k)%2)
                 C_nalpha = 0.;
             else
-                C_nalpha = Constant::Electron3j(sn.TwoJ(), salpha.TwoJ(), k);                
+                C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);                
 
             if(C_nalpha)
             {
@@ -1104,9 +1111,9 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
 
                 while(k1 <= k1max)
                 {
-                    double coeff = Constant::Electron3j(sa.TwoJ(), sn.TwoJ(), k1) *
-                                   Constant::Electron3j(salpha.TwoJ(), sc.TwoJ(), k1) *
-                                   Constant::Wigner6j(sa.J(), sc.J(), double(k), salpha.J(), sn.J(), double(k1)) *
+                    double coeff = MathConstant::Instance()->Electron3j(sa.TwoJ(), sn.TwoJ(), k1) *
+                                   MathConstant::Instance()->Electron3j(salpha.TwoJ(), sc.TwoJ(), k1) *
+                                   MathConstant::Instance()->Wigner6j(sa.J(), sc.J(), double(k), salpha.J(), sn.J(), double(k1)) *
                                    C_nalpha / coeff_ac;
                     if((k1 + k)%2)
                         coeff = -coeff;
@@ -1135,9 +1142,9 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
 
                 while(k1 <= k1max)
                 {
-                    double coeff = Constant::Electron3j(sb.TwoJ(), sn.TwoJ(), k1) *
-                                   Constant::Electron3j(salpha.TwoJ(), sd.TwoJ(), k1) *
-                                   Constant::Wigner6j(sb.J(), sd.J(), double(k), salpha.J(), sn.J(), double(k1)) *
+                    double coeff = MathConstant::Instance()->Electron3j(sb.TwoJ(), sn.TwoJ(), k1) *
+                                   MathConstant::Instance()->Electron3j(salpha.TwoJ(), sd.TwoJ(), k1) *
+                                   MathConstant::Instance()->Wigner6j(sb.J(), sd.J(), double(k), salpha.J(), sn.J(), double(k1)) *
                                    C_nalpha / coeff_bd;
                     if((k1 + k)%2)
                         coeff = -coeff;
@@ -1166,7 +1173,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1183,8 +1190,8 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
         *outstream << "TwoE 4/5: ";
 
     double energy = 0.;
-    const double coeff_ac = Constant::Electron3j(sa.TwoJ(), sc.TwoJ(), k);
-    const double coeff_bd = Constant::Electron3j(sb.TwoJ(), sd.TwoJ(), k);
+    const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
+    const double coeff_bd = MathConstant::Instance()->Electron3j(sb.TwoJ(), sd.TwoJ(), k);
     if(!coeff_ac || !coeff_bd)
         return energy;
 
@@ -1224,8 +1231,8 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
 
                 while(k1 <= k1max)
                 {
-                    double coeff_ad = Constant::Electron3j(sa.TwoJ(), sn.TwoJ(), k1) *
-                                      Constant::Electron3j(salpha.TwoJ(), sd.TwoJ(), k1);
+                    double coeff_ad = MathConstant::Instance()->Electron3j(sa.TwoJ(), sn.TwoJ(), k1) *
+                                      MathConstant::Instance()->Electron3j(salpha.TwoJ(), sd.TwoJ(), k1);
 
                     if(coeff_ad)
                     {
@@ -1237,11 +1244,11 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
 
                         while(k2 <= k2max)
                         {
-                            double coeff = Constant::Electron3j(sn.TwoJ(), sc.TwoJ(), k2) *
-                                           Constant::Electron3j(sb.TwoJ(), salpha.TwoJ(), k2);
+                            double coeff = MathConstant::Instance()->Electron3j(sn.TwoJ(), sc.TwoJ(), k2) *
+                                           MathConstant::Instance()->Electron3j(sb.TwoJ(), salpha.TwoJ(), k2);
                             if(coeff)
-                                coeff = coeff * Constant::Wigner6j(sc.J(), sa.J(), k, k1, k2, sn.J())
-                                              * Constant::Wigner6j(sb.J(), sd.J(), k, k1, k2, salpha.J());
+                                coeff = coeff * MathConstant::Instance()->Wigner6j(sc.J(), sa.J(), k, k1, k2, sn.J())
+                                              * MathConstant::Instance()->Wigner6j(sb.J(), sd.J(), k, k1, k2, salpha.J());
 
                             if(coeff)
                             {   
@@ -1264,7 +1271,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1281,8 +1288,8 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
         *outstream << "TwoE 6:   ";
 
     double energy = 0.;
-    const double coeff_ac = Constant::Electron3j(sa.TwoJ(), sc.TwoJ(), k);
-    const double coeff_bd = Constant::Electron3j(sb.TwoJ(), sd.TwoJ(), k);
+    const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
+    const double coeff_bd = MathConstant::Instance()->Electron3j(sb.TwoJ(), sd.TwoJ(), k);
     if(!coeff_ac || !coeff_bd)
         return energy;
 
@@ -1324,8 +1331,8 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
 
                 while(k1 <= k1max)
                 {
-                    double coeff_ab = Constant::Electron3j(sa.TwoJ(), sm.TwoJ(), k1) *
-                                      Constant::Electron3j(sb.TwoJ(), sn.TwoJ(), k1);
+                    double coeff_ab = MathConstant::Instance()->Electron3j(sa.TwoJ(), sm.TwoJ(), k1) *
+                                      MathConstant::Instance()->Electron3j(sb.TwoJ(), sn.TwoJ(), k1);
 
                     if(coeff_ab)
                     {
@@ -1337,11 +1344,11 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
 
                         while(k2 <= k2max)
                         {
-                            double coeff = Constant::Electron3j(sm.TwoJ(), sc.TwoJ(), k2) *
-                                           Constant::Electron3j(sn.TwoJ(), sd.TwoJ(), k2);
+                            double coeff = MathConstant::Instance()->Electron3j(sm.TwoJ(), sc.TwoJ(), k2) *
+                                           MathConstant::Instance()->Electron3j(sn.TwoJ(), sd.TwoJ(), k2);
                             if(coeff)
-                                coeff = coeff * Constant::Wigner6j(sc.J(), sa.J(), k, k1, k2, sm.J())
-                                              * Constant::Wigner6j(sd.J(), sb.J(), k, k1, k2, sn.J());
+                                coeff = coeff * MathConstant::Instance()->Wigner6j(sc.J(), sa.J(), k, k1, k2, sm.J())
+                                              * MathConstant::Instance()->Wigner6j(sd.J(), sb.J(), k, k1, k2, sn.J());
 
                             if(coeff)
                             {   
@@ -1366,7 +1373,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -1429,6 +1436,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     }
 
     if(debug)
-        *outstream << "  " << energy * Constant::HartreeEnergy_cm << std::endl;
+        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }

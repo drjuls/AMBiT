@@ -1,6 +1,6 @@
 #include "Sigma3Calculator.h"
 #include "Include.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/StateIntegrator.h"
 
@@ -190,11 +190,13 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     LongKey key;
     double value;
 
+    MathConstant* constants = MathConstant::Instance();
     CoulombIntegrator CI(core.GetLattice());
     std::vector<double> density(core.GetHFPotential().size());
     std::vector<double> potential(core.GetHFPotential().size());
     const double* dR = core.GetLattice()->dR();
     unsigned int p;  // just a counter
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Two-electron Slater integrals for Sigma3 diagrams are of the form:
     //   R^k(n b, a c), b <= c
@@ -227,7 +229,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
             // Get density
             if(k <= kmax)
             {   for(p=0; p < mmin(sn->Size(), sa->Size()); p++)
-                {   density[p] = sn->f[p] * sa->f[p] + Constant::AlphaSquared * sn->g[p] * sa->g[p];
+                {   density[p] = sn->f[p] * sa->f[p] + alphasquared * sn->g[p] * sa->g[p];
                 }
             }
 
@@ -268,12 +270,12 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {
-                                value += (sb->f[p] * sc->f[p] + Constant::AlphaSquared * sb->g[p] * sc->g[p])
+                                value += (sb->f[p] * sc->f[p] + alphasquared * sb->g[p] * sc->g[p])
                                          * potential[p] * dR[p];
                             }
 
-                            value = value * Constant::Electron3j(n.TwoJ(), a.TwoJ(), k)
-                                          * Constant::Electron3j(b.TwoJ(), c.TwoJ(), k)
+                            value = value * constants->Electron3j(n.TwoJ(), a.TwoJ(), k)
+                                          * constants->Electron3j(b.TwoJ(), c.TwoJ(), k)
                                     * sqrt(double(n.MaxNumElectrons() * a.MaxNumElectrons() *
                                                   b.MaxNumElectrons() * c.MaxNumElectrons()));
                                     
@@ -409,18 +411,19 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
 
     double total = 0.;
     unsigned int k1, k2;
+    MathConstant* constants = MathConstant::Instance();
 
     // Summation over k1
     for(k1 = k1min; k1 <= k1max; k1+=2)
     {
-        double coeff14 = Constant::Electron3j(e1.TwoJ(), e4.TwoJ(), k1, -e1.TwoM(), e4.TwoM());
+        double coeff14 = constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1, -e1.TwoM(), e4.TwoM());
 
         if(coeff14)
         {
             // Summation over k2
             for(k2 = k2min; k2 <= k2max; k2+=2)
             {
-                double coeff36 = Constant::Electron3j(e3.TwoJ(), e6.TwoJ(), k2, -e3.TwoM(), e6.TwoM());
+                double coeff36 = constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2, -e3.TwoM(), e6.TwoM());
 
                 if(coeff36)
                 {
@@ -435,8 +438,8 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                         {
                             const double En = itn.GetState()->Energy();
 
-                            double coeff = Constant::Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn)
-                                * Constant::Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM())
+                            double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn)
+                                * constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM())
                                 * coeff14 * coeff36 /(En - ValenceEnergy + delta);
 
                             if(coeff)

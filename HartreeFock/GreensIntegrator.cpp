@@ -1,5 +1,5 @@
 #include "GreensIntegrator.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "Include.h"
 
 std::vector<double> GreensIntegrator::GetGreensInfinity()
@@ -16,11 +16,12 @@ std::vector<double> GreensIntegrator::GetGreensInfinity()
     // Make integrand
     unsigned int i;
     double W;
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     std::vector<double> integrand(limit);
     for(i = 0; i<mmin(s_inf->Size(), G->Size()); i++)
     {   W = s_0->f[i] * s_inf->g[i] - s_inf->f[i] * s_0->g[i];
-        integrand[i] = - (G->f[i] * s_inf->f[i] + Constant::AlphaSquared * G->g[i] * s_inf->g[i])/W;
+        integrand[i] = - (G->f[i] * s_inf->f[i] + alphasquared * G->g[i] * s_inf->g[i])/W;
     }
 
     const double* dR = lattice->dR();
@@ -48,6 +49,7 @@ std::vector<double> GreensIntegrator::GetGreensOrigin()
 
     unsigned int limit = mmax(s_0->Size(), G->Size());
     G0.resize(limit);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Make integrand
     unsigned int i;
@@ -55,7 +57,7 @@ std::vector<double> GreensIntegrator::GetGreensOrigin()
     std::vector<double> integrand(limit);
     for(i = 0; i<mmin(s_0->Size(), G->Size()); i++)
     {   W = s_0->f[i] * s_inf->g[i] - s_inf->f[i] * s_0->g[i];
-        integrand[i] = (G->f[i] * s_0->f[i] + Constant::AlphaSquared * G->g[i] * s_0->g[i])/W;
+        integrand[i] = (G->f[i] * s_0->f[i] + alphasquared * G->g[i] * s_0->g[i])/W;
     }
 
     const double* dR = lattice->dR();

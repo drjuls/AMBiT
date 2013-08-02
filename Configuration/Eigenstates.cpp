@@ -1,6 +1,6 @@
 #include "Eigenstates.h"
 #include "Include.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 #define CONFIG_PRINT_LIMIT 5.
 
@@ -243,7 +243,7 @@ void Eigenstates::Print(unsigned int solution, double config_fraction_limit) con
     const RelativisticConfigList* configlist = configs->GetRelConfigs();
 
     *outstream << solution << ": " << std::setprecision(8) << eigenvalues[solution] << "    "
-        << std::setprecision(12) << eigenvalues[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+        << std::setprecision(12) << eigenvalues[solution]*MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm" << std::endl;
 
     // Get non-rel configuration percentages
     if(solution < num_eigenvectors)

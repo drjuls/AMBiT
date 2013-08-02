@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "NonRelInfo.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 std::string NonRelInfo::Name() const
 {
@@ -8,7 +8,7 @@ std::string NonRelInfo::Name() const
     sprintf(buffer, "%d", pqn);
     std::string ret(buffer);
 
-    ret.append(1, Constant::SpectroscopicNotation[L()]);
+    ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));
     return ret;
 }
 
@@ -16,7 +16,6 @@ void NonRelInfoSet::AddConfigs(const char* basis_def)
 {
 
     unsigned int pqn = 0;
-    unsigned int L = 0;
     
     unsigned int p = 0;
     bool ReadSpectroscopicInput = true;
@@ -33,9 +32,9 @@ void NonRelInfoSet::AddConfigs(const char* basis_def)
         {
             for(int i = 0; i <= pqn; i++) 
             {
-                if(i > Constant::GetLFromSpectroscopicNotation((char) basis_def[p]))
+                if(i > MathConstant::Instance()->GetL(basis_def[p]))
                 {
-                    insert(NonRelInfo(i, Constant::GetLFromSpectroscopicNotation((char) basis_def[p])));
+                    insert(NonRelInfo(i, MathConstant::Instance()->GetL(basis_def[p])));
                 }
             }
             ReadSpectroscopicInput = true;
@@ -48,7 +47,6 @@ void NonRelInfoSet::AddConfigs(const char* basis_def)
 void NonRelInfoSet::EraseConfigs(const char* basis_def) 
 {
     unsigned int pqn = 0;
-    unsigned int L = 0;
 
     unsigned int p = 0;
     bool ReadSpectroscopicInput = true;
@@ -64,7 +62,7 @@ void NonRelInfoSet::EraseConfigs(const char* basis_def)
         {
             for(int i = 0; i <= pqn; i++) 
             {
-                NonRelInfoSet::iterator it = find(NonRelInfo(i, Constant::GetLFromSpectroscopicNotation((char) basis_def[p])));
+                NonRelInfoSet::iterator it = find(NonRelInfo(i, MathConstant::Instance()->GetSpectroscopicNotation(basis_def[p])));
                 if(it != end()){
                     erase(it);
                 }

@@ -1,10 +1,26 @@
 # Run with gmake.
 # To compile a debug version, define 'debug' in the command line, ie:
-#     make debug=1
-#
+#     gmake debug=1
+# To compile a google test, use
+#     gmake test=1
+# 'gmake test' and 'gmake debug' will also work, but not with 'clean'.
+
 coremodules = Configuration MBPT Basis HartreeFock Universal
 modules = Atom $(coremodules)
-exes = ambit
+
+ifdef test
+  exes = ambit_test
+
+  # The *.test.o objects need to be linked in separately because google tests are
+  # left out of the linking of the static library (because there are no unresolved
+  # symbols in the main program that resolve to that object - see googletest wiki).
+
+  gtestcxx = $(foreach module, $(modules), $(wildcard $(module)/*.test.cpp))
+  gtesttmp = $(join $(dir $(gtestcxx)),$(addprefix $(BUILD)/,$(notdir $(gtestcxx))))
+  gtestobj = $(gtesttmp:%.cpp=%.o)
+else
+  exes = ambit
+endif
 
 packname = AtomPack
 # other files that should be included in package
@@ -15,14 +31,14 @@ include make.machine
 corelibnames = $(foreach module, $(coremodules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
-ambit: $(libnames)
-	$(LINK) $(LINKFLAGS) -o $@ $^ $(addprefix -L, $(LIBDIR)) \
-	     $(LIBOBJ) $(addprefix -l, $(LIBS))
+$(exes): $(libnames)
+	$(LINK) $(LINKFLAGS) -o $@ $^ $(gtestobj) $(addprefix -L, $(LIBDIR)) \
+                $(LIBOBJ) $(addprefix -l, $(LIBS))
 
 .EXPORT_ALL_VARIABLES:
 
 $(libnames): %$(LIBSUFFIX): gitInfo.h FORCE
-	-@mkdir $(notdir $*)/$(BUILD)
+	-@mkdir -p $(notdir $*)/$(BUILD)
 	$(MAKE) -C $(notdir $*) -f make.$(notdir $*) module=$(notdir $*)
 
 # Always rebuild gitInfo.h for the latest compile info
@@ -37,12 +53,18 @@ gitInfo.h: FORCE
 # FORCE is used to always rebuild subdirectories.
 FORCE:
 
+test:
+	$(MAKE) test=1
+
+debug:
+	$(MAKE) debug=1
+
 clean:
 	-rm $(exes); \
 	$(foreach module, $(modules), $(MAKE) -C $(module) -f make.$(module) clean;)
 
 veryclean:
-	-rm $(exes)
+	-rm ambit ambit_test
 	-rm -r $(foreach module, $(modules), $(module)/$(BUILD))
 
 pack:

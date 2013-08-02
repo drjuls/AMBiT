@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "RStates.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/StateIntegrator.h"
 

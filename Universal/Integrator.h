@@ -8,7 +8,7 @@
 #include "Lattice.h"
 #include "Function.h"
 #include "CoupledFunction.h"
-#include "Constant.h"
+#include "MathConstant.h"
 
 class Integrator
 {

@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "ContinuumWave.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 ContinuumWave::ContinuumWave(const ContinuumWave& other):
     SingleParticleWavefunction(other)
@@ -18,7 +18,7 @@ std::string ContinuumWave::Name() const
     sprintf(buffer, "%5.4f", nu);
     std::string ret(buffer);
 
-    ret.append(1, Constant::SpectroscopicNotation[L()]);
+    ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));
 
 #ifdef USE_ALT_STATE_NOTATION
     if(kappa > 0)

@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "CustomBasis.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
 {
@@ -246,11 +246,7 @@ NonRelInfo CustomBasis::ReadNonRelInfo(char* buffer, unsigned int& num_read)
     int pqn = atoi(tempbuf);
 
     // Get L
-    unsigned int L;
-    for(L = 0; L < 10; L++)
-    {   if(Constant::SpectroscopicNotation[L] == buffer[num_read])
-            break;
-    }
+    unsigned int L = MathConstant::Instance()->GetL(buffer[num_read]);
     num_read++;
 
     while(isspace(buffer[num_read]) && (buffer[num_read] != '\n'))

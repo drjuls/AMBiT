@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "SingleParticleWavefunction.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 
 SingleParticleWavefunction::SingleParticleWavefunction():
     CoupledFunction(), nu(0.), kappa(0)
@@ -26,10 +26,11 @@ double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction& oth
     if(kappa == other.kappa)
     {
         const double* dR = lattice->dR();
+        double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
         for(unsigned int i=0; i<mmin(Size(), other.Size()); i++)
         {
-            total += (f[i] * other.f[i] + Constant::AlphaSquared * g[i] * other.g[i])*dR[i];
+            total += (f[i] * other.f[i] + alphasquared * g[i] * other.g[i])*dR[i];
         }
     }
 
@@ -56,17 +57,18 @@ bool SingleParticleWavefunction::Print(const std::string& filename, Lattice* lat
 
 bool SingleParticleWavefunction::Print(FILE* fp, Lattice* lattice) const
 {
+    double alpha = PhysicalConstant::Instance()->GetAlpha();
     if(lattice)
         for(unsigned int i = 0; i < Size(); i++)
         {
             fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
-                f[i], g[i]*Constant::Alpha, df[i], dg[i]*Constant::Alpha);
+                f[i], g[i]*alpha, df[i], dg[i]*alpha);
         }
     else
         for(unsigned int i = 0; i < Size(); i++)
         {
             fprintf(fp, "%d %12.6e %12.6e %12.6e %12.6e\n", i,
-                f[i], g[i]*Constant::Alpha, df[i], dg[i]*Constant::Alpha);
+                f[i], g[i]*alpha, df[i], dg[i]*alpha);
         }
     
     return true;

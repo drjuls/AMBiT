@@ -4,7 +4,6 @@
 #include "Include.h"
 #include "Atom.h"
 #include "OutStreams.h"
-#include "Universal/Constant.h"
 
 #include "Basis/RStates.h"
 #include "Basis/RSinStates.h"
@@ -232,6 +231,8 @@ void Atom::RunSingleElectron()
     mbpt = NULL;
     if(excited_mbpt)
         mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
+    
+    MathConstant* constants = MathConstant::Instance();
 
     bool sigma_potential = userInput_.search("Basis/Valence/--sigma-potential") && mbpt;
 
@@ -255,7 +256,7 @@ void Atom::RunSingleElectron()
                 Orbital* ds = it.GetState();
                 *outstream << "\n" << ds->Name() << "\n";
                 *outstream << std::setprecision(12);
-                *outstream << "HF Energy: " << ds->Energy() * Constant::HartreeEnergy_cm << std::endl;
+                *outstream << "HF Energy: " << ds->Energy() * constants->HartreeEnergyInInvCm() << std::endl;
     
                 if(sigma_potential)
                 {
@@ -265,16 +266,16 @@ void Atom::RunSingleElectron()
                         dE = excited->CreateSecondOrderSigma(si, *mbpt);
                     else
                         dE = excited->GetSigmaMatrixElement(si);
-                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
                     
                     // Iterate to create Brueckner orbital
                     Orbital brueckner = excited->GetStateWithSigma(si);
-                    *outstream << "Brueckner: " << brueckner.Energy() * Constant::HartreeEnergy_cm << std::endl;
+                    *outstream << "Brueckner: " << brueckner.Energy() * constants->HartreeEnergyInInvCm() << std::endl;
     
                     // Set energy to known value, if requested
                     double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
                     if(E_experiment)
-                    {   excited->SetEnergyViaSigma(si, E_experiment/Constant::HartreeEnergy_cm);
+                    {   excited->SetEnergyViaSigma(si, E_experiment/constants->HartreeEnergyInInvCm());
                         brueckner = excited->GetStateWithSigma(si);
                     }
     
@@ -288,7 +289,7 @@ void Atom::RunSingleElectron()
                 }
                 else if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << std::endl;        
+                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
                 }
     
                 it.Next();
@@ -331,11 +332,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -352,11 +353,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -400,11 +401,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -421,11 +422,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * Constant::HartreeEnergy_cm << " ";
+                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * Constant::HartreeEnergy_cm << " ";
+                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -532,12 +533,7 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
     {
         if(!isdigit(basis_def[p]))
         {
-            for(L = 0; L < 10; L++)
-            {   if(Constant::SpectroscopicNotation[L] == tolower(basis_def[p]))
-                    break;
-            }
-            if(L >= 10)
-                return false;
+            L = MathConstant::Instance()->GetL(tolower(basis_def[p]));
             max_L = mmax(L, max_L);
         }
 
@@ -555,11 +551,7 @@ bool Atom::ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_
         while(basis_def[p] && !isdigit(basis_def[p]))
         {
             // Get L
-            for(L = 0; L < 10; L++)
-            {   if(Constant::SpectroscopicNotation[L] == basis_def[p])
-                    break;
-            }
-
+            L = MathConstant::Instance()->GetL(tolower(basis_def[p]));
             num_states[L] = pqn;
             p++;
         }
@@ -931,7 +923,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const Orbital* ds)
         }
         else
             count++;
-        fprintf(fp, "%14.7E", ds->g[i]*Constant::Alpha);
+        fprintf(fp, "%14.7E", ds->g[i]*PhysicalConstant::Instance()->GetAlpha());
     }
 /*    while(i < lattice->Size())
     {   if(count == 5)
@@ -978,7 +970,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     // Record 3
     double RNT; // lattice->R(0)
     double H;   // lattice->H()
-    double C;   // 1/Constant::Alpha
+    double C;   // 1/alpha
     fread(&record_size, sizeof(int), 1, fp);
     fread(&Z, sizeof(double), 1, fp);
     fread(&RNT, sizeof(double), 1, fp);
@@ -988,8 +980,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
 
     // Create lattice and core
     lattice = new ExpLattice(N, RNT, H);
-    Constant::Alpha = 1./C;
-    Constant::AlphaSquared = Constant::Alpha*Constant::Alpha;
+    PhysicalConstant::Instance()->SetAlpha(1./C);
     *outstream << "Speed of light (1/alpha) = " << C << std::endl;
     core = new Core(lattice, Z, Charge);
 
@@ -1076,7 +1067,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         ds->ReSize(i+1);
         for(i = 0; i < ds->Size(); i++)
         {   ds->f[i] = P[i];
-            ds->g[i] = Q[i]/Constant::Alpha;
+            ds->g[i] = Q[i]/PhysicalConstant::Instance()->GetAlpha();
         }
 
         // Get derivatives
@@ -1158,7 +1149,7 @@ void Atom::WriteGraspMCDF() const
     // Record 3
     double RNT = lattice->R(0);
     double H = lattice->H();
-    double C = 1/Constant::Alpha;
+    double C = 1/PhysicalConstant::Instance()->GetAlpha();
     record_size = 4*sizeof(double);
     fwrite(&record_size, sizeof(int), 1, fp);
     fwrite(&Z, sizeof(double), 1, fp);
@@ -1202,7 +1193,7 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int latti
     int NP = ds->RequiredPQN();
     int NAK = ds->Kappa();
     double E = fabs(ds->Energy());
-    NH[0] = toupper(Constant::SpectroscopicNotation[ds->L()]);
+    NH[0] = toupper(MathConstant::Instance()->GetSpectroscopicNotation(ds->L()));
     if(NAK > 0)
         NH[1] = '-';
     else
@@ -1222,11 +1213,11 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int latti
     for(i = 0; i < ds->Size(); i++)
     {   if(switch_sign)
         {   P[i] = -ds->f[i];
-            Q[i] = -ds->g[i]*Constant::Alpha;
+            Q[i] = -ds->g[i]*PhysicalConstant::Instance()->GetAlpha();
         }
         else
         {   P[i] = ds->f[i];
-            Q[i] = ds->g[i]*Constant::Alpha;
+            Q[i] = ds->g[i]*PhysicalConstant::Instance()->GetAlpha();
         }
     }
     while(i < N)

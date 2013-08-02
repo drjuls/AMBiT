@@ -20,6 +20,7 @@ Release
 Test
 Debug
 ambit
+ambit_test
 
 # Auxillary documentation files
 *.aux

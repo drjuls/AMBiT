@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "ConfigFileGenerator.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 void ConfigFileGenerator::Clear()
 {
@@ -47,10 +47,7 @@ void ConfigFileGenerator::ReadConfigs(double cutoff)
             pqn = atoi(tempbuf);
 
             // Get L
-            for(L = 0; L < 10; L++)
-            {   if(Constant::SpectroscopicNotation[L] == buffer[i])
-                    break;
-            }
+            L = MathConstant::Instance()->GetL(buffer[i]);
             i++;
 
             // Get occupancy

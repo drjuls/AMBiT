@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "Core.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 #include "Universal/CoulombIntegrator.h"
 #include "Universal/Interpolator.h"
 
@@ -300,7 +300,7 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
                 {
                     double energy = ds->Energy();
                     if(DebugOptions.InvCmEnergyUnits())
-                        energy *= Constant::HartreeEnergy_cm;
+                        energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
                     *logstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
                 }
                 else

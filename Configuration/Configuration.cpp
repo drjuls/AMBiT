@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "Configuration.h"
 #include "HartreeFock/NonRelInfo.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 Configuration::Configuration(const Configuration& other):
     Config(other.Config)
@@ -33,10 +33,7 @@ Configuration::Configuration(const std::string& name)
         if(all_states[p])
         {
             // Get L
-            for(L = 0; L < 10; L++)
-            {   if(Constant::SpectroscopicNotation[L] == all_states[p])
-                    break;
-            }
+            L = MathConstant::Instance()->GetL(all_states[p]);
             p++;
         }
         // Get occupancy

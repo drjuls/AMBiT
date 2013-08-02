@@ -1,6 +1,7 @@
 #include "Include.h"
 #include "BoundStateIntegrator.h"
 #include "Universal/Eigensolver.h"
+#include "Universal/PhysicalConstant.h"
 
 void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge = 1.)
 {
@@ -13,7 +14,7 @@ void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, 
     }
     else
     {   s.g[0] = pow(lattice->R(0), s.Kappa());
-        s.f[0] = s.g[0] * lattice->R(0) * Constant::AlphaSquared * HFPotential[0] / (2 * s.Kappa() + 1);
+        s.f[0] = s.g[0] * lattice->R(0) * PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[0] / (2 * s.Kappa() + 1);
     }
 
     // Determine an appropriate scaling to make the norm close to unit.
@@ -122,9 +123,9 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     for(i=0; i<DM; i++)
     {
         if(forwards)
-            A[i*2*DM + i+DM] = -(2. + Constant::AlphaSquared * HFPotential[start_point + i+1])*lattice->dR(start_point + i+1);
+            A[i*2*DM + i+DM] = -(2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[start_point + i+1])*lattice->dR(start_point + i+1);
         else
-            A[i*2*DM + i+DM] = (2. + Constant::AlphaSquared * HFPotential[start_point -(i+1)])*lattice->dR(start_point - (i+1));
+            A[i*2*DM + i+DM] = (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[start_point -(i+1)])*lattice->dR(start_point - (i+1));
     }
 
     // Set up lower left quarter
@@ -184,12 +185,12 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     // Calculate derivatives
     if(forwards)
         for(i=start_point; i<start_point+DM; i++)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice->dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[i])*s.g[i])*lattice->dR(i);
             s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
     else
         for(i=start_point; i>start_point-DM; i--)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + Constant::AlphaSquared*HFPotential[i])*s.g[i])*lattice->dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[i])*s.g[i])*lattice->dR(i);
             s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
 

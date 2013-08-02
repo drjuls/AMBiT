@@ -4,6 +4,7 @@
 #include "StateIntegrator.h"
 #include "Universal/Interpolator.h"
 #include "Atom/Debug.h"
+#include "Universal/PhysicalConstant.h"
 
 ContinuumBuilder::ContinuumBuilder(const Core* other_core):
     lattice(NULL), core(NULL), norm_type(Cowan)
@@ -89,7 +90,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
             ds = 1.0;   // Do another loop!
         }
         else
-        {   ds = (final_phase - old_phase)/Constant::Pi;
+        {   ds = (final_phase - old_phase)/MathConstant::Instance()->Pi();
             if(fabs(ds) > Core::StateParameters::EnergyTolerance)
             {   core->CalculateExchange(*s, new_exchange);
                 exchange.ReSize(new_exchange.Size());
@@ -107,12 +108,12 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
     {
         case Flambaum:
             // Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)
-            final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
+            final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*pow(s->Nu(),3.)))/final_amplitude;
             break;
 
         case Cowan:
             // Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)
-            final_amplitude = sqrt(2./Constant::Pi)/final_amplitude;
+            final_amplitude = sqrt(2./MathConstant::Instance()->Pi())/final_amplitude;
             break;
 
         case Unitary:
@@ -159,7 +160,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
 
         double energy = s->Energy();
         if(DebugOptions.InvCmEnergyUnits())
-            energy *= Constant::HartreeEnergy_cm;
+            energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
         *logstream << s->Name() << "  E = " << energy;
 
         *logstream << std::setprecision(4);
@@ -206,13 +207,14 @@ bool ContinuumBuilder::ReadContinuumWave(ContinuumWave* s, Lattice* external_lat
 
         // Read lower component
         unsigned int i = 0;
+        double alpha = PhysicalConstant::Instance()->GetAlpha();
         while(fscanf(fp_lower, "%lf%lf", &r, &val) == 2)
         {   if(R[i] != r)
             {   *errstream << "ReadContinuumWave: lattice points don't match at "
                            << R[i] << " (i = " << i << ")" << std::endl;
                 return false;
             }
-            g.push_back(val/Constant::Alpha);
+            g.push_back(val/alpha);
             i++;
         }
 

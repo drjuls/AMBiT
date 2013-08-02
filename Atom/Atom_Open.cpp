@@ -3,7 +3,6 @@
 #endif
 #include "Include.h"
 #include "Atom.h"
-#include "Universal/Constant.h"
 #include "Universal/Enums.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"

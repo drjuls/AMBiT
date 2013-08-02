@@ -4,20 +4,24 @@
 # need to check that .c files are all known from .o
 $(BUILD)/%.dep: %.cpp
 	@set -e; rm -f $@; \
-	$(CCDEP) $(DEPFLAG) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	$(CCDEP) $(DEPFLAG) $< > $@.temp; \
+	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.temp > $@; \
+	rm -f $@.temp
 
 ifneq ($(words $(cxxobjects)), 0)
-  include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cxxobjects)))
+-include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cxxobjects)))
+endif
+
+ifneq ($(words $(testobjects)), 0)
+-include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(testobjects)))
 endif
 
 $(BUILD)/%.dep: %.c
 	@set -e; rm -f $@; \
-	$(CCDEP) $(DEPFLAG) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	$(CCDEP) $(DEPFLAG) $< > $@.temp; \
+	sed 's,\($*\)\.o[ :]*,$(BUILD)/\1.o $@ : ,g' < $@.temp > $@; \
+	rm -f $@.temp
 
 ifneq ($(words $(cobjects)), 0)
-  include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cobjects)))
+-include $(addprefix $(BUILD)/, $(patsubst %.o,%.dep,$(cobjects)))
 endif

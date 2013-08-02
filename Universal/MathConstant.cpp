@@ -1,52 +1,72 @@
 #include "Include.h"
-#include "Constant.h"
+#include "MathConstant.h"
 #include <vector>
 #include <algorithm>
 
-const double Constant::Pi = 3.1415926535897932384626433832795;
-double Constant::Alpha = 7.297352932703e-3;
-double Constant::AlphaSquared = Constant::Alpha * Constant::Alpha;
-const double Constant::NucleonElectronMassRatio = 1822.888;
+// For Singleton pattern
+MathConstant* MathConstant::instance = NULL;
 
-const double Constant::AtomicToFermi = 52917.7249;
-const double Constant::HartreeEnergy_eV = 27.211383;
-const double Constant::HartreeEnergy_cm = 219474.631371;
-const double Constant::SpeedOfLight = 299792458;
-const double Constant::InvCmToMHz = 29979.2458;
-const double Constant::BohrRadiusSI = 5.2917720859e-11;
-const double Constant::RydbergConstant = 10973731.6;
-const double Constant::AtomicFrequencyToSI = 4.0 * Pi * RydbergConstant * SpeedOfLight;
-
-const char Constant::SpectroscopicNotation[10] 
-    = {'s', 'p', 'd', 'f', 'g', 'h', 'i', 'j', 'k', 'l'};
-    
-char Constant::ToSpectroscopicNotation(unsigned int l) 
+MathConstant* MathConstant::Instance()
 {
-    return Constant::SpectroscopicNotation[l];
+    if (instance == NULL)
+        instance = new MathConstant();
+    
+    return instance;
 }
 
-unsigned int Constant::GetLFromSpectroscopicNotation(char comparison) 
+MathConstant::MathConstant()
 {
-    unsigned int i;
-    for(i = 0; i < 10; i++) 
-    {
-        if(Constant::SpectroscopicNotation[i] == comparison) 
-        {
-            break;
-        }
+    const char temp[] = "spdfghiklmnoqrtuv";
+    SpectroscopicNotation = new char[std::strlen(temp)];
+    std::strcpy(SpectroscopicNotation, temp);
+
+    // Maximum largest stored twoJ for Electron3J.
+    // Set by consideration of key.
+    MaxStoredTwoJ = 20;
+    MSize = 2 * MaxStoredTwoJ + 1;
+}
+
+MathConstant::~MathConstant()
+{
+    delete[] SpectroscopicNotation;
+}
+
+double MathConstant::Pi() const { return 3.1415926535897932384626433832795; }
+
+double MathConstant::BohrRadiusInFermi() const    { return 52917.7249; }
+double MathConstant::HartreeEnergyIneV() const    { return 27.211383; }
+double MathConstant::HartreeEnergyInInvCm() const { return 219474.631371; }
+double MathConstant::SpeedOfLightSI() const       { return 299792458; }
+double MathConstant::InvCmInMHz() const           { return 29979.2458; }
+double MathConstant::BohrRadiusSI() const         { return 5.2917720859e-11; }
+double MathConstant::RydbergConstantSI() const    { return 10973731.6; }
+double MathConstant::AtomicFrequencySI() const    { return 4.0 * Pi() * RydbergConstantSI() * SpeedOfLightSI(); }
+
+char MathConstant::GetSpectroscopicNotation(unsigned int l)  const
+{
+    if(l < 17)
+        return SpectroscopicNotation[l];
+    return 0;
+}
+
+unsigned int MathConstant::GetL(char spectroscopic_notation) const
+{
+    unsigned int i=0;
+    const char* c = SpectroscopicNotation;
+    while(*c && (*c != spectroscopic_notation))
+    {   i++;
+        c++;
     }
 
     return i;
 }
-
-double LogFactorialFraction(unsigned int num, unsigned int denom);
 
 /** Clever method for finding wigner coefficients takes the log of the expression to convert
     the factorials into sums - that way the computer won't break. Also optimises by doing
     terms from the numerator and denominator in pairs so that we don't add and then subtract
     the same thing.
  */
-double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3)
+double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3)
 {
     /*  The whole expression is of the form
           ( a! b! ... c! )^(1/2)            ^(j1-j2-m3+k) n! m!
@@ -148,7 +168,7 @@ double Constant::Wigner3j(double j1, double j2, double j3, double m1, double m2,
     return total;
 }
 
-double Constant::Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6)
+double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6)
 {
     /* The entire process is very similar to that used in calculating the 3j symbol. */
     if((j1 < 0.) || (j2 < 0.) || (j3 < 0.) || (j4 < 0.) || (j5 < 0.) || (j6 < 0.))
@@ -243,7 +263,7 @@ double Constant::Wigner6j(double j1, double j2, double j3, double j4, double j5,
 /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
      log( n!/d! )
  */
-double LogFactorialFraction(unsigned int num, unsigned int denom)
+double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom)
 {
     double total = 0.;
     if(num > denom)
@@ -257,12 +277,27 @@ double LogFactorialFraction(unsigned int num, unsigned int denom)
     return total;
 }
 
-const unsigned int Constant::MaxStoredTwoJ = 11;    // Up to h-shell electrons
-std::map<int, double> Constant::Symbols3j;
-const unsigned int Constant::MSize = 2 * MaxStoredTwoJ + 1;
-
-double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
+std::size_t MathConstant::HashElectron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
 {
+    std::size_t key = size_t(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
+                    + size_t(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
+                    + size_t(k)     * MSize * MSize
+                    + twom1  * MSize
+                    + twom2;
+    return key;
+}
+
+double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
+{
+    // Check for physical correctness:
+    //  - triangle condition (j1, j2, k)
+    //  - k >= abs(q)
+    if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k))
+       || (2*int(k) < abs(twom1+twom2)))
+        return 0.;
+
+    // Sort such that j1 >= j2, m1 >=0, and if (j1 == j2) then m1 >= m2.
+    // Keep track of sign changes using boolean (false -> take negative)
     bool sign = true;
 
     // Sort so that (j1 >= j2) for lookup
@@ -281,7 +316,8 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
         if((1 + k)%2 == 1)
             sign = !sign;
     }
-    // (m1 > 0)
+
+    // (m1 >= 0)
     if(twom1 < 0)
     {   twom1 = -twom1; twom2 = -twom2;
         if(((twoj1 + twoj2)/2 + k)%2 == 1)
@@ -299,13 +335,7 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
     {   return 0.;
     }
 
-    const int MSize = 2 * MaxStoredTwoJ + 1;
-
-    int key = int(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
-            + int(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
-            + int(k)     * MSize * MSize
-                + twom1  * MSize
-                + twom2;
+    size_t key = HashElectron3j(twoj1, twoj2, k, twom1, twom2);
     std::map<int, double>::const_iterator it = Symbols3j.find(key);
 
     if(it != Symbols3j.end())
@@ -325,55 +355,21 @@ double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int
     }
 }
 
-double Constant::Electron3j(double j1, double j2, unsigned int k, double m1, double m2)
-{
-    unsigned int twoj1 = (unsigned int)(2.*j1);
-    unsigned int twoj2 = (unsigned int)(2.*j2);
-    unsigned int twom1 = (unsigned int)(2.*m1);
-    unsigned int twom2 = (unsigned int)(2.*m2);
-
-    return Electron3j(twoj1, twoj2, k, twom1, twom2);
-}
-
-double Constant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k)
+double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k)
 {
     // In this case
     //  ( j1   j2   k ) = (-1)^(j1 + j2 + k) (  j2    j1   k ) = ( j2   j1   k )
     //  ( 1/2 -1/2  0 )                      ( -1/2  1/2   0 )   ( 1/2 -1/2  0 ) 
     // So we don't need to worry about sign.
+    // Therefore we can cut out some tests by asserting j1 >= j2
 
-    // Sort so that (j1 >= j2) for lookup
-    if(twoj1 < twoj2)
-    {   unsigned int tempj;
-        tempj = twoj1; twoj1 = twoj2; twoj2 = tempj;
-    }
-
-    if(twoj1 > MaxStoredTwoJ)
-    {   
-        return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), 0.5, -0.5, 0.0);
-    }
-    else if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k)))
-    {
-        return 0.;
-    }
-
-    int key = int(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
-            + int(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
-            + int(k)     * MSize * MSize
-                + 1      * MSize
-                - 1;
-
-    std::map<int, double>::const_iterator it = Symbols3j.find(key);
-
-    if(it != Symbols3j.end())
-    {   
-        return it->second;
-    }
+    if(twoj1 >= twoj2)
+        return Electron3j(twoj1, twoj2, k, 1, -1);
     else
-    {
-        double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), 0.5, -0.5, 0.);
-        Symbols3j[key] = value;
+        return Electron3j(twoj2, twoj1, k, 1, -1);
+}
 
-        return value;
-    }
+unsigned int MathConstant::GetStorageSize() const
+{
+    return Symbols3j.size();
 }

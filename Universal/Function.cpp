@@ -3,7 +3,7 @@
 #include <sstream>
 #include <boost/math/special_functions/bessel.hpp>
 #include "Function.h"
-#include "Constant.h"
+#include "MathConstant.h"
 
 Polynomial::Polynomial(std::map<double,double> CoefficientsAndIndices)
 {
@@ -151,7 +151,7 @@ double SphericalTensorReducedMatrixElement(unsigned int rank, int kappa1, int ka
         return 0.0;
     }
     
-    return pow(-1.0, j1 + 0.5) * pow(((2.0 * j1) + 1.0) * ((2.0 * j2) + 1.0), 0.5) * Constant::Wigner3j(j1, j2, double(rank), -0.5, 0.5, 0.0);
+    return pow(-1.0, j1 + 0.5) * pow(((2.0 * j1) + 1.0) * ((2.0 * j2) + 1.0), 0.5) * MathConstant::Instance()->Wigner3j(j1, j2, double(rank), -0.5, 0.5, 0.0);
 }
 
 double delta_function(double i, double j)

@@ -5,7 +5,7 @@
 #include "MPIMatrix.h"
 #include "Universal/ScalapackMatrix.h"
 #include "Universal/Eigensolver.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 
 void MPIHamiltonianMatrix::GenerateMatrix()
 {
@@ -219,7 +219,7 @@ void MPIHamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& 
             }
 
             *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
-                << std::setprecision(12) << E[solution]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+                << std::setprecision(12) << E[solution]*MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm" << std::endl;
 
             // Get non-rel configuration percentages
             RelativisticConfigList::const_iterator list_it = configs->begin();
@@ -401,7 +401,7 @@ void MPIHamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
     {   for(solution = 0; solution < NumSolutions; solution++)
             *outstream << solution << ": " 
                 << std::setprecision(8) << total[solution] << "    "
-                << total[solution]*Constant::HartreeEnergy_cm
+                << total[solution]*MathConstant::Instance()->HartreeEnergyInInvCm()
                 << " /cm" << std::endl;
     }
 
@@ -623,7 +623,7 @@ void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double ei
             if(ProcessorRank == 0)
             {
                 *outstream << i << ": " << std::setprecision(8) << E[i] << "    "
-                    << std::setprecision(12) << E[i]*Constant::HartreeEnergy_cm << " /cm" << std::endl;
+                    << std::setprecision(12) << E[i]*MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm" << std::endl;
 
                 // Get non-rel configuration percentages
                 RelativisticConfigList::const_iterator list_it = configs->begin();

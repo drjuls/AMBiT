@@ -25,6 +25,10 @@ endif
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
 
+# Override these below, if necessary
+GTEST_INCLUDE_DIR = $(SRCDIR)
+GTEST_LIBS_DIR    = $(SRCDIR)/gtest
+
 ifeq ($(MACHINE), default)
   CC  = gcc
   CXX = g++
@@ -39,13 +43,13 @@ ifeq ($(MACHINE), default)
 
   ifdef debug
     BUILD     = Debug
-    CXXFLAGS += -g
-    CFLAGS   += -g
+    CXXFLAGS  = -g
+    CFLAGS    = -g
   else
     BUILD     = Release
-    CXXFLAGS += -O3
-    CFLAGS   += -O3
-    F77FLAGS += -O2
+    CXXFLAGS  = -O3
+    CFLAGS    = -O3
+    F77FLAGS  = -O2
   endif
 
   CCDEP   = gcc
@@ -65,7 +69,6 @@ ifeq ($(MACHINE), ncixe)
   LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core mkl_em64t guide pthread
 
   INCLUDE  +=
-  CXXFLAGS += -wd1125 -D_MPI #-D_SCALAPACK
 
   ifdef debug
     BUILD     = Debug
@@ -77,6 +80,8 @@ ifeq ($(MACHINE), ncixe)
     CXXFLAGS += -O2
     F77FLAGS += -O2 -fpe0 -static -nofor_main
   endif
+
+  CXXFLAGS += -wd1125 -D_MPI #-D_SCALAPACK
 
   CCDEP   = gcc
   DEPFLAG = -MM
@@ -94,18 +99,19 @@ ifeq ($(MACHINE), katana)
   LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core guide pthread
 
   INCLUDE  +=
-  CXXFLAGS += -wd1125 -D_MPI # -D_SCALAPACK
 
   ifdef debug
     BUILD     = Debug
-    CFLAGS   += -g
-    CXXFLAGS += -g
+    CFLAGS    = -g
+    CXXFLAGS  = -g
   else
     BUILD     = Release
-    CFLAGS   += -O2
-    CXXFLAGS += -O3
-    F77FLAGS += -O2 -fpe0 -static -nofor_main
+    CFLAGS    = -O2
+    CXXFLAGS  = -O3
+    F77FLAGS  = -O2 -fpe0 -static -nofor_main
   endif
+
+  CXXFLAGS += -wd1125 -D_MPI # -D_SCALAPACK
 
   CCDEP   = gcc
   DEPFLAG = -MM
@@ -125,19 +131,24 @@ ifeq ($(MACHINE), newt)
 
   ifdef debug
     BUILD     = Debug
-    CXXFLAGS += -g
-    CFLAGS   += -g
+    CXXFLAGS  = -g
+    CFLAGS    = -g
   else
     BUILD     = Release
-    CXXFLAGS += -O3
-    CFLAGS   += -O3
-    F77FLAGS += -O2
+    CXXFLAGS  = -O3
+    CFLAGS    = -O3
+    F77FLAGS  = -O2
   endif
 
   CCDEP   = gcc34
   DEPFLAG = -MM
 endif
 
+ifdef test
+  INCLUDE += $(GTEST_INCLUDE_DIR)
+  LIBDIR  += $(GTEST_LIBS_DIR)
+  LIBS    += gtest
+endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
 CFLAGS   += $(addprefix -I, $(INCLUDE))

@@ -1,7 +1,7 @@
 #include "Include.h"
 #include <algorithm>
 #include "Core.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "Universal/CoulombIntegrator.h"
 #include "StateIntegrator.h"
 #include "BoundStateIntegrator.h"
@@ -116,6 +116,7 @@ void Core::Update()
 void Core::UpdateHFPotential(double proportion_new, bool first_build)
 {
     HFPotential.resize(lattice->Size());
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Get electron density function
     std::vector<double> density;
@@ -134,7 +135,7 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
 
         for(unsigned int j=0; j<s.Size(); j++)
         {
-            density[j] = density[j] + (pow(f[j], 2.) + Constant::AlphaSquared * pow(g[j], 2.))*number_electrons;
+            density[j] = density[j] + (pow(f[j], 2.) + alphasquared * pow(g[j], 2.))*number_electrons;
         }
 
         cs.Next();
@@ -223,11 +224,11 @@ void Core::ExtendPotential() const
 
 void Core::UpdateNuclearPotential()
 {
-    if(NuclearRadius < 0.1/Constant::AtomicToFermi)
+    if(NuclearRadius < 0.1/MathConstant::Instance()->BohrRadiusInFermi())
     {   // Point nucleus
         NuclearPotential.clear();
     }
-    else if(NuclearThickness < 0.05/Constant::AtomicToFermi)
+    else if(NuclearThickness < 0.05/MathConstant::Instance()->BohrRadiusInFermi())
     {   // Uniform hard sphere
         NuclearPotential.resize(lattice->real_to_lattice(NuclearRadius));
         for(unsigned int i=0; i<NuclearPotential.size(); i++)
@@ -248,10 +249,10 @@ std::vector<double> Core::CalculateNuclearDensity(double radius, double thicknes
 {
     std::vector<double> density(lattice->Size());
 
-    if(thickness*Constant::AtomicToFermi > 0.05)
+    if(thickness*MathConstant::Instance()->BohrRadiusInFermi() > 0.05)
     {
         double B = 4.*log(3.)/thickness;
-        double A = 3.*Z/(radius * (pow(radius,2.) + pow(Constant::Pi/B, 2.)));
+        double A = 3.*Z/(radius * (pow(radius,2.) + pow(MathConstant::Instance()->Pi()/B, 2.)));
         for(unsigned int i=0; i<lattice->Size(); i++)
         {   
             double X = B * (lattice->R(i) - radius);
@@ -285,6 +286,7 @@ void Core::CalculateClosedShellRadius()
     std::vector<double> density;
     density.clear();
     unsigned int j;
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
@@ -301,7 +303,7 @@ void Core::CalculateClosedShellRadius()
 
             for(unsigned int j=0; j<s.Size(); j++)
             {
-                density[j] = density[j] + (f[j] * f[j] + Constant::AlphaSquared * g[j] * g[j])*number_electrons;
+                density[j] = density[j] + (f[j] * f[j] + alphasquared * g[j] * g[j])*number_electrons;
             }
         }
 
@@ -420,6 +422,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
     I.SetAdamsOrder(10);
     BoundStateIntegrator BI(lattice);
     BI.SetAdamsOrder(10);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(s->Size() > (I.AdamsOrder()-1))
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -483,7 +486,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
 
     double var = 0;
     for(i=0; i<s->Size(); i++)
-    {   var += (del_s.f[i] * s->f[i] + Constant::AlphaSquared * del_s.g[i] * s->g[i])*dR[i];
+    {   var += (del_s.f[i] * s->f[i] + alphasquared * del_s.g[i] * s->g[i])*dR[i];
     }
 
     delta_E = (1. - norm)/(2. * var);
@@ -519,8 +522,8 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
         s->g[i] = -(s0.g[i] * Ginf[i] + sInf.g[i] * G0[i]);
 
         s->df[i] = (- s->Kappa()/R[i] * s->f[i] +
-                    (2. + Constant::AlphaSquared*(s->Energy() + Potential[i])) * s->g[i]
-                    + Constant::AlphaSquared * exchange->g[i]) * dR[i];
+                    (2. + alphasquared*(s->Energy() + Potential[i])) * s->g[i]
+                    + alphasquared * exchange->g[i]) * dR[i];
         s->dg[i] = (s->Kappa()/R[i] * s->g[i] - (s->Energy() + Potential[i]) * s->f[i]
                     - exchange->f[i]) *dR[i];
     }
@@ -683,7 +686,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
         {
             double energy = ds->Energy();
             if(DebugOptions.InvCmEnergyUnits())
-                energy *= Constant::HartreeEnergy_cm;
+                energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
             *outstream << ds->Name() << "  E = " << energy;
         }
         else
@@ -716,7 +719,7 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
             exit(1);
         }
 
-        ds = (final_phase - old_phase)/Constant::Pi;
+        ds = (final_phase - old_phase)/MathConstant::Instance()->Pi();
         if(fabs(ds) > StateParameters::EnergyTolerance)
         {   CalculateExchange(*s, new_exchange);
             exchange.ReSize(new_exchange.Size());
@@ -734,7 +737,7 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
     //final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
     
     /* Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)     */
-    final_amplitude = sqrt(2./Constant::Pi)/final_amplitude;
+    final_amplitude = sqrt(2./MathConstant::Instance()->Pi())/final_amplitude;
     
     /* Unitary normalization:   A = 1                           */
     //final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
@@ -754,6 +757,7 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
 {
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     exchange.Clear();
     exchange.ReSize(current.Size());
@@ -773,13 +777,13 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
         std::vector<double> density(upper_point);
         for(unsigned int i=0; i<upper_point; i++)
         {
-            density[i] = current.f[i] * other.f[i] + Constant::AlphaSquared * current.g[i] * other.g[i];
+            density[i] = current.f[i] * other.f[i] + alphasquared * current.g[i] * other.g[i];
         }
 
         // Sum over all k
         for(unsigned int k = abs((int)other.L() - (int)current.L()); k <= (other.L() + current.L()); k+=2)
         {
-            double coefficient = Constant::Wigner3j(k, current.J(), other.J(), 0., .5, -.5);
+            double coefficient = MathConstant::Instance()->Electron3j(current.TwoJ(), other.TwoJ(), k);
             coefficient = (2 * abs(other.Kappa())) * coefficient * coefficient;
 
             // Open shells need to be scaled

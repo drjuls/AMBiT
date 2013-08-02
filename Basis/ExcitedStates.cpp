@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "ExcitedStates.h"
 #include "HartreeFock/Core.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "MBPT/CoreMBPTCalculator.h"
 #include "HartreeFock/StateIntegrator.h"
 #include <stdio.h>
@@ -149,8 +149,10 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
     unsigned int iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
     double current_energy = sigma_s.Energy();
 
-    *outstream << "  Wanted energy:  " << std::setprecision(12) << energy * Constant::HartreeEnergy_cm << std::endl;
-    *outstream << "  Sigma iterated: " << current_energy * Constant::HartreeEnergy_cm << "    iterations: " << iterations << std::endl;
+    MathConstant* constants = MathConstant::Instance();
+
+    *outstream << "  Wanted energy:  " << std::setprecision(12) << energy * constants->HartreeEnergyInInvCm() << std::endl;
+    *outstream << "  Sigma iterated: " << current_energy * constants->HartreeEnergyInInvCm() << "    iterations: " << iterations << std::endl;
     double full_gap = current_energy - old_energy;
 
     while(fabs(current_energy/energy - 1.) > core->GetEnergyTolerance())
@@ -159,12 +161,12 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
         amount += gap;
         iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
         current_energy = sigma_s.Energy();
-        *logstream << "    " << amount << "   " << current_energy * Constant::HartreeEnergy_cm
+        *logstream << "    " << amount << "   " << current_energy * constants->HartreeEnergyInInvCm()
                    << "   iterations: " << iterations << std::endl;
     }
     SetSigmaAmount(info, amount);
     *outstream << "Final sigma amount: " << std::setprecision(10) << amount << " (gives "
-               << std::setprecision(12) << current_energy * Constant::HartreeEnergy_cm << ")" << std::endl;
+               << std::setprecision(12) << current_energy * constants->HartreeEnergyInInvCm() << ")" << std::endl;
 }
 
 void ExcitedStates::SetSigmaAmount(const OrbitalInfo& info, double amount)
@@ -202,7 +204,7 @@ void ExcitedStates::MultiplyByR(const Orbital* previous, Orbital* current) const
     const double* dR = lattice->dR();
     double kappa = current->Kappa();
 
-    double AlphaSquared = Constant::AlphaSquared; // Set to zero to remove effect of core potential
+    double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
     for(i=0; i<previous->Size(); i++)
     {
@@ -242,9 +244,9 @@ void ExcitedStates::MultiplyBySinR(const Orbital* previous, Orbital* current) co
     const double* R = lattice->R();
     const double* dR = lattice->dR();
     double kappa = current->Kappa();
-    double k = Constant::Pi/lattice->R(previous->Size());
+    double k = MathConstant::Instance()->Pi()/lattice->R(previous->Size());
 
-    double AlphaSquared = Constant::AlphaSquared; // Set to zero to remove effect of core potential
+    double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
     for(i=0; i<previous->Size(); i++)
     {
@@ -289,9 +291,9 @@ void ExcitedStates::MultiplyByRSinR(const Orbital* previous, Orbital* current) c
     const double* dR = lattice->dR();
     double kappa_c = current->Kappa();
     double kappa_p = previous->Kappa();
-    double k = Constant::Pi/lattice->R(previous->Size());
+    double k = MathConstant::Instance()->Pi()/lattice->R(previous->Size());
 
-    double AlphaSquared = Constant::AlphaSquared; // Set to zero to remove effect of core potential
+    double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
     for(i=0; i<previous->Size(); i++)
     {
@@ -324,6 +326,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     current->ReNormalise(lattice);
 
     // Orthogonalise to core
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     ConstStateIterator it = core->GetConstStateIterator();
     while(!it.AtEnd())
     {
@@ -334,7 +337,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             double S = 0.;
             unsigned int i;
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
-            {   S = S + ((other->f[i])*(current->f[i]) + Constant::AlphaSquared*(other->g[i])*(current->g[i])) * dR[i];
+            {   S = S + ((other->f[i])*(current->f[i]) + alphasquared*(other->g[i])*(current->g[i])) * dR[i];
             }
 
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
@@ -359,7 +362,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             double S = 0.;
             unsigned int i;
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
-            {   S += ((other->f[i])*(current->f[i]) + Constant::AlphaSquared*(other->g[i])*(current->g[i]))
+            {   S += ((other->f[i])*(current->f[i]) + alphasquared*(other->g[i])*(current->g[i]))
                     * dR[i];
             }
 

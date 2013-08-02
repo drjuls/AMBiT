@@ -8,7 +8,7 @@
 #include "Atom/Transitions.h"
 #include "Configuration/Configuration.h"
 #include "Configuration/Symmetry.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 #include "Universal/Enums.h"
 
 class TransitionSet;
@@ -48,7 +48,7 @@ public:
     Solution(double aEnergy, std::map<Configuration, double> aPercentagesMap, double agFactor = 0.0);
 
     inline double GetEnergyInversecm() const
-    {   return mEnergy * Constant::HartreeEnergy_cm;
+    {   return mEnergy * MathConstant::Instance()->HartreeEnergyInInvCm();
     }
     inline double GetEnergyAtomicUnits() const
     {   return mEnergy;

@@ -3,7 +3,7 @@
 #include <mpi.h>
 #include "Include.h"
 #include "ScalapackMatrix.h"
-#include "Constant.h"
+#include "MathConstant.h"
 #include "Atom/Debug.h"
 
 // Diagonaliser can use pdsyev or pdsyevd. pdsyevd is faster and

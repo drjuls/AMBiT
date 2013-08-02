@@ -10,7 +10,8 @@
 #include "Configuration/Eigenstates.h"
 #include "Configuration/Solution.h"
 #include "HartreeFock/Core.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
+#include "Universal/PhysicalConstant.h"
 
 #include <map>
 
@@ -230,8 +231,6 @@ protected:
     std::vector<double> mbpt_delta;
 
     std::vector<double>* multiple_parameters;
-
-    double alpha0;  // Original value of alpha.
 };
 
 #endif

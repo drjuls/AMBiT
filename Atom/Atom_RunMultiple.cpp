@@ -3,7 +3,6 @@
 #endif
 #include "Include.h"
 #include "Atom.h"
-#include "Universal/Constant.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
@@ -34,7 +33,6 @@ void Atom::InitialiseRunIndex()
     for(i = 0; i < length; i++)
     {   multiple_alpha.push_back(userInput_("AlphaSquaredVariation", 0.0, i));
     }
-    alpha0 = Constant::Alpha;
     multiple_length = mmax(multiple_length, length);
     if(length > 1)
     {   multiple_options_used++;
@@ -154,28 +152,28 @@ void Atom::InitialiseParameters(bool print)
 
     // Nuclear Radius
     if(multiple_radius.size() == 1)
-        core->SetNuclearRadius(multiple_radius[0]/Constant::AtomicToFermi);
+        core->SetNuclearRadius(multiple_radius[0]/MathConstant::Instance()->BohrRadiusInFermi());
     if(multiple_radius.size() <= 1)
         if(print)
             *outstream << "NuclearRadius = " << std::setprecision(3)
-                       << core->GetNuclearRadius()*Constant::AtomicToFermi << std::endl;
+                       << core->GetNuclearRadius()*MathConstant::Instance()->BohrRadiusInFermi() << std::endl;
 
     // Nuclear Thickness
     double nuclear_thickness = userInput_("NuclearThickness", -1.);
     if(nuclear_thickness < 0.0) // Not found
-    {   if(core->GetNuclearRadius() < 1.5/Constant::AtomicToFermi)
+    {   if(core->GetNuclearRadius() < 1.5/MathConstant::Instance()->BohrRadiusInFermi())
             nuclear_thickness = 0.0;
         else
             nuclear_thickness = 2.3;    // Standard value
     }
-    core->SetNuclearThickness(nuclear_thickness/Constant::AtomicToFermi);
+    core->SetNuclearThickness(nuclear_thickness/MathConstant::Instance()->BohrRadiusInFermi());
     if(print)
         *outstream << "NuclearThickness = " << std::setprecision(3) << nuclear_thickness << std::endl;
 
     if(multiple_volume.size())
     {   // Field shift radius
         double deltaR = userInput_("DeltaNuclearRadius", 0.05);
-        core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
+        core->CalculateVolumeShiftPotential(deltaR/MathConstant::Instance()->BohrRadiusInFermi());
         if(print)
             *outstream << "delta(NuclearRadius) = " << std::setprecision(3) << deltaR << std::endl;
     }
@@ -187,9 +185,8 @@ void Atom::InitialiseParameters(bool print)
     }
 
     if(multiple_alpha.size() == 1)
-    {   alpha0 = Constant::Alpha;
-        Constant::Alpha = alpha0 * sqrt(1.0 + multiple_alpha[0]);
-        Constant::AlphaSquared = alpha0 * alpha0 * (1.0 + multiple_alpha[0]);
+    {
+        PhysicalConstant::Instance()->SetAlphaSquaredIncreaseRatio(multiple_alpha[0]);
         if(print)
             *outstream << "AlphaSquaredVariation (x) = " << multiple_alpha[0] << std::endl;
    }
@@ -211,8 +208,7 @@ void Atom::SetRunParameters(bool print)
         }
     }
     if(multiple_alpha.size() > 1)
-    {   Constant::Alpha = alpha0 * sqrt(multiple_alpha[index]+1.);
-        Constant::AlphaSquared = alpha0 * alpha0 * (multiple_alpha[index]+1.);
+    {   PhysicalConstant::Instance()->SetAlphaSquaredIncreaseRatio(multiple_alpha[index]);
         if(print)
             *outstream << "\nAlphaSquaredVariation (x) = " << multiple_alpha[index] << std::endl;
     }
@@ -222,7 +218,7 @@ void Atom::SetRunParameters(bool print)
             *outstream << "\nVolumeShiftParameter = " << std::setprecision(3) << multiple_volume[index] << std::endl;
     }
     if(multiple_radius.size() > 1)
-    {   core->SetNuclearRadius(multiple_radius[index]/Constant::AtomicToFermi);
+    {   core->SetNuclearRadius(multiple_radius[index]/MathConstant::Instance()->BohrRadiusInFermi());
         if(print)
             *outstream << "\nNuclearRadius = " << std::setprecision(3) << multiple_radius[index] << std::endl;
     }
@@ -357,7 +353,7 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
     }
     else if(multiple_alpha)
     {   // x = (alpha/alpha0)^2 - 1
-        alpha0 = Constant::Alpha;
+        alpha0 = MathConstant::Alpha;
         double parameter = -0.25;
 
         for(i = 0; i < 5; i++)
@@ -385,9 +381,9 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
         }
 
         double deltaR = 0.05;
-        core->CalculateVolumeShiftPotential(deltaR/Constant::AtomicToFermi);
-        *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::AtomicToFermi;
-        *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::AtomicToFermi;
+        core->CalculateVolumeShiftPotential(deltaR/MathConstant::BohrRadiusInFermi);
+        *outstream << "\nThickness = " << std::setprecision(3) << core->GetNuclearThickness()*Constant::BohrRadiusInFermi;
+        *outstream << "\nRadius    = " << std::setprecision(3) << core->GetNuclearRadius()*Constant::BohrRadiusInFermi;
         *outstream << "\nd(Radius) = " << std::setprecision(3) << deltaR << std::endl;
     }
     else if(multiple_radius)
@@ -411,7 +407,7 @@ void Atom::RunMultiple(bool include_mbpt, bool closed_shell)
         }
 
         *outstream << "\nThickness = " << std::setprecision(3)
-                   << core->GetNuclearThickness()*Constant::AtomicToFermi << std::endl;
+                   << core->GetNuclearThickness()*Constant::BohrRadiusInFermi << std::endl;
     }
 
     original_id = identifier;
@@ -503,7 +499,7 @@ void Atom::SetMultipleIntegralsAndCore(unsigned int index)
 
     if(sigma3)
     {   sigma3->UpdateIntegrals(excited);
-        sigma3->SetEnergyShift(mbpt_delta[index]/Constant::HartreeEnergy_cm);
+        sigma3->SetEnergyShift(mbpt_delta[index]/MathConstant::HartreeEnergyInInvCm);
     }
 }
 
@@ -594,14 +590,14 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
             if(include_mbpt && brueckner)
             {   excited->CreateSecondOrderSigma(si, *mbpt);
                 Orbital ds = excited->GetStateWithSigma(si);
-                *outstream << std::setprecision(15) << ds.Energy() * Constant::HartreeEnergy_cm << std::endl;
+                *outstream << std::setprecision(15) << ds.Energy() * MathConstant::HartreeEnergyInInvCm << std::endl;
             }
             else
             {   const Orbital* ds = it.GetState();
                 double dE = 0.;
                 if(include_mbpt)
                     dE = mbpt->GetOneElectronDiagrams(si, si);
-                *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergy_cm << std::endl;
+                *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergyInInvCm << std::endl;
             }
 
             it.Next();

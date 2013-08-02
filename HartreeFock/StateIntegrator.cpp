@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "StateIntegrator.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 
 void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge)
 {
@@ -53,6 +53,7 @@ unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(SingleParticleWavefunc
 void StateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge)
 {
     const int start_point = 0;
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     double correction = s.f[start_point];
 
@@ -66,7 +67,7 @@ void StateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const
         }
         else
         {   s.g[i] = pow(lattice->R(i), s.Kappa());
-            s.f[i] = s.g[i] * lattice->R(i) * Constant::AlphaSquared * HFPotential[i] / (2 * s.Kappa() + 1);
+            s.f[i] = s.g[i] * lattice->R(i) * alphasquared * HFPotential[i] / (2 * s.Kappa() + 1);
             s.dg[i] = s.Kappa() * s.g[i] / lattice->R(i) * lattice->dR(i);
             s.df[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i) * lattice->dR(i);
         }
@@ -193,11 +194,11 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
                 {
                     double old_peak_phase = peak_phase;
                     peak_phase = FindExtremum(S, i-2, x_max, false);
-                    if((old_peak_phase != 0.) && (fabs((peak_phase - old_peak_phase)/Constant::Pi - 1.) < accuracy))
+                    if((old_peak_phase != 0.) && (fabs((peak_phase - old_peak_phase)/MathConstant::Instance()->Pi() - 1.) < accuracy))
                     {
                         start_sine = i;
                         if(!maximum)
-                            peak_phase = peak_phase - Constant::Pi;
+                            peak_phase = peak_phase - MathConstant::Instance()->Pi();
                     }
                 }
                 else
@@ -231,6 +232,7 @@ double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunctio
 {
     double E = 0.;
     const double core_pol = core.GetPolarisability();
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(s1.Kappa() == s2.Kappa())
     {
@@ -253,12 +255,12 @@ double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunctio
             }
 
             double EQ1 = s2.df[i]/dR[i] + s2.Kappa()*s2.f[i]/R[i]
-                        - (2. + Constant::AlphaSquared*Potential[i])*s2.g[i]
-                        - Constant::AlphaSquared * exchange.g[i];
+                        - (2. + alphasquared*Potential[i])*s2.g[i]
+                        - alphasquared * exchange.g[i];
             double EQ2 = s2.dg[i]/dR[i] - s2.Kappa()*s2.g[i]/R[i] + Potential[i]*s2.f[i] + exchange.f[i];
 
             E = E - (s1.f[i] * EQ2 - s1.g[i] * EQ1)*dR[i];
-//            *errstream << i << "\t" << EQ1/s2.g[i]/Constant::AlphaSquared
+//            *errstream << i << "\t" << EQ1/s2.g[i]/MathConstant::AlphaSquared
 //                            << "\t" << -EQ2/s2.f[i]
 //                            << "\t" << s1.g[i] * EQ1 * dR[i]
 //                            << "\t" << -s1.f[i] * EQ2 * dR[i]
@@ -271,19 +273,20 @@ double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunctio
 void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const StateFunction& state_function, double nuclear_charge, unsigned int start_point)
 {
     double& Z = nuclear_charge;
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     double energy = s.Energy() - Z/lattice->R(start_point) + HFPotential[start_point];
     double AM = 1./sqrt(2. * fabs(energy));
-    double GAM = sqrt(s.Kappa()*s.Kappa() - Constant::AlphaSquared*Z*Z);
+    double GAM = sqrt(s.Kappa()*s.Kappa() - alphasquared*Z*Z);
     double GAM1 = 2.*GAM + 1.;
 
     double E, ALAMBD;
     if(energy < 0.)
-    {   ALAMBD = sqrt(1. - 0.25*Constant::AlphaSquared/(AM*AM))/AM;
-        E = 1. - 0.5*Constant::AlphaSquared/(AM*AM);
+    {   ALAMBD = sqrt(1. - 0.25*alphasquared/(AM*AM))/AM;
+        E = 1. - 0.5*alphasquared/(AM*AM);
     }
     else
-    {   ALAMBD = sqrt(1. + 0.25*Constant::AlphaSquared/(AM*AM))/AM;
-        E = 1. + 0.5*Constant::AlphaSquared/(AM*AM);
+    {   ALAMBD = sqrt(1. + 0.25*alphasquared/(AM*AM))/AM;
+        E = 1. + 0.5*alphasquared/(AM*AM);
     }
 
     double AQ = pow(2.*Z, GAM)/sqrt(Z * pow(s.Nu(), 3.));
@@ -405,13 +408,13 @@ double StateIntegrator::StateFunction::Coeff1(int point) const
 
 double StateIntegrator::StateFunction::Coeff2(int point) const
 {
-    return (2. + Constant::AlphaSquared * (energy + (*HFPotential)[point]));
+    return (2. + PhysicalConstant::Instance()->GetAlphaSquared() * (energy + (*HFPotential)[point]));
 }
 
 double StateIntegrator::StateFunction::Coeff3(int point) const
 {
     if(exchange && (unsigned int)point < exchange->Size())
-        return Constant::AlphaSquared * exchange->g[point];
+        return PhysicalConstant::Instance()->GetAlphaSquared() * exchange->g[point];
     else return 0.;
 }
 

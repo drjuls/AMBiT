@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "Orbital.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "OrbitalInfo.h"
 #include <math.h>
 
@@ -28,17 +28,18 @@ double Orbital::Norm(const Lattice* lattice) const
     double norm = 0.;
     unsigned int i;
     const double* dR = lattice->dR();
+    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
-    norm = f[0]*f[0] * Constant::AlphaSquared * g[0]*g[0] * dR[0];
+    norm = f[0]*f[0] * alphasquared * g[0]*g[0] * dR[0];
     for(i=0; i<Size()-2; i+=2)
-    {   norm = norm + 4. * (f[i]*f[i] + Constant::AlphaSquared * g[i]*g[i]) * dR[i];
-        norm = norm + 2. * (f[i+1]*f[i+1] + Constant::AlphaSquared * g[i+1]*g[i+1]) * dR[i+1];
+    {   norm = norm + 4. * (f[i]*f[i] + alphasquared * g[i]*g[i]) * dR[i];
+        norm = norm + 2. * (f[i+1]*f[i+1] + alphasquared * g[i+1]*g[i+1]) * dR[i+1];
     }
 
     norm = norm/3.;
 
     while(i<Size())
-    {   norm = norm + (f[i]*f[i] + Constant::AlphaSquared * g[i]*g[i]) * dR[i];
+    {   norm = norm + (f[i]*f[i] + alphasquared * g[i]*g[i]) * dR[i];
         i++;
     }
 

@@ -1,5 +1,5 @@
 #include "MBPTCalculator.h"
-#include "Universal/Constant.h"
+#include "Universal/MathConstant.h"
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/StateIntegrator.h"
 

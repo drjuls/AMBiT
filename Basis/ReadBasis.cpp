@@ -1,6 +1,6 @@
 #include "Include.h"
 #include "ReadBasis.h"
-#include "Universal/Constant.h"
+#include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/ExpLattice.h"
@@ -84,6 +84,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
     }
 
     StateIntegrator I(lattice);
+    double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     while(num_states_read < total_num_states)
     {
@@ -97,14 +98,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%d", &pqn);
             fscanf(fp, "%c", &lchar);
             lchar = tolower(lchar);
-            for(l = 0; l < 10; l++)
-                if(Constant::SpectroscopicNotation[l] == lchar)
-                    break;
-            if(l >= 10)
-            {   *errstream << "unable to find l from notation " << lchar << std::endl;
-                PAUSE;
-                exit(1);
-            }
+            l = MathConstant::Instance()->GetL(lchar);
             
             lchar = getc(fp);
             if(lchar == '-')
@@ -144,9 +138,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%d", &pqn);
             fscanf(fp, "%c", &lchar);
             lchar = tolower(lchar);
-            for(l = 0; l < 10; l++)
-                if(Constant::SpectroscopicNotation[l] == lchar)
-                    break;
+            l = MathConstant::Instance()->GetL(lchar);
             lchar = getc(fp);
             if(lchar == '-')
                 kappa = l;
@@ -171,7 +163,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         if(CMCCORE_FILE)
         {   for(i = 0; i<numpoints; i++)
             {   fscanf(fp, "%14le", &g);
-                ds_readlattice->g[i] = g/Constant::Alpha;
+                ds_readlattice->g[i] = g/alpha;
             }
         }
         else
@@ -179,7 +171,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%le", &buf);
             for(i = 0; i<numpoints; i++)
             {   fscanf(fp, "%le", &g);
-                ds_readlattice->g[i] = g/Constant::Alpha;
+                ds_readlattice->g[i] = g/alpha;
             }
         }
 
