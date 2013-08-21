@@ -84,7 +84,6 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
     }
 
     StateIntegrator I(lattice);
-    double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     while(num_states_read < total_num_states)
     {
@@ -163,7 +162,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         if(CMCCORE_FILE)
         {   for(i = 0; i<numpoints; i++)
             {   fscanf(fp, "%14le", &g);
-                ds_readlattice->g[i] = g/alpha;
+                ds_readlattice->g[i] = g;
             }
         }
         else
@@ -171,7 +170,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%le", &buf);
             for(i = 0; i<numpoints; i++)
             {   fscanf(fp, "%le", &g);
-                ds_readlattice->g[i] = g/alpha;
+                ds_readlattice->g[i] = g;
             }
         }
 

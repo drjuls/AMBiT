@@ -326,7 +326,6 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     current->ReNormalise(lattice);
 
     // Orthogonalise to core
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     ConstStateIterator it = core->GetConstStateIterator();
     while(!it.AtEnd())
     {
@@ -337,7 +336,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             double S = 0.;
             unsigned int i;
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
-            {   S = S + ((other->f[i])*(current->f[i]) + alphasquared*(other->g[i])*(current->g[i])) * dR[i];
+            {   S = S + ((other->f[i])*(current->f[i]) + (other->g[i])*(current->g[i])) * dR[i];
             }
 
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
@@ -362,7 +361,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             double S = 0.;
             unsigned int i;
             for(i=0; i<mmin(other->Size(), current->Size()); i++)
-            {   S += ((other->f[i])*(current->f[i]) + alphasquared*(other->g[i])*(current->g[i]))
+            {   S += ((other->f[i])*(current->f[i]) + (other->g[i])*(current->g[i]))
                     * dR[i];
             }
 

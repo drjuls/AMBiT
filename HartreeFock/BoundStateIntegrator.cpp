@@ -6,15 +6,16 @@
 void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, double nuclear_charge = 1.)
 {
     unsigned int i;
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     double correction = s.f[0];
     if(s.Kappa() < 0)
     {   s.f[0] = pow(lattice->R(0), -s.Kappa());
-        s.g[0] = s.f[0] * lattice->R(0) * HFPotential[0] / (2 * s.Kappa() - 1);
+        s.g[0] = alpha * s.f[0] * lattice->R(0) * HFPotential[0] / (2 * s.Kappa() - 1);
     }
     else
-    {   s.g[0] = pow(lattice->R(0), s.Kappa());
-        s.f[0] = s.g[0] * lattice->R(0) * PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[0] / (2 * s.Kappa() + 1);
+    {   s.g[0] = alpha * pow(lattice->R(0), s.Kappa());
+        s.f[0] = s.g[0] * lattice->R(0) * alpha * HFPotential[0] / (2 * s.Kappa() + 1);
     }
 
     // Determine an appropriate scaling to make the norm close to unit.
@@ -38,6 +39,8 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
     // Get start point
     unsigned int start_point = s.Size() - 1;
     unsigned int i = start_point - (adams_N-2);
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+
     double P;
     while(i < HFPotential.size())
     {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
@@ -58,7 +61,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
     S = S + 0.5 * P * lattice->dR(start_point);
 
     s.f[start_point] = exp(S)/sqrt(P);
-    s.g[start_point] = s.f[start_point] * (s.Kappa()/lattice->R(start_point) - P) * 0.5;
+    s.g[start_point] = alpha * s.f[start_point] * (s.Kappa()/lattice->R(start_point) - P) * 0.5;
 
     SolveDiracBoundary(s, HFPotential, start_point, false);
 
@@ -79,6 +82,7 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
 
     const double f0 = s.f[start_point];
     const double g0 = s.g[start_point];
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     // Get first DM points using exact Adam's method calculation
     // coeff[i][j]/coeff_denom gives the coefficient of y_j at x = x_i
@@ -123,18 +127,18 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     for(i=0; i<DM; i++)
     {
         if(forwards)
-            A[i*2*DM + i+DM] = -(2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[start_point + i+1])*lattice->dR(start_point + i+1);
+            A[i*2*DM + i+DM] = -(2./alpha + alpha * HFPotential[start_point + i+1])*lattice->dR(start_point + i+1);
         else
-            A[i*2*DM + i+DM] = (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[start_point -(i+1)])*lattice->dR(start_point - (i+1));
+            A[i*2*DM + i+DM] = (2./alpha + alpha * HFPotential[start_point -(i+1)])*lattice->dR(start_point - (i+1));
     }
 
     // Set up lower left quarter
     for(i=0; i<DM; i++)
     {
         if(forwards)
-            A[(i+DM)*2*DM + i] = HFPotential[start_point + i+1]*lattice->dR(start_point + i+1);
+            A[(i+DM)*2*DM + i] = alpha * HFPotential[start_point + i+1]*lattice->dR(start_point + i+1);
         else
-            A[(i+DM)*2*DM + i] = -HFPotential[start_point - (i+1)]*lattice->dR(start_point - (i+1));
+            A[(i+DM)*2*DM + i] = - alpha * HFPotential[start_point - (i+1)]*lattice->dR(start_point - (i+1));
     }
 
     // Set up lower right quarter
@@ -185,13 +189,13 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     // Calculate derivatives
     if(forwards)
         for(i=start_point; i<start_point+DM; i++)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[i])*s.g[i])*lattice->dR(i);
-            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i])*lattice->dR(i);
+            s.dg[i] = (-alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
     else
         for(i=start_point; i>start_point-DM; i--)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2. + PhysicalConstant::Instance()->GetAlphaSquared() * HFPotential[i])*s.g[i])*lattice->dR(i);
-            s.dg[i] = (-HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
+        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i])*lattice->dR(i);
+            s.dg[i] = (-alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
         }
 
     // Calculate other points up to adams_N

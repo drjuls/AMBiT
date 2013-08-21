@@ -196,7 +196,6 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     std::vector<double> potential(core.GetHFPotential().size());
     const double* dR = core.GetLattice()->dR();
     unsigned int p;  // just a counter
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Two-electron Slater integrals for Sigma3 diagrams are of the form:
     //   R^k(n b, a c), b <= c
@@ -229,7 +228,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
             // Get density
             if(k <= kmax)
             {   for(p=0; p < mmin(sn->Size(), sa->Size()); p++)
-                {   density[p] = sn->f[p] * sa->f[p] + alphasquared * sn->g[p] * sa->g[p];
+                {   density[p] = sn->f[p] * sa->f[p] + sn->g[p] * sa->g[p];
                 }
             }
 
@@ -270,7 +269,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {
-                                value += (sb->f[p] * sc->f[p] + alphasquared * sb->g[p] * sc->g[p])
+                                value += (sb->f[p] * sc->f[p] + sb->g[p] * sc->g[p])
                                          * potential[p] * dR[p];
                             }
 

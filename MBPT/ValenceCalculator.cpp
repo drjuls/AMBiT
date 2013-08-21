@@ -74,8 +74,6 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
     MathConstant* constants = MathConstant::Instance();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
-
 
     unsigned int Ja = (unsigned int)(sa.J() * 2.);
     unsigned int Jb = (unsigned int)(sb.J() * 2.);
@@ -147,12 +145,12 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
                         double R1 = 0.;
                         for(i=0; i<mmin(sb.Size(), s4.Size()); i++)
                         {
-                            density[i] = sb.f[i] * s4.f[i] + alphasquared * sb.g[i] * s4.g[i];
+                            density[i] = sb.f[i] * s4.f[i] + sb.g[i] * s4.g[i];
                         }
                         I.FastCoulombIntegrate(density, pot, k1, mmin(sb.Size(), s4.Size()));
                         
                         for(i=0; i < mmin(sa.Size(), s3.Size()); i++)
-                            R1 = R1 + pot[i] * (sa.f[i] * s3.f[i] + alphasquared * sa.g[i] * s3.g[i]) * dR[i];
+                            R1 = R1 + pot[i] * (sa.f[i] * s3.f[i] + sa.g[i] * s3.g[i]) * dR[i];
 
                         if(NuclearInverseMass && (k1 == 1))
                         {   R1 = R1 - NuclearInverseMass * SI.IsotopeShiftIntegral(s3, sa) * SI.IsotopeShiftIntegral(s4, sb);
@@ -177,12 +175,12 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
                                 double R2 = 0.;
                                 for(i=0; i<mmin(s4.Size(), sd.Size()); i++)
                                 {
-                                    density[i] = s4.f[i] * sd.f[i] + alphasquared * s4.g[i] * sd.g[i];
+                                    density[i] = s4.f[i] * sd.f[i] + s4.g[i] * sd.g[i];
                                 }
                                 I.FastCoulombIntegrate(density, pot, k2, mmin(s4.Size(), sd.Size()));
                                 
                                 for(i=0; i < mmin(s3.Size(), sc.Size()); i++)
-                                    R2 = R2 + pot[i] * (s3.f[i] * sc.f[i] + alphasquared * s3.g[i] * sc.g[i]) * dR[i];
+                                    R2 = R2 + pot[i] * (s3.f[i] * sc.f[i] + s3.g[i] * sc.g[i]) * dR[i];
 
                                 if(NuclearInverseMass && (k2 == 1))
                                 {   R2 = R2 - NuclearInverseMass * SI.IsotopeShiftIntegral(s3, sc) * SI.IsotopeShiftIntegral(s4, sd);
@@ -208,7 +206,6 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
 {
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     std::vector<double> density(MaxStateSize);
     std::vector<double> pot(MaxStateSize);
@@ -226,7 +223,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     // Hole line is attached to sa or sc
     for(i=0; i<mmin(sb.Size(), sd.Size()); i++)
     {
-        density[i] = sb.f[i] * sd.f[i] + alphasquared * sb.g[i] * sd.g[i];
+        density[i] = sb.f[i] * sd.f[i] + sb.g[i] * sd.g[i];
     }
     I.FastCoulombIntegrate(density, pot, k, mmin(sb.Size(), sd.Size()));
 
@@ -243,7 +240,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         {
             double R1 = 0.;
             for(i=0; i < mmin(s3.Size(), sc.Size()); i++)
-                R1 += pot[i] * (s3.f[i] * sc.f[i] + alphasquared * s3.g[i] * sc.g[i]) * dR[i];
+                R1 += pot[i] * (s3.f[i] * sc.f[i] + s3.g[i] * sc.g[i]) * dR[i];
 
             if(SMS_bd)
             {   R1 = R1 - SMS_bd * SI.IsotopeShiftIntegral(s3, sc);
@@ -256,7 +253,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         {
             double R1 = 0.;
             for(i=0; i < mmin(sa.Size(), s3.Size()); i++)
-                R1 += pot[i] * (sa.f[i] * s3.f[i] + alphasquared * sa.g[i] * s3.g[i]) * dR[i];
+                R1 += pot[i] * (sa.f[i] * s3.f[i] + sa.g[i] * s3.g[i]) * dR[i];
 
             if(SMS_bd)
             {   R1 = R1 + SMS_bd * SI.IsotopeShiftIntegral(s3, sa);
@@ -271,7 +268,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     // Hole line is attached to sb or sd.
     for(i=0; i<mmin(sa.Size(), sc.Size()); i++)
     {
-        density[i] = sa.f[i] * sc.f[i] + alphasquared * sa.g[i] * sc.g[i];
+        density[i] = sa.f[i] * sc.f[i] + sa.g[i] * sc.g[i];
     }
     I.FastCoulombIntegrate(density, pot, k, mmin(sa.Size(), sc.Size()));
 
@@ -288,7 +285,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         {
             double R1 = 0.;
             for(i=0; i < mmin(s3.Size(), sd.Size()); i++)
-                R1 += pot[i] * (s3.f[i] * sd.f[i] + alphasquared * s3.g[i] * sd.g[i]) * dR[i];
+                R1 += pot[i] * (s3.f[i] * sd.f[i] + s3.g[i] * sd.g[i]) * dR[i];
 
             if(SMS_ac)
             {   R1 = R1 - SMS_ac * SI.IsotopeShiftIntegral(s3, sd);
@@ -301,7 +298,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         {
             double R1 = 0.;
             for(i=0; i < mmin(sb.Size(), s3.Size()); i++)
-                R1 += pot[i] * (sb.f[i] * s3.f[i] + alphasquared * sb.g[i] * s3.g[i]) * dR[i];
+                R1 += pot[i] * (sb.f[i] * s3.f[i] + sb.g[i] * s3.g[i]) * dR[i];
 
             if(SMS_ac)
             {   R1 = R1 + SMS_ac * SI.IsotopeShiftIntegral(s3, sb);

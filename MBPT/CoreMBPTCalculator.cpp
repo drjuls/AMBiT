@@ -126,7 +126,6 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
     std::vector<double> Y(MaxStateSize); unsigned int Y_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 1+3:  ";
@@ -176,7 +175,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -278,7 +277,6 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 2:    ";
@@ -326,7 +324,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -371,7 +369,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
                                 {
                                     for(i=0; i<mmin(sn.Size(), sbeta.Size()); i++)
                                     {
-                                        density[i] = sn.f[i] * sbeta.f[i] + alphasquared * sn.g[i] * sbeta.g[i];
+                                        density[i] = sn.f[i] * sbeta.f[i] + sn.g[i] * sbeta.g[i];
                                     }
                                     I.FastCoulombIntegrate(density, P_nbeta, k2, mmin(sn.Size(), sbeta.Size()));
 
@@ -436,7 +434,6 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
     std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     if(debug)
         *outstream << "Cor 4:    ";
@@ -484,7 +481,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
 
                     for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
                     {
-                        density[i] = sn.f[i] * salpha.f[i] + alphasquared * sn.g[i] * salpha.g[i];
+                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
                     I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
 
@@ -530,7 +527,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
                                 {
                                     for(i=0; i<mmin(sm.Size(), salpha.Size()); i++)
                                     {
-                                        density[i] = sm.f[i] * salpha.f[i] + alphasquared * sm.g[i] * salpha.g[i];
+                                        density[i] = sm.f[i] * salpha.f[i] + sm.g[i] * salpha.g[i];
                                     }
                                     I.FastCoulombIntegrate(density, P_malpha, k2, mmin(sm.Size(), salpha.Size()));
 

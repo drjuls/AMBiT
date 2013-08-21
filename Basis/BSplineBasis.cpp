@@ -6,6 +6,7 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Eigensolver.h"
+#include "HartreeFock/StateIntegrator.h"
 
 void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
 {
@@ -28,6 +29,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     double dr0;
 
     Eigensolver E;
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     for(unsigned int l=0; l<num_states_per_l.size(); l++)
     {
@@ -141,11 +144,11 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 if(spline_type == Reno || spline_type == Vanderbilt)
                 {
                     // Calculate small component
-                    Bupper.g[point] = (Bupper.df[point] + kappa/x * Bupper.f[point])/2.;
-                    Bupper.dg[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.df[point] - kappa/(x*x) * Bupper.f[point])/2.;
+                    Bupper.g[point] = (Bupper.df[point] + kappa/x * Bupper.f[point]) * alpha/2.;
+                    Bupper.dg[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.df[point] - kappa/(x*x) * Bupper.f[point]) * alpha/2.;
 
-                    Blower.f[point] = PhysicalConstant::Instance()->GetAlphaSquared() * (Blower.dg[point] - kappa/x * Blower.g[point])/2.;
-                    Blower.df[point] = PhysicalConstant::Instance()->GetAlphaSquared() * (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dg[point] + kappa/(x*x) * Blower.g[point])/2.;
+                    Blower.f[point] = (Blower.dg[point] - kappa/x * Blower.g[point]) * alpha/2.;
+                    Blower.df[point] = (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dg[point] + kappa/(x*x) * Blower.g[point]) * alpha/2.;
                 }
 
                 Blower.df[point] *= dx;
@@ -211,6 +214,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             CoupledFunction exchange;
             core->CalculateExchange(Bj, exchange);
             exchange.ReSize(Bj.Size());
+            StateIntegrator SI(lattice);
 
             for(i=j; i<n2; i++)
             {
@@ -223,12 +227,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 double En = 0.;
                 for(unsigned int p=0; p<mmin(Bi.Size(), Bj.Size()); p++)
                 {
-                    double EQ1 = (Bj.df[p]/dR_lattice[p] + kappa*Bj.f[p]/R_lattice[p])
-                                - (2. + PhysicalConstant::Instance()->GetAlphaSquared()*Potential[p])*Bj.g[p]
-                                - PhysicalConstant::Instance()->GetAlphaSquared() * exchange.g[p];
-                    double EQ2 = (Bj.dg[p]/dR_lattice[p] - kappa*Bj.g[p]/R_lattice[p]) + Potential[p]*Bj.f[p] + exchange.f[p];
-
-                    En = En - (Bi.f[p] * EQ2 - Bi.g[p] * EQ1)*dR_lattice[p];
+                    double Ef = - Potential[p]*Bj.f[p] - exchange.f[p]
+                                + (- Bj.dg[p]/dR_lattice[p] + kappa * Bj.g[p]/R_lattice[p])/alpha;
+                    double Eg = (Bj.df[p]/dR_lattice[p] + kappa*Bj.f[p]/R_lattice[p])/alpha
+                                - (2./alphasquared + Potential[p])*Bj.g[p] - exchange.g[p];
+                    
+                    En = En + (Bi.f[p] * Ef + Bi.g[p] * Eg)*dR_lattice[p];
                 }
 
                 A[i * n2 + j] = A[j * n2 + i] = En;
@@ -242,25 +246,25 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             // Account for boundary conditions on splines.
             // At r = 0, this is effectively a delta function to push spurious states to high energy.
             if(kappa < 0)
-                A[0] += 1./PhysicalConstant::Instance()->GetAlpha();
+                A[0] += 1./alpha;
             else
-                A[0] += 2./PhysicalConstant::Instance()->GetAlphaSquared();
+                A[0] += 2./alphasquared;
             A[0*n2 + n] += 0.5;
             A[n*n2 + 0] += -0.5;
 
             // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A[(n-1)*n2 + (n-1)] += 0.5/PhysicalConstant::Instance()->GetAlpha();
+            A[(n-1)*n2 + (n-1)] += 0.5/alpha;
             A[(n-1)*n2 + (n2-1)] += -0.5;
             A[(n2-1)*n2 + (n-1)] += 0.5;
-            A[(n2-1)*n2 + (n2-1)] += -0.5*PhysicalConstant::Instance()->GetAlpha();
+            A[(n2-1)*n2 + (n2-1)] += -0.5*alpha;
         }
         else if(spline_type == Vanderbilt)
         {
             // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A[(n-1)*n2 + (n-1)] += 0.5/PhysicalConstant::Instance()->GetAlpha();
+            A[(n-1)*n2 + (n-1)] += 0.5/alpha;
             A[(n-1)*n2 + (n2-1)] += -0.5;
             A[(n2-1)*n2 + (n-1)] += 0.5;
-            A[(n2-1)*n2 + (n2-1)] += -0.5*PhysicalConstant::Instance()->GetAlpha();
+            A[(n2-1)*n2 + (n2-1)] += -0.5*alpha;
         }
 
         // Solve A*p[i] = energy*B*p[i]

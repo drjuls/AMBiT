@@ -116,7 +116,6 @@ void Core::Update()
 void Core::UpdateHFPotential(double proportion_new, bool first_build)
 {
     HFPotential.resize(lattice->Size());
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Get electron density function
     std::vector<double> density;
@@ -135,7 +134,7 @@ void Core::UpdateHFPotential(double proportion_new, bool first_build)
 
         for(unsigned int j=0; j<s.Size(); j++)
         {
-            density[j] = density[j] + (pow(f[j], 2.) + alphasquared * pow(g[j], 2.))*number_electrons;
+            density[j] = density[j] + (pow(f[j], 2.) + pow(g[j], 2.))*number_electrons;
         }
 
         cs.Next();
@@ -286,7 +285,6 @@ void Core::CalculateClosedShellRadius()
     std::vector<double> density;
     density.clear();
     unsigned int j;
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     ConstStateIterator cs = GetConstStateIterator();
     while(!cs.AtEnd())
@@ -303,7 +301,7 @@ void Core::CalculateClosedShellRadius()
 
             for(unsigned int j=0; j<s.Size(); j++)
             {
-                density[j] = density[j] + (f[j] * f[j] + alphasquared * g[j] * g[j])*number_electrons;
+                density[j] = density[j] + (f[j] * f[j] + g[j] * g[j])*number_electrons;
             }
         }
 
@@ -340,6 +338,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     if(s->Size() > (I.AdamsOrder()-1))
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -390,7 +389,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
         g_right += tail_scaling * no_exchange_state.g[peak];
 
         double norm = s->Norm(lattice);
-        delta = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm;
+        delta = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm/alpha;
 
         if(fabs(delta) > 0.1)
                 delta = 0.1 * delta/fabs(delta);
@@ -422,7 +421,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
     I.SetAdamsOrder(10);
     BoundStateIntegrator BI(lattice);
     BI.SetAdamsOrder(10);
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     if(s->Size() > (I.AdamsOrder()-1))
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -486,7 +485,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
 
     double var = 0;
     for(i=0; i<s->Size(); i++)
-    {   var += (del_s.f[i] * s->f[i] + alphasquared * del_s.g[i] * s->g[i])*dR[i];
+    {   var += (del_s.f[i] * s->f[i] + del_s.g[i] * s->g[i])*dR[i];
     }
 
     delta_E = (1. - norm)/(2. * var);
@@ -522,10 +521,10 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
         s->g[i] = -(s0.g[i] * Ginf[i] + sInf.g[i] * G0[i]);
 
         s->df[i] = (- s->Kappa()/R[i] * s->f[i] +
-                    (2. + alphasquared*(s->Energy() + Potential[i])) * s->g[i]
-                    + alphasquared * exchange->g[i]) * dR[i];
-        s->dg[i] = (s->Kappa()/R[i] * s->g[i] - (s->Energy() + Potential[i]) * s->f[i]
-                    - exchange->f[i]) *dR[i];
+                    (2./alpha + alpha*(s->Energy() + Potential[i])) * s->g[i]
+                    + alpha * exchange->g[i]) * dR[i];
+        s->dg[i] = (s->Kappa()/R[i] * s->g[i] - alpha * (s->Energy() + Potential[i]) * s->f[i]
+                    - alpha * exchange->f[i]) *dR[i];
     }
 
     s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -757,7 +756,6 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
 {
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     exchange.Clear();
     exchange.ReSize(current.Size());
@@ -777,7 +775,7 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
         std::vector<double> density(upper_point);
         for(unsigned int i=0; i<upper_point; i++)
         {
-            density[i] = current.f[i] * other.f[i] + alphasquared * current.g[i] * other.g[i];
+            density[i] = current.f[i] * other.f[i] + current.g[i] * other.g[i];
         }
 
         // Sum over all k

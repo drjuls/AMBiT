@@ -7,12 +7,12 @@
 class GreensIntegrator : public Integrator
 {
     /** Solves the integral equations
-            GreensInfinity(r) = (1/W) Integral  [F(r'). f_inf(r') + alpha^2. G(r'). g_inf(r')]dr'
+            GreensInfinity(r) = (1/W) Integral  [F(r'). f_inf(r') + G(r'). g_inf(r')]dr'
                                      r->infinity
-            GreensOrigin(r)   = (1/W) Integral [F(r'). f_0(r') + alpha^2. G(r'). g_0(r')]dr'
+            GreensOrigin(r)   = (1/W) Integral [F(r'). f_0(r') + G(r'). g_0(r')]dr'
                                         0->r
         W is the Wronskian
-            W = f_0(r)*g_inf(r) - f_inf(r)*g_0(r)
+            W = (f_0(r)*g_inf(r) - f_inf(r)*g_0(r))/alpha
         and should be a constant. We include it in the integral just in case it isn't.
 
         Generally this is used to solve some coupled first order equation

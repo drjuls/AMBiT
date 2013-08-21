@@ -153,7 +153,6 @@ void CIIntegrals::UpdateOneElectronIntegrals()
 {
     StateIntegrator SI(states.GetLattice());
     unsigned int i, j;
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     ConstStateIterator it_i = states.GetConstStateIterator();
     ConstStateIterator it_j = states.GetConstStateIterator();
@@ -206,7 +205,7 @@ void CIIntegrals::UpdateOneElectronIntegrals()
                 double overlap = 0.;
                 const double* dR = states.GetLattice()->dR();
                 for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                    overlap += (p1.f[x] * p2.f[x] + alphasquared * p1.g[x] * p2.g[x]) * dR[x];
+                    overlap += (p1.f[x] * p2.f[x] + p1.g[x] * p2.g[x]) * dR[x];
 
                 OverlapIntegrals.insert(std::pair<unsigned int, double>(i * NumStates + j, overlap));
             }
@@ -249,8 +248,6 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     ConstStateIterator it_3 = states.GetConstStateIterator();
     ConstStateIterator it_4 = states.GetConstStateIterator();
 
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
-
     // Get 2 -> 4
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
@@ -273,7 +270,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
             // Get density24
             if(k <= kmax)
             {   for(p=0; p<mmin(s_2->Size(), s_4->Size()); p++)
-                {   density[p] = s_2->f[p] * s_4->f[p] + alphasquared * s_2->g[p] * s_4->g[p];
+                {   density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
                 }
             }
 
@@ -322,7 +319,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                                 limit = mmin(limit, Pot24.size());
                                 for(p=0; p<limit; p++)
                                 {
-                                    radial += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])
+                                    radial += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])
                                             * Pot24[p] * dR[p];
                                 }
 
@@ -333,7 +330,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                                     for(p=0; p<limit; p++)
                                     {
                                         double r2 = R[p]*R[p] + core_rad*core_rad;
-                                        R1 += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
+                                        R1 += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])/r2 * dR[p];
                                         R2 += density[p]/r2 * dR[p];
                                     }
 
@@ -429,13 +426,12 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
         const double* dR = states.GetLattice()->dR();
         const double core_pol = states.GetCore()->GetPolarisability();
         const double core_rad = states.GetCore()->GetClosedShellRadius();
-        double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
         // Get density24
         std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
         for(p=0; p<density.size(); p++)
         {
-            density[p] = s_2->f[p] * s_4->f[p] + alphasquared * s_2->g[p] * s_4->g[p];
+            density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
         }
         density.resize(states.GetCore()->GetHFPotential().size());
 
@@ -447,7 +443,7 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
         limit = mmin(limit, Pot24.size());
         for(p=0; p<limit; p++)
         {
-            radial += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])
+            radial += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])
                         * Pot24[p] * dR[p];
         }
 
@@ -458,7 +454,7 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
             for(p=0; p<limit; p++)
             {
                 double r2 = R[p]*R[p] + core_rad*core_rad;
-                R1 += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
+                R1 += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])/r2 * dR[p];
                 R2 += density[p]/r2 * dR[p];
             }
 

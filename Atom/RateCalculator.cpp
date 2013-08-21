@@ -676,7 +676,6 @@ double RateCalculator::CalculateMultipoleStrength(MultipolarityType::Enum MType,
 double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2)
 {
     *outstream << "Electron from " << e1.Name() << " to " << e2.Name() << std::endl;
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     double matrix_element = 0.0;
 
     // Check e1.L() + e2.L() + 1 is even
@@ -708,7 +707,7 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
                 const double* R = excited->GetLattice()->R();
                 const double* dR = excited->GetLattice()->dR();
                 for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                    overlap += (p1.f[x] * p2.f[x] + alphasquared * p1.g[x] * p2.g[x]) * R[x] * dR[x];
+                    overlap += (p1.f[x] * p2.f[x] + p1.g[x] * p2.g[x]) * R[x] * dR[x];
 
                 E1Integrals[key] = overlap;
             }
@@ -1083,13 +1082,12 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
     const double* dR = excited->GetLattice()->dR();
     const double core_pol = excited->GetCore()->GetPolarisability();
     const double core_rad = excited->GetCore()->GetClosedShellRadius();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Get density24
     std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
     for(p=0; p<density.size(); p++)
     {
-        density[p] = s_2->f[p] * s_4->f[p] + alphasquared * s_2->g[p] * s_4->g[p];
+        density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
     }
     density.resize(excited->GetCore()->GetHFPotential().size());
 
@@ -1145,7 +1143,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
             limit = mmin(limit, Pot24.size());
             for(p=0; p<limit; p++)
             {
-                radial += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])
+                radial += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])
                             * Pot24[p] * dR[p];
             }
 //            for(p=0; p<limit; p+=2)
@@ -1167,7 +1165,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
                 for(p=0; p<limit; p++)
                 {
                     double r2 = R[p]*R[p] + core_rad*core_rad;
-                    R1 += (s_1->f[p] * s_3->f[p] + alphasquared * s_1->g[p] * s_3->g[p])/r2 * dR[p];
+                    R1 += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])/r2 * dR[p];
                     R2 += density[p]/r2 * dR[p];
                 }
 
@@ -1214,13 +1212,12 @@ double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const SingleP
     const double* dR = excited->GetLattice()->dR();
     const double core_pol = excited->GetCore()->GetPolarisability();
     const double core_rad = excited->GetCore()->GetClosedShellRadius();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Get density24
     std::vector<double> density(mmin(sb->Size(), sd->Size()));
     for(p=0; p<density.size(); p++)
     {
-        density[p] = sb->f[p] * sd->f[p] + alphasquared * sb->g[p] * sd->g[p];
+        density[p] = sb->f[p] * sd->f[p] + sb->g[p] * sd->g[p];
     }
     density.resize(excited->GetCore()->GetHFPotential().size());
 
@@ -1242,7 +1239,7 @@ double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const SingleP
             limit = mmin(limit, Pot24.size());
             for(p=0; p<limit; p++)
             {
-                radial += (sa->f[p] * sc->f[p] + alphasquared * sa->g[p] * sc->g[p])
+                radial += (sa->f[p] * sc->f[p] + sa->g[p] * sc->g[p])
                             * Pot24[p] * dR[p];
             }
 
@@ -1303,7 +1300,6 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
     const double* R = excited->GetLattice()->R();
     const double* dR = excited->GetLattice()->dR();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
     
     // k = omega/c, in atomic units
     // omega = Energy_1 - Energy_2 also in atomic units
@@ -1318,7 +1314,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
             // exactly cancels the k dependence added by reintroducing dimensionality
             for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
             {
-                overlap += ((p1.f[x] * p2.f[x]) + (alphasquared * p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
+                overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
             }
             
             matrix_element = coeff * overlap;
@@ -1328,7 +1324,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
         {
             for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
             {
-                overlap += ((p1.f[x] * p2.f[x]) + (alphasquared * p1.g[x] * p2.g[x])) * boost::math::sph_bessel(J, R[x] * k) * dR[x];
+                overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * boost::math::sph_bessel(J, R[x] * k) * dR[x];
                 overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * boost::math::sph_bessel(J + 1, R[x] * k) * ((((double) e1.Kappa()) - ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
                 overlap += ((p1.f[x] * p2.g[x]) - (p1.g[x] * p2.f[x])) * alpha * boost::math::sph_bessel(J + 1, R[x] * k) * dR[x];
             }
@@ -1350,7 +1346,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
             // exactly cancels the k dependence added by reintroducing dimensionality
             for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
             {
-                //overlap += ((p1.f[x] * p2.f[x]) + (alphasquared * p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
+                //overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
             }
             
             matrix_element = ((double) boost::math::double_factorial<double>((2.0 * ((double) J)) + 1.0)) * matrix_element;

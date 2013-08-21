@@ -304,7 +304,6 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
     std::vector<double> potential(core.GetHFPotential().size());
     const double* dR = core.GetLattice()->dR();
     unsigned int p;  // just a counter
-    double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
 
     // Two-electron Slater integrals for MBPT diagrams are of two types:
     //   R^k(n a, alpha beta), a <= beta
@@ -338,7 +337,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
             // Get density
             if(k <= kmax)
             {   for(p=0; p < mmin(sn->Size(), salpha->Size()); p++)
-                {   density[p] = sn->f[p] * salpha->f[p] + alphasquared * sn->g[p] * salpha->g[p];
+                {   density[p] = sn->f[p] * salpha->f[p] + sn->g[p] * salpha->g[p];
                 }
             }
 
@@ -393,7 +392,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {
-                                value += (sa->f[p] * sbeta->f[p] + alphasquared * sa->g[p] * sbeta->g[p])
+                                value += (sa->f[p] * sbeta->f[p] + sa->g[p] * sbeta->g[p])
                                          * potential[p] * dR[p];
                             }
 
@@ -429,7 +428,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {
-                                value += (sm->f[p] * sbeta->f[p] + alphasquared * sm->g[p] * sbeta->g[p])
+                                value += (sm->f[p] * sbeta->f[p] + sm->g[p] * sbeta->g[p])
                                          * potential[p] * dR[p];
                             }
 
