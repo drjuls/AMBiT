@@ -35,7 +35,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                     {   // Check if state already exists
                         s = GetState(OrbitalInfo(pqn, kappa));
                         if(s == NULL)
-                        {   Orbital* ds = new Orbital(pqn, kappa);
+                        {   Orbital* ds = new Orbital(kappa, 0., pqn);
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -60,8 +60,8 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                 {
                     Orbital* ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = new Orbital(pqn, kappa);
-                        ds->SetNu(previous_state->Nu() + 1.);
+                    {   ds = new Orbital(kappa, 0., pqn);
+                        ds->SetNu(previous_state->GetNu() + 1.);
                         AddState(ds);
                     }
 
@@ -70,7 +70,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                         Orthogonalise(ds);
 
                     if(DebugOptions.OutputHFExcited())
-                        *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
+                        *outstream << "  " << ds->Name() << " en:   " << ds->GetEnergy() << "  size:  " << ds->Size() << std::endl;
 
                     previous_state = ds;
                     count++;

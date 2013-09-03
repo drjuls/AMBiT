@@ -3,51 +3,52 @@
 
 //#define USE_ALT_STATE_NOTATION
 
-#include "Universal/CoupledFunction.h"
+#include "Universal/SpinorFunction.h"
 #include "Universal/Lattice.h"
 #include <string>
 #include <cmath>
 #include <stdlib.h>
 
-class SingleParticleWavefunction : public CoupledFunction
+/** Single particle wavefunction is for solutions of a single-particle Hamiltonian.
+    That is, it is a SpinorFunction with an energy eigenvalue E:
+        h|psi> = E|psi>
+    It also contains a principal quantum number, which may or may not correspond
+    to the spectroscopic pqn.
+ */
+class SingleParticleWavefunction : public SpinorFunction
 {
-    /** Electron state. Psi = (        f/r. Y_jlm)
-                              (i.alpha.g/r.~Y_jlm)
-     */
 public:
-    SingleParticleWavefunction();
-    SingleParticleWavefunction(int Kappa);
+    SingleParticleWavefunction(int kappa, double energy = 0., unsigned int pqn = 0, unsigned int size = 0);
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
-    virtual ~SingleParticleWavefunction(void) {}
+    virtual ~SingleParticleWavefunction() {}
 
-    virtual double Energy() const = 0;
-    /** Nu is the effective principal quantum number */
-    double Nu() const { return nu; }
-    
-    int Kappa() const { return kappa; }
-    unsigned int L() const;
-    double J() const;
-    unsigned int TwoJ() const;
-    virtual std::string Name() const = 0;
+    virtual double GetEnergy() const;
 
-    inline void SetKappa(int kappa) { this->kappa = kappa; }
-    inline void SetNu(double nu) { this->nu = nu; }
+    /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
+    virtual double GetNu() const;
+    virtual unsigned int GetPQN() const;
 
-    const SingleParticleWavefunction& operator=(const SingleParticleWavefunction& other)
-    {   CoupledFunction::operator=(other);
-        kappa = other.kappa;
-        nu = other.nu;
-        return *this;
-    }
+    virtual void SetEnergy(double Energy);
+    virtual void SetNu(double Nu);
+    virtual void SetPQN(int PQN);
+
+    virtual std::string Name() const;
+
+    const SingleParticleWavefunction& operator=(const SingleParticleWavefunction& other);
+    const SingleParticleWavefunction& operator*=(double scale_factor);
+    SingleParticleWavefunction operator*(double scale_factor) const;
+    const SingleParticleWavefunction& operator+=(const SingleParticleWavefunction& other);
+    const SingleParticleWavefunction& operator-=(const SingleParticleWavefunction& other);
+    SingleParticleWavefunction operator+(const SingleParticleWavefunction& other) const;
+    SingleParticleWavefunction operator-(const SingleParticleWavefunction& other) const;
 
     /** Store the state. File pointer fp must be open and writable. */
-    virtual void Write(FILE* fp) const { CoupledFunction::Write(fp); }
+    virtual void Write(FILE* fp) const;
 
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
 
-    /** Get overlap of this state with another. */
-    double Overlap(const SingleParticleWavefunction& other, const Lattice* lattice) const;
+    double Overlap(const SingleParticleWavefunction& other, const Lattice* lattice) const; // Deprecate
 
     /** Print state to file, optionally printing lattice. Return success. */
     bool Print(Lattice* lattice = NULL) const;
@@ -55,24 +56,10 @@ public:
     bool Print(FILE* fp, Lattice* lattice = NULL) const;
 
 protected:
-    int kappa;
-    double nu;          // effective principal quantum number - determines energy
+    int pqn;
+    double energy;
 };
 
-inline unsigned int SingleParticleWavefunction::L() const
-{   if (kappa > 0)
-        return (unsigned int)(kappa);
-    else
-        return (unsigned int)(-kappa-1);
-}
-
-inline double SingleParticleWavefunction::J() const
-{   return (double)abs(kappa) - 0.5;
-}
-
-inline unsigned int SingleParticleWavefunction::TwoJ() const
-{
-    return (2*abs(kappa) - 1);
-}
+typedef SingleParticleWavefunction ContinuumWave;
 
 #endif

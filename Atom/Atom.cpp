@@ -256,7 +256,7 @@ void Atom::RunSingleElectron()
                 Orbital* ds = it.GetState();
                 *outstream << "\n" << ds->Name() << "\n";
                 *outstream << std::setprecision(12);
-                *outstream << "HF Energy: " << ds->Energy() * constants->HartreeEnergyInInvCm() << std::endl;
+                *outstream << "HF Energy: " << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << std::endl;
     
                 if(sigma_potential)
                 {
@@ -266,11 +266,11 @@ void Atom::RunSingleElectron()
                         dE = excited->CreateSecondOrderSigma(si, *mbpt);
                     else
                         dE = excited->GetSigmaMatrixElement(si);
-                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
+                    *outstream << "HF + MBPT: " << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
                     
                     // Iterate to create Brueckner orbital
                     Orbital brueckner = excited->GetStateWithSigma(si);
-                    *outstream << "Brueckner: " << brueckner.Energy() * constants->HartreeEnergyInInvCm() << std::endl;
+                    *outstream << "Brueckner: " << brueckner.GetEnergy() * constants->HartreeEnergyInInvCm() << std::endl;
     
                     // Set energy to known value, if requested
                     double E_experiment = userInput_(("Basis/Valence/" + si.Name()).c_str(), 0.0);
@@ -289,7 +289,7 @@ void Atom::RunSingleElectron()
                 }
                 else if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << "HF + MBPT: " << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
+                    *outstream << "HF + MBPT: " << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << std::endl;
                 }
     
                 it.Next();
@@ -332,11 +332,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -353,11 +353,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -401,11 +401,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -422,11 +422,11 @@ void Atom::RunSingleElectron()
 
                 if(mbpt)
                 {   double dE = mbpt->GetOneElectronDiagrams(si, si);
-                    *outstream << (ds->Energy() + dE) * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << (ds->GetEnergy() + dE) * constants->HartreeEnergyInInvCm() << " ";
                 }
                 else
                 {
-                    *outstream << ds->Energy() * constants->HartreeEnergyInInvCm() << " ";
+                    *outstream << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << " ";
                 }
     
                 it.Next();
@@ -455,9 +455,9 @@ StateIterator Atom::GetIteratorToNextOrbitalToFill()
     {
         OrbitalInfo oi = si.GetOrbitalInfo();
         Orbital* orb = si.GetState();
-        if((orb->Energy() < lowestEnergy) && ((int) orb->Occupancy() < (int) oi.MaxNumElectrons()))
+        if((orb->GetEnergy() < lowestEnergy) && ((int) orb->Occupancy() < (int) oi.MaxNumElectrons()))
         {
-            lowestEnergy = orb->Energy();
+            lowestEnergy = orb->GetEnergy();
             lowestsi = si;
         }
         si.Next();
@@ -468,9 +468,9 @@ StateIterator Atom::GetIteratorToNextOrbitalToFill()
     {
         OrbitalInfo oi = si.GetOrbitalInfo();
         Orbital* orb = si.GetState();
-        if((orb->Energy() < lowestEnergy))
+        if((orb->GetEnergy() < lowestEnergy))
         {
-            lowestEnergy = orb->Energy();
+            lowestEnergy = orb->GetEnergy();
             lowestsi = si;
         }
         si.Next();
@@ -871,10 +871,10 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const Orbital* ds)
     }
 
     // Upper component
-    fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1], -ds->Energy());
+    fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1], -ds->GetEnergy());
 */
     // Upper component
-    fprintf(fp, "     %2d%2d     %5d\n", ds->RequiredPQN(), ds->Kappa(), ds->Size());
+    fprintf(fp, "     %2d%2d     %5d\n", ds->GetPQN(), ds->Kappa(), ds->Size());
 
     unsigned int count = 0;
     unsigned int i;
@@ -913,7 +913,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, const Orbital* ds)
     }
 */
     //fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1]);
-    fprintf(fp, "\n     %2d%2d     %5d\n", ds->RequiredPQN(), ds->Kappa(), ds->Size());
+    fprintf(fp, "\n     %2d%2d     %5d\n", ds->GetPQN(), ds->Kappa(), ds->Size());
 
     count = 0;
     for(i = 0; i < ds->Size(); i++)
@@ -1032,9 +1032,9 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     {
         // Record 4
         char NH[2];
-        int NP;     // ds->RequiredPQN()
+        int NP;     // ds->GetPQN()
         int NAK;    // ds->Kappa()
-        double E;   // fabs(ds->Energy())
+        double E;   // fabs(ds->GetEnergy())
         fread(&record_size, sizeof(int), 1, fp);
         fread(&NH, sizeof(char), 2, fp);
         fread(&NP, sizeof(int), 1, fp);
@@ -1042,7 +1042,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         fread(&E, sizeof(double), 1, fp);
         fread(&record_size, sizeof(int), 1, fp);
 
-        Orbital* ds = new Orbital(NP, NAK);
+        Orbital* ds = new Orbital(NAK, -E, NP);
         ds->SetEnergy(-E);
 
         // Record 5
@@ -1073,14 +1073,14 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         // Get derivatives
         Interpolator interp(lattice);
         unsigned int order = 6;
-        interp.GetDerivative(ds->f, ds->df, order);
-        interp.GetDerivative(ds->g, ds->dg, order);
+        interp.GetDerivative(ds->f, ds->dfdr, order);
+        interp.GetDerivative(ds->g, ds->dgdr, order);
 
         // Split electrons between subshells
         double occupancy = 2.*fabs(ds->Kappa()) / (4.*ds->L()+2.);
 
         // Check non-rel configurations with a non-rel info
-        NonRelInfo non_rel_info(ds->RequiredPQN(), ds->L());
+        NonRelInfo non_rel_info(ds->GetPQN(), ds->L());
 
         if(closed_shell_config.GetOccupancy(non_rel_info))
         {   ds->SetOccupancy(occupancy * closed_shell_config.GetOccupancy(non_rel_info));
@@ -1095,7 +1095,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
 
             excited->AddState(ds);
         }
-        *outstream << "Read state " << ds->Name() << " " << ds->Energy() << std::endl;
+        *outstream << "Read state " << ds->Name() << " " << ds->GetEnergy() << std::endl;
 
         orbital_count++;
     }
@@ -1190,9 +1190,9 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int latti
 
     // Record 4
     char NH[2];
-    int NP = ds->RequiredPQN();
+    int NP = ds->GetPQN();
     int NAK = ds->Kappa();
-    double E = fabs(ds->Energy());
+    double E = fabs(ds->GetEnergy());
     NH[0] = toupper(MathConstant::Instance()->GetSpectroscopicNotation(ds->L()));
     if(NAK > 0)
         NH[1] = '-';

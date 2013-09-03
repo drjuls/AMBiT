@@ -2,7 +2,7 @@
 #include "StateIntegrator.h"
 #include "Universal/PhysicalConstant.h"
 
-void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge)
+void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const SpinorFunction* exchange, int end_point, double nuclear_charge)
 {
     const int start_point = 0;
 
@@ -17,7 +17,7 @@ void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std
     Integrate2(A, s, start_point+(adams_N-1), end_point);
 }
 
-void StateIntegrator::IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point)
+void StateIntegrator::IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const SpinorFunction* exchange, int end_point)
 {
     // Set initial conditions
     StateFunction A(lattice);
@@ -42,7 +42,7 @@ unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(SingleParticleWavefunc
     int i = s.Size()-(adams_N-1);    // Starting point
 
     // Do one step at a time until peak is reached
-    while((s.df[i]/s.df[i+1] > 0.) && (i>end_point))
+    while((s.dfdr[i]/s.dfdr[i+1] > 0.) && (i>end_point))
     {   i--;
         Integrate2(A, s, i, i-1);
     }
@@ -62,14 +62,14 @@ void StateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const
     {   if(s.Kappa() < 0)
         {   s.f[i] = pow(lattice->R(i), -s.Kappa());
             s.g[i] = alpha * s.f[i] * lattice->R(i) * HFPotential[i] / (2 * s.Kappa() - 1);
-            s.df[i] = - s.Kappa() * s.f[i] / lattice->R(i) * lattice->dR(i);
-            s.dg[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i) * lattice->dR(i);
+            s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
+            s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
         }
         else
         {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
             s.f[i] = s.g[i] * lattice->R(i) * alpha * HFPotential[i] / (2 * s.Kappa() + 1);
-            s.dg[i] = s.Kappa() * s.g[i] / lattice->R(i) * lattice->dR(i);
-            s.df[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i) * lattice->dR(i);
+            s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
+            s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
         }
     }
 
@@ -82,8 +82,8 @@ void StateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, const
     for(i=start_point; i<start_point+(adams_N-1); i++)
     {   s.f[i] = s.f[i] * correction;
         s.g[i] = s.g[i] * correction;
-        s.df[i] = s.df[i] * correction;
-        s.dg[i] = s.dg[i] * correction;
+        s.dfdr[i] = s.dfdr[i] * correction;
+        s.dgdr[i] = s.dgdr[i] * correction;
     }
 }
 
@@ -96,7 +96,7 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
 
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.GetEnergy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -112,15 +112,15 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
     double S = -9.;
     for(i=start_point; i>start_point-(adams_N-1); i--)
     {
-        P = -2*(HFPotential[i] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(i),2.);
+        P = -2*(HFPotential[i] + s.GetEnergy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(i),2.);
         //assert(P>0);
         P = sqrt(P);
         S = S + 0.5 * P * lattice->dR(i);
 
         s.f[i] = exp(S)/sqrt(P);
         s.g[i] = alpha * s.f[i] * (s.Kappa()/lattice->R(i) - P) * 0.5;
-        s.df[i] = (-P * s.f[i]) * lattice->dR(i);
-        s.dg[i] = (s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.Energy() + HFPotential[i]) * s.f[i]) * lattice->dR(i);
+        s.dfdr[i] = -P * s.f[i];
+        s.dgdr[i] = s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.GetEnergy() + HFPotential[i]) * s.f[i];
 
         S = S + 0.5 * P * lattice->dR(i);
     }
@@ -130,13 +130,13 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
         for(unsigned int i=start_point; i>start_point-(adams_N-1); i--)
         {   s.f[i] = s.f[i] * correction;
             s.g[i] = s.g[i] * correction;
-            s.df[i] = s.df[i] * correction;
-            s.dg[i] = s.dg[i] * correction;
+            s.dfdr[i] = s.dfdr[i] * correction;
+            s.dgdr[i] = s.dgdr[i] * correction;
         }
     }
 }
 
-unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase)
+unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const SpinorFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase)
 {
     // Start calculation outside of the nucleus
     unsigned int start_point = lattice->real_to_lattice(1.e-4);
@@ -156,8 +156,8 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
         for(unsigned int i = start_point; i < start_point+(adams_N-1); i++)
         {   s.f[i] = s.f[i] * correction;
             s.g[i] = s.g[i] * correction;
-            s.df[i] = s.df[i] * correction;
-            s.dg[i] = s.dg[i] * correction;
+            s.dfdr[i] = s.dfdr[i] * correction;
+            s.dgdr[i] = s.dgdr[i] * correction;
         }
     }
 
@@ -174,7 +174,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
     while(i < s.Size())
     {
         double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*R[i]*R[i]);
-        P[i] = sqrt(2. * fabs(s.Energy() + Pot));
+        P[i] = sqrt(2. * fabs(s.GetEnergy() + Pot));
         S[i] = S[i-1];
         for(unsigned int j=0; j<adams_N; j++)
             S[i] = S[i] + adams_coeff[j] * P[i-j] * dR[i-j];
@@ -183,11 +183,11 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
         {
             Integrate2(A, s, i, i+1);
             
-            if((HFPotential[i] < 2.5 * s.Energy()) && (s.df[i-1]/s.df[i-2] < 0.))
+            if((HFPotential[i] < 2.5 * s.GetEnergy()) && (s.dfdr[i-1]/s.dfdr[i-2] < 0.))
             {
                 double x_max;
                 double f_max = FindExtremum(s.f, i-2, x_max);
-                bool maximum = (s.df[i-2] > 0.);
+                bool maximum = (s.dfdr[i-2] > 0.);
                 double p_max = FindExtremum(P, i-2, x_max, false);
 
                 double old_amplitude = final_amplitude;
@@ -219,10 +219,10 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
 
     if(start_sine)
     {
-        GetDerivative(s.f, s.df, start_sine, s.Size()-2);
-        GetDerivative(s.g, s.dg, start_sine, s.Size()-2);
-        GetDerivativeEnd(s.f, s.df, s.Size());
-        GetDerivativeEnd(s.g, s.dg, s.Size());
+        GetDerivative(s.f, s.dfdr, start_sine, s.Size()-2);
+        GetDerivative(s.g, s.dgdr, start_sine, s.Size()-2);
+        GetDerivativeEnd(s.f, s.dfdr, s.Size());
+        GetDerivativeEnd(s.g, s.dgdr, s.Size());
 
         final_phase = S[s.Size() - 1] - peak_phase;
     }
@@ -239,7 +239,7 @@ double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunctio
 
     if(s1.Kappa() == s2.Kappa())
     {
-        CoupledFunction exchange;
+        SpinorFunction exchange(s2.Kappa());
         core.CalculateExchange(s2, exchange);
 
         std::vector<double> Potential(core.GetHFPotential());
@@ -258,8 +258,8 @@ double StateIntegrator::HamiltonianMatrixElement(const SingleParticleWavefunctio
             }
 
             double Ef = - Potential[i]*s2.f[i] - exchange.f[i]
-                        + (-s2.dg[i]/dR[i] + s2.Kappa()*s2.g[i]/R[i])/alpha;
-            double Eg = (s2.df[i]/dR[i] + s2.Kappa()*s2.f[i]/R[i])/alpha
+                        + (-s2.dgdr[i] + s2.Kappa()*s2.g[i]/R[i])/alpha;
+            double Eg = (s2.dfdr[i] + s2.Kappa()*s2.f[i]/R[i])/alpha
                         - (2./alphasquared + Potential[i])*s2.g[i] - exchange.g[i];
 
             E = E + (s1.f[i] * Ef + s1.g[i] * Eg)*dR[i];
@@ -284,7 +284,7 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
 {
     double& Z = nuclear_charge;
     const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
-    double energy = s.Energy() - Z/lattice->R(start_point) + HFPotential[start_point];
+    double energy = s.GetEnergy() - Z/lattice->R(start_point) + HFPotential[start_point];
     double AM = 1./sqrt(2. * fabs(energy));
     double GAM = sqrt(s.Kappa()*s.Kappa() - alphasquared*Z*Z);
     double GAM1 = 2.*GAM + 1.;
@@ -299,7 +299,7 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
         E = 1. + 0.5*alphasquared/(AM*AM);
     }
 
-    double AQ = pow(2.*Z, GAM)/sqrt(Z * pow(s.Nu(), 3.));
+    double AQ = pow(2.*Z, GAM)/sqrt(Z * pow(s.GetNu(), 3.));
     AQ = -AQ * abs(s.Kappa())/s.Kappa();
 
     if(energy < 0.)
@@ -317,8 +317,8 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
             s.f[i] = AQI * AM * ALAMBD * ((Z/ALAMBD - s.Kappa()) * Fre1 - RN * Fre2);
             s.g[i] = -AQI * 0.5/AM * ((Z/ALAMBD - s.Kappa()) * Fre1 + RN * Fre2);
 
-            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice->dR(i);
-            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice->dR(i);
+            s.dfdr[i] = state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i);
+            s.dgdr[i] = state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i);
         }
     }
     else
@@ -338,8 +338,8 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
             s.f[i] = -AM * ALAMBD * AQQ * FG.imag();
             s.g[i] = -0.5 / AM * AQQ * FG.real();
 
-            s.df[i] = (state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i)) * lattice->dR(i);
-            s.dg[i] = (state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i)) * lattice->dR(i);
+            s.dfdr[i] = state_function.Coeff1(i) * s.f[i] + state_function.Coeff2(i) * s.g[i] + state_function.Coeff3(i);
+            s.dgdr[i] = state_function.Coeff4(i) * s.f[i] + state_function.Coeff5(i) * s.g[i] + state_function.Coeff6(i);
         }
     }
 }
@@ -463,7 +463,7 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
     if(P == NULL)
         for(unsigned int i=0; i<mmin(f.size(), s2.Size()); i++)
         {
-            SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
+            SMS += f[i] * (s2.dfdr[i] + coeff_f2 * s2.f[i]/R[i]) * dR[i];
         }
     else
     {   unsigned int state_limit = mmin(f.size(), s2.Size());
@@ -471,15 +471,15 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
 
         unsigned int i;
         for(i=0; i<mmin(P_limit, state_limit); i++)
-        {   (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+        {   (*P)[i] = s2.dfdr[i] + coeff_f2 * s2.f[i]/R[i];
             SMS += f[i] * (*P)[i] * dR[i];
         }
         while(i < state_limit)
-        {   SMS += f[i] * (s2.df[i] + coeff_f2 * s2.f[i]/R[i] * dR[i]);
+        {   SMS += f[i] * (s2.dfdr[i] + coeff_f2 * s2.f[i]/R[i]) * dR[i];
             i++;
         }
         while(i < P_limit)
-        {   (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+        {   (*P)[i] = s2.dfdr[i] + coeff_f2 * s2.f[i]/R[i];
             i++;
         }
     }
@@ -507,5 +507,5 @@ void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const SingleParticleW
 
     unsigned int P_limit = mmin(s2.Size(), P->size());
     for(unsigned int i = 0; i < P_limit; i++)
-        (*P)[i] = s2.df[i]/dR[i] + coeff_f2 * s2.f[i]/R[i];
+        (*P)[i] = s2.dfdr[i] + coeff_f2 * s2.f[i]/R[i];
 }

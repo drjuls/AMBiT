@@ -42,8 +42,8 @@ StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
             {
                 interp.Interpolate(ds_old->f, R[i], ds->f[i], dfdr, order);
                 interp.Interpolate(ds_old->g, R[i], ds->g[i], dgdr, order);
-                ds->df[i] = dfdr * dR[i];
-                ds->dg[i] = dgdr * dR[i];
+                ds->dfdr[i] = dfdr;
+                ds->dgdr[i] = dgdr;
             }
         }
 
@@ -151,7 +151,7 @@ void StateManager::Write(FILE* fp) const
 void StateManager::Read(FILE* fp)
 {
     unsigned int num_core, i;
-    Orbital ds;
+    Orbital ds(-1);
     unsigned int max_size = 0;
 
     // Read states

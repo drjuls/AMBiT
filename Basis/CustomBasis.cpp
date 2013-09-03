@@ -51,7 +51,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 
                 Orbital* ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new Orbital(final.PQN(), final.GetFirstRelativisticInfo().Kappa());
+                {   ds = new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN());
                     unsigned int loops = core->CalculateExcitedState(ds);
                     if(loops)
                         Orthogonalise(ds);
@@ -72,16 +72,16 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                             r = count;
                         }
 
-                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
                                << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                               << int(ds->RequiredPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                               << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
                 if(final.L() != 0)
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {   ds = new Orbital(final.PQN(), final.GetSecondRelativisticInfo().Kappa());
+                    {   ds = new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN());
                         unsigned int loops = core->CalculateExcitedState(ds);
                         if(loops)
                             Orthogonalise(ds);
@@ -102,9 +102,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                                 r = count;
                             }
 
-                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
                                    << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                                   << int(ds->RequiredPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                                   << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }
             }
@@ -120,7 +120,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 
                 Orbital* ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new Orbital(final.PQN(), final.GetFirstRelativisticInfo().Kappa());
+                {   ds = new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN());
                     AddState(ds);
                 }
 
@@ -154,16 +154,16 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                             r = count;
                         }
 
-                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
                                << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                               << int(ds->RequiredPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                               << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
                 if(final.L() != 0)
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {    ds = new Orbital(final.PQN(), final.GetSecondRelativisticInfo().Kappa());
+                    {    ds = new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN());
                          AddState(ds);
                     }
 
@@ -192,9 +192,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                                 r = count;
                             }
 
-                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
+                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
                                    << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                                   << int(ds->RequiredPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                                   << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }
             }

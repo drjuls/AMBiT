@@ -96,7 +96,7 @@ void Integrator::Integrate(const Function2& f, std::vector<double>& y, std::vect
         }
 }
 
-void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_point, int end_point)
+void Integrator::Integrate2(const Function6& A, SpinorFunction& s, int start_point, int end_point)
 {
     if(start_point < end_point)
         for(int i = start_point; i < end_point; i++)
@@ -106,8 +106,8 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
             
             for(unsigned int j=1; j<adams_N; j++)
             {
-                f_next = f_next + adams_coeff[j] * s.df[i-j];
-                g_next = g_next + adams_coeff[j] * s.dg[i-j];
+                f_next = f_next + adams_coeff[j] * s.dfdr[i-j] * lattice->dR(i-j);
+                g_next = g_next + adams_coeff[j] * s.dgdr[i-j] * lattice->dR(i-j);
             }
             
             double D = (1. - adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
@@ -119,8 +119,8 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
                          + g_next * (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))) / D;
             s.g[i] = (g_next * (1. - adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
                          + f_next * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i))) / D;
-            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice->dR(i);
-            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice->dR(i);
+            s.dfdr[i] = A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i);
+            s.dgdr[i] = A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i);
         }
     else
         for(int i = start_point; i > end_point; i--)
@@ -130,8 +130,8 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
             
             for(unsigned int j=1; j<adams_N; j++)
             {
-                f_next = f_next - adams_coeff[j] * s.df[i+j];
-                g_next = g_next - adams_coeff[j] * s.dg[i+j];
+                f_next = f_next - adams_coeff[j] * s.dfdr[i+j] * lattice->dR(i+j);
+                g_next = g_next - adams_coeff[j] * s.dgdr[i+j] * lattice->dR(i+j);
             }
             
             double D = (1. + adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
@@ -143,12 +143,12 @@ void Integrator::Integrate2(const Function6& A, CoupledFunction& s, int start_po
                          - g_next * (adams_coeff[0] * A.Coeff2(i) * lattice->dR(i))) / D;
             s.g[i] = (g_next * (1. + adams_coeff[0] * A.Coeff1(i) * lattice->dR(i))
                          - f_next * (adams_coeff[0] * A.Coeff4(i) * lattice->dR(i))) / D;
-            s.df[i] = (A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i)) * lattice->dR(i);
-            s.dg[i] = (A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i)) * lattice->dR(i);
+            s.dfdr[i] = A.Coeff1(i) * s.f[i] + A.Coeff2(i) * s.g[i] + A.Coeff3(i);
+            s.dgdr[i] = A.Coeff4(i) * s.f[i] + A.Coeff5(i) * s.g[i] + A.Coeff6(i);
         }
 }
 
-void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>& df, int start_point, int end_point)
+void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>& dfdr, int start_point, int end_point)
 {
     const double* R = lattice->R();
 
@@ -175,16 +175,15 @@ void Integrator::GetDerivative(const std::vector<double>& f, std::vector<double>
         double D = f[i+1];
         double E = f[i+2];
 
-        df[i] = coeff_A * A + coeff_B * B + coeff_C * C + coeff_D * D + coeff_E * E;
-        df[i] = df[i] * lattice->dR(i);
+        dfdr[i] = coeff_A * A + coeff_B * B + coeff_C * C + coeff_D * D + coeff_E * E;
     }
 }
 
 /** Calculate the first two points of the derivative of f:
-        df[start_point], df[start_point+1].
+        dfdr[start_point], dfdr[start_point+1].
     Requires f to be known from (start_point) to (start_point+3)
     */
-void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<double>& df, int start_point)
+void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<double>& dfdr, int start_point)
 {
     const double* R = lattice->R();
 
@@ -204,16 +203,15 @@ void Integrator::GetDerivativeStart(const std::vector<double>& f, std::vector<do
         double D = f[i+1];
         double E = f[i+2];
 
-        df[i] = coeff_C * C + coeff_D * D + coeff_E * E;
-        df[i] = df[i] * lattice->dR(i);
+        dfdr[i] = coeff_C * C + coeff_D * D + coeff_E * E;
     }
 }
 
 /** Calculate the last two points of the derivative of f:
-        df[end_point-2], df[end_point-1].
+        dfdr[end_point-2], dfdr[end_point-1].
     Requires f to be known from (end_point-(adams_N-1)) to (end_point-1)
     */
-void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point)
+void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& dfdr, int end_point)
 {
     const double* R = lattice->R();
 
@@ -233,12 +231,11 @@ void Integrator::GetDerivativeEnd(const std::vector<double>& f, std::vector<doub
         double B = f[i-1];
         double C = f[i];
 
-        df[i] = coeff_A * A + coeff_B * B + coeff_C * C;
-        df[i] = df[i] * lattice->dR(i);
+        dfdr[i] = coeff_A * A + coeff_B * B + coeff_C * C;
     }
 }
 
-double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point)
+double Integrator::BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, double (*function)(double), int start_point, int end_point)
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
@@ -262,7 +259,7 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
     return result;
 }
 
-double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
+double Integrator::BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, boost::function<double (double r)> function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
@@ -286,7 +283,7 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
     return result;
 }
 
-double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function<double (double r)> *function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
+double Integrator::BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, boost::function<double (double r)> *function, int start_point, int end_point, double f1factor, double f2factor, double g1factor, double g2factor, double crossfactor)
 {
     const double* R = lattice->R();
     const double* dR = lattice->dR();
@@ -310,28 +307,28 @@ double Integrator::BracketIntegral(const CoupledFunction& s1, const CoupledFunct
     return result;
 }
 
-double Integrator::AIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+double Integrator::AIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
     
     return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 1, 0, 0, 0);
 }
 
-double Integrator::AIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+double Integrator::AIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
     
     return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 0, 0, 1, 1, 1);
 }
 
-double Integrator::BIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+double Integrator::BIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
 
     return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 0, 0, 1, 1);
 }
 
-double Integrator::BIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k)
+double Integrator::BIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
 

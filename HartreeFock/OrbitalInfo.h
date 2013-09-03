@@ -10,7 +10,7 @@ class OrbitalInfo
         Stores pqn and kappa (L). Has an inbuilt ordering.
      */
 public:
-    OrbitalInfo(unsigned int principal_qn, int kappa);
+    OrbitalInfo(unsigned int pqn, int kappa);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const OrbitalInfo& other);
     virtual ~OrbitalInfo(void) {}
@@ -38,7 +38,7 @@ protected:
 
 inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {
-    pqn = s->RequiredPQN();
+    pqn = s->GetPQN();
     kappa = s->Kappa();
     if(kappa > 0)
         l = (unsigned int)kappa;

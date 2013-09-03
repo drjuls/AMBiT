@@ -45,13 +45,13 @@ void Core::BuildFirstApproximation(std::string configuration)
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new Orbital(info.PQN(), -1);
+        {   s2 = new Orbital(-1, 0., info.PQN());
             s2->SetOccupancy(double(closed_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new Orbital(info.PQN(), L);
-            s2 = new Orbital(info.PQN(), -(L+1));
+            s1 = new Orbital(L, 0., info.PQN());
+            s2 = new Orbital(-(L+1), 0., info.PQN());
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -77,13 +77,13 @@ void Core::BuildFirstApproximation(std::string configuration)
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new Orbital(info.PQN(), -1);
+        {   s2 = new Orbital(-1, 0., info.PQN());
             s2->SetOccupancy(double(open_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new Orbital(info.PQN(), L);
-            s2 = new Orbital(info.PQN(), -(L+1));
+            s1 = new Orbital(L, 0., info.PQN());
+            s2 = new Orbital(-(L+1), 0., info.PQN());
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -208,7 +208,7 @@ void Core::BuildFirstApproximation(std::string configuration)
             int previous_zero_difference = 0;
             bool is_first_iteration = true;
 
-            double trial_nu = s->Nu();
+            double trial_nu = s->GetNu();
             double starting_nu = trial_nu;
             double starting_nu_change_factor = nu_change_factor;
             double starting_nu_percentage = 1.00;
@@ -232,14 +232,14 @@ void Core::BuildFirstApproximation(std::string configuration)
                     }
                 }
 
-                zero_difference = s->NumNodes() + s->L() + 1 - s->RequiredPQN();
+                zero_difference = s->NumNodes() + s->L() + 1 - s->GetPQN();
 
                 if(zero_difference)
                 {   
                     if(debug)
                         *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
                     s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
-                    trial_nu = s->Nu();
+                    trial_nu = s->GetNu();
                     if(!(((zero_difference > 0) && (previous_zero_difference > 0)) || ((zero_difference < 0) && (previous_zero_difference < 0))) && !is_first_iteration)
                     {
                         nu_change_factor = nu_change_factor * 0.75;
@@ -247,7 +247,7 @@ void Core::BuildFirstApproximation(std::string configuration)
                 }
                 previous_zero_difference = zero_difference;
                 is_first_iteration = false;
-                if(s->Nu() < 1.0e-5)
+                if(s->GetNu() < 1.0e-5)
                 {
                     starting_nu_percentage -= 0.1;
                     if(starting_nu_percentage <= 0.0)
@@ -263,9 +263,9 @@ void Core::BuildFirstApproximation(std::string configuration)
 
             if(debug)
             {   if(DebugOptions.HartreeEnergyUnits())
-                    *logstream << "  " << s->Name() << "  en: " << s->Energy() << std::endl;
+                    *logstream << "  " << s->Name() << "  en: " << s->GetEnergy() << std::endl;
                 else
-                    *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
+                    *logstream << "  " << s->Name() << " nu:   " << s->GetNu() << std::endl;
             }
 
             it.Next();

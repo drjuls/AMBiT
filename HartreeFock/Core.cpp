@@ -51,8 +51,8 @@ Core::Core(const Core& other, Lattice* new_lattice):
             {
                 interp.Interpolate(ds_old->f, R[i], ds->f[i], dfdr, order);
                 interp.Interpolate(ds_old->g, R[i], ds->g[i], dgdr, order);
-                ds->df[i] = dfdr * dR[i];
-                ds->dg[i] = dgdr * dR[i];
+                ds->dfdr[i] = dfdr;
+                ds->dgdr[i] = dgdr;
             }
         }
 
@@ -141,7 +141,7 @@ void Core::Read(FILE* fp)
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        Orbital* ds = new Orbital();
+        Orbital* ds = new Orbital(-1);
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
         AddState(ds);
@@ -152,7 +152,7 @@ void Core::Read(FILE* fp)
     fread(&num_open, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_open; i++)
     {
-        Orbital* ds = new Orbital();
+        Orbital* ds = new Orbital(-1);
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
 
@@ -257,34 +257,34 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
             double prop_new = 0.5;
             do
             {   loop++;
-                CoupledFunction exchange;
+                SpinorFunction exchange(s->Kappa());
                 CalculateExchange(*new_ds, exchange, sigma, sigma_amount);
                 deltaE = IterateOrbitalGreens(new_ds, &exchange);
 
                 if(debugHF)
                     *logstream << "  " << std::setw(4) << ds->Name() 
-                            << "  E = " << std::setprecision(12) << ds->Energy()
+                            << "  E = " << std::setprecision(12) << ds->GetEnergy()
                             << "  deltaE = " << std::setprecision(3) << deltaE
                             << "  size: (" << new_ds->Size()
                             << ") " << lattice->R(new_ds->Size()) << std::endl;
 
-                ds->Scale(1. - prop_new);
-                new_ds->Scale(prop_new);
+                *ds *= (1. - prop_new);
+                *new_ds *= (prop_new);
                 ds->ReSize(mmax(ds->Size(), new_ds->Size()));
                 new_ds->ReSize(mmax(ds->Size(), new_ds->Size()));
 
                 for(unsigned int i = 0; i<ds->Size(); i++)
                 {   ds->f[i] += new_ds->f[i];
                     ds->g[i] += new_ds->g[i];
-                    ds->df[i] += new_ds->df[i];
-                    ds->dg[i] += new_ds->dg[i];
+                    ds->dfdr[i] += new_ds->dfdr[i];
+                    ds->dgdr[i] += new_ds->dgdr[i];
                 }
 
                 // Renormalise core states (should be close already) and update energy.
                 ds->ReNormalise(lattice);
-                ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
+                ds->SetEnergy((1. - prop_new) * ds->GetEnergy() + prop_new * new_ds->GetEnergy());
                 *new_ds = *ds;
-                deltaE = fabs(deltaE/new_ds->Energy());
+                deltaE = fabs(deltaE/new_ds->GetEnergy());
 
             }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
@@ -298,13 +298,13 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
                 *logstream << std::setprecision(12);
                 if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
                 {
-                    double energy = ds->Energy();
+                    double energy = ds->GetEnergy();
                     if(DebugOptions.InvCmEnergyUnits())
                         energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
                     *logstream << ds->Name() << "  E = " << energy << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
                 }
                 else
-                    *logstream << ds->Name() << "  nu = " << ds->Nu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
+                    *logstream << ds->Name() << "  nu = " << ds->GetNu() << "  loops: " << loop << "  size: " << ds->Size() << std::endl;
             }
         }
         return loop;

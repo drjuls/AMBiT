@@ -3,24 +3,30 @@
 
 #include "SingleParticleWavefunction.h"
 
+/** Orbital is really no different to SingleParticleWavefunction,
+    however it is explicitly bounded and hence normalisable, integrable, etc.
+ */
 class Orbital : public SingleParticleWavefunction  
 {
 public:
-    Orbital(): SingleParticleWavefunction() {}
-    Orbital(unsigned int PrincipalQN, int Kappa);
+    Orbital(int kappa, double energy = 0., unsigned int pqn = 0, unsigned int size = 0);
     Orbital(const Orbital& other);
-    virtual ~Orbital(void) {}
+    virtual ~Orbital() {}
 
-    virtual double Energy() const;
-    double Norm(const Lattice* lattice) const;
+    double Norm(const Lattice* lattice) const; // Deprecate
 
-    inline void SetRequiredPrincipalQN(unsigned int pqn) { this->pqn = pqn; }
-    inline void SetOccupancy(double number_electrons);
-    inline void SetEnergy(double energy);
+    inline void SetOccupancy(double number_electrons); // Deprecate
+    double Occupancy() const { return occupancy; } // Deprecate
 
     virtual std::string Name() const;
-    unsigned int RequiredPQN() const { return pqn; }
-    double Occupancy() const { return occupancy; }
+
+    const Orbital& operator=(const Orbital& other);
+    const Orbital& operator*=(double scale_factor);
+    Orbital operator*(double scale_factor) const;
+    const Orbital& operator+=(const Orbital& other);
+    const Orbital& operator-=(const Orbital& other);
+    Orbital operator+(const Orbital& other) const;
+    Orbital operator-(const Orbital& other) const;
 
     /** Check that the ratio
           f[Size()-1]/f_max < tolerance
@@ -32,17 +38,10 @@ public:
     bool CheckSize(Lattice* lattice, double tolerance);
 
     /** Scale the state so that it is normalised to "norm". */
-    void ReNormalise(const Lattice* lattice, double norm = 1.);
+    void ReNormalise(const Lattice* lattice, double norm = 1.); // Deprecate
 
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;
-
-    const Orbital& operator=(const Orbital& other)
-    {   SingleParticleWavefunction::operator=(other);
-        pqn = other.pqn;
-        occupancy = other.occupancy;
-        return *this;
-    }
 
     /** Store the state. File pointer fp must be open and writable. */
     virtual void Write(FILE* fp) const;
@@ -51,23 +50,12 @@ public:
     virtual void Read(FILE* fp);
 
 protected:
-    unsigned int pqn;   // principal quantum number (eg: the 4 in "4s")
     double occupancy;
 };
 
 inline void Orbital::SetOccupancy(double number_electrons)
 {   if(number_electrons <= (double)(2*abs(kappa)))
         occupancy = number_electrons;
-}
-
-inline void Orbital::SetEnergy(double energy)
-{
-    if (energy < 0.)
-        nu = 1./sqrt(-2.*energy);
-    else if(energy > 0.)
-        nu = -1./sqrt(2.*energy);
-    else
-        nu = 0.;
 }
 
 #endif

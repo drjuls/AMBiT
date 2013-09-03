@@ -3,7 +3,6 @@
 
 #include "Universal/Integrator.h"
 #include "SingleParticleWavefunction.h"
-#include "ContinuumWave.h"
 #include "Core.h"
 #include <complex>
 
@@ -15,7 +14,7 @@ class StateIntegrator : public Integrator
             dG/dr =   -(E+V)F   +     (Kappa/r)G      -     exchange.f
         where
             F(r) = s.f[]            G(r) = s.g[]
-               E = s.Energy()      Kappa = s.Kappa()
+               E = s.GetEnergy()      Kappa = s.Kappa()
             V(r) = HFPotential[]
      */
 public:
@@ -32,7 +31,7 @@ public:
                 end_point <= exchange.Size()
           exchange may be NULL
      */
-    void IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point, double nuclear_charge = 1.);
+    void IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const SpinorFunction* exchange, int end_point, double nuclear_charge = 1.);
 
     /** Set up the wavefunction at r->infinity (points s.Size()-adams_N+1 to s.Size()-1)
         and integrate backwards until (not including) end_point.
@@ -44,15 +43,15 @@ public:
         POST:
             SingleParticleWavefunction s may be enlarged if necessary, up to a maximum of HFPotential.size().
      */
-    void IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const CoupledFunction* exchange, int end_point);
+    void IntegrateBackwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const SpinorFunction* exchange, int end_point);
 
     /** Set up the wavefunction at r->infinity and integrate backwards until a peak is reached
-        (s.df[] changes sign between two points or equals zero), or end_point is reached.
+        (s.dfdr[] changes sign between two points or equals zero), or end_point is reached.
         PRE: s.Size() <= HFPotential.size()
         POST:
             Returns the lattice point of the peak.
             If no peak is reached, returns end_point of integration.
-                Otherwise, s.df[value]/s.df[value+1] <= 0.
+                Otherwise, s.dfdr[value]/s.dfdr[value+1] <= 0.
             SingleParticleWavefunction s may be enlarged if necessary, up to a maximum of HFPotential.size().
      */
     unsigned int IntegrateBackwardsUntilPeak(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, int end_point = -1);
@@ -64,7 +63,7 @@ public:
         most likely because the lattice isn't big enough.
         POST: actual amplitude as r->Infinity, A = final_amplitude/(2E)^(1/4)
      */
-    unsigned int IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const CoupledFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
+    unsigned int IntegrateContinuum(ContinuumWave& s, const std::vector<double>& HFPotential, const SpinorFunction& exchange, double nuclear_charge, double accuracy, double& final_amplitude, double& final_phase);
 
     /** Calculate the matrix element of the Hamiltonian, <s1|H|s2>. */
     double HamiltonianMatrixElement(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, const Core& core);
@@ -122,15 +121,15 @@ protected:
 
         void SetState(const SingleParticleWavefunction* state)
         {   kappa = double(state->Kappa());
-            energy = state->Energy();
+            energy = state->GetEnergy();
         }
 
         void SetHFPotential(const std::vector<double>& potential) { HFPotential = &potential; }
-        void SetExchange(const CoupledFunction* exchange) { this->exchange = exchange; }
+        void SetExchange(const SpinorFunction* exchange) { this->exchange = exchange; }
     private:
         double kappa;
         double energy;
-        const CoupledFunction* exchange;
+        const SpinorFunction* exchange;
         const std::vector<double>* HFPotential;
         Lattice* lattice;
     };

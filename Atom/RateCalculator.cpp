@@ -830,7 +830,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
         while(!ex_it.AtEnd())
         {
             const Orbital* other = ex_it.GetState();
-            if(other->Kappa() == cs->Kappa() && other->RequiredPQN() < 15)
+            if(other->Kappa() == cs->Kappa() && other->GetPQN() < 15)
             {
                 double S = cs->Overlap(*other, excited->GetLattice());
 
@@ -1103,8 +1103,8 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
         {
             cs_orth->f[i] = cs_orth->f[i] - S * s_3->f[i];
             cs_orth->g[i] = cs_orth->g[i] - S * s_3->g[i];
-            cs_orth->df[i] = cs_orth->df[i] - S * s_3->df[i];
-            cs_orth->dg[i] = cs_orth->dg[i] - S * s_3->dg[i];
+            cs_orth->dfdr[i] = cs_orth->dfdr[i] - S * s_3->dfdr[i];
+            cs_orth->dgdr[i] = cs_orth->dgdr[i] - S * s_3->dgdr[i];
         }
         
         s_1 = cs_orth;
@@ -1247,12 +1247,12 @@ double RateCalculator::SubtractionDiagram(const ContinuumWave* cs, const SingleP
                 *logstream << "\t< " << cs->Name() << " |h| " << sa->Name() << "> = "
                            << cs->Overlap(*sa, excited->GetLattice())
 //                           << SI.HamiltonianMatrixElement(*cs, *sa, *excited->GetCore())
-                           << " * " << radial << " / " << (cs->Energy() - sa->Energy()) << std::endl;
+                           << " * " << radial << " / " << (cs->GetEnergy() - sa->GetEnergy()) << std::endl;
 
             total -= radial
                       * cs->Overlap(*sa, excited->GetLattice());
 //                      * SI.HamiltonianMatrixElement(*cs, *sa, *excited->GetCore())
-//                      / (cs->Energy() - sa->Energy());
+//                      / (cs->GetEnergy() - sa->GetEnergy());
             
             if(debug)
                 *logstream << "\t = " << total << std::endl;
@@ -1303,7 +1303,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
     
     // k = omega/c, in atomic units
     // omega = Energy_1 - Energy_2 also in atomic units
-    double k = (double) fabs((double) (p1.Energy() - p2.Energy())) * alpha;
+    double k = (double) fabs((double) (p1.GetEnergy() - p2.GetEnergy())) * alpha;
     
     if(aGaugeType == TransitionGaugeType::Length)
     {
@@ -1405,7 +1405,7 @@ std::complex<double> RateCalculator::GetEJMatrixElementZenonas(unsigned int J, c
     Integrator integrator(excited->GetLattice());
     const Orbital& p1 = *excited->GetState(e1);
     const Orbital& p2 = *excited->GetState(e2);
-    double k = fabs(p1.Energy() - p2.Energy()) * PhysicalConstant::Instance()->GetAlpha();
+    double k = fabs(p1.GetEnergy() - p2.GetEnergy()) * PhysicalConstant::Instance()->GetAlpha();
     
     if(triangular_condition_even(e1.L(), e2.L(), J) == 1.0)
     {
@@ -1484,7 +1484,7 @@ double RateCalculator::GetMJMatrixElement(Atom* A, unsigned int J, const Electro
     
     // k = omega/c, in atomic units
     // omega = Energy_1 - Energy_2 also in atomic units
-    double k = fabs(p1.Energy() - p2.Energy()) * alpha;
+    double k = fabs(p1.GetEnergy() - p2.GetEnergy()) * alpha;
     
     if(k == 0)
     {

@@ -4,23 +4,60 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
-Orbital::Orbital(unsigned int PrincipalQN, int Kappa):
-    SingleParticleWavefunction(Kappa), pqn(PrincipalQN)
+Orbital::Orbital(int kappa, double energy, unsigned int pqn, unsigned int size):
+    SingleParticleWavefunction(kappa, energy, pqn, size)
 {
     occupancy = 2*abs(kappa);
 }
 
 Orbital::Orbital(const Orbital& other):
-    SingleParticleWavefunction(other), pqn(other.pqn), occupancy(other.occupancy)
+    SingleParticleWavefunction(other), occupancy(other.occupancy)
 {}
 
-double Orbital::Energy() const
-{   if(nu > 0.)
-        return -1./(2.*nu*nu);
-    else if(nu < 0.)
-        return 1./(2.*nu*nu);
-    else
-        return 0.;
+const Orbital& Orbital::operator=(const Orbital& other)
+{
+    SingleParticleWavefunction::operator=(other);
+    occupancy = other.occupancy;
+    return *this;
+}
+
+const Orbital& Orbital::operator*=(double scale_factor)
+{
+    SingleParticleWavefunction::operator*=(scale_factor);
+    return *this;
+}
+
+Orbital Orbital::operator*(double scale_factor) const
+{
+    Orbital ret(*this);
+    ret *= scale_factor;
+    return ret;
+}
+
+const Orbital& Orbital::operator+=(const Orbital& other)
+{
+    SingleParticleWavefunction::operator+=(other);
+    return *this;
+}
+
+const Orbital& Orbital::operator-=(const Orbital& other)
+{
+    SingleParticleWavefunction::operator-=(other);
+    return *this;
+}
+
+Orbital Orbital::operator+(const Orbital& other) const
+{
+    Orbital ret(*this);
+    ret += other;
+    return ret;
+}
+
+Orbital Orbital::operator-(const Orbital& other) const
+{
+    Orbital ret(*this);
+    ret -= other;
+    return ret;
 }
 
 double Orbital::Norm(const Lattice* lattice) const
@@ -132,7 +169,7 @@ void Orbital::ReNormalise(const Lattice* lattice, double norm)
 {
     double scaling = sqrt(norm/Norm(lattice));
     if(scaling)
-        Scale(scaling);
+        (*this) *= scaling;
 }
 
 unsigned int Orbital::NumNodes() const
@@ -176,9 +213,8 @@ unsigned int Orbital::NumNodes() const
 
 void Orbital::Write(FILE* fp) const
 {
-    // As well as the CoupledFunction vectors, we need to output some other things
+    // As well as the SpinorFunction vectors, we need to output some other things
     fwrite(&kappa, sizeof(int), 1, fp);
-    fwrite(&nu, sizeof(double), 1, fp);
     fwrite(&pqn, sizeof(unsigned int), 1, fp);
     fwrite(&occupancy, sizeof(double), 1, fp);
 
@@ -188,7 +224,6 @@ void Orbital::Write(FILE* fp) const
 void Orbital::Read(FILE* fp)
 {
     fread(&kappa, sizeof(int), 1, fp);
-    fread(&nu, sizeof(double), 1, fp);
     fread(&pqn, sizeof(unsigned int), 1, fp);
     fread(&occupancy, sizeof(double), 1, fp);
 

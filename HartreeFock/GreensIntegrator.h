@@ -2,7 +2,7 @@
 #define GREENS_INTEGRATOR_H
 
 #include "Universal/Integrator.h"
-#include "Universal/CoupledFunction.h"
+#include "Universal/SpinorFunction.h"
 
 class GreensIntegrator : public Integrator
 {
@@ -26,7 +26,7 @@ class GreensIntegrator : public Integrator
             sInfinity = (f_inf(r)) should vanish as r->(practical)infinity.
                         (g_inf(r))
 
-        Also we group into a CoupledFunction rather arbitrarily:
+        Also we group into a SpinorFunction rather arbitrarily:
             GreensIntegrand = (F(r))
                               (G(r))
         Note that F and G will be upper and lower components of the exchange potential.
@@ -36,16 +36,16 @@ public:
     ~GreensIntegrator() {}
 
     /** Set a solution of the homogenous equation that is regular at r = 0. */
-    inline void SetSolutionOrigin(const CoupledFunction *s0)
+    inline void SetSolutionOrigin(const SpinorFunction *s0)
     {   s_0 = s0;
     }
 
     /** Set a solution of the homogenous equation that is regular at r -> infinity. */
-    inline void SetSolutionInfinity(const CoupledFunction *sInfinity)
+    inline void SetSolutionInfinity(const SpinorFunction *sInfinity)
     {   s_inf = sInfinity;
     }
 
-    inline void SetGreensIntegrand(const CoupledFunction *FG)
+    inline void SetGreensIntegrand(const SpinorFunction *FG)
     {   G = FG;
     }
 
@@ -53,10 +53,10 @@ public:
     std::vector<double> GetGreensOrigin();
 
 protected:
-    // Although these are CoupledFunctions, the derivatives are ignored.
-    const CoupledFunction *G;       // (F(r'), G(r'))
-    const CoupledFunction *s_0;     // (f_0(r'), g_0(r'))
-    const CoupledFunction *s_inf;   // (f_inf(r'), g_inf(r'))
+    // Although these are SpinorFunctions, the derivatives are ignored.
+    const SpinorFunction *G;       // (F(r'), G(r'))
+    const SpinorFunction *s_0;     // (f_0(r'), g_0(r'))
+    const SpinorFunction *s_inf;   // (f_inf(r'), g_inf(r'))
 };
 
 #endif

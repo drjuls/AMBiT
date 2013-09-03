@@ -92,7 +92,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
             {
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
-                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
@@ -119,16 +119,16 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                             //    because of the reduced symmetry in integrals.
                             // (one of remaining states s2, s3 or s4) < max_pqn_2
                             // (at least two  of remaining states) < max_pqn_3
-                            unsigned int smallest_pqn = s2->RequiredPQN();
-                            unsigned int second_smallest_pqn = s3->RequiredPQN();
+                            unsigned int smallest_pqn = s2->GetPQN();
+                            unsigned int second_smallest_pqn = s3->GetPQN();
                             if(smallest_pqn > second_smallest_pqn)
                                 swap(smallest_pqn, second_smallest_pqn);
-                            if(s4->RequiredPQN() < smallest_pqn)
+                            if(s4->GetPQN() < smallest_pqn)
                             {   second_smallest_pqn = smallest_pqn;
-                                smallest_pqn = s4->RequiredPQN();
+                                smallest_pqn = s4->GetPQN();
                             }
-                            else if(s4->RequiredPQN() < second_smallest_pqn)
-                                second_smallest_pqn = s4->RequiredPQN();
+                            else if(s4->GetPQN() < second_smallest_pqn)
+                                second_smallest_pqn = s4->GetPQN();
 
                             if((smallest_pqn <= max_pqn_2) &&
                                (second_smallest_pqn <= max_pqn_3))
@@ -170,7 +170,7 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                 {
                     // s1 is the smallest
                     it_1.First(); i1 = 0;
-                    while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
+                    while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->GetPQN() <= box_max_pqn_1))
                     {   const Orbital* s1 = it_1.GetState();
                         
                         it_3 = it_1; i3 = i1;
@@ -197,16 +197,16 @@ unsigned int CIIntegralsMBPT::GetStorageSize() const
                                 //    because of the reduced symmetry in integrals.
                                 // (one of remaining states s2, s3 or s4) < max_pqn_2
                                 // (at least two  of remaining states) < max_pqn_3
-                                unsigned int smallest_pqn = s2->RequiredPQN();
-                                unsigned int second_smallest_pqn = s3->RequiredPQN();
+                                unsigned int smallest_pqn = s2->GetPQN();
+                                unsigned int second_smallest_pqn = s3->GetPQN();
                                 if(smallest_pqn > second_smallest_pqn)
                                     swap(smallest_pqn, second_smallest_pqn);
-                                if(s4->RequiredPQN() < smallest_pqn)
+                                if(s4->GetPQN() < smallest_pqn)
                                 {   second_smallest_pqn = smallest_pqn;
-                                    smallest_pqn = s4->RequiredPQN();
+                                    smallest_pqn = s4->GetPQN();
                                 }
-                                else if(s4->RequiredPQN() < second_smallest_pqn)
-                                    second_smallest_pqn = s4->RequiredPQN();
+                                else if(s4->GetPQN() < second_smallest_pqn)
+                                    second_smallest_pqn = s4->GetPQN();
 
                                 if((smallest_pqn <= box_max_pqn_2) &&
                                 (second_smallest_pqn <= box_max_pqn_3))
@@ -487,7 +487,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
-                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
@@ -515,16 +515,16 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                             //    because of the reduced symmetry in integrals.
                             // (one of remaining states s2, s3 or s4) < max_pqn_2
                             // (at least two  of remaining states) < max_pqn_3
-                            unsigned int smallest_pqn = s2->RequiredPQN();
-                            unsigned int second_smallest_pqn = s3->RequiredPQN();
+                            unsigned int smallest_pqn = s2->GetPQN();
+                            unsigned int second_smallest_pqn = s3->GetPQN();
                             if(smallest_pqn > second_smallest_pqn)
                                 swap(smallest_pqn, second_smallest_pqn);
-                            if(s4->RequiredPQN() < smallest_pqn)
+                            if(s4->GetPQN() < smallest_pqn)
                             {   second_smallest_pqn = smallest_pqn;
-                                smallest_pqn = s4->RequiredPQN();
+                                smallest_pqn = s4->GetPQN();
                             }
-                            else if(s4->RequiredPQN() < second_smallest_pqn)
-                                second_smallest_pqn = s4->RequiredPQN();
+                            else if(s4->GetPQN() < second_smallest_pqn)
+                                second_smallest_pqn = s4->GetPQN();
 
                             if((smallest_pqn <= max_pqn_2) &&
                                (second_smallest_pqn <= max_pqn_3))
@@ -656,7 +656,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
             {
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
-                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->RequiredPQN() <= box_max_pqn_1))
+                while((i1 <= i2) && (i1 <= i4) && (it_1.GetState()->GetPQN() <= box_max_pqn_1))
                 {   const Orbital* s1 = it_1.GetState();
                     
                     it_3 = it_1; i3 = i1;
@@ -683,16 +683,16 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                             //    because of the reduced symmetry in integrals.
                             // (one of remaining states s2, s3 or s4) < max_pqn_2
                             // (at least two  of remaining states) < max_pqn_3
-                            unsigned int smallest_pqn = s2->RequiredPQN();
-                            unsigned int second_smallest_pqn = s3->RequiredPQN();
+                            unsigned int smallest_pqn = s2->GetPQN();
+                            unsigned int second_smallest_pqn = s3->GetPQN();
                             if(smallest_pqn > second_smallest_pqn)
                                 swap(smallest_pqn, second_smallest_pqn);
-                            if(s4->RequiredPQN() < smallest_pqn)
+                            if(s4->GetPQN() < smallest_pqn)
                             {   second_smallest_pqn = smallest_pqn;
-                                smallest_pqn = s4->RequiredPQN();
+                                smallest_pqn = s4->GetPQN();
                             }
-                            else if(s4->RequiredPQN() < second_smallest_pqn)
-                                second_smallest_pqn = s4->RequiredPQN();
+                            else if(s4->GetPQN() < second_smallest_pqn)
+                                second_smallest_pqn = s4->GetPQN();
 
                             if((smallest_pqn <= box_max_pqn_2) &&
                                (second_smallest_pqn <= box_max_pqn_3))

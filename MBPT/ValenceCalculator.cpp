@@ -54,10 +54,10 @@ double ValenceCalculator::CalculateOneElectronValence1(const SingleParticleWavef
     while(!it4.AtEnd())
     {   const Orbital& s4 = *(it4.GetState());
 
-        if(s4.RequiredPQN() >= 5 && s4.Kappa() == si.Kappa())
+        if(s4.GetPQN() >= 5 && s4.Kappa() == si.Kappa())
         {
             double term = SI.HamiltonianMatrixElement(s4, si, *core) * SI.HamiltonianMatrixElement(s4, sf, *core);
-            term = term/(ValenceEnergy - s4.Energy() + delta);
+            term = term/(ValenceEnergy - s4.GetEnergy() + delta);
                 
             energy = energy + term;
         }
@@ -125,10 +125,10 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
             if((s3.L() + sc.L())%2 != (sd.L() + s4.L())%2)
                 coeff_34 = 0.;
 
-            if((s3.RequiredPQN() >= 5 || s4.RequiredPQN() >= 5) && coeff_34)
+            if((s3.GetPQN() >= 5 || s4.GetPQN() >= 5) && coeff_34)
             {
                 coeff_34 = coeff_34/(coeff_ac*coeff_bd);
-                coeff_34 = coeff_34/(ValenceEnergy - s3.Energy() - s4.Energy() + delta);
+                coeff_34 = coeff_34/(ValenceEnergy - s3.GetEnergy() - s4.GetEnergy() + delta);
                 unsigned int exponent = (unsigned int)(Ja + Jb + Jc + Jd + J3 + J4)/2;
                 if((exponent + k + 1)%2)
                     coeff_34 = -coeff_34;
@@ -236,7 +236,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     while(!it3.AtEnd())
     {   const Orbital& s3 = *(it3.GetState());
 
-        if(s3.RequiredPQN() >= 5 && s3.Kappa() == sa.Kappa())
+        if(s3.GetPQN() >= 5 && s3.Kappa() == sa.Kappa())
         {
             double R1 = 0.;
             for(i=0; i < mmin(s3.Size(), sc.Size()); i++)
@@ -246,10 +246,10 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
             {   R1 = R1 - SMS_bd * SI.IsotopeShiftIntegral(s3, sc);
             }
 
-            energy += R1 * SI.HamiltonianMatrixElement(sa, s3, *core) / (ValenceEnergies.find(sa.Kappa())->second - s3.Energy() + delta);
+            energy += R1 * SI.HamiltonianMatrixElement(sa, s3, *core) / (ValenceEnergies.find(sa.Kappa())->second - s3.GetEnergy() + delta);
         }
 
-        if(s3.RequiredPQN() >= 5 && s3.Kappa() == sc.Kappa())
+        if(s3.GetPQN() >= 5 && s3.Kappa() == sc.Kappa())
         {
             double R1 = 0.;
             for(i=0; i < mmin(sa.Size(), s3.Size()); i++)
@@ -259,7 +259,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
             {   R1 = R1 + SMS_bd * SI.IsotopeShiftIntegral(s3, sa);
             }
 
-            energy += R1 * SI.HamiltonianMatrixElement(sc, s3, *core) / (ValenceEnergies.find(sc.Kappa())->second - s3.Energy() + delta);
+            energy += R1 * SI.HamiltonianMatrixElement(sc, s3, *core) / (ValenceEnergies.find(sc.Kappa())->second - s3.GetEnergy() + delta);
         }
 
         it3.Next();
@@ -281,7 +281,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     while(!it3.AtEnd())
     {   const Orbital& s3 = *(it3.GetState());
 
-        if(s3.RequiredPQN() >= 5 && s3.Kappa() == sb.Kappa())
+        if(s3.GetPQN() >= 5 && s3.Kappa() == sb.Kappa())
         {
             double R1 = 0.;
             for(i=0; i < mmin(s3.Size(), sd.Size()); i++)
@@ -291,10 +291,10 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
             {   R1 = R1 - SMS_ac * SI.IsotopeShiftIntegral(s3, sd);
             }
 
-            energy += R1 * SI.HamiltonianMatrixElement(sb, s3, *core) / (ValenceEnergies.find(sb.Kappa())->second - s3.Energy() + delta);
+            energy += R1 * SI.HamiltonianMatrixElement(sb, s3, *core) / (ValenceEnergies.find(sb.Kappa())->second - s3.GetEnergy() + delta);
         }
 
-        if(s3.RequiredPQN() >= 5 && s3.Kappa() == sd.Kappa())
+        if(s3.GetPQN() >= 5 && s3.Kappa() == sd.Kappa())
         {
             double R1 = 0.;
             for(i=0; i < mmin(sb.Size(), s3.Size()); i++)
@@ -304,7 +304,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
             {   R1 = R1 + SMS_ac * SI.IsotopeShiftIntegral(s3, sb);
             }
 
-            energy += R1 * SI.HamiltonianMatrixElement(sd, s3, *core) / (ValenceEnergies.find(sd.Kappa())->second - s3.Energy() + delta);
+            energy += R1 * SI.HamiltonianMatrixElement(sd, s3, *core) / (ValenceEnergies.find(sd.Kappa())->second - s3.GetEnergy() + delta);
         }
 
         it3.Next();

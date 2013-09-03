@@ -7,7 +7,7 @@
 #include <boost/math/special_functions.hpp>
 #include "Lattice.h"
 #include "Function.h"
-#include "CoupledFunction.h"
+#include "SpinorFunction.h"
 #include "MathConstant.h"
 
 class Integrator
@@ -57,7 +57,7 @@ public:
             Integrate from start_point to end_point with s.f, s.df, s.g, s.dg initialised
             from start_point+(adams_N-1) to start_point+1.
     */
-    virtual void Integrate2(const Function6& A, CoupledFunction& s, int start_point, int end_point);
+    virtual void Integrate2(const Function6& A, SpinorFunction& s, int start_point, int end_point);
 
     /** Calculate derivative df of any function f from start_point up to and NOT including end_point.
         This requires f to be known from (start_point-2) to (end_point+1).
@@ -65,25 +65,25 @@ public:
     virtual void GetDerivative(const std::vector<double>& f, std::vector<double>& df, int start_point, int end_point);
 
     /** Calculate the first two points of the derivative of f:
-            df[start_point], df[start_point+1].
+            dfdr[start_point], dfdr[start_point+1].
         Requires f to be known from (start_point) to (start_point+3)
      */
     virtual void GetDerivativeStart(const std::vector<double>& f, std::vector<double>& df, int start_point);
 
     /** Calculate the last two points of the derivative of f:
-            df[end_point-2], df[end_point-1].
+            dfdr[end_point-2], dfdr[end_point-1].
         Requires f to be known from (end_point-(adams_N-1)) to (end_point-1)
      */
     virtual void GetDerivativeEnd(const std::vector<double>& f, std::vector<double>& df, int end_point);
 
-    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, double (*function)(double), int start_point, int end_point);
-    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
-    virtual double BracketIntegral(const CoupledFunction& s1, const CoupledFunction& s2, boost::function < double (double r) > *function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
+    virtual double BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, double (*function)(double), int start_point, int end_point);
+    virtual double BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, boost::function < double (double r) > function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
+    virtual double BracketIntegral(const SpinorFunction& s1, const SpinorFunction& s2, boost::function < double (double r) > *function, int start_point, int end_point, double f1factor = 1.0, double f2factor = 1.0, double g1factor = 1.0, double g2factor = 1.0, double crossfactor = 0.0);
 
-    double AIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
-    double AIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
-    double BIntegralUpper(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
-    double BIntegralLower(const CoupledFunction& s1, const CoupledFunction& s2, unsigned int J, double k);
+    double AIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
+    double AIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
+    double BIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
+    double BIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
 protected:
     Lattice* lattice;
     unsigned int adams_N;

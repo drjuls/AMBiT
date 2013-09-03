@@ -115,7 +115,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         }
 
         Orbital* ds;
-        Orbital* ds_readlattice = new Orbital(pqn, kappa);
+        Orbital* ds_readlattice = new Orbital(kappa, 0., pqn);
         ds_readlattice->ReSize(numpoints);
 
         if(CMCCORE_FILE)
@@ -151,7 +151,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%d", &kappa);
         }
 
-        if(pqn != ds_readlattice->RequiredPQN() || kappa != ds_readlattice->Kappa() ||
+        if(pqn != ds_readlattice->GetPQN() || kappa != ds_readlattice->Kappa() ||
            numpoints != ds_readlattice->Size())
         {   *errstream << "Lower component doesn't match upper in " << ds_readlattice->Name() << std::endl;
             PAUSE;
@@ -182,27 +182,26 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             ds = ds_readlattice;
             Interpolator interp(lattice);
 
-            interp.GetDerivative(ds->f, ds->df, order);
-            interp.GetDerivative(ds->g, ds->dg, order);
+            interp.GetDerivative(ds->f, ds->dfdr, order);
+            interp.GetDerivative(ds->g, ds->dgdr, order);
         }
         else
         {   // Interpolate onto regular lattice
             Interpolator interp(read_lattice);            
-            ds = new Orbital(pqn, kappa);
+            ds = new Orbital(kappa, 0., pqn);
 
             unsigned int size = lattice->real_to_lattice(read_lattice->R(ds_readlattice->Size()-1));
             ds->ReSize(size);
 
             const double* R = lattice->R();
-            const double* dR = lattice->dR();
 
             double dfdr, dgdr;
             for(unsigned int i = 0; i < ds->Size(); i++)
             {
                 interp.Interpolate(ds_readlattice->f, R[i], ds->f[i], dfdr, order);
                 interp.Interpolate(ds_readlattice->g, R[i], ds->g[i], dgdr, order);
-                ds->df[i] = dfdr * dR[i];
-                ds->dg[i] = dgdr * dR[i];
+                ds->dfdr[i] = dfdr;
+                ds->dgdr[i] = dgdr;
             }
             
             delete ds_readlattice;

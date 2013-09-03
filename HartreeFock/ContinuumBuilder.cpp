@@ -58,8 +58,8 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
 
     unsigned int loop = 0;
     double final_amplitude, final_phase;
-    CoupledFunction exchange(HFPotential.size());
-    CoupledFunction new_exchange(HFPotential.size());
+    SpinorFunction exchange(s->Kappa(), HFPotential.size());
+    SpinorFunction new_exchange(s->Kappa(), HFPotential.size());
     double ds, old_phase = 0.;
     unsigned int start_sine = 0;
 
@@ -108,7 +108,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
     {
         case Flambaum:
             // Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)
-            final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*pow(s->Nu(),3.)))/final_amplitude;
+            final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*pow(s->GetNu(),3.)))/final_amplitude;
             break;
 
         case Cowan:
@@ -118,11 +118,11 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
 
         case Unitary:
             // Unitary normalization:   A = 1
-            final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
+            final_amplitude = sqrt(sqrt(2.*s->GetEnergy()))/final_amplitude;
             break;
     }
 
-    s->Scale(final_amplitude);
+    (*s) *= final_amplitude;
 
     // Interpolate back onto external lattice
     if(external_lattice && !(*external_lattice == *lattice))
@@ -132,7 +132,6 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
 
         Interpolator interp(lattice);
         const double* extR = external_lattice->R();
-        const double* extdR = external_lattice->dR(); 
         unsigned int order = 6;
         double dfdr, dgdr;
 
@@ -149,8 +148,8 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
         {
             interp.Interpolate(cs_old.f, extR[i], s->f[i], dfdr, order);
             interp.Interpolate(cs_old.g, extR[i], s->g[i], dgdr, order);
-            s->df[i] = dfdr * extdR[i];
-            s->dg[i] = dgdr * extdR[i];
+            s->dfdr[i] = dfdr;
+            s->dgdr[i] = dgdr;
         }
     }
 
@@ -158,7 +157,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
     {
         *logstream << std::setprecision(8);
 
-        double energy = s->Energy();
+        double energy = s->GetEnergy();
         if(DebugOptions.InvCmEnergyUnits())
             energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
         *logstream << s->Name() << "  E = " << energy;
@@ -237,8 +236,8 @@ bool ContinuumBuilder::ReadContinuumWave(ContinuumWave* s, Lattice* external_lat
         {
             interp.Interpolate(f, extR[i], s->f[i], dfdr, order);
             interp.Interpolate(g, extR[i], s->g[i], dgdr, order);
-            s->df[i] = dfdr * extdR[i];
-            s->dg[i] = dgdr * extdR[i];
+            s->dfdr[i] = dfdr;
+            s->dgdr[i] = dgdr;
         }
     }
     

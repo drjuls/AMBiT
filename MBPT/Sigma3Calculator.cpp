@@ -435,7 +435,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
 
                         if((two_Jn >= abs(two_mn)) && (sn.L()%2 == ln_parity))
                         {
-                            const double En = itn.GetState()->Energy();
+                            const double En = itn.GetState()->GetEnergy();
 
                             double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn)
                                 * constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM())

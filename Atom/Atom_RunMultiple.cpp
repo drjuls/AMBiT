@@ -590,14 +590,14 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
             if(include_mbpt && brueckner)
             {   excited->CreateSecondOrderSigma(si, *mbpt);
                 Orbital ds = excited->GetStateWithSigma(si);
-                *outstream << std::setprecision(15) << ds.Energy() * MathConstant::HartreeEnergyInInvCm << std::endl;
+                *outstream << std::setprecision(15) << ds.GetEnergy() * MathConstant::HartreeEnergyInInvCm << std::endl;
             }
             else
             {   const Orbital* ds = it.GetState();
                 double dE = 0.;
                 if(include_mbpt)
                     dE = mbpt->GetOneElectronDiagrams(si, si);
-                *outstream << std::setprecision(15) << (ds->Energy() + dE)*Constant::HartreeEnergyInInvCm << std::endl;
+                *outstream << std::setprecision(15) << (ds->GetEnergy() + dE)*Constant::HartreeEnergyInInvCm << std::endl;
             }
 
             it.Next();

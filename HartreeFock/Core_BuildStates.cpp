@@ -51,9 +51,9 @@ void Core::Update()
         while(!it.AtEnd())
         {
             Orbital* new_state = it.GetState();
-            double old_energy = new_state->Energy();
+            double old_energy = new_state->GetEnergy();
 
-            CoupledFunction exchange;
+            SpinorFunction exchange(new_state->Kappa());
             CalculateExchange(*new_state, exchange);
             deltaE = IterateOrbitalGreens(new_state, &exchange);
 
@@ -64,7 +64,7 @@ void Core::Update()
                            << "  size: (" << new_state->Size()
                            << ") " << lattice->R(new_state->Size()) << std::endl;
 
-            deltaE = fabs(deltaE/new_state->Energy());
+            deltaE = fabs(deltaE/new_state->GetEnergy());
             max_deltaE = mmax(deltaE, max_deltaE);
 
             it.Next();
@@ -78,23 +78,23 @@ void Core::Update()
             Orbital* new_state = next_states.GetState(OrbitalInfo(core_state));
 
             // Add proportion of new states to core states.
-            core_state->Scale(1. - prop_new);
-            new_state->Scale(prop_new);
+            *core_state *= (1. - prop_new);
+            *new_state *= (prop_new);
             core_state->ReSize(mmax(core_state->Size(), new_state->Size()));
             new_state->ReSize(mmax(core_state->Size(), new_state->Size()));
 
             for(unsigned int i = 0; i<core_state->Size(); i++)
             {   core_state->f[i] += new_state->f[i];
                 core_state->g[i] += new_state->g[i];
-                core_state->df[i] += new_state->df[i];
-                core_state->dg[i] += new_state->dg[i];
+                core_state->dfdr[i] += new_state->dfdr[i];
+                core_state->dgdr[i] += new_state->dgdr[i];
             }
 
             // Renormalise core states (should be close already) and update energy.
             core_state->ReNormalise(lattice);
             core_state->CheckSize(lattice, StateParameters::WavefunctionTolerance);
 
-            double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
+            double energy = (1. - prop_new) * core_state->GetEnergy() + prop_new * new_state->GetEnergy();
             core_state->SetEnergy(energy);
             *new_state = *core_state;
 
@@ -343,7 +343,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
     if(s->Size() > (I.AdamsOrder()-1))
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
     else
-    {   double r_cutoff = (2. * Charge * (s->Nu()) + 10.) * (s->Nu());
+    {   double r_cutoff = (2. * Charge * (s->GetNu()) + 10.) * (s->GetNu());
         s->ReSize(lattice->real_to_lattice(r_cutoff));
     }
 
@@ -364,7 +364,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
     {   loop++;
 
         // Get forward and backwards meeting point
-        unsigned int critical_point = lattice->real_to_lattice((1./Z + s->Nu())/2.);
+        unsigned int critical_point = lattice->real_to_lattice((1./Z + s->GetNu())/2.);
 
         Orbital no_exchange_state(*s);
         unsigned int peak = I.IntegrateBackwardsUntilPeak(no_exchange_state, Potential, critical_point);
@@ -389,13 +389,13 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
         g_right += tail_scaling * no_exchange_state.g[peak];
 
         double norm = s->Norm(lattice);
-        delta = pow(s->Nu(), 3.) * f_right * (g_right - s->g[peak])/norm/alpha;
+        delta = pow(s->GetNu(), 3.) * f_right * (g_right - s->g[peak])/norm/alpha;
 
         if(fabs(delta) > 0.1)
                 delta = 0.1 * delta/fabs(delta);
 
         // Set new principal quantum number
-        s->SetNu(s->Nu() - delta);
+        s->SetNu(s->GetNu() - delta);
         s->ReNormalise(lattice);
 
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -415,7 +415,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
     return loop;
 }
 
-double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
+double Core::IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
@@ -426,7 +426,7 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
     if(s->Size() > (I.AdamsOrder()-1))
         s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
     else
-    {   double r_cutoff = (2. * Charge * (s->Nu()) + 10.) * (s->Nu());
+    {   double r_cutoff = (2. * Charge * (s->GetNu()) + 10.) * (s->GetNu());
         s->ReSize(lattice->real_to_lattice(r_cutoff));
     }
 
@@ -469,9 +469,9 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
     // Calculate norm and adjust energy so that norm is closer to unity.
     // E -> E + dE, f -> f + df, g -> g + dg
     double norm = s->Norm(lattice);
-    double old_energy = s->Energy();
+    double old_energy = s->GetEnergy();
 
-    CoupledFunction del_s(s->Size());  // ds(r)/dE
+    SpinorFunction del_s(s->Kappa(), s->Size());  // ds(r)/dE
 
     greens.SetGreensIntegrand(s);
     Ginf = greens.GetGreensInfinity();
@@ -520,11 +520,11 @@ double Core::IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const
         s->f[i] = -(s0.f[i] * Ginf[i] + sInf.f[i] * G0[i]);
         s->g[i] = -(s0.g[i] * Ginf[i] + sInf.g[i] * G0[i]);
 
-        s->df[i] = (- s->Kappa()/R[i] * s->f[i] +
-                    (2./alpha + alpha*(s->Energy() + Potential[i])) * s->g[i]
-                    + alpha * exchange->g[i]) * dR[i];
-        s->dg[i] = (s->Kappa()/R[i] * s->g[i] - alpha * (s->Energy() + Potential[i]) * s->f[i]
-                    - alpha * exchange->f[i]) *dR[i];
+        s->dfdr[i] = - s->Kappa()/R[i] * s->f[i] +
+                    (2./alpha + alpha*(s->GetEnergy() + Potential[i])) * s->g[i]
+                    + alpha * exchange->g[i];
+        s->dgdr[i] = s->Kappa()/R[i] * s->g[i] - alpha * (s->GetEnergy() + Potential[i]) * s->f[i]
+                    - alpha * exchange->f[i];
     }
 
     s->CheckSize(lattice, StateParameters::WavefunctionTolerance);
@@ -562,7 +562,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
         // Calculate
         // Get a trial value for nu if state hasn't already got one.
         double trial_nu;        
-        if(!ds->Nu())
+        if(!ds->GetNu())
         {
             switch(ds->L())
             {   case 0: 
@@ -585,12 +585,12 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
             while(!i.AtEnd())
             {   
                 const Orbital* cs = i.GetState();
-                if((cs->Kappa() == ds->Kappa()) && (cs->RequiredPQN() > largest_core_pqn))
-                        largest_core_pqn = cs->RequiredPQN();
+                if((cs->Kappa() == ds->Kappa()) && (cs->GetPQN() > largest_core_pqn))
+                        largest_core_pqn = cs->GetPQN();
                 i.Next();
             }
 
-            trial_nu = trial_nu + (double)(ds->RequiredPQN() - largest_core_pqn - 1)/Charge;
+            trial_nu = trial_nu + (double)(ds->GetPQN() - largest_core_pqn - 1)/Charge;
             ds->SetNu(trial_nu/Charge);
         }
 
@@ -611,12 +611,12 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
                 exit(1);
             }
 
-            zero_difference = ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
-            *logstream << ds->Name() << " zero diff: " << zero_difference << ", E = " << ds->Energy() << std::endl;
+            zero_difference = ds->NumNodes() + ds->L() + 1 - ds->GetPQN();
+            *logstream << ds->Name() << " zero diff: " << zero_difference << ", E = " << ds->GetEnergy() << std::endl;
 
             if(zero_difference)
             {   // This moves the state one pqn at a time
-                trial_nu = ds->Nu() - zero_difference/abs(zero_difference)/Charge;
+                trial_nu = ds->GetNu() - zero_difference/abs(zero_difference)/Charge;
                 ds->SetNu(trial_nu);
                 ds->Clear();
             }
@@ -634,41 +634,41 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
         double prop_new = 0.4;
         do
         {   loop++;
-            CoupledFunction exchange;
+            SpinorFunction exchange(ds->Kappa());
             CalculateExchange(*ds, exchange);
             do
             {   if(zero_difference)
-                {   trial_nu = new_ds->Nu() - zero_difference/abs(zero_difference)/Charge;
+                {   trial_nu = new_ds->GetNu() - zero_difference/abs(zero_difference)/Charge;
                     new_ds->SetNu(trial_nu);
                 }
                 deltaE = IterateOrbitalGreens(new_ds, &exchange);
-                zero_difference = new_ds->NumNodes() + ds->L() + 1 - ds->RequiredPQN();
+                zero_difference = new_ds->NumNodes() + ds->L() + 1 - ds->GetPQN();
             } while(zero_difference);
 
             if(debugHF)
                 *logstream << "  " << std::setw(4) << ds->Name() 
-                           << "  E = " << std::setprecision(12) << ds->Energy()
+                           << "  E = " << std::setprecision(12) << ds->GetEnergy()
                            << "  deltaE = " << std::setprecision(3) << deltaE
                            << "  size: (" << new_ds->Size()
                            << ") " << lattice->R(new_ds->Size()) << std::endl;
 
-            ds->Scale(1. - prop_new);
-            new_ds->Scale(prop_new);
+            *ds *= (1. - prop_new);
+            *new_ds *= (prop_new);
             ds->ReSize(mmax(ds->Size(), new_ds->Size()));
             new_ds->ReSize(mmax(ds->Size(), new_ds->Size()));
 
             for(unsigned int i = 0; i<ds->Size(); i++)
             {   ds->f[i] += new_ds->f[i];
                 ds->g[i] += new_ds->g[i];
-                ds->df[i] += new_ds->df[i];
-                ds->dg[i] += new_ds->dg[i];
+                ds->dfdr[i] += new_ds->dfdr[i];
+                ds->dgdr[i] += new_ds->dgdr[i];
             }
 
             // Renormalise core states (should be close already) and update energy.
             ds->ReNormalise(lattice);
-            ds->SetEnergy((1. - prop_new) * ds->Energy() + prop_new * new_ds->Energy());
+            ds->SetEnergy((1. - prop_new) * ds->GetEnergy() + prop_new * new_ds->GetEnergy());
             *new_ds = *ds;
-            deltaE = fabs(deltaE/new_ds->Energy());
+            deltaE = fabs(deltaE/new_ds->GetEnergy());
 
         }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
@@ -683,13 +683,13 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
         *outstream << std::setprecision(12);
         if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
         {
-            double energy = ds->Energy();
+            double energy = ds->GetEnergy();
             if(DebugOptions.InvCmEnergyUnits())
                 energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
             *outstream << ds->Name() << "  E = " << energy;
         }
         else
-            *outstream << ds->Name() << "  nu = " << ds->Nu();
+            *outstream << ds->Name() << "  nu = " << ds->GetNu();
 
         *outstream << "  loops: " << loop << "  size: (" << ds->Size() << ") " << lattice->R(ds->Size()) << std::endl;
     }
@@ -701,8 +701,8 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
 {
     unsigned int loop = 0;
     double final_amplitude, final_phase;
-    CoupledFunction exchange(HFPotential.size());
-    CoupledFunction new_exchange(HFPotential.size());
+    SpinorFunction exchange(s->Kappa(), HFPotential.size());
+    SpinorFunction new_exchange(s->Kappa(), HFPotential.size());
     double ds, old_phase = 0.;
     unsigned int start_sine = 0;
 
@@ -733,15 +733,15 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
     //      A = final_amplitude/(2E)^(1/4)
 
     /* Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)     */
-    //final_amplitude = sqrt(2./(Constant::Pi*pow(s->Nu(),3.)))/final_amplitude;
+    //final_amplitude = sqrt(2./(Constant::Pi*pow(s->GetNu(),3.)))/final_amplitude;
     
     /* Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)     */
     final_amplitude = sqrt(2./MathConstant::Instance()->Pi())/final_amplitude;
     
     /* Unitary normalization:   A = 1                           */
-    //final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
+    //final_amplitude = sqrt(sqrt(2.*s->GetEnergy()))/final_amplitude;
 
-    s->Scale(final_amplitude);
+    *s *= final_amplitude;
 
     //static bool once = true;
     //if(once)
@@ -752,7 +752,7 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
     return loop;
 }
 
-void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
+void Core::CalculateExchange(const SingleParticleWavefunction& current, SpinorFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);
@@ -800,7 +800,7 @@ void Core::CalculateExchange(const SingleParticleWavefunction& current, CoupledF
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const Orbital* ds = GetState(OrbitalInfo(other.RequiredPQN(), other_kappa));
+                        const Orbital* ds = GetState(OrbitalInfo(other.GetPQN(), other_kappa));
 
                         if((!ds_current && current.L() != other.L())
                            || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(&other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))

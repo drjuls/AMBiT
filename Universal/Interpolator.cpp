@@ -95,23 +95,22 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     derivative = df[order - 1];
 }
 
-void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<double>& dy, unsigned int order)
+void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<double>& dydr, unsigned int order)
 {
     if(lattice)
     {   const double* R = lattice->R();
-        const double* dR = lattice->dR();
 
         for(unsigned int i=0; i<y.size(); i++)
         {   double yvalue, dyvalue;
             Interpolate(y, R[i], yvalue, dyvalue, order);
-            dy[i] = dyvalue * dR[i];
+            dydr[i] = dyvalue;
         }
     }
     else
     {   for(unsigned int i=0; i<y.size(); i++)
         {   double yvalue, dyvalue;
             Interpolate(y, R[i], yvalue, dyvalue, order);
-            dy[i] = dyvalue * dR[i];
+            dydr[i] = dyvalue;
         }
     }
 }

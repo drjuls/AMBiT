@@ -5,7 +5,6 @@
 #include "StateIterator.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
-#include "ContinuumWave.h"
 
 class Core : public StateManager
 {
@@ -90,7 +89,7 @@ public:     // Methods for Hartree-Fock calculations and potentials
     /** Calculate the exchange part of the interaction between the current state and all
         of the core states. "exchange" is resized to current.size().
      */
-    void CalculateExchange(const SingleParticleWavefunction& current, CoupledFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    void CalculateExchange(const SingleParticleWavefunction& current, SpinorFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Calculate a new excited state in the closed core potential. */
     virtual unsigned int CalculateExcitedState(SingleParticleWavefunction* s) const;
@@ -136,7 +135,7 @@ protected:
         to renormalise. The exchange may be resized to the new size of s.
         Returns the change in the energy needed for renormalisation (delta_E).
      */
-    double IterateOrbitalGreens(Orbital* s, CoupledFunction* exchange) const;
+    double IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const;
 
     /** Calculate a new continuum state in the HF Potential. */
     unsigned int CalculateContinuumWave(ContinuumWave* s) const;

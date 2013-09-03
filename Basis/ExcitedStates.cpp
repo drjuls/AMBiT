@@ -40,8 +40,6 @@ Orbital ExcitedStates::GetStateWithSigma(const OrbitalInfo& info) const
 
         return ds;
     }
-    else
-        return Orbital();
 }
 
 void ExcitedStates::ClearSigmas()
@@ -130,7 +128,7 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
 {
     Orbital* s = GetState(info);
     if(s == NULL)
-    {   s = new Orbital(info.PQN(), info.Kappa());
+    {   s = new Orbital(info.Kappa(), 0., info.PQN());
         core->CalculateExcitedState(s);
     }
 
@@ -143,11 +141,11 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
     }
     sigma = SecondOrderSigma[s->Kappa()];
 
-    double old_energy = s->Energy();
+    double old_energy = s->GetEnergy();
     double amount = 1.0;
     Orbital sigma_s(*ds);
     unsigned int iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
-    double current_energy = sigma_s.Energy();
+    double current_energy = sigma_s.GetEnergy();
 
     MathConstant* constants = MathConstant::Instance();
 
@@ -160,7 +158,7 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
         double gap = (energy - current_energy)/full_gap;
         amount += gap;
         iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
-        current_energy = sigma_s.Energy();
+        current_energy = sigma_s.GetEnergy();
         *logstream << "    " << amount << "   " << current_energy * constants->HartreeEnergyInInvCm()
                    << "   iterations: " << iterations << std::endl;
     }
@@ -209,14 +207,14 @@ void ExcitedStates::MultiplyByR(const Orbital* previous, Orbital* current) const
     for(i=0; i<previous->Size(); i++)
     {
         current->f[i] = previous->f[i] * R[i];
-        current->g[i] = (R[i]*previous->df[i]/dR[i] + (1. + kappa)*previous->f[i])
+        current->g[i] = (R[i]*previous->dfdr[i] + (1. + kappa)*previous->f[i])
                         /(2. + AlphaSquared*Potential[i]);
-        current->df[i] = previous->df[i] * R[i] + previous->f[i] * dR[i];
-        current->dg[i]
-            = (kappa*previous->f[i]*dR[i]/R[i] + 2.*previous->df[i]
+        current->dfdr[i] = previous->dfdr[i] * R[i] + previous->f[i];
+        current->dgdr[i]
+            = (kappa*previous->f[i]/R[i] + 2.*previous->dfdr[i]
                + AlphaSquared*dV[i]*(previous->g[i]*R[i] - current->g[i]))
                   /(2. + AlphaSquared*Potential[i])
-              + previous->dg[i] * R[i];
+              + previous->dgdr[i] * R[i];
     }
 
     Orthogonalise(current);
@@ -254,15 +252,15 @@ void ExcitedStates::MultiplyBySinR(const Orbital* previous, Orbital* current) co
         double kcosp = k * cos(k*R[i]);
 
         current->f[i] = previous->f[i] * sinp;
-        current->g[i] = (sinp*previous->df[i]/dR[i] + (kcosp + kappa/R[i]*sinp)*previous->f[i])
+        current->g[i] = (sinp*previous->dfdr[i] + (kcosp + kappa/R[i]*sinp)*previous->f[i])
                         /(2. + AlphaSquared*Potential[i]);
-        current->df[i] = previous->df[i] * sinp + previous->f[i] * kcosp * dR[i];
-        current->dg[i]
-            = ((kappa/R[i]*kcosp - k*k*sinp) * previous->f[i] * dR[i]
-                + 2.* kcosp * previous->df[i]
+        current->dfdr[i] = previous->dfdr[i] * sinp + previous->f[i] * kcosp;
+        current->dgdr[i]
+            = ((kappa/R[i]*kcosp - k*k*sinp) * previous->f[i]
+                + 2.* kcosp * previous->dfdr[i]
                 + AlphaSquared*dV[i]*(previous->g[i]*sinp - current->g[i]))
                     /(2. + AlphaSquared*Potential[i])
-              + previous->dg[i] * sinp;
+              + previous->dgdr[i] * sinp;
     }
 
     Orthogonalise(current);
@@ -301,18 +299,18 @@ void ExcitedStates::MultiplyByRSinR(const Orbital* previous, Orbital* current) c
         double kcosp = k * cos(k*R[i]);
 
         current->f[i] = previous->f[i] * R[i] * sinp;
-        current->g[i] = (R[i] * sinp * previous->df[i]/dR[i]
+        current->g[i] = (R[i] * sinp * previous->dfdr[i]
                         + (R[i] * kcosp + (1.+ kappa_c) * sinp)*previous->f[i])
                         /(2. + AlphaSquared*Potential[i]);
-        current->df[i] = previous->df[i] * R[i] * sinp 
-                        + previous->f[i] * (R[i] * kcosp + sinp) * dR[i];
-        current->dg[i]
+        current->dfdr[i] = previous->dfdr[i] * R[i] * sinp
+                        + previous->f[i] * (R[i] * kcosp + sinp);
+        current->dgdr[i]
             = (((kappa_p/R[i] - R[i]*k*k) * sinp + (2.+ kappa_c) * kcosp)
-                    * previous->f[i] * dR[i]
-               + (2.*R[i]*kcosp + (2. + kappa_c - kappa_p) * sinp) * previous->df[i]
+                    * previous->f[i]
+               + (2.*R[i]*kcosp + (2. + kappa_c - kappa_p) * sinp) * previous->dfdr[i]
                + AlphaSquared*dV[i]*(previous->g[i]*R[i]*sinp - current->g[i]))
                     /(2. + AlphaSquared*Potential[i])
-              + previous->dg[i] * R[i] * sinp;
+              + previous->dgdr[i] * R[i] * sinp;
     }
 
     Orthogonalise(current);
@@ -330,7 +328,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     while(!it.AtEnd())
     {
         const Orbital* other = it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() != current->RequiredPQN())
+        if((other->Kappa() == current->Kappa()) && (other->GetPQN() != current->GetPQN())
             && !core->IsOpenShellState(OrbitalInfo(other)))
         {
             double S = 0.;
@@ -343,8 +341,8 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             {
                 current->f[i] = current->f[i] - S * other->f[i];
                 current->g[i] = current->g[i] - S * other->g[i];
-                current->df[i] = current->df[i] - S * other->df[i];
-                current->dg[i] = current->dg[i] - S * other->dg[i];
+                current->dfdr[i] = current->dfdr[i] - S * other->dfdr[i];
+                current->dgdr[i] = current->dgdr[i] - S * other->dgdr[i];
             }
             current->ReNormalise(lattice);
         }
@@ -356,7 +354,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     while(!ex_it.AtEnd())
     {
         const Orbital* other = ex_it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->RequiredPQN() < current->RequiredPQN()))
+        if((other->Kappa() == current->Kappa()) && (other->GetPQN() < current->GetPQN()))
         {
             double S = 0.;
             unsigned int i;
@@ -369,8 +367,8 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
             {
                 current->f[i] = current->f[i] - S * other->f[i];
                 current->g[i] = current->g[i] - S * other->g[i];
-                current->df[i] = current->df[i] - S * other->df[i];
-                current->dg[i] = current->dg[i] - S * other->dg[i];
+                current->dfdr[i] = current->dfdr[i] - S * other->dfdr[i];
+                current->dgdr[i] = current->dgdr[i] - S * other->dgdr[i];
             }
             current->ReNormalise(lattice);
         }

@@ -25,9 +25,8 @@ public:
                      double& yvalue, double& derivative, unsigned int order);
 
     /** Get derivative of y on lattice from Lagrange interpolation.
-     *      dy[i] = (dy/dr)[i] * dr[i]
      */
-    void GetDerivative(const std::vector<double>& y, std::vector<double>& dy, unsigned int order);
+    void GetDerivative(const std::vector<double>& y, std::vector<double>& dydr, unsigned int order);
 
 protected:
     Lattice* lattice;

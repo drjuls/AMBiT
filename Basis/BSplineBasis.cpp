@@ -2,7 +2,7 @@
 #include "BSplineGrid.h"
 #include "Include.h"
 #include "Spline.h"
-#include "Universal/CoupledFunction.h"
+#include "Universal/SpinorFunction.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Eigensolver.h"
@@ -120,7 +120,6 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         while(point < lattice_size)
         {
             double x = R_lattice[point];
-            double dx = dR_lattice[point];
 
             while(knots[left+1] < x)
                 left++;
@@ -136,25 +135,20 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 BSpline& Blower = B_lattice[num_splines + s + left + 1 - k];  // B_i, i > n
 
                 Bupper.f[point] = fspline_buf[s];
-                Bupper.df[point] = fspline_buf[s + MaximumK];
+                Bupper.dfdr[point] = fspline_buf[s + MaximumK];
 
                 Blower.g[point] = fspline_buf[s];
-                Blower.dg[point] = fspline_buf[s + MaximumK];
+                Blower.dgdr[point] = fspline_buf[s + MaximumK];
 
                 if(spline_type == Reno || spline_type == Vanderbilt)
                 {
                     // Calculate small component
-                    Bupper.g[point] = (Bupper.df[point] + kappa/x * Bupper.f[point]) * alpha/2.;
-                    Bupper.dg[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.df[point] - kappa/(x*x) * Bupper.f[point]) * alpha/2.;
+                    Bupper.g[point] = (Bupper.dfdr[point] + kappa/x * Bupper.f[point]) * alpha/2.;
+                    Bupper.dgdr[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.dfdr[point] - kappa/(x*x) * Bupper.f[point]) * alpha/2.;
 
-                    Blower.f[point] = (Blower.dg[point] - kappa/x * Blower.g[point]) * alpha/2.;
-                    Blower.df[point] = (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dg[point] + kappa/(x*x) * Blower.g[point]) * alpha/2.;
+                    Blower.f[point] = (Blower.dgdr[point] - kappa/x * Blower.g[point]) * alpha/2.;
+                    Blower.dfdr[point] = (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dgdr[point] + kappa/(x*x) * Blower.g[point]) * alpha/2.;
                 }
-
-                Blower.df[point] *= dx;
-                Blower.dg[point] *= dx;
-                Bupper.df[point] *= dx;
-                Bupper.dg[point] *= dx;                
             }
 
             point++;
@@ -211,7 +205,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         {
             BSpline& Bj = B_lattice[j];
 
-            CoupledFunction exchange;
+            SpinorFunction exchange(kappa);
             core->CalculateExchange(Bj, exchange);
             exchange.ReSize(Bj.Size());
             StateIntegrator SI(lattice);
@@ -228,8 +222,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 for(unsigned int p=0; p<mmin(Bi.Size(), Bj.Size()); p++)
                 {
                     double Ef = - Potential[p]*Bj.f[p] - exchange.f[p]
-                                + (- Bj.dg[p]/dR_lattice[p] + kappa * Bj.g[p]/R_lattice[p])/alpha;
-                    double Eg = (Bj.df[p]/dR_lattice[p] + kappa*Bj.f[p]/R_lattice[p])/alpha
+                                + (- Bj.dgdr[p] + kappa * Bj.g[p]/R_lattice[p])/alpha;
+                    double Eg = (Bj.dfdr[p] + kappa*Bj.f[p]/R_lattice[p])/alpha
                                 - (2./alphasquared + Potential[p])*Bj.g[p] - exchange.g[p];
                     
                     En = En + (Bi.f[p] * Ef + Bi.g[p] * Eg)*dR_lattice[p];
@@ -286,14 +280,13 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                 // If state is not in the open shell part, check whether it is in the core
                 if(s != NULL && !core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
                 {   if(debug)
-                    {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
+                    {   double diff = fabs((s->GetEnergy() - eigenvalues[i])/s->GetEnergy());
                         *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
                                    << "  deltaE: " << diff << std::endl;
                     }
                 }
                 else
-                {   Orbital* ds = new Orbital(pqn, kappa);
-                    ds->SetEnergy(eigenvalues[i]);
+                {   Orbital* ds = new Orbital(kappa, eigenvalues[i], pqn);
                     ds->ReSize(lattice_size);
 
                     double* coeff = &A[i*n2];
@@ -304,15 +297,15 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         {
                             ds->f[point] += *coeff * B_lattice[j].f[point];
                             ds->g[point] += *coeff * B_lattice[j].g[point];
-                            ds->df[point] += *coeff * B_lattice[j].df[point];
-                            ds->dg[point] += *coeff * B_lattice[j].dg[point];
+                            ds->dfdr[point] += *coeff * B_lattice[j].dfdr[point];
+                            ds->dgdr[point] += *coeff * B_lattice[j].dgdr[point];
                         }
                         coeff++;
                     }
 
                     if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
                     {   if(debug)
-                            *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
+                            *outstream << "  SingleParticleWavefunction removed: energy = " << ds->GetEnergy()
                                        << "  norm = " << ds->Norm(lattice) << std::endl;
                         pqn--;
 
@@ -357,14 +350,14 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
 
                     if(debug)
                     {   const Orbital* ds = basis_it.GetState();
-                        s = core->GetState(OrbitalInfo(ds->RequiredPQN(), kappa));
+                        s = core->GetState(OrbitalInfo(ds->GetPQN(), kappa));
                         if(s)
-                        {   double diff = fabs((s->Energy() - ds->Energy())/s->Energy());
-                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                        {   double diff = fabs((s->GetEnergy() - ds->GetEnergy())/s->GetEnergy());
+                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
                                        << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
                         }
                         else
-                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
                                        << " norm: " << ds->Norm(lattice) - 1. << std::endl;
                     }
                 }

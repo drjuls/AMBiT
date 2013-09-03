@@ -68,7 +68,7 @@ unsigned int CIIntegrals::GetStorageSize() const
             {
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
-                while((i1 <= i2) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                while((i1 <= i2) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {
                     const Orbital* s_1 = it_1.GetState();
 
@@ -83,8 +83,8 @@ unsigned int CIIntegrals::GetStorageSize() const
                         const Orbital* s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
-                        if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
-                           (s_2->RequiredPQN() <= max_pqn_3) && (s_3->RequiredPQN() <= max_pqn_3) &&
+                        if(((s_2->GetPQN() <= max_pqn_2) || (s_3->GetPQN() <= max_pqn_2)) &&
+                           (s_2->GetPQN() <= max_pqn_3) && (s_3->GetPQN() <= max_pqn_3) &&
                            ((s_1->L() + s_3->L() + k)%2 == 0) &&
                            (k >= (unsigned int)abs(int(s_1->L()) - int(s_3->L()))) &&
                            (double(k) >= fabs(s_1->J() - s_3->J())) &&
@@ -281,7 +281,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
 
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
-                while((i1 <= i2) && (it_1.GetState()->RequiredPQN() <= max_pqn_1))
+                while((i1 <= i2) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {
                     const Orbital* s_1 = it_1.GetState();
 
@@ -296,8 +296,8 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                         const Orbital* s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
-                        if(((s_2->RequiredPQN() <= max_pqn_2) || (s_3->RequiredPQN() <= max_pqn_2)) &&
-                           (s_2->RequiredPQN() <= max_pqn_3) && (s_3->RequiredPQN() <= max_pqn_3) &&
+                        if(((s_2->GetPQN() <= max_pqn_2) || (s_3->GetPQN() <= max_pqn_2)) &&
+                           (s_2->GetPQN() <= max_pqn_3) && (s_3->GetPQN() <= max_pqn_3) &&
                            ((s_1->L() + s_3->L() + k)%2 == 0) &&
                            (int(k) >= abs(int(s_1->L()) - int(s_3->L()))) &&
                            (double(k) >= fabs(s_1->J() - s_3->J())) &&

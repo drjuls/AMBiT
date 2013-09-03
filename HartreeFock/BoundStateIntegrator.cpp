@@ -29,8 +29,8 @@ void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, 
     for(i=0; i<adams_N; i++)
     {   s.f[i] = s.f[i] * correction;
         s.g[i] = s.g[i] * correction;
-        s.df[i] = s.df[i] * correction;
-        s.dg[i] = s.dg[i] * correction;
+        s.dfdr[i] = s.dfdr[i] * correction;
+        s.dgdr[i] = s.dgdr[i] * correction;
     }
 }
 
@@ -43,7 +43,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
 
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.GetEnergy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -55,7 +55,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
     double correction = s.f[start_point];
     double S = -9.;
 
-    P = -2*(HFPotential[start_point] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(start_point),2.);
+    P = -2*(HFPotential[start_point] + s.GetEnergy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(start_point),2.);
     //assert(P>0);
     P = sqrt(P);
     S = S + 0.5 * P * lattice->dR(start_point);
@@ -70,8 +70,8 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
         for(unsigned int i=start_point; i>start_point-(adams_N-1); i--)
         {   s.f[i] = s.f[i] * correction;
             s.g[i] = s.g[i] * correction;
-            s.df[i] = s.df[i] * correction;
-            s.dg[i] = s.dg[i] * correction;
+            s.dfdr[i] = s.dfdr[i] * correction;
+            s.dgdr[i] = s.dgdr[i] * correction;
         }
     }
 }
@@ -189,13 +189,13 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     // Calculate derivatives
     if(forwards)
         for(i=start_point; i<start_point+DM; i++)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i])*lattice->dR(i);
-            s.dg[i] = (-alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
+        {   s.dfdr[i] = -s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i];
+            s.dgdr[i] = -alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i];
         }
     else
         for(i=start_point; i>start_point-DM; i--)
-        {   s.df[i] = (-s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i])*lattice->dR(i);
-            s.dg[i] = (-alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i])*lattice->dR(i);
+        {   s.dfdr[i] = -s.Kappa()/lattice->R(i)*s.f[i] + (2./alpha + alpha * HFPotential[i])*s.g[i];
+            s.dgdr[i] = -alpha * HFPotential[i] * s.f[i] + s.Kappa()/lattice->R(i)*s.g[i];
         }
 
     // Calculate other points up to adams_N
@@ -203,7 +203,7 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     {   unsigned int old_N = adams_N;
         SetAdamsOrder(5);
 
-        CoupledFunction exchange(s.Size());
+        SpinorFunction exchange(s.Kappa(), s.Size());
         StateFunction Af(lattice);
         Af.SetHFPotential(HFPotential);
         Af.SetState(&s);

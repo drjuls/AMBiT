@@ -42,9 +42,8 @@ protected:
     {
         /** Not really an Orbital. This is abuse of the class. But it should work well for us. */
     public:
-        BSpline(int Kappa, unsigned int size = 0): Orbital()
+        BSpline(int Kappa, unsigned int size = 0): Orbital(Kappa)
         {
-            SetKappa(Kappa);
             ReSize(size);
         }
     };

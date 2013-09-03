@@ -30,7 +30,7 @@ void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
         if(ds != NULL)
         {
             if(ds->Kappa() < 0)
-                NonRelSet.insert(NonRelInfo(ds->RequiredPQN(), ds->L()));
+                NonRelSet.insert(NonRelInfo(ds->GetPQN(), ds->L()));
         }
         it.Next();
     }
