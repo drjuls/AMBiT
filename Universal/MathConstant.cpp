@@ -22,7 +22,7 @@ MathConstant::MathConstant()
 
     // Maximum largest stored twoJ for Electron3J.
     // Set by consideration of key.
-    MaxStoredTwoJ = 20;
+    MaxStoredTwoJ = 40;
     MSize = 2 * MaxStoredTwoJ + 1;
 }
 

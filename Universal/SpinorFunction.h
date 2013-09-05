@@ -35,7 +35,7 @@ public:
     const SpinorFunction& operator*=(double scale_factor);
     SpinorFunction operator*(double scale_factor) const;
 
-    /** Adding or subtracting two spinor functions can only occur if both have same angluar part. */
+    /** Adding or subtracting two spinor functions can only occur if both have same angular part. */
     const SpinorFunction& operator+=(const SpinorFunction& other);
     const SpinorFunction& operator-=(const SpinorFunction& other);
     SpinorFunction operator+(const SpinorFunction& other) const;

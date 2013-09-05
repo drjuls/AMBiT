@@ -42,6 +42,18 @@ void PrintHelp(const std::string& ApplicationName);
 
 int main(int argc, char* argv[])
 {
+    #ifdef _MPI
+        MPI::Init(argc, argv);
+        MPI::Intracomm& comm_world = MPI::COMM_WORLD; // Alias
+        NumProcessors = comm_world.Get_size();
+        ProcessorRank = comm_world.Get_rank();
+    #else
+        NumProcessors = 1;
+        ProcessorRank = 0;
+    #endif
+    
+    OutStreams::InitialiseStreams();
+
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -752,7 +752,7 @@ unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
     return loop;
 }
 
-void Core::CalculateExchange(const SingleParticleWavefunction& current, SpinorFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
+void Core::CalculateExchange(const SpinorFunction& current, SpinorFunction& exchange, const SigmaPotential* sigma, double sigma_amount) const
 {
     CoulombIntegrator I(lattice);
     StateIntegrator SI(lattice);

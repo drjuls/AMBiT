@@ -31,8 +31,7 @@ public:
     inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
     inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
     
-protected:
-    /** Only class Atom can change these. */
+public:
     inline void LogFirstBuild(bool debugon) { bFirstBuild = debugon; }
     inline void LogHFIterations(bool debugon) { bHFIterations = debugon; }
     inline void OutputHFExcited(bool debugon) { bHFExcited = debugon; }

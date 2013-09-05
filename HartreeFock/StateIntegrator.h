@@ -72,9 +72,9 @@ public:
             f = s1.f
             L = s1.L
      */
-    double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P = NULL);
-    double IsotopeShiftIntegral(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, std::vector<double>* P = NULL);
-    void IsotopeShiftIntegral(unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P);
+    double IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SpinorFunction& s2, std::vector<double>* P = NULL);
+    double IsotopeShiftIntegral(const SpinorFunction& s1, const SpinorFunction& s2, std::vector<double>* P = NULL);
+    void IsotopeShiftIntegral(unsigned int L, const SpinorFunction& s2, std::vector<double>* P);
 
 protected:
     class StateFunction;

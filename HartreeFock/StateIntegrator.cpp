@@ -446,7 +446,7 @@ double StateIntegrator::StateFunction::Coeff6(int point) const
     else return 0.;
 }
 
-double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P)
+double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsigned int L, const SpinorFunction& s2, std::vector<double>* P)
 {
     double coeff_f2;
     if(L == s2.L() + 1)
@@ -487,12 +487,12 @@ double StateIntegrator::IsotopeShiftIntegral(const std::vector<double> f, unsign
     return SMS;
 }
 
-double StateIntegrator::IsotopeShiftIntegral(const SingleParticleWavefunction& s1, const SingleParticleWavefunction& s2, std::vector<double>* P)
+double StateIntegrator::IsotopeShiftIntegral(const SpinorFunction& s1, const SpinorFunction& s2, std::vector<double>* P)
 {
     return IsotopeShiftIntegral(s1.f, s1.L(), s2, P);
 }
 
-void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const SingleParticleWavefunction& s2, std::vector<double>* P)
+void StateIntegrator::IsotopeShiftIntegral(unsigned int L, const SpinorFunction& s2, std::vector<double>* P)
 {
     double coeff_f2;
     if(L == s2.L() + 1)
