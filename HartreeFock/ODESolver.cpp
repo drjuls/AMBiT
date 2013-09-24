@@ -16,10 +16,11 @@ AdamsSolver::~AdamsSolver()
     delete[] adams_coeff;
 }
 
-void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* solution)
+void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr)
 {
-    std::vector<double>& f = *solution;
-    std::vector<double> dfdr(f.size());
+    std::vector<double>& f = *sol;
+    std::vector<double>& dfdr = *dsoldr;
+    dfdr.resize(f.size());
     op->EstimateSolutionNearOrigin(order, f, dfdr);
 
     int start_point = order;
@@ -46,10 +47,11 @@ void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, std::vector<dou
     }
 }
 
-void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* solution)
+void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr)
 {
-    std::vector<double>& f = *solution;
-    std::vector<double> dfdr(f.size());
+    std::vector<double>& f = *sol;
+    std::vector<double>& dfdr = *dsoldr;
+    dfdr.resize(f.size());
     op->EstimateSolutionNearInfinity(order, f, dfdr);
     
     int start_point = f.size() - order;

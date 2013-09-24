@@ -41,6 +41,8 @@ public:
     const SingleParticleWavefunction& operator-=(const SingleParticleWavefunction& other);
     SingleParticleWavefunction operator+(const SingleParticleWavefunction& other) const;
     SingleParticleWavefunction operator-(const SingleParticleWavefunction& other) const;
+    const SingleParticleWavefunction& TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr);
+    SingleParticleWavefunction TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const;
 
     /** Store the state. File pointer fp must be open and writable. */
     virtual void Write(FILE* fp) const;

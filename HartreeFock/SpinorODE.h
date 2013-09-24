@@ -3,21 +3,39 @@
 
 #include "Universal/SpinorFunction.h"
 #include "Orbital.h"
+#include "Core.h"
 
 /** SpinorODE is an abstract class for numerical integration of coupled linear
     ordinary differential equations (ODEs) of the form
-        df/dr = w[0]
-        dg/dr = w[1]
+        df/dr = w[0] = w_f[0] f + w_g[0] g + w_const[0]
+        dg/dr = w[1] = w_f[1] f + w_g[1] g + w_const[1]
     where w is a linear function of f and g (e.g. Hartree-Fock).
+    w_const is the "nonlocal" part, including the exchange part.
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
  */
 class SpinorODE
 {
 public:
-    SpinorODE(Lattice* lattice): lattice(lattice) {}
+    SpinorODE(Lattice* lattice);
     virtual ~SpinorODE() {}
 
     Lattice* GetLattice() { return lattice; }
+
+    /** Set/reset the core from which the potential is derived. */
+    virtual void SetCore(const Core* hf_core);
+    virtual const Core* GetCore() const;
+
+    /** Set exchange (nonlocal) potential and energy for ODE routines. */
+    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) = 0;
+    
+    /** Set exchange (nonlocal) potential and energy for ODE routines. */
+    virtual void SetODEParameters(const SingleParticleWavefunction* approximation) = 0;
+
+    /** Get exchange (nonlocal) potential. */
+    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation = NULL) = 0;
+
+    /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
+    virtual void IncludeExchangeInODE(bool include_exchange = true);
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array.
@@ -46,6 +64,8 @@ public:
 
 protected:
     Lattice* lattice;
+    const Core* core;
+    bool include_nonlocal;
 };
 
 /** OneBodyOperatorDecorator is for adding extra terms to an existing SpinorODE.
@@ -58,6 +78,35 @@ public:
     SpinorODEDecorator(SpinorODE* decorated_object): SpinorODE(decorated_object->GetLattice()), wrapped(decorated_object) {}
     virtual ~SpinorODEDecorator() {}
 
+    /** Set/reset the core from which the potential is derived. */
+    virtual void SetCore(const Core* hf_core)
+    {   return wrapped->SetCore(hf_core);
+    }
+
+    virtual const Core* GetCore() const
+    {   return wrapped->GetCore();
+    }
+    
+    /** Set exchange (nonlocal) potential and energy for ODE routines. */
+    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)
+    {   return wrapped->SetODEParameters(kappa, energy, exchange);
+    }
+
+    /** Set exchange (nonlocal) potential and energy for ODE routines. */
+    virtual void SetODEParameters(const SingleParticleWavefunction* approximation)
+    {   return wrapped->SetODEParameters(approximation);
+    }
+
+    /** Get exchange (nonlocal) potential. */
+    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation)
+    {   return wrapped->GetExchange(approximation);
+    }
+
+    /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
+    virtual void IncludeExchangeInODE(bool include_exchange = true)
+    {   return wrapped->IncludeExchangeInODE(include_exchange);
+    }
+    
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array.
      */
@@ -94,21 +143,6 @@ public:
     
 protected:
     SpinorODE* wrapped;
-};
-
-/** df/dr = dg/dr = 0.
-    Used to wrap Decorators when you want just the extra bit.
- */
-class ZeroODE : public SpinorODE
-{
-public:
-    ZeroODE(): SpinorODE(NULL) {}
-
-    void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
-    void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
-    void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
-    void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const;
-    void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const;
 };
 
 #endif

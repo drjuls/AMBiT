@@ -140,6 +140,19 @@ SingleParticleWavefunction SingleParticleWavefunction::operator-(const SinglePar
     return ret;    
 }
 
+const SingleParticleWavefunction& SingleParticleWavefunction::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+{
+    SpinorFunction::TimesEqualsVector(chi, dchidr);
+    return *this;
+}
+
+SingleParticleWavefunction SingleParticleWavefunction::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+{
+    SingleParticleWavefunction ret(*this);
+    ret.TimesEqualsVector(chi, dchidr);
+    return ret;
+}
+
 void SingleParticleWavefunction::Write(FILE* fp) const
 {
     // As well as the SpinorFunction vectors, we need to output some other things

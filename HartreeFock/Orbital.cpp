@@ -60,6 +60,19 @@ Orbital Orbital::operator-(const Orbital& other) const
     return ret;
 }
 
+const Orbital& Orbital::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+{
+    SingleParticleWavefunction::TimesEqualsVector(chi, dchidr);
+    return *this;
+}
+
+Orbital Orbital::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+{
+    Orbital ret(*this);
+    ret.TimesEqualsVector(chi, dchidr);
+    return ret;
+}
+
 double Orbital::Norm(const Lattice* lattice) const
 {
     double norm = 0.;

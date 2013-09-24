@@ -45,10 +45,10 @@ public:
 
 public:
     /** Get eigenstate of the operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* solution) = 0;
+    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr) = 0;
     
     /** Get eigenstate of the operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* solution) = 0;
+    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr) = 0;
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */
@@ -70,10 +70,10 @@ public:
 
 public:
     /** Get eigenstate of the operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* solution);
+    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr);
     
     /** Get eigenstate of the operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* solution);
+    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr);
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */

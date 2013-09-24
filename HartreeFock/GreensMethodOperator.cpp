@@ -1,29 +1,25 @@
 #include "GreensMethodOperator.h"
 #include "Include.h"
 
-GreensMethodOperator::GreensMethodOperator(Lattice* lattice): OneDimensionalODE(lattice)
-{
-    s0 = NULL;
-    sInf = NULL;
-    source = NULL;
-    solutionRegularAtOrigin = true;
-}
+GreensMethodOperator::GreensMethodOperator(Lattice* lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
+    s0(-1), sInf(-1), source(-1)
+{}
 
 /** Functions for ODE solving. */
-void GreensMethodOperator::SetHomogenousSolutions(const SpinorFunction* fromOrigin, const SpinorFunction* fromInfinity)
+void GreensMethodOperator::SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity)
 {
     s0 = fromOrigin;
     sInf = fromInfinity;
 
-    wronskian.resize(mmin(s0->Size(),sInf->Size()));
+    wronskian.resize(mmin(s0.Size(), sInf.Size()));
     unsigned int i;
     for(i = 0; i < wronskian.size(); i++)
     {
-        wronskian[i] = s0->f[i] * sInf->g[i] - sInf->f[i] * s0->g[i];
+        wronskian[i] = s0.f[i] * sInf.g[i] - sInf.f[i] * s0.g[i];
     }
 }
 
-void GreensMethodOperator::SetSourceTerm(const SpinorFunction* sourceTerm, bool fromOrigin)
+void GreensMethodOperator::SetSourceTerm(const SpinorFunction& sourceTerm, bool fromOrigin)
 {
     source = sourceTerm;
     solutionRegularAtOrigin = fromOrigin;
@@ -34,14 +30,14 @@ void GreensMethodOperator::SetSourceTerm(const SpinorFunction* sourceTerm, bool 
  */
 void GreensMethodOperator::GetODEFunction(unsigned int latticepoint, const std::vector<double>& f, double* w) const
 {
-    double integrand = 0;
+    double integrand = 0.;
 
-    if(latticepoint < wronskian.size() && latticepoint < source->Size())
+    if(latticepoint < wronskian.size() && latticepoint < source.Size())
     {
         if(solutionRegularAtOrigin)
-            integrand = s0->f[latticepoint] * source->f[latticepoint] + s0->g[latticepoint] * source->g[latticepoint];
+            integrand = s0.f[latticepoint] * source.f[latticepoint] + s0.g[latticepoint] * source.g[latticepoint];
         else
-            integrand = sInf->f[latticepoint] * source->f[latticepoint] + sInf->g[latticepoint] * source->g[latticepoint];
+            integrand = sInf.f[latticepoint] * source.f[latticepoint] + sInf.g[latticepoint] * source.g[latticepoint];
 
         integrand = integrand/wronskian[latticepoint];
     }
@@ -71,12 +67,12 @@ void GreensMethodOperator::GetODEJacobian(unsigned int latticepoint, const std::
     double w;
     const SpinorFunction* sregular;
     if(solutionRegularAtOrigin)
-        sregular = s0;
+        sregular = &s0;
     else
-        sregular = sInf;
+        sregular = &sInf;
 
-    w = sregular->dfdr[latticepoint] * source->f[latticepoint] + sregular->f[latticepoint] * source->dfdr[latticepoint]
-        + sregular->dgdr[latticepoint] * source->g[latticepoint] + sregular->g[latticepoint] * source->dgdr[latticepoint];
+    w = sregular->dfdr[latticepoint] * source.f[latticepoint] + sregular->f[latticepoint] * source.dfdr[latticepoint]
+        + sregular->dgdr[latticepoint] * source.g[latticepoint] + sregular->g[latticepoint] * source.dgdr[latticepoint];
 
     *dwdr = w;
 }

@@ -29,8 +29,8 @@ public:
     GreensMethodOperator(Lattice* lattice);
 
 public:
-    virtual void SetHomogenousSolutions(const SpinorFunction* fromOrigin, const SpinorFunction* fromInfinity);
-    virtual void SetSourceTerm(const SpinorFunction* sourceTerm, bool fromOrigin);
+    virtual void SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity);
+    virtual void SetSourceTerm(const SpinorFunction& sourceTerm, bool fromOrigin);
 
 public:
     /** Get df/dr = w[0] given point r, f.
@@ -55,9 +55,9 @@ public:
     virtual void EstimateSolutionNearInfinity(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const;
 
 protected:
-    const SpinorFunction* s0;
-    const SpinorFunction* sInf;
-    const SpinorFunction* source;
+    SpinorFunction s0;
+    SpinorFunction sInf;
+    SpinorFunction source;
     bool solutionRegularAtOrigin;
 
     /** The Wronskian is supposed to be a constant, but here we include it as a function of r.

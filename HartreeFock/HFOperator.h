@@ -18,16 +18,15 @@ public:
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
     virtual void SetCore(const Core* hf_core);
 
-    /** Potential = t | a > for an operator t. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
-
-public:
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL);
-
+    
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(SingleParticleWavefunction* approximation);
+    virtual void SetODEParameters(const SingleParticleWavefunction* approximation);
 
+    /** Get exchange (nonlocal) potential. */
+    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation = NULL);
+    
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array.
      */
@@ -52,9 +51,12 @@ public:
      */
     virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const;
 
+public:
+    /** Potential = t | a > for an operator t. */
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
+
 protected:
     double Z;
-    const Core* core;
     std::vector<double> directPotential;
     std::vector<double> dVdR;
 

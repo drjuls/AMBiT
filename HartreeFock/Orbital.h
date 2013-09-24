@@ -27,6 +27,8 @@ public:
     const Orbital& operator-=(const Orbital& other);
     Orbital operator+(const Orbital& other) const;
     Orbital operator-(const Orbital& other) const;
+    const Orbital& TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr);
+    Orbital TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const;
 
     /** Check that the ratio
           f[Size()-1]/f_max < tolerance

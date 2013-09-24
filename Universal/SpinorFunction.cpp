@@ -33,6 +33,8 @@ const SpinorFunction& SpinorFunction::operator=(const SpinorFunction& other)
     dfdr = other.dfdr;
     dgdr = other.dgdr;
 
+    kappa = other.kappa;
+
     return *this;
 }
 
@@ -52,7 +54,7 @@ const SpinorFunction& SpinorFunction::operator*=(double scale_factor)
 SpinorFunction SpinorFunction::operator*(double scale_factor) const
 {
     SpinorFunction ret(*this);
-    return (ret * scale_factor);
+    return (ret *= scale_factor);
 }
 
 const SpinorFunction& SpinorFunction::operator+=(const SpinorFunction& other)
@@ -86,6 +88,28 @@ SpinorFunction SpinorFunction::operator-(const SpinorFunction& other) const
 {
     SpinorFunction ret(*this);
     return ret -= other;
+}
+
+const SpinorFunction& SpinorFunction::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+{
+    // Outside range of chi, chi is assumed to be zero.
+    if(chi.size() < Size())
+        ReSize(chi.size());
+
+    for(unsigned int i = 0; i < Size(); i++)
+    {   f[i] *= chi[i];
+        g[i] *= chi[i];
+        dfdr[i] = f[i] * dchidr[i] + dfdr[i] * chi[i];
+        dgdr[i] = g[i] * dchidr[i] + dgdr[i] * chi[i];
+    }
+
+    return *this;
+}
+
+SpinorFunction SpinorFunction::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+{
+    SpinorFunction ret(*this);
+    return ret.TimesEqualsVector(chi, dchidr);
 }
 
 void SpinorFunction::Write(FILE* fp) const

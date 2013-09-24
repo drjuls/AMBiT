@@ -24,30 +24,6 @@ void HFOperator::SetCore(const Core* hf_core)
     interp.GetDerivative(directPotential, dVdR, 6);
 }
 
-/** SpinorFunction = t | a > for an operator t. */
-SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
-{
-    SpinorFunction ta(a.Size());
-
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
-    const double* R = core->GetLattice()->R();
-
-    double kappa = (double) a.Kappa();
-    SpinorFunction exchangePotential(a.Kappa());
-    core->CalculateExchange(a, exchangePotential);
-
-    for(unsigned int i = 0; i < a.Size(); i++)
-    {
-        ta.f[i] = -directPotential[i]*a.f[i] - exchangePotential.f[i]
-                  + (-a.dgdr[i] + kappa/R[i]*a.g[i])/alpha;
-        ta.g[i] = (a.dfdr[i] + kappa/R[i]*a.f[i])/alpha
-                  - (2./alphasquared + directPotential[i])*a.g[i] - exchangePotential.g[i];
-    }
-
-    return ta;
-}
-
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
 void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exchange)
 {
@@ -62,11 +38,22 @@ void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exch
     }
 }
 
-void HFOperator::SetODEParameters(SingleParticleWavefunction* approximation)
+void HFOperator::SetODEParameters(const SingleParticleWavefunction* approximation)
 {
     core->CalculateExchange(*approximation, currentExchangePotential);
     currentEnergy = approximation->GetEnergy();
     currentKappa = approximation->Kappa();
+}
+
+/** Get exchange (nonlocal) potential. */
+SpinorFunction HFOperator::GetExchange(const SingleParticleWavefunction* approximation)
+{
+    if(approximation == NULL)
+        return currentExchangePotential;
+
+    SpinorFunction exchange(approximation->Kappa());
+    core->CalculateExchange(*approximation, exchange);
+    return exchange;
 }
 
 /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g). */
@@ -77,10 +64,13 @@ void HFOperator::GetODEFunction(unsigned int latticepoint, const SpinorFunction&
 
     const unsigned int i = latticepoint;
 
-    w[0] = -currentKappa/R * fg.f[i] + (2./alpha + alpha * (currentEnergy + directPotential[i])) * fg.g[i]
-           + alpha * currentExchangePotential.g[i];
-    w[1] = -alpha * (currentEnergy + directPotential[i]) * fg.f[i] - alpha * currentExchangePotential.f[i]
-           + currentKappa/R * fg.g[i];
+    w[0] = -currentKappa/R * fg.f[i] + (2./alpha + alpha * (currentEnergy + directPotential[i])) * fg.g[i];
+    w[1] = -alpha * (currentEnergy + directPotential[i]) * fg.f[i] + currentKappa/R * fg.g[i];
+
+    if(include_nonlocal)
+    {   w[0] = w[0] + alpha * currentExchangePotential.g[i];
+        w[1] = w[1] - alpha * currentExchangePotential.f[i];
+    }
 }
 
 void HFOperator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
@@ -95,8 +85,14 @@ void HFOperator::GetODECoefficients(unsigned int latticepoint, const SpinorFunct
     w_f[1] = -alpha * (currentEnergy + directPotential[i]);
     w_g[1] = currentKappa/R;
 
-    w_const[0] = alpha * currentExchangePotential.g[i];
-    w_const[1] = -alpha * currentExchangePotential.f[i];
+    if(include_nonlocal)
+    {   w_const[0] = alpha * currentExchangePotential.g[i];
+        w_const[1] = -alpha * currentExchangePotential.f[i];
+    }
+    else
+    {   w_const[0] = 0.;
+        w_const[1] = 0.;
+    }
 }
 
 /** Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
@@ -114,8 +110,13 @@ void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction&
     jacobian[1][0] = -alpha * (currentEnergy + directPotential[i]);
     jacobian[1][1] = currentKappa/R;
 
-    dwdr[0] = currentKappa/(R*R) * fg.f[i] + alpha * dVdR[i] * fg.g[i] + alpha * currentExchangePotential.dgdr[i];
-    dwdr[1] = -alpha * dVdR[i] * fg.f[i] -alpha * currentExchangePotential.dfdr[i] -currentKappa/(R*R) * fg.g[i];
+    dwdr[0] = currentKappa/(R*R) * fg.f[i] + alpha * dVdR[i] * fg.g[i];
+    dwdr[1] = -alpha * dVdR[i] * fg.f[i] -currentKappa/(R*R) * fg.g[i];
+
+    if(include_nonlocal)
+    {   dwdr[0] = dwdr[0] + alpha * currentExchangePotential.dgdr[i];
+        dwdr[1] = dwdr[1] -alpha * currentExchangePotential.dfdr[i];
+    }
 }
 
 /** Get approximation to eigenfunction at a point assumed to be near the origin. */
@@ -220,4 +221,28 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
             s.dgdr[i] *= correction;
         }
     }
+}
+
+/** SpinorFunction = t | a > for an operator t. */
+SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
+{
+    SpinorFunction ta(a.Size());
+    
+    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    const double* R = core->GetLattice()->R();
+    
+    double kappa = (double) a.Kappa();
+    SpinorFunction exchangePotential(a.Kappa());
+    core->CalculateExchange(a, exchangePotential);
+    
+    for(unsigned int i = 0; i < a.Size(); i++)
+    {
+        ta.f[i] = -directPotential[i]*a.f[i] - exchangePotential.f[i]
+        + (-a.dgdr[i] + kappa/R[i]*a.g[i])/alpha;
+        ta.g[i] = (a.dfdr[i] + kappa/R[i]*a.f[i])/alpha
+        - (2./alphasquared + directPotential[i])*a.g[i] - exchangePotential.g[i];
+    }
+    
+    return ta;
 }

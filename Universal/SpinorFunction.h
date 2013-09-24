@@ -41,6 +41,12 @@ public:
     SpinorFunction operator+(const SpinorFunction& other) const;
     SpinorFunction operator-(const SpinorFunction& other) const;
 
+    /** Multiply spinor function by a vector (assumed zero outside range).
+        PRE: chi.size() == dchidr.size()
+     */
+    const SpinorFunction& TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr);
+    SpinorFunction TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const;
+
     /** Store the coupled function vectors.
         PRE: File pointer fp must be open and binary writable.
      */
