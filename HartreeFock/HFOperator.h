@@ -4,6 +4,7 @@
 #include "Operator.h"
 #include "SpinorODE.h"
 #include "Core.h"
+#include "CoulombOperator.h"
 
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     t = (     -V                 (-d/dr + Kappa/r)/alpha )
@@ -12,7 +13,7 @@
 class HFOperator : public OneBodyOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, const Core* hf_core, OPIntegrator* integration_strategy);
+    HFOperator(double Z, const Core* hf_core, OPIntegrator* integration_strategy, CoulombOperator* coulomb);
     virtual ~HFOperator();
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
@@ -25,7 +26,7 @@ public:
     virtual void SetODEParameters(const SingleParticleWavefunction* approximation);
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation = NULL);
+    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation = NULL) const;
     
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array.
@@ -56,10 +57,13 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
 
 protected:
-    double Z;
-    std::vector<double> directPotential;
-    std::vector<double> dVdR;
+    virtual SpinorFunction CalculateExchange(const SpinorFunction* s) const;
 
+protected:
+    double Z;
+    CoulombOperator* coulombSolver;
+
+    RadialFunction directPotential;
     SpinorFunction currentExchangePotential;
     double currentEnergy;
     int currentKappa;

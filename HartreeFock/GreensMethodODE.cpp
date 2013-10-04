@@ -1,12 +1,12 @@
-#include "GreensMethodOperator.h"
+#include "GreensMethodODE.h"
 #include "Include.h"
 
-GreensMethodOperator::GreensMethodOperator(Lattice* lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
+GreensMethodODE::GreensMethodODE(Lattice* lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
     s0(-1), sInf(-1), source(-1)
 {}
 
 /** Functions for ODE solving. */
-void GreensMethodOperator::SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity)
+void GreensMethodODE::SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity)
 {
     s0 = fromOrigin;
     sInf = fromInfinity;
@@ -19,7 +19,7 @@ void GreensMethodOperator::SetHomogenousSolutions(const SpinorFunction& fromOrig
     }
 }
 
-void GreensMethodOperator::SetSourceTerm(const SpinorFunction& sourceTerm, bool fromOrigin)
+void GreensMethodODE::SetSourceTerm(const SpinorFunction& sourceTerm, bool fromOrigin)
 {
     source = sourceTerm;
     solutionRegularAtOrigin = fromOrigin;
@@ -28,7 +28,7 @@ void GreensMethodOperator::SetSourceTerm(const SpinorFunction& sourceTerm, bool 
 /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
  PRE: w should be an allocated 2 dimensional array.
  */
-void GreensMethodOperator::GetODEFunction(unsigned int latticepoint, const std::vector<double>& f, double* w) const
+void GreensMethodODE::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const
 {
     double integrand = 0.;
 
@@ -48,7 +48,7 @@ void GreensMethodOperator::GetODEFunction(unsigned int latticepoint, const std::
 /** Get numerical coefficients of the ODE at the point r, (f,g).
  PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
  */
-void GreensMethodOperator::GetODECoefficients(unsigned int latticepoint, const std::vector<double>& f, double* w_f, double* w_const) const
+void GreensMethodODE::GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const
 {
     *w_f = 0.;
 
@@ -60,7 +60,7 @@ void GreensMethodOperator::GetODECoefficients(unsigned int latticepoint, const s
  PRE: jacobian should be an allocated 2x2 matrix,
  dwdr and w_const should be allocated 2 dimensional arrays.
  */
-void GreensMethodOperator::GetODEJacobian(unsigned int latticepoint, const std::vector<double>& f, double* jacobian, double* dwdr) const
+void GreensMethodODE::GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const
 {
     *jacobian = 0.;
 
@@ -78,7 +78,7 @@ void GreensMethodOperator::GetODEJacobian(unsigned int latticepoint, const std::
 }
 
 /** Get approximation to eigenfunction for first numpoints near the origin. */
-void GreensMethodOperator::EstimateSolutionNearOrigin(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const
+void GreensMethodODE::EstimateSolutionNearOrigin(unsigned int numpoints, RadialFunction& f) const
 {
     double w_i;
     const double* dR = lattice->dR();
@@ -86,37 +86,37 @@ void GreensMethodOperator::EstimateSolutionNearOrigin(unsigned int numpoints, st
     unsigned int i = 0;
 
     GetODEFunction(i, f, &w_i);
-    f[i] = 0.5 * w_i * dR[i];
-    dfdr[i] = w_i;
+    f.f[i] = 0.5 * w_i * dR[i];
+    f.dfdr[i] = w_i;
 
     for(i=1; i < numpoints; i++)
     {
         GetODEFunction(i, f, &w_i);
-        dfdr[i] = w_i;
+        f.dfdr[i] = w_i;
 
-        f[i] = f[i-1] + 0.5 * (dfdr[i-1] * dR[i-1] + dfdr[i] * dR[i]);
+        f.f[i] = f.f[i-1] + 0.5 * (f.dfdr[i-1] * dR[i-1] + f.dfdr[i] * dR[i]);
     }
 }
 
 /** Get approximation to eigenfunction for last numpoints far from the origin.
  This routine can change the size of the orbital.
  */
-void GreensMethodOperator::EstimateSolutionNearInfinity(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const
+void GreensMethodODE::EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const
 {
     double w_i;
     const double* dR = lattice->dR();
     
-    unsigned int i = f.size()-1;
+    unsigned int i = f.Size()-1;
     
     GetODEFunction(i, f, &w_i);
-    f[i] = 0.5 * w_i * dR[i];
-    dfdr[i] = w_i;
+    f.f[i] = 0.5 * w_i * dR[i];
+    f.dfdr[i] = w_i;
     
-    for(i=f.size()-2; i >= f.size()-numpoints; i--)
+    for(i=f.Size()-2; i >= f.Size()-numpoints; i--)
     {
         GetODEFunction(i, f, &w_i);
-        dfdr[i] = w_i;
+        f.dfdr[i] = w_i;
         
-        f[i] = f[i+1] - 0.5 * (dfdr[i+1] * dR[i+1] + dfdr[i] * dR[i]);
+        f.f[i] = f.f[i+1] - 0.5 * (f.dfdr[i+1] * dR[i+1] + f.dfdr[i] * dR[i]);
     }
 }

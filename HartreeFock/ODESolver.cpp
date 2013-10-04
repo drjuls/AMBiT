@@ -16,15 +16,13 @@ AdamsSolver::~AdamsSolver()
     delete[] adams_coeff;
 }
 
-void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr)
+void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, RadialFunction* solution)
 {
-    std::vector<double>& f = *sol;
-    std::vector<double>& dfdr = *dsoldr;
-    dfdr.resize(f.size());
-    op->EstimateSolutionNearOrigin(order, f, dfdr);
+    RadialFunction& s = *solution;
+    op->EstimateSolutionNearOrigin(order, s);
 
     int start_point = order;
-    int end_point = f.size();
+    int end_point = s.Size();
 
     double w_f, w_const;
 
@@ -32,29 +30,27 @@ void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, std::vector<dou
 
     for(int i = start_point; i < end_point; i++)
     {
-        op->GetODECoefficients(i, f, &w_f, &w_const);
+        op->GetODECoefficients(i, s, &w_f, &w_const);
         
-        double f_next = f[i-1] + adams_coeff[0] * w_const * dR[i];
+        double f_next = s.f[i-1] + adams_coeff[0] * w_const * dR[i];
         
         for(unsigned int j=1; j<order; j++)
         {
-            f_next = f_next + adams_coeff[j] * dfdr[i-j] * dR[i-j];
+            f_next = f_next + adams_coeff[j] * s.dfdr[i-j] * dR[i-j];
         }
         
         double D = 1. - adams_coeff[0] * w_f * dR[i];
-        f[i] = f_next / D;
-        dfdr[i] = w_f * f[i] + w_const;
+        s.f[i] = f_next / D;
+        s.dfdr[i] = w_f * s.f[i] + w_const;
     }
 }
 
-void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr)
+void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, RadialFunction* solution)
 {
-    std::vector<double>& f = *sol;
-    std::vector<double>& dfdr = *dsoldr;
-    dfdr.resize(f.size());
-    op->EstimateSolutionNearInfinity(order, f, dfdr);
+    RadialFunction& s = *solution;
+    op->EstimateSolutionNearInfinity(order, s);
     
-    int start_point = f.size() - order;
+    int start_point = s.Size() - order;
     int end_point = 0;
     
     double w_f, w_const;
@@ -63,18 +59,18 @@ void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, std::vector<do
     
     for(int i = start_point; i >= end_point; i--)
     {
-        op->GetODECoefficients(i, f, &w_f, &w_const);
+        op->GetODECoefficients(i, s, &w_f, &w_const);
         
-        double f_next = f[i+1] - adams_coeff[0] * w_const * dR[i];
+        double f_next = s.f[i+1] - adams_coeff[0] * w_const * dR[i];
         
         for(unsigned int j=1; j<order; j++)
         {
-            f_next = f_next - adams_coeff[j] * dfdr[i+j] * dR[i+j];
+            f_next = f_next - adams_coeff[j] * s.dfdr[i+j] * dR[i+j];
         }
         
         double D = 1. + adams_coeff[0] * w_f * dR[i];
-        f[i] = f_next / D;
-        dfdr[i] = w_f * f[i] + w_const;
+        s.f[i] = f_next / D;
+        s.dfdr[i] = w_f * s.f[i] + w_const;
     }
 }
 

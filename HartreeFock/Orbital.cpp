@@ -60,16 +60,16 @@ Orbital Orbital::operator-(const Orbital& other) const
     return ret;
 }
 
-const Orbital& Orbital::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+const Orbital& Orbital::operator*=(const RadialFunction& chi)
 {
-    SingleParticleWavefunction::TimesEqualsVector(chi, dchidr);
+    SingleParticleWavefunction::operator*=(chi);
     return *this;
 }
 
-Orbital Orbital::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+Orbital Orbital::operator*(const RadialFunction& chi) const
 {
     Orbital ret(*this);
-    ret.TimesEqualsVector(chi, dchidr);
+    ret *= chi;
     return ret;
 }
 

@@ -1,9 +1,9 @@
 #include "Operator.h"
 
-double OneBodyOperator::GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const
+double OneBodyOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const
 {
     SpinorFunction ta = ApplyTo(a);
-    return integrator->GetInnerProduct(a, b);
+    return integrator->GetInnerProduct(ta, b);
 }
 
 double ZeroOperator::GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const
@@ -13,5 +13,5 @@ double ZeroOperator::GetMatrixElement(const SpinorFunction& a, const SpinorFunct
 
 SpinorFunction ZeroOperator::ApplyTo(const SpinorFunction& a) const
 {
-    return SpinorFunction(a.Size());
+    return SpinorFunction(a.Kappa(), a.Size());
 }

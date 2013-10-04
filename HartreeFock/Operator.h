@@ -4,8 +4,6 @@
 #include "Orbital.h"
 #include "OpIntegrator.h"
 
-class OneBodyOperatorDecorator;
-
 /** OneBodyOperator is an abstract class for calculating radial matrix elements with an orbital basis.
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
     Operators are also components of the Strategy pattern; they are initialised with an Integrator that the client can choose.
@@ -17,7 +15,7 @@ public:
     OneBodyOperator(OPIntegrator* integration_strategy = NULL): integrator(integration_strategy) {}
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const;
+    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const;
     
     /** Potential = t | a > for an operator t. */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const = 0;

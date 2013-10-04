@@ -1,5 +1,6 @@
 #include "Include.h"
 #include "SpinorFunction.h"
+#include "Interpolator.h"
 
 SpinorFunction::SpinorFunction(int kappa, unsigned int size):
     kappa(kappa)
@@ -90,26 +91,51 @@ SpinorFunction SpinorFunction::operator-(const SpinorFunction& other) const
     return ret -= other;
 }
 
-const SpinorFunction& SpinorFunction::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+const SpinorFunction& SpinorFunction::operator*=(const RadialFunction& chi)
 {
     // Outside range of chi, chi is assumed to be zero.
-    if(chi.size() < Size())
-        ReSize(chi.size());
+    if(chi.Size() < Size())
+        ReSize(chi.Size());
 
     for(unsigned int i = 0; i < Size(); i++)
-    {   f[i] *= chi[i];
-        g[i] *= chi[i];
-        dfdr[i] = f[i] * dchidr[i] + dfdr[i] * chi[i];
-        dgdr[i] = g[i] * dchidr[i] + dgdr[i] * chi[i];
+    {   f[i] *= chi.f[i];
+        g[i] *= chi.f[i];
+        dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
+        dgdr[i] = g[i] * chi.dfdr[i] + dgdr[i] * chi.f[i];
     }
 
     return *this;
 }
 
-SpinorFunction SpinorFunction::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+SpinorFunction SpinorFunction::operator*(const RadialFunction& chi) const
 {
     SpinorFunction ret(*this);
-    return ret.TimesEqualsVector(chi, dchidr);
+    return (ret *= chi);
+}
+
+RadialFunction SpinorFunction::GetDensity(const SpinorFunction* other) const
+{
+    RadialFunction ret;
+    unsigned int i;
+
+    if(other == NULL)
+    {   ret.ReSize(Size());
+        for(i = 0; i < ret.Size(); i++)
+        {   ret.f[i] = f[i] * f[i] + g[i] * g[i];
+            ret.dfdr[i] = 2. * (f[i] * dfdr[i] + g[i] * dgdr[i]);
+        }
+    }
+    else
+    {   // Get rho(r) = f[i] j.f[i] + g[i] j.g[i]
+        ret.ReSize(mmin(Size(), other->Size()));
+        for(i = 0; i < ret.Size(); i++)
+        {   ret.f[i] = f[i] * other->f[i] + g[i] * other->g[i];
+            ret.dfdr[i] = f[i] * other->dfdr[i] + dfdr[i] * other->f[i]
+                         +g[i] * other->dgdr[i] + dgdr[i] * other->g[i];
+        }
+    }
+
+    return ret;
 }
 
 void SpinorFunction::Write(FILE* fp) const
@@ -195,4 +221,108 @@ void SpinorFunction::Read(FILE* fp)
     }
 
     delete[] buffer;
+}
+
+RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr)
+{
+    f = pf;
+    dfdr = pdfdr;
+
+    dfdr.resize(f.size());
+}
+
+RadialFunction::RadialFunction(unsigned int size)
+{   Clear();
+    ReSize(size);
+}
+
+void RadialFunction::ReSize(unsigned int size)
+{   f.resize(size);
+    dfdr.resize(size);
+}
+
+void RadialFunction::Clear()
+{   f.clear();
+    dfdr.clear();
+}
+
+const RadialFunction& RadialFunction::operator=(const RadialFunction& other)
+{   f = other.f;
+    dfdr = other.dfdr;
+    return *this;
+}
+
+const RadialFunction& RadialFunction::operator*=(double scale_factor)
+{
+    for(unsigned int i = 0; i < f.size(); i++)
+    {
+        f[i] *= scale_factor;
+        dfdr[i] *= scale_factor;
+    }
+
+    return *this;
+}
+
+RadialFunction RadialFunction::operator*(double scale_factor) const
+{
+    RadialFunction ret(*this);
+    return (ret *= scale_factor);
+}
+
+const RadialFunction& RadialFunction::operator+=(const RadialFunction& other)
+{
+    if(Size() < other.Size())
+        ReSize(other.Size());
+    
+    for(unsigned int i = 0; i < other.Size(); i++)
+    {   f[i] += other.f[i];
+        dfdr[i] += other.dfdr[i];
+    }
+    
+    return *this;
+}
+
+const RadialFunction& RadialFunction::operator-=(const RadialFunction& other)
+{
+    if(Size() < other.Size())
+        ReSize(other.Size());
+    
+    for(unsigned int i = 0; i < other.Size(); i++)
+    {   f[i] -= other.f[i];
+        dfdr[i] -= other.dfdr[i];
+    }
+    
+    return *this;
+}
+
+RadialFunction RadialFunction::operator+(const RadialFunction& other) const
+{
+    RadialFunction ret(*this);
+    return (ret += other);
+}
+
+RadialFunction RadialFunction::operator-(const RadialFunction& other) const
+{
+    RadialFunction ret(*this);
+    return (ret -= other);
+}
+
+const RadialFunction& RadialFunction::operator*=(const RadialFunction& other)
+{
+    if(Size() > other.Size())
+        ReSize(other.Size());
+
+    for(unsigned int i = 0; i < Size(); i++)
+    {
+        f[i] *= other.f[i];
+        dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];
+    }
+
+    return *this;
+}
+
+RadialFunction RadialFunction::operator*(const RadialFunction& other) const
+{
+    RadialFunction ret(*this);
+    return (ret *= other);
 }

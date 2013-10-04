@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "Include.h"
 #include "ODESolver.h"
-#include "GreensMethodOperator.h"
 #include "Universal/PhysicalConstant.h"
 #include "HartreeFocker.h"
 
@@ -29,18 +28,28 @@ TEST(HFOperatorTester, ODESolver)
     core.CalculateExcitedState(&start_4s);
     start_4s.CheckSize(&lattice, 1.e-10);
 
-    EXPECT_NEAR(start_4s.GetEnergy(), -0.41663154257325596, 0.000001 * 0.41663154257325596);
-    EXPECT_NEAR(start_4s.Norm(&lattice), 1.0, 1.e-4);
+    EXPECT_NEAR(start_4s.GetEnergy(), -0.41663154, 0.000001 * 0.41663154);
+    EXPECT_NEAR(start_4s.Norm(&lattice), 1.0, 1.e-8);
 
     Orbital new_4s(start_4s);
     new_4s.SetEnergy(-0.4);
 
-    OPIntegrator* integrator = NULL;
-    HFOperator t(Z, &core, integrator);
+    SimpsonsIntegrator integrator(&lattice);
+    AdamsSolver ode_solver(&lattice);
+    CoulombOperator coulomb(&lattice, &ode_solver);
+    HFOperator t(Z, &core, &integrator, &coulomb);
 
     HartreeFocker HF_Solver;
-    HF_Solver.IterateOrbital(&new_4s, &t);
+    HF_Solver.SolveOrbital(&new_4s, &t);
 
-    EXPECT_NEAR(new_4s.GetEnergy(), -0.41663154257325596, 0.000001 * 0.41663154257325596);
+    EXPECT_NEAR(new_4s.GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(new_4s.Norm(&lattice), 1.0, 1.e-8);
+    EXPECT_NEAR(t.GetMatrixElement(new_4s, new_4s), -0.41663154, 1.e-6  * 0.41663154);
+
+    // Check core orbital
+    Orbital new_2p(*core.GetState(OrbitalInfo(2, 1)));
+    new_2p.SetEnergy(-12.0);
+    HF_Solver.SolveOrbital(&new_2p, &t);
+
+    EXPECT_NEAR(new_2p.GetEnergy(), -14.282789, 1.e-6 * 14.282789);    
 }

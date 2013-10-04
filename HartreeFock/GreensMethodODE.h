@@ -1,14 +1,13 @@
-#ifndef GREENS_METHOD_OPERATOR_H
-#define GREENS_METHOD_OPERATOR_H
+#ifndef GREENS_METHOD_ODE_H
+#define GREENS_METHOD_ODE_H
 
-#include "Operator.h"
 #include "SpinorODE.h"
 #include "ODESolver.h"
 
 /** Operator for solving equations of the form
         L psi = source(r)
     where L is a first order differential operator.
-    GreensMethodOperator is supplied with solutions to the homogenous equation
+    GreensMethodODE is supplied with solutions to the homogenous equation
         L psi = 0
     which are regular at the origin and at infinity, s0 and sInf.
     Then one can express the solution of the original equation as a linear combination
@@ -23,10 +22,10 @@
         G0(r)   = Integral[ source(r') * s0(r') / W , {r' = 0, r}]
     which is easier to obtain from the ODE form. An ODESolver may be supplied to replace the default.
  */
-class GreensMethodOperator : public OneDimensionalODE
+class GreensMethodODE : public OneDimensionalODE
 {
 public:
-    GreensMethodOperator(Lattice* lattice);
+    GreensMethodODE(Lattice* lattice);
 
 public:
     virtual void SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity);
@@ -36,23 +35,23 @@ public:
     /** Get df/dr = w[0] given point r, f.
      PRE: w should be an allocated double.
      */
-    virtual void GetODEFunction(unsigned int latticepoint, const std::vector<double>& f, double* w) const;
+    virtual void GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const;
     
     /** Get numerical coefficients of the ODE at the point r, f.
      PRE: w_f and w_const should be allocated 2 dimensional arrays.
      */
-    virtual void GetODECoefficients(unsigned int latticepoint, const std::vector<double>& f, double* w_f, double* w_const) const;
+    virtual void GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const;
     
     /** Get Jacobian dw[i]/df and dw[i]/dr at a point r, f.
      PRE: jacobian and dwdr should allocated doubles.
      */
-    virtual void GetODEJacobian(unsigned int latticepoint, const std::vector<double>& f, double* jacobian, double* dwdr) const;
+    virtual void GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const;
     
     /** Get approximation to solution for first numpoints near the origin. */
-    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const;
+    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, RadialFunction& f) const;
     
     /** Get approximation to solution for last numpoints far from the origin. */
-    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const;
+    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const;
 
 protected:
     SpinorFunction s0;

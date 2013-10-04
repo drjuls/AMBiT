@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <vector>
 
-/** Spinor function is the radial part of a Dirac function of the form
+class RadialFunction;
+
+/** SpinorFunction is the radial part of a Dirac function of the form
       psi = ( f(r) Omega_{kappa m} )
             (ig(r) Omega_{-kappa m})
     where Omega_{kappa m} contains the angular and spin variables.
@@ -41,11 +43,16 @@ public:
     SpinorFunction operator+(const SpinorFunction& other) const;
     SpinorFunction operator-(const SpinorFunction& other) const;
 
-    /** Multiply spinor function by a vector (assumed zero outside range).
-        PRE: chi.size() == dchidr.size()
+    /** Multiply spinor function by another radial function (assumed zero outside range). */
+    const SpinorFunction& operator*=(const RadialFunction& chi);
+    SpinorFunction operator*(const RadialFunction& chi) const;
+
+    /** Get density
+            rho(r) = (f^2 + g^2)
+        If (other != NULL) then the overlap density is
+            rho(r) = (f_i f_j + g_i g_j)
      */
-    const SpinorFunction& TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr);
-    SpinorFunction TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const;
+    RadialFunction GetDensity(const SpinorFunction* other = NULL) const;
 
     /** Store the coupled function vectors.
         PRE: File pointer fp must be open and binary writable.
@@ -75,5 +82,38 @@ inline double SpinorFunction::J() const
 inline unsigned int SpinorFunction::TwoJ() const
 {   return (2*abs(kappa) - 1);
 }
+
+
+/** RadialFunction is a vector function and its derivative,
+    similar to one component of a SpinorFunction.
+ */
+class RadialFunction
+{
+public:
+    RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr);
+    RadialFunction(unsigned int size = 0);
+    virtual ~RadialFunction() {}
+
+    std::vector<double> f, dfdr;
+    
+    virtual unsigned int Size() const { return static_cast<unsigned int>(f.size()); }
+    /** Resize the functions. Pad with zeros if necessary. */
+    virtual void ReSize(unsigned int size);
+    virtual void Clear();
+    const RadialFunction& operator=(const RadialFunction& other);
+
+    /** Multiply all points by the scale factor. */
+    const RadialFunction& operator*=(double scale_factor);
+    RadialFunction operator*(double scale_factor) const;
+
+    const RadialFunction& operator+=(const RadialFunction& other);
+    const RadialFunction& operator-=(const RadialFunction& other);
+    RadialFunction operator+(const RadialFunction& other) const;
+    RadialFunction operator-(const RadialFunction& other) const;
+    
+    /** Multiply radial function by another (assumed zero outside range). */
+    const RadialFunction& operator*=(const RadialFunction& other);
+    RadialFunction operator*(const RadialFunction& other) const;
+};
 
 #endif

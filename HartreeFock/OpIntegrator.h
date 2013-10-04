@@ -7,22 +7,25 @@
 class OPIntegrator
 {
 public:
-    OPIntegrator(Lattice* lat) : lattice(lat) {}
+    OPIntegrator(Lattice* lat): lattice(lat) {}
 
-    virtual double Integrate(const std::vector<double>& integrand) = 0;
+    virtual double Integrate(const RadialFunction& integrand) const = 0;
 
     /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
-    virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) = 0;
+    virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const;
 
-    Lattice* GetLattice();
+    Lattice* GetLattice() { return lattice; }
 
 protected:
     Lattice* lattice;
 };
 
-inline Lattice* OPIntegrator::GetLattice()
+class SimpsonsIntegrator : public OPIntegrator
 {
-    return lattice;
-}
+public:
+    SimpsonsIntegrator(Lattice* lat): OPIntegrator(lat) {}
+
+    virtual double Integrate(const RadialFunction& integrand) const;
+};
 
 #endif

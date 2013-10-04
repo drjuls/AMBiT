@@ -140,16 +140,16 @@ SingleParticleWavefunction SingleParticleWavefunction::operator-(const SinglePar
     return ret;    
 }
 
-const SingleParticleWavefunction& SingleParticleWavefunction::TimesEqualsVector(const std::vector<double>& chi, const std::vector<double>& dchidr)
+const SingleParticleWavefunction& SingleParticleWavefunction::operator*=(const RadialFunction& chi)
 {
-    SpinorFunction::TimesEqualsVector(chi, dchidr);
+    SpinorFunction::operator*=(chi);
     return *this;
 }
 
-SingleParticleWavefunction SingleParticleWavefunction::TimesVector(const std::vector<double>& chi, const std::vector<double>& dchidr) const
+SingleParticleWavefunction SingleParticleWavefunction::operator*(const RadialFunction& chi) const
 {
     SingleParticleWavefunction ret(*this);
-    ret.TimesEqualsVector(chi, dchidr);
+    ret *= chi;
     return ret;
 }
 

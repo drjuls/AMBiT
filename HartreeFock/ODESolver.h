@@ -15,23 +15,23 @@ public:
     /** Get df/dr = w[0] given point r, f.
         PRE: w should be an allocated double.
      */
-    virtual void GetODEFunction(unsigned int latticepoint, const std::vector<double>& f, double* w) const = 0;
+    virtual void GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const = 0;
     
     /** Get numerical coefficients of the ODE at the point r, f.
         PRE: w_f and w_const should be allocated 2 dimensional arrays.
      */
-    virtual void GetODECoefficients(unsigned int latticepoint, const std::vector<double>& f, double* w_f, double* w_const) const = 0;
+    virtual void GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const = 0;
     
     /** Get Jacobian dw[i]/df and dw[i]/dr at a point r, f.
         PRE: jacobian and dwdr should allocated doubles.
      */
-    virtual void GetODEJacobian(unsigned int latticepoint, const std::vector<double>& f, double* jacobian, double* dwdr) const = 0;
+    virtual void GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const = 0;
     
     /** Get approximation to solution for first numpoints near the origin. */
-    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const = 0;
+    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, RadialFunction& f) const = 0;
     
     /** Get approximation to solution for last numpoints far from the origin. */
-    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, std::vector<double>& f, std::vector<double>& dfdr) const = 0;
+    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const = 0;
 
 protected:
     Lattice* lattice;
@@ -45,10 +45,10 @@ public:
 
 public:
     /** Get eigenstate of the operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr) = 0;
+    virtual void IntegrateForwards(const OneDimensionalODE* op, RadialFunction* solution) = 0;
     
     /** Get eigenstate of the operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr) = 0;
+    virtual void IntegrateBackwards(const OneDimensionalODE* op, RadialFunction* solution) = 0;
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */
@@ -70,10 +70,10 @@ public:
 
 public:
     /** Get eigenstate of the operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr);
+    virtual void IntegrateForwards(const OneDimensionalODE* op, RadialFunction* solution);
     
     /** Get eigenstate of the operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const OneDimensionalODE* op, std::vector<double>* sol, std::vector<double>* dsoldr);
+    virtual void IntegrateBackwards(const OneDimensionalODE* op, RadialFunction* solution);
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */
