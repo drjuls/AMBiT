@@ -4,10 +4,16 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
+Orbital::Orbital(const OrbitalInfo& info):
+    SingleParticleWavefunction(info)
+{
+    occupancy = 2.*abs(kappa);
+}
+
 Orbital::Orbital(int kappa, double energy, unsigned int pqn, unsigned int size):
     SingleParticleWavefunction(kappa, energy, pqn, size)
 {
-    occupancy = 2*abs(kappa);
+    occupancy = 2.*abs(kappa);
 }
 
 Orbital::Orbital(const Orbital& other):

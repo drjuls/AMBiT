@@ -9,6 +9,7 @@
 class Orbital : public SingleParticleWavefunction  
 {
 public:
+    Orbital(const OrbitalInfo& info);
     Orbital(int kappa, double energy = 0., unsigned int pqn = 0, unsigned int size = 0);
     Orbital(const Orbital& other);
     virtual ~Orbital() {}

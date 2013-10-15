@@ -23,9 +23,9 @@ public:
 
     virtual unsigned int Size() const { return static_cast<unsigned int>(f.size()); }
     int Kappa() const { return kappa; }
-    unsigned int L() const;
+    int L() const;
     double J() const;
-    unsigned int TwoJ() const;
+    int TwoJ() const;
 
     /** Resize the functions. Pad with zeros if necessary. */
     virtual void ReSize(unsigned int size);
@@ -68,18 +68,18 @@ protected:
     int kappa;
 };
 
-inline unsigned int SpinorFunction::L() const
+inline int SpinorFunction::L() const
 {   if (kappa > 0)
-        return (unsigned int)(kappa);
+        return (kappa);
     else
-        return (unsigned int)(-kappa-1);
+        return (-kappa-1);
 }
 
 inline double SpinorFunction::J() const
 {   return (double)abs(kappa) - 0.5;
 }
 
-inline unsigned int SpinorFunction::TwoJ() const
+inline int SpinorFunction::TwoJ() const
 {   return (2*abs(kappa) - 1);
 }
 

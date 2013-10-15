@@ -30,7 +30,6 @@ Core::Core(const Core& other, Lattice* new_lattice):
 
     const double* R_old = other.lattice->R();
     const double* R = lattice->R();
-    const double* dR = lattice->dR();
 
     StateSet::const_iterator it = other.OpenShellStorage.begin();
 
@@ -59,6 +58,41 @@ Core::Core(const Core& other, Lattice* new_lattice):
         OpenShellStorage[it->first] = ds;
         it++;
     }
+}
+
+const Core& Core::operator=(const Core& other)
+{
+    StateManager::operator=(other);
+
+    NuclearRadius = other.NuclearRadius;
+    NuclearThickness = other.NuclearThickness;
+    NuclearInverseMass = other.NuclearInverseMass;
+    VolumeShiftParameter = other.VolumeShiftParameter;
+    Polarisability = other.Polarisability;
+    ClosedShellRadius = other.ClosedShellRadius;
+
+    UpdateNuclearPotential();
+    UpdateHFPotential();
+
+    OpenShellStates = other.OpenShellStates;
+
+    StateSet::const_iterator it = other.OpenShellStorage.begin();
+    while(it != other.OpenShellStorage.end())
+    {
+        const StatePointer ds_other = it->second;
+        StateSet::iterator it_local = OpenShellStorage.find(it->first);
+
+        if(it_local != OpenShellStorage.end())
+            *it_local->second = *it->second;
+        else
+        {   Orbital* ds = new Orbital(*ds_other.GetState());
+            OpenShellStorage[it->first] = ds;
+        }
+
+        it++;
+    }
+
+    return *this;
 }
 
 void Core::Initialise(std::string configuration)

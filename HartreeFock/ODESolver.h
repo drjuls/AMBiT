@@ -82,6 +82,12 @@ public:
     /** Get solution of the ODE operator by integrating from r=rmax to 0. */
     virtual void IntegrateBackwards(const SpinorODE* op, Orbital* solution);
 
+public:
+    /** Get solution from r=rmax backwards to the first maximum.
+        Return lattice position of peak.
+     */
+    virtual unsigned int IntegrateBackwardsUntilPeak(const SpinorODE* op, Orbital* solution);
+    
 protected:
     unsigned int order;
     double* adams_coeff;

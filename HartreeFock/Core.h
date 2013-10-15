@@ -19,6 +19,9 @@ public:     // Methods for StateManager role
     Core(const Core& other, Lattice* new_lattice = NULL);
     virtual ~Core() {}
 
+    /** Deep copy of all orbitals. */
+    const Core& operator=(const Core& other);
+
     /** This method must be called before any other, except for Read() or GetDebugOptions(). */
     virtual void Initialise(std::string configuration = "");
 
@@ -97,6 +100,13 @@ public:     // Methods for Hartree-Fock calculations and potentials
     /** Update an existing excited state, in case of changed core or addition of sigma. */
     unsigned int UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
+    /** Iterate an existing state in an approximate potential until the energy converges.
+        The potential is direct + local exchange approximation.
+        Returns the number of iterations necessary to achieve convergence.
+        If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
+     */
+    unsigned int ConvergeStateApproximation(Orbital* s, bool include_exch = true) const;
+
 public:
     /** Methods for open shell core. The core calculates states in the V^n scheme.
         Can also toggle modes for V^(n-1) and V^(n-c), which is a closed shell core.
@@ -123,13 +133,6 @@ public:
 protected:
     /** Delete all currently stored states. */
     virtual void Clear();
-
-    /** Iterate an existing state in an approximate potential until the energy converges.
-        The potential is direct + local exchange approximation.
-        Returns the number of iterations necessary to achieve convergence.
-        If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
-     */
-    unsigned int ConvergeStateApproximation(Orbital* s, bool include_exch = true) const;
 
     /** Solve the Dirac eqn in the current HF potential once and adjust the energy
         to renormalise. The exchange may be resized to the new size of s.

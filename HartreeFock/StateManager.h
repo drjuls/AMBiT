@@ -26,6 +26,8 @@ public:
     StateManager(const StateManager& other, Lattice* new_lattice = NULL);
     virtual ~StateManager(void);
 
+    const StateManager& operator=(const StateManager& other);
+
     virtual bool Empty() const { return AllStates.empty(); }
     virtual unsigned int NumStates() const { return static_cast<unsigned int>(AllStates.size()); }
 

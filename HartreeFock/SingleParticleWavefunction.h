@@ -6,8 +6,10 @@
 #include "Universal/SpinorFunction.h"
 #include "Universal/Lattice.h"
 #include <string>
-#include <cmath>
+#include <math.h>
 #include <stdlib.h>
+
+class OrbitalInfo;
 
 /** Single particle wavefunction is for solutions of a single-particle Hamiltonian.
     That is, it is a SpinorFunction with an energy eigenvalue E:
@@ -18,7 +20,8 @@
 class SingleParticleWavefunction : public SpinorFunction
 {
 public:
-    SingleParticleWavefunction(int kappa, double energy = 0., unsigned int pqn = 0, unsigned int size = 0);
+    SingleParticleWavefunction(const OrbitalInfo& info);
+    SingleParticleWavefunction(int kappa, double energy = 0.0, unsigned int pqn = 0, unsigned int size = 0);
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
     virtual ~SingleParticleWavefunction() {}
 

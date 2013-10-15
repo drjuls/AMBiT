@@ -1,6 +1,11 @@
 #include "Include.h"
 #include "SingleParticleWavefunction.h"
+#include "OrbitalInfo.h"
 #include "Universal/MathConstant.h"
+
+SingleParticleWavefunction::SingleParticleWavefunction(const OrbitalInfo& info):
+    SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
+{}
 
 SingleParticleWavefunction::SingleParticleWavefunction(int kappa, double energy, unsigned int pqn, unsigned int size):
     SpinorFunction(kappa, size), pqn(pqn), energy(energy)
@@ -19,12 +24,14 @@ double SingleParticleWavefunction::GetEnergy() const
 /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
 double SingleParticleWavefunction::GetNu() const
 {
-    double nu = 100000;
-    if(std::fabs(energy) > 1.e-10)
-        nu = std::sqrt(std::fabs(-0.5/energy));
-
-    if(energy > 0.)
-        nu = -nu;
+    double nu;
+    if(std::fabs(energy) < 1.e-10)
+        nu = nan("energy is zero");
+    else
+    {   nu = std::sqrt(std::fabs(-0.5/energy));
+        if(energy > 0.)
+            nu = -nu;
+    }
 
     return nu;
 }

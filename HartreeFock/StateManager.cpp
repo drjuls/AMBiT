@@ -52,10 +52,33 @@ StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
     }
 }
 
-
 StateManager::~StateManager(void)
 {
     Clear();
+}
+
+const StateManager& StateManager::operator=(const StateManager& other)
+{
+    lattice = other.lattice;
+    
+    ConstStateIterator it = other.GetConstStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {
+        const Orbital* old_orbital = it.GetState();
+        Orbital* s = GetState(OrbitalInfo(old_orbital));
+
+        if(s == NULL)
+        {   s = new Orbital(*it.GetState());
+            AddState(s);
+        }
+        else
+            *s = *old_orbital;
+
+        it.Next();
+    }
+
+    return *this;
 }
 
 const Orbital* StateManager::GetState(const OrbitalInfo& info) const
