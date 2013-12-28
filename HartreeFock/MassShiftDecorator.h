@@ -20,9 +20,9 @@ public:
     /** Get exchange (nonlocal) potential. */
     virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation) const;
 
-    virtual void GetODEFunction(unsigned int latticepoint, const SingleParticleWavefunction& fg, double* w) const;
-    virtual void GetODECoefficients(unsigned int latticepoint, const SingleParticleWavefunction& fg, double* w_f, double* w_g, double* w_const) const;
-    virtual void GetODEJacobian(unsigned int latticepoint, const SingleParticleWavefunction& fg, double** jacobian, double* dwdr) const;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
 
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;

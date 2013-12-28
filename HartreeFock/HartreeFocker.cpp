@@ -4,6 +4,7 @@
 #include "Universal/MathConstant.h"
 #include "ODESolver.h"
 #include "GreensMethodODE.h"
+#include "LocalPotentialDecorator.h"
 
 /** Iterate all orbitals in core until self-consistency is reached. */
 void HartreeFocker::SolveCore(Core* core, SpinorODE* hf)
@@ -191,8 +192,11 @@ unsigned int HartreeFocker::CalculateExcitedState(Orbital* orbital, SpinorODE* h
         
         do
         {   // TODO: Implement local exchange approximation
-            hf->IncludeExchangeInODE(false);
-            loop = IterateOrbitalTailMatching(orbital, hf);
+            LocalExchangeApproximation hf_localexch(dynamic_cast<OneBodyOperator*>(hf), hf);
+            hf_localexch.SetCore(core);
+            hf_localexch.IncludeExchangeInODE(false);
+            loop = IterateOrbitalTailMatching(orbital, &hf_localexch);
+            //loop = IterateOrbitalTailMatching(orbital, hf);
 
             if(loop >= MaxHFIterations)
             {   // Evil - this should never happen given our simple model.
@@ -219,20 +223,26 @@ unsigned int HartreeFocker::CalculateExcitedState(Orbital* orbital, SpinorODE* h
             // Hartree-Fock loops
             bool debugHF = DebugOptions.LogHFIterations();
 
-            // Adjust the energy slightly, otherwise the Wronskian for the Greens method may be zero.
-            orbital->SetEnergy(1.1 * orbital->GetEnergy());
-
             double deltaE;
             loop = 0;
             Orbital new_orbital(*orbital);
             double prop_new = 0.4;
+            SpinorFunction exchange = hf->GetExchange(orbital);
+
             do
             {   loop++;
-                SpinorFunction exchange = hf->GetExchange(orbital);
+
+                int prev_zero_difference = 0;
                 do
                 {   if(zero_difference)
-                    {   trial_nu = new_orbital.GetNu() - zero_difference/abs(zero_difference)/Charge;
+                    {
+                        if(prev_zero_difference * zero_difference >= 0)
+                            trial_nu = new_orbital.GetNu() - zero_difference/abs(zero_difference)/Charge;
+                        else
+                            trial_nu = new_orbital.GetNu() - 0.5 * zero_difference/abs(zero_difference)/Charge;
+
                         new_orbital.SetNu(trial_nu);
+                        prev_zero_difference = zero_difference;
                     }
                     deltaE = IterateOrbital(&new_orbital, hf, &exchange);
                     zero_difference = new_orbital.NumNodes() + orbital->L() + 1 - orbital->GetPQN();
@@ -245,12 +255,16 @@ unsigned int HartreeFocker::CalculateExcitedState(Orbital* orbital, SpinorODE* h
                                << "  size: (" << new_orbital.Size()
                                << ") " << hf->GetLattice()->R(new_orbital.Size()) << std::endl;
 
+                exchange *= (1. - prop_new);
+                exchange += hf->GetExchange(&new_orbital) * prop_new;
+
                 *orbital *= (1. - prop_new);
                 *orbital += new_orbital * prop_new;
 
                 // Renormalise core states (should be close already) and update energy.
                 orbital->ReNormalise(hf->GetLattice());
                 orbital->SetEnergy((1. - prop_new) * orbital->GetEnergy() + prop_new * new_orbital.GetEnergy());
+
                 new_orbital = *orbital;
                 deltaE = fabs(deltaE/new_orbital.GetEnergy());
             }while((deltaE > EnergyTolerance) && (loop < MaxHFIterations));

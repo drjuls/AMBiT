@@ -15,10 +15,13 @@ void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density
     SetK(k);
     SetDensity(density);
 
+    bool delete_ode = false;
     if(ode)
         ode_solver = ode;
     else if (ode_solver == NULL)
-        ode_solver = new AdamsSolver(lattice);
+    {   ode_solver = new AdamsSolver(lattice);
+        delete_ode = true;
+    }
 
     if(pot.Size() < density.Size())
         pot.ReSize(density.Size());
@@ -34,6 +37,9 @@ void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density
     ode_solver->IntegrateBackwards(this, &I2);
 
     pot += I2;
+
+    if(delete_ode)
+        delete ode_solver;
 }
 
 void CoulombOperator::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const

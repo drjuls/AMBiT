@@ -10,7 +10,7 @@
         df/dr = w[0] = w_f[0] f + w_g[0] g + w_const[0]
         dg/dr = w[1] = w_f[1] f + w_g[1] g + w_const[1]
     where w is a linear function of f and g (e.g. Hartree-Fock).
-    w_const is the "nonlocal" part, including the exchange part.
+    w_const is the "nonlocal" part (the exchange part).
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
  */
 class SpinorODE
@@ -86,7 +86,8 @@ public:
 
     /** Set/reset the core from which the potential is derived. */
     virtual void SetCore(const Core* hf_core)
-    {   return wrapped->SetCore(hf_core);
+    {   wrapped->SetCore(hf_core);
+        core = hf_core;
     }
 
     virtual const Core* GetCore() const

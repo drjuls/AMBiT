@@ -28,7 +28,7 @@ SpinorFunction MassShiftDecorator::GetExchange(const SingleParticleWavefunction*
     return ret;
 }
 
-void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SingleParticleWavefunction& fg, double* w) const
+void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
 
@@ -38,7 +38,7 @@ void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SingleP
         w[1] -= alpha * extraExchangePotential.f[latticepoint];
     }
 }
-void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const SingleParticleWavefunction& fg, double* w_f, double* w_g, double* w_const) const
+void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
 {
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
@@ -48,7 +48,7 @@ void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const Sin
         w_const[1] -= alpha * extraExchangePotential.f[latticepoint];
     }
 }
-void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SingleParticleWavefunction& fg, double** jacobian, double* dwdr) const
+void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
 {
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
