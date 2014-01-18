@@ -3,6 +3,8 @@
 double OneBodyOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const
 {
     SpinorFunction ta = ApplyTo(a);
+    if(!integrator)
+        throw "OneBodyOperator::GetMatrixElement(): no integrator found.";
     return integrator->GetInnerProduct(ta, b);
 }
 

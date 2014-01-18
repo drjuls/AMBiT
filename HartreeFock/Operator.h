@@ -20,6 +20,9 @@ public:
     /** Potential = t | a > for an operator t. */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const = 0;
 
+    virtual OPIntegrator* GetOPIntegrator() const
+    {   return integrator;
+    }
 
 protected:
     OPIntegrator* integrator;
@@ -35,11 +38,8 @@ class OneBodyOperatorDecorator : public OneBodyOperator
 public:
     OneBodyOperatorDecorator(OneBodyOperator* wrapped, OPIntegrator* integration_strategy = NULL): OneBodyOperator(integration_strategy)
     {   component = wrapped;
-    }
-
-    /** Subclasses should call this inherited function. */
-    virtual double GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const
-    {   return component->GetMatrixElement(a, b);
+        if(!integrator)
+            integrator = component->GetOPIntegrator();
     }
 
     /** Subclasses should call this inherited function. */

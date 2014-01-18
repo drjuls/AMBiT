@@ -58,9 +58,7 @@ LocalExchangeApproximation::LocalExchangeApproximation(OneBodyOperator* wrapped_
 
 void LocalExchangeApproximation::SetCore(const Core* hf_core)
 {
-    wrapped->SetCore(hf_core);
-
-    core = hf_core;
+    SpinorODEDecorator::SetCore(hf_core);
     const double* R = lattice->R();
     
     // Get electron density function
