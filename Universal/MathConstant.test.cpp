@@ -11,7 +11,7 @@ TEST(ConstantTester, Electron3j)
 
     // Should only have used one storage unit
     EXPECT_EQ(1, constant->GetStorageSize());
-    
+
     // Fill 3j storage and check number of elements
     int twoj1, twoj2, k;
     int twom1, twom2;
