@@ -9,14 +9,14 @@ public:
     HartreeFocker(ODESolver* ode_solver): odesolver(ode_solver) {}
 
     /** Iterate all orbitals in core until self-consistency is reached. */
-    void SolveCore(Core* core, SpinorODE* hf);
+    void SolveCore(Core* core, pSpinorODE hf);
 
     /** Find self-consistent solution to hf operator, including exchange.
         Return change in energy.
      */
-    double SolveOrbital(pOrbital orbital, SpinorODE* hf);
+    double SolveOrbital(pOrbital orbital, pSpinorODE hf);
 
-    unsigned int CalculateExcitedState(pOrbital orbital, SpinorODE* hf);
+    unsigned int CalculateExcitedState(pOrbital orbital, pSpinorODE hf);
 
     /** Find energy eigenvalue for orbital with a given exchange potential.
         If exchange is not given, generate from hf.
@@ -24,14 +24,14 @@ public:
         so the final orbital is not an eigenvalue of the hf operator.
         Return change in energy.
      */
-    double IterateOrbital(pOrbital orbital, SpinorODE* hf, SpinorFunction* exchange = NULL);
+    double IterateOrbital(pOrbital orbital, pSpinorODE hf, pSpinorFunction exchange = pSpinorFunction());
 
     /** Find energy eigenvalue for orbital using tail matching method.
         Unlike the Greens method used in IterateOrbital(), this method doesn't require a
         source term (exchange term), so it can solve without exchange or with a local exchange approximation.
         Return number of loops.
      */
-    unsigned int IterateOrbitalTailMatching(pOrbital orbital, SpinorODE* hf);
+    unsigned int IterateOrbitalTailMatching(pOrbital orbital, pSpinorODE hf);
 
 protected:
     ODESolver* odesolver;

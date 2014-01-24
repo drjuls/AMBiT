@@ -4,8 +4,12 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
 
-MassShiftDecorator::MassShiftDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy):
-    OneBodyOperatorDecorator(wrapped_OBO, integration_strategy), SpinorODEDecorator(wrapped_ODE), extraExchangePotential(-1), lambda(0.0)
+MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
+    HFDecorator(wrapped_hf, integration_strategy), extraExchangePotential(-1), lambda(0.0)
+{}
+
+MassShiftDecorator::MassShiftDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
+    HFDecorator(wrapped_hf, integration_strategy), extraExchangePotential(-1), lambda(0.0)
 {}
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */

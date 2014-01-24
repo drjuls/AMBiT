@@ -13,7 +13,7 @@
 class HFOperator : public OneBodyOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, CoulombOperator* coulomb);
+    HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
     virtual ~HFOperator();
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
@@ -61,7 +61,7 @@ protected:
 
 protected:
     double Z;
-    CoulombOperator* coulombSolver;
+    pCoulombOperator coulombSolver;
 
     RadialFunction directPotential;
     SpinorFunction currentExchangePotential;
@@ -69,16 +69,23 @@ protected:
     int currentKappa;
 };
 
+typedef boost::shared_ptr<HFOperator> pHFOperator;
+typedef boost::shared_ptr<const HFOperator> pHFOperatorConst;
 
-//class HFDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
-//{
-//    HFDecorator(HFOperator* wrapped, pOPIntegrator integration_strategy = NULL):
-//        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
-//    {}
-//
-//    HFDecorator(HFDecorator* wrapped, pOPIntegrator integration_strategy = NULL):
-//        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
-//    {}
-//};
+class HFDecorator;
+typedef boost::shared_ptr<HFDecorator> pHFDecorator;
+typedef boost::shared_ptr<const HFDecorator> pHFDecoratorConst;
+
+class HFDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
+{
+public:
+    HFDecorator(pHFOperator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()):
+        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
+    {}
+
+    HFDecorator(pHFDecorator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()):
+        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
+    {}
+};
 
 #endif

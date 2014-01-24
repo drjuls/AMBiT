@@ -1,13 +1,13 @@
 #ifndef MASS_SHIFT_DECORATOR
 #define MASS_SHIFT_DECORATOR
 
-#include "SpinorODE.h"
-#include "Operator.h"
+#include "HFOperator.h"
 
-class MassShiftDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
+class MassShiftDecorator : public HFDecorator
 {
 public:
-    MassShiftDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy = pOPIntegrator());
+    MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    MassShiftDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
@@ -35,5 +35,8 @@ protected:
     double lambda;
     SpinorFunction extraExchangePotential;
 };
+
+typedef boost::shared_ptr<MassShiftDecorator> pMassShiftDecorator;
+typedef boost::shared_ptr<const MassShiftDecorator> pMassShiftDecoratorConst;
 
 #endif

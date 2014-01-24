@@ -37,6 +37,9 @@ protected:
     pLattice lattice;
 };
 
+typedef boost::shared_ptr<OneDimensionalODE> pOneDimensionalODE;
+typedef boost::shared_ptr<const OneDimensionalODE> pOneDimensionalODEConst;
+
 class ODESolver
 {
 public:
@@ -52,10 +55,10 @@ public:
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const SpinorODE* op, SpinorFunction* solution) = 0;
+    virtual void IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution) = 0;
 
     /** Get solution of the ODE operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const SpinorODE* op, Orbital* solution) = 0;
+    virtual void IntegrateBackwards(pSpinorODEConst op, Orbital* solution) = 0;
 
 protected:
     pLattice lattice;
@@ -77,16 +80,16 @@ public:
     
 public:
     /** Get solution of the ODE operator by integrating from r=0 to rmax. */
-    virtual void IntegrateForwards(const SpinorODE* op, SpinorFunction* solution);
+    virtual void IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution);
     
     /** Get solution of the ODE operator by integrating from r=rmax to 0. */
-    virtual void IntegrateBackwards(const SpinorODE* op, Orbital* solution);
+    virtual void IntegrateBackwards(pSpinorODEConst op, Orbital* solution);
 
 public:
     /** Get solution from r=rmax backwards to the first maximum.
         Return lattice position of peak.
      */
-    virtual unsigned int IntegrateBackwardsUntilPeak(const SpinorODE* op, Orbital* solution);
+    virtual unsigned int IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution);
     
 protected:
     unsigned int order;

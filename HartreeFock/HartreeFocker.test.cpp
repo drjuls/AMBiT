@@ -35,16 +35,16 @@ TEST(HartreeFockerTester, CaIIOrbital)
     // Set up HF ODE and HartreeFocker
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     AdamsSolver ode_solver(lattice);
-    CoulombOperator coulomb(lattice, &ode_solver);
-    HFOperator t(Z, &core, integrator, &coulomb);
+    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
     HartreeFocker HF_Solver(&ode_solver);
 
     // Create 4s orbital
     pOrbital new_4s(new Orbital(-1, -0.4, 4));
-    HF_Solver.CalculateExcitedState(new_4s, &t);
+    HF_Solver.CalculateExcitedState(new_4s, t);
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
-    EXPECT_NEAR(t.GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6 * 0.41663154);
+    EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6 * 0.41663154);
 
     // Create 5d orbital
     /* TODO: HartreeFocker::CalculateExcitedState() can't cope with this condition.
@@ -56,7 +56,7 @@ TEST(HartreeFockerTester, CaIIOrbital)
     // Check core orbital
     pOrbital new_2p(new Orbital(*core.GetState(OrbitalInfo(2, 1))));
     new_2p->SetEnergy(-12.0);
-    HF_Solver.SolveOrbital(new_2p, &t);
+    HF_Solver.SolveOrbital(new_2p, t);
     EXPECT_NEAR(new_2p->GetEnergy(), -14.282789, 1.e-6 * 14.282789);
 }
 
@@ -78,11 +78,11 @@ TEST(HartreeFockerTester, CaIICore)
     
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     AdamsSolver ode_solver(lattice);
-    CoulombOperator coulomb(lattice, &ode_solver);
-    HFOperator t(Z, &core, integrator, &coulomb);
-    
+    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
+
     HartreeFocker HF_Solver(&ode_solver);
-    HF_Solver.SolveCore(&core, &t);
+    HF_Solver.SolveCore(&core, t);
 
     EXPECT_NEAR(core.GetState(OrbitalInfo(1, -1))->GetEnergy(), -150.717923115, 1.e-6 * 150.717923115);
     EXPECT_NEAR(core.GetState(OrbitalInfo(2, -1))->GetEnergy(), -17.5158164976, 1.e-6 * 17.5158164976);

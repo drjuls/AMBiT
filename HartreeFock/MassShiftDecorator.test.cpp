@@ -30,23 +30,23 @@ TEST(MassShiftDecoratorTester, CaII)
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     AdamsSolver ode_solver(lattice);
-    CoulombOperator coulomb(lattice, &ode_solver);
+    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
 
     // Construct operator, check nothing is broken with lambda = 0
-    HFOperator hf(Z, &core, integrator, &coulomb);
-    MassShiftDecorator t(&hf, &hf);
+    pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
+    pMassShiftDecorator t(new MassShiftDecorator(hf));
 
     HartreeFocker HF_Solver(&ode_solver);
-    HF_Solver.SolveOrbital(new_4s, &t);
+    HF_Solver.SolveOrbital(new_4s, t);
 
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
-    EXPECT_NEAR(t.GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
+    EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
 
     // Check that < 4s | t | 4s > = t.GetEnergy()
-    t.SetInverseMass(0.001);
-    HF_Solver.SolveOrbital(new_4s, &t);
+    t->SetInverseMass(0.001);
+    HF_Solver.SolveOrbital(new_4s, t);
     EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
-    EXPECT_NEAR(t.GetMatrixElement(*new_4s, *new_4s), new_4s->GetEnergy(), 1.e-6 * fabs(new_4s->GetEnergy()));
+    EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), new_4s->GetEnergy(), 1.e-6 * fabs(new_4s->GetEnergy()));
 }
 
 TEST(MassShiftDecoratorTester, SrII)
@@ -73,21 +73,21 @@ TEST(MassShiftDecoratorTester, SrII)
     
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     AdamsSolver ode_solver(lattice);
-    CoulombOperator coulomb(lattice, &ode_solver);
-    
-    HFOperator hf(Z, &core, integrator, &coulomb);
-    MassShiftDecorator t(&hf, &hf);
+    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+
+    pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
+    pMassShiftDecorator t(new MassShiftDecorator(hf));
     
     // Test that gradient of SMS operator is correct (compared to old values)
-    t.SetInverseMass(0.001);
+    t->SetInverseMass(0.001);
     HartreeFocker HF_Solver(&ode_solver);
-    HF_Solver.SolveCore(&core, &t);
-    HF_Solver.SolveOrbital(new_5s, &t);
+    HF_Solver.SolveCore(&core, t);
+    HF_Solver.SolveOrbital(new_5s, t);
     double Eplus = new_5s->GetEnergy();
 
-    t.SetInverseMass(-0.001);
-    HF_Solver.SolveCore(&core, &t);
-    HF_Solver.SolveOrbital(new_5s, &t);
+    t->SetInverseMass(-0.001);
+    HF_Solver.SolveCore(&core, t);
+    HF_Solver.SolveOrbital(new_5s, t);
     double Eminus = new_5s->GetEnergy();
 
     double sms = -660./3609.;

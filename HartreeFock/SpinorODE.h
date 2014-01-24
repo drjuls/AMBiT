@@ -74,6 +74,9 @@ protected:
     bool include_nonlocal;
 };
 
+typedef boost::shared_ptr<SpinorODE> pSpinorODE;
+typedef boost::shared_ptr<const SpinorODE> pSpinorODEConst;
+
 /** OneBodyOperatorDecorator is for adding extra terms to an existing SpinorODE.
     The Decorator pattern allows nesting of additional terms in any order.
     When using, remember that the Decorator wraps objects, not classes.
@@ -81,7 +84,7 @@ protected:
 class SpinorODEDecorator : public SpinorODE
 {
 public:
-    SpinorODEDecorator(SpinorODE* decorated_object): SpinorODE(decorated_object->GetCore()), wrapped(decorated_object) {}
+    SpinorODEDecorator(pSpinorODE decorated_object): SpinorODE(decorated_object->GetCore()), wrapped(decorated_object) {}
     virtual ~SpinorODEDecorator() {}
 
     /** Set/reset the core from which the potential is derived. */
@@ -150,7 +153,7 @@ public:
     }
 
 protected:
-    SpinorODE* wrapped;
+    pSpinorODE wrapped;
 };
 
 #endif

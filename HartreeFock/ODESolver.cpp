@@ -74,7 +74,7 @@ void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, RadialFunction
     }
 }
 
-void AdamsSolver::IntegrateForwards(const SpinorODE* op, SpinorFunction* solution)
+void AdamsSolver::IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution)
 {
     SpinorFunction& s = *solution;
     op->EstimateOrbitalNearOrigin(order, s);
@@ -115,7 +115,7 @@ void AdamsSolver::IntegrateForwards(const SpinorODE* op, SpinorFunction* solutio
     }
 }
 
-void AdamsSolver::IntegrateBackwards(const SpinorODE* op, Orbital* solution)
+void AdamsSolver::IntegrateBackwards(pSpinorODEConst op, Orbital* solution)
 {
     Orbital& s = *solution;
     op->EstimateOrbitalNearInfinity(order, s);
@@ -156,7 +156,7 @@ void AdamsSolver::IntegrateBackwards(const SpinorODE* op, Orbital* solution)
     }
 }
 
-unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(const SpinorODE* op, Orbital* solution)
+unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution)
 {
     Orbital& s = *solution;
     op->EstimateOrbitalNearInfinity(order, s);

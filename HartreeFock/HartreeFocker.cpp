@@ -7,7 +7,7 @@
 #include "LocalPotentialDecorator.h"
 
 /** Iterate all orbitals in core until self-consistency is reached. */
-void HartreeFocker::SolveCore(Core* core, SpinorODE* hf)
+void HartreeFocker::SolveCore(Core* core, pSpinorODE hf)
 {
     bool debug = DebugOptions.LogHFIterations();
 
@@ -39,10 +39,9 @@ void HartreeFocker::SolveCore(Core* core, SpinorODE* hf)
             pOrbital new_state = it.GetState();
             double old_energy = new_state->GetEnergy();
             
-            SpinorFunction exchange(new_state->Kappa());
-            exchange = hf->GetExchange(new_state);
+            pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(new_state)));
 
-            deltaE = IterateOrbital(new_state, hf, &exchange);
+            deltaE = IterateOrbital(new_state, hf, exchange);
 
             if(debug)
                 *logstream << "  " << std::setw(4) << new_state->Name()
@@ -95,7 +94,7 @@ void HartreeFocker::SolveCore(Core* core, SpinorODE* hf)
 }
 
 /** Find self-consistent solution to hf operator, including exchange. */
-double HartreeFocker::SolveOrbital(pOrbital orbital, SpinorODE* hf)
+double HartreeFocker::SolveOrbital(pOrbital orbital, pSpinorODE hf)
 {
     double E = orbital->GetEnergy();
     double initial_energy = E;
@@ -104,7 +103,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, SpinorODE* hf)
     if(!orbital->Size())
         hf->GetCore()->ConvergeStateApproximation(orbital);
 
-    SpinorFunction exchange = hf->GetExchange(orbital);
+    pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(orbital)));
 
     double prop_new = 0.5;
 
@@ -112,7 +111,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, SpinorODE* hf)
     for(loop = 0; loop < MaxHFIterations; loop++)
     {
         // Get solution with current exchange
-        IterateOrbital(orbital, hf, &exchange);
+        IterateOrbital(orbital, hf, exchange);
         delta_E = orbital->GetEnergy() - E;
 
         // Check number of nodes for pqn
@@ -123,7 +122,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, SpinorODE* hf)
 
         // Adjust exchange
         SpinorFunction new_exchange = hf->GetExchange(orbital);
-        exchange = exchange * (1. - prop_new) + new_exchange * prop_new;
+        *exchange = *exchange * (1. - prop_new) + new_exchange * prop_new;
         E = E  + delta_E * prop_new;
         orbital->SetEnergy(E);
     }
@@ -131,7 +130,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, SpinorODE* hf)
     return E - initial_energy;
 }
 
-unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* hf)
+unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pSpinorODE hf)
 {
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
@@ -192,10 +191,11 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
         
         do
         {   // TODO: Implement local exchange approximation
-            LocalExchangeApproximation hf_localexch(dynamic_cast<OneBodyOperator*>(hf), hf);
-            hf_localexch.SetCore(core);
-            hf_localexch.IncludeExchangeInODE(false);
-            loop = IterateOrbitalTailMatching(orbital, &hf_localexch);
+            pHFOperator actual_HF = boost::dynamic_pointer_cast<HFOperator>(hf);
+            pLocalExchangeApproximation hf_localexch(new LocalExchangeApproximation(actual_HF));
+            hf_localexch->SetCore(core);
+            hf_localexch->IncludeExchangeInODE(false);
+            loop = IterateOrbitalTailMatching(orbital, hf_localexch);
             //loop = IterateOrbitalTailMatching(orbital, hf);
 
             if(loop >= MaxHFIterations)
@@ -227,7 +227,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
             loop = 0;
             pOrbital new_orbital(new Orbital(*orbital));
             double prop_new = 0.4;
-            SpinorFunction exchange = hf->GetExchange(orbital);
+            pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(orbital)));
 
             do
             {   loop++;
@@ -244,7 +244,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
                         new_orbital->SetNu(trial_nu);
                         prev_zero_difference = zero_difference;
                     }
-                    deltaE = IterateOrbital(new_orbital, hf, &exchange);
+                    deltaE = IterateOrbital(new_orbital, hf, exchange);
                     zero_difference = new_orbital->NumNodes() + orbital->L() + 1 - orbital->GetPQN();
                 } while(zero_difference);
                 
@@ -255,8 +255,8 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
                                << "  size: (" << new_orbital->Size()
                                << ") " << hf->GetLattice()->R(new_orbital->Size()) << std::endl;
 
-                exchange *= (1. - prop_new);
-                exchange += hf->GetExchange(new_orbital) * prop_new;
+                *exchange *= (1. - prop_new);
+                *exchange += hf->GetExchange(new_orbital) * prop_new;
 
                 *orbital *= (1. - prop_new);
                 *orbital += (*new_orbital) * prop_new;
@@ -298,7 +298,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
  Note: this function does not iterate/update the exchange potential,
  so the final orbital is not an eigenvalue of the hf operator.
  */
-double HartreeFocker::IterateOrbital(pOrbital orbital, SpinorODE* hf, SpinorFunction* exchange)
+double HartreeFocker::IterateOrbital(pOrbital orbital, pSpinorODE hf, pSpinorFunction exchange)
 {
     pLattice lattice = hf->GetLattice();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
@@ -370,7 +370,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, SpinorODE* hf, SpinorFunc
     return orbital->GetEnergy() - initial_energy;
 }
 
-unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, SpinorODE* hf)
+unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pSpinorODE hf)
 {
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetCore()->GetZ();

@@ -4,8 +4,12 @@
 #include "CoulombOperator.h"
 #include "Universal/Interpolator.h"
 
-LocalPotentialDecorator::LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy):
-    OneBodyOperatorDecorator(wrapped_OBO, integration_strategy), SpinorODEDecorator(wrapped_ODE)
+LocalPotentialDecorator::LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
+    HFDecorator(wrapped_hf, integration_strategy)
+{}
+
+LocalPotentialDecorator::LocalPotentialDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
+    HFDecorator(wrapped_hf, integration_strategy)
 {}
 
 void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
@@ -52,8 +56,12 @@ SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
     return ta;
 }
 
-LocalExchangeApproximation::LocalExchangeApproximation(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE):
-    LocalPotentialDecorator(wrapped_OBO, wrapped_ODE)
+LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
+    LocalPotentialDecorator(wrapped_hf, integration_strategy)
+{}
+
+LocalExchangeApproximation::LocalExchangeApproximation(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
+    LocalPotentialDecorator(wrapped_hf, integration_strategy)
 {}
 
 void LocalExchangeApproximation::SetCore(const Core* hf_core)

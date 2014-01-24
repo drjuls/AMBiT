@@ -5,7 +5,7 @@
 #include "CoulombIntegrator.h"
 #include "StateIntegrator.h"
 
-HFOperator::HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, CoulombOperator* coulomb) :
+HFOperator::HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
     OneBodyOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;

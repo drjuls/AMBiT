@@ -1,16 +1,16 @@
 #ifndef LOCAL_POTENTIAL_DECORATOR
 #define LOCAL_POTENTIAL_DECORATOR
 
-#include "SpinorODE.h"
-#include "Operator.h"
+#include "HFOperator.h"
 
 /** Generic (abstract-ish) class to add an extra local potential to a HF operator.
     Local member extraLocalPotential must be set by subclasses via SetCore() and/or SetODEParameters().
  */
-class LocalPotentialDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
+class LocalPotentialDecorator : public HFDecorator
 {
 public:
-    LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy = pOPIntegrator());
+    LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    LocalPotentialDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
 public:
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
@@ -28,9 +28,13 @@ protected:
 class LocalExchangeApproximation : public LocalPotentialDecorator
 {
 public:
-    LocalExchangeApproximation(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE);
+    LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    LocalExchangeApproximation(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
     virtual void SetCore(const Core* hf_core);
 };
+
+typedef boost::shared_ptr<LocalExchangeApproximation> pLocalExchangeApproximation;
+typedef boost::shared_ptr<const LocalExchangeApproximation> pLocalExchangeApproximationConst;
 
 #endif

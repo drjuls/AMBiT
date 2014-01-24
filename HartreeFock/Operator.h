@@ -28,6 +28,9 @@ protected:
     pOPIntegrator integrator;
 };
 
+typedef boost::shared_ptr<OneBodyOperator> pOneBodyOperator;
+typedef boost::shared_ptr<const OneBodyOperator> pOneBodyOperatorConst;
+
 /** OneBodyOperatorDecorator is for adding extra terms to an existing operator.
     The Decorator pattern allows nesting of additional terms in any order.
     When using, remember that the Decorator wraps objects, not classes.
@@ -36,7 +39,7 @@ protected:
 class OneBodyOperatorDecorator : public OneBodyOperator
 {
 public:
-    OneBodyOperatorDecorator(OneBodyOperator* wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): OneBodyOperator(integration_strategy)
+    OneBodyOperatorDecorator(pOneBodyOperator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): OneBodyOperator(integration_strategy)
     {   component = wrapped;
         if(!integrator)
             integrator = component->GetOPIntegrator();
@@ -48,7 +51,7 @@ public:
     }
 
 protected:
-    OneBodyOperator* component;
+    pOneBodyOperator component;
 };
 
 /** < b | 0 | a > = 0.
