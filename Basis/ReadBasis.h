@@ -9,7 +9,7 @@ class ReadBasis : public ExcitedStates
     /** Read basis functions from a GRASP file.
      */
 public:
-    ReadBasis(Lattice* lattice, Core* atom_core, const std::string& input_file):
+    ReadBasis(pLattice lattice, Core* atom_core, const std::string& input_file):
         ExcitedStates(lattice, atom_core), filename(input_file) {}
     virtual ~ReadBasis() {}
 

@@ -7,7 +7,7 @@
 class CustomBasis : public ExcitedStates
 {
 public:
-    CustomBasis(Lattice* lattice, Core* atom_core):
+    CustomBasis(pLattice lattice, Core* atom_core):
         ExcitedStates(lattice, atom_core), filename("CustomBasis.txt")
     {}
     virtual ~CustomBasis() {}

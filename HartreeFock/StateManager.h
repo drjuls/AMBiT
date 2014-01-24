@@ -18,11 +18,11 @@ public:
     friend class ConstStateIterator;
 
 public:
-    StateManager(Lattice* lat);
+    StateManager(pLattice lat);
     /** Copy all states, interpolating onto new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
      */
-    StateManager(const StateManager& other, Lattice* new_lattice = NULL);
+    StateManager(const StateManager& other, pLattice new_lattice = pLattice());
     virtual ~StateManager(void);
 
     const StateManager& operator=(const StateManager& other);
@@ -48,7 +48,7 @@ public:
      */
     virtual void Read(FILE* fp);
 
-    Lattice* GetLattice() const { return lattice; }
+    pLattice GetLattice() const { return lattice; }
 
     /** Test for orthogonality of states.
         Return largest overlap.
@@ -61,7 +61,7 @@ protected:
     /** Delete all currently stored states. */
     virtual void Clear();
     StateSet AllStates;
-    Lattice* lattice;
+    pLattice lattice;
 };
 
 #endif

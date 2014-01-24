@@ -2,7 +2,7 @@
 #include "Include.h"
 
 Interpolator::Interpolator(const std::vector<double>& R_points, unsigned int order):
-    lattice(NULL)
+    lattice(pLattice())
 {
     // Get lattice derivative dR by using the Interpolate function
     // Set the base grid to linear mesh x, and interpolate the R_points
@@ -24,7 +24,7 @@ Interpolator::Interpolator(const std::vector<double>& R_points, unsigned int ord
 }
 
 Interpolator::Interpolator(const std::vector<double>& R_points, const std::vector<double>& dR_points):
-    R(R_points), dR(dR_points), lattice(NULL)
+    R(R_points), dR(dR_points), lattice(pLattice())
 {}
 
 void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue, double& yvalue, double& derivative, unsigned int order)

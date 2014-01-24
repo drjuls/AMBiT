@@ -47,7 +47,7 @@ class Sigma3Calculator : public MBPTCalculator
           c___|_______|___f
      */
 public:
-    Sigma3Calculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    Sigma3Calculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
     virtual ~Sigma3Calculator(void);
 
     virtual unsigned int GetStorageSize(const ExcitedStates* valence_states);

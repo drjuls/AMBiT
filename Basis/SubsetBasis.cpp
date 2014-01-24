@@ -1,7 +1,7 @@
 #include "SubsetBasis.h"
 #include "Include.h"
 
-SubsetBasis::SubsetBasis(Lattice* lattice, ExcitedStates* superset_basis):
+SubsetBasis::SubsetBasis(pLattice lattice, ExcitedStates* superset_basis):
     ExcitedStates(lattice, superset_basis->GetCore())
 {
     SetSuperset(superset_basis);

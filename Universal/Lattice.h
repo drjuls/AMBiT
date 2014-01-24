@@ -1,6 +1,7 @@
 #ifndef LATTICE_H
 #define LATTICE_H
 
+#include <boost/shared_ptr.hpp>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,9 @@ protected:
 
     double beta, h, rmin;
 };
+
+typedef boost::shared_ptr<Lattice> pLattice;
+typedef boost::shared_ptr<const Lattice> pLatticeConst;
 
 inline double Lattice::R(unsigned int i)
 {   if(i >= NumPoints)

@@ -342,7 +342,7 @@ double Sigma3Integrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo
     return radial;
 }
 
-Sigma3Calculator::Sigma3Calculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states):
+Sigma3Calculator::Sigma3Calculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states):
     MBPTCalculator(lattice, atom_core, excited_states), integrals(NULL)
 {}
 

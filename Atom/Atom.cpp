@@ -29,7 +29,7 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
 {
     Charge = Z - num_electrons;
 
-    lattice = NULL;
+    lattice = pLattice();
     core = NULL;
     excited = NULL;
     excited_mbpt = NULL;
@@ -76,7 +76,6 @@ Atom::~Atom(void)
     if(sigma3)
         delete sigma3;
     delete core;
-    delete lattice;
 }
 
 bool Atom::Run()
@@ -118,13 +117,13 @@ bool Atom::Run()
         {   int num_points = userInput_("Lattice/NumPoints", 300);
             double first_point = userInput_("Lattice/StartPoint", 1.e-5);
             double h = userInput_("Lattice/H", 0.05);
-            lattice = new ExpLattice(num_points, first_point, h);
+            lattice = pLattice(new ExpLattice(num_points, first_point, h));
         }
         else
         {   int num_points = userInput_("Lattice/NumPoints", 1000);
             double first_point = userInput_("Lattice/StartPoint", 1.e-6);
             double lattice_size = userInput_("Lattice/EndPoint", 50.);
-            lattice = new Lattice(num_points, first_point, lattice_size);
+            lattice = pLattice(new Lattice(num_points, first_point, lattice_size));
         }
 
         // Relativistic Hartree-Fock
@@ -979,7 +978,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
     fread(&record_size, sizeof(int), 1, fp);
 
     // Create lattice and core
-    lattice = new ExpLattice(N, RNT, H);
+    lattice = pLattice(new ExpLattice(N, RNT, H));
     PhysicalConstant::Instance()->SetAlpha(1./C);
     *outstream << "Speed of light (1/alpha) = " << C << std::endl;
     core = new Core(lattice, Z, Charge);

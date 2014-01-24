@@ -15,7 +15,7 @@ public:
     Orbital(const Orbital& other);
     virtual ~Orbital() {}
 
-    double Norm(const Lattice* lattice) const; // Deprecate
+    double Norm(pLatticeConst lattice) const; // Deprecate
 
     inline void SetOccupancy(double number_electrons); // Deprecate
     double Occupancy() const { return occupancy; } // Deprecate
@@ -39,10 +39,10 @@ public:
         and if they are not, enlarge or reduce the size of the wavefunctions.
         Return true if the size was correct, false if there was a change.
       */
-    bool CheckSize(Lattice* lattice, double tolerance);
+    bool CheckSize(pLattice lattice, double tolerance);
 
     /** Scale the state so that it is normalised to "norm". */
-    void ReNormalise(const Lattice* lattice, double norm = 1.); // Deprecate
+    void ReNormalise(pLatticeConst lattice, double norm = 1.); // Deprecate
 
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;

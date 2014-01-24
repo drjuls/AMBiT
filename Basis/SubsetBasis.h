@@ -9,7 +9,7 @@ class SubsetBasis : public ExcitedStates
         SubsetBasis is on best behaviour not to modify the superset basis.
      */
 public:
-    SubsetBasis(Lattice* lattice, ExcitedStates* superset_basis);
+    SubsetBasis(pLattice lattice, ExcitedStates* superset_basis);
     virtual ~SubsetBasis();
      
     /** Create excited states by taking a subset of the superset_basis.

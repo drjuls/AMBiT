@@ -23,12 +23,12 @@ class ContinuumBuilder
         standard lattice.
      */
 public:
-    ContinuumBuilder(): lattice(NULL), core(NULL), norm_type(Cowan) {}
+    ContinuumBuilder(): lattice(pLattice()), core(NULL), norm_type(Cowan) {}
     /** Copy lattice and core from other_core. */
     ContinuumBuilder(const Core* other_core);
     virtual ~ContinuumBuilder();
 
-    void CopyLattice(const Lattice* lat);
+    void CopyLattice(pLatticeConst lat);
 
     /** Create a new regular Lattice. These work best because they tend towards
         even spacing as r->Infinity.
@@ -62,16 +62,16 @@ public:
         Return number of loops required for HF convergence.
         Return value of 0 means start_sine was not reached and method failed.
      */
-    unsigned int CalculateContinuumWave(pContinuumWave s, Lattice* external_lattice = NULL) const;
+    unsigned int CalculateContinuumWave(pContinuumWave s, pLattice external_lattice = pLattice()) const;
 
     /** Read a continuum wavefunction from file and interpolate onto external_lattice.
         The normalisation type of the continuum builder is set to Unitary.
         Return success.
      */
-    bool ReadContinuumWave(pContinuumWave s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file);
+    bool ReadContinuumWave(pContinuumWave s, pLattice external_lattice, const std::string& upper_file, const std::string& lower_file);
 
 protected:
-    Lattice* lattice;
+    pLattice lattice;
     Core* core;
 
     ContinuumNormalisation norm_type;

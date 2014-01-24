@@ -54,12 +54,12 @@ public:
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
 
-    double Overlap(const SingleParticleWavefunction& other, const Lattice* lattice) const; // Deprecate
+    double Overlap(const SingleParticleWavefunction& other, pLatticeConst lattice) const; // Deprecate
 
     /** Print state to file, optionally printing lattice. Return success. */
-    bool Print(Lattice* lattice = NULL) const;
-    bool Print(const std::string& filename, Lattice* lattice = NULL) const;
-    bool Print(FILE* fp, Lattice* lattice = NULL) const;
+    bool Print(pLattice lattice = pLattice()) const;
+    bool Print(const std::string& filename, pLattice lattice = pLattice()) const;
+    bool Print(FILE* fp, pLattice lattice = pLattice()) const;
 
 protected:
     int pqn;

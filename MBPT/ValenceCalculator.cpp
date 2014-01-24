@@ -7,7 +7,7 @@
 
 #define MAX_K 12
 
-ValenceCalculator::ValenceCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states):
+ValenceCalculator::ValenceCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states):
     MBPTCalculator(lattice, atom_core, excited_states)
 {}
 

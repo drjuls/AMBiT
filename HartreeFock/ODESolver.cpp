@@ -1,6 +1,6 @@
 #include "ODESolver.h"
 
-AdamsSolver::AdamsSolver(Lattice* lat): ODESolver(lat)
+AdamsSolver::AdamsSolver(pLattice lat): ODESolver(lat)
 {
     order = 10;
     const double adams_10[10]

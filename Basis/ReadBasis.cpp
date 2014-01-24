@@ -40,7 +40,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
     Clear();
 
     // Lattice of stored states
-    Lattice* read_lattice = new ExpLattice(303, 1.e-5, 0.05);
+    pLattice read_lattice = pLattice(new ExpLattice(303, 1.e-5, 0.05));
 
     // Need to treat all kappas
     std::vector<unsigned int> num_states_so_far(2 * num_states_per_l.size() - 1, 0);

@@ -6,7 +6,7 @@
 #include "HartreeFock/StateIntegrator.h"
 #include <stdio.h>
 
-ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
+ExcitedStates::ExcitedStates(pLattice lattice, const Core* atom_core):
     StateManager(lattice),
     core(atom_core)
 {}

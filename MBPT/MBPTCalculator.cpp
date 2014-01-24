@@ -3,7 +3,7 @@
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/StateIntegrator.h"
 
-MBPTCalculator::MBPTCalculator(Lattice* lat, const Core* atom_core, const ExcitedStates* excited_states):
+MBPTCalculator::MBPTCalculator(pLattice lat, const Core* atom_core, const ExcitedStates* excited_states):
     lattice(lat), core(atom_core), excited(excited_states), delta(0.)
 {
     SetValenceEnergies();

@@ -152,7 +152,7 @@ public:
     ExcitedStates* GetBasis() { return excited; }
     
     /** Get the lattice */
-    Lattice* GetLattice() { return lattice; }
+    pLattice GetLattice() { return lattice; }
 
     CIIntegrals* GetCIIntegrals() { return integrals; }
 
@@ -188,7 +188,7 @@ protected:
 
     unsigned int numValenceElectrons_;
 
-    Lattice* lattice;
+    pLattice lattice;
     Core* core;
     ExcitedStates* excited;
     ExcitedStates* excited_mbpt;

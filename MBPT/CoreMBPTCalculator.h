@@ -22,7 +22,7 @@ class CoreMBPTCalculator : public MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    CoreMBPTCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    CoreMBPTCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
     virtual ~CoreMBPTCalculator(void);
 
     virtual unsigned int GetStorageSize(const ExcitedStates* valence_states);

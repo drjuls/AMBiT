@@ -8,17 +8,17 @@
 class OPIntegrator
 {
 public:
-    OPIntegrator(Lattice* lat): lattice(lat) {}
+    OPIntegrator(pLattice lat): lattice(lat) {}
 
     virtual double Integrate(const RadialFunction& integrand) const = 0;
 
     /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
     virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const;
 
-    Lattice* GetLattice() { return lattice; }
+    pLattice GetLattice() { return lattice; }
 
 protected:
-    Lattice* lattice;
+    pLattice lattice;
 };
 
 typedef boost::shared_ptr<OPIntegrator> pOPIntegrator;
@@ -26,7 +26,7 @@ typedef boost::shared_ptr<OPIntegrator> pOPIntegrator;
 class SimpsonsIntegrator : public OPIntegrator
 {
 public:
-    SimpsonsIntegrator(Lattice* lat): OPIntegrator(lat) {}
+    SimpsonsIntegrator(pLattice lat): OPIntegrator(lat) {}
 
     virtual double Integrate(const RadialFunction& integrand) const;
 };

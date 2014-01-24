@@ -16,11 +16,11 @@
 class SpinorODE
 {
 public:
-    SpinorODE(Lattice* lattice);
+    SpinorODE(pLattice lattice);
     SpinorODE(const Core* core);
     virtual ~SpinorODE() {}
 
-    Lattice* GetLattice() { return lattice; }
+    pLattice GetLattice() { return lattice; }
 
     /** Set/reset the core from which the potential is derived. */
     virtual void SetCore(const Core* hf_core);
@@ -69,7 +69,7 @@ public:
     virtual void GetDerivative(SingleParticleWavefunction& fg);
     
 protected:
-    Lattice* lattice;
+    pLattice lattice;
     const Core* core;
     bool include_nonlocal;
 };

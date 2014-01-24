@@ -9,7 +9,7 @@ public:
     enum SplineType {NotreDame, Reno, Vanderbilt};
 
 public:
-    BSplineBasis(Lattice* lattice, Core* atom_core):
+    BSplineBasis(pLattice lattice, Core* atom_core):
         ExcitedStates(lattice, atom_core), n(40), k(7), rmax(50.), spline_type(Reno), orthogonalise_again(false) {}
     virtual ~BSplineBasis() {}
 

@@ -8,14 +8,14 @@
 
 TEST(MassShiftDecoratorTester, CaII)
 {
-    Lattice lattice(1000, 1.e-6, 50.);
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
 
     // CaII
     unsigned int Z = 20;
     int Charge = 2;
     std::string filling = "1s2 2s2 2p6 3s2 3p6";
 
-    Core core(&lattice, Z, Charge);
+    Core core(lattice, Z, Charge);
     core.Initialise(filling);
     core.Update();
 
@@ -23,14 +23,14 @@ TEST(MassShiftDecoratorTester, CaII)
     double trialE = -0.5 * Charge/(pqn*pqn);
     pOrbital start_4s(new Orbital(-1, trialE, pqn));
     core.CalculateExcitedState(start_4s);
-    start_4s->CheckSize(&lattice, 1.e-10);
+    start_4s->CheckSize(lattice, 1.e-10);
 
     pOrbital new_4s(new Orbital(*start_4s));
     new_4s->SetEnergy(-0.4);
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(&lattice));
-    AdamsSolver ode_solver(&lattice);
-    CoulombOperator coulomb(&lattice, &ode_solver);
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    AdamsSolver ode_solver(lattice);
+    CoulombOperator coulomb(lattice, &ode_solver);
 
     // Construct operator, check nothing is broken with lambda = 0
     HFOperator hf(Z, &core, integrator, &coulomb);
@@ -45,13 +45,13 @@ TEST(MassShiftDecoratorTester, CaII)
     // Check that < 4s | t | 4s > = t.GetEnergy()
     t.SetInverseMass(0.001);
     HF_Solver.SolveOrbital(new_4s, &t);
-    EXPECT_NEAR(new_4s->Norm(&lattice), 1.0, 1.e-8);
+    EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
     EXPECT_NEAR(t.GetMatrixElement(*new_4s, *new_4s), new_4s->GetEnergy(), 1.e-6 * fabs(new_4s->GetEnergy()));
 }
 
 TEST(MassShiftDecoratorTester, SrII)
 {
-    Lattice lattice(1000, 1.e-6, 50.);
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     DebugOptions.LogHFIterations(true);
     
     // SrII
@@ -59,7 +59,7 @@ TEST(MassShiftDecoratorTester, SrII)
     int Charge = 2;
     std::string filling = "1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6";
 
-    Core core(&lattice, Z, Charge);
+    Core core(lattice, Z, Charge);
     core.Initialise(filling);
     core.Update();
 
@@ -67,13 +67,13 @@ TEST(MassShiftDecoratorTester, SrII)
     double trialE = -0.5 * Charge/(pqn*pqn);
     pOrbital start_5s(new Orbital(-1, trialE, pqn));
     core.CalculateExcitedState(start_5s);
-    start_5s->CheckSize(&lattice, 1.e-10);
+    start_5s->CheckSize(lattice, 1.e-10);
     
     pOrbital new_5s(new Orbital(*start_5s));
     
-    pOPIntegrator integrator(new SimpsonsIntegrator(&lattice));
-    AdamsSolver ode_solver(&lattice);
-    CoulombOperator coulomb(&lattice, &ode_solver);
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    AdamsSolver ode_solver(lattice);
+    CoulombOperator coulomb(lattice, &ode_solver);
     
     HFOperator hf(Z, &core, integrator, &coulomb);
     MassShiftDecorator t(&hf, &hf);

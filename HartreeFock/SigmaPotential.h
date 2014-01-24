@@ -7,7 +7,7 @@
 class SigmaPotential
 {
 public:
-    SigmaPotential(Lattice* lat, const std::string& file = "", unsigned int matrix_size = 0, unsigned int start_point = 0);
+    SigmaPotential(pLattice lat, const std::string& file = "", unsigned int matrix_size = 0, unsigned int start_point = 0);
     ~SigmaPotential();
 
     /** Get potential
@@ -52,7 +52,7 @@ protected:
     unsigned int start;
     double** function;
 
-    Lattice* lattice;
+    pLattice lattice;
 };
 
 #endif

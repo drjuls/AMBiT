@@ -1,7 +1,7 @@
 #include "GreensMethodODE.h"
 #include "Include.h"
 
-GreensMethodODE::GreensMethodODE(Lattice* lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
+GreensMethodODE::GreensMethodODE(pLattice lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
     s0(-1), sInf(-1), source(-1)
 {}
 

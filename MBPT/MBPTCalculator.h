@@ -12,7 +12,7 @@ class MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    MBPTCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    MBPTCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
     virtual ~MBPTCalculator(void);
 
     virtual unsigned int GetStorageSize(const ExcitedStates* valence_states) = 0;
@@ -60,7 +60,7 @@ protected:
     unsigned int kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
     
 protected:
-    Lattice* lattice;
+    pLattice lattice;
     const Core* core;
     const ExcitedStates* excited;
 

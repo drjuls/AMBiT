@@ -79,7 +79,7 @@ Orbital Orbital::operator*(const RadialFunction& chi) const
     return ret;
 }
 
-double Orbital::Norm(const Lattice* lattice) const
+double Orbital::Norm(pLatticeConst lattice) const
 {
     double norm = 0.;
     unsigned int i;
@@ -106,7 +106,7 @@ std::string Orbital::Name() const
     return OrbitalInfo(this).Name();
 }
 
-bool Orbital::CheckSize(Lattice* lattice, double tolerance)
+bool Orbital::CheckSize(pLattice lattice, double tolerance)
 {
     double maximum = 0.;
     unsigned int i = 0;
@@ -184,7 +184,7 @@ bool Orbital::CheckSize(Lattice* lattice, double tolerance)
     else return true;
 }
 
-void Orbital::ReNormalise(const Lattice* lattice, double norm)
+void Orbital::ReNormalise(pLatticeConst lattice, double norm)
 {
     double scaling = sqrt(norm/Norm(lattice));
     if(scaling)

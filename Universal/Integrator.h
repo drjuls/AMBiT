@@ -16,7 +16,7 @@ class Integrator
           dy/dx = f(y,x) = f.coeff1(x) * y + f.coeff2(x)
      */
 public:
-    Integrator(Lattice* lat, unsigned int adams_order = 10): lattice(lat)
+    Integrator(pLattice lat, unsigned int adams_order = 10): lattice(lat)
     {   SetAdamsOrder(adams_order);
     }
     virtual ~Integrator(void) {}
@@ -85,7 +85,7 @@ public:
     double BIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
     double BIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k);
 protected:
-    Lattice* lattice;
+    pLattice lattice;
     unsigned int adams_N;
 
     const double* adams_coeff;  // Size = adams_N

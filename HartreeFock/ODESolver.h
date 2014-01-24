@@ -10,7 +10,7 @@
 class OneDimensionalODE
 {
 public:
-    OneDimensionalODE(Lattice* lattice): lattice(lattice) {}
+    OneDimensionalODE(pLattice lattice): lattice(lattice) {}
 
     /** Get df/dr = w[0] given point r, f.
         PRE: w should be an allocated double.
@@ -34,13 +34,13 @@ public:
     virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const = 0;
 
 protected:
-    Lattice* lattice;
+    pLattice lattice;
 };
 
 class ODESolver
 {
 public:
-    ODESolver(Lattice* lat): lattice(lat) {}
+    ODESolver(pLattice lat): lattice(lat) {}
     virtual ~ODESolver() {}
 
 public:
@@ -58,14 +58,14 @@ public:
     virtual void IntegrateBackwards(const SpinorODE* op, Orbital* solution) = 0;
 
 protected:
-    Lattice* lattice;
+    pLattice lattice;
 };
 
 
 class AdamsSolver : public ODESolver
 {
 public:
-    AdamsSolver(Lattice* lat);
+    AdamsSolver(pLattice lat);
     virtual ~AdamsSolver();
 
 public:

@@ -1,6 +1,6 @@
 #include "CoulombOperator.h"
 
-CoulombOperator::CoulombOperator(Lattice* lattice, ODESolver* ode):
+CoulombOperator::CoulombOperator(pLattice lattice, ODESolver* ode):
     OneDimensionalODE(lattice), fwd_direction(true), ode_solver(ode)
 {   SetK(0);
 }

@@ -32,7 +32,7 @@ class GreensIntegrator : public Integrator
         Note that F and G will be upper and lower components of the exchange potential.
      */
 public:
-    GreensIntegrator(Lattice* lat): Integrator(lat), G(NULL), s_0(NULL), s_inf(NULL) {}
+    GreensIntegrator(pLattice lat): Integrator(lat), G(NULL), s_0(NULL), s_inf(NULL) {}
     ~GreensIntegrator() {}
 
     /** Set a solution of the homogenous equation that is regular at r = 0. */

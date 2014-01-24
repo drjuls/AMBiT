@@ -300,7 +300,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, SpinorODE* h
  */
 double HartreeFocker::IterateOrbital(pOrbital orbital, SpinorODE* hf, SpinorFunction* exchange)
 {
-    Lattice* lattice = hf->GetLattice();
+    pLattice lattice = hf->GetLattice();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     SpinorFunction ex(orbital->Kappa());
@@ -372,7 +372,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, SpinorODE* hf, SpinorFunc
 
 unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, SpinorODE* hf)
 {
-    Lattice* lattice = hf->GetLattice();
+    pLattice lattice = hf->GetLattice();
     const double Z = hf->GetCore()->GetZ();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
     AdamsSolver adamssolver(lattice);

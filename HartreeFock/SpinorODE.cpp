@@ -1,6 +1,6 @@
 #include "SpinorODE.h"
 
-SpinorODE::SpinorODE(Lattice* lattice): lattice(lattice), core(NULL), include_nonlocal(true)
+SpinorODE::SpinorODE(pLattice lattice): lattice(lattice), core(NULL), include_nonlocal(true)
 {}
 
 SpinorODE::SpinorODE(const Core* core): lattice(core->GetLattice()), include_nonlocal(true)

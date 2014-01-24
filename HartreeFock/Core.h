@@ -12,11 +12,11 @@ class Core : public StateManager
         Core does all of the Hartree-Fock calculation.
      */
 public:     // Methods for StateManager role
-    Core(Lattice* lat, unsigned int atomic_number, int ion_charge);
+    Core(pLattice lat, unsigned int atomic_number, int ion_charge);
     /** Copy all states, interpolating onto new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
      */
-    Core(const Core& other, Lattice* new_lattice = NULL);
+    Core(const Core& other, pLattice new_lattice = pLattice());
     virtual ~Core() {}
 
     /** Deep copy of all orbitals. */

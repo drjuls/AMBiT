@@ -3,11 +3,11 @@
 #include "StateIterator.h"
 #include "Universal/Interpolator.h"
 
-StateManager::StateManager(Lattice* lat):
+StateManager::StateManager(pLattice lat):
     lattice(lat)
 {}
 
-StateManager::StateManager(const StateManager& other, Lattice* new_lattice)
+StateManager::StateManager(const StateManager& other, pLattice new_lattice)
 {
     if(new_lattice)
         lattice = new_lattice;

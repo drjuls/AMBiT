@@ -10,7 +10,7 @@ class Interpolator
         y or yvalues are defined on this grid.
      */
 public:
-    Interpolator(Lattice* lat): lattice(lat) {}
+    Interpolator(pLattice lat): lattice(lat) {}
     Interpolator(const std::vector<double>& R_points, unsigned int order = 6);
     Interpolator(const std::vector<double>& R_points, const std::vector<double>& dR_points);
     ~Interpolator() {}
@@ -29,7 +29,7 @@ public:
     void GetDerivative(const std::vector<double>& y, std::vector<double>& dydr, unsigned int order);
 
 protected:
-    Lattice* lattice;
+    pLattice lattice;
     std::vector<double> R, dR;
 };
 

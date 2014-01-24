@@ -62,7 +62,7 @@ void SingleParticleWavefunction::SetPQN(int PQN)
     pqn = PQN;
 }
 
-double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction &other, const Lattice *lattice) const
+double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction &other, pLatticeConst lattice) const
 {
     double total = 0.;
     
@@ -177,12 +177,12 @@ void SingleParticleWavefunction::Read(FILE* fp)
     SpinorFunction::Read(fp);
 }
 
-bool SingleParticleWavefunction::Print(Lattice* lattice) const
+bool SingleParticleWavefunction::Print(pLattice lattice) const
 {
     return Print(Name() + "_orbital.txt", lattice);
 }
 
-bool SingleParticleWavefunction::Print(const std::string& filename, Lattice* lattice) const
+bool SingleParticleWavefunction::Print(const std::string& filename, pLattice lattice) const
 {
     FILE* fp = fopen(filename.c_str(), "wt");
 
@@ -195,7 +195,7 @@ bool SingleParticleWavefunction::Print(const std::string& filename, Lattice* lat
         return false;
 }
 
-bool SingleParticleWavefunction::Print(FILE* fp, Lattice* lattice) const
+bool SingleParticleWavefunction::Print(FILE* fp, pLattice lattice) const
 {
     unsigned int i;
     if(lattice)

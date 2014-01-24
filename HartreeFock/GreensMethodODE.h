@@ -25,7 +25,7 @@
 class GreensMethodODE : public OneDimensionalODE
 {
 public:
-    GreensMethodODE(Lattice* lattice);
+    GreensMethodODE(pLattice lattice);
 
 public:
     virtual void SetHomogenousSolutions(const SpinorFunction& fromOrigin, const SpinorFunction& fromInfinity);

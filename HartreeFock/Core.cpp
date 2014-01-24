@@ -4,14 +4,14 @@
 #include "Universal/CoulombIntegrator.h"
 #include "Universal/Interpolator.h"
 
-Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
+Core::Core(pLattice lat, unsigned int atomic_number, int ion_charge):
     StateManager(lat),
     Z(atomic_number), Charge(ion_charge),
     NuclearRadius(0.0), NuclearThickness(0.0),
     NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0), ClosedShellRadius(0.)
 {}
 
-Core::Core(const Core& other, Lattice* new_lattice):
+Core::Core(const Core& other, pLattice new_lattice):
     StateManager(other, new_lattice),
     NuclearRadius(other.NuclearRadius), NuclearThickness(other.NuclearThickness),
     NuclearInverseMass(other.NuclearInverseMass), VolumeShiftParameter(other.VolumeShiftParameter),

@@ -7,37 +7,29 @@
 #include "Universal/PhysicalConstant.h"
 
 ContinuumBuilder::ContinuumBuilder(const Core* other_core):
-    lattice(NULL), core(NULL), norm_type(Cowan)
+    lattice(pLattice()), core(NULL), norm_type(Cowan)
 {
     CopyCore(other_core, true);
 }
 
 ContinuumBuilder::~ContinuumBuilder()
 {
-    if(lattice)
-        delete lattice;
     if(core)
         delete core;
 }
 
-void ContinuumBuilder::CopyLattice(const Lattice* lat)
+void ContinuumBuilder::CopyLattice(pLatticeConst lat)
 {
-    if(lattice)
-        delete lattice;
-
-    const ExpLattice* explat = dynamic_cast<const ExpLattice*>(lat);
+    boost::shared_ptr<const ExpLattice> explat = boost::dynamic_pointer_cast<const ExpLattice>(lat);
     if(explat != NULL)
-        lattice = new ExpLattice(*explat);
+        lattice = pLattice(new ExpLattice(*explat));
     else
-        lattice = new Lattice(*lat);
+        lattice = pLattice(new Lattice(*lat));
 }
 
 void ContinuumBuilder::CreateNewLattice(unsigned int numpoints, double r_min, double r_max)
 {
-    if(lattice)
-        delete lattice;
-    
-    lattice = new Lattice(numpoints, r_min, r_max);
+    lattice = pLattice(new Lattice(numpoints, r_min, r_max));
 }
 
 void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
@@ -52,7 +44,7 @@ void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
     core = new Core(*other_core, lattice);
 }
 
-unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, Lattice* external_lattice) const
+unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice external_lattice) const
 {
     const std::vector<double>& HFPotential = core->GetConstHFPotential();
 
@@ -169,7 +161,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, Lattice*
     return loop;
 }
 
-bool ContinuumBuilder::ReadContinuumWave(pContinuumWave s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
+bool ContinuumBuilder::ReadContinuumWave(pContinuumWave s, pLattice external_lattice, const std::string& upper_file, const std::string& lower_file)
 {
     SetNormalisationType(Unitary);
 

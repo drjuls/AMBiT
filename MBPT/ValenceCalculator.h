@@ -8,7 +8,7 @@ class ValenceCalculator : public MBPTCalculator
     /** Calculate valence-valence diagrams of many-body perturbation theory.
      */
 public:
-    ValenceCalculator(Lattice* lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    ValenceCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
     virtual ~ValenceCalculator(void) {}
 
     /** No storage yet. */

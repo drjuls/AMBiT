@@ -17,7 +17,7 @@ class CoreMBPTCalculator;
 class ExcitedStates : public StateManager
 {
 public:     // Methods for StateManager role
-    ExcitedStates(Lattice* lattice, const Core* atom_core);
+    ExcitedStates(pLattice lattice, const Core* atom_core);
     virtual ~ExcitedStates();
 
     virtual void AddState(pOrbital s);

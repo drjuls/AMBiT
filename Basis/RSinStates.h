@@ -6,7 +6,7 @@
 class RSinStates : public RStates
 {
 public:
-    RSinStates(Lattice* lattice, Core* atom_core): RStates(lattice, atom_core) {}
+    RSinStates(pLattice lattice, Core* atom_core): RStates(lattice, atom_core) {}
     virtual ~RSinStates(void) {}
 
     /** Create excited states by multiplying states by R and orthogonalising.

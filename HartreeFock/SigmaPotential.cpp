@@ -3,7 +3,7 @@
 
 #define gap 4
 
-SigmaPotential::SigmaPotential(Lattice* lat, const std::string& file, unsigned int matrix_size, unsigned int start_point):
+SigmaPotential::SigmaPotential(pLattice lat, const std::string& file, unsigned int matrix_size, unsigned int start_point):
     lattice(lat), filename(file), changed_since_store(true), start(start_point)
 {
     if(start%gap != 0)

@@ -7,7 +7,7 @@ class BoundStateIntegrator :
     public StateIntegrator
 {
 public:
-    BoundStateIntegrator(Lattice* lat): StateIntegrator(lat) {}
+    BoundStateIntegrator(pLattice lat): StateIntegrator(lat) {}
     virtual ~BoundStateIntegrator(void) {}
 
 protected:

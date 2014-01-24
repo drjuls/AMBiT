@@ -21,7 +21,7 @@
 class CoulombOperator : public OneDimensionalODE
 {
 public:
-    CoulombOperator(Lattice* lattice, ODESolver* ode = NULL);
+    CoulombOperator(pLattice lattice, ODESolver* ode = NULL);
 
     void SetK(unsigned int multipole_k) { k = multipole_k; }
     void SetDensity(const RadialFunction& density);
