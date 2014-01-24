@@ -5,7 +5,8 @@
 #include "Universal/Interpolator.h"
 
 Core::Core(Lattice* lat, unsigned int atomic_number, int ion_charge):
-    StateManager(lat, atomic_number, ion_charge),
+    StateManager(lat),
+    Z(atomic_number), Charge(ion_charge),
     NuclearRadius(0.0), NuclearThickness(0.0),
     NuclearInverseMass(0.0), VolumeShiftParameter(0.0), Polarisability(0.0), ClosedShellRadius(0.)
 {}
@@ -35,10 +36,10 @@ Core::Core(const Core& other, Lattice* new_lattice):
 
     while(it != other.OpenShellStorage.end())
     {
-        const StatePointer ds_old = it->second;
+        pOrbitalConst ds_old = it->second;
 
         // Copy kappa, pqn, etc.
-        Orbital* ds = new Orbital(*ds_old.GetState());
+        pOrbital ds(new Orbital(*ds_old));
 
         if(interpolate)
         {
@@ -79,13 +80,12 @@ const Core& Core::operator=(const Core& other)
     StateSet::const_iterator it = other.OpenShellStorage.begin();
     while(it != other.OpenShellStorage.end())
     {
-        const StatePointer ds_other = it->second;
         StateSet::iterator it_local = OpenShellStorage.find(it->first);
 
         if(it_local != OpenShellStorage.end())
             *it_local->second = *it->second;
         else
-        {   Orbital* ds = new Orbital(*ds_other.GetState());
+        {   pOrbital ds(new Orbital(*it->second));
             OpenShellStorage[it->first] = ds;
         }
 
@@ -110,13 +110,7 @@ void Core::Clear()
     StateManager::Clear();
 
     // Delete stored states
-    StateSet::iterator it = OpenShellStorage.begin();
-    while(it != OpenShellStorage.end())
-    {   it->second.DeleteState();
-        it++;
-    }
     OpenShellStorage.clear();
-
     OpenShellStates.clear();
 }
 
@@ -175,7 +169,7 @@ void Core::Read(FILE* fp)
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        Orbital* ds = new Orbital(-1);
+        pOrbital ds(new Orbital(-1));
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
         AddState(ds);
@@ -186,13 +180,12 @@ void Core::Read(FILE* fp)
     fread(&num_open, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_open; i++)
     {
-        Orbital* ds = new Orbital(-1);
+        pOrbital ds(new Orbital(-1));
         ds->Read(fp);
         max_size = mmax(max_size, ds->Size());
 
         OrbitalInfo info(ds);
-        StatePointer sp(ds);
-        OpenShellStorage.insert(StateSet::value_type(info, sp));
+        OpenShellStorage.insert(StateSet::value_type(info, ds));
     }
 
     // Ensure lattice is large enough for all states
@@ -264,15 +257,15 @@ std::vector<double> Core::GetLocalExchangeApproximation() const
     return LocalExchangeApproximation;
 }
 
-unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma, double sigma_amount) const
+unsigned int Core::UpdateExcitedState(pSingleParticleWavefunction s, const SigmaPotential* sigma, double sigma_amount) const
 {
-    Orbital* ds = dynamic_cast<Orbital*>(s);
+    pOrbital ds = boost::dynamic_pointer_cast<Orbital>(s);
     if(ds != NULL)
     {
         // Number of iterations required. Zero shows that the state existed previously.
         unsigned int loop = 0;
 
-        const Orbital* core_state = GetState(OrbitalInfo(ds));
+        pOrbitalConst core_state = GetState(OrbitalInfo(ds));
         StateSet::const_iterator it = OpenShellStorage.find(OrbitalInfo(ds));
         if(core_state != NULL)
         {   // Try to find in core (probably open shells).
@@ -280,14 +273,14 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
         }
         else if(it != OpenShellStorage.end())
         {   // Try to find in unoccupied (but previously calculated) open shells.
-            *ds = *(it->second.GetState());
+            *ds = *(it->second);
         }
         else
         {   // Hartree-Fock loops
             bool debugHF = DebugOptions.LogHFIterations();
 
             double deltaE;
-            Orbital* new_ds = new Orbital(*ds);
+            pOrbital new_ds(new Orbital(*ds));
             double prop_new = 0.5;
             do
             {   loop++;
@@ -322,8 +315,6 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
 
             }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
-            delete new_ds;
-
             if(loop >= StateParameters::MaxHFIterations)
                 *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
 
@@ -344,7 +335,7 @@ unsigned int Core::UpdateExcitedState(SingleParticleWavefunction* s, const Sigma
         return loop;
     }
     else
-    {   ContinuumWave* cs = dynamic_cast<ContinuumWave*>(s);
+    {   pContinuumWave cs = boost::dynamic_pointer_cast<ContinuumWave>(s);
         return CalculateContinuumWave(cs);
     }
 }

@@ -132,7 +132,7 @@ void Sigma3Integrals::UpdateOneElectronIntegrals()
     // (l1 + l2 + 1)%2 == 0
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b;
-    const Orbital* sn, *sa, *sb;
+    pOrbitalConst sn, sa, sb;
 
     it_b = valence_states.begin();
     while(it_b != valence_states.end())
@@ -202,8 +202,8 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
     // where n is core; a, b and c are valence
 
     std::set<unsigned int>::const_iterator it_n, it_a, it_b, it_c;
-    const Orbital *sn;
-    const SingleParticleWavefunction *sa, *sb, *sc;
+    pOrbitalConst sn;
+    pSingleParticleWavefunctionConst sa, sb, sc;
     unsigned int k, kmax;
 
     it_n = core_states.begin();

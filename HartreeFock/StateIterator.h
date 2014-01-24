@@ -13,9 +13,9 @@ public:
     virtual void Next();
     virtual bool AtEnd();
 
-    virtual Orbital* GetState();
+    virtual pOrbital GetState();
     virtual OrbitalInfo GetOrbitalInfo();
-    virtual void ReplaceState(Orbital* s);
+    virtual void ReplaceState(pOrbital s);
 
     virtual double Weight() { return 1.; }
     virtual StateIterator& operator=(const StateIterator& other);
@@ -35,7 +35,7 @@ public:
     virtual void Next();
     virtual bool AtEnd();
 
-    virtual const Orbital* GetState();
+    virtual pOrbitalConst GetState();
     virtual OrbitalInfo GetOrbitalInfo();
 
     virtual double Weight() { return 1.; }

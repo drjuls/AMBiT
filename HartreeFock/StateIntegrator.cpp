@@ -9,7 +9,7 @@ void StateIntegrator::IntegrateForwards(SingleParticleWavefunction& s, const std
     // Set initial conditions
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
-    A.SetState(&s);
+    A.SetState(s);
     A.SetExchange(exchange);
 
     SetUpForwardsIntegral(s, HFPotential, nuclear_charge);
@@ -22,7 +22,7 @@ void StateIntegrator::IntegrateBackwards(SingleParticleWavefunction& s, const st
     // Set initial conditions
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
-    A.SetState(&s);
+    A.SetState(s);
     A.SetExchange(exchange);
 
     SetUpBackwardsIntegral(s, HFPotential);
@@ -35,7 +35,7 @@ unsigned int StateIntegrator::IntegrateBackwardsUntilPeak(SingleParticleWavefunc
     // Set initial conditions
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
-    A.SetState(&s);
+    A.SetState(s);
 
     SetUpBackwardsIntegral(s, HFPotential);
 
@@ -143,7 +143,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
 
     StateFunction A(lattice);
     A.SetHFPotential(HFPotential);
-    A.SetState(&s);
+    A.SetState(s);
     A.SetExchange(&exchange);
 
     double correction = s.f[start_point];

@@ -22,9 +22,9 @@ bool StateIterator::AtEnd()
     return (it == manager->AllStates.end());
 }
 
-Orbital* StateIterator::GetState()
+pOrbital StateIterator::GetState()
 {
-    return it->second.GetState();
+    return it->second;
 }
 
 OrbitalInfo StateIterator::GetOrbitalInfo()
@@ -32,14 +32,13 @@ OrbitalInfo StateIterator::GetOrbitalInfo()
     return it->first;
 }
 
-void StateIterator::ReplaceState(Orbital* s)
+void StateIterator::ReplaceState(pOrbital s)
 {
     OrbitalInfo new_state(s);
     if(it->first != new_state)
         return;
 
-    it->second.DeleteState();
-    it->second.SetState(s);
+    it->second = s;
 }
 
 StateIterator& StateIterator::operator=(const StateIterator& other)
@@ -72,9 +71,9 @@ bool ConstStateIterator::AtEnd()
     return (it == manager->AllStates.end());
 }
 
-const Orbital* ConstStateIterator::GetState()
+pOrbitalConst ConstStateIterator::GetState()
 {
-    return it->second.GetState();
+    return it->second;
 }
 
 OrbitalInfo ConstStateIterator::GetOrbitalInfo()

@@ -206,7 +206,7 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
         SpinorFunction exchange(s.Kappa(), s.Size());
         StateFunction Af(lattice);
         Af.SetHFPotential(HFPotential);
-        Af.SetState(&s);
+        Af.SetState(s);
         Af.SetExchange(&exchange);
 
         if(forwards)

@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 ExcitedStates::ExcitedStates(Lattice* lattice, const Core* atom_core):
-    StateManager(lattice, (unsigned int)atom_core->GetZ(), (unsigned int)atom_core->GetCharge()),
+    StateManager(lattice),
     core(atom_core)
 {}
 
@@ -22,23 +22,23 @@ ExcitedStates::~ExcitedStates()
     }
 }
 
-void ExcitedStates::AddState(Orbital* s)
+void ExcitedStates::AddState(pOrbital s)
 {
     StateManager::AddState(s);
 }
 
 Orbital ExcitedStates::GetStateWithSigma(const OrbitalInfo& info) const
 {
-    const Orbital* s = GetState(info);
+    pOrbitalConst s = GetState(info);
 
     if(s != NULL)
-    {   Orbital ds(*s);
+    {   pOrbital ds(new Orbital(*s));
 
-        SigmaMap::const_iterator it = SecondOrderSigma.find(ds.Kappa());
+        SigmaMap::const_iterator it = SecondOrderSigma.find(ds->Kappa());
         if((it != SecondOrderSigma.end()) && GetSigmaAmount(info))
-            core->UpdateExcitedState(&ds, it->second, GetSigmaAmount(info));
+            core->UpdateExcitedState(ds, it->second, GetSigmaAmount(info));
 
-        return ds;
+        return *ds;
     }
 }
 
@@ -57,7 +57,7 @@ void ExcitedStates::ClearSigmas()
 double ExcitedStates::GetSigmaMatrixElement(const OrbitalInfo& info) const
 {
     double matrix_element = 0.;
-    const Orbital* s = GetState(info);
+    pOrbitalConst s = GetState(info);
     const SigmaPotential* sigma = NULL;
     SigmaMap::const_iterator it = SecondOrderSigma.find(info.Kappa());
     if(it != SecondOrderSigma.end())
@@ -72,7 +72,7 @@ double ExcitedStates::GetSigmaMatrixElement(const OrbitalInfo& info) const
 
 double ExcitedStates::CreateSecondOrderSigma(const OrbitalInfo& info, const CoreMBPTCalculator& mbpt)
 {
-    Orbital* s = GetState(info);
+    pOrbital s = GetState(info);
     if(s == NULL)
     {   *errstream << "CreateSecondOrderSigma: " << info.Name() << " is not part of ExcitedStates." << std::endl;
         exit(1);
@@ -126,13 +126,13 @@ bool ExcitedStates::RetrieveSecondOrderSigma(const OrbitalInfo& info)
 
 void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
 {
-    Orbital* s = GetState(info);
+    pOrbital s = GetState(info);
     if(s == NULL)
-    {   s = new Orbital(info.Kappa(), 0., info.PQN());
+    {   s = pOrbital(new Orbital(info.Kappa(), 0., info.PQN()));
         core->CalculateExcitedState(s);
     }
 
-    Orbital* ds = s;
+    pOrbital ds = s;
 
     SigmaPotential* sigma;
     if(SecondOrderSigma.find(s->Kappa()) == SecondOrderSigma.end())
@@ -143,9 +143,9 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
 
     double old_energy = s->GetEnergy();
     double amount = 1.0;
-    Orbital sigma_s(*ds);
-    unsigned int iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
-    double current_energy = sigma_s.GetEnergy();
+    pOrbital sigma_s = pOrbital(new Orbital(*ds));
+    unsigned int iterations = core->UpdateExcitedState(sigma_s, sigma, amount);
+    double current_energy = sigma_s->GetEnergy();
 
     MathConstant* constants = MathConstant::Instance();
 
@@ -157,8 +157,8 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
     {
         double gap = (energy - current_energy)/full_gap;
         amount += gap;
-        iterations = core->UpdateExcitedState(&sigma_s, sigma, amount);
-        current_energy = sigma_s.GetEnergy();
+        iterations = core->UpdateExcitedState(sigma_s, sigma, amount);
+        current_energy = sigma_s->GetEnergy();
         *logstream << "    " << amount << "   " << current_energy * constants->HartreeEnergyInInvCm()
                    << "   iterations: " << iterations << std::endl;
     }
@@ -181,7 +181,7 @@ double ExcitedStates::GetSigmaAmount(const OrbitalInfo& info) const
         return 0.;
 }
 
-void ExcitedStates::MultiplyByR(const Orbital* previous, Orbital* current) const
+void ExcitedStates::MultiplyByR(pOrbitalConst previous, pOrbital current) const
 {
     current->ReSize(previous->Size());
 
@@ -222,7 +222,7 @@ void ExcitedStates::MultiplyByR(const Orbital* previous, Orbital* current) const
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::MultiplyBySinR(const Orbital* previous, Orbital* current) const
+void ExcitedStates::MultiplyBySinR(pOrbitalConst previous, pOrbital current) const
 {
     current->ReSize(previous->Size());
 
@@ -268,7 +268,7 @@ void ExcitedStates::MultiplyBySinR(const Orbital* previous, Orbital* current) co
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::MultiplyByRSinR(const Orbital* previous, Orbital* current) const
+void ExcitedStates::MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const
 {
     current->ReSize(previous->Size());
 
@@ -318,7 +318,7 @@ void ExcitedStates::MultiplyByRSinR(const Orbital* previous, Orbital* current) c
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-void ExcitedStates::Orthogonalise(Orbital* current) const
+void ExcitedStates::Orthogonalise(pOrbital current) const
 {
     const double* dR = lattice->dR();
     current->ReNormalise(lattice);
@@ -327,7 +327,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     ConstStateIterator it = core->GetConstStateIterator();
     while(!it.AtEnd())
     {
-        const Orbital* other = it.GetState();
+        pOrbitalConst other = it.GetState();
         if((other->Kappa() == current->Kappa()) && (other->GetPQN() != current->GetPQN())
             && !core->IsOpenShellState(OrbitalInfo(other)))
         {
@@ -353,7 +353,7 @@ void ExcitedStates::Orthogonalise(Orbital* current) const
     ConstStateIterator ex_it = GetConstStateIterator();
     while(!ex_it.AtEnd())
     {
-        const Orbital* other = ex_it.GetState();
+        pOrbitalConst other = ex_it.GetState();
         if((other->Kappa() == current->Kappa()) && (other->GetPQN() < current->GetPQN()))
         {
             double S = 0.;
@@ -385,8 +385,8 @@ double ExcitedStates::TestOrthogonalityIncludingCore() const
     ConstStateIterator it = GetConstStateIterator();
     ConstStateIterator jt = GetConstStateIterator();
 
-    const SingleParticleWavefunction* max_i;
-    const SingleParticleWavefunction* max_j;
+    pSingleParticleWavefunctionConst max_i;
+    pSingleParticleWavefunctionConst max_j;
 
     it.First();
     while(!it.AtEnd())

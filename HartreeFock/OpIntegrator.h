@@ -3,6 +3,7 @@
 
 #include "Universal/Lattice.h"
 #include "Orbital.h"
+#include <boost/shared_ptr.hpp>
 
 class OPIntegrator
 {
@@ -19,6 +20,8 @@ public:
 protected:
     Lattice* lattice;
 };
+
+typedef boost::shared_ptr<OPIntegrator> pOPIntegrator;
 
 class SimpsonsIntegrator : public OPIntegrator
 {

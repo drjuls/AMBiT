@@ -32,8 +32,8 @@ unsigned int CIIntegrals::GetStorageSize() const
         it_2 = it_1;
         while(!it_2.AtEnd())
         {
-            const Orbital* si = it_1.GetState();
-            const Orbital* sj = it_2.GetState();
+            pOrbitalConst si = it_1.GetState();
+            pOrbitalConst sj = it_2.GetState();
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -49,11 +49,11 @@ unsigned int CIIntegrals::GetStorageSize() const
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
     {
-        const Orbital* s_2 = it_2.GetState();
+        pOrbitalConst s_2 = it_2.GetState();
         it_4 = it_2; i4 = i2;
         while(!it_4.AtEnd())
         {
-            const Orbital* s_4 = it_4.GetState();
+            pOrbitalConst s_4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -70,7 +70,7 @@ unsigned int CIIntegrals::GetStorageSize() const
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {
-                    const Orbital* s_1 = it_1.GetState();
+                    pOrbitalConst s_1 = it_1.GetState();
 
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -80,7 +80,7 @@ unsigned int CIIntegrals::GetStorageSize() const
                         i3_limit = num_states;
                     while((i3 <= i3_limit) && !it_3.AtEnd())
                     {
-                        const Orbital* s_3 = it_3.GetState();
+                        pOrbitalConst s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->GetPQN() <= max_pqn_2) || (s_3->GetPQN() <= max_pqn_2)) &&
@@ -176,8 +176,8 @@ void CIIntegrals::UpdateOneElectronIntegrals()
         it_j = it_i; j = i;
         while(!it_j.AtEnd())
         {
-            const Orbital* si = it_i.GetState();
-            const Orbital* sj = it_j.GetState();
+            pOrbitalConst si = it_i.GetState();
+            pOrbitalConst sj = it_j.GetState();
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -252,11 +252,11 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     it_2.First(); i2 = 0;
     while(!it_2.AtEnd())
     {
-        const Orbital* s_2 = it_2.GetState();
+        pOrbitalConst s_2 = it_2.GetState();
         it_4 = it_2; i4 = i2;
         while(!it_4.AtEnd())
         {
-            const Orbital* s_4 = it_4.GetState();
+            pOrbitalConst s_4 = it_4.GetState();
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -283,7 +283,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                 it_1.First(); i1 = 0;
                 while((i1 <= i2) && (it_1.GetState()->GetPQN() <= max_pqn_1))
                 {
-                    const Orbital* s_1 = it_1.GetState();
+                    pOrbitalConst s_1 = it_1.GetState();
 
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -293,7 +293,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                         i3_limit = NumStates;
                     while((i3 <= i3_limit) && !it_3.AtEnd())
                     {
-                        const Orbital* s_3 = it_3.GetState();
+                        pOrbitalConst s_3 = it_3.GetState();
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->GetPQN() <= max_pqn_2) || (s_3->GetPQN() <= max_pqn_2)) &&
@@ -415,10 +415,10 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
-        const SingleParticleWavefunction* s_1 = states.GetState(reverse_state_index.find(i1)->second);
-        const SingleParticleWavefunction* s_2 = states.GetState(reverse_state_index.find(i2)->second);
-        const SingleParticleWavefunction* s_3 = states.GetState(reverse_state_index.find(i3)->second);
-        const SingleParticleWavefunction* s_4 = states.GetState(reverse_state_index.find(i4)->second);
+        pSingleParticleWavefunctionConst s_1 = states.GetState(reverse_state_index.find(i1)->second);
+        pSingleParticleWavefunctionConst s_2 = states.GetState(reverse_state_index.find(i2)->second);
+        pSingleParticleWavefunctionConst s_3 = states.GetState(reverse_state_index.find(i3)->second);
+        pSingleParticleWavefunctionConst s_4 = states.GetState(reverse_state_index.find(i4)->second);
 
         unsigned int p;
         CoulombIntegrator CI(states.GetLattice());

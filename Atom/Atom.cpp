@@ -253,7 +253,7 @@ void Atom::RunSingleElectron()
             while(!it.AtEnd())
             {
                 OrbitalInfo si = it.GetOrbitalInfo();
-                Orbital* ds = it.GetState();
+                pOrbital ds = it.GetState();
                 *outstream << "\n" << ds->Name() << "\n";
                 *outstream << std::setprecision(12);
                 *outstream << "HF Energy: " << ds->GetEnergy() * constants->HartreeEnergyInInvCm() << std::endl;
@@ -327,7 +327,7 @@ void Atom::RunSingleElectron()
             while(!it.AtEnd())
             {
                 OrbitalInfo si = it.GetOrbitalInfo();
-                Orbital* ds = it.GetState();
+                pOrbital ds = it.GetState();
                 *outstream << std::setprecision(12);
 
                 if(mbpt)
@@ -348,7 +348,7 @@ void Atom::RunSingleElectron()
             while(!it.AtEnd())
             {
                 OrbitalInfo si = it.GetOrbitalInfo();
-                Orbital* ds = it.GetState();
+                pOrbital ds = it.GetState();
                 *outstream << std::setprecision(12);
 
                 if(mbpt)
@@ -396,7 +396,7 @@ void Atom::RunSingleElectron()
             while(!it.AtEnd())
             {
                 OrbitalInfo si = it.GetOrbitalInfo();
-                Orbital* ds = it.GetState();
+                pOrbital ds = it.GetState();
                 *outstream << std::setprecision(12);
 
                 if(mbpt)
@@ -417,7 +417,7 @@ void Atom::RunSingleElectron()
             while(!it.AtEnd())
             {
                 OrbitalInfo si = it.GetOrbitalInfo();
-                Orbital* ds = it.GetState();
+                pOrbital ds = it.GetState();
                 *outstream << std::setprecision(12);
 
                 if(mbpt)
@@ -454,7 +454,7 @@ StateIterator Atom::GetIteratorToNextOrbitalToFill()
     while(!si.AtEnd())
     {
         OrbitalInfo oi = si.GetOrbitalInfo();
-        Orbital* orb = si.GetState();
+        pOrbital orb = si.GetState();
         if((orb->GetEnergy() < lowestEnergy) && ((int) orb->Occupancy() < (int) oi.MaxNumElectrons()))
         {
             lowestEnergy = orb->GetEnergy();
@@ -467,7 +467,7 @@ StateIterator Atom::GetIteratorToNextOrbitalToFill()
     while(!si.AtEnd())
     {
         OrbitalInfo oi = si.GetOrbitalInfo();
-        Orbital* orb = si.GetState();
+        pOrbital orb = si.GetState();
         if((orb->GetEnergy() < lowestEnergy))
         {
             lowestEnergy = orb->GetEnergy();
@@ -797,7 +797,7 @@ void Atom::GenerateCowanInputFile()
 {
     FILE* fp = fopen("mitch.txt", "wt");
 
-    const Orbital* ds = core->GetState(OrbitalInfo(1, -1));
+    pOrbitalConst ds = core->GetState(OrbitalInfo(1, -1));
     PrintWavefunctionCowan(fp, ds);
     ds = excited->GetState(OrbitalInfo(2, -1));
     PrintWavefunctionCowan(fp, ds);
@@ -845,7 +845,7 @@ void Atom::GenerateCowanInputFile()
     fclose(fp);
 }
 
-void Atom::PrintWavefunctionCowan(FILE* fp, const Orbital* ds)
+void Atom::PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds)
 {
 /*
     // Extract A and B from expansion
@@ -1042,7 +1042,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         fread(&E, sizeof(double), 1, fp);
         fread(&record_size, sizeof(int), 1, fp);
 
-        Orbital* ds = new Orbital(NAK, -E, NP);
+        pOrbital ds(new Orbital(NAK, -E, NP));
         ds->SetEnergy(-E);
 
         // Record 5
@@ -1090,7 +1090,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         {   if(open_shell_config.GetOccupancy(non_rel_info))
             {   ds->SetOccupancy(occupancy * open_shell_config.GetOccupancy(non_rel_info));
                 core->AddState(ds);
-                core->SetOpenShellState(ds, ds->Occupancy());
+                core->SetOpenShellState(OrbitalInfo(ds), ds->Occupancy());
             }
 
             excited->AddState(ds);
@@ -1164,7 +1164,7 @@ void Atom::WriteGraspMCDF() const
     it.First();
     while(!it.AtEnd())
     {
-        const Orbital* ds = it.GetState();
+        pOrbitalConst ds = it.GetState();
         *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
@@ -1174,7 +1174,7 @@ void Atom::WriteGraspMCDF() const
     it.First();
     while(!it.AtEnd())
     {
-        const Orbital* ds = it.GetState();
+        pOrbitalConst ds = it.GetState();
         *logstream << " " << ds->Name() << std::endl;
         WriteGraspMcdfOrbital(fp, ds, N);
         it.Next();
@@ -1183,7 +1183,7 @@ void Atom::WriteGraspMCDF() const
     fclose(fp);
 }
 
-void Atom::WriteGraspMcdfOrbital(FILE* fp, const Orbital* ds, unsigned int lattice_size) const
+void Atom::WriteGraspMcdfOrbital(FILE* fp, pOrbitalConst ds, unsigned int lattice_size) const
 {
     unsigned int record_size;
     unsigned int N = lattice_size;

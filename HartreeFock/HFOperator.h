@@ -13,7 +13,7 @@
 class HFOperator : public OneBodyOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, const Core* hf_core, OPIntegrator* integration_strategy, CoulombOperator* coulomb);
+    HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, CoulombOperator* coulomb);
     virtual ~HFOperator();
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
@@ -23,10 +23,10 @@ public:
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL);
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction* approximation);
+    virtual void SetODEParameters(const SingleParticleWavefunction& approximation);
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(const SingleParticleWavefunction* approximation = NULL) const;
+    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const;
     
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array.
@@ -57,7 +57,7 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
 
 protected:
-    virtual SpinorFunction CalculateExchange(const SpinorFunction* s) const;
+    virtual SpinorFunction CalculateExchange(const SpinorFunction& s) const;
 
 protected:
     double Z;
@@ -68,5 +68,17 @@ protected:
     double currentEnergy;
     int currentKappa;
 };
+
+
+//class HFDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
+//{
+//    HFDecorator(HFOperator* wrapped, pOPIntegrator integration_strategy = NULL):
+//        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
+//    {}
+//
+//    HFDecorator(HFDecorator* wrapped, pOPIntegrator integration_strategy = NULL):
+//        OneBodyOperatorDecorator(wrapped, integration_strategy), SpinorODEDecorator(wrapped)
+//    {}
+//};
 
 #endif

@@ -33,8 +33,6 @@ protected:
     ~PhysicalConstant();
 
 protected:
-    static PhysicalConstant* instance;
-
     double AlphaSquared;
     double NucleonElectronMassRatio;
 };

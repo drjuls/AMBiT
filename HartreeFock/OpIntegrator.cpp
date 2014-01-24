@@ -10,7 +10,7 @@
 
 double OPIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
 {
-    RadialFunction integrand = a.GetDensity(&b);
+    RadialFunction integrand = a.GetDensity(b);
     return Integrate(integrand);
 }
 

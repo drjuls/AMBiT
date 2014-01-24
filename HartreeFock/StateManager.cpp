@@ -3,12 +3,11 @@
 #include "StateIterator.h"
 #include "Universal/Interpolator.h"
 
-StateManager::StateManager(Lattice* lat, unsigned int atomic_number, int ion_charge):
-    lattice(lat), Z(atomic_number), Charge(ion_charge)
+StateManager::StateManager(Lattice* lat):
+    lattice(lat)
 {}
 
-StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
-    Z(other.Z), Charge(other.Charge)
+StateManager::StateManager(const StateManager& other, Lattice* new_lattice)
 {
     if(new_lattice)
         lattice = new_lattice;
@@ -21,16 +20,15 @@ StateManager::StateManager(const StateManager& other, Lattice* new_lattice):
 
     const double* R_old = other.lattice->R();
     const double* R = lattice->R();
-    const double* dR = lattice->dR();
 
     ConstStateIterator it = other.GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
     {
-        const Orbital* ds_old = it.GetState();
+        pOrbitalConst ds_old = it.GetState();
 
         // Copy kappa, pqn, etc.
-        Orbital* ds = new Orbital(*ds_old);
+        pOrbital ds(new Orbital(*ds_old));
 
         if(interpolate)
         {
@@ -65,11 +63,11 @@ const StateManager& StateManager::operator=(const StateManager& other)
     it.First();
     while(!it.AtEnd())
     {
-        const Orbital* old_orbital = it.GetState();
-        Orbital* s = GetState(OrbitalInfo(old_orbital));
+        pOrbitalConst old_orbital = it.GetState();
+        pOrbital s = GetState(OrbitalInfo(old_orbital));
 
         if(s == NULL)
-        {   s = new Orbital(*it.GetState());
+        {   s = pOrbital(new Orbital(*it.GetState()));
             AddState(s);
         }
         else
@@ -81,42 +79,34 @@ const StateManager& StateManager::operator=(const StateManager& other)
     return *this;
 }
 
-const Orbital* StateManager::GetState(const OrbitalInfo& info) const
+pOrbitalConst StateManager::GetState(const OrbitalInfo& info) const
 {
     StateSet::const_iterator it;
 
     if((it = AllStates.find(info)) != AllStates.end())
-        return it->second.GetState();
+        return it->second;
     else
-        return NULL;
+        return pOrbitalConst();
 }
 
-Orbital* StateManager::GetState(const OrbitalInfo& info)
+pOrbital StateManager::GetState(const OrbitalInfo& info)
 {
     StateSet::iterator it;
 
     if((it = AllStates.find(info)) != AllStates.end())
-        return it->second.GetState();
+        return it->second;
     else
-        return NULL;
+        return pOrbital();
 }
 
-void StateManager::AddState(Orbital* s)
+void StateManager::AddState(pOrbital s)
 {
     OrbitalInfo info(s);
-    StatePointer sp(s);
-
-    AllStates.insert(StateSet::value_type(info, sp));
+    AllStates.insert(StateSet::value_type(info, s));
 }
 
 void StateManager::Clear()
 {
-    // Delete current states
-    StateSet::iterator it = AllStates.begin();
-    while(it != AllStates.end())
-    {   it->second.DeleteState();
-        it++;
-    }
     AllStates.clear();
 }
 
@@ -182,7 +172,7 @@ void StateManager::Read(FILE* fp)
     for(i = 0; i<num_core; i++)
     {
         ds.Read(fp);
-        Orbital* current = GetState(OrbitalInfo(&ds));
+        pOrbital current = GetState(OrbitalInfo(&ds));
         if(current)
         {   *current = ds;
             max_size = mmax(max_size, ds.Size());

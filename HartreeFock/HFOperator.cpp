@@ -5,7 +5,7 @@
 #include "CoulombIntegrator.h"
 #include "StateIntegrator.h"
 
-HFOperator::HFOperator(double Z, const Core* hf_core, OPIntegrator* integration_strategy, CoulombOperator* coulomb) :
+HFOperator::HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, CoulombOperator* coulomb) :
     OneBodyOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
@@ -72,20 +72,20 @@ void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exch
     }
 }
 
-void HFOperator::SetODEParameters(const SingleParticleWavefunction* approximation)
+void HFOperator::SetODEParameters(const SingleParticleWavefunction& approximation)
 {
     currentExchangePotential = CalculateExchange(approximation);
-    currentEnergy = approximation->GetEnergy();
-    currentKappa = approximation->Kappa();
+    currentEnergy = approximation.GetEnergy();
+    currentKappa = approximation.Kappa();
 }
 
 /** Get exchange (nonlocal) potential. */
-SpinorFunction HFOperator::GetExchange(const SingleParticleWavefunction* approximation) const
+SpinorFunction HFOperator::GetExchange(pSingleParticleWavefunctionConst approximation) const
 {
     if(approximation == NULL)
         return currentExchangePotential;
 
-    return CalculateExchange(approximation);
+    return CalculateExchange(*approximation);
 }
 
 /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g). */
@@ -265,7 +265,7 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
     const double* R = lattice->R();
     
     double kappa = a.Kappa();
-    SpinorFunction exchangePotential = CalculateExchange(&a);
+    SpinorFunction exchangePotential = CalculateExchange(a);
     exchangePotential.ReSize(ta.Size());
 
     std::vector<double> d2fdr2(a.Size());
@@ -290,15 +290,15 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
     return ta;
 }
 
-SpinorFunction HFOperator::CalculateExchange(const SpinorFunction* s) const
+SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
 {
     bool NON_REL_SCALING = true;
 
-    SpinorFunction exchange(s->Kappa());
-    exchange.ReSize(s->Size());
+    SpinorFunction exchange(s.Kappa());
+    exchange.ReSize(s.Size());
 
     // Find out whether s is in the core
-    const Orbital* ds_current = dynamic_cast<const Orbital*>(s);
+    const Orbital* ds_current = dynamic_cast<const Orbital*>(&s);
     if(core->GetState(OrbitalInfo(ds_current)) == NULL)
         ds_current = NULL;
 
@@ -306,15 +306,15 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction* s) const
     ConstStateIterator cs = core->GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        const Orbital* other = cs.GetState();
+        pOrbitalConst other = cs.GetState();
 
         // Get overlap of wavefunctions
-        RadialFunction density = s->GetDensity(other);
+        RadialFunction density = s.GetDensity(*other);
 
         // Sum over all k
-        for(unsigned int k = abs((int)other->L() - (int)s->L()); k <= (other->L() + s->L()); k+=2)
+        for(unsigned int k = abs((int)other->L() - (int)s.L()); k <= (other->L() + s.L()); k+=2)
         {
-            double coefficient = MathConstant::Instance()->Electron3j(s->TwoJ(), other->TwoJ(), k);
+            double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), other->TwoJ(), k);
             coefficient = (2. * abs(other->Kappa())) * coefficient * coefficient;
             
             // Open shells need to be scaled
@@ -333,9 +333,9 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction* s) const
                     else
                     {
                         int other_kappa = - other->Kappa() - 1;
-                        const Orbital* ds = core->GetState(OrbitalInfo(other->GetPQN(), other_kappa));
+                        pOrbitalConst ds = core->GetState(OrbitalInfo(other->GetPQN(), other_kappa));
                         
-                        if((!ds_current && s->L() != other->L())
+                        if((!ds_current && s.L() != other->L())
                            || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))
                             ex = (other->Occupancy() + ds->Occupancy())/double(2 * (abs(other->Kappa()) + abs(ds->Kappa())));
                         else if(k)

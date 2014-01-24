@@ -19,14 +19,14 @@ public:
     {}
 
     /** Returns one-electron valence-valence diagrams. */
-    double GetOneElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2);
+    double GetOneElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2);
 
     /** Returns two-electron valence-valence diagrams. Only calculates in Brillouin-Wigner PT. */
-    double GetTwoElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k);
+    double GetTwoElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k);
 
     /** Returns two-electron "box" valence-valence diagrams, which can have wrong parity.
         Only calculates in Brillouin-Wigner PT. */
-    double GetTwoElectronBoxValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k);
+    double GetTwoElectronBoxValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k);
 
 protected:
     /** Calculate one-electron valence-valence diagram of second order.

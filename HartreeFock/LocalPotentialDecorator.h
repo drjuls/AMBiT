@@ -10,7 +10,7 @@
 class LocalPotentialDecorator : public OneBodyOperatorDecorator, public SpinorODEDecorator
 {
 public:
-    LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, OPIntegrator* integration_strategy = NULL);
+    LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy = pOPIntegrator());
 
 public:
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;

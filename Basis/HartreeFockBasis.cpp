@@ -21,11 +21,11 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                 unsigned int pqn = k + 1;
 
                 // Get first state by HF iteration
-                const Orbital* s;
-                const Orbital* previous_state = NULL;
+                pOrbitalConst s;
+                pOrbitalConst previous_state;
                 while(count == 0)
                 {
-                    s = NULL;
+                    s.reset();
 
                     // If state is not in the open shell part, check whether it is in the core
                     if(!core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
@@ -35,7 +35,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                     {   // Check if state already exists
                         s = GetState(OrbitalInfo(pqn, kappa));
                         if(s == NULL)
-                        {   Orbital* ds = new Orbital(kappa, 0., pqn);
+                        {   pOrbital ds = pOrbital(new Orbital(kappa, 0., pqn));
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -44,7 +44,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                             previous_state = ds;
                         }
                         else
-                        {   Orbital* ds = GetState(OrbitalInfo(pqn, kappa));
+                        {   pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
                             unsigned int loop = core->UpdateExcitedState(ds);
                             if(loop)
                                 Orthogonalise(ds);
@@ -58,9 +58,9 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                 // Get higher states by multiplication by R
                 while(count < num_states_per_l[k])
                 {
-                    Orbital* ds = GetState(OrbitalInfo(pqn, kappa));
+                    pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = new Orbital(kappa, 0., pqn);
+                    {   ds = pOrbital(new Orbital(kappa, 0., pqn));
                         ds->SetNu(previous_state->GetNu() + 1.);
                         AddState(ds);
                     }
@@ -93,7 +93,7 @@ void HartreeFockBasis::Update()
     it.First();
     while(!it.AtEnd())
     {
-        Orbital* ds = it.GetState();
+        pOrbital ds = it.GetState();
         core->UpdateExcitedState(ds);
         it.Next();
     }

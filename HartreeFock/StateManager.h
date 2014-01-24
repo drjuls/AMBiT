@@ -2,12 +2,11 @@
 #define STATE_MANAGER_H
 
 #include "Orbital.h"
-#include "StatePointer.h"
 #include "OrbitalInfo.h"
 #include <set>
 #include <map>
 
-typedef std::map<OrbitalInfo, StatePointer> StateSet;
+typedef std::map<OrbitalInfo, pOrbital> StateSet;
 
 class StateIterator;
 class ConstStateIterator;
@@ -19,7 +18,7 @@ public:
     friend class ConstStateIterator;
 
 public:
-    StateManager(Lattice* lat, unsigned int atomic_number, int ion_charge);
+    StateManager(Lattice* lat);
     /** Copy all states, interpolating onto new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
      */
@@ -34,8 +33,8 @@ public:
     /** Get pointer to discrete state.
         Return null if no such state exists.
      */
-    virtual const Orbital* GetState(const OrbitalInfo& info) const;
-    virtual Orbital* GetState(const OrbitalInfo& info);
+    virtual pOrbitalConst GetState(const OrbitalInfo& info) const;
+    virtual pOrbital GetState(const OrbitalInfo& info);
 
     virtual StateIterator GetStateIterator();
     virtual ConstStateIterator GetConstStateIterator() const;
@@ -56,15 +55,12 @@ public:
      */
     double TestOrthogonality() const;
 
-    virtual void AddState(Orbital* s);
+    virtual void AddState(pOrbital s);
 
 protected:
     /** Delete all currently stored states. */
     virtual void Clear();
-
-    double Z, Charge;
     StateSet AllStates;
-
     Lattice* lattice;
 };
 

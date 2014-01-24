@@ -113,26 +113,26 @@ SpinorFunction SpinorFunction::operator*(const RadialFunction& chi) const
     return (ret *= chi);
 }
 
-RadialFunction SpinorFunction::GetDensity(const SpinorFunction* other) const
+RadialFunction SpinorFunction::GetDensity() const
 {
-    RadialFunction ret;
-    unsigned int i;
+    RadialFunction ret(Size());
 
-    if(other == NULL)
-    {   ret.ReSize(Size());
-        for(i = 0; i < ret.Size(); i++)
-        {   ret.f[i] = f[i] * f[i] + g[i] * g[i];
-            ret.dfdr[i] = 2. * (f[i] * dfdr[i] + g[i] * dgdr[i]);
-        }
+    for(unsigned int i = 0; i < ret.Size(); i++)
+    {   ret.f[i] = f[i] * f[i] + g[i] * g[i];
+        ret.dfdr[i] = 2. * (f[i] * dfdr[i] + g[i] * dgdr[i]);
     }
-    else
-    {   // Get rho(r) = f[i] j.f[i] + g[i] j.g[i]
-        ret.ReSize(mmin(Size(), other->Size()));
-        for(i = 0; i < ret.Size(); i++)
-        {   ret.f[i] = f[i] * other->f[i] + g[i] * other->g[i];
-            ret.dfdr[i] = f[i] * other->dfdr[i] + dfdr[i] * other->f[i]
-                         +g[i] * other->dgdr[i] + dgdr[i] * other->g[i];
-        }
+
+    return ret;
+}
+
+RadialFunction SpinorFunction::GetDensity(const SpinorFunction& other) const
+{
+    RadialFunction ret(mmin(Size(), other.Size()));
+
+    for(unsigned int i = 0; i < ret.Size(); i++)
+    {   ret.f[i] = f[i] * other.f[i] + g[i] * other.g[i];
+        ret.dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i]
+                     +g[i] * other.dgdr[i] + dgdr[i] * other.g[i];
     }
 
     return ret;

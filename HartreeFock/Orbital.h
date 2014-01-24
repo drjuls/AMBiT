@@ -2,6 +2,7 @@
 #define ORBITAL_H
 
 #include "SingleParticleWavefunction.h"
+#include <boost/shared_ptr.hpp>
 
 /** Orbital is really no different to SingleParticleWavefunction,
     however it is explicitly bounded and hence normalisable, integrable, etc.
@@ -55,6 +56,9 @@ public:
 protected:
     double occupancy;
 };
+
+typedef boost::shared_ptr<Orbital> pOrbital;
+typedef boost::shared_ptr<const Orbital> pOrbitalConst;
 
 inline void Orbital::SetOccupancy(double number_electrons)
 {   if(number_electrons <= (double)(2*abs(kappa)))

@@ -25,7 +25,7 @@ void SpinorODE::IncludeExchangeInODE(bool include_exchange)
 
 void SpinorODE::GetDerivative(SingleParticleWavefunction& fg)
 {
-    SetODEParameters(&fg);
+    SetODEParameters(fg);
 
     double w[2];
     for(unsigned int i = 0; i < fg.Size(); i++)

@@ -271,7 +271,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             unsigned int count = 0;
             unsigned int pqn = l + 1;
             i = n2/2;
-            const Orbital* s;
+            pOrbitalConst s;
 
             while((count < num_states_per_l[l]) && (i < n2))
             {
@@ -286,7 +286,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     }
                 }
                 else
-                {   Orbital* ds = new Orbital(kappa, eigenvalues[i], pqn);
+                {   pOrbital ds = pOrbital(new Orbital(kappa, eigenvalues[i], pqn));
                     ds->ReSize(lattice_size);
 
                     double* coeff = &A[i*n2];
@@ -308,15 +308,12 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                             *outstream << "  SingleParticleWavefunction removed: energy = " << ds->GetEnergy()
                                        << "  norm = " << ds->Norm(lattice) << std::endl;
                         pqn--;
-
-                        delete ds;
                     }
                     else
                     {   // Check if state already exists
-                        Orbital* existing = GetState(OrbitalInfo(pqn, kappa));
+                        pOrbital existing = GetState(OrbitalInfo(pqn, kappa));
                         if(existing)
                         {   *existing = *ds;
-                            delete ds;
                         }
                         else
                             AddState(ds);
@@ -331,7 +328,6 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             StateSet::iterator it = AllStates.find(OrbitalInfo(pqn, kappa));
             while(it != AllStates.end())
             {
-                it->second.DeleteState();
                 AllStates.erase(it);
 
                 pqn++;
@@ -349,7 +345,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                         Orthogonalise(basis_it.GetState());
 
                     if(debug)
-                    {   const Orbital* ds = basis_it.GetState();
+                    {   pOrbitalConst ds = basis_it.GetState();
                         s = core->GetState(OrbitalInfo(ds->GetPQN(), kappa));
                         if(s)
                         {   double diff = fabs((s->GetEnergy() - ds->GetEnergy())/s->GetEnergy());

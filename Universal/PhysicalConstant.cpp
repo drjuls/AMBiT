@@ -4,15 +4,10 @@
 #define ALPHA_0        0.007297352932703
 #define NUCLEON_MASS_0 1822.888
 
-// For Singleton pattern
-PhysicalConstant* PhysicalConstant::instance = NULL;
-
 PhysicalConstant* PhysicalConstant::Instance()
 {
-    if(instance == NULL)
-        instance = new PhysicalConstant();
-
-    return instance;
+    static PhysicalConstant instance;
+    return &instance;
 }
 
 PhysicalConstant::PhysicalConstant()

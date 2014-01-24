@@ -119,9 +119,9 @@ protected:
         virtual double Coeff5(int point) const;
         virtual double Coeff6(int point) const;
 
-        void SetState(const SingleParticleWavefunction* state)
-        {   kappa = double(state->Kappa());
-            energy = state->GetEnergy();
+        void SetState(const SingleParticleWavefunction& state)
+        {   kappa = double(state.Kappa());
+            energy = state.GetEnergy();
         }
 
         void SetHFPotential(const std::vector<double>& potential) { HFPotential = &potential; }

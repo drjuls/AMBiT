@@ -593,7 +593,7 @@ void Atom::CalculateMultipleClosedShell(bool include_mbpt)
                 *outstream << std::setprecision(15) << ds.GetEnergy() * MathConstant::HartreeEnergyInInvCm << std::endl;
             }
             else
-            {   const Orbital* ds = it.GetState();
+            {   pOrbitalConst ds = it.GetState();
                 double dE = 0.;
                 if(include_mbpt)
                     dE = mbpt->GetOneElectronDiagrams(si, si);

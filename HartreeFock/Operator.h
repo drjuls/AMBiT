@@ -12,7 +12,7 @@
 class OneBodyOperator
 {
 public:
-    OneBodyOperator(OPIntegrator* integration_strategy = NULL): integrator(integration_strategy) {}
+    OneBodyOperator(pOPIntegrator integration_strategy = pOPIntegrator()): integrator(integration_strategy) {}
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const;
@@ -20,12 +20,12 @@ public:
     /** Potential = t | a > for an operator t. */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const = 0;
 
-    virtual OPIntegrator* GetOPIntegrator() const
+    virtual pOPIntegrator GetOPIntegrator() const
     {   return integrator;
     }
 
 protected:
-    OPIntegrator* integrator;
+    pOPIntegrator integrator;
 };
 
 /** OneBodyOperatorDecorator is for adding extra terms to an existing operator.
@@ -36,7 +36,7 @@ protected:
 class OneBodyOperatorDecorator : public OneBodyOperator
 {
 public:
-    OneBodyOperatorDecorator(OneBodyOperator* wrapped, OPIntegrator* integration_strategy = NULL): OneBodyOperator(integration_strategy)
+    OneBodyOperatorDecorator(OneBodyOperator* wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): OneBodyOperator(integration_strategy)
     {   component = wrapped;
         if(!integrator)
             integrator = component->GetOPIntegrator();

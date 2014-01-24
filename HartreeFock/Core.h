@@ -95,17 +95,17 @@ public:     // Methods for Hartree-Fock calculations and potentials
     void CalculateExchange(const SpinorFunction& current, SpinorFunction& exchange, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Calculate a new excited state in the closed core potential. */
-    virtual unsigned int CalculateExcitedState(SingleParticleWavefunction* s) const;
+    virtual unsigned int CalculateExcitedState(pSingleParticleWavefunction s) const;
 
     /** Update an existing excited state, in case of changed core or addition of sigma. */
-    unsigned int UpdateExcitedState(SingleParticleWavefunction* s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
+    unsigned int UpdateExcitedState(pSingleParticleWavefunction s, const SigmaPotential* sigma = NULL, double sigma_amount = 1.) const;
 
     /** Iterate an existing state in an approximate potential until the energy converges.
         The potential is direct + local exchange approximation.
         Returns the number of iterations necessary to achieve convergence.
         If convergency is not reached, it returns a value >= StateParameters::MaxHFIterations.
      */
-    unsigned int ConvergeStateApproximation(Orbital* s, bool include_exch = true) const;
+    unsigned int ConvergeStateApproximation(pOrbital s, bool include_exch = true) const;
 
 public:
     /** Methods for open shell core. The core calculates states in the V^n scheme.
@@ -138,10 +138,10 @@ protected:
         to renormalise. The exchange may be resized to the new size of s.
         Returns the change in the energy needed for renormalisation (delta_E).
      */
-    double IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const;
+    double IterateOrbitalGreens(pOrbital s, SpinorFunction* exchange) const;
 
     /** Calculate a new continuum state in the HF Potential. */
-    unsigned int CalculateContinuumWave(ContinuumWave* s) const;
+    unsigned int CalculateContinuumWave(pContinuumWave s) const;
 
     /** Update the Hartree-Fock potential, which includes the potential due to the nucleus,
         as well as the direct part of all of the core electrons.
@@ -164,6 +164,8 @@ protected:
     std::string GetConfigData();
 
 protected:
+    double Z, Charge;
+
     double NuclearRadius;
     double NuclearThickness;
     double NuclearInverseMass;

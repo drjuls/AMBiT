@@ -4,7 +4,7 @@
 #include "CoulombOperator.h"
 #include "Universal/Interpolator.h"
 
-LocalPotentialDecorator::LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, OPIntegrator* integration_strategy):
+LocalPotentialDecorator::LocalPotentialDecorator(OneBodyOperator* wrapped_OBO, SpinorODE* wrapped_ODE, pOPIntegrator integration_strategy):
     OneBodyOperatorDecorator(wrapped_OBO, integration_strategy), SpinorODEDecorator(wrapped_ODE)
 {}
 

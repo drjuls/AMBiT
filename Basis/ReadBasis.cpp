@@ -114,8 +114,8 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%d", &kappa);
         }
 
-        Orbital* ds;
-        Orbital* ds_readlattice = new Orbital(kappa, 0., pqn);
+        pOrbital ds;
+        pOrbital ds_readlattice = pOrbital(new Orbital(kappa, 0., pqn));
         ds_readlattice->ReSize(numpoints);
 
         if(CMCCORE_FILE)
@@ -188,7 +188,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         else
         {   // Interpolate onto regular lattice
             Interpolator interp(read_lattice);            
-            ds = new Orbital(kappa, 0., pqn);
+            ds = pOrbital(new Orbital(kappa, 0., pqn));
 
             unsigned int size = lattice->real_to_lattice(read_lattice->R(ds_readlattice->Size()-1));
             ds->ReSize(size);
@@ -203,19 +203,17 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
                 ds->dfdr[i] = dfdr;
                 ds->dgdr[i] = dgdr;
             }
-            
-            delete ds_readlattice;
         }
 
         // Check whether this is a core state
-        const Orbital* existing = core->GetState(OrbitalInfo(pqn, kappa));
+        pOrbitalConst existing = core->GetState(OrbitalInfo(pqn, kappa));
 
         // If state is not in the open shell part, check whether it is in the core
         if(existing != NULL && !core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
         {
             // Replace core states if atom_core != NULL
             if(atom_core)
-            {   Orbital* ds_replace = atom_core->GetState(OrbitalInfo(pqn, kappa));
+            {   pOrbital ds_replace = atom_core->GetState(OrbitalInfo(pqn, kappa));
                 *ds_replace = *ds;
             }
         }

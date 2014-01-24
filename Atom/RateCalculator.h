@@ -47,14 +47,14 @@ protected:
     double GetM1MatrixElement(const ElectronInfo& e1, const ElectronInfo& e2);
 
     /** Get the Hamiltonian matrix element <first + continuum | H | second> */
-    double GetProjectionH(const Projection& first, const Projection& second, const ContinuumWave* cs, const ElectronInfo& cs_electron) const;
+    double GetProjectionH(const Projection& first, const Projection& second, pContinuumWaveConst cs, const ElectronInfo& cs_electron) const;
 
     /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >.
         "sign" provides an additional phase which doesn't affect the results but is multiplied
         by the angular factor when printing debug info.
      */
-    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, const ContinuumWave* cs, int sign = 1) const;
-    double SubtractionDiagram(const ContinuumWave* sa, const SingleParticleWavefunction* sb, const SingleParticleWavefunction* sc, const SingleParticleWavefunction* sd, unsigned int k) const;
+    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, pSingleParticleWavefunctionConst cs, int sign = 1) const;
+    double SubtractionDiagram(pContinuumWaveConst sa, pSingleParticleWavefunctionConst sb, pSingleParticleWavefunctionConst sc, pSingleParticleWavefunctionConst sd, unsigned int k) const;
     
     double GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);
     std::complex<double> GetEJMatrixElementZenonas(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);

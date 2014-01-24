@@ -17,12 +17,12 @@ void Core::Update()
     bool debug = DebugOptions.LogHFIterations();
 
     // Copy states for next iteration.
-    StateManager next_states(lattice, (unsigned int)Z, (int)Charge);
+    StateManager next_states(lattice);
 
     StateIterator core_it(this);
     core_it.First();
     while(!core_it.AtEnd())
-    {   next_states.AddState(new Orbital(*core_it.GetState()));
+    {   next_states.AddState(pOrbital(new Orbital(*core_it.GetState())));
         core_it.Next();
     }
 
@@ -50,7 +50,7 @@ void Core::Update()
         it.First();
         while(!it.AtEnd())
         {
-            Orbital* new_state = it.GetState();
+            pOrbital new_state = it.GetState();
             double old_energy = new_state->GetEnergy();
 
             SpinorFunction exchange(new_state->Kappa());
@@ -74,8 +74,8 @@ void Core::Update()
         core_it.First();
         while(!core_it.AtEnd())
         {
-            Orbital* core_state = core_it.GetState();
-            Orbital* new_state = next_states.GetState(OrbitalInfo(core_state));
+            pOrbital core_state = core_it.GetState();
+            pOrbital new_state = next_states.GetState(OrbitalInfo(core_state));
 
             // Add proportion of new states to core states.
             *core_state *= (1. - prop_new);
@@ -334,7 +334,7 @@ void Core::CalculateClosedShellRadius()
     ClosedShellRadius = lattice->R(j);
 }
 
-unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) const
+unsigned int Core::ConvergeStateApproximation(pOrbital s, bool include_exch) const
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
@@ -415,7 +415,7 @@ unsigned int Core::ConvergeStateApproximation(Orbital* s, bool include_exch) con
     return loop;
 }
 
-double Core::IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const
+double Core::IterateOrbitalGreens(pOrbital s, SpinorFunction* exchange) const
 {
     StateIntegrator I(lattice);
     I.SetAdamsOrder(10);
@@ -473,7 +473,7 @@ double Core::IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const
 
     SpinorFunction del_s(s->Kappa(), s->Size());  // ds(r)/dE
 
-    greens.SetGreensIntegrand(s);
+    greens.SetGreensIntegrand(&*s);
     Ginf = greens.GetGreensInfinity();
     G0 = greens.GetGreensOrigin();
 
@@ -531,19 +531,19 @@ double Core::IterateOrbitalGreens(Orbital* s, SpinorFunction* exchange) const
     return delta_E;
 }
 
-unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
+unsigned int Core::CalculateExcitedState(pSingleParticleWavefunction s) const
 {
     // Forward continuum states to other method.
-    Orbital* ds = dynamic_cast<Orbital*>(s);
+    pOrbital ds = boost::dynamic_pointer_cast<Orbital>(s);
     if(ds == NULL)
-    {   ContinuumWave* cs = dynamic_cast<ContinuumWave*>(s);
+    {   pContinuumWave cs = boost::dynamic_pointer_cast<ContinuumWave>(s);
         return CalculateContinuumWave(cs);
     }
 
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
 
-    const Orbital* core_state = GetState(OrbitalInfo(ds));
+    pOrbitalConst core_state = GetState(OrbitalInfo(ds));
     StateSet::const_iterator it = OpenShellStorage.find(OrbitalInfo(ds));
     if(core_state != NULL)
     {   // Try to find in core (probably open shells).
@@ -551,7 +551,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
     }
     else if(it != OpenShellStorage.end())
     {   // Try to find in unoccupied (but previously calculated) open shells.
-        *ds = *(it->second.GetState());
+        *ds = *(it->second);
     }
     else
     {   if(!Charge)
@@ -584,7 +584,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
             ConstStateIterator i = GetConstStateIterator();
             while(!i.AtEnd())
             {   
-                const Orbital* cs = i.GetState();
+                pOrbitalConst cs = i.GetState();
                 if((cs->Kappa() == ds->Kappa()) && (cs->GetPQN() > largest_core_pqn))
                         largest_core_pqn = cs->GetPQN();
                 i.Next();
@@ -630,7 +630,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
 
         double deltaE;
         loop = 0;
-        Orbital* new_ds = new Orbital(*ds);
+        pOrbital new_ds(new Orbital(*ds));
         double prop_new = 0.4;
         do
         {   loop++;
@@ -672,7 +672,6 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
 
         }while((deltaE > StateParameters::EnergyTolerance) && (loop < StateParameters::MaxHFIterations));
 
-        delete new_ds;
         if(loop >= StateParameters::MaxHFIterations)
             *errstream << "Core: Failed to converge excited HF state " << ds->Name() << std::endl;
         }
@@ -697,7 +696,7 @@ unsigned int Core::CalculateExcitedState(SingleParticleWavefunction* s) const
     return loop;
 }
 
-unsigned int Core::CalculateContinuumWave(ContinuumWave* s) const
+unsigned int Core::CalculateContinuumWave(pContinuumWave s) const
 {
     unsigned int loop = 0;
     double final_amplitude, final_phase;
@@ -800,7 +799,7 @@ void Core::CalculateExchange(const SpinorFunction& current, SpinorFunction& exch
                     else
                     {
                         int other_kappa = - other.Kappa() - 1;
-                        const Orbital* ds = GetState(OrbitalInfo(other.GetPQN(), other_kappa));
+                        pOrbitalConst ds = GetState(OrbitalInfo(other.GetPQN(), other_kappa));
 
                         if((!ds_current && current.L() != other.L())
                            || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(&other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))

@@ -1,7 +1,7 @@
 #ifndef MULTIRUN_OPTIONS_H
 #define MULTIRUN_OPTIONS_H
 
-#include "GetPot"
+#include "Atom/GetPot"
 #include "Include.h"
 
 /** A subclass of GetPot, MultirunOptions masks input vectors that are designed for
@@ -37,15 +37,18 @@ public:
     // (*) absorbing contents of another MultirunOptions object
     inline void absorb(const MultirunOptions& That);
 
-    // Overwrite scalar double variables to hide multirun vectors
-    inline double operator()(const char* VarName, const double& Default) const;
+    // Overwrite scalar double variables to hide multirun vectors.
+    // Other operator() functions are overwritten also, to prevent ambiguous function overloading.
+    inline int                operator()(const char* VarName, int           Default) const;
+    inline double             operator()(const char* VarName, const double& Default) const;
+    inline const std::string  operator()(const char* VarName, const char*   Default) const;
 
 public:
-    int GetNumRuns() const;
-    void SetRun(int run_index);
+    inline int GetNumRuns() const;
+    inline void SetRun(int run_index);
 
 protected:
-    void ParseMultirun();
+    inline void ParseMultirun();
 
 protected:
     // Multiple run parameters
@@ -122,12 +125,20 @@ inline double MultirunOptions::operator()(const char* VarName, const double& Def
     return ret;
 }
 
+inline int MultirunOptions::operator()(const char* VarName, int Default) const
+{   return GetPot::operator()(VarName, Default);
+}
+
+inline const std::string MultirunOptions::operator()(const char* VarName, const char* Default) const
+{   return GetPot::operator()(VarName, Default);
+}
+
 inline int MultirunOptions::GetNumRuns() const
 {
     return num_runs;
 }
 
-void MultirunOptions::SetRun(int run_index)
+inline void MultirunOptions::SetRun(int run_index)
 {
     if(0 <= run_index && run_index < num_runs)
         current_run_index = run_index;

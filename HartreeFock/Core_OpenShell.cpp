@@ -3,7 +3,7 @@
 
 void Core::Ionise(OrbitalInfo removed_electron)
 {
-    Orbital* from_state = GetState(removed_electron);
+    pOrbital from_state = GetState(removed_electron);
     if(from_state != NULL)
     {
         if(OpenShellStates.find(removed_electron) == OpenShellStates.end())
@@ -26,7 +26,7 @@ void Core::ToggleClosedShellCore()
     std::map<OrbitalInfo, double>::iterator it = OpenShellStates.begin();
     while(it != OpenShellStates.end())
     {
-        Orbital* ds = GetState(it->first);
+        pOrbital ds = GetState(it->first);
         if(ds)
         {   StateSet::iterator kill_it = AllStates.find(it->first);
             if(kill_it != AllStates.end())
@@ -46,16 +46,16 @@ void Core::ToggleOpenShellCore()
     while(it != OpenShellStates.end())
     {
         double new_occupancy = it->second;
-        Orbital* ds;
+        pOrbital ds;
 
         if(AllStates.find(it->first) == AllStates.end())
         {   Charge = Charge - new_occupancy;
-            ds = OpenShellStorage[it->first].GetState();
+            ds = OpenShellStorage[it->first];
             ds->SetOccupancy(new_occupancy);
             AddState(ds);
         }
         else
-        {   ds = AllStates.find(it->first)->second.GetState();
+        {   ds = AllStates.find(it->first)->second;
             if(ds->Occupancy() != new_occupancy)
             {   Charge = Charge + ds->Occupancy() - new_occupancy;
                 ds->SetOccupancy(new_occupancy);

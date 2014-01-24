@@ -1,4 +1,5 @@
 #include "Atom/MultirunOptions.h"
+#include "Atom/GetPot"
 #include "gtest/gtest.h"
 #include "Include.h"
 
@@ -15,6 +16,8 @@ TEST(MultirunOptionsTester, MultirunTest)
     // Check non-multirun doubles act normally
     EXPECT_DOUBLE_EQ(2.3, opt("NuclearThickness", 0.0));
     EXPECT_DOUBLE_EQ(0.000001, opt("Lattice/StartPoint", 0.0));
+
+    EXPECT_STREQ("test", opt("ID", "").c_str());
 }
 
 TEST(MultirunOptionsTester, AbsorbTest)
@@ -33,6 +36,24 @@ TEST(MultirunOptionsTester, AbsorbTest)
 
     // Check non-multirun doubles act normally
     EXPECT_DOUBLE_EQ(2.3, opt("NuclearThickness", 0.0));
-    //EXPECT_DOUBLE_EQ(0.000001, opt("Lattice/StartPoint", 0.0));
-    //EXPECT_EQ(true, opt.search("Basis/--bspline-basis"));
+//    EXPECT_DOUBLE_EQ(0.000001, opt("Lattice/StartPoint", 0.0));
+//    EXPECT_EQ(true, opt.search("Basis/--bspline-basis"));
 }
+
+//TEST(MultirunOptionsTester, UFOTest)
+//{
+//    std::string inputFileName("template.input");
+//    MultirunOptions opt(inputFileName.c_str(), "//", "\n", ",");
+//
+//    EXPECT_EQ(18, opt("HF/N", 0));
+//
+//    opt.set_prefix("HF/");
+//    EXPECT_EQ(18, opt("N", 1));
+//
+//    std::vector<std::string> ufo = opt.unidentified_variables();
+//    std::vector<std::string>::const_iterator it = ufo.begin();
+//    while(it != ufo.end())
+//    {   *outstream << *it << std::endl;
+//        it++;
+//    }
+//}

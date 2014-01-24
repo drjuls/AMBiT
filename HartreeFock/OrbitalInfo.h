@@ -11,6 +11,7 @@ class OrbitalInfo
      */
 public:
     OrbitalInfo(unsigned int pqn, int kappa);
+    OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const OrbitalInfo& other);
     virtual ~OrbitalInfo(void) {}
@@ -35,6 +36,16 @@ protected:
     int kappa;
     unsigned int l;
 };
+
+inline OrbitalInfo::OrbitalInfo(pOrbitalConst s)
+{
+    pqn = s->GetPQN();
+    kappa = s->Kappa();
+    if(kappa > 0)
+        l = (unsigned int)kappa;
+    else
+        l = (unsigned int)(-kappa-1);
+}
 
 inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {

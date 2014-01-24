@@ -3,15 +3,10 @@
 #include <vector>
 #include <algorithm>
 
-// For Singleton pattern
-MathConstant* MathConstant::instance = NULL;
-
 MathConstant* MathConstant::Instance()
 {
-    if (instance == NULL)
-        instance = new MathConstant();
-    
-    return instance;
+    static MathConstant instance;
+    return &instance;
 }
 
 MathConstant::MathConstant()

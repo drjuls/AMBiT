@@ -52,8 +52,6 @@ protected:
     ~MathConstant();
 
 protected:
-    static MathConstant* instance;
-
     char* SpectroscopicNotation;
     std::map<int, double> Symbols3j;
 

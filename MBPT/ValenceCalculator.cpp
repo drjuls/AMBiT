@@ -11,7 +11,7 @@ ValenceCalculator::ValenceCalculator(Lattice* lattice, const Core* atom_core, co
     MBPTCalculator(lattice, atom_core, excited_states)
 {}
 
-double ValenceCalculator::GetOneElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2)
+double ValenceCalculator::GetOneElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -21,7 +21,7 @@ double ValenceCalculator::GetOneElectronValence(const SingleParticleWavefunction
     return CalculateOneElectronValence1(*s1, *s2);
 }
 
-double ValenceCalculator::GetTwoElectronValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -32,7 +32,7 @@ double ValenceCalculator::GetTwoElectronValence(const SingleParticleWavefunction
     return term;
 }
 
-double ValenceCalculator::GetTwoElectronBoxValence(const SingleParticleWavefunction* s1, const SingleParticleWavefunction* s2, const SingleParticleWavefunction* s3, const SingleParticleWavefunction* s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronBoxValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 

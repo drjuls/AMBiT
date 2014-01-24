@@ -1,6 +1,7 @@
 #ifndef SPINOR_FUNCTION_H
 #define SPINOR_FUNCTION_H
 
+#include <boost/shared_ptr.hpp>
 #include <stdio.h>
 #include <vector>
 
@@ -49,10 +50,13 @@ public:
 
     /** Get density
             rho(r) = (f^2 + g^2)
-        If (other != NULL) then the overlap density is
+     */
+    RadialFunction GetDensity() const;
+
+    /** Get density
             rho(r) = (f_i f_j + g_i g_j)
      */
-    RadialFunction GetDensity(const SpinorFunction* other = NULL) const;
+    RadialFunction GetDensity(const SpinorFunction& other) const;
 
     /** Store the coupled function vectors.
         PRE: File pointer fp must be open and binary writable.
@@ -67,6 +71,9 @@ public:
 protected:
     int kappa;
 };
+
+typedef boost::shared_ptr<SpinorFunction> pSpinorFunction;
+typedef boost::shared_ptr<const SpinorFunction> pSpinorFunctionConst;
 
 inline int SpinorFunction::L() const
 {   if (kappa > 0)

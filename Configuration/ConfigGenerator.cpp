@@ -26,7 +26,7 @@ void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
     ConstStateIterator it = states->GetConstStateIterator();
     while(!it.AtEnd())
     {
-        const Orbital* ds = it.GetState();
+        pOrbitalConst ds = it.GetState();
         if(ds != NULL)
         {
             if(ds->Kappa() < 0)

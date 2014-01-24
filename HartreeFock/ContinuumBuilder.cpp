@@ -52,7 +52,7 @@ void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
     core = new Core(*other_core, lattice);
 }
 
-unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice* external_lattice) const
+unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, Lattice* external_lattice) const
 {
     const std::vector<double>& HFPotential = core->GetConstHFPotential();
 
@@ -169,7 +169,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(ContinuumWave* s, Lattice*
     return loop;
 }
 
-bool ContinuumBuilder::ReadContinuumWave(ContinuumWave* s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
+bool ContinuumBuilder::ReadContinuumWave(pContinuumWave s, Lattice* external_lattice, const std::string& upper_file, const std::string& lower_file)
 {
     SetNormalisationType(Unitary);
 

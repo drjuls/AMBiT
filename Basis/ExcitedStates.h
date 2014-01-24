@@ -20,7 +20,7 @@ public:     // Methods for StateManager role
     ExcitedStates(Lattice* lattice, const Core* atom_core);
     virtual ~ExcitedStates();
 
-    virtual void AddState(Orbital* s);
+    virtual void AddState(pOrbital s);
 
 public:     // Methods for managing excited single particle basis states
     /** Create virtual states above the core.
@@ -76,23 +76,23 @@ protected:
     /** current.f = r * previous.f
         PRE: previous.kappa = current.kappa
      */
-    void MultiplyByR(const Orbital* previous, Orbital* current) const;
+    void MultiplyByR(pOrbitalConst previous, pOrbital current) const;
 
     /** current.f = sin(kr) * previous.f, where k = Pi/R_max
         PRE: previous.kappa = current.kappa
      */
-    void MultiplyBySinR(const Orbital* previous, Orbital* current) const;
+    void MultiplyBySinR(pOrbitalConst previous, pOrbital current) const;
 
     /** current.f = r * sin(kr) * previous.f
         PRE: current.l = previous.l + 1
      */
-    void MultiplyByRSinR(const Orbital* previous, Orbital* current) const;
+    void MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const;
 
     /** Orthogonalise to all states that have the same kappa and principal quantum number
         less than current (both in core and in excited states).
         PRE: all states with smaller pqn must already be orthogonal
      */
-    void Orthogonalise(Orbital* current) const;
+    void Orthogonalise(pOrbital current) const;
     
     /** Delete all currently stored states and sigma potentials. */
     virtual void Clear();

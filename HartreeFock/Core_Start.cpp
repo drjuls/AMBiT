@@ -37,21 +37,20 @@ void Core::BuildFirstApproximation(std::string configuration)
     closed_shell_config.First();
     while(!closed_shell_config.AtEnd())
     {
-        Orbital* s1 = NULL;
-        Orbital* s2 = NULL;
+        pOrbital s1, s2;
 
         NonRelInfo info(closed_shell_config.GetInfo());
         double occupancy = closed_shell_config.GetOccupancy();
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new Orbital(-1, 0., info.PQN());
+        {   s2 = pOrbital(new Orbital(-1, 0., info.PQN()));
             s2->SetOccupancy(double(closed_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new Orbital(L, 0., info.PQN());
-            s2 = new Orbital(-(L+1), 0., info.PQN());
+            s1 = pOrbital(new Orbital(L, 0., info.PQN()));
+            s2 = pOrbital(new Orbital(-(L+1), 0., info.PQN()));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -69,21 +68,20 @@ void Core::BuildFirstApproximation(std::string configuration)
     open_shell_config.First();
     while(!open_shell_config.AtEnd())
     {
-        Orbital* s1 = NULL;
-        Orbital* s2 = NULL;
+        pOrbital s1, s2;
 
         NonRelInfo info(open_shell_config.GetInfo());
         double occupancy = open_shell_config.GetOccupancy();
         int L = info.L();
 
         if(L == 0)
-        {   s2 = new Orbital(-1, 0., info.PQN());
+        {   s2 = pOrbital(new Orbital(-1, 0., info.PQN()));
             s2->SetOccupancy(double(open_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = new Orbital(L, 0., info.PQN());
-            s2 = new Orbital(-(L+1), 0., info.PQN());
+            s1 = pOrbital(new Orbital(L, 0., info.PQN()));
+            s2 = pOrbital(new Orbital(-(L+1), 0., info.PQN()));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -104,11 +102,11 @@ void Core::BuildFirstApproximation(std::string configuration)
 
         if(s1)
         {   AddState(s1);
-            SetOpenShellState(s1, s1->Occupancy());
+            SetOpenShellState(OrbitalInfo(s1), s1->Occupancy());
         }
         if(s2)
         {   AddState(s2);
-            SetOpenShellState(s2, s2->Occupancy());
+            SetOpenShellState(OrbitalInfo(s2), s2->Occupancy());
         }
         open_shell_config.Next();
     }
@@ -135,7 +133,7 @@ void Core::BuildFirstApproximation(std::string configuration)
         if(((56 < Z) && (Z < 72)) || (Z == 81))
         {
             // Alter 6s state
-            Orbital* s = GetState(OrbitalInfo(6, -1));
+            pOrbital s = GetState(OrbitalInfo(6, -1));
             if(s != NULL)
             {   s->SetNu(1.4);
             }
@@ -154,7 +152,7 @@ void Core::BuildFirstApproximation(std::string configuration)
     }
     else if(!Empty())
     {
-        SingleParticleWavefunction* s = GetStateIterator().GetState();
+        pSingleParticleWavefunction s = GetStateIterator().GetState();
         s->SetNu(1./Z);
     }
 
@@ -201,7 +199,7 @@ void Core::BuildFirstApproximation(std::string configuration)
         StateIterator it = GetStateIterator();
         while(!it.AtEnd())
         {
-            Orbital* s = it.GetState();
+            pOrbital s = it.GetState();
             unsigned int iterations = 0;
             double nu_change_factor = 0.25;
             int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction

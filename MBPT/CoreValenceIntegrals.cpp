@@ -183,8 +183,8 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
 
     std::set<unsigned int>::const_iterator it_n, it_alpha;
 
-    const Orbital* sn;
-    const SingleParticleWavefunction* salpha;
+    pOrbitalConst sn;
+    pSingleParticleWavefunctionConst salpha;
 
     StateIntegrator SI(core.GetLattice());
 
@@ -228,7 +228,7 @@ void CoreValenceIntegrals::UpdateOneElectronIntegrals()
     // (l1 + l2 + 1)%2 == 0
 
     std::set<unsigned int>::const_iterator it_a;
-    const SingleParticleWavefunction* sa;
+    pSingleParticleWavefunctionConst sa;
 
     it_alpha = excited_states.begin();
     while(it_alpha != excited_states.end())
@@ -311,8 +311,8 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
     // where n and m are core; a is valence; alpha and beta are excited (superset of valence)
 
     std::set<unsigned int>::const_iterator it_n, it_m, it_a, it_alpha, it_beta;
-    const Orbital *sn, *sm;
-    const SingleParticleWavefunction *sa, *salpha, *sbeta;
+    pOrbitalConst sn, sm;
+    pSingleParticleWavefunctionConst sa, salpha, sbeta;
     unsigned int k, kmax;
 
     it_n = core_states.begin();

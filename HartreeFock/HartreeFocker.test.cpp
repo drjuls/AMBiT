@@ -25,26 +25,26 @@ TEST(HartreeFockerTester, CaIIOrbital)
 
     unsigned int pqn = 4;
     double trialE = -0.5 * Charge/(pqn*pqn);
-    Orbital start_4s(-1, trialE, pqn);
-    core.CalculateExcitedState(&start_4s);
-    start_4s.CheckSize(&lattice, 1.e-10);
+    pOrbital start_4s(new Orbital(-1, trialE, pqn));
+    core.CalculateExcitedState(start_4s);
+    start_4s->CheckSize(&lattice, 1.e-10);
 
-    EXPECT_NEAR(start_4s.GetEnergy(), -0.41663154, 0.000001 * 0.41663154);
-    EXPECT_NEAR(start_4s.Norm(&lattice), 1.0, 1.e-8);
+    EXPECT_NEAR(start_4s->GetEnergy(), -0.41663154, 0.000001 * 0.41663154);
+    EXPECT_NEAR(start_4s->Norm(&lattice), 1.0, 1.e-8);
 
     // Set up HF ODE and HartreeFocker
-    SimpsonsIntegrator integrator(&lattice);
+    pOPIntegrator integrator(new SimpsonsIntegrator(&lattice));
     AdamsSolver ode_solver(&lattice);
     CoulombOperator coulomb(&lattice, &ode_solver);
-    HFOperator t(Z, &core, &integrator, &coulomb);
+    HFOperator t(Z, &core, integrator, &coulomb);
     HartreeFocker HF_Solver(&ode_solver);
 
     // Create 4s orbital
-    Orbital new_4s(-1, -0.4, 4);
-    HF_Solver.CalculateExcitedState(&new_4s, &t);
-    EXPECT_NEAR(new_4s.GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
-    EXPECT_NEAR(new_4s.Norm(&lattice), 1.0, 1.e-8);
-    EXPECT_NEAR(t.GetMatrixElement(new_4s, new_4s), -0.41663154, 1.e-6 * 0.41663154);
+    pOrbital new_4s(new Orbital(-1, -0.4, 4));
+    HF_Solver.CalculateExcitedState(new_4s, &t);
+    EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
+    EXPECT_NEAR(new_4s->Norm(&lattice), 1.0, 1.e-8);
+    EXPECT_NEAR(t.GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6 * 0.41663154);
 
     // Create 5d orbital
     /* TODO: HartreeFocker::CalculateExcitedState() can't cope with this condition.
@@ -54,10 +54,10 @@ TEST(HartreeFockerTester, CaIIOrbital)
     */
 
     // Check core orbital
-    Orbital new_2p(*core.GetState(OrbitalInfo(2, 1)));
-    new_2p.SetEnergy(-12.0);
-    HF_Solver.SolveOrbital(&new_2p, &t);
-    EXPECT_NEAR(new_2p.GetEnergy(), -14.282789, 1.e-6 * 14.282789);    
+    pOrbital new_2p(new Orbital(*core.GetState(OrbitalInfo(2, 1))));
+    new_2p->SetEnergy(-12.0);
+    HF_Solver.SolveOrbital(new_2p, &t);
+    EXPECT_NEAR(new_2p->GetEnergy(), -14.282789, 1.e-6 * 14.282789);
 }
 
 TEST(HartreeFockerTester, CaIICore)
@@ -76,10 +76,10 @@ TEST(HartreeFockerTester, CaIICore)
     core.Initialise(filling);
     core.Update();
     
-    SimpsonsIntegrator integrator(&lattice);
+    pOPIntegrator integrator(new SimpsonsIntegrator(&lattice));
     AdamsSolver ode_solver(&lattice);
     CoulombOperator coulomb(&lattice, &ode_solver);
-    HFOperator t(Z, &core, &integrator, &coulomb);
+    HFOperator t(Z, &core, integrator, &coulomb);
     
     HartreeFocker HF_Solver(&ode_solver);
     HF_Solver.SolveCore(&core, &t);

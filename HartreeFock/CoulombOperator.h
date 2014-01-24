@@ -1,7 +1,6 @@
 #ifndef COULOMB_OPERATOR
 #define COULOMB_OPERATOR
 
-#include "Operator.h"
 #include "ODESolver.h"
 
 /** Find the potential due to a charge density

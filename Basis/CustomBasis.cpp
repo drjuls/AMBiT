@@ -49,9 +49,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     exit(1);
                 }
 
-                Orbital* ds = GetState(final.GetFirstRelativisticInfo());
+                pOrbital ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN());
+                {   ds = pOrbital(new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN()));
                     unsigned int loops = core->CalculateExcitedState(ds);
                     if(loops)
                         Orthogonalise(ds);
@@ -81,7 +81,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {   ds = new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN());
+                    {   ds = pOrbital(new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN()));
                         unsigned int loops = core->CalculateExcitedState(ds);
                         if(loops)
                             Orthogonalise(ds);
@@ -118,13 +118,13 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
 //                    exit(1);
 //                }
 
-                Orbital* ds = GetState(final.GetFirstRelativisticInfo());
+                pOrbital ds = GetState(final.GetFirstRelativisticInfo());
                 if(ds == NULL)
-                {   ds = new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN());
+                {   ds = pOrbital(new Orbital(final.GetFirstRelativisticInfo().Kappa(), 0., final.PQN()));
                     AddState(ds);
                 }
 
-                const Orbital* previous = GetState(prev.GetFirstRelativisticInfo());
+                pOrbitalConst previous = GetState(prev.GetFirstRelativisticInfo());
                 if(previous == NULL)
                     previous = core->GetState(prev.GetFirstRelativisticInfo());
                 if(previous == NULL)
@@ -163,7 +163,7 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 {
                     ds = GetState(final.GetSecondRelativisticInfo());
                     if(ds == NULL)
-                    {    ds = new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN());
+                    {    ds = pOrbital(new Orbital(final.GetSecondRelativisticInfo().Kappa(), 0., final.PQN()));
                          AddState(ds);
                     }
 
