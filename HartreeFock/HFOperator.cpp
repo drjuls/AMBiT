@@ -12,6 +12,13 @@ HFOperator::HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_
     SetCore(hf_core);
 }
 
+HFOperator::HFOperator(const HFOperator& other):
+    OneBodyOperator(other.integrator), SpinorODE(other.lattice), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+{
+    Z = other.Z;
+    SetCore(other.GetCore());
+}
+
 HFOperator::~HFOperator()
 {}
 
@@ -56,6 +63,11 @@ void HFOperator::SetCore(const Core* hf_core)
         directPotential.dfdr[i] = -charge/(R[i]*R[i]);
         i++;
     }
+}
+
+const Core* HFOperator::GetCore() const
+{
+    return core;
 }
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */

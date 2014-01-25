@@ -3,11 +3,10 @@
 
 #include "HFOperator.h"
 
-class MassShiftDecorator : public HFDecorator
+class MassShiftDecorator : public HFOperatorDecorator
 {
 public:
     MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
-    MassShiftDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }

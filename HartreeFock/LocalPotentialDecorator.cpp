@@ -5,12 +5,13 @@
 #include "Universal/Interpolator.h"
 
 LocalPotentialDecorator::LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFDecorator(wrapped_hf, integration_strategy)
-{}
-
-LocalPotentialDecorator::LocalPotentialDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
-    HFDecorator(wrapped_hf, integration_strategy)
-{}
+    HFOperatorDecorator(wrapped_hf)
+{
+    // If integration_strategy is supplied, use it.
+    // Otherwise the integration_strategy from wrapped_hf will be used.
+    if(integration_strategy != NULL)
+        integrator = integration_strategy;
+}
 
 void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
@@ -50,7 +51,7 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
 
 SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
 {
-    SpinorFunction ta = component->ApplyTo(a);
+    SpinorFunction ta = wrapped->ApplyTo(a);
     ta -= a * extraLocalPotential;
     
     return ta;
@@ -60,13 +61,9 @@ LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, p
     LocalPotentialDecorator(wrapped_hf, integration_strategy)
 {}
 
-LocalExchangeApproximation::LocalExchangeApproximation(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
-    LocalPotentialDecorator(wrapped_hf, integration_strategy)
-{}
-
 void LocalExchangeApproximation::SetCore(const Core* hf_core)
 {
-    SpinorODEDecorator::SetCore(hf_core);
+    HFOperatorDecorator::SetCore(hf_core);
     const double* R = lattice->R();
     
     // Get electron density function

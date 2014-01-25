@@ -7,7 +7,7 @@
 #include "LocalPotentialDecorator.h"
 
 /** Iterate all orbitals in core until self-consistency is reached. */
-void HartreeFocker::SolveCore(Core* core, pSpinorODE hf)
+void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
 {
     bool debug = DebugOptions.LogHFIterations();
 
@@ -94,7 +94,7 @@ void HartreeFocker::SolveCore(Core* core, pSpinorODE hf)
 }
 
 /** Find self-consistent solution to hf operator, including exchange. */
-double HartreeFocker::SolveOrbital(pOrbital orbital, pSpinorODE hf)
+double HartreeFocker::SolveOrbital(pOrbital orbital, pHFOperator hf)
 {
     double E = orbital->GetEnergy();
     double initial_energy = E;
@@ -130,7 +130,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, pSpinorODE hf)
     return E - initial_energy;
 }
 
-unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pSpinorODE hf)
+unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator hf)
 {
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
@@ -191,8 +191,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pSpinorODE h
         
         do
         {   // TODO: Implement local exchange approximation
-            pHFOperator actual_HF = boost::dynamic_pointer_cast<HFOperator>(hf);
-            pLocalExchangeApproximation hf_localexch(new LocalExchangeApproximation(actual_HF));
+            pHFOperator hf_localexch(new LocalExchangeApproximation(hf));
             hf_localexch->SetCore(core);
             hf_localexch->IncludeExchangeInODE(false);
             loop = IterateOrbitalTailMatching(orbital, hf_localexch);
@@ -294,11 +293,11 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pSpinorODE h
 }
 
 /** Find energy eigenvalue for orbital with a given exchange potential.
- If exchange is not given, generate from hf.
- Note: this function does not iterate/update the exchange potential,
- so the final orbital is not an eigenvalue of the hf operator.
+    If exchange is not given, generate from hf.
+    Note: this function does not iterate/update the exchange potential,
+    so the final orbital is not an eigenvalue of the hf operator.
  */
-double HartreeFocker::IterateOrbital(pOrbital orbital, pSpinorODE hf, pSpinorFunction exchange)
+double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunction exchange)
 {
     pLattice lattice = hf->GetLattice();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
@@ -370,7 +369,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pSpinorODE hf, pSpinorFun
     return orbital->GetEnergy() - initial_energy;
 }
 
-unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pSpinorODE hf)
+unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf)
 {
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetCore()->GetZ();

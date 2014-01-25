@@ -1,22 +1,7 @@
 #include "SpinorODE.h"
 
-SpinorODE::SpinorODE(pLattice lattice): lattice(lattice), core(NULL), include_nonlocal(true)
+SpinorODE::SpinorODE(pLattice lattice): lattice(lattice),include_nonlocal(true)
 {}
-
-SpinorODE::SpinorODE(const Core* core): lattice(core->GetLattice()), include_nonlocal(true)
-{
-    SetCore(core);
-}
-
-void SpinorODE::SetCore(const Core* hf_core)
-{
-    core = hf_core;
-}
-
-const Core* SpinorODE::GetCore() const
-{
-    return core;
-}
 
 void SpinorODE::IncludeExchangeInODE(bool include_exchange)
 {

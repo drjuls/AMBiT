@@ -17,14 +17,9 @@ class SpinorODE
 {
 public:
     SpinorODE(pLattice lattice);
-    SpinorODE(const Core* core);
     virtual ~SpinorODE() {}
 
     pLattice GetLattice() { return lattice; }
-
-    /** Set/reset the core from which the potential is derived. */
-    virtual void SetCore(const Core* hf_core);
-    virtual const Core* GetCore() const;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) = 0;
@@ -70,7 +65,6 @@ public:
     
 protected:
     pLattice lattice;
-    const Core* core;
     bool include_nonlocal;
 };
 
@@ -84,19 +78,9 @@ typedef boost::shared_ptr<const SpinorODE> pSpinorODEConst;
 class SpinorODEDecorator : public SpinorODE
 {
 public:
-    SpinorODEDecorator(pSpinorODE decorated_object): SpinorODE(decorated_object->GetCore()), wrapped(decorated_object) {}
+    SpinorODEDecorator(pSpinorODE decorated_object): SpinorODE(decorated_object->GetLattice()), wrapped(decorated_object) {}
     virtual ~SpinorODEDecorator() {}
 
-    /** Set/reset the core from which the potential is derived. */
-    virtual void SetCore(const Core* hf_core)
-    {   wrapped->SetCore(hf_core);
-        core = hf_core;
-    }
-
-    virtual const Core* GetCore() const
-    {   return wrapped->GetCore();
-    }
-    
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)
     {   return wrapped->SetODEParameters(kappa, energy, exchange);

@@ -5,12 +5,10 @@
 #include "Universal/Interpolator.h"
 
 MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFDecorator(wrapped_hf, integration_strategy), extraExchangePotential(-1), lambda(0.0)
-{}
-
-MassShiftDecorator::MassShiftDecorator(pHFDecorator wrapped_hf, pOPIntegrator integration_strategy):
-    HFDecorator(wrapped_hf, integration_strategy), extraExchangePotential(-1), lambda(0.0)
-{}
+    HFOperatorDecorator(wrapped_hf), extraExchangePotential(-1), lambda(0.0)
+{   if(integration_strategy != NULL)
+        integrator = integration_strategy;
+}
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
 void MassShiftDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
@@ -65,7 +63,7 @@ void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorF
 
 SpinorFunction MassShiftDecorator::ApplyTo(const SpinorFunction& a) const
 {
-    SpinorFunction ta = component->ApplyTo(a);
+    SpinorFunction ta = wrapped->ApplyTo(a);
     ta -= CalculateExtraExchange(a);
     
     return ta;
