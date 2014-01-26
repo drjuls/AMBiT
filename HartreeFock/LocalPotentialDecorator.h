@@ -4,7 +4,8 @@
 #include "HFOperator.h"
 
 /** Generic (abstract-ish) class to add an extra local potential to a HF operator.
-    Local member extraLocalPotential must be set by subclasses via SetCore() and/or SetODEParameters().
+    Extra local potential should be stored in directPotential (inherited from HF operator) and
+    must be set by subclasses via SetCore() and/or SetODEParameters().
  */
 class LocalPotentialDecorator : public HFOperatorDecorator
 {
@@ -18,9 +19,6 @@ public:
 
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
-
-protected:
-    RadialFunction extraLocalPotential;
 };
 
 /** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations. */

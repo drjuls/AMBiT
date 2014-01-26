@@ -64,6 +64,8 @@ protected:
     pLattice lattice;
 };
 
+typedef boost::shared_ptr<ODESolver> pODESolver;
+typedef boost::shared_ptr<const ODESolver> pODESolverConst;
 
 class AdamsSolver : public ODESolver
 {

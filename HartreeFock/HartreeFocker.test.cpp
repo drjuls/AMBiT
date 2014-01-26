@@ -34,10 +34,10 @@ TEST(HartreeFockerTester, CaIIOrbital)
 
     // Set up HF ODE and HartreeFocker
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    AdamsSolver ode_solver(lattice);
-    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pODESolver ode_solver(new AdamsSolver(lattice));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
-    HartreeFocker HF_Solver(&ode_solver);
+    HartreeFocker HF_Solver(ode_solver);
 
     // Create 4s orbital
     pOrbital new_4s(new Orbital(-1, -0.4, 4));
@@ -77,11 +77,11 @@ TEST(HartreeFockerTester, CaIICore)
     core.Update();
     
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    AdamsSolver ode_solver(lattice);
-    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pODESolver ode_solver(new AdamsSolver(lattice));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
 
-    HartreeFocker HF_Solver(&ode_solver);
+    HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveCore(&core, t);
 
     EXPECT_NEAR(core.GetState(OrbitalInfo(1, -1))->GetEnergy(), -150.717923115, 1.e-6 * 150.717923115);

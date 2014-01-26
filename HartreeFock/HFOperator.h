@@ -85,16 +85,23 @@ public:
     virtual void SetCore(const Core* hf_core)
     {   wrapped->SetCore(hf_core);
         core = hf_core;
+        directPotential.Clear();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)
     {   wrapped->SetODEParameters(kappa, energy, exchange);
+        currentEnergy = energy;
+        currentKappa = kappa;
+        currentExchangePotential.Clear();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const SingleParticleWavefunction& approximation)
     {   wrapped->SetODEParameters(approximation);
+        currentEnergy = approximation.GetEnergy();
+        currentKappa = approximation.Kappa();
+        currentExchangePotential.Clear();
     }
 
     /** Get exchange (nonlocal) potential. */

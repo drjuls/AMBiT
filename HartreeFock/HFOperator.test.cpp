@@ -35,11 +35,11 @@ TEST(HFOperatorTester, ODESolver)
     new_4s->SetEnergy(-0.4);
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    AdamsSolver ode_solver(lattice);
-    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pODESolver ode_solver(new AdamsSolver(lattice));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
 
-    HartreeFocker HF_Solver(&ode_solver);
+    HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveOrbital(new_4s, t);
 
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);

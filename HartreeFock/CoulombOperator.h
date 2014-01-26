@@ -21,13 +21,13 @@
 class CoulombOperator : public OneDimensionalODE
 {
 public:
-    CoulombOperator(pLattice lattice, ODESolver* ode = NULL);
+    CoulombOperator(pLattice lattice, pODESolver ode = pODESolver());
 
     void SetK(unsigned int multipole_k) { k = multipole_k; }
     void SetDensity(const RadialFunction& density);
 
     unsigned int GetK() const { return k; }
-    void GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, ODESolver* ode = NULL);
+    void GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
 
 public:
     /** Get df/dr = w[0] given point r, f.
@@ -54,7 +54,7 @@ public:
 protected:
     unsigned int k;
     RadialFunction rho;
-    ODESolver* ode_solver;
+    pODESolver ode_solver;
     bool fwd_direction;
 };
 

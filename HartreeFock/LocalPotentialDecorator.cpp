@@ -17,10 +17,10 @@ void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const Sp
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
 
-    if(latticepoint < extraLocalPotential.Size())
+    if(latticepoint < directPotential.Size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
-        w[0] += alpha * extraLocalPotential.f[latticepoint] * fg.g[latticepoint];
-        w[1] -= alpha * extraLocalPotential.f[latticepoint] * fg.f[latticepoint];
+        w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
+        w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
     }
 }
 
@@ -28,10 +28,10 @@ void LocalPotentialDecorator::GetODECoefficients(unsigned int latticepoint, cons
 {
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
-    if(latticepoint < extraLocalPotential.Size())
+    if(latticepoint < directPotential.Size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
-        w_g[0] += alpha * extraLocalPotential.f[latticepoint];
-        w_f[1] -= alpha * extraLocalPotential.f[latticepoint];
+        w_g[0] += alpha * directPotential.f[latticepoint];
+        w_f[1] -= alpha * directPotential.f[latticepoint];
     }
 }
 
@@ -39,20 +39,20 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
 {
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
-    if(latticepoint < extraLocalPotential.Size())
+    if(latticepoint < directPotential.Size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
-        jacobian[0][1] += alpha * extraLocalPotential.f[latticepoint];
-        jacobian[1][0] -= alpha * extraLocalPotential.f[latticepoint];
+        jacobian[0][1] += alpha * directPotential.f[latticepoint];
+        jacobian[1][0] -= alpha * directPotential.f[latticepoint];
 
-        dwdr[0] += alpha * extraLocalPotential.dfdr[latticepoint] * fg.g[latticepoint];
-        dwdr[1] -= alpha * extraLocalPotential.dfdr[latticepoint] * fg.f[latticepoint];
+        dwdr[0] += alpha * directPotential.dfdr[latticepoint] * fg.g[latticepoint];
+        dwdr[1] -= alpha * directPotential.dfdr[latticepoint] * fg.f[latticepoint];
     }
 }
 
 SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
-    ta -= a * extraLocalPotential;
+    ta -= a * directPotential;
     
     return ta;
 }
@@ -92,20 +92,20 @@ void LocalExchangeApproximation::SetCore(const Core* hf_core)
     const double Charge = core->GetCharge();
 
     // Get local exchange approximation
-    extraLocalPotential.ReSize(density.Size());
+    directPotential.ReSize(density.Size());
     double C = 0.635348143228;
     for(i = 0; i < density.Size(); i++)
     {
-        extraLocalPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);
-        extraLocalPotential.dfdr[i] = C/3. * pow((density.f[i]/(R[i]*R[i])), -2./3.) * (density.dfdr[i] - 2.*density.f[i]/R[i])/(R[i]*R[i]);
+        directPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);
+        directPotential.dfdr[i] = C/3. * pow((density.f[i]/(R[i]*R[i])), -2./3.) * (density.dfdr[i] - 2.*density.f[i]/R[i])/(R[i]*R[i]);
 
-        if(extraLocalPotential.f[i] > (Z - Charge)/R[i] - y.f[i])
+        if(directPotential.f[i] > (Z - Charge)/R[i] - y.f[i])
             break;
     }
 
     while(i < density.Size())
-    {   extraLocalPotential.f[i] = (Z - Charge)/R[i] - y.f[i];
-        extraLocalPotential.dfdr[i] = -(Z - Charge)/(R[i]*R[i]) - y.dfdr[i];
+    {   directPotential.f[i] = (Z - Charge)/R[i] - y.f[i];
+        directPotential.dfdr[i] = -(Z - Charge)/(R[i]*R[i]) - y.dfdr[i];
         i++;
     }
 }

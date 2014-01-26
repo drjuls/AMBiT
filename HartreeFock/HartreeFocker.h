@@ -6,7 +6,7 @@
 class HartreeFocker
 {
 public:
-    HartreeFocker(ODESolver* ode_solver): odesolver(ode_solver) {}
+    HartreeFocker(pODESolver ode_solver): odesolver(ode_solver) {}
 
     /** Iterate all orbitals in core until self-consistency is reached. */
     void SolveCore(Core* core, pHFOperator hf);
@@ -34,7 +34,7 @@ public:
     unsigned int IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf);
 
 protected:
-    ODESolver* odesolver;
+    pODESolver odesolver;
 
     unsigned int MaxHFIterations = 1000;
     double WavefunctionTolerance = 1.E-11;

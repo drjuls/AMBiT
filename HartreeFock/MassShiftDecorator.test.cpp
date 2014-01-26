@@ -29,14 +29,14 @@ TEST(MassShiftDecoratorTester, CaII)
     new_4s->SetEnergy(-0.4);
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    AdamsSolver ode_solver(lattice);
-    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pODESolver ode_solver(new AdamsSolver(lattice));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
     // Construct operator, check nothing is broken with lambda = 0
     pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
     pMassShiftDecorator t(new MassShiftDecorator(hf));
 
-    HartreeFocker HF_Solver(&ode_solver);
+    HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveOrbital(new_4s, t);
 
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
@@ -72,15 +72,15 @@ TEST(MassShiftDecoratorTester, SrII)
     pOrbital new_5s(new Orbital(*start_5s));
     
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    AdamsSolver ode_solver(lattice);
-    pCoulombOperator coulomb(new CoulombOperator(lattice, &ode_solver));
+    pODESolver ode_solver(new AdamsSolver(lattice));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
     pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
     pMassShiftDecorator t(new MassShiftDecorator(hf));
     
     // Test that gradient of SMS operator is correct (compared to old values)
     t->SetInverseMass(0.001);
-    HartreeFocker HF_Solver(&ode_solver);
+    HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveCore(&core, t);
     HF_Solver.SolveOrbital(new_5s, t);
     double Eplus = new_5s->GetEnergy();

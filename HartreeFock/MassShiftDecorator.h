@@ -3,6 +3,10 @@
 
 #include "HFOperator.h"
 
+/** Add specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
+    The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
+    Typical values of inverse mass (1/M) are of order 0.001.
+ */
 class MassShiftDecorator : public HFOperatorDecorator
 {
 public:
@@ -32,7 +36,7 @@ protected:
 
 protected:
     double lambda;
-    SpinorFunction extraExchangePotential;
+//    SpinorFunction extraExchangePotential;
 };
 
 typedef boost::shared_ptr<MassShiftDecorator> pMassShiftDecorator;

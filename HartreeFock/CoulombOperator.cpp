@@ -1,6 +1,6 @@
 #include "CoulombOperator.h"
 
-CoulombOperator::CoulombOperator(pLattice lattice, ODESolver* ode):
+CoulombOperator::CoulombOperator(pLattice lattice, pODESolver ode):
     OneDimensionalODE(lattice), fwd_direction(true), ode_solver(ode)
 {   SetK(0);
 }
@@ -10,36 +10,33 @@ void CoulombOperator::SetDensity(const RadialFunction& density)
     rho = density;
 }
 
-void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, ODESolver* ode)
+void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode)
 {
     SetK(k);
     SetDensity(density);
 
-    bool delete_ode = false;
+    pODESolver ode_to_use;
     if(ode)
-        ode_solver = ode;
-    else if (ode_solver == NULL)
-    {   ode_solver = new AdamsSolver(lattice);
-        delete_ode = true;
-    }
+        ode_to_use = ode;
+    else if (ode_solver)
+        ode_to_use = ode_solver;
+    else
+        ode_to_use = pODESolver(new AdamsSolver(lattice));
 
     if(pot.Size() < density.Size())
         pot.ReSize(density.Size());
 
     // Integrate forwards to obtain I1
     fwd_direction = true;
-    ode_solver->IntegrateForwards(this, &pot);
+    ode_to_use->IntegrateForwards(this, &pot);
 
     // Integrate backwards to obtain I2
     fwd_direction = false;
     RadialFunction I2(pot.Size());
 
-    ode_solver->IntegrateBackwards(this, &I2);
+    ode_to_use->IntegrateBackwards(this, &I2);
 
     pot += I2;
-
-    if(delete_ode)
-        delete ode_solver;
 }
 
 void CoulombOperator::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const
