@@ -32,7 +32,7 @@ EndPoint = 50. // The end value of the lattice
 // Hartree-Fock properties
 [HF]
 // Defines the number of electrons used in the Hartree-Fock calculation
-N = 18
+N = 20
 // Determines the configuration of the electrons used in the Hartree-Fock calculation,
 // use a colon (:) to separate the states inside the core and those that are to be considered
 // excited states

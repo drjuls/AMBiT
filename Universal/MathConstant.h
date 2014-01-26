@@ -47,6 +47,9 @@ public:
     char GetSpectroscopicNotation(unsigned int l) const;
     unsigned int GetL(char spectroscopic_notation) const;
 
+    /** Reset and free used memory. Useful for testing. */
+    void Reset();
+
 protected:
     MathConstant();
     ~MathConstant();

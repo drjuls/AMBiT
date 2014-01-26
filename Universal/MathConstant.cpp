@@ -368,3 +368,8 @@ unsigned int MathConstant::GetStorageSize() const
 {
     return Symbols3j.size();
 }
+
+void MathConstant::Reset()
+{
+    Symbols3j.clear();
+}

@@ -5,6 +5,8 @@ TEST(ConstantTester, Electron3j)
 {
     MathConstant* constant = MathConstant::Instance();
 
+    constant->Reset();
+
     // Sanity check
     EXPECT_DOUBLE_EQ(-1.0/std::sqrt(10.0), constant->Electron3j(5, 3, 1, 3, -1));
     EXPECT_DOUBLE_EQ(1.0/std::sqrt(10.0), constant->Electron3j(3, 5, 1, -1, 3));
@@ -51,6 +53,9 @@ TEST(ConstantTester, Electron3j)
     // ( 3/2  7/2 4 ) = sqrt(5/7)/6
     // ( 1/2 -1/2 0 )
     EXPECT_DOUBLE_EQ(std::sqrt(5./7.)/6., constant->Electron3j(3, 7, 4));
+
+    constant->Reset();
+    EXPECT_EQ(0, constant->GetStorageSize());
 }
 
 TEST(ConstantTester, SpectroscopicNotation)

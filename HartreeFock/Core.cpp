@@ -101,8 +101,8 @@ void Core::Initialise(std::string configuration)
     BuildFirstApproximation(configuration);
 
     // Some default values for the nuclear parameters.
-    UpdateNuclearPotential();
-    Update();
+//    UpdateNuclearPotential();
+//    Update();
 }
 
 void Core::Clear()
