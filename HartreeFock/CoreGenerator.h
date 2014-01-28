@@ -22,7 +22,6 @@ public:
 protected:
     pLattice lattice;
     pHFOperator hf;
-    std::list<pHFOperator> all_hf_operators;
 };
 
 #endif

@@ -12,7 +12,7 @@ ID = test // Defines the string used to name the .atom and .configs files genera
 Multirun = 'AlphaSquaredVariation'
 
 // Defines the radius and thickness of the nucleus
-NuclearRadius = 6.5046
+NuclearRadius = 3.7188
 NuclearThickness = 2.3
 
 // Defines the charge of the nucleus

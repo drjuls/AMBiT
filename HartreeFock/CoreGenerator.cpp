@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "OpIntegrator.h"
 #include "HartreeFocker.h"
+#include "NucleusDecorator.h"
 #include "MassShiftDecorator.h"
 
 CoreGenerator::CoreGenerator(pLattice lat):
@@ -34,7 +35,16 @@ Core* CoreGenerator::GenerateCore(MultirunOptions& userInput)
 
     hf.reset(new HFOperator(Z, core, integrator, coulomb));
 
-    // TODO: Add nuclear potential
+    // Add nuclear potential
+    double nuclear_radius = userInput("NuclearRadius", 0.0);
+    if(nuclear_radius)
+    {
+        pNucleusDecorator nucleus(new NucleusDecorator(hf));
+        double nuclear_thickness = userInput("NuclearThickness", 2.3);
+        nucleus->SetFermiParameters(nuclear_radius, nuclear_thickness);
+        nucleus->SetCore(core);
+        hf = nucleus;
+    }
 
     HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveCore(core, hf);
@@ -44,6 +54,7 @@ Core* CoreGenerator::GenerateCore(MultirunOptions& userInput)
     if(NuclearInverseMass)
     {   pMassShiftDecorator sms_op(new MassShiftDecorator(hf));
         sms_op->SetInverseMass(NuclearInverseMass);
+        sms_op->SetCore(core);
         hf = sms_op;
     }
 

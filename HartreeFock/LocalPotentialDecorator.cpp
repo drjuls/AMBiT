@@ -64,6 +64,7 @@ LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, p
 void LocalExchangeApproximation::SetCore(const Core* hf_core)
 {
     HFOperatorDecorator::SetCore(hf_core);
+    const double Charge = core->GetCharge();
     const double* R = lattice->R();
     
     // Get electron density function
@@ -83,13 +84,9 @@ void LocalExchangeApproximation::SetCore(const Core* hf_core)
     RadialFunction y(density.Size());
 
     if(density.Size())
-    {   CoulombOperator coulombSolver(lattice);
-        coulombSolver.GetPotential(0, density, y);
-    }
+        coulombSolver->GetPotential(density, y, Z-Charge);
 
     unsigned int i = 0;
-    const double Z = core->GetZ();
-    const double Charge = core->GetCharge();
 
     // Get local exchange approximation
     directPotential.ReSize(density.Size());

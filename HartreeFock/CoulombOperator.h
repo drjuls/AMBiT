@@ -29,6 +29,9 @@ public:
     unsigned int GetK() const { return k; }
     void GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
 
+    /** Get zero-multipole potential, but renormalise density so that potential function goes as charge/r at infinity. */
+    void GetPotential(RadialFunction& density, RadialFunction& pot, double charge, pODESolver ode = pODESolver());
+
 public:
     /** Get df/dr = w[0] given point r, f.
      PRE: w should be an allocated double.

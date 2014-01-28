@@ -39,6 +39,47 @@ void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density
     pot += I2;
 }
 
+/** Get zero-multipole potential, but renormalise density so that potential function goes as charge/r at infinity. */
+void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot, double charge, pODESolver ode)
+{
+    SetK(0);
+    SetDensity(density);
+
+    pODESolver ode_to_use;
+    if(ode)
+        ode_to_use = ode;
+    else if (ode_solver)
+        ode_to_use = ode_solver;
+    else
+        ode_to_use = pODESolver(new AdamsSolver(lattice));
+
+    if(pot.Size() < density.Size())
+        pot.ReSize(density.Size());
+
+    // Integrate forwards to obtain I1
+    fwd_direction = true;
+    ode_to_use->IntegrateForwards(this, &pot);
+
+    // Renormalise.
+    // To generalise this function use potential = charge/R^(k+1) here rather than just R;
+    if(fabs(charge) > 1.e-6)
+    {
+        double norm = pot.f[pot.Size()-1] * lattice->R(pot.Size()-1);
+        norm = charge/norm;
+
+        pot *= norm;
+        density *= norm;
+    }
+
+    // Integrate backwards to obtain I2
+    fwd_direction = false;
+    RadialFunction I2(pot.Size());
+
+    ode_to_use->IntegrateBackwards(this, &I2);
+    
+    pot += I2;
+}
+
 void CoulombOperator::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const
 {
     double r = lattice->R(latticepoint);

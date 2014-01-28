@@ -48,9 +48,7 @@ void HFOperator::SetCore(const Core* hf_core)
     RadialFunction y(density.Size());
 
     if(density.Size())
-    {   coulombSolver->GetPotential(0, density, y);
-        //I.CoulombIntegrate(density, y, 0, Z - charge);
-    }
+        coulombSolver->GetPotential(density, y, Z - charge);
 
     unsigned int i = 0;
     while(i < y.Size())

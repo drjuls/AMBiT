@@ -9,6 +9,7 @@
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     t = (     -V                 (-d/dr + Kappa/r)/alpha )
         ( (d/dr + Kappa/r)/alpha   -2/alpha^2 - V        )
+    where V is the electrostatic potential (V > 0) which leads to -V for electrons.
  */
 class HFOperator : public OneBodyOperator, public SpinorODE
 {

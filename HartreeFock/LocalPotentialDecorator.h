@@ -6,6 +6,7 @@
 /** Generic (abstract-ish) class to add an extra local potential to a HF operator.
     Extra local potential should be stored in directPotential (inherited from HF operator) and
     must be set by subclasses via SetCore() and/or SetODEParameters().
+    Note sign is for normal electrostatic potential: V_nucleus(r) > 0.
  */
 class LocalPotentialDecorator : public HFOperatorDecorator
 {
