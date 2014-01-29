@@ -14,7 +14,7 @@ class OrbitalInfo;
 
 /** Single particle wavefunction is for solutions of a single-particle Hamiltonian.
     That is, it is a SpinorFunction with an energy eigenvalue E:
-        h|psi> = E|psi>
+        \f[ h|\psi> = E|\psi> \f]
     It also contains a principal quantum number, which may or may not correspond
     to the spectroscopic pqn.
  */
@@ -22,7 +22,7 @@ class SingleParticleWavefunction : public SpinorFunction
 {
 public:
     SingleParticleWavefunction(const OrbitalInfo& info);
-    SingleParticleWavefunction(int kappa, double energy = 0.0, unsigned int pqn = 0, unsigned int size = 0);
+    SingleParticleWavefunction(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0);
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
     virtual ~SingleParticleWavefunction() {}
 

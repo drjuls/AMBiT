@@ -9,24 +9,21 @@ void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
 {
     nuclear_radius = radius_fm;
     nuclear_thickness = thickness_fm;
-}
 
-void NucleusDecorator::SetCore(const Core* hf_core)
-{
-    HFOperatorDecorator::SetCore(hf_core);
-
-    RadialFunction nuclear_density = CalculateNuclearDensity(nuclear_radius, nuclear_thickness);
-    double nuclear_charge = hf_core->GetCharge();
     directPotential.Clear();
-    coulombSolver->GetPotential(nuclear_density, directPotential, nuclear_charge);
-
-    // Remove point-nucleus potential
     const double* R = lattice->R();
-    unsigned int i = 0;
-    while(i < directPotential.Size())
-    {   directPotential.f[i] -= Z/R[i];
-        directPotential.dfdr[i] += -Z/(R[i]*R[i]);
-        i++;
+
+    if(nuclear_radius > 0.1)
+    {   RadialFunction nuclear_density = CalculateNuclearDensity(nuclear_radius, nuclear_thickness);
+        coulombSolver->GetPotential(nuclear_density, directPotential, Z);
+
+        // Remove point-nucleus potential
+        unsigned int i = 0;
+        while(i < directPotential.Size())
+        {   directPotential.f[i] -= Z/R[i];
+            directPotential.dfdr[i] += -Z/(R[i]*R[i]);
+            i++;
+        }
     }
 }
 
@@ -42,7 +39,9 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
 
     const double* R = lattice->R();
 
-    if(thickness > 0.01 * fermi_length)
+    if(radius < R[1])
+        density.ReSize(0);
+    else if(thickness > 0.01 * fermi_length)
     {
         double B = 4.*log(3.)/thickness;
         double A = 3.*Z/(radius * (radius*radius + (pi*pi)/(B*B)));

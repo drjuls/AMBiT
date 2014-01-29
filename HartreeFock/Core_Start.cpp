@@ -44,13 +44,13 @@ void Core::BuildFirstApproximation(std::string configuration)
         int L = info.L();
 
         if(L == 0)
-        {   s2 = pOrbital(new Orbital(-1, 0., info.PQN()));
+        {   s2 = pOrbital(new Orbital(-1, info.PQN()));
             s2->SetOccupancy(double(closed_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = pOrbital(new Orbital(L, 0., info.PQN()));
-            s2 = pOrbital(new Orbital(-(L+1), 0., info.PQN()));
+            s1 = pOrbital(new Orbital(L, info.PQN()));
+            s2 = pOrbital(new Orbital(-(L+1), info.PQN()));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;
@@ -75,13 +75,13 @@ void Core::BuildFirstApproximation(std::string configuration)
         int L = info.L();
 
         if(L == 0)
-        {   s2 = pOrbital(new Orbital(-1, 0., info.PQN()));
+        {   s2 = pOrbital(new Orbital(-1, info.PQN()));
             s2->SetOccupancy(double(open_shell_config.GetOccupancy()));
         }
         else
         {   // Split electrons between subshells
-            s1 = pOrbital(new Orbital(L, 0., info.PQN()));
-            s2 = pOrbital(new Orbital(-(L+1), 0., info.PQN()));
+            s1 = pOrbital(new Orbital(L, info.PQN()));
+            s2 = pOrbital(new Orbital(-(L+1), info.PQN()));
 
             double occ1 = double(2*L)/double(4*L+2) * occupancy;
             double occ2 = double(2*L+2)/double(4*L+2) * occupancy;

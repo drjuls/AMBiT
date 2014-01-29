@@ -24,7 +24,7 @@ TEST(HFOperatorTester, ODESolver)
 
     unsigned int pqn = 4;
     double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_4s(new Orbital(-1, trialE, pqn));
+    pOrbital start_4s(new Orbital(-1, pqn, trialE));
     core.CalculateExcitedState(start_4s);
     start_4s->CheckSize(lattice, 1.e-10);
 

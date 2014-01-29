@@ -814,7 +814,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
             cs_kappa = -cs_kappa;
 
         // Calculate continuum state
-        pContinuumWave cs(new ContinuumWave(cs_energy, cs_kappa));
+        pContinuumWave cs(new ContinuumWave(cs_kappa, 0, cs_energy));
         if(debug)
             *logstream << "Continuum SingleParticleWavefunction: " << cs->Name() << std::endl;
 

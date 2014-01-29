@@ -22,11 +22,10 @@ HFOperator::HFOperator(const HFOperator& other):
 HFOperator::~HFOperator()
 {}
 
-/** Set/reset the Hartree-Fock core, from which the potential is derived. */
 void HFOperator::SetCore(const Core* hf_core)
 {
     core = hf_core;
-    double charge = core->GetCharge();
+    charge = core->GetCharge();
     directPotential.ReSize(lattice->Size());
     const double* R = lattice->R();
 
@@ -68,7 +67,6 @@ const Core* HFOperator::GetCore() const
     return core;
 }
 
-/** Set exchange (nonlocal) potential and energy for ODE routines. */
 void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exchange)
 {
     currentKappa = kappa;
@@ -89,7 +87,6 @@ void HFOperator::SetODEParameters(const SingleParticleWavefunction& approximatio
     currentKappa = approximation.Kappa();
 }
 
-/** Get exchange (nonlocal) potential. */
 SpinorFunction HFOperator::GetExchange(pSingleParticleWavefunctionConst approximation) const
 {
     if(approximation == NULL)
@@ -98,7 +95,7 @@ SpinorFunction HFOperator::GetExchange(pSingleParticleWavefunctionConst approxim
     return CalculateExchange(*approximation);
 }
 
-/** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g). */
+// Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
 void HFOperator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     const double R = lattice->R(latticepoint);
@@ -137,9 +134,7 @@ void HFOperator::GetODECoefficients(unsigned int latticepoint, const SpinorFunct
     }
 }
 
-/** Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
- PRE: jacobian should be an allocated 2x2 matrix,
- dwdr should be an allocated 2 dimensional array. */
+// Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
 void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
 {
     const double R = lattice->R(latticepoint);
@@ -161,7 +156,6 @@ void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction&
     }
 }
 
-/** Get approximation to eigenfunction at a point assumed to be near the origin. */
 void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
 {
     const int start_point = 0;
@@ -203,7 +197,6 @@ void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunctio
     }
 }
 
-/** Get approximation to eigenfunction at a point assumed to be far from the origin. */
 void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const
 {
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
@@ -265,7 +258,6 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
     }
 }
 
-/** SpinorFunction = t | a > for an operator t. */
 SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta(a.Kappa(), a.Size());

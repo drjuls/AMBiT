@@ -1,26 +1,6 @@
 #include "Include.h"
 #include "Core.h"
 
-void Core::Ionise(OrbitalInfo removed_electron)
-{
-    pOrbital from_state = GetState(removed_electron);
-    if(from_state != NULL)
-    {
-        if(OpenShellStates.find(removed_electron) == OpenShellStates.end())
-        {   OpenShellStates[removed_electron] = from_state->Occupancy();
-        }
-        if(from_state->Occupancy() > 1.)
-            from_state->SetOccupancy(from_state->Occupancy() - 1.);
-        else
-        {   OpenShellStorage[removed_electron] = from_state;
-            AllStates.erase(AllStates.find(removed_electron));
-        }
-        
-        Charge++;
-        UpdateHFPotential();
-    }
-}
-
 void Core::ToggleClosedShellCore()
 {
     std::map<OrbitalInfo, double>::iterator it = OpenShellStates.begin();

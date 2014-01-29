@@ -112,9 +112,6 @@ public:
         Can also toggle modes for V^(n-1) and V^(n-c), which is a closed shell core.
       */
 
-    /** Remove one electron from outer shell. Good for making a V^(n-1) core. */
-    virtual void Ionise(OrbitalInfo removed_electron);
-    
     /** Remove all electrons until just the closed shell core is left. */
     virtual void ToggleClosedShellCore();
 

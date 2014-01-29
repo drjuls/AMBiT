@@ -1041,7 +1041,7 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         fread(&E, sizeof(double), 1, fp);
         fread(&record_size, sizeof(int), 1, fp);
 
-        pOrbital ds(new Orbital(NAK, -E, NP));
+        pOrbital ds(new Orbital(NAK, NP, -E));
         ds->SetEnergy(-E);
 
         // Record 5

@@ -10,8 +10,8 @@ Orbital::Orbital(const OrbitalInfo& info):
     occupancy = 2.*abs(kappa);
 }
 
-Orbital::Orbital(int kappa, double energy, unsigned int pqn, unsigned int size):
-    SingleParticleWavefunction(kappa, energy, pqn, size)
+Orbital::Orbital(int kappa, unsigned int pqn, double energy, unsigned int size):
+    SingleParticleWavefunction(kappa, pqn, energy, size)
 {
     occupancy = 2.*abs(kappa);
 }

@@ -128,7 +128,7 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
 {
     pOrbital s = GetState(info);
     if(s == NULL)
-    {   s = pOrbital(new Orbital(info.Kappa(), 0., info.PQN()));
+    {   s = pOrbital(new Orbital(info.Kappa(), info.PQN()));
         core->CalculateExcitedState(s);
     }
 

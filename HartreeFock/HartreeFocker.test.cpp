@@ -25,7 +25,7 @@ TEST(HartreeFockerTester, CaIIOrbital)
 
     unsigned int pqn = 4;
     double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_4s(new Orbital(-1, trialE, pqn));
+    pOrbital start_4s(new Orbital(-1, pqn, trialE));
     core.CalculateExcitedState(start_4s);
     start_4s->CheckSize(lattice, 1.e-10);
 
@@ -40,7 +40,7 @@ TEST(HartreeFockerTester, CaIIOrbital)
     HartreeFocker HF_Solver(ode_solver);
 
     // Create 4s orbital
-    pOrbital new_4s(new Orbital(-1, -0.4, 4));
+    pOrbital new_4s(new Orbital(-1, 4, -0.4));
     HF_Solver.CalculateExcitedState(new_4s, t);
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
@@ -48,7 +48,7 @@ TEST(HartreeFockerTester, CaIIOrbital)
 
     // Create 5d orbital
     /* TODO: HartreeFocker::CalculateExcitedState() can't cope with this condition.
-    Orbital new_5d(2, -0.1, 5);
+    Orbital new_5d(2, 5, -0.1);
     HF_Solver.CalculateExcitedState(&new_5d, &t);
     EXPECT_NEAR(new_5d.GetEnergy(), -0.10135136, 1.e-6 * 0.10135136);
     */

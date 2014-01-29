@@ -11,14 +11,14 @@ class Orbital : public SingleParticleWavefunction
 {
 public:
     Orbital(const OrbitalInfo& info);
-    Orbital(int kappa, double energy = 0., unsigned int pqn = 0, unsigned int size = 0);
+    Orbital(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0);
     Orbital(const Orbital& other);
     virtual ~Orbital() {}
 
     double Norm(pLatticeConst lattice) const; // Deprecate
 
-    inline void SetOccupancy(double number_electrons); // Deprecate
-    double Occupancy() const { return occupancy; } // Deprecate
+    DEPRECATED inline void SetOccupancy(double number_electrons);
+    DEPRECATED double Occupancy() const { return occupancy; }
 
     virtual std::string Name() const;
 

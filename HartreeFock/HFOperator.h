@@ -64,6 +64,7 @@ protected:
 
 protected:
     double Z;
+    double charge;
     const Core* core;
     pCoulombOperator coulombSolver;
 

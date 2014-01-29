@@ -115,7 +115,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         }
 
         pOrbital ds;
-        pOrbital ds_readlattice = pOrbital(new Orbital(kappa, 0., pqn));
+        pOrbital ds_readlattice = pOrbital(new Orbital(kappa, pqn));
         ds_readlattice->ReSize(numpoints);
 
         if(CMCCORE_FILE)
@@ -188,7 +188,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         else
         {   // Interpolate onto regular lattice
             Interpolator interp(read_lattice);            
-            ds = pOrbital(new Orbital(kappa, 0., pqn));
+            ds = pOrbital(new Orbital(kappa, pqn));
 
             unsigned int size = lattice->real_to_lattice(read_lattice->R(ds_readlattice->Size()-1));
             ds->ReSize(size);

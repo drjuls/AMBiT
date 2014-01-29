@@ -35,7 +35,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     {   // Check if state already exists
                         s = GetState(OrbitalInfo(pqn, kappa));
                         if(s == NULL)
-                        {   pOrbital ds = pOrbital(new Orbital(kappa, 0., pqn));
+                        {   pOrbital ds = pOrbital(new Orbital(kappa, pqn));
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -61,7 +61,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                 {
                     pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = pOrbital(new Orbital(kappa, 0., pqn));
+                    {   ds = pOrbital(new Orbital(kappa, pqn));
                         AddState(ds);
                     }
 

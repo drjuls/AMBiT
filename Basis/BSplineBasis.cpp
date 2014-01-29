@@ -286,7 +286,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                     }
                 }
                 else
-                {   pOrbital ds = pOrbital(new Orbital(kappa, eigenvalues[i], pqn));
+                {   pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
                     ds->ReSize(lattice_size);
 
                     double* coeff = &A[i*n2];

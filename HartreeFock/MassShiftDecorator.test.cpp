@@ -21,7 +21,7 @@ TEST(MassShiftDecoratorTester, CaII)
 
     unsigned int pqn = 4;
     double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_4s(new Orbital(-1, trialE, pqn));
+    pOrbital start_4s(new Orbital(-1, pqn, trialE));
     core.CalculateExcitedState(start_4s);
     start_4s->CheckSize(lattice, 1.e-10);
 
@@ -65,7 +65,7 @@ TEST(MassShiftDecoratorTester, SrII)
 
     unsigned int pqn = 5;
     double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_5s(new Orbital(-1, trialE, pqn));
+    pOrbital start_5s(new Orbital(-1, pqn, trialE));
     core.CalculateExcitedState(start_5s);
     start_5s->CheckSize(lattice, 1.e-10);
     

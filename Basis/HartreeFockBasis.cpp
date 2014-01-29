@@ -35,7 +35,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                     {   // Check if state already exists
                         s = GetState(OrbitalInfo(pqn, kappa));
                         if(s == NULL)
-                        {   pOrbital ds = pOrbital(new Orbital(kappa, 0., pqn));
+                        {   pOrbital ds = pOrbital(new Orbital(kappa, pqn));
                             unsigned int loop = core->CalculateExcitedState(ds);
                             if(loop)  // tells us whether ds is pre-existing OpenShellState
                                 Orthogonalise(ds);
@@ -60,7 +60,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                 {
                     pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
-                    {   ds = pOrbital(new Orbital(kappa, 0., pqn));
+                    {   ds = pOrbital(new Orbital(kappa, pqn));
                         ds->SetNu(previous_state->GetNu() + 1.);
                         AddState(ds);
                     }
