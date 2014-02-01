@@ -8,6 +8,12 @@ class HartreeFocker
 public:
     HartreeFocker(pODESolver ode_solver): odesolver(ode_solver) {}
 
+    /** Get first guess at the core orbitals using Thomas-Fermi and gradually building in
+        a self-consistent direct potential.
+        PRE: core should have all orbitals in place, albeit without radial functions.
+     */
+    void StartCore(Core* core, pHFOperator hf);
+
     /** Iterate all orbitals in core until self-consistency is reached. */
     void SolveCore(Core* core, pHFOperator hf);
 

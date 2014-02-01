@@ -5,6 +5,153 @@
 #include "ODESolver.h"
 #include "GreensMethodODE.h"
 #include "LocalPotentialDecorator.h"
+#include "ThomasFermiDecorator.h"
+
+void HartreeFocker::StartCore(Core* core, pHFOperator hf)
+{
+    // Sanity check
+    if(core->GetOccupancies().size() != core->NumStates())
+    {   *errstream << "HartreeFocker::StartCore(): core sanity check failed. Occupancies do not match states.";
+        exit(1);
+    }
+
+    double Z = hf->GetZ();
+
+    // Get first approximation to state energies
+    double num_states = (double)core->NumStates();
+    if(num_states > 1.)
+    {
+        StateIterator it = core->GetStateIterator();
+        double i = 1.;
+        while(!it.AtEnd())
+        {
+            double ratio = (i-1.) / (num_states-1.);
+            double trial_nu = (num_states - i)/(Z * (num_states - 1.)) + ratio;
+            trial_nu = trial_nu / (-4.*ratio*ratio + 4.*ratio + 1.);
+
+            (it.GetState())->SetNu(trial_nu);
+
+            it.Next();
+            i += 1.;
+        }
+
+        // different for some states when 56 < Z < 72
+        if(((56 < Z) && (Z < 72)) || (Z == 81))
+        {
+            // Alter 6s state
+            pOrbital s = core->GetState(OrbitalInfo(6, -1));
+            if(s != NULL)
+                s->SetNu(1.4);
+
+            // Alter 4f state
+            s = core->GetState(OrbitalInfo(4, 3));
+            if(s != NULL)
+                s->SetNu(1.);
+
+            // Alter 4f* state
+            s = core->GetState(OrbitalInfo(4, -4));
+            if(s != NULL)
+                s->SetNu(1.);
+        }
+    }
+    else if(!core->Empty())
+    {
+        pSingleParticleWavefunction s = core->GetStateIterator().GetState();
+        s->SetNu(1./Z);
+    }
+    else
+        return;
+
+    // Wrap hf with local exchange approximation and Thomas-Fermi potential.
+    pHFOperator hf_local_exch(new LocalExchangeApproximation(hf));
+    pThomasFermiDecorator thomas_fermi(new ThomasFermiDecorator(hf_local_exch));
+
+    thomas_fermi->SetCore(core);
+
+    // Iterate states, slowly adding in direct HF + local exchange approximation.
+    bool debug = DebugOptions.LogFirstBuild();
+
+    for(unsigned int m = 0; m < 10; m++)
+    {
+        if(debug)
+            *logstream << "First Build Iteration: " << m+1 << std::endl;
+
+        StateIterator it = core->GetStateIterator();
+        while(!it.AtEnd())
+        {
+            pOrbital s = it.GetState();
+            unsigned int iterations = 0;
+            double nu_change_factor = 0.25;
+            int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction
+            int previous_zero_difference = 0;
+            bool is_first_iteration = true;
+
+            double trial_nu = s->GetNu();
+            double starting_nu = trial_nu;
+            double starting_nu_change_factor = nu_change_factor;
+            double starting_nu_percentage = 1.00;
+
+            do
+            {   s->Clear();
+
+                // Attempt the local exchange approximation method.
+                // This is encapsulated in the UpdateHFPotential method
+                // when first_build = true.
+                iterations = IterateOrbitalTailMatching(s, thomas_fermi);
+                if(iterations >= MaxHFIterations)
+                {   // Evil - this should never happen given our simple model.
+                    *errstream << "    HartreeFocker::StartCore (" << m << ") " << s->Name()
+                               << ": iterations = " << iterations << std::endl;
+                    if(m == 9)
+                    {   *outstream << "    HartreeFocker::StartCore (" << m << ") " << s->Name()
+                                   << ": iterations = " << iterations << std::endl;
+                        *outstream << "       ...try modifying energy/wavefunction tolerances." << std::endl;
+                        exit(1);
+                    }
+                }
+
+                zero_difference = s->NumNodes() + s->L() + 1 - s->GetPQN();
+
+                if(zero_difference)
+                {
+                    if(debug)
+                        *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
+                    s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
+                    trial_nu = s->GetNu();
+                    if(!(((zero_difference > 0) && (previous_zero_difference > 0)) || ((zero_difference < 0) && (previous_zero_difference < 0))) && !is_first_iteration)
+                    {
+                        nu_change_factor = nu_change_factor * 0.75;
+                    }
+                }
+                previous_zero_difference = zero_difference;
+                is_first_iteration = false;
+                if(s->GetNu() < 1.0e-5)
+                {
+                    starting_nu_percentage -= 0.1;
+                    if(starting_nu_percentage <= 0.0)
+                    {
+                        *errstream << "HartreeFocker::StartCore: Cannot converge Hartree Fock energy." << std::endl;
+                        exit(1);
+                    }
+                    trial_nu = starting_nu;
+                    nu_change_factor = starting_nu_change_factor * starting_nu_percentage;
+                }
+            }
+            while(zero_difference);
+
+            if(debug)
+            {   if(DebugOptions.HartreeEnergyUnits())
+                *logstream << "  " << s->Name() << "  en: " << s->GetEnergy() << std::endl;
+            else
+                *logstream << "  " << s->Name() << " nu:   " << s->GetNu() << std::endl;
+            }
+
+            it.Next();
+        }
+
+        thomas_fermi->SetCore(core, 0.4);
+    }
+}
 
 /** Iterate all orbitals in core until self-consistency is reached. */
 void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
@@ -18,7 +165,7 @@ void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
     // 2. Mix old wavefunctions with new ones.
     // 3. Update potentials.
 
-    Core next_states(*core);
+    Core next_states(core->Copy());
     StateIterator it(&next_states);
     double prop_new = 0.5;
     
@@ -101,7 +248,9 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, pHFOperator hf)
     double delta_E = 0.0;
 
     if(!orbital->Size())
-        hf->GetCore()->ConvergeStateApproximation(orbital);
+    {   pHFOperator hf_local(new LocalPotentialDecorator(hf));
+        IterateOrbitalTailMatching(orbital, hf_local);
+    }
 
     pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(orbital)));
 
@@ -142,12 +291,12 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
         *orbital = *core_state;
     }
     else
-    {   if(!core->GetCharge())
+    {   double Charge = hf->GetCharge();
+
+        if(!Charge)
         {   *errstream << "Cannot calculate excited Hartree-Fock states: Charge = 0." << std::endl;
             exit(1);
         }
-
-        double Charge = core->GetCharge();
 
         // Get a trial value for nu if state hasn't already got one.
         double trial_nu;
@@ -314,8 +463,21 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
 
     do
     {   // Use greens method to iterate orbital
-        orbital->ReNormalise(lattice);
         orbital->CheckSize(lattice, WavefunctionTolerance);
+        orbital->ReNormalise(lattice);
+
+        // Make sure hf operator is big enough.
+        if(hf->Size() < orbital->Size())
+        {   hf->ExtendPotential();
+
+            // If it didn't work we might be in real trouble
+            if(hf->Size() < orbital->Size())
+            {   *errstream << "HartreeFocker::IterateOrbital(): hf->Size() < orbital->Size() and cannot be fixed.\n"
+                << "    hf->Size() = " << hf->Size() << ", orbital->Size() = " << orbital->Size() << std::endl;
+                orbital->ReSize(hf->Size());
+            }
+        }
+
         E = orbital->GetEnergy();
 
         // Get solutions to homogenous equation (no exchange)
@@ -372,7 +534,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
 unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf)
 {
     pLattice lattice = hf->GetLattice();
-    const double Z = hf->GetCore()->GetZ();
+    const double Z = hf->GetZ();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
     AdamsSolver adamssolver(lattice);
 
@@ -381,27 +543,27 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
     else
     {   double nu = mmax(orbital->GetNu(), 1./(9.*Z));
         orbital->SetNu(nu);
-        double r_cutoff = (2. * hf->GetCore()->GetCharge() * nu + 10.) * nu;
+        double r_cutoff = (2. * hf->GetCharge() * nu + 10.) * nu;
         orbital->ReSize(lattice->real_to_lattice(r_cutoff));
     }
 
-//    if(lattice->Size() > HFPotential.size())
-//        ExtendPotential();
-    
-//    std::vector<double> Potential = GetHFPotential();
-//    if(include_exch)
-//    {   std::vector<double> LocalExchange = GetLocalExchangeApproximation();
-//        for(unsigned int i=0; i<Potential.size(); i++)
-//            Potential[i] = Potential[i] + LocalExchange[i];
-//    }
-
-    hf->SetODEParameters(*orbital);
-    
     double delta = 0.;
     unsigned int loop = 0;
     
     do
     {   loop++;
+
+        // Make sure hf operator is big enough.
+        if(hf->Size() < orbital->Size())
+        {   hf->ExtendPotential();
+
+            // If it didn't work we might be in real trouble
+            if(hf->Size() < orbital->Size())
+            {   *errstream << "HartreeFocker::IterateOrbitalTailMatching(): hf->Size() < orbital->Size() and cannot be fixed.\n"
+                << "    hf->Size() = " << hf->Size() << ", orbital->Size() = " << orbital->Size() << std::endl;
+                orbital->ReSize(hf->Size());
+            }
+        }
 
         // Get forward and backwards meeting point
         unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->GetNu())/2.);
@@ -441,20 +603,11 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
         orbital->ReNormalise(lattice);
         
         orbital->CheckSize(lattice, WavefunctionTolerance);
-//        if(lattice->Size() > HFPotential.size())
-//        {   // Lengthen potential if necessary. Local exchange is zero outside the core.
-//            ExtendPotential();
-//            unsigned int old_size = Potential.size();
-//            Potential.resize(HFPotential.size());
-//            for(unsigned int i=old_size; i<HFPotential.size(); i++)
-//                Potential[i] = HFPotential[i];
-//        }
     }
     while((loop < MaxHFIterations) && (fabs(delta) > TailMatchingEnergyTolerance));
 
     orbital->ReNormalise(lattice);
-    hf->GetDerivative(*orbital);
+//    hf->GetDerivative(*orbital);
 
     return loop;
 }
-

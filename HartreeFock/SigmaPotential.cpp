@@ -19,7 +19,7 @@ SigmaPotential::SigmaPotential(pLattice lat, const std::string& file, unsigned i
     }
 
     FILE* fp;
-    if(fp = fopen(filename.c_str(), "rb"))
+    if((fp = fopen(filename.c_str(), "rb")))
     {   fclose(fp);
         ReadIn();
     }

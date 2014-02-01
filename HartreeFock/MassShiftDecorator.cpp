@@ -75,55 +75,56 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     
     SpinorFunction exchange(s.Kappa());
     exchange.ReSize(s.Size());
-    
+
     // Find out whether s is in the core
-    const Orbital* ds_current = dynamic_cast<const Orbital*>(&s);
-    if(core->GetState(OrbitalInfo(ds_current)) == NULL)
-        ds_current = NULL;
+    const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
+    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
+        current_in_core = NULL;
     
     // Sum over all core states
     ConstStateIterator cs = core->GetConstStateIterator();
     while(!cs.AtEnd())
     {
-        pOrbitalConst other = cs.GetState();
-        
+        pOrbitalConst core_orbital = cs.GetState();
+        double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
+
         // Sum over all k
-        for(unsigned int k = abs((int)other->L() - (int)s.L()); k <= (other->L() + s.L()); k+=2)
+        for(unsigned int k = abs((int)core_orbital->L() - (int)s.L()); k <= (core_orbital->L() + s.L()); k+=2)
         {
-            double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), other->TwoJ(), k);
-            coefficient = (2 * abs(other->Kappa())) * coefficient * coefficient;
-            
+            double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), core_orbital->TwoJ(), k);
+            coefficient = (2 * abs(core_orbital->Kappa())) * coefficient * coefficient;
+
             // Open shells need to be scaled
-            if(core->IsOpenShellState(OrbitalInfo(other)) && (other->Occupancy() != double(2 * abs(other->Kappa()))))
+            if(other_occupancy != double(2 * abs(core_orbital->Kappa())))
             {
                 double ex = 1.;
                 if(NON_REL_SCALING)
                 {   // Average over non-relativistic configurations
-                    if(other->Kappa() == -1)
+                    if(core_orbital->Kappa() == -1)
                     {
-                        if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(other)))
-                            ex = other->Occupancy()/double(2 * abs(other->Kappa()));
+                        if(!current_in_core || (OrbitalInfo(current_in_core) != OrbitalInfo(core_orbital)))
+                            ex = other_occupancy/double(2 * abs(core_orbital->Kappa()));
                         else if(k)
-                            ex = (other->Occupancy()-1.)/double(2 * abs(other->Kappa()) - 1);
+                            ex = (other_occupancy - 1.)/double(2 * abs(core_orbital->Kappa()) - 1);
                     }
                     else
-                    {
-                        int other_kappa = - other->Kappa() - 1;
-                        pOrbitalConst ds = core->GetState(OrbitalInfo(other->GetPQN(), other_kappa));
-                        
-                        if((!ds_current && s.L() != other->L())
-                           || (ds_current && (OrbitalInfo(ds_current) != OrbitalInfo(other)) && (OrbitalInfo(ds_current) != OrbitalInfo(ds))))
-                            ex = (other->Occupancy() + ds->Occupancy())/double(2 * (abs(other->Kappa()) + abs(ds->Kappa())));
+                    {   OrbitalInfo pair_info(core_orbital->GetPQN(), - core_orbital->Kappa() - 1);
+                        pOrbitalConst pair_orbital = core->GetState(pair_info);
+                        double pair_occupancy = core->GetOccupancy(pair_info);
+
+                        if((!current_in_core && s.L() != core_orbital->L())
+                           || (current_in_core && (OrbitalInfo(current_in_core) != OrbitalInfo(core_orbital)) && (OrbitalInfo(current_in_core) != pair_info)))
+                            ex = (other_occupancy + pair_occupancy)/double(2 * (abs(core_orbital->Kappa()) + abs(pair_info.Kappa())));
                         else if(k)
-                            ex = (other->Occupancy() + ds->Occupancy() - 1.)/double(2 * (abs(other->Kappa()) + abs(ds->Kappa())) - 1);
+                            ex = (other_occupancy + pair_occupancy - 1.)/double(2 * (abs(core_orbital->Kappa()) + abs(pair_info.Kappa())) - 1);
                     }
                 }
                 else
                 {   // Average over relativistic configurations
-                    if((ds_current == NULL) || (OrbitalInfo(ds_current) != OrbitalInfo(other)))
-                        ex = other->Occupancy()/double(2 * (abs(other->Kappa())));
+                    if(!current_in_core || (OrbitalInfo(current_in_core) != OrbitalInfo(core_orbital)))
+                        ex = other_occupancy/double(2 * (abs(core_orbital->Kappa())));
                     else if(k)
-                        ex = (other->Occupancy() - 1.)/double(2 * (abs(other->Kappa())) - 1);
+                        ex = (other_occupancy - 1.)/double(2 * (abs(core_orbital->Kappa())) - 1);
                 }
                 
                 coefficient = coefficient * ex;
@@ -132,7 +133,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
             if(lambda && (k == 1))
             {
                 RadialFunction P;
-                double sms = CalculateSMS(s, *other, &P);
+                double sms = CalculateSMS(s, *core_orbital, &P);
 
                 for(unsigned int i=0; i < mmin(exchange.Size(), P.Size()); i++)
                 {

@@ -115,12 +115,16 @@ Lattice::~Lattice(void)
     }
 }
 
-void Lattice::ReSize(unsigned int min_size)
-{   
+void Lattice::ReSize(double min_size)
+{
+    if(min_size <= r[NumPoints-1])
+        return;
+
     unsigned int old_size = NumPoints;
 
-    while(min_size >= NumPoints)
-        NumPoints = NumPoints * 2;
+    do
+    {   NumPoints *= 2;
+    }while(lattice_to_real(NumPoints - 1) <= min_size);
 
     r = (double*)realloc(r, NumPoints * sizeof(double));
     dr = (double*)realloc(dr, NumPoints * sizeof(double));
@@ -172,16 +176,26 @@ double Lattice::lattice_to_real(unsigned int i) const
 }
 
 unsigned int Lattice::real_to_lattice(double r_point)
-{   
-    unsigned int i = 0;
-    while(r_point > r[NumPoints-1])
-    {   i = NumPoints - 1;
-        ReSize(NumPoints*2-1);
-    }
-    while(r_point > r[i])
-       i++;
+{
+    if(r_point > MaxRealDistance())
+        ReSize(r_point);
+    else if (r_point <= r[0])
+        return 0;
 
-    return i;
+    unsigned int i_min = 0;
+    unsigned int i_max = NumPoints;
+    unsigned int i_mid;
+
+    // Bisection search
+    while(i_max - i_min > 1)
+    {   i_mid = (i_min + i_max)/2;
+        (r_point >= r[i_mid]) ? i_min = i_mid : i_max = i_mid;
+    }
+
+    if(r_point == r[i_min])
+        return i_min;
+    else
+        return i_min + 1;
 }
 
 bool Lattice::operator==(const Lattice& other) const

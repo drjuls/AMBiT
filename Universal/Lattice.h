@@ -61,7 +61,7 @@ protected:
     const double* Calculate_Rpower(unsigned int k);
     
     /** Resizes the lattice such that NumPoints > min_size. */
-    virtual void ReSize(unsigned int min_size);
+    virtual void ReSize(double min_size);
 
 protected:
     unsigned int NumPoints;

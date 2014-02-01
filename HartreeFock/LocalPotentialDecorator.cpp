@@ -13,6 +13,14 @@ LocalPotentialDecorator::LocalPotentialDecorator(pHFOperator wrapped_hf, pOPInte
         integrator = integration_strategy;
 }
 
+RadialFunction LocalPotentialDecorator::GetDirectPotential() const
+{
+    RadialFunction ret = wrapped->GetDirectPotential();
+    ret += directPotential;
+
+    return ret;
+}
+
 void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
@@ -64,7 +72,6 @@ LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, p
 void LocalExchangeApproximation::SetCore(const Core* hf_core)
 {
     HFOperatorDecorator::SetCore(hf_core);
-    const double Charge = core->GetCharge();
     const double* R = lattice->R();
     
     // Get electron density function
@@ -74,7 +81,7 @@ void LocalExchangeApproximation::SetCore(const Core* hf_core)
     while(!cs.AtEnd())
     {
         const Orbital& s = *cs.GetState();
-        double number_electrons = s.Occupancy();
+        double number_electrons = core->GetOccupancy(OrbitalInfo(&s));
         
         density += s.GetDensity() * number_electrons;
         
@@ -84,7 +91,7 @@ void LocalExchangeApproximation::SetCore(const Core* hf_core)
     RadialFunction y(density.Size());
 
     if(density.Size())
-        coulombSolver->GetPotential(density, y, Z-Charge);
+        coulombSolver->GetPotential(density, y, Z-charge);
 
     unsigned int i = 0;
 
@@ -96,13 +103,13 @@ void LocalExchangeApproximation::SetCore(const Core* hf_core)
         directPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);
         directPotential.dfdr[i] = C/3. * pow((density.f[i]/(R[i]*R[i])), -2./3.) * (density.dfdr[i] - 2.*density.f[i]/R[i])/(R[i]*R[i]);
 
-        if(directPotential.f[i] > (Z - Charge)/R[i] - y.f[i])
+        if(directPotential.f[i] > (Z - charge)/R[i] - y.f[i])
             break;
     }
 
     while(i < density.Size())
-    {   directPotential.f[i] = (Z - Charge)/R[i] - y.f[i];
-        directPotential.dfdr[i] = -(Z - Charge)/(R[i]*R[i]) - y.dfdr[i];
+    {   directPotential.f[i] = (Z - charge)/R[i] - y.f[i];
+        directPotential.dfdr[i] = -(Z - charge)/(R[i]*R[i]) - y.dfdr[i];
         i++;
     }
 }

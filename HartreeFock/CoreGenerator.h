@@ -15,7 +15,7 @@ public:
     CoreGenerator(pLattice lat);
     virtual ~CoreGenerator();
 
-    virtual Core* GenerateCore(MultirunOptions& userInput);
+    virtual void GenerateCore(MultirunOptions& userInput, Core* open_shell_core, Core* closed_shell_core);
 
     virtual pHFOperatorConst GetHFOperator() const { return hf; }
 

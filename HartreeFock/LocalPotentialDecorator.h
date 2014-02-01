@@ -14,6 +14,7 @@ public:
     LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
 public:
+    virtual RadialFunction GetDirectPotential() const;
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;

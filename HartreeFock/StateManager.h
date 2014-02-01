@@ -19,13 +19,15 @@ public:
 
 public:
     StateManager(pLattice lat);
-    /** Copy all states, interpolating onto new_lattice (if supplied and required).
-        If new_lattice is NULL, then lattice = other.lattice (same object, no copy made).
-     */
-    StateManager(const StateManager& other, pLattice new_lattice = pLattice());
+    StateManager(const StateManager& other);
     virtual ~StateManager(void);
 
     const StateManager& operator=(const StateManager& other);
+
+    /** Deep copy of all orbitals, interpolating from new_lattice (if supplied and required).
+        If new_lattice is NULL, then lattice = other.lattice.
+     */
+    const StateManager& Copy(const StateManager& other, pLattice new_lattice = pLattice());
 
     virtual bool Empty() const { return AllStates.empty(); }
     virtual unsigned int NumStates() const { return static_cast<unsigned int>(AllStates.size()); }
@@ -57,9 +59,10 @@ public:
 
     virtual void AddState(pOrbital s);
 
-protected:
     /** Delete all currently stored states. */
     virtual void Clear();
+
+protected:
     StateSet AllStates;
     pLattice lattice;
 };

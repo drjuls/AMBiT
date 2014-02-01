@@ -7,47 +7,9 @@ StateManager::StateManager(pLattice lat):
     lattice(lat)
 {}
 
-StateManager::StateManager(const StateManager& other, pLattice new_lattice)
+StateManager::StateManager(const StateManager& other)
 {
-    if(new_lattice)
-        lattice = new_lattice;
-    else
-        lattice = other.lattice;
-
-    bool interpolate = !(*lattice == *other.lattice);
-    Interpolator interp(other.lattice);
-    unsigned int order = 6;
-
-    const double* R_old = other.lattice->R();
-    const double* R = lattice->R();
-
-    ConstStateIterator it = other.GetConstStateIterator();
-    it.First();
-    while(!it.AtEnd())
-    {
-        pOrbitalConst ds_old = it.GetState();
-
-        // Copy kappa, pqn, etc.
-        pOrbital ds(new Orbital(*ds_old));
-
-        if(interpolate)
-        {
-            unsigned int new_size = lattice->real_to_lattice(R_old[ds_old->Size() - 1]);
-            double dfdr, dgdr;
-
-            ds->ReSize(new_size);
-            for(unsigned int i = 0; i < new_size; i++)
-            {
-                interp.Interpolate(ds_old->f, R[i], ds->f[i], dfdr, order);
-                interp.Interpolate(ds_old->g, R[i], ds->g[i], dgdr, order);
-                ds->dfdr[i] = dfdr;
-                ds->dgdr[i] = dgdr;
-            }
-        }
-
-        AddState(ds);
-        it.Next();
-    }
+    (*this) = other;
 }
 
 StateManager::~StateManager(void)
@@ -58,22 +20,67 @@ StateManager::~StateManager(void)
 const StateManager& StateManager::operator=(const StateManager& other)
 {
     lattice = other.lattice;
-    
+    AllStates = other.AllStates;
+
+    return *this;
+}
+
+const StateManager& StateManager::Copy(const StateManager& other, pLattice new_lattice)
+{
+    bool interpolate = false;
+    if(new_lattice && new_lattice != other.lattice)
+    {   lattice = new_lattice;
+        interpolate = true;
+    }
+    else
+        lattice = other.lattice;
+
+    AllStates.clear();
+
     ConstStateIterator it = other.GetConstStateIterator();
-    it.First();
-    while(!it.AtEnd())
+
+    if(interpolate)
     {
-        pOrbitalConst old_orbital = it.GetState();
-        pOrbital s = GetState(OrbitalInfo(old_orbital));
+        Interpolator interp(other.lattice);
+        unsigned int order = 6;
 
-        if(s == NULL)
-        {   s = pOrbital(new Orbital(*it.GetState()));
+        const double* R_old = other.lattice->R();
+        const double* R = lattice->R();
+
+        it.First();
+        while(!it.AtEnd())
+        {
+            pOrbitalConst old_orbital = it.GetState();
+
+            // Copy kappa, pqn, etc.
+            pOrbital s(new Orbital(old_orbital->Kappa(), old_orbital->GetPQN(), old_orbital->GetEnergy()));
+
+            double real_orbital_size = R_old[old_orbital->Size() - 1];
+            unsigned int new_size = lattice->real_to_lattice(real_orbital_size);
+            s->ReSize(new_size);
+
+            for(unsigned int i = 0; i < new_size; i++)
+            {   interp.Interpolate(old_orbital->f, R[i], s->f[i], s->dfdr[i], order);
+                interp.Interpolate(old_orbital->g, R[i], s->g[i], s->dgdr[i], order);
+            }
+            
             AddState(s);
+            it.Next();
         }
-        else
-            *s = *old_orbital;
 
-        it.Next();
+    }
+    else
+    {   //Simply copy orbitals
+        it.First();
+        while(!it.AtEnd())
+        {
+            pOrbitalConst old_orbital = it.GetState();
+
+            pOrbital s(new Orbital(*old_orbital));
+            AddState(s);
+
+            it.Next();
+        }
     }
 
     return *this;

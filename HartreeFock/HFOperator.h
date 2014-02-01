@@ -7,8 +7,12 @@
 #include "CoulombOperator.h"
 
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
-    t = (     -V                 (-d/dr + Kappa/r)/alpha )
-        ( (d/dr + Kappa/r)/alpha   -2/alpha^2 - V        )
+    \f[
+    t = \left( \begin{array}{cc}
+                  -V             & (-d/dr + \kappa/r)/\alpha \\
+        (d/dr + \kappa/r)/\alpha &     -2/\alpha^2 - V
+        \end{array} \right)
+    \f]
     where V is the electrostatic potential (V > 0) which leads to -V for electrons.
  */
 class HFOperator : public OneBodyOperator, public SpinorODE
@@ -22,6 +26,16 @@ public:
     virtual void SetCore(const Core* hf_core);
     virtual const Core* GetCore() const;
 
+    virtual RadialFunction GetDirectPotential() const;  //!< Get the direct potential.
+    virtual double GetZ() const { return Z; }           //!< Get nuclear charge.
+    virtual double GetCharge() const { return charge; } //!< Get ion charge.
+
+    /** Get size of valid latticepoints. */
+    virtual unsigned int Size() const;
+
+    /** Extend direct potential to match lattice size. */
+    virtual void ExtendPotential();
+
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL);
     
@@ -32,18 +46,21 @@ public:
     virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const;
     
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
-        PRE: w should be an allocated 2 dimensional array.
+        PRE: w should be an allocated 2 dimensional array;
+             latticepoint < Size().
      */
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
 
     /** Get numerical coefficients of the ODE at the point r, (f,g).
-        PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
+        PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays;
+             latticepoint < Size().
      */
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
 
     /** Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
-        PRE: jacobian should be an allocated 2x2 matrix,
-        dwdr should be an allocated 2 dimensional array.
+        PRE: jacobian should be an allocated 2x2 matrix;
+             dwdr should be an allocated 2 dimensional array;
+             latticepoint < Size().
      */
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
 
@@ -88,6 +105,20 @@ public:
     {   wrapped->SetCore(hf_core);
         core = hf_core;
         directPotential.Clear();
+    }
+
+    virtual RadialFunction GetDirectPotential() const
+    {   return wrapped->GetDirectPotential();
+    }
+
+    /** Get size of valid latticepoints. */
+    virtual unsigned int Size() const
+    {   return wrapped->Size();
+    }
+
+    /** Extend direct potential to match lattice size. */
+    virtual void ExtendPotential()
+    {   wrapped->ExtendPotential();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

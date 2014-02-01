@@ -13,31 +13,31 @@ TEST(MassShiftDecoratorTester, CaII)
     // CaII
     unsigned int Z = 20;
     int Charge = 2;
-    std::string filling = "1s2 2s2 2p6 3s2 3p6";
+    OccupationMap occ = ConfigurationParser::ParseFractionalConfiguration("1s2 2s2 2p6 3s2 3p6");
 
-    Core core(lattice, Z, Charge);
-    core.Initialise(filling);
-    core.Update();
-
-    unsigned int pqn = 4;
-    double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_4s(new Orbital(-1, pqn, trialE));
-    core.CalculateExcitedState(start_4s);
-    start_4s->CheckSize(lattice, 1.e-10);
-
-    pOrbital new_4s(new Orbital(*start_4s));
-    new_4s->SetEnergy(-0.4);
+    Core core(lattice);
+    core.SetOccupancies(occ);
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(lattice));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
-
-    // Construct operator, check nothing is broken with lambda = 0
     pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
-    pMassShiftDecorator t(new MassShiftDecorator(hf));
 
     HartreeFocker HF_Solver(ode_solver);
-    HF_Solver.SolveOrbital(new_4s, t);
+    HF_Solver.StartCore(&core, hf);
+    HF_Solver.SolveCore(&core, hf);
+
+    unsigned int pqn = 4;
+    double trialE = -0.5 * Charge/(pqn*pqn);
+    pOrbital start_4s(new Orbital(-1, pqn, trialE));
+    HF_Solver.CalculateExcitedState(start_4s, hf);
+
+    pOrbital new_4s(new Orbital(*start_4s));
+    new_4s->SetEnergy(-0.4);
+
+    // Construct operator, check nothing is broken with lambda = 0
+    pMassShiftDecorator t(new MassShiftDecorator(hf));
+    HF_Solver.CalculateExcitedState(new_4s, t);
 
     EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
@@ -59,28 +59,28 @@ TEST(MassShiftDecoratorTester, SrII)
     int Charge = 2;
     std::string filling = "1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6";
 
-    Core core(lattice, Z, Charge);
-    core.Initialise(filling);
-    core.Update();
+    Core core(lattice, filling);
 
-    unsigned int pqn = 5;
-    double trialE = -0.5 * Charge/(pqn*pqn);
-    pOrbital start_5s(new Orbital(-1, pqn, trialE));
-    core.CalculateExcitedState(start_5s);
-    start_5s->CheckSize(lattice, 1.e-10);
-    
-    pOrbital new_5s(new Orbital(*start_5s));
-    
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(lattice));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
+    HartreeFocker HF_Solver(ode_solver);
 
     pHFOperator hf(new HFOperator(Z, &core, integrator, coulomb));
     pMassShiftDecorator t(new MassShiftDecorator(hf));
+
+    HF_Solver.StartCore(&core, hf);
+    HF_Solver.SolveCore(&core, t);
+
+    unsigned int pqn = 5;
+    double trialE = -0.5 * Charge/(pqn*pqn);
+    pOrbital new_5s(new Orbital(-1, pqn, trialE));
+
+    HF_Solver.CalculateExcitedState(new_5s, t);
+    new_5s->CheckSize(lattice, 1.e-10);
     
     // Test that gradient of SMS operator is correct (compared to old values)
     t->SetInverseMass(0.001);
-    HartreeFocker HF_Solver(ode_solver);
     HF_Solver.SolveCore(&core, t);
     HF_Solver.SolveOrbital(new_5s, t);
     double Eplus = new_5s->GetEnergy();
