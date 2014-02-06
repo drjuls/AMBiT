@@ -8,7 +8,7 @@
 class ConfigFileGenerator : public ConfigGenerator
 {
 public:
-    ConfigFileGenerator(const ExcitedStates* manager, const std::string& atom_identifier, Symmetry sym):
+    ConfigFileGenerator(pExcitedStatesConst manager, const std::string& atom_identifier, Symmetry sym):
         ConfigGenerator(manager, atom_identifier, sym)
     {}
     virtual ~ConfigFileGenerator(void) {}

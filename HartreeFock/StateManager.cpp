@@ -86,6 +86,13 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
     return *this;
 }
 
+StateManager StateManager::Copy(pLattice new_lattice) const
+{
+    StateManager ret(new_lattice);
+    ret.Copy(*this, new_lattice);
+    return ret;
+}
+
 pOrbitalConst StateManager::GetState(const OrbitalInfo& info) const
 {
     StateSet::const_iterator it;
@@ -109,38 +116,12 @@ pOrbital StateManager::GetState(const OrbitalInfo& info)
 void StateManager::AddState(pOrbital s)
 {
     OrbitalInfo info(s);
-    AllStates.insert(StateSet::value_type(info, s));
+    AllStates[info] = s;
 }
 
 void StateManager::Clear()
 {
     AllStates.clear();
-}
-
-double StateManager::TestOrthogonality() const
-{
-    double max_orth = 0.;
-
-    ConstStateIterator it = GetConstStateIterator();
-    ConstStateIterator jt = GetConstStateIterator();
-
-    it.First();
-    while(!it.AtEnd())
-    {
-        jt = it;
-        jt.Next();
-        while(!jt.AtEnd())
-        {
-            double orth = fabs(it.GetState()->Overlap(*jt.GetState(), lattice));
-            if(orth > max_orth)
-                max_orth = orth;
-
-            jt.Next();
-        }
-        it.Next();
-    }
-
-    return max_orth;
 }
 
 StateIterator StateManager::GetStateIterator()
@@ -188,4 +169,15 @@ void StateManager::Read(FILE* fp)
 
     // Ensure lattice is large enough for new states
     lattice->R(max_size);
+}
+
+void StateManager::AddStates(StateManager& other)
+{
+    StateIterator it = other.GetStateIterator();
+    it.First();
+    while(!it.AtEnd())
+    {
+        AddState(it.GetState());
+        it.Next();
+    }
 }

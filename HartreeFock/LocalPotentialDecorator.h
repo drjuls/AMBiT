@@ -29,7 +29,7 @@ class LocalExchangeApproximation : public LocalPotentialDecorator
 public:
     LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
-    virtual void SetCore(const Core* hf_core);
+    virtual void SetCore(pCoreConst hf_core);
 };
 
 #endif

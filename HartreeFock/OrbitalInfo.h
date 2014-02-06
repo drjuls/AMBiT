@@ -10,7 +10,7 @@ class OrbitalInfo
         Stores pqn and kappa (L). Has an inbuilt ordering.
      */
 public:
-    OrbitalInfo(unsigned int pqn, int kappa);
+    OrbitalInfo(int pqn, int kappa);
     OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const OrbitalInfo& other);
@@ -20,55 +20,49 @@ public:
     virtual bool operator==(const OrbitalInfo& other) const;
     virtual bool operator!=(const OrbitalInfo& other) const;
 
-    inline unsigned int PQN() const { return pqn; }
+    inline int PQN() const { return pqn; }
     inline int Kappa() const { return kappa; }
-    inline unsigned int L() const { return l; }
+    inline int L() const;
     inline double J() const;
     inline unsigned int TwoJ() const;
     // Return the value of L for the lower component of the wavefunction
-    inline unsigned int L_Prime() const;
+    inline int L_Prime() const;
 
     inline unsigned int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
 protected:
-    unsigned int pqn;
+    int pqn;
     int kappa;
-    unsigned int l;
 };
 
 inline OrbitalInfo::OrbitalInfo(pOrbitalConst s)
 {
     pqn = s->GetPQN();
     kappa = s->Kappa();
-    if(kappa > 0)
-        l = (unsigned int)kappa;
-    else
-        l = (unsigned int)(-kappa-1);
 }
 
 inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {
     pqn = s->GetPQN();
     kappa = s->Kappa();
-    if(kappa > 0)
-        l = (unsigned int)kappa;
-    else
-        l = (unsigned int)(-kappa-1);
 }
 
-inline OrbitalInfo::OrbitalInfo(unsigned int principal_qn, int kap):
+inline OrbitalInfo::OrbitalInfo(int principal_qn, int kap):
     pqn(principal_qn), kappa(kap)
-{
-    if(kappa > 0)
-        l = (unsigned int)kappa;
-    else
-        l = (unsigned int)(-kappa-1);
-}
+{}
 
 inline OrbitalInfo::OrbitalInfo(const OrbitalInfo& other):
-    pqn(other.pqn), kappa(other.kappa), l(other.l)
+    pqn(other.pqn), kappa(other.kappa)
 {}
+
+inline int OrbitalInfo::L() const
+{
+    if(kappa > 0)
+        return kappa;
+    else
+        return (-kappa-1);
+}
 
 inline double OrbitalInfo::J() const
 {
@@ -76,17 +70,13 @@ inline double OrbitalInfo::J() const
 }
 
 // Returns the value of L for the lower component of the wavefunction
-inline unsigned int OrbitalInfo::L_Prime() const
+inline int OrbitalInfo::L_Prime() const
 {
     // The lower component has L corresponding to -Kappa
     if(kappa < 0)
-    {
-        return (L() + 1);
-    }
+        return -kappa;
     else
-    {
-        return (L() - 1);
-    }
+        return kappa-1;
 }
 
 inline unsigned int OrbitalInfo::TwoJ() const

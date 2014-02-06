@@ -6,7 +6,7 @@
 class HartreeFockBasis : public ExcitedStates
 {
 public:
-    HartreeFockBasis(pLattice lattice, Core* atom_core): ExcitedStates(lattice, atom_core) {}
+    HartreeFockBasis(pLattice lattice, pCoreConst atom_core): ExcitedStates(lattice, atom_core) {}
     virtual ~HartreeFockBasis() {}
 
     /** Create excited states by following the prescription in CustomBasis.txt

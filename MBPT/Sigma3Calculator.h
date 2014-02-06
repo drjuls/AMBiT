@@ -13,7 +13,7 @@ class Sigma3Integrals : public SlaterIntegrals
         One-electron integrals are not needed, but SMS integrals are.
      */
 public:
-    Sigma3Integrals(const ExcitedStates* excited_states):
+    Sigma3Integrals(pExcitedStatesConst excited_states):
         SlaterIntegrals(excited_states)
     {}
     virtual ~Sigma3Integrals() {}
@@ -47,11 +47,11 @@ class Sigma3Calculator : public MBPTCalculator
           c___|_______|___f
      */
 public:
-    Sigma3Calculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    Sigma3Calculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
     virtual ~Sigma3Calculator(void);
 
-    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states);
-    virtual void UpdateIntegrals(const ExcitedStates* valence_states);
+    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states);
+    virtual void UpdateIntegrals(pExcitedStatesConst valence_states);
 
     /** Returns <e1, e2, e3 | Sigma2(k) | e4, e5, e6>. Only calculates in Brillouin-Wigner PT.
         -->>------------->>--

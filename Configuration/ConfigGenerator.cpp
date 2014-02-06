@@ -5,7 +5,7 @@
 #include "ConfigGenerator.h"
 #include <sstream>
 
-ConfigGenerator::ConfigGenerator(const ExcitedStates* manager, const std::string& atom_identifier, const Symmetry& sym):
+ConfigGenerator::ConfigGenerator(pExcitedStatesConst manager, const std::string& atom_identifier, const Symmetry& sym):
     filename(atom_identifier), symmetry(sym)
 {
     SetExcitedStates(manager);
@@ -17,7 +17,7 @@ ConfigGenerator::~ConfigGenerator(void)
     Clear();
 }
 
-void ConfigGenerator::SetExcitedStates(const ExcitedStates* manager)
+void ConfigGenerator::SetExcitedStates(pExcitedStatesConst manager)
 {
     states = manager;
 

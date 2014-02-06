@@ -7,7 +7,7 @@
 #include "LocalPotentialDecorator.h"
 #include "ThomasFermiDecorator.h"
 
-void HartreeFocker::StartCore(Core* core, pHFOperator hf)
+void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 {
     // Sanity check
     if(core->GetOccupancies().size() != core->NumStates())
@@ -154,7 +154,7 @@ void HartreeFocker::StartCore(Core* core, pHFOperator hf)
 }
 
 /** Iterate all orbitals in core until self-consistency is reached. */
-void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
+void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
 {
     bool debug = DebugOptions.LogHFIterations();
 
@@ -165,13 +165,15 @@ void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
     // 2. Mix old wavefunctions with new ones.
     // 3. Update potentials.
 
-    Core next_states(core->Copy());
-    StateIterator it(&next_states);
+    pCore next_states(new Core(core->Copy()));
+    StateIterator it = next_states->GetStateIterator();
     double prop_new = 0.5;
     
     double deltaE, max_deltaE;
     unsigned int loop = 0;
-    
+
+    hf->SetCore(core);
+
     do
     {   loop++;
         max_deltaE = 0.;
@@ -204,12 +206,12 @@ void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
         }
         
         // Mix new and old states.
-        StateIterator core_it(core);
+        StateIterator core_it(core.get());
         core_it.First();
         while(!core_it.AtEnd())
         {
             pOrbital core_state = core_it.GetState();
-            pOrbital new_state = next_states.GetState(OrbitalInfo(core_state));
+            pOrbital new_state = next_states->GetState(OrbitalInfo(core_state));
             
             // Add proportion of new states to core states.
             *core_state *= (1. - prop_new);
@@ -235,9 +237,6 @@ void HartreeFocker::SolveCore(Core* core, pHFOperator hf)
 
     if(loop >= MaxHFIterations)
         *errstream << "Failed to converge Hartree-Fock in Core." << std::endl;
-    
-    if(debug)
-        *logstream << "Core Orthogonality test: " << core->TestOrthogonality() << std::endl;
 }
 
 /** Find self-consistent solution to hf operator, including exchange. */
@@ -283,7 +282,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 {
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
-    const Core* core = hf->GetCore();
+    pCoreConst core = hf->GetCore();
 
     pOrbitalConst core_state = core->GetState(OrbitalInfo(orbital));
     if(core_state != NULL)
@@ -450,6 +449,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
 {
     pLattice lattice = hf->GetLattice();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    pOPIntegrator integrator = hf->GetOPIntegrator();
 
     SpinorFunction ex(orbital->Kappa());
     if(exchange)
@@ -513,7 +513,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
         Orbital delta_psi = originregular * GInf - infinityregular * G0;
         delta_psi *= PhysicalConstant::Instance()->GetAlpha();
 
-        double var = orbital->Overlap(delta_psi, lattice);
+        double var = integrator->GetInnerProduct(*orbital, delta_psi);
 
         delta_E = (1. - norm)/(2. * var);
         if(fabs(delta_E/E) > 0.5)

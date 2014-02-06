@@ -19,17 +19,17 @@ TEST(HFOperatorTester, ODESolver)
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
 
-    Core core(lattice);
-    core.SetOccupancies(filling);
+    pCore core(new Core(lattice));
+    core->SetOccupancies(filling);
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(lattice));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
-    pHFOperator t(new HFOperator(Z, &core, integrator, coulomb));
+    pHFOperator t(new HFOperator(Z, core, integrator, coulomb));
 
     HartreeFocker HF_Solver(ode_solver);
-    HF_Solver.StartCore(&core, t);
-    HF_Solver.SolveCore(&core, t);
+    HF_Solver.StartCore(core, t);
+    HF_Solver.SolveCore(core, t);
 
     unsigned int pqn = 4;
     double trialE = -0.5 * Charge/(pqn*pqn);
@@ -43,7 +43,7 @@ TEST(HFOperatorTester, ODESolver)
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
 
     // Check core orbital
-    pOrbital new_2p(new Orbital(*core.GetState(OrbitalInfo(2, 1))));
+    pOrbital new_2p(new Orbital(*core->GetState(OrbitalInfo(2, 1))));
     new_2p->SetEnergy(-12.0);
     HF_Solver.SolveOrbital(new_2p, t);
 

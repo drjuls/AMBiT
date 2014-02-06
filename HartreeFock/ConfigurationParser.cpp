@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "Configuration/Configuration.h"
 #include "NonRelInfo.h"
+#include "Universal/MathConstant.h"
 
 OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::string& configuration)
 {
@@ -32,4 +33,32 @@ OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::strin
     }
 
     return ret;
+}
+
+std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
+{
+    unsigned int p = 0;
+    unsigned int L = 0;
+
+    const char* basis_def = basis.c_str();
+    std::vector<int> num_states;
+
+    // Set num_states[L] to highest pqn
+    while(basis_def[p])
+    {
+        int pqn = atoi(basis_def + p);
+        while(basis_def[p] && isdigit(basis_def[p]))
+            p++;
+        while(basis_def[p] && !isdigit(basis_def[p]))
+        {
+            // Get L
+            L = MathConstant::Instance()->GetL(tolower(basis_def[p]));
+            if(L >= num_states.size())
+                num_states.resize(L+1);
+            num_states[L] = pqn;
+            p++;
+        }
+    }
+
+    return num_states;
 }

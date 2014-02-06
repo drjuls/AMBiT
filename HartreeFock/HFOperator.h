@@ -18,13 +18,13 @@
 class HFOperator : public OneBodyOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
+    HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
     HFOperator(const HFOperator& other);
     virtual ~HFOperator();
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
-    virtual void SetCore(const Core* hf_core);
-    virtual const Core* GetCore() const;
+    virtual void SetCore(pCoreConst hf_core);
+    virtual pCoreConst GetCore() const;
 
     virtual RadialFunction GetDirectPotential() const;  //!< Get the direct potential.
     virtual double GetZ() const { return Z; }           //!< Get nuclear charge.
@@ -82,7 +82,7 @@ protected:
 protected:
     double Z;
     double charge;
-    const Core* core;
+    pCoreConst core;
     pCoulombOperator coulombSolver;
 
     RadialFunction directPotential;
@@ -101,7 +101,7 @@ public:
     virtual ~HFOperatorDecorator() {}
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
-    virtual void SetCore(const Core* hf_core)
+    virtual void SetCore(pCoreConst hf_core)
     {   wrapped->SetCore(hf_core);
         core = hf_core;
         directPotential.Clear();

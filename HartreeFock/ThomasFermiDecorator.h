@@ -16,7 +16,7 @@ class ThomasFermiDecorator: public HFOperatorDecorator
 public:
     ThomasFermiDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator());
 
-    virtual void SetCore(const Core* hf_core, double hf_mixing = 0.0);
+    virtual void SetCore(pCoreConst hf_core, double hf_mixing = 0.0);
     virtual RadialFunction GetDirectPotential() const;
     virtual void ExtendPotential();
 

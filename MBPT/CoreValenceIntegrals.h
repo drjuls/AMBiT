@@ -7,7 +7,7 @@ class CoreValenceIntegrals : public SlaterIntegrals
 {
     /** Class to hold Slater integrals for use in MBPT calculation. */
 public:
-    CoreValenceIntegrals(const ExcitedStates* excited_states):
+    CoreValenceIntegrals(pExcitedStatesConst excited_states):
         SlaterIntegrals(excited_states)
     {}
     virtual ~CoreValenceIntegrals() {}

@@ -16,23 +16,9 @@ class CoreMBPTCalculator;
 
 class ExcitedStates : public StateManager
 {
-public:     // Methods for StateManager role
-    ExcitedStates(pLattice lattice, const Core* atom_core);
+public:
+    ExcitedStates(pLattice lattice);
     virtual ~ExcitedStates();
-
-    virtual void AddState(pOrbital s);
-
-public:     // Methods for managing excited single particle basis states
-    /** Create virtual states above the core.
-        num_states_per_l is simply a vector to say how many states
-        should be included above the core for each angular momentum, L.
-        eg: {3, 2, 1} would make 3 s-wave, 2 p-wave, 1 d-wave, etc.
-        If a state already exists, then this routine just skips it.
-     */
-    virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l) = 0;
-
-    /** Update all of the excited states because the core has changed. */
-    virtual void Update() = 0;
 
 public:     // Methods for managing sigma
     /** Set an identifier to use in the sigma file names. */
@@ -65,12 +51,10 @@ public:     // Methods for managing sigma
     void SetSigmaAmount(const OrbitalInfo& info, double amount);
     double GetSigmaAmount(const OrbitalInfo& info) const;
 
-    const Core* GetCore() const { return core; }
-
     /** Test for orthogonality of orbitals with each other and the core.
         Return largest overlap.
      */
-    double TestOrthogonalityIncludingCore() const;
+    double TestOrthogonality(pCoreConst core) const;
 
 protected:
     /** current.f = r * previous.f
@@ -98,11 +82,12 @@ protected:
     virtual void Clear();
 
 protected:
-    const Core* core;
-
     std::string identifier;  // needed to store sigmas
     SigmaMap SecondOrderSigma;
     SigmaAmount SecondOrderAmount;
 };
+
+typedef boost::shared_ptr<ExcitedStates> pExcitedStates;
+typedef boost::shared_ptr<const ExcitedStates> pExcitedStatesConst;
 
 #endif

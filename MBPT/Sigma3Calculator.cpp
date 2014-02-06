@@ -342,7 +342,7 @@ double Sigma3Integrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo
     return radial;
 }
 
-Sigma3Calculator::Sigma3Calculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states):
+Sigma3Calculator::Sigma3Calculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states):
     MBPTCalculator(lattice, atom_core, excited_states), integrals(NULL)
 {}
 
@@ -352,7 +352,7 @@ Sigma3Calculator::~Sigma3Calculator(void)
         delete integrals;
 }
 
-unsigned int Sigma3Calculator::GetStorageSize(const ExcitedStates* valence_states)
+unsigned int Sigma3Calculator::GetStorageSize(pExcitedStatesConst valence_states)
 {
     if(!integrals)
         integrals = new Sigma3Integrals(excited);
@@ -360,7 +360,7 @@ unsigned int Sigma3Calculator::GetStorageSize(const ExcitedStates* valence_state
     return integrals->GetStorageSize(*valence_states);
 }
 
-void Sigma3Calculator::UpdateIntegrals(const ExcitedStates* valence_states)
+void Sigma3Calculator::UpdateIntegrals(pExcitedStatesConst valence_states)
 {
     SetValenceEnergies();
     if(integrals)

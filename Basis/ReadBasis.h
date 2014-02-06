@@ -9,7 +9,7 @@ class ReadBasis : public ExcitedStates
     /** Read basis functions from a GRASP file.
      */
 public:
-    ReadBasis(pLattice lattice, Core* atom_core, const std::string& input_file):
+    ReadBasis(pLattice lattice, pCoreConst atom_core, const std::string& input_file):
         ExcitedStates(lattice, atom_core), filename(input_file) {}
     virtual ~ReadBasis() {}
 
@@ -20,7 +20,7 @@ public:
 
     /** Create excited states from the file, but also update any core orbitals from the file.
      */
-    virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, Core* atom_core);
+    virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, pCoreConst atom_core);
 
     /** Update all of the excited states because the core has changed.
         In the case of externally read basis sets, this does nothing.

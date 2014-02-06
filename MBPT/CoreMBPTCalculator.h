@@ -22,11 +22,11 @@ class CoreMBPTCalculator : public MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    CoreMBPTCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    CoreMBPTCalculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
     virtual ~CoreMBPTCalculator(void);
 
-    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states);
-    virtual void UpdateIntegrals(const ExcitedStates* valence_states);
+    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states);
+    virtual void UpdateIntegrals(pExcitedStatesConst valence_states);
 
     /** Create a second-order one-electron MBPT (sigma1) operator. */
     void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;

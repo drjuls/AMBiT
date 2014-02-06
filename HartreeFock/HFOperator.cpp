@@ -1,11 +1,10 @@
 #include "HFOperator.h"
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
-#include "Interpolator.h"
-#include "CoulombIntegrator.h"
+#include "Universal/Interpolator.h"
 #include "StateIntegrator.h"
 
-HFOperator::HFOperator(double Z, const Core* hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
+HFOperator::HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
     OneBodyOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
@@ -22,9 +21,10 @@ HFOperator::HFOperator(const HFOperator& other):
 HFOperator::~HFOperator()
 {}
 
-void HFOperator::SetCore(const Core* hf_core)
+void HFOperator::SetCore(pCoreConst hf_core)
 {
     core = hf_core;
+
     double N = double(core->NumElectrons());
     charge = Z - N;
     directPotential.ReSize(lattice->Size());
@@ -63,7 +63,7 @@ void HFOperator::SetCore(const Core* hf_core)
     }
 }
 
-const Core* HFOperator::GetCore() const
+pCoreConst HFOperator::GetCore() const
 {
     return core;
 }

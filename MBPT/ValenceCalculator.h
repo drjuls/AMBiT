@@ -8,14 +8,14 @@ class ValenceCalculator : public MBPTCalculator
     /** Calculate valence-valence diagrams of many-body perturbation theory.
      */
 public:
-    ValenceCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    ValenceCalculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
     virtual ~ValenceCalculator(void) {}
 
     /** No storage yet. */
-    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states)
+    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states)
     {   return 0;
     }
-    virtual void UpdateIntegrals(const ExcitedStates* valence_states)
+    virtual void UpdateIntegrals(pExcitedStatesConst valence_states)
     {}
 
     /** Returns one-electron valence-valence diagrams. */

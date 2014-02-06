@@ -11,7 +11,7 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/factorials.hpp>
 
-RateCalculator::RateCalculator(ExcitedStates* basis):
+RateCalculator::RateCalculator(pExcitedStates basis):
     excited(basis)
 {
     NumStates = excited->NumStates();
@@ -761,7 +761,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
 
     unsigned int final_ion_pqn = 2;
 
-    Core* core = A->GetCore();
+    pCore core = A->GetCore();
     core->ToggleOpenShellCore();
 
     // Decide how to make the continuum wavefunctions
@@ -773,7 +773,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
 
     ContinuumBuilder cs_builder(A->GetCore());
     cs_builder.SetNormalisationType(Unitary);
-//    Core* cs_core = cs_builder.GetCore();
+//    pCore cs_core = cs_builder.GetCore();
 //    cs_core->Ionise(OrbitalInfo(1, -1));
 
 //    core->ToggleClosedShellCore();

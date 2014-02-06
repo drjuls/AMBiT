@@ -4,16 +4,20 @@
 
 bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
+    // Sort on pqn
     if(this->pqn < other.pqn)
        return true;
     else if(this->pqn > other.pqn)
         return false;
 
-    if(this->l < other.l)
+    // Sort on abs(kappa):
+    //  |-1| < |1| < |-2| < |2| < |-3| ...
+    if(abs(this->kappa) < abs(other.kappa))
         return true;
-    else if(this->l > other.l)
+    else if(abs(this->kappa) > abs(other.kappa))
         return false;
-    else return (this->kappa > other.kappa);
+    // And finally sort on kappa itself
+    else return (this->kappa < other.kappa);
 }
 
 bool OrbitalInfo::operator==(const OrbitalInfo& other) const

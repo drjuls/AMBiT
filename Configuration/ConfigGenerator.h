@@ -19,7 +19,7 @@ class ConfigGenerator
         for use by HamiltonianMatrix class.
      */
 public:
-    ConfigGenerator(const ExcitedStates* manager, const std::string& atom_identifier, const Symmetry& sym);
+    ConfigGenerator(pExcitedStatesConst manager, const std::string& atom_identifier, const Symmetry& sym);
     virtual ~ConfigGenerator(void);
 
     /** Get symmetry of stored JConfigurations. */
@@ -36,7 +36,7 @@ public:
     }
 
     /** Reset the list of excited states. */
-    void SetExcitedStates(const ExcitedStates* manager);
+    void SetExcitedStates(pExcitedStatesConst manager);
 
     /** Clear the non-relativistic and relativistic config lists and free memory.
         Use Read() to restore.
@@ -114,7 +114,7 @@ protected:
     void RestoreNonRelConfigs();
 
 protected:
-    const ExcitedStates* states;
+    pExcitedStatesConst states;
     std::string filename;
     Symmetry symmetry;
 

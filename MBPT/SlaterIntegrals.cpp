@@ -4,7 +4,7 @@
 #include "HartreeFock/StateIntegrator.h"
 #include "Universal/CoulombIntegrator.h"
 
-SlaterIntegrals::SlaterIntegrals(const ExcitedStates* excited_states):
+SlaterIntegrals::SlaterIntegrals(pExcitedStatesConst excited_states):
     core(*excited_states->GetCore()), excited(*excited_states), include_valence_sms(false)
 {
     if(core.GetNuclearInverseMass())

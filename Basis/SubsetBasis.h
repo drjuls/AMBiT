@@ -9,7 +9,7 @@ class SubsetBasis : public ExcitedStates
         SubsetBasis is on best behaviour not to modify the superset basis.
      */
 public:
-    SubsetBasis(pLattice lattice, ExcitedStates* superset_basis);
+    SubsetBasis(pLattice lattice, pExcitedStates superset_basis);
     virtual ~SubsetBasis();
      
     /** Create excited states by taking a subset of the superset_basis.
@@ -22,11 +22,11 @@ public:
     /** Do not delete states: they are owned by superset basis. */
     virtual void Clear();
 
-    virtual const ExcitedStates* GetSuperset() const;
-    virtual void SetSuperset(ExcitedStates* superset_basis);
+    virtual pExcitedStatesConst GetSuperset() const;
+    virtual void SetSuperset(pExcitedStates superset_basis);
 
 protected:
-    ExcitedStates* superset;
+    pExcitedStates superset;
 };
 
 #endif

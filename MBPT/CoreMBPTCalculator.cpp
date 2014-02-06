@@ -3,7 +3,7 @@
 #include "Universal/CoulombIntegrator.h"
 #include "HartreeFock/StateIntegrator.h"
 
-CoreMBPTCalculator::CoreMBPTCalculator(pLattice lat, const Core* atom_core, const ExcitedStates* excited_states):
+CoreMBPTCalculator::CoreMBPTCalculator(pLattice lat, pCoreConst atom_core, pExcitedStatesConst excited_states):
     MBPTCalculator(lat, atom_core, excited_states), integrals(NULL)
 {}
 
@@ -13,7 +13,7 @@ CoreMBPTCalculator::~CoreMBPTCalculator(void)
         delete integrals;
 }
 
-unsigned int CoreMBPTCalculator::GetStorageSize(const ExcitedStates* valence_states)
+unsigned int CoreMBPTCalculator::GetStorageSize(pExcitedStatesConst valence_states)
 {
     if(!integrals)
         integrals = new CoreValenceIntegrals(excited);
@@ -21,7 +21,7 @@ unsigned int CoreMBPTCalculator::GetStorageSize(const ExcitedStates* valence_sta
     return integrals->GetStorageSize(*valence_states);
 }
 
-void CoreMBPTCalculator::UpdateIntegrals(const ExcitedStates* valence_states)
+void CoreMBPTCalculator::UpdateIntegrals(pExcitedStatesConst valence_states)
 {
     SetValenceEnergies();
     if(integrals)

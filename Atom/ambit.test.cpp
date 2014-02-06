@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
     #endif
     
     OutStreams::InitialiseStreams();
+    outstream = logstream;
 
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

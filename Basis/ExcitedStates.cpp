@@ -6,9 +6,7 @@
 #include "HartreeFock/StateIntegrator.h"
 #include <stdio.h>
 
-ExcitedStates::ExcitedStates(pLattice lattice, const Core* atom_core):
-    StateManager(lattice),
-    core(atom_core)
+ExcitedStates::ExcitedStates(pLattice lattice): StateManager(lattice)
 {}
 
 ExcitedStates::~ExcitedStates()
@@ -20,11 +18,6 @@ ExcitedStates::~ExcitedStates()
     {   delete sigma->second;
         sigma++;
     }
-}
-
-void ExcitedStates::AddState(pOrbital s)
-{
-    StateManager::AddState(s);
 }
 
 Orbital ExcitedStates::GetStateWithSigma(const OrbitalInfo& info) const
@@ -378,7 +371,7 @@ void ExcitedStates::Orthogonalise(pOrbital current) const
     current->SetEnergy(I.HamiltonianMatrixElement(*current, *current, *core));
 }
 
-double ExcitedStates::TestOrthogonalityIncludingCore() const
+double ExcitedStates::TestOrthogonality(pCoreConst core) const
 {
     double max_orth = 0.;
 

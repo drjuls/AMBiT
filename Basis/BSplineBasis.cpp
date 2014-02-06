@@ -1,4 +1,4 @@
-#include "BSplineBasis.h"
+#include "BasisGenerator.h"
 #include "BSplineGrid.h"
 #include "Include.h"
 #include "Spline.h"
@@ -7,18 +7,38 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Eigensolver.h"
 #include "HartreeFock/StateIntegrator.h"
+#include "Atom/MultirunOptions.h"
 
-void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
+enum SplineType {NotreDame, Reno, Vanderbilt};
+typedef Orbital BSpline;
+typedef pOrbital pBSpline;
+
+pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
-    if(!num_states_per_l.size())
-        return;
+    excited->Clear();
 
-    NumStatesPerL = num_states_per_l;
+    if(!max_pqn.size())
+        return excited;
+
     bool debug = DebugOptions.OutputHFExcited();
+
+    // Get spline type and parameters
+    SplineType spline_type = Reno;
+    std::string spline_type_string = user_input("Basis/BSpline/SplineType", "Reno");
+    if(spline_type_string.compare("Reno") == 0 || spline_type_string.compare("DKB") == 0)
+        spline_type = Reno;
+    else if(spline_type_string.compare("Vanderbilt") == 0)
+        spline_type = Vanderbilt;
+    else if(spline_type_string.compare("NotreDame") == 0 || spline_type_string.compare("Johnson") == 0)
+        spline_type = NotreDame;
+
+    int n = user_input("Basis/BSpline/N", 40);
+    int k = user_input("Basis/BSpline/K", 7);
+    double rmax = user_input("Basis/BSpline/Rmax", lattice->R(lattice->Size()-1));
 
     if(spline_type == Reno)
     {   // Fix k. k should be at least lmax + 3
-        unsigned int lmax = num_states_per_l.size() - 1;
+        int lmax = max_pqn.size() - 1;
         if(k < lmax + 3)
         {   k = lmax + 3;
             *errstream << "\nBSplineBasis: Warning: Order of Bsplines (k) too small for maximum l = " << lmax << ".";
@@ -31,13 +51,14 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
     Eigensolver E;
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
     const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    pOPIntegrator integrator = hf->GetOPIntegrator();
 
-    for(unsigned int l=0; l<num_states_per_l.size(); l++)
+    for(int l = 0; l < max_pqn.size(); l++)
     {
-        if(!num_states_per_l[l])
+        if(!max_pqn[l])
             continue;
 
-    for(int kappa = - int(l+1); kappa <= int(l); kappa += 2*int(l) + 1)
+    for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
     {
         if(kappa == 0)
             break;
@@ -63,7 +84,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             dr0 = 0.0001;
 
         // Total number of splines, including zeroed ones.
-        unsigned int num_splines;
+        unsigned int num_splines = n;
         if(spline_type == Reno)
             num_splines = n + abs(kappa) + 1;
         else if(spline_type == NotreDame)
@@ -108,14 +129,14 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         // Get values of splines on HF lattice
         unsigned int lattice_size = lattice->real_to_lattice(rmax);
         const double* R_lattice = lattice->R();
-        const double* dR_lattice = lattice->dR();
 
-        std::vector<BSpline> B_lattice(num_splines*2, BSpline(kappa, lattice_size));
+        std::vector<pBSpline> B_lattice(num_splines*2);
+        std::vector<pBSpline>::iterator it = B_lattice.begin();
+        while(it != B_lattice.end())
+            *it++ = pBSpline(new BSpline(kappa, 0, 0.0, lattice_size));
 
         point = 0;
         left = k-1;
-
-        std::vector<double> Potential(core->GetHFPotential());
 
         while(point < lattice_size)
         {
@@ -131,8 +152,8 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             // Transfer spline values from fspline_buf
             for(unsigned int s = 0; s < k; s++)
             {
-                BSpline& Bupper = B_lattice[s + left + 1 - k];      // B_i, i < n
-                BSpline& Blower = B_lattice[num_splines + s + left + 1 - k];  // B_i, i > n
+                BSpline& Bupper = *B_lattice[s + left + 1 - k];      // B_i, i < n
+                BSpline& Blower = *B_lattice[num_splines + s + left + 1 - k];  // B_i, i > n
 
                 Bupper.f[point] = fspline_buf[s];
                 Bupper.dfdr[point] = fspline_buf[s + MaximumK];
@@ -159,7 +180,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         if(spline_type == Reno)
         {
             // Drop the splines at zero and Rmax to satisfy boundary conditions
-            std::vector<BSpline>::iterator it;
+            std::vector<pBSpline>::iterator it;
             it = B_lattice.begin();
             B_lattice.erase(it, it + abs(kappa));
             it = B_lattice.begin() + n;
@@ -168,7 +189,7 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         }
         else if(spline_type == Vanderbilt)
         {
-            std::vector<BSpline>::iterator it;
+            std::vector<pBSpline>::iterator it;
             it = B_lattice.begin();
             B_lattice.erase(it);
             it = B_lattice.begin() + n;
@@ -199,38 +220,17 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
                      int_V += BB * potential_grid[point];
                      int_KappaOnR += BB * kappa/R_grid[point];
          */
-
         unsigned int i = 0;
         for(j=0; j<n2; j++)
         {
-            BSpline& Bj = B_lattice[j];
-
-            SpinorFunction exchange(kappa);
-            core->CalculateExchange(Bj, exchange);
-            exchange.ReSize(Bj.Size());
-            StateIntegrator SI(lattice);
+            BSpline& Bj = *B_lattice[j];
+            SpinorFunction hf_applied_to_Bj = hf->ApplyTo(Bj);
 
             for(i=j; i<n2; i++)
             {
-                BSpline& Bi = B_lattice[i];
-
-                // Same as
-                //      En = StateIntegrator::HamiltonianMatrixElement(Bi, Bj, *core);
-                // but faster since the exchange term is only calculated once.
-
-                double En = 0.;
-                for(unsigned int p=0; p<mmin(Bi.Size(), Bj.Size()); p++)
-                {
-                    double Ef = - Potential[p]*Bj.f[p] - exchange.f[p]
-                                + (- Bj.dgdr[p] + kappa * Bj.g[p]/R_lattice[p])/alpha;
-                    double Eg = (Bj.dfdr[p] + kappa*Bj.f[p]/R_lattice[p])/alpha
-                                - (2./alphasquared + Potential[p])*Bj.g[p] - exchange.g[p];
-                    
-                    En = En + (Bi.f[p] * Ef + Bi.g[p] * Eg)*dR_lattice[p];
-                }
-
-                A[i * n2 + j] = A[j * n2 + i] = En;
-                b[i * n2 + j] = b[j * n2 + i] = Bi.Overlap(Bj, lattice);
+                BSpline& Bi = *B_lattice[i];
+                A[i * n2 + j] = A[j * n2 + i] = integrator->GetInnerProduct(Bi, hf_applied_to_Bj);
+                b[i * n2 + j] = b[j * n2 + i] = integrator->GetInnerProduct(Bi, Bj);
             }
         }
 
@@ -267,97 +267,65 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
             if(debug)
                 *outstream << "kappa = " << kappa << std::endl;
 
-            // Interpolate onto HF lattice and store
-            unsigned int count = 0;
+            bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
+
+            // Interpolate from B-splines to HF lattice and store
             unsigned int pqn = l + 1;
             i = n2/2;
             pOrbitalConst s;
 
-            while((count < num_states_per_l[l]) && (i < n2))
+            while((pqn <= max_pqn[l]) && (i < n2))
             {
-                s = core->GetState(OrbitalInfo(pqn, kappa));
-
-                // If state is not in the open shell part, check whether it is in the core
-                if(s != NULL && !core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
+                // Check whether it is in the core
+                s = open_core->GetState(OrbitalInfo(pqn, kappa));
+                if(s)
                 {   if(debug)
                     {   double diff = fabs((s->GetEnergy() - eigenvalues[i])/s->GetEnergy());
                         *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
                                    << "  deltaE: " << diff << std::endl;
                     }
+
+                    if(!closed_core->GetState(OrbitalInfo(pqn, kappa)))
+                    {   pOrbital s_copy(new Orbital(s));
+                        *s_copy = *s;
+                        excited->AddState(s_copy);
+                    }
+
+                    pqn++;
                 }
                 else
-                {   pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
+                {   // Construct the orbital by summing splines with coefficients
+                    pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
                     ds->ReSize(lattice_size);
 
                     double* coeff = &A[i*n2];
 
                     for(j=0; j<n2; j++)
                     {
-                        for(point = 0; point < lattice_size; point++)
-                        {
-                            ds->f[point] += *coeff * B_lattice[j].f[point];
-                            ds->g[point] += *coeff * B_lattice[j].g[point];
-                            ds->dfdr[point] += *coeff * B_lattice[j].dfdr[point];
-                            ds->dgdr[point] += *coeff * B_lattice[j].dgdr[point];
-                        }
+                        (*ds) += (*B_lattice[j]) * (*coeff);
                         coeff++;
                     }
 
+                    // Remove spurious states
                     if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
                     {   if(debug)
                             *outstream << "  SingleParticleWavefunction removed: energy = " << ds->GetEnergy()
                                        << "  norm = " << ds->Norm(lattice) << std::endl;
-                        pqn--;
                     }
                     else
-                    {   // Check if state already exists
-                        pOrbital existing = GetState(OrbitalInfo(pqn, kappa));
-                        if(existing)
-                        {   *existing = *ds;
-                        }
-                        else
-                            AddState(ds);
-                        count++;
-                    }
-                }
-                pqn++;
-                i++;
-            }
+                    {   if(reorth)
+                            Orthogonalise(ds);
+                        excited->AddState(ds);
 
-            // Delete unwanted higher states
-            StateSet::iterator it = AllStates.find(OrbitalInfo(pqn, kappa));
-            while(it != AllStates.end())
-            {
-                AllStates.erase(it);
-
-                pqn++;
-                it = AllStates.find(OrbitalInfo(pqn, kappa));
-            }
-
-            // Repeat orthogonalisation and print
-            StateIterator basis_it = GetStateIterator();
-            basis_it.First();
-            while(!basis_it.AtEnd())
-            {
-                if(basis_it.GetState()->Kappa() == kappa)
-                {
-                    if(orthogonalise_again)
-                        Orthogonalise(basis_it.GetState());
-
-                    if(debug)
-                    {   pOrbitalConst ds = basis_it.GetState();
-                        s = core->GetState(OrbitalInfo(ds->GetPQN(), kappa));
-                        if(s)
-                        {   double diff = fabs((s->GetEnergy() - ds->GetEnergy())/s->GetEnergy());
-                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
-                                       << " norm: " << ds->Norm(lattice) - 1. << "  deltaE: " << diff << std::endl;
-                        }
-                        else
-                            *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
+                        if(debug)
+                        {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
                                        << " norm: " << ds->Norm(lattice) - 1. << std::endl;
+                        }
+
+                        pqn++;
                     }
                 }
-                basis_it.Next();
+                i++;
             }
         }
         else
@@ -371,12 +339,5 @@ void BSplineBasis::CreateExcitedStates(const std::vector<unsigned int>& num_stat
         }   // kappa loop
     }
 
-    if(debug)
-        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
-}
-
-void BSplineBasis::Update()
-{
-    ClearSigmas();
-    CreateExcitedStates(NumStatesPerL);
+    return excited;
 }

@@ -13,6 +13,9 @@ class ConfigurationParser
 public:
 //    Configuration ParseConfiguration(const std::string& config);
     static OccupationMap ParseFractionalConfiguration(const std::string& configuration);
+
+    // Set num_states[L] to highest pqn
+    static std::vector<int> ParseBasisSize(const std::string& basis);
 };
 
 #endif

@@ -28,6 +28,7 @@ public:
         If new_lattice is NULL, then lattice = other.lattice.
      */
     const StateManager& Copy(const StateManager& other, pLattice new_lattice = pLattice());
+    StateManager Copy(pLattice new_lattice = pLattice()) const;
 
     virtual bool Empty() const { return AllStates.empty(); }
     virtual unsigned int NumStates() const { return static_cast<unsigned int>(AllStates.size()); }
@@ -52,12 +53,11 @@ public:
 
     pLattice GetLattice() const { return lattice; }
 
-    /** Test for orthogonality of states.
-        Return largest overlap.
-     */
-    double TestOrthogonality() const;
-
+    /** Add or replace state. */
     virtual void AddState(pOrbital s);
+
+    /** Add all states from another StateManager. */
+    virtual void AddStates(StateManager& other);
 
     /** Delete all currently stored states. */
     virtual void Clear();
@@ -66,5 +66,8 @@ protected:
     StateSet AllStates;
     pLattice lattice;
 };
+
+typedef boost::shared_ptr<StateManager> pStateManager;
+typedef boost::shared_ptr<const StateManager> pStateManagerConst;
 
 #endif

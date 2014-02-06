@@ -34,10 +34,10 @@ inline OrbitalInfo NonRelInfo::GetFirstRelativisticInfo() const
 
 inline OrbitalInfo NonRelInfo::GetSecondRelativisticInfo() const
 {
-    if(l == 0)
-        return OrbitalInfo(pqn, -1);
+    if(kappa == -1)
+        return OrbitalInfo(pqn, kappa);
     else
-        return OrbitalInfo(pqn, l);
+        return OrbitalInfo(pqn, -kappa-1);
 }
 
 

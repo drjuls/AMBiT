@@ -12,7 +12,7 @@ ThomasFermiDecorator::ThomasFermiDecorator(pHFOperator decorated_object, pOPInte
         integrator = integration_strategy;
 }
 
-void ThomasFermiDecorator::SetCore(const Core* hf_core, double hf_mixing)
+void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
 {
     wrapped->SetCore(hf_core);
     core = hf_core;
@@ -30,8 +30,9 @@ void ThomasFermiDecorator::SetCore(const Core* hf_core, double hf_mixing)
         for(i = 0; i < directPotential.Size(); i++)
         {
             double r = R[i];
-            double Zeff = (Z - C) / (1. + P * r * r)
-                           / (1. + exp((r - 3.1)/0.4));
+            double denom = 1. + P * r;
+            denom = denom * denom * (1. + exp((r - 3.1)/0.4));
+            double Zeff = (Z - C) / denom + C;
 
             directPotential.f[i] = Zeff/r;
         }

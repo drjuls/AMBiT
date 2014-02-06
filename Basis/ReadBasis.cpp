@@ -28,7 +28,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
     CreateExcitedStates(num_states_per_l, NULL);
 }
 
-void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, Core* atom_core)
+void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, pCoreConst atom_core)
 {
     FILE* fp = fopen(filename.c_str(), "r");
     if(fp == NULL)

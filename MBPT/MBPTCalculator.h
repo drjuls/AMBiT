@@ -12,11 +12,11 @@ class MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    MBPTCalculator(pLattice lattice, const Core* atom_core, const ExcitedStates* excited_states);
+    MBPTCalculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
     virtual ~MBPTCalculator(void);
 
-    virtual unsigned int GetStorageSize(const ExcitedStates* valence_states) = 0;
-    virtual void UpdateIntegrals(const ExcitedStates* valence_states) = 0;
+    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states) = 0;
+    virtual void UpdateIntegrals(pExcitedStatesConst valence_states) = 0;
 
     /** Add a constant, delta, to the energy denominator in all diagrams.
         This corresponds to H_0 -> H_0 + delta, so V -> V - delta
@@ -61,8 +61,8 @@ protected:
     
 protected:
     pLattice lattice;
-    const Core* core;
-    const ExcitedStates* excited;
+    pCoreConst core;
+    pExcitedStatesConst excited;
 
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;

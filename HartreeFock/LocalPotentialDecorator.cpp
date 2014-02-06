@@ -69,7 +69,7 @@ LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, p
     LocalPotentialDecorator(wrapped_hf, integration_strategy)
 {}
 
-void LocalExchangeApproximation::SetCore(const Core* hf_core)
+void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
 {
     HFOperatorDecorator::SetCore(hf_core);
     const double* R = lattice->R();

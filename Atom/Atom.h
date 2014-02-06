@@ -146,10 +146,10 @@ public:
     bool RestoreAllEigenstates();
 
     /** Get the set of atomic core orbitals. */
-    Core* GetCore() { return core; }
+    pCore GetCore() { return core; }
 
     /** Get the set of valence orbitals. */
-    ExcitedStates* GetBasis() { return excited; }
+    pExcitedStates GetBasis() { return excited; }
     
     /** Get the lattice */
     pLattice GetLattice() { return lattice; }
@@ -189,9 +189,9 @@ protected:
     unsigned int numValenceElectrons_;
 
     pLattice lattice;
-    Core* core;
-    ExcitedStates* excited;
-    ExcitedStates* excited_mbpt;
+    pCore core;
+    pExcitedStates excited;
+    pExcitedStates excited_mbpt;
     CIIntegrals* integrals;
     CIIntegralsMBPT* integralsMBPT;
     CoreMBPTCalculator* mbpt;

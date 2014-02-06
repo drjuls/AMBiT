@@ -28,7 +28,7 @@ class SlaterIntegrals
 {
     /** Class to hold Slater integrals. */
 public:
-    SlaterIntegrals(const ExcitedStates* excited_states);
+    SlaterIntegrals(pExcitedStatesConst excited_states);
     virtual ~SlaterIntegrals() {}
 
     /** Calculate number of one-electron and two-electron integrals that will be stored.

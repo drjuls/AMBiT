@@ -12,10 +12,10 @@ public:
         a self-consistent direct potential.
         PRE: core should have all orbitals in place, albeit without radial functions.
      */
-    void StartCore(Core* core, pHFOperator hf);
+    void StartCore(pCore core, pHFOperator hf);
 
     /** Iterate all orbitals in core until self-consistency is reached. */
-    void SolveCore(Core* core, pHFOperator hf);
+    void SolveCore(pCore core, pHFOperator hf);
 
     /** Find self-consistent solution to hf operator, including exchange.
         Return change in energy.

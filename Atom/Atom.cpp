@@ -75,7 +75,6 @@ Atom::~Atom(void)
         delete mbpt;
     if(sigma3)
         delete sigma3;
-    delete core;
 }
 
 bool Atom::Run()

@@ -44,4 +44,7 @@ protected:
     OccupationMap occupancy;
 };
 
+typedef boost::shared_ptr<Core> pCore;
+typedef boost::shared_ptr<const Core> pCoreConst;
+
 #endif

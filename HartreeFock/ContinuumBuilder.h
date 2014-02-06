@@ -25,7 +25,7 @@ class ContinuumBuilder
 public:
     ContinuumBuilder(): lattice(pLattice()), core(NULL), norm_type(Cowan) {}
     /** Copy lattice and core from other_core. */
-    ContinuumBuilder(const Core* other_core);
+    ContinuumBuilder(pCore other_core);
     virtual ~ContinuumBuilder();
 
     void CopyLattice(pLatticeConst lat);
@@ -40,11 +40,11 @@ public:
         If import_lattice is true, function replaces lattice,
             otherwise interpolates core onto current lattice.
      */
-    void CopyCore(const Core* other_core, bool import_lattice = false);
+    void CopyCore(pCore other_core, bool import_lattice = false);
 
     /** Use GetCore() to make modifications (such as ionization of an electron). */
-    Core* GetCore() { return core; }
-    const Core* GetCore() const { return core; }
+    pCore GetCore() { return core; }
+    pCore GetCore() const { return core; }
 
 public:
     /** Set normalisation of continuum wavefunctions. */
@@ -72,7 +72,7 @@ public:
 
 protected:
     pLattice lattice;
-    Core* core;
+    pCore core;
 
     ContinuumNormalisation norm_type;
 };

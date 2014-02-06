@@ -40,6 +40,16 @@ TEST(MultirunOptionsTester, AbsorbTest)
 //    EXPECT_EQ(true, opt.search("Basis/--bspline-basis"));
 }
 
+TEST(MultirunOptionsTester, SearchTest)
+{
+    std::string inputFileName("template.input");
+    MultirunOptions opt(inputFileName.c_str(), "//", "\n", ",");
+
+    // Check search works
+    EXPECT_EQ(true, opt.search("Basis/--bspline-basis"));
+    EXPECT_EQ(false, opt.search("--simply-false"));
+}
+
 //TEST(MultirunOptionsTester, UFOTest)
 //{
 //    std::string inputFileName("template.input");

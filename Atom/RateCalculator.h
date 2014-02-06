@@ -11,7 +11,7 @@ class Symmetry;
 class RateCalculator
 {
 public:
-    RateCalculator(ExcitedStates* basis);
+    RateCalculator(pExcitedStates basis);
     virtual ~RateCalculator() {}
 
     /** Calculate E1 matrix elements to all states that lie below solution1 of sym1.
@@ -35,7 +35,7 @@ public:
     void AutoionisationRates(Atom* A);
 
 protected:
-    ExcitedStates* excited;
+    pExcitedStates excited;
 
     unsigned int NumStates;
     std::map<OrbitalInfo, unsigned int> state_index;

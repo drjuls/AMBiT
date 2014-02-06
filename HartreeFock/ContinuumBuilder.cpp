@@ -6,17 +6,14 @@
 #include "Atom/Debug.h"
 #include "Universal/PhysicalConstant.h"
 
-ContinuumBuilder::ContinuumBuilder(const Core* other_core):
+ContinuumBuilder::ContinuumBuilder(pCore other_core):
     lattice(pLattice()), core(NULL), norm_type(Cowan)
 {
     CopyCore(other_core, true);
 }
 
 ContinuumBuilder::~ContinuumBuilder()
-{
-    if(core)
-        delete core;
-}
+{}
 
 void ContinuumBuilder::CopyLattice(pLatticeConst lat)
 {
@@ -32,11 +29,8 @@ void ContinuumBuilder::CreateNewLattice(unsigned int numpoints, double r_min, do
     lattice = pLattice(new Lattice(numpoints, r_min, r_max));
 }
 
-void ContinuumBuilder::CopyCore(const Core* other_core, bool import_lattice)
+void ContinuumBuilder::CopyCore(pCore other_core, bool import_lattice)
 {
-    if(core)
-        delete core;
-
     if(import_lattice || !lattice)
     {   CopyLattice(other_core->GetLattice());
     }
