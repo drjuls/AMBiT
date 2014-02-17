@@ -86,7 +86,7 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
             int previous_zero_difference = 0;
             bool is_first_iteration = true;
 
-            double trial_nu = s->GetNu();
+            double trial_nu = s->Nu();
             double starting_nu = trial_nu;
             double starting_nu_change_factor = nu_change_factor;
             double starting_nu_percentage = 1.00;
@@ -110,14 +110,14 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
                     }
                 }
 
-                zero_difference = s->NumNodes() + s->L() + 1 - s->GetPQN();
+                zero_difference = s->NumNodes() + s->L() + 1 - s->PQN();
 
                 if(zero_difference)
                 {
                     if(debug)
                         *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
                     s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
-                    trial_nu = s->GetNu();
+                    trial_nu = s->Nu();
                     if(!(((zero_difference > 0) && (previous_zero_difference > 0)) || ((zero_difference < 0) && (previous_zero_difference < 0))) && !is_first_iteration)
                     {
                         nu_change_factor = nu_change_factor * 0.75;
@@ -125,7 +125,7 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
                 }
                 previous_zero_difference = zero_difference;
                 is_first_iteration = false;
-                if(s->GetNu() < 1.0e-5)
+                if(s->Nu() < 1.0e-5)
                 {
                     starting_nu_percentage -= 0.1;
                     if(starting_nu_percentage <= 0.0)
@@ -141,9 +141,9 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 
             if(debug)
             {   if(DebugOptions.HartreeEnergyUnits())
-                *logstream << "  " << s->Name() << "  en: " << s->GetEnergy() << std::endl;
+                *logstream << "  " << s->Name() << "  en: " << s->Energy() << std::endl;
             else
-                *logstream << "  " << s->Name() << " nu:   " << s->GetNu() << std::endl;
+                *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
             }
 
             it.Next();
@@ -186,7 +186,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
         while(!it.AtEnd())
         {
             pOrbital new_state = it.GetState();
-            double old_energy = new_state->GetEnergy();
+            double old_energy = new_state->Energy();
             
             pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(new_state)));
 
@@ -199,7 +199,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
                 << "  size: (" << new_state->Size()
                 << ") " << core->GetLattice()->R(new_state->Size()) << std::endl;
             
-            deltaE = fabs(deltaE/new_state->GetEnergy());
+            deltaE = fabs(deltaE/new_state->Energy());
             max_deltaE = mmax(deltaE, max_deltaE);
             
             it.Next();
@@ -223,7 +223,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
             core_state->ReNormalise(core->GetLattice());
             core_state->CheckSize(core->GetLattice(), WavefunctionTolerance);
             
-            double energy = (1. - prop_new) * core_state->GetEnergy() + prop_new * new_state->GetEnergy();
+            double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
             core_state->SetEnergy(energy);
             *new_state = *core_state;
             
@@ -242,7 +242,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
 /** Find self-consistent solution to hf operator, including exchange. */
 double HartreeFocker::SolveOrbital(pOrbital orbital, pHFOperator hf)
 {
-    double E = orbital->GetEnergy();
+    double E = orbital->Energy();
     double initial_energy = E;
     double delta_E = 0.0;
 
@@ -260,7 +260,7 @@ double HartreeFocker::SolveOrbital(pOrbital orbital, pHFOperator hf)
     {
         // Get solution with current exchange
         IterateOrbital(orbital, hf, exchange);
-        delta_E = orbital->GetEnergy() - E;
+        delta_E = orbital->Energy() - E;
 
         // Check number of nodes for pqn
         //*outstream << "Loop " << loop << ": " << E << " " << delta_E << std::endl;
@@ -299,7 +299,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 
         // Get a trial value for nu if state hasn't already got one.
         double trial_nu;
-        if(std::isnan(orbital->GetNu()))
+        if(std::isnan(orbital->Nu()))
         {
             switch(orbital->L())
             {   case 0:
@@ -322,12 +322,12 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
             while(!i.AtEnd())
             {
                 pOrbitalConst cs = i.GetState();
-                if((cs->Kappa() == orbital->Kappa()) && (cs->GetPQN() > largest_core_pqn))
-                    largest_core_pqn = cs->GetPQN();
+                if((cs->Kappa() == orbital->Kappa()) && (cs->PQN() > largest_core_pqn))
+                    largest_core_pqn = cs->PQN();
                 i.Next();
             }
             
-            trial_nu = trial_nu + (double)(orbital->GetPQN() - largest_core_pqn - 1)/Charge;
+            trial_nu = trial_nu + (double)(orbital->PQN() - largest_core_pqn - 1)/Charge;
             orbital->SetNu(trial_nu/Charge);
         }
         
@@ -353,12 +353,12 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
                 exit(1);
             }
             
-            zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->GetPQN();
-            *logstream << orbital->Name() << " zero diff: " << zero_difference << ", E = " << orbital->GetEnergy() << std::endl;
+            zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
+            *logstream << orbital->Name() << " zero diff: " << zero_difference << ", E = " << orbital->Energy() << std::endl;
 
             if(zero_difference)
             {   // This moves the state one pqn at a time
-                trial_nu = orbital->GetNu() - zero_difference/abs(zero_difference)/Charge;
+                trial_nu = orbital->Nu() - zero_difference/abs(zero_difference)/Charge;
                 orbital->SetNu(trial_nu);
                 orbital->Clear();
             }
@@ -384,20 +384,20 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
                 {   if(zero_difference)
                     {
                         if(prev_zero_difference * zero_difference >= 0)
-                            trial_nu = new_orbital->GetNu() - zero_difference/abs(zero_difference)/Charge;
+                            trial_nu = new_orbital->Nu() - zero_difference/abs(zero_difference)/Charge;
                         else
-                            trial_nu = new_orbital->GetNu() - 0.5 * zero_difference/abs(zero_difference)/Charge;
+                            trial_nu = new_orbital->Nu() - 0.5 * zero_difference/abs(zero_difference)/Charge;
 
                         new_orbital->SetNu(trial_nu);
                         prev_zero_difference = zero_difference;
                     }
                     deltaE = IterateOrbital(new_orbital, hf, exchange);
-                    zero_difference = new_orbital->NumNodes() + orbital->L() + 1 - orbital->GetPQN();
+                    zero_difference = new_orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
                 } while(zero_difference);
                 
                 if(debugHF)
                     *logstream << "  " << std::setw(4) << orbital->Name()
-                               << "  E = " << std::setprecision(12) << orbital->GetEnergy()
+                               << "  E = " << std::setprecision(12) << orbital->Energy()
                                << "  deltaE = " << std::setprecision(3) << deltaE
                                << "  size: (" << new_orbital->Size()
                                << ") " << hf->GetLattice()->R(new_orbital->Size()) << std::endl;
@@ -410,10 +410,10 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 
                 // Renormalise core states (should be close already) and update energy.
                 orbital->ReNormalise(hf->GetLattice());
-                orbital->SetEnergy((1. - prop_new) * orbital->GetEnergy() + prop_new * new_orbital->GetEnergy());
+                orbital->SetEnergy((1. - prop_new) * orbital->Energy() + prop_new * new_orbital->Energy());
 
                 *new_orbital = *orbital;
-                deltaE = fabs(deltaE/new_orbital->GetEnergy());
+                deltaE = fabs(deltaE/new_orbital->Energy());
             }while((deltaE > EnergyTolerance) && (loop < MaxHFIterations));
 
             if(loop >= MaxHFIterations)
@@ -426,13 +426,13 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
         *outstream << std::setprecision(12);
         if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
         {
-            double energy = orbital->GetEnergy();
+            double energy = orbital->Energy();
             if(DebugOptions.InvCmEnergyUnits())
                 energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
             *outstream << orbital->Name() << "  E = " << energy;
         }
         else
-            *outstream << orbital->Name() << "  nu = " << orbital->GetNu();
+            *outstream << orbital->Name() << "  nu = " << orbital->Nu();
         
         *outstream << "  loops: " << loop << "  size: (" << orbital->Size() << ") " << hf->GetLattice()->R(orbital->Size()) << std::endl;
     }
@@ -458,7 +458,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
         ex = hf->GetExchange(orbital);
 
     double delta_E = 0.0;
-    double E = orbital->GetEnergy();
+    double E = orbital->Energy();
     double initial_energy = E;
 
     do
@@ -478,7 +478,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
             }
         }
 
-        E = orbital->GetEnergy();
+        E = orbital->Energy();
 
         // Get solutions to homogenous equation (no exchange)
         hf->SetODEParameters(orbital->Kappa(), E);
@@ -524,11 +524,11 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
     } while (fabs(delta_E/E) > EnergyTolerance);
 
     // Get better derivative
-    hf->SetODEParameters(orbital->Kappa(), orbital->GetEnergy(), &ex);
+    hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), &ex);
     hf->IncludeExchangeInODE(true);
     hf->GetDerivative(*orbital);
 
-    return orbital->GetEnergy() - initial_energy;
+    return orbital->Energy() - initial_energy;
 }
 
 unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf)
@@ -541,7 +541,7 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
     if(orbital->Size())
         orbital->CheckSize(lattice, WavefunctionTolerance);
     else
-    {   double nu = mmax(orbital->GetNu(), 1./(9.*Z));
+    {   double nu = mmax(orbital->Nu(), 1./(9.*Z));
         orbital->SetNu(nu);
         double r_cutoff = (2. * hf->GetCharge() * nu + 10.) * nu;
         orbital->ReSize(lattice->real_to_lattice(r_cutoff));
@@ -566,10 +566,10 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
         }
 
         // Get forward and backwards meeting point
-        unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->GetNu())/2.);
+        unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->Nu())/2.);
 
         // Integrate backwards until first maximum
-        hf->SetODEParameters(orbital->Kappa(), orbital->GetEnergy());
+        hf->SetODEParameters(orbital->Kappa(), orbital->Energy());
         Orbital backwards(*orbital);
         unsigned int peak = adamssolver.IntegrateBackwardsUntilPeak(hf, &backwards);
         if(peak < critical_point)
@@ -593,13 +593,13 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
         }
         
         double norm = orbital->Norm(lattice);
-        delta = pow(orbital->GetNu(), 3.) * orbital->f[peak] * (tail_scaling * g_right - orbital->g[peak])/norm/alpha;
+        delta = pow(orbital->Nu(), 3.) * orbital->f[peak] * (tail_scaling * g_right - orbital->g[peak])/norm/alpha;
 
         if(fabs(delta) > 0.1)
             delta = 0.1 * delta/fabs(delta);
         
         // Set new principal quantum number
-        orbital->SetNu(orbital->GetNu() - delta);
+        orbital->SetNu(orbital->Nu() - delta);
         orbital->ReNormalise(lattice);
         
         orbital->CheckSize(lattice, WavefunctionTolerance);

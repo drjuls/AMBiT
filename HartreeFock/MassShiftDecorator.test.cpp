@@ -39,14 +39,14 @@ TEST(MassShiftDecoratorTester, CaII)
     pMassShiftDecorator t(new MassShiftDecorator(hf));
     HF_Solver.CalculateExcitedState(new_4s, t);
 
-    EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
+    EXPECT_NEAR(new_4s->Energy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
 
-    // Check that < 4s | t | 4s > = t.GetEnergy()
+    // Check that < 4s | t | 4s > = t.Energy()
     t->SetInverseMass(0.001);
     HF_Solver.SolveOrbital(new_4s, t);
     EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
-    EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), new_4s->GetEnergy(), 1.e-6 * fabs(new_4s->GetEnergy()));
+    EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), new_4s->Energy(), 1.e-6 * fabs(new_4s->Energy()));
 }
 
 TEST(MassShiftDecoratorTester, SrII)
@@ -83,12 +83,12 @@ TEST(MassShiftDecoratorTester, SrII)
     t->SetInverseMass(0.001);
     HF_Solver.SolveCore(core, t);
     HF_Solver.SolveOrbital(new_5s, t);
-    double Eplus = new_5s->GetEnergy();
+    double Eplus = new_5s->Energy();
 
     t->SetInverseMass(-0.001);
     HF_Solver.SolveCore(core, t);
     HF_Solver.SolveOrbital(new_5s, t);
-    double Eminus = new_5s->GetEnergy();
+    double Eminus = new_5s->Energy();
 
     double sms = -660./3609.;
     EXPECT_NEAR((Eplus-Eminus)/0.002, sms, 1.e-3 * fabs(sms));

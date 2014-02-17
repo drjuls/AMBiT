@@ -43,7 +43,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
 
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.GetEnergy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -55,7 +55,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
     double correction = s.f[start_point];
     double S = -9.;
 
-    P = -2*(HFPotential[start_point] + s.GetEnergy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(start_point),2.);
+    P = -2*(HFPotential[start_point] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(start_point),2.);
     //assert(P>0);
     P = sqrt(P);
     S = S + 0.5 * P * lattice->dR(start_point);

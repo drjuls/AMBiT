@@ -73,7 +73,7 @@ void RSinStates::CreateExcitedStates(const std::vector<unsigned int>& num_states
                     TimesR = !TimesR;
 
                     if(DebugOptions.OutputHFExcited())
-                        *outstream << "  " << ds->Name() << " en:   " << ds->GetEnergy() << "  size:  " << ds->Size() << std::endl;
+                        *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
                     previous_state = ds;
                     count++;

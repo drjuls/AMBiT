@@ -106,7 +106,7 @@ void SolutionMap::Print(DisplayOutputType::Enum aDisplayOutputType)
             {
                 *outstream << "Solutions for J = " << sm_it->first.GetJ() << ", P = " << ParityType::LowerName(sm_it->first.GetParity()) << ":" << std::endl;
             }
-            *outstream << sm_it->first.GetID() << ": " << std::setprecision(8) << sm_it->second.GetEnergyAtomicUnits() << "    " << std::setprecision(12) << sm_it->second.GetEnergyInversecm() << " /cm" << std::endl;
+            *outstream << sm_it->first.GetID() << ": " << std::setprecision(8) << sm_it->second.EnergyAtomicUnits() << "    " << std::setprecision(12) << sm_it->second.EnergyInversecm() << " /cm" << std::endl;
             sm_it->second.GetConfigurationSet()->Print();
             if(sm_it->first.GetJ() != 0)
             {
@@ -122,7 +122,7 @@ void SolutionMap::Print(DisplayOutputType::Enum aDisplayOutputType)
         SolutionMap::iterator sm_it;
         for(sm_it = begin(); sm_it != end(); sm_it++)
         {
-            *outstream << sm_it->first.GetJ() << " " << ParityType::ShortName(sm_it->first.GetParity()) << " " << sm_it->first.GetID() << " " << std::setprecision(12) << sm_it->second.GetEnergyInversecm();
+            *outstream << sm_it->first.GetJ() << " " << ParityType::ShortName(sm_it->first.GetParity()) << " " << sm_it->first.GetID() << " " << std::setprecision(12) << sm_it->second.EnergyInversecm();
             *outstream << " " << std::setprecision(5) << sm_it->second.GetgFactor();
             // Add error checking for GetLargestConfiguration!
             *outstream << " " << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.ShortName() << " " << std::setprecision(2) << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->second << "%" << std::endl;
@@ -135,7 +135,7 @@ void SolutionMap::Print(DisplayOutputType::Enum aDisplayOutputType)
         SolutionMap::iterator sm_it;
         for(sm_it = begin(); sm_it != end(); sm_it++)
         {
-            *outstream << sm_it->first.GetJ() << "," << ParityType::ShortName(sm_it->first.GetParity()) << "," << sm_it->first.GetID() << "," << std::setprecision(12) << sm_it->second.GetEnergyInversecm();
+            *outstream << sm_it->first.GetJ() << "," << ParityType::ShortName(sm_it->first.GetParity()) << "," << sm_it->first.GetID() << "," << std::setprecision(12) << sm_it->second.EnergyInversecm();
             *outstream << "," << std::setprecision(5) << sm_it->second.GetgFactor();
             // Add error checking for GetLargestConfiguration!
             *outstream << "," << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.Name(false) << "," << std::setprecision(2) << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->second << "%" << std::endl;
@@ -148,7 +148,7 @@ void SolutionMap::Print(DisplayOutputType::Enum aDisplayOutputType)
         SolutionMap::iterator sm_it;
         for(sm_it = begin(); sm_it != end(); sm_it++)
         {
-            *outstream << sm_it->first.GetJ() << "\t" << ParityType::ShortName(sm_it->first.GetParity()) << "\t" << sm_it->first.GetID() << "\t" << std::setprecision(12) << sm_it->second.GetEnergyInversecm();
+            *outstream << sm_it->first.GetJ() << "\t" << ParityType::ShortName(sm_it->first.GetParity()) << "\t" << sm_it->first.GetID() << "\t" << std::setprecision(12) << sm_it->second.EnergyInversecm();
             *outstream << "\t" << std::setprecision(5) << sm_it->second.GetgFactor();
             // Add error checking for GetLargestConfiguration!
             *outstream << "\t" << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->first.Name(false) << "\t" << std::setprecision(2) << sm_it->second.GetConfigurationSet()->GetLargestConfigurationPair()->second << "%" << std::endl;
@@ -162,7 +162,7 @@ void SolutionMap::PrintID()
     SolutionMap::iterator sm_it;
     for(sm_it = begin(); sm_it != end(); sm_it++)
     {
-        *outstream << sm_it->first.GetIdentifier() << " " << std::setprecision(12) << sm_it->second.GetEnergyInversecm() << " " << sm_it->second.GetLeadingConfiguration().Name(false) << std::endl;
+        *outstream << sm_it->first.GetIdentifier() << " " << std::setprecision(12) << sm_it->second.EnergyInversecm() << " " << sm_it->second.GetLeadingConfiguration().Name(false) << std::endl;
     }
 }
 
@@ -207,7 +207,7 @@ void SolutionMap::PrintSolution(SolutionMap::iterator aSolutionIterator)
     }
     else
     {
-        *outstream << aSolutionIterator->first.GetIdentifier() << " " << std::setprecision(12) << aSolutionIterator->second.GetEnergyInversecm() << " " << aSolutionIterator->second.GetLeadingConfiguration().Name(false) << std::endl;
+        *outstream << aSolutionIterator->first.GetIdentifier() << " " << std::setprecision(12) << aSolutionIterator->second.EnergyInversecm() << " " << aSolutionIterator->second.GetLeadingConfiguration().Name(false) << std::endl;
     }
 }
 
@@ -235,7 +235,7 @@ void SolutionMapMap::Print()
         *outstream << sm_it->first.GetJ() << "," << ParityType::ShortName(sm_it->first.GetParity()) << "," << sm_it->first.GetID();
         for(smm_it = begin(); smm_it != end(); smm_it++)
         {
-            *outstream  << "," << std::setprecision(12) << (smm_it->second.find(sm_it->first))->second.GetEnergyInversecm();
+            *outstream  << "," << std::setprecision(12) << (smm_it->second.find(sm_it->first))->second.EnergyInversecm();
         }
         for(smm_it = begin(); smm_it != end(); smm_it++)
         {

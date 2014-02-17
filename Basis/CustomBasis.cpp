@@ -72,9 +72,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                             r = count;
                         }
 
-                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
                                << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                               << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                               << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
                 if(final.L() != 0)
@@ -102,9 +102,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                                 r = count;
                             }
 
-                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
+                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
                                    << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                                   << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                                   << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }
             }
@@ -154,9 +154,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                             r = count;
                         }
 
-                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
+                    *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
                                << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                               << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                               << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
                 if(final.L() != 0)
@@ -192,9 +192,9 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                                 r = count;
                             }
 
-                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->GetEnergy()
+                        *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
                                    << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
-                                   << int(ds->GetPQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
+                                   << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }
             }

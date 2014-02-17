@@ -3,7 +3,14 @@
 
 #include "HFOperator.h"
 
-/** Add specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
+/** Add non-relativistic specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
+    \f{eqnarray*}{
+        P &=& p_{an}p_{na} \quad \textrm{where} \\
+        p_{ab} &=& \int f_a \left( \frac{d}{dr} - \frac{l_a}{r} \right) f_b dr . \delta_{l_a, l_b+1}
+                   + \int f_a \left( \frac{d}{dr} + \frac{l_b}{r} \right) f_b dr . \delta_{l_a, l_b-1} \\
+               &=& - p_{ba}
+    \f}
+    \f$p_{ab}\f$ is calculated using NonRelativisticSMSOperator.
     The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
     Typical values of inverse mass (1/M) are of order 0.001.
  */
@@ -32,11 +39,9 @@ public:
 
 protected:
     virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const;
-    virtual double CalculateSMS(const SpinorFunction& s1, const SpinorFunction& s2, RadialFunction* p) const;
 
 protected:
     double lambda;
-//    SpinorFunction extraExchangePotential;
 };
 
 typedef boost::shared_ptr<MassShiftDecorator> pMassShiftDecorator;

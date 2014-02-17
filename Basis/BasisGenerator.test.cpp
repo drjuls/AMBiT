@@ -47,12 +47,12 @@ TEST_F(BasisGeneratorTester, StartCore)
 {
     pHFOperatorConst hf = core_generator->GetHFOperator();
 
-    // Check that < 4s | h | 4s > = h.GetEnergy()
+    // Check that < 4s | h | 4s > = h.Energy()
     pOrbitalConst core_4s = core->GetState(OrbitalInfo(4, -1));
     ASSERT_FALSE(core_4s == NULL);
     EXPECT_NEAR(1.0, core_4s->Norm(lattice), 1.e-8);
-    EXPECT_NEAR(-1.333798, core->GetState(OrbitalInfo(3, -2))->GetEnergy(), 1.e-6 * 1.33380);
-    EXPECT_NEAR(core_4s->GetEnergy(), hf->GetMatrixElement(*core_4s, *core_4s), 1.e-6 * fabs(core_4s->GetEnergy()));
+    EXPECT_NEAR(-1.333798, core->GetState(OrbitalInfo(3, -2))->Energy(), 1.e-6 * 1.33380);
+    EXPECT_NEAR(core_4s->Energy(), hf->GetMatrixElement(*core_4s, *core_4s), 1.e-6 * fabs(core_4s->Energy()));
 }
 
 TEST_F(BasisGeneratorTester, BSplineBasis)
@@ -61,13 +61,13 @@ TEST_F(BasisGeneratorTester, BSplineBasis)
     pHFOperatorConst hf = core_generator->GetHFOperator();
     pStateManagerConst excited = core_generator->GenerateBasis();
 
-    // Check that < 4s | h | 4s > = h.GetEnergy()
+    // Check that < 4s | h | 4s > = h.Energy()
     pOrbitalConst valence_state = excited->GetState(OrbitalInfo(4, -1));
     ASSERT_FALSE(valence_state == NULL);
     EXPECT_NEAR(1.0, valence_state->Norm(lattice), 1.e-8);
-    EXPECT_NEAR(-0.19623375, valence_state->GetEnergy(), 1.e-3 * 0.196);
+    EXPECT_NEAR(-0.19623375, valence_state->Energy(), 1.e-3 * 0.196);
 
-    EXPECT_NEAR(0.037042717, excited->GetState(OrbitalInfo(5, 2))->GetEnergy(), 1.e-3 * 0.037);   // 5d
-    EXPECT_NEAR(0.026788562, excited->GetState(OrbitalInfo(5, -4))->GetEnergy(), 1.e-3 * 0.0267);  // 5f*
-    EXPECT_NEAR(0.022253172, excited->GetState(OrbitalInfo(6, 1))->GetEnergy(), 1.e-3 * 0.0222);   // 6p
+    EXPECT_NEAR(0.037042717, excited->GetState(OrbitalInfo(5, 2))->Energy(), 1.e-3 * 0.037);   // 5d
+    EXPECT_NEAR(0.026788562, excited->GetState(OrbitalInfo(5, -4))->Energy(), 1.e-3 * 0.0267);  // 5f*
+    EXPECT_NEAR(0.022253172, excited->GetState(OrbitalInfo(6, 1))->Energy(), 1.e-3 * 0.0222);   // 6p
 }

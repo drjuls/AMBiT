@@ -1,14 +1,13 @@
 #include "MassShiftDecorator.h"
+#include "NonRelativisticSMSOperator.h"
 #include "Include.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
 
 MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf), lambda(0.0)
-{   if(integration_strategy != NULL)
-        integrator = integration_strategy;
-}
+    HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(0.0)
+{}
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
 void MassShiftDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
@@ -72,9 +71,12 @@ SpinorFunction MassShiftDecorator::ApplyTo(const SpinorFunction& a) const
 SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& s) const
 {
     bool NON_REL_SCALING = true;
-    
+
     SpinorFunction exchange(s.Kappa());
     exchange.ReSize(s.Size());
+
+    pOneBodyOperator zero(new ZeroOperator());
+    pOneBodyOperator sms(new NonRelativisticSMSOperator(zero, integrator));
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
@@ -108,7 +110,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
                             ex = (other_occupancy - 1.)/double(2 * abs(core_orbital->Kappa()) - 1);
                     }
                     else
-                    {   OrbitalInfo pair_info(core_orbital->GetPQN(), - core_orbital->Kappa() - 1);
+                    {   OrbitalInfo pair_info(core_orbital->PQN(), - core_orbital->Kappa() - 1);
                         pOrbitalConst pair_orbital = core->GetState(pair_info);
                         double pair_occupancy = core->GetOccupancy(pair_info);
 
@@ -132,14 +134,10 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
 
             if(lambda && (k == 1))
             {
-                RadialFunction P;
-                double sms = CalculateSMS(s, *core_orbital, &P);
+                SpinorFunction sms_core = sms->ApplyTo(*core_orbital, s.Kappa());
+                double sms_value = integrator->GetInnerProduct(s, sms_core);
 
-                for(unsigned int i=0; i < mmin(exchange.Size(), P.Size()); i++)
-                {
-                    exchange.f[i] += coefficient * lambda * sms *  P.f[i];
-                    exchange.dfdr[i] += coefficient * lambda * sms *  P.dfdr[i];
-                }
+                exchange += sms_core * coefficient * lambda * sms_value;
             }
 
         }
@@ -147,59 +145,4 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     }
     
     return exchange;
-}
-
-double MassShiftDecorator::CalculateSMS(const SpinorFunction& s1, const SpinorFunction& s2, RadialFunction* p) const
-{
-    if(p)
-    {   p->Clear();
-        p->ReSize(s2.Size());
-    }
-
-    double coeff_fb = 0.;
-
-    // Check angular momenta delta functions
-    if(s1.L() == s2.L()+1)
-        coeff_fb = -double(s1.L());
-    else if(s1.L() == s2.L()-1)
-        coeff_fb = double(s2.L());
-    else
-        return 0.;
-
-    // If p is NULL, then make a RadialFunction p_fb, otherwise just use p itself
-    RadialFunction* p_fb;
-    if(p)
-        p_fb = p;
-    else
-        p_fb = new RadialFunction(s2.Size());
-
-    double total = 0.0;
-    const double* R = lattice->R();
-    const double* dR = lattice->dR();
-
-    unsigned int i = 0;
-    while(i < mmin(s1.Size(), s2.Size()))
-    {   p_fb->f[i] = s2.dfdr[i] + coeff_fb/R[i] * s2.f[i];
-        total += s1.f[i] * p_fb->f[i] * dR[i];
-        i++;
-    }
-
-    if(p == NULL)
-        delete p_fb;
-    else
-    {   // Finish making p
-        while(i < s2.Size())
-        {   p_fb->f[i] = s2.dfdr[i] + coeff_fb/R[i] * s2.f[i];
-            i++;
-        }
-
-        // Get derivative of p->f
-        Interpolator I(lattice);
-        I.GetDerivative(s2.dfdr, p->dfdr, 6);  // First term
-        // Second term
-        for(i = 0; i < p->Size(); i++)
-            p->dfdr[i] += coeff_fb/R[i] * (s2.dfdr[i] - s2.f[i]/R[i]);
-    }
-
-    return total;
 }

@@ -61,7 +61,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                     pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
                     if(ds == NULL)
                     {   ds = pOrbital(new Orbital(kappa, pqn));
-                        ds->SetNu(previous_state->GetNu() + 1.);
+                        ds->SetNu(previous_state->Nu() + 1.);
                         AddState(ds);
                     }
 
@@ -70,7 +70,7 @@ void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_
                         Orthogonalise(ds);
 
                     if(DebugOptions.OutputHFExcited())
-                        *outstream << "  " << ds->Name() << " en:   " << ds->GetEnergy() << "  size:  " << ds->Size() << std::endl;
+                        *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
                     previous_state = ds;
                     count++;

@@ -23,11 +23,11 @@ class CoulombOperator : public OneDimensionalODE
 public:
     CoulombOperator(pLattice lattice, pODESolver ode = pODESolver());
 
-    void SetK(unsigned int multipole_k) { k = multipole_k; }
+    void SetK(int multipole_k) { k = multipole_k; }
     void SetDensity(const RadialFunction& density);
 
     unsigned int GetK() const { return k; }
-    void GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
+    void GetPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
 
     /** Get zero-multipole potential, but renormalise density so that potential function goes as charge/r at infinity. */
     void GetPotential(RadialFunction& density, RadialFunction& pot, double charge, pODESolver ode = pODESolver());
@@ -55,7 +55,7 @@ public:
     virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const;
 
 protected:
-    unsigned int k;
+    int k;
     RadialFunction rho;
     pODESolver ode_solver;
     bool fwd_direction;

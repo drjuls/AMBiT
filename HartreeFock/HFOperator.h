@@ -97,7 +97,11 @@ typedef boost::shared_ptr<const HFOperator> pHFOperatorConst;
 class HFOperatorDecorator : public HFOperator
 {
 public:
-    HFOperatorDecorator(pHFOperator decorated_object): HFOperator(*decorated_object), wrapped(decorated_object) {}
+    HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
+        HFOperator(*decorated_object), wrapped(decorated_object)
+    {   if(integration_strategy != NULL)
+            integrator = integration_strategy;
+    }
     virtual ~HFOperatorDecorator() {}
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
@@ -132,7 +136,7 @@ public:
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const SingleParticleWavefunction& approximation)
     {   wrapped->SetODEParameters(approximation);
-        currentEnergy = approximation.GetEnergy();
+        currentEnergy = approximation.Energy();
         currentKappa = approximation.Kappa();
         currentExchangePotential.Clear();
     }

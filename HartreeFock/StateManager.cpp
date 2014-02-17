@@ -53,7 +53,7 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
             pOrbitalConst old_orbital = it.GetState();
 
             // Copy kappa, pqn, etc.
-            pOrbital s(new Orbital(old_orbital->Kappa(), old_orbital->GetPQN(), old_orbital->GetEnergy()));
+            pOrbital s(new Orbital(old_orbital->Kappa(), old_orbital->PQN(), old_orbital->Energy()));
 
             double real_orbital_size = R_old[old_orbital->Size() - 1];
             unsigned int new_size = lattice->real_to_lattice(real_orbital_size);
@@ -95,7 +95,7 @@ StateManager StateManager::Copy(pLattice new_lattice) const
 
 pOrbitalConst StateManager::GetState(const OrbitalInfo& info) const
 {
-    StateSet::const_iterator it;
+    OrbitalMap::const_iterator it;
 
     if((it = AllStates.find(info)) != AllStates.end())
         return it->second;
@@ -105,7 +105,7 @@ pOrbitalConst StateManager::GetState(const OrbitalInfo& info) const
 
 pOrbital StateManager::GetState(const OrbitalInfo& info)
 {
-    StateSet::iterator it;
+    OrbitalMap::iterator it;
 
     if((it = AllStates.find(info)) != AllStates.end())
         return it->second;

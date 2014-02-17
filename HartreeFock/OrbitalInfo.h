@@ -24,11 +24,11 @@ public:
     inline int Kappa() const { return kappa; }
     inline int L() const;
     inline double J() const;
-    inline unsigned int TwoJ() const;
+    inline int TwoJ() const;
     // Return the value of L for the lower component of the wavefunction
     inline int L_Prime() const;
 
-    inline unsigned int MaxNumElectrons() const { return 2*abs(kappa); }
+    inline int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
 protected:
@@ -38,13 +38,13 @@ protected:
 
 inline OrbitalInfo::OrbitalInfo(pOrbitalConst s)
 {
-    pqn = s->GetPQN();
+    pqn = s->PQN();
     kappa = s->Kappa();
 }
 
 inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {
-    pqn = s->GetPQN();
+    pqn = s->PQN();
     kappa = s->Kappa();
 }
 
@@ -79,7 +79,7 @@ inline int OrbitalInfo::L_Prime() const
         return kappa-1;
 }
 
-inline unsigned int OrbitalInfo::TwoJ() const
+inline int OrbitalInfo::TwoJ() const
 {
     return (2*abs(kappa) - 1);
 }

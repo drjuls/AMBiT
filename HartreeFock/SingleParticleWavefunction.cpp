@@ -16,13 +16,13 @@ SingleParticleWavefunction::SingleParticleWavefunction(const SingleParticleWavef
 {}
 
 
-double SingleParticleWavefunction::GetEnergy() const
+double SingleParticleWavefunction::Energy() const
 {
     return energy;
 }
 
 /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
-double SingleParticleWavefunction::GetNu() const
+double SingleParticleWavefunction::Nu() const
 {
     double nu;
     if(std::fabs(energy) < 1.e-10)
@@ -36,7 +36,7 @@ double SingleParticleWavefunction::GetNu() const
     return nu;
 }
 
-unsigned int SingleParticleWavefunction::GetPQN() const
+int SingleParticleWavefunction::PQN() const
 {
     return pqn;
 }

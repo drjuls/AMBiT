@@ -96,7 +96,7 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
 
     double P;
     while(i < HFPotential.size())
-    {   P = -2.*(HFPotential[i] + s.GetEnergy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+    {   P = -2.*(HFPotential[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -112,7 +112,7 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
     double S = -9.;
     for(i=start_point; i>start_point-(adams_N-1); i--)
     {
-        P = -2*(HFPotential[i] + s.GetEnergy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(i),2.);
+        P = -2*(HFPotential[i] + s.Energy()) + s.Kappa()*(s.Kappa() + 1)/pow(lattice->R(i),2.);
         //assert(P>0);
         P = sqrt(P);
         S = S + 0.5 * P * lattice->dR(i);
@@ -120,7 +120,7 @@ void StateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, cons
         s.f[i] = exp(S)/sqrt(P);
         s.g[i] = alpha * s.f[i] * (s.Kappa()/lattice->R(i) - P) * 0.5;
         s.dfdr[i] = -P * s.f[i];
-        s.dgdr[i] = s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.GetEnergy() + HFPotential[i]) * s.f[i];
+        s.dgdr[i] = s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.Energy() + HFPotential[i]) * s.f[i];
 
         S = S + 0.5 * P * lattice->dR(i);
     }
@@ -174,7 +174,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
     while(i < s.Size())
     {
         double Pot = HFPotential[i] - double(s.Kappa()*(s.Kappa()+1))/(2*R[i]*R[i]);
-        P[i] = sqrt(2. * fabs(s.GetEnergy() + Pot));
+        P[i] = sqrt(2. * fabs(s.Energy() + Pot));
         S[i] = S[i-1];
         for(unsigned int j=0; j<adams_N; j++)
             S[i] = S[i] + adams_coeff[j] * P[i-j] * dR[i-j];
@@ -183,7 +183,7 @@ unsigned int StateIntegrator::IntegrateContinuum(ContinuumWave& s, const std::ve
         {
             Integrate2(A, s, i, i+1);
             
-            if((HFPotential[i] < 2.5 * s.GetEnergy()) && (s.dfdr[i-1]/s.dfdr[i-2] < 0.))
+            if((HFPotential[i] < 2.5 * s.Energy()) && (s.dfdr[i-1]/s.dfdr[i-2] < 0.))
             {
                 double x_max;
                 double f_max = FindExtremum(s.f, i-2, x_max);
@@ -284,7 +284,7 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
 {
     double& Z = nuclear_charge;
     const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
-    double energy = s.GetEnergy() - Z/lattice->R(start_point) + HFPotential[start_point];
+    double energy = s.Energy() - Z/lattice->R(start_point) + HFPotential[start_point];
     double AM = 1./sqrt(2. * fabs(energy));
     double GAM = sqrt(s.Kappa()*s.Kappa() - alphasquared*Z*Z);
     double GAM1 = 2.*GAM + 1.;
@@ -299,7 +299,7 @@ void StateIntegrator::SetUpContinuum(ContinuumWave& s, const std::vector<double>
         E = 1. + 0.5*alphasquared/(AM*AM);
     }
 
-    double AQ = pow(2.*Z, GAM)/sqrt(Z * pow(s.GetNu(), 3.));
+    double AQ = pow(2.*Z, GAM)/sqrt(Z * pow(s.Nu(), 3.));
     AQ = -AQ * abs(s.Kappa())/s.Kappa();
 
     if(energy < 0.)

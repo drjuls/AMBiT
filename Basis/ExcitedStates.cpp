@@ -134,11 +134,11 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
     }
     sigma = SecondOrderSigma[s->Kappa()];
 
-    double old_energy = s->GetEnergy();
+    double old_energy = s->Energy();
     double amount = 1.0;
     pOrbital sigma_s = pOrbital(new Orbital(*ds));
     unsigned int iterations = core->UpdateExcitedState(sigma_s, sigma, amount);
-    double current_energy = sigma_s->GetEnergy();
+    double current_energy = sigma_s->Energy();
 
     MathConstant* constants = MathConstant::Instance();
 
@@ -146,12 +146,12 @@ void ExcitedStates::SetEnergyViaSigma(const OrbitalInfo& info, double energy)
     *outstream << "  Sigma iterated: " << current_energy * constants->HartreeEnergyInInvCm() << "    iterations: " << iterations << std::endl;
     double full_gap = current_energy - old_energy;
 
-    while(fabs(current_energy/energy - 1.) > core->GetEnergyTolerance())
+    while(fabs(current_energy/energy - 1.) > core->EnergyTolerance())
     {
         double gap = (energy - current_energy)/full_gap;
         amount += gap;
         iterations = core->UpdateExcitedState(sigma_s, sigma, amount);
-        current_energy = sigma_s->GetEnergy();
+        current_energy = sigma_s->Energy();
         *logstream << "    " << amount << "   " << current_energy * constants->HartreeEnergyInInvCm()
                    << "   iterations: " << iterations << std::endl;
     }
@@ -321,7 +321,7 @@ void ExcitedStates::Orthogonalise(pOrbital current) const
     while(!it.AtEnd())
     {
         pOrbitalConst other = it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->GetPQN() != current->GetPQN())
+        if((other->Kappa() == current->Kappa()) && (other->PQN() != current->PQN())
             && !core->IsOpenShellState(OrbitalInfo(other)))
         {
             double S = 0.;
@@ -347,7 +347,7 @@ void ExcitedStates::Orthogonalise(pOrbital current) const
     while(!ex_it.AtEnd())
     {
         pOrbitalConst other = ex_it.GetState();
-        if((other->Kappa() == current->Kappa()) && (other->GetPQN() < current->GetPQN()))
+        if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
         {
             double S = 0.;
             unsigned int i;

@@ -6,7 +6,7 @@
 #include <set>
 #include <map>
 
-typedef std::map<OrbitalInfo, pOrbital> StateSet;
+typedef std::map<OrbitalInfo, pOrbital> OrbitalMap;
 
 class StateIterator;
 class ConstStateIterator;
@@ -63,7 +63,7 @@ public:
     virtual void Clear();
 
 protected:
-    StateSet AllStates;
+    OrbitalMap AllStates;
     pLattice lattice;
 };
 

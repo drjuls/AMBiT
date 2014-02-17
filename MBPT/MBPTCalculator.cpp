@@ -35,9 +35,9 @@ void MBPTCalculator::SetValenceEnergies()
             it_i.First();
             while(!it_i.AtEnd())
             {   pOrbitalConst ds = it_i.GetState();
-                if((ds->Kappa() == kappa) && (ds->GetPQN() < pqn))
-                {   pqn = ds->GetPQN();
-                    valence_energy = ds->GetEnergy();
+                if((ds->Kappa() == kappa) && (ds->PQN() < pqn))
+                {   pqn = ds->PQN();
+                    valence_energy = ds->Energy();
                 }
                 it_i.Next();
             }

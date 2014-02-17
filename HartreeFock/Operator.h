@@ -17,8 +17,17 @@ public:
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const;
     
-    /** Potential = t | a > for an operator t. */
+    /** Potential = t | a > for an operator t such that the resulting Potential has the same angular symmetry as a.
+        i.e. t | a > has kappa == kappa_a.
+     */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const = 0;
+
+    /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
+        i.e. t | a > has kappa == kappa_b.
+        For many operators the initial and final kappas must be the same.
+        So we provide a default for this function that is a zero spinor unless a.Kappa() == kappa_b.
+     */
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const;
 
     virtual pOPIntegrator GetOPIntegrator() const
     {   return integrator;
@@ -50,6 +59,11 @@ public:
     {   return component->ApplyTo(a);
     }
 
+    /** Subclasses may call this inherited function. */
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const
+    {   return component->ApplyTo(a, kappa_b);
+    }
+
 protected:
     pOneBodyOperator component;
 };
@@ -65,6 +79,7 @@ public:
 public:
     double GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const;
     SpinorFunction ApplyTo(const SpinorFunction& a) const;
+    SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const;
 };
 
 #endif

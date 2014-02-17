@@ -62,11 +62,11 @@ void Core::SetOccupancies(const OccupationMap& occupancies)
     occupancy = occupancies;
 
     // Remove orbitals with zero occupancy
-    StateSet::iterator it = AllStates.begin();
+    OrbitalMap::iterator it = AllStates.begin();
     while(it != AllStates.end())
     {
         if(!occupancy.count(it->first))
-        {   StateSet::iterator remove = it;
+        {   OrbitalMap::iterator remove = it;
             it++;
             AllStates.erase(remove);
         }
@@ -112,7 +112,7 @@ void Core::Write(FILE* fp) const
 //    unsigned int num_open = OpenShellStorage.size();
 //    fwrite(&num_open, sizeof(unsigned int), 1, fp);
 //
-//    StateSet::const_iterator it = OpenShellStorage.begin();
+//    OrbitalMap::const_iterator it = OpenShellStorage.begin();
 //    while(it != OpenShellStorage.end())
 //    {
 //        it->second->Write(fp);

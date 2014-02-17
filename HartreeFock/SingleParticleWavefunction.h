@@ -26,11 +26,11 @@ public:
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
     virtual ~SingleParticleWavefunction() {}
 
-    virtual double GetEnergy() const;
+    virtual double Energy() const;
 
     /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
-    virtual double GetNu() const;
-    virtual unsigned int GetPQN() const;
+    virtual double Nu() const;
+    virtual int PQN() const;
 
     virtual void SetEnergy(double Energy);
     virtual void SetNu(double Nu);

@@ -14,7 +14,7 @@ class StateIntegrator : public Integrator
             dG/dr =   -(E+V)F   +     (Kappa/r)G      -     exchange.f
         where
             F(r) = s.f[]            G(r) = s.g[]
-               E = s.GetEnergy()      Kappa = s.Kappa()
+               E = s.Energy()      Kappa = s.Kappa()
             V(r) = HFPotential[]
      */
 public:
@@ -121,7 +121,7 @@ protected:
 
         void SetState(const SingleParticleWavefunction& state)
         {   kappa = double(state.Kappa());
-            energy = state.GetEnergy();
+            energy = state.Energy();
         }
 
         void SetHFPotential(const std::vector<double>& potential) { HFPotential = &potential; }

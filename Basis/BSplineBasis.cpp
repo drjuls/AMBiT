@@ -280,7 +280,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                 s = open_core->GetState(OrbitalInfo(pqn, kappa));
                 if(s)
                 {   if(debug)
-                    {   double diff = fabs((s->GetEnergy() - eigenvalues[i])/s->GetEnergy());
+                    {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
                         *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
                                    << "  deltaE: " << diff << std::endl;
                     }
@@ -309,7 +309,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                     // Remove spurious states
                     if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
                     {   if(debug)
-                            *outstream << "  SingleParticleWavefunction removed: energy = " << ds->GetEnergy()
+                            *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
                                        << "  norm = " << ds->Norm(lattice) << std::endl;
                     }
                     else
@@ -318,7 +318,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                         excited->AddState(ds);
 
                         if(debug)
-                        {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->GetEnergy()
+                        {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
                                        << " norm: " << ds->Norm(lattice) - 1. << std::endl;
                         }
 

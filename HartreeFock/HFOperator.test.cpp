@@ -38,7 +38,7 @@ TEST(HFOperatorTester, ODESolver)
 
     HF_Solver.CalculateExcitedState(new_4s, t);
 
-    EXPECT_NEAR(new_4s->GetEnergy(), -0.41663154, 1.e-6 * 0.41663154);
+    EXPECT_NEAR(new_4s->Energy(), -0.41663154, 1.e-6 * 0.41663154);
     EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
 
@@ -47,5 +47,5 @@ TEST(HFOperatorTester, ODESolver)
     new_2p->SetEnergy(-12.0);
     HF_Solver.SolveOrbital(new_2p, t);
 
-    EXPECT_NEAR(new_2p->GetEnergy(), -14.282789, 1.e-6 * 14.282789);
+    EXPECT_NEAR(new_2p->Energy(), -14.282789, 1.e-6 * 14.282789);
 }

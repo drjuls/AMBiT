@@ -47,10 +47,10 @@ public:
     Solution(double aEnergy, double agFactor = 0.0);
     Solution(double aEnergy, std::map<Configuration, double> aPercentagesMap, double agFactor = 0.0);
 
-    inline double GetEnergyInversecm() const
+    inline double EnergyInversecm() const
     {   return mEnergy * MathConstant::Instance()->HartreeEnergyInInvCm();
     }
-    inline double GetEnergyAtomicUnits() const
+    inline double EnergyAtomicUnits() const
     {   return mEnergy;
     }
     inline double GetgFactor() const

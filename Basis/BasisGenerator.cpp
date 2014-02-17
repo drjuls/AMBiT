@@ -133,7 +133,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
         while(!it.AtEnd())
         {
             pOrbitalConst other = it.GetState();
-            if((other->Kappa() == current->Kappa()) && (other->GetPQN() < current->GetPQN()))
+            if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
             {
                 double S = integrator->GetInnerProduct(*other, *current);
                 (*current) -= (*other) * S;
@@ -151,7 +151,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
         while(!it.AtEnd())
         {
             pOrbitalConst other = it.GetState();
-            if((other->Kappa() == current->Kappa()) && (other->GetPQN() < current->GetPQN()))
+            if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
             {
                 double S = integrator->GetInnerProduct(*other, *current);
                 (*current) -= (*other) * S;

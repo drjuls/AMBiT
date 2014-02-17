@@ -108,7 +108,7 @@ void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exch
 void HFOperator::SetODEParameters(const SingleParticleWavefunction& approximation)
 {
     currentExchangePotential = CalculateExchange(approximation);
-    currentEnergy = approximation.GetEnergy();
+    currentEnergy = approximation.Energy();
     currentKappa = approximation.Kappa();
 }
 
@@ -244,7 +244,7 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
     i = end_point - numpoints + 1;
     double P;
     while(i < directPotential.Size())
-    {   P = -2.*(directPotential.f[i] + s.GetEnergy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+    {   P = -2.*(directPotential.f[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
         if(P > 0.)
             break;
         i++;
@@ -259,7 +259,7 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
     double S = -9.;
     for(i = end_point; i > end_point - numpoints; i--)
     {
-        P = -2.*(directPotential.f[i] + s.GetEnergy()) + s.Kappa()*(s.Kappa() + 1.)/pow(lattice->R(i),2.);
+        P = -2.*(directPotential.f[i] + s.Energy()) + s.Kappa()*(s.Kappa() + 1.)/pow(lattice->R(i),2.);
         //assert(P>0);
         P = sqrt(P);
         S = S + 0.5 * P * lattice->dR(i);
@@ -267,7 +267,7 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
         s.f[i] = exp(S)/sqrt(P);
         s.g[i] = alpha * s.f[i] * (s.Kappa()/lattice->R(i) - P) * 0.5;
         s.dfdr[i] = (-P * s.f[i]);
-        s.dgdr[i] = s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.GetEnergy() + directPotential.f[i]) * s.f[i];
+        s.dgdr[i] = s.Kappa()/lattice->R(i) * s.g[i] - alpha * (s.Energy() + directPotential.f[i]) * s.f[i];
         
         S = S + 0.5 * P * lattice->dR(i);
     }
@@ -359,7 +359,7 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
                             ex = (other_occupancy - 1.)/double(2 * abs(core_orbital->Kappa()) - 1);
                     }
                     else
-                    {   OrbitalInfo pair_info(core_orbital->GetPQN(), - core_orbital->Kappa() - 1);
+                    {   OrbitalInfo pair_info(core_orbital->PQN(), - core_orbital->Kappa() - 1);
                         pOrbitalConst pair_orbital = core->GetState(pair_info);
                         double pair_occupancy = core->GetOccupancy(pair_info);
 

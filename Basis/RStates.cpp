@@ -70,7 +70,7 @@ void RStates::CreateExcitedStates(const std::vector<unsigned int>& num_states_pe
                     MultiplyByR(previous_state, ds);
 
                     if(DebugOptions.OutputHFExcited())
-                        *outstream << "  " << ds->Name() << " en:   " << ds->GetEnergy() << "  size:  " << ds->Size() << std::endl;
+                        *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->Size() << std::endl;
 
                     previous_state = ds;
                     count++;

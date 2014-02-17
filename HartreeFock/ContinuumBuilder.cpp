@@ -94,7 +94,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
     {
         case Flambaum:
             // Flambaum normalization:  A = 2 * Pi^(-1/2) * E^(1/2)
-            final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*pow(s->GetNu(),3.)))/final_amplitude;
+            final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*pow(s->Nu(),3.)))/final_amplitude;
             break;
 
         case Cowan:
@@ -104,7 +104,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
 
         case Unitary:
             // Unitary normalization:   A = 1
-            final_amplitude = sqrt(sqrt(2.*s->GetEnergy()))/final_amplitude;
+            final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
             break;
     }
 
@@ -143,7 +143,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
     {
         *logstream << std::setprecision(8);
 
-        double energy = s->GetEnergy();
+        double energy = s->Energy();
         if(DebugOptions.InvCmEnergyUnits())
             energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
         *logstream << s->Name() << "  E = " << energy;

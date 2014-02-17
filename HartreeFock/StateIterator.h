@@ -22,7 +22,7 @@ public:
 
 protected:
     StateManager* manager;
-    StateSet::iterator it;
+    OrbitalMap::iterator it;
 };
 
 class ConstStateIterator
@@ -46,7 +46,7 @@ public:
 
 protected:
     const StateManager* manager;
-    StateSet::const_iterator it;
+    OrbitalMap::const_iterator it;
 };
 
 #endif

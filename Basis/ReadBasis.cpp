@@ -151,7 +151,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             fscanf(fp, "%d", &kappa);
         }
 
-        if(pqn != ds_readlattice->GetPQN() || kappa != ds_readlattice->Kappa() ||
+        if(pqn != ds_readlattice->PQN() || kappa != ds_readlattice->Kappa() ||
            numpoints != ds_readlattice->Size())
         {   *errstream << "Lower component doesn't match upper in " << ds_readlattice->Name() << std::endl;
             PAUSE;

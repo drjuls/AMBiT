@@ -10,7 +10,7 @@ void CoulombOperator::SetDensity(const RadialFunction& density)
     rho = density;
 }
 
-void CoulombOperator::GetPotential(unsigned int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode)
+void CoulombOperator::GetPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode)
 {
     SetK(k);
     SetDensity(density);
