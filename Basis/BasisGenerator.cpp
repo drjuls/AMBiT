@@ -12,7 +12,7 @@ BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput):
 BasisGenerator::~BasisGenerator()
 {}
 
-pCore BasisGenerator::GenerateCore(pCoreConst open_shell_core)
+pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 {
     open_core = pCore(new Core(lattice));
     if(open_shell_core)
@@ -95,6 +95,9 @@ pCore BasisGenerator::GenerateCore(pCoreConst open_shell_core)
                    << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
     }
 
+    // Make closed shell core. Ensure that all shells are completely filled.
+    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
+        it->second = 2. * abs(it->first.Kappa());
     closed_core = pCore(new Core(open_core->Copy()));
     closed_core->SetOccupancies(closed_shell_occupations);
 

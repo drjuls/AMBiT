@@ -4,7 +4,7 @@
 #include "Universal/Eigensolver.h"
 
 RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfiguration& other):
-    Configuration(other), projections(other.projections),
+    config(other.config), projections(other.projections),
     num_states(other.num_states)
 {
     if(num_states)
@@ -14,31 +14,137 @@ RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfigura
     }
 }
 
-OrbitalInfo RelativisticConfiguration::GetInfo() const
+int RelativisticConfiguration::ParticleNumber() const
 {
-    return OrbitalInfo(Configuration::GetInfo());
+    int num = 0;
+    for(auto& value : config)
+        num += value.second;
+
+    return num;
 }
 
-bool RelativisticConfiguration::AddSingleParticle(const OrbitalInfo& info)
+/** Excitation number = number of electrons + number of holes. */
+int RelativisticConfiguration::ExcitationNumber() const
 {
-    std::map<OrbitalInfo, unsigned int>::iterator a_it = Config.find(info);
-    if(a_it != Config.end())
-    {
-        OrbitalInfo rel_info(a_it->first);
-        if(a_it->second >= (unsigned int)(2*abs(rel_info.Kappa()))) // maximum number of electrons
-        {   a_it->second = 2*abs(rel_info.Kappa());
+    int num = 0;
+    for(auto& value : config)
+        num += value.second;
+
+    return num;
+}
+
+bool RelativisticConfiguration::compare(std::pair<OrbitalInfo, int>& one, std::pair<OrbitalInfo, int>& two)
+{
+    // Sort on kappa, then occupancy, then pqn
+    if(one.first.Kappa() < two.first.Kappa())
+        return true;
+    else if(one.first.Kappa() > two.first.Kappa())
             return false;
+
+    if(abs(one.second) > abs(two.second))
+        return true;
+    else if(abs(one.second) < abs(two.second))
+        return false;
+
+    if(one.first.PQN() < two.first.PQN())
+        return true;
+    else
+        return false;
+}
+
+/** Get occupancy of a particular single particle state (zero if absent). */
+int RelativisticConfiguration::GetOccupancy(const OrbitalInfo& info) const
+{
+    auto it = find(info);
+    if(it != end())
+        return it->second;
+    else
+        return 0;
+}
+
+RelativisticConfiguration::iterator RelativisticConfiguration::insert(const std::pair<OrbitalInfo, int>& val)
+{
+    auto it = find(val.first);
+    if(it != end())
+    {
+        if(val.second)
+        {   it->second = val.second;
+            return it;
         }
         else
-            a_it->second = a_it->second + 1;
+        {   config.erase(it);
+            return end();
+        }
+    }
+
+    // Not found already
+    if(val.second)
+    {
+        std::list< std::pair<OrbitalInfo, int> > new_item;
+        new_item.push_back(val);
+        config.merge(new_item, compare);
+        return find(val.first);
     }
     else
-    {
-        Config[info] = 1;
-    }
-    return true;
+        return end();
 }
 
+RelativisticConfiguration::iterator RelativisticConfiguration::find(const OrbitalInfo& info)
+{
+    for(auto it = config.begin(); it != config.end(); it++)
+        if(it->first == info)
+            return it;
+
+    return config.end();
+}
+
+RelativisticConfiguration::const_iterator RelativisticConfiguration::find(const OrbitalInfo& info) const
+{
+    for(auto it = config.begin(); it != config.end(); it++)
+        if(it->first == info)
+            return it;
+
+    return config.end();
+}
+
+void RelativisticConfiguration::clear()
+{
+    config.clear();
+}
+
+bool RelativisticConfiguration::empty() const
+{
+    return config.empty();
+}
+
+RelativisticConfiguration::iterator RelativisticConfiguration::erase(const_iterator position)
+{
+    return config.erase(position);
+}
+
+int RelativisticConfiguration::erase(const OrbitalInfo& info)
+{
+    auto it = find(info);
+    if(it != end())
+    {   erase(it);
+        return 1;
+    }
+    else
+        return 0;
+}
+
+RelativisticConfiguration::iterator RelativisticConfiguration::erase(const_iterator first, const_iterator last)
+{
+    return config.erase(first, last);
+}
+
+/*
+bool RelativisticConfiguration::GenerateProjections(int two_m)
+{
+    projections.clear();
+}
+
+/*
 bool RelativisticConfiguration::GenerateProjections(int two_m)
 {
     if(num_states)
@@ -50,15 +156,16 @@ bool RelativisticConfiguration::GenerateProjections(int two_m)
 
     // Get electron vector
     std::vector<ElectronInfo> electrons;
-    First();
-    while(!AtEnd())
+
+    iterator it = begin();
+    while(it != end())
     {
-        OrbitalInfo rinfo = GetInfo();
-        for(unsigned int i=0; i<GetOccupancy(); i++)
+        OrbitalInfo rinfo = it->first;
+        for(unsigned int i = 0; i < it->second; i++)
         {   electrons.push_back(ElectronInfo(rinfo.PQN(), rinfo.Kappa(), 0));
         }
 
-        Next();
+        it++;
     }
 
     // Get projections by recursion
@@ -119,43 +226,61 @@ void RelativisticConfiguration::DoElectron(std::vector<ElectronInfo>& electrons,
         }
     }
 }
+*/
 
-int RelativisticConfiguration::GetTwiceMaxProjection() const
+bool RelativisticConfiguration::operator<(const RelativisticConfiguration& other) const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
-    int proj = 0;
-    while(m_it != Config.end())
-    {
-        int j = m_it->first.TwoJ();
-        for(unsigned int i=0; i<m_it->second; i++)
-        {   proj += j;
-            j = j - 2;
-        }
+    auto first = config.begin();
+    auto second = other.config.begin();
 
-        m_it++;
+    while((first != config.end()) && (second != other.config.end()))
+    {
+        // Order by single particle info
+        if(first->first < second->first)
+            return true;
+        else if(second->first < first->first)
+            return false;
+
+        // Then by number of electrons
+        if(first->second < second->second)
+            return true;
+        else if(second->second < first->second)
+            return false;
+
+        first++;
+        second++;
     }
 
-    return proj;
+    if((first == config.end()) && (second != other.config.end()))
+        return true;
+    else return false;
 }
 
-std::string RelativisticConfiguration::Name() const
+bool RelativisticConfiguration::operator==(const RelativisticConfiguration& other) const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
-    std::string name;
-    while(m_it != Config.end())
+    auto first = config.begin();
+    auto second = other.config.begin();
+
+    while((first != config.end()) && (second != other.config.end()))
     {
-        name.append(" " + OrbitalInfo(m_it->first).Name());
+        // Order by single particle info
+        if(first->first != second->first)
+            return false;
 
-        char buffer[20];
-        sprintf(buffer, "%d", m_it->second);
-        std::string occupancy(buffer);
-        name.append(buffer);
+        // Then by number of electrons
+        if(first->second != second->second)
+            return false;
 
-        m_it++;
+        first++;
+        second++;
     }
-    return name;
+
+    if((first != config.end()) || (second != other.config.end()))
+        return false;
+    else return true;
 }
 
+/*
 void RelativisticConfiguration::SetJCoefficients(unsigned int num_Jstates, double* coefficients)
 {
     if(num_states)
@@ -169,7 +294,7 @@ void RelativisticConfiguration::SetJCoefficients(unsigned int num_Jstates, doubl
 
     num_states = num_Jstates;
 }
-
+/*
 bool RelativisticConfiguration::GenerateJCoefficients(double J)
 {
     unsigned int N = projections.size();
@@ -319,40 +444,32 @@ double RelativisticConfiguration::GetJSquared(const Projection& first, const Pro
 
     return ret;
 }
-
+*/
 Configuration RelativisticConfiguration::GetNonRelConfiguration() const
 {
     Configuration ret;
 
-    std::map<OrbitalInfo, unsigned int>::const_iterator c_it = Config.begin();
-    while(c_it != Config.end())
+    auto c_it = config.begin();
+    while(c_it != config.end())
     {
-        ret.SetIterator(NonRelInfo(c_it->first));
-        if(ret.AtEnd())
-        {   ret.AddSingleParticle(NonRelInfo(c_it->first));
-            ret.SetOccupancy(NonRelInfo(c_it->first), c_it->second);
-        }
-        else
-        {   unsigned int occ = ret.GetOccupancy();
-            ret.SetOccupancy(occ + c_it->second);
-        }
+        ret[NonRelInfo(c_it->first)] += c_it->second;
 
         c_it++;
     }
 
     return ret;
 }
-
+/*
 void RelativisticConfiguration::Write(FILE* fp) const
 {
     // Write config
-    unsigned int size = Config.size();
+    unsigned int size = config.size();
     fwrite(&size, sizeof(unsigned int), 1, fp);    
 
-    std::map<OrbitalInfo, unsigned int>::const_iterator cit;
-    cit = Config.begin();
+    std::map<OrbitalInfo, int>::const_iterator cit;
+    cit = config.begin();
 
-    while(cit != Config.end())
+    while(cit != config.end())
     {
         unsigned int pqn = cit->first.PQN();
         int kappa = cit->first.Kappa();
@@ -386,7 +503,7 @@ void RelativisticConfiguration::Write(FILE* fp) const
 void RelativisticConfiguration::Read(FILE* fp)
 {
     // Clear the current configuration
-    Config.clear();
+    config.clear();
     if(num_states)
         delete[] j_coefficients;
     
@@ -405,7 +522,7 @@ void RelativisticConfiguration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);    
         fread(&occupancy, sizeof(unsigned int), 1, fp);    
 
-        SetOccupancy(OrbitalInfo(pqn, kappa), occupancy);
+        config[OrbitalInfo(pqn, kappa)] = occupancy;
     }
 
     // Generate projections and check that the same number were stored.
@@ -431,3 +548,4 @@ void RelativisticConfiguration::Read(FILE* fp)
         }
     }
 }
+ */

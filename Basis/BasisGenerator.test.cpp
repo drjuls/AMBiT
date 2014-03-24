@@ -18,7 +18,7 @@ protected:
         userInput->SetRun(1);
 
         core_generator = new BasisGenerator(lattice, *userInput);
-        core = core_generator->GenerateCore();
+        core = core_generator->GenerateHFCore();
     }
 
     // Per-test-case tear-down.

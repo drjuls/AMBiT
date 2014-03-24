@@ -4,19 +4,62 @@
 #include "NonRelInfo.h"
 #include "Universal/MathConstant.h"
 
+Configuration ConfigurationParser::ParseConfiguration(const std::string& configuration)
+{
+    Configuration ret;
+
+    // Set num_states[L] to highest pqn
+    unsigned int p = 0;
+    const char* all_states = configuration.c_str();
+    unsigned int pqn, L, occupancy;
+
+    // Skip whitespace
+    while(all_states[p] && isspace(all_states[p]))
+        p++;
+
+    while(all_states[p])
+    {
+        // Get pqn
+        pqn = atoi(all_states + p);
+        while(all_states[p] && isdigit(all_states[p]))
+            p++;
+        // Get L
+        if(all_states[p])
+        {   // Get L
+            L = MathConstant::Instance()->GetL(all_states[p]);
+            p++;
+        }
+        // Get occupancy
+        occupancy = atoi(all_states + p);
+        while(all_states[p] && isdigit(all_states[p]))
+            p++;
+
+        // Check everything is okay and skip any whitespace
+        if((L >= 10) || (pqn < L+1) || (occupancy > 4*L + 2))
+        {   *errstream << "Configuration() initialised with problematic string " << configuration << std::endl;
+            exit(1);
+        }
+        ret[NonRelInfo(pqn, L)] = occupancy;
+        while(all_states[p] && isspace(all_states[p]))
+            p++;
+    }
+
+    return ret;
+}
+
 OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::string& configuration)
 {
     OccupationMap ret;
     Configuration config(configuration);
 
     // Split non-relativistic configuration into relativistic states
-    config.First();
-    while(!config.AtEnd())
+    Configuration::iterator it = config.begin();
+    while(it != config.end())
     {
         pOrbital s1, s2;
 
-        NonRelInfo info(config.GetInfo());
-        double occupancy = config.GetOccupancy();
+        NonRelInfo info(it->first);
+        double occupancy = it->second;
         int L = info.L();
 
         if(L == 0)
@@ -29,7 +72,7 @@ OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::strin
             ret[info.GetSecondRelativisticInfo()] = (1. - first_fraction) * occupancy;
         }
 
-        config.Next();
+        it++;
     }
 
     return ret;

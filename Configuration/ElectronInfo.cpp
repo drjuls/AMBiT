@@ -3,21 +3,24 @@
 
 bool ElectronInfo::operator<(const ElectronInfo& other) const
 {
+    // We redo the OrbitalInfo rather than calling OrbitalInfo::operator<()
+    // to save a bit of time.
+    // Sort on pqn
     if(this->pqn < other.pqn)
-       return true;
+        return true;
     else if(this->pqn > other.pqn)
         return false;
 
-    if(this->l < other.l)
+    // Sort on abs(kappa):
+    //  |-1| < |1| < |-2| < |2| < |-3| ...
+    if(abs(this->kappa) < abs(other.kappa))
         return true;
-    else if(this->l > other.l)
+    else if(abs(this->kappa) > abs(other.kappa))
         return false;
+    // Sort on kappa itself
+    else return (this->kappa < other.kappa);
 
-    if(this->kappa < other.kappa)
-        return true;
-    else if(this->kappa > other.kappa)
-        return false;
-    
+    // And sort on m.
     return (this->two_m < other.two_m);
 }
 
@@ -38,7 +41,10 @@ bool ElectronInfo::operator !=(const ElectronInfo& other) const
 
 std::string ElectronInfo::Name() const
 {
-    std::string name = OrbitalInfo::Name();
+    std::string name;
+    if(is_hole)
+        name.push_back('-');
+    name.append(OrbitalInfo::Name());
 
     char buffer[20];
     sprintf(buffer, "(%d)", two_m);

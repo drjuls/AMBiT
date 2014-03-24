@@ -9,15 +9,13 @@ class ElectronInfo : public OrbitalInfo
         Since M is half-integer, use TwoM which is always integer.
      */
 public:
-    ElectronInfo(unsigned int principal_qn, int kappa, int two_m):
-        OrbitalInfo(principal_qn, kappa)
-    {
-        this->two_m = two_m;
-    }
-    ElectronInfo(const ElectronInfo& other):
-        OrbitalInfo(other), two_m(other.two_m)
+    ElectronInfo(unsigned int principal_qn, int kappa, int two_m, bool is_hole = false):
+        OrbitalInfo(principal_qn, kappa), two_m(two_m), is_hole(is_hole)
     {}
-    virtual ~ElectronInfo(void) {}
+    ElectronInfo(const ElectronInfo& other):
+        OrbitalInfo(other), two_m(other.two_m), is_hole(other.is_hole)
+    {}
+    virtual ~ElectronInfo() {}
 
     virtual bool operator<(const ElectronInfo& other) const;
     virtual bool operator==(const ElectronInfo& other) const;
@@ -27,10 +25,12 @@ public:
     inline int TwoM() const { return two_m; }
     inline double M() const { return double(two_m)/2.; }
 
+    inline bool IsHole() const { return is_hole; }
     virtual std::string Name() const;
 
 protected:
     int two_m;
+    bool is_hole;
 };
 
 #endif

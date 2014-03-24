@@ -38,10 +38,8 @@ public:
     inline void absorb(const MultirunOptions& That);
 
     // Overwrite scalar double variables to hide multirun vectors.
-    // Other operator() functions are overwritten also, to prevent ambiguous function overloading.
-    inline int                operator()(const char* VarName, int           Default) const;
-    inline double             operator()(const char* VarName, const double& Default) const;
-    inline const std::string  operator()(const char* VarName, const char*   Default) const;
+    using GetPot::operator();
+    inline double operator()(const char* VarName, const double& Default) const;
 
 public:
     inline int GetNumRuns() const;
@@ -123,14 +121,6 @@ inline double MultirunOptions::operator()(const char* VarName, const double& Def
         ret = GetPot::operator()(VarName, Default);
 
     return ret;
-}
-
-inline int MultirunOptions::operator()(const char* VarName, int Default) const
-{   return GetPot::operator()(VarName, Default);
-}
-
-inline const std::string MultirunOptions::operator()(const char* VarName, const char* Default) const
-{   return GetPot::operator()(VarName, Default);
 }
 
 inline int MultirunOptions::GetNumRuns() const

@@ -2,8 +2,8 @@
 #define CONFIGURATION_PARSER_H
 
 #include "OrbitalInfo.h"
+#include "Configuration/Configuration.h"
 #include <map>
-#include <iostream>
 
 //typedef std::map<OrbitalInfo, unsigned int> Configuration;
 typedef std::map<OrbitalInfo, double> OccupationMap;
@@ -11,7 +11,7 @@ typedef std::map<OrbitalInfo, double> OccupationMap;
 class ConfigurationParser
 {
 public:
-//    Configuration ParseConfiguration(const std::string& config);
+    static Configuration ParseConfiguration(const std::string& configuration);
     static OccupationMap ParseFractionalConfiguration(const std::string& configuration);
 
     // Set num_states[L] to highest pqn

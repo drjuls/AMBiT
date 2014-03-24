@@ -2,104 +2,66 @@
 #include "Configuration.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Universal/MathConstant.h"
-
-Configuration::Configuration(const Configuration& other):
-    Config(other.Config)
-{
-    if(other.AtEnd())
-        it = Config.end();
-    else
-        it = Config.find(other.GetInfo());
-}
+#include "HartreeFock/ConfigurationParser.h"
 
 Configuration::Configuration(const std::string& name)
 {
-    // Set num_states[L] to highest pqn
-    unsigned int p = 0;
-    const char* all_states = name.c_str();
-    unsigned int pqn, L, occupancy;
-
-    // Skip whitespace
-    while(all_states[p] && isspace(all_states[p]))
-        p++;
-
-    while(all_states[p])
-    {
-        // Get pqn
-        pqn = atoi(all_states + p);
-        while(all_states[p] && isdigit(all_states[p]))
-            p++;
-        // Get L
-        if(all_states[p])
-        {
-            // Get L
-            L = MathConstant::Instance()->GetL(all_states[p]);
-            p++;
-        }
-        // Get occupancy
-        occupancy = atoi(all_states + p);
-        while(all_states[p] && isdigit(all_states[p]))
-            p++;
-
-        // Check everything is okay and skip any whitespace
-        if((L >= 10) || (pqn < L+1) || (occupancy > 4*L + 2))
-        {   *errstream << "Configuration() initialised with problematic string " << name << std::endl;
-            exit(1);
-        }
-        SetOccupancy(NonRelInfo(pqn, L), occupancy);
-        while(all_states[p] && isspace(all_states[p]))
-            p++;
-    }
-
-    First();
+    *this = ConfigurationParser::ParseConfiguration(name);
 }
 
-void Configuration::SetIterator(const OrbitalInfo& info) const
+int Configuration::GetOccupancy(const NonRelInfo& info) const
 {
-    it = Config.find(info);
-}
+    auto r_it = config.find(info);
 
-OrbitalInfo Configuration::GetInfo() const
-{
-    return it->first;
-}
-
-unsigned int Configuration::GetOccupancy() const
-{
-    return it->second;
-}
-
-void Configuration::SetOccupancy(unsigned int occupancy)
-{
-    if(!AtEnd())
-    {   OrbitalInfo info = GetInfo();
-        if(occupancy)
-            Config[info] = occupancy;
-        else
-        {   Next();
-            std::map<OrbitalInfo, unsigned int>::iterator kill_it = Config.find(info);
-            Config.erase(kill_it);
-        }
-    }
-}
-
-unsigned int Configuration::GetOccupancy(const OrbitalInfo& info) const
-{
-    std::map<OrbitalInfo, unsigned int>::const_iterator r_it = Config.find(info);
-
-     if(r_it != Config.end())
+     if(r_it != config.end())
         return r_it->second;
     else
         return 0;
 }
 
-bool Configuration::RemoveSingleParticle(const OrbitalInfo& info)
+int& Configuration::operator[](const NonRelInfo& info)
 {
-    std::map<OrbitalInfo, unsigned int>::iterator r_it = Config.find(info);
-    if(r_it != Config.end())
+    if(find(info) == end())
+        config[info] = 0;
+
+    return config[info];
+}
+
+Configuration::iterator Configuration::find(const NonRelInfo& info)
+{
+    return config.find(info);
+}
+
+Configuration::const_iterator Configuration::find(const NonRelInfo& info) const
+{
+    return config.find(info);
+}
+
+Configuration::iterator Configuration::erase(const_iterator position)
+{
+    if(position == config.end())
+        return config.end();
+    else
+        return config.erase(position);
+}
+
+int Configuration::erase(const NonRelInfo& info)
+{
+    return config.erase(info);
+}
+
+Configuration::iterator Configuration::erase(const_iterator first, const_iterator last)
+{
+    return config.erase(first, last);
+}
+
+bool Configuration::RemoveSingleParticle(const NonRelInfo& info)
+{
+    auto r_it = config.find(info);
+    if(r_it != config.end())
     {
         if(r_it->second <= 1)
-            Config.erase(r_it);
+            config.erase(r_it);
         else
             r_it->second = r_it->second - 1;
 
@@ -109,10 +71,10 @@ bool Configuration::RemoveSingleParticle(const OrbitalInfo& info)
         return false;
 }
 
-bool Configuration::AddSingleParticle(const OrbitalInfo& info)
+bool Configuration::AddSingleParticle(const NonRelInfo& info)
 {
-    std::map<OrbitalInfo, unsigned int>::iterator a_it = Config.find(info);
-    if(a_it != Config.end())
+    iterator a_it = config.find(info);
+    if(a_it != config.end())
     {
         if(a_it->second >= 4*(a_it->first.L()) + 2) // maximum number of electrons
         {   a_it->second = 4*(a_it->first.L()) + 2;
@@ -122,48 +84,34 @@ bool Configuration::AddSingleParticle(const OrbitalInfo& info)
             a_it->second = a_it->second + 1;
     }
     else
-        Config[info] = 1;
+        config[info] = 1;
 
     return true;
 }
 
-bool Configuration::SetOccupancy(const OrbitalInfo& info, unsigned int occupancy)
+int Configuration::ParticleNumber() const
 {
-    if(occupancy)
-    {   if(occupancy <= 4 * info.L() + 2)
-            Config[info] = occupancy;
-        else
-            return false;
-    }
-    else
-    {   std::map<OrbitalInfo, unsigned int>::iterator kill_it = Config.find(info);
-        if(kill_it != Config.end())
-            Config.erase(kill_it);
-    }
+    int num = 0;
+    for(auto& value : config)
+        num += value.second;
 
-    return true;
+    return num;
 }
 
-unsigned int Configuration::NumParticles() const
+int Configuration::ExcitationNumber() const
 {
-    unsigned int num = 0;
-    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
-    while(m_it != Config.end())
-    {   num += m_it->second;
-        m_it++;
-    }
+    int num = 0;
+    for(auto& value : config)
+        num += value.second;
+
     return num;
 }
 
 Parity Configuration::GetParity() const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
-    unsigned int sum = 0;
-    while(m_it != Config.end())
-    {
-        sum += (m_it->first.L() * m_it->second);
-        m_it++;
-    }
+    int sum = 0;
+    for(auto value : config)
+        sum += (value.first.L() * abs(value.second));
 
     if(sum%2 == 0)
         return even;
@@ -176,9 +124,9 @@ std::string Configuration::Name(bool aSpaceFirst) const
     std::string name;
     if(aSpaceFirst)
     {
-        std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
+        auto m_it = config.begin();
 
-        while(m_it != Config.end())
+        while(m_it != config.end())
         {
             name.append(" " + NonRelInfo(m_it->first).Name());
     
@@ -191,10 +139,10 @@ std::string Configuration::Name(bool aSpaceFirst) const
     }
     else
     {
-        std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
+        auto m_it = config.begin();
 
         bool IsFirstTerm = true;
-        while(m_it != Config.end())
+        while(m_it != config.end())
         {
             if(IsFirstTerm)
             {
@@ -219,9 +167,9 @@ std::string Configuration::Name(bool aSpaceFirst) const
 
 std::string Configuration::ShortName() const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator m_it = Config.begin();
+    auto m_it = config.begin();
     std::string name;
-    while(m_it != Config.end())
+    while(m_it != config.end())
     {
         name.append(NonRelInfo(m_it->first).Name());
 
@@ -236,10 +184,10 @@ std::string Configuration::ShortName() const
 
 bool Configuration::operator<(const Configuration& other) const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator first = Config.begin();
-    std::map<OrbitalInfo, unsigned int>::const_iterator second = other.Config.begin();
+    auto first = config.begin();
+    auto second = other.config.begin();
 
-    while((first != Config.end()) && (second != other.Config.end()))
+    while((first != config.end()) && (second != other.config.end()))
     {
         // Order by single particle info
         if(first->first < second->first)
@@ -257,17 +205,17 @@ bool Configuration::operator<(const Configuration& other) const
         second++;
     }
 
-    if((first == Config.end()) && (second != other.Config.end()))
+    if((first == config.end()) && (second != other.config.end()))
         return true;
     else return false;
 }
 
 bool Configuration::operator==(const Configuration& other) const
 {
-    std::map<OrbitalInfo, unsigned int>::const_iterator first = Config.begin();
-    std::map<OrbitalInfo, unsigned int>::const_iterator second = other.Config.begin();
+    auto first = config.begin();
+    auto second = other.config.begin();
 
-    while((first != Config.end()) && (second != other.Config.end()))
+    while((first != config.end()) && (second != other.config.end()))
     {
         // Order by single particle info
         if(first->first != second->first)
@@ -281,7 +229,7 @@ bool Configuration::operator==(const Configuration& other) const
         second++;
     }
 
-    if((first != Config.end()) || (second != other.Config.end()))
+    if((first != config.end()) || (second != other.config.end()))
         return false;
     else return true;
 }
@@ -289,13 +237,12 @@ bool Configuration::operator==(const Configuration& other) const
 void Configuration::Write(FILE* fp) const
 {
     // Write config
-    unsigned int size = Config.size();
+    unsigned int size = config.size();
     fwrite(&size, sizeof(unsigned int), 1, fp);
 
-    std::map<OrbitalInfo, unsigned int>::const_iterator cit;
-    cit = Config.begin();
+    auto cit = config.begin();
 
-    while(cit != Config.end())
+    while(cit != config.end())
     {
         unsigned int pqn = cit->first.PQN();
         int kappa = cit->first.Kappa();
@@ -313,7 +260,7 @@ void Configuration::Write(FILE* fp) const
 void Configuration::Read(FILE* fp)
 {
     // Clear the current configuration
-    Config.clear();
+    config.clear();
     
     // Read config
     unsigned int size;
@@ -330,10 +277,8 @@ void Configuration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);    
         fread(&occupancy, sizeof(unsigned int), 1, fp);    
 
-        SetOccupancy(OrbitalInfo(pqn, kappa), occupancy);
+        config[OrbitalInfo(pqn, kappa)] = occupancy;
     }
-    
-    First();
 }
 
 void ConfigList::Print()

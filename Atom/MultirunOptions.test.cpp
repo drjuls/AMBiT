@@ -50,6 +50,15 @@ TEST(MultirunOptionsTester, SearchTest)
     EXPECT_EQ(false, opt.search("--simply-false"));
 }
 
+TEST(MultirunOptionsTester, VectorTest)
+{
+    std::string inputFileName("template.input");
+    MultirunOptions opt(inputFileName.c_str(), "//", "\n", ",");
+
+    ASSERT_EQ(2, opt.vector_variable_size("CI/LeadingConfigurations"));
+    EXPECT_STREQ("4s2", opt("CI/LeadingConfigurations", "", 0).c_str());
+}
+
 //TEST(MultirunOptionsTester, UFOTest)
 //{
 //    std::string inputFileName("template.input");

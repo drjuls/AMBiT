@@ -20,7 +20,7 @@ public:
     /** Generate core orbitals. If open_shell_core is supplied, then use this as a starting approximation.
         Return open shell core.
      */
-    virtual pCore GenerateCore(pCoreConst open_shell_core = pCoreConst());
+    virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
 
     /** Generate excited states.
         PRE: core must have been built using GenerateCore() already.
@@ -28,8 +28,9 @@ public:
     virtual pStateManager GenerateBasis();
 
     virtual pHFOperatorConst GetHFOperator() const { return hf; }
-    virtual pCore GetCore() const { return closed_core; }
-    virtual pStateManager GetExcitedStates() const { return excited; }
+    virtual pCoreConst GetHFCore() const { return open_core; }
+    virtual pCoreConst GetFermiCore() const { return closed_core; }
+    virtual pStateManagerConst GetExcitedStates() const { return excited; }
 
 protected:
     virtual pStateManager GenerateBSplines(const std::vector<int>& max_pqn);

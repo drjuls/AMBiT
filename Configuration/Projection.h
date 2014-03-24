@@ -1,8 +1,8 @@
 #ifndef PROJECTION_H
 #define PROJECTION_H
 
-#include "Configuration.h"
 #include "ElectronInfo.h"
+#include "Configuration.h"
 #include <vector>
 #include <list>
 
@@ -11,6 +11,8 @@
     enum Parity { even, odd };
 #endif
 
+class RelativisticConfiguration;
+
 class Projection
 {
     /** A projection is really a kind of configuration, however there
@@ -18,27 +20,27 @@ class Projection
         part of the configuration.
      */
 public:
-    Projection() {}
-    Projection(const Projection& other):
-        Config(other.Config), NonRelConfiguration(other.NonRelConfiguration)
-    {}
+    Projection(const RelativisticConfiguration& relconfig, std::vector<int>& twoMs);
+    Projection(const Projection& other);
     virtual ~Projection(void) {}
 
-    void Add(const ElectronInfo& info);
-    void Remove(const ElectronInfo& info);
+    typedef std::vector<ElectronInfo>::iterator iterator;
+    typedef std::vector<ElectronInfo>::const_iterator const_iterator;
 
-    unsigned int Size() const { return Config.size(); }
+    iterator begin() { return config.begin(); }
+    const_iterator begin() const { return config.begin(); }
+    iterator end() { return config.end(); }
+    const_iterator end() const { return config.end(); }
+
+    unsigned int size() const { return config.size(); }
     ElectronInfo& operator[](unsigned int i);
     const ElectronInfo& operator[](unsigned int i) const;
 
     Parity GetParity() const;
     int GetTwoM() const;
 
-    /** Sort the projection. Return true if there were an odd number of swaps. */
-    bool Sort();
-
-    bool operator<(const Projection& other) const;
-    bool operator==(const Projection& other) const;
+//    bool operator<(const Projection& other) const;
+//    bool operator==(const Projection& other) const;
     std::string Name() const;
 
     /** This function finds differences between p1 and p2 (up to two differences).
@@ -60,20 +62,12 @@ public:
      */
     static int GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff);
 
-    /** Get equivalent non-relativistic configuration. */
-    inline const Configuration& GetNonRelConfiguration() const;
-
+//    /** Get equivalent non-relativistic configuration. */
+//    inline const Configuration& GetNonRelConfiguration() const;
+//
 protected:
-    bool Sort(std::vector<ElectronInfo>& config) const;
-
-    std::vector<ElectronInfo> Config;
-    Configuration NonRelConfiguration;
+    std::vector<ElectronInfo> config;
 };
-
-const Configuration& Projection::GetNonRelConfiguration() const
-{
-    return NonRelConfiguration;
-}
 
 typedef std::list<Projection> ProjectionSet;
 

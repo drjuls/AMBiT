@@ -2,6 +2,7 @@
 #define CONFIGURATION_H
 
 #include "HartreeFock/OrbitalInfo.h"
+#include "HartreeFock/NonRelInfo.h"
 #include <map>
 #include <set>
 #include <list>
@@ -14,40 +15,49 @@
 
 class Configuration
 {
-    /** Configuration is a map between a set of single particle states and their occupancy.
+    /** Configuration is a map between a set of orbitals and their (integer) occupancy.
         It can be used for relativistic and non-relativistic states.
      */
 public:
-    Configuration() { First(); }
-    Configuration(const Configuration& other);
+    Configuration() {}
+    Configuration(const Configuration& other): config(other.config) {}
     Configuration(const std::string& name);
-    virtual ~Configuration(void) {}
+    virtual ~Configuration() {}
 
-    // Controllers for built-in state iterator
-    inline void First() const;
-    inline void Next() const;
-    inline bool AtEnd() const;
-    void SetIterator(const OrbitalInfo& info) const;
+public:
+    typedef std::map<NonRelInfo, int>::iterator iterator;
+    typedef std::map<NonRelInfo, int>::const_iterator const_iterator;
 
-    OrbitalInfo GetInfo() const;
-    unsigned int GetOccupancy() const;
-    void SetOccupancy(unsigned int occupancy);
+public:
+    /** Get occupancy of a particular single particle state (zero if absent). */
+    int GetOccupancy(const NonRelInfo& info) const;
+    int& operator[](const NonRelInfo& info);
 
-    // Get occupancy of a particular single particle state.
-    // (zero if absent)
-    unsigned int GetOccupancy(const OrbitalInfo& info) const;
+    iterator begin() { return config.begin(); }
+    const_iterator begin() const { return config.begin(); }
+    iterator end() { return config.end(); }
+    const_iterator end() const { return config.end(); }
+    iterator find(const NonRelInfo& info);
+    const_iterator find(const NonRelInfo& info) const;
 
-    // These return the success of the operation.
-    virtual bool RemoveSingleParticle(const OrbitalInfo& info);
-    virtual bool AddSingleParticle(const OrbitalInfo& info);
-    virtual bool SetOccupancy(const OrbitalInfo& info, unsigned int occupancy);
+    void clear();
+    bool empty() const;
+    int size() const { return config.size(); }
 
-    void Clear();
-    bool Empty() const;
+    iterator erase(const_iterator position);
+    int erase(const NonRelInfo& info);
+    iterator erase(const_iterator first, const_iterator last);
 
-    virtual unsigned int NumParticles() const;
+    bool RemoveSingleParticle(const NonRelInfo& info);
+    bool AddSingleParticle(const NonRelInfo& info);
 
+    /** Number of particles = number of electrons - number of holes. */
+    virtual int ParticleNumber() const;
+
+    /** Excitation number = number of electrons + number of holes. */
+    virtual int ExcitationNumber() const;
     Parity GetParity() const;
+
     bool operator<(const Configuration& other) const;
     bool operator==(const Configuration& other) const;
     virtual std::string Name(bool aSpaceFirst = true) const;
@@ -59,8 +69,7 @@ public:
 
 protected:
     /** Map single particle state to occupancy. */
-    std::map<OrbitalInfo, unsigned int> Config;
-    mutable std::map<OrbitalInfo, unsigned int>::const_iterator it;
+    std::map<NonRelInfo, int> config;
 };
 
 class ConfigList : public std::list<Configuration>
@@ -69,30 +78,14 @@ public:
     void Print();
 };
 
-inline void Configuration::First() const
+inline void Configuration::clear()
 {
-    it = Config.begin();
+    config.clear();
 }
 
-inline void Configuration::Next() const
-{   
-    if(!AtEnd())
-        it++;
-}
-
-inline bool Configuration::AtEnd() const
-{   
-    return (it == Config.end());
-}
-
-inline void Configuration::Clear()
+inline bool Configuration::empty() const
 {
-    Config.clear();
-}
-
-inline bool Configuration::Empty() const
-{
-    return Config.empty();
+    return config.empty();
 }
 
 class ConfigurationPair : public std::pair<Configuration, double>
