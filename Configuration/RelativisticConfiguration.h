@@ -1,12 +1,16 @@
 #ifndef RELATIVISTIC_CONFIGURATION_H
 #define RELATIVISTIC_CONFIGURATION_H
 
-#include "Configuration.h"
 #include "HartreeFock/OrbitalInfo.h"
 #include "Projection.h"
 #include "AngularData.h"
-
+#include <boost/iterator_adaptors.hpp>
 #include <string>
+
+#ifndef PARITY_ENUM
+#define PARITY_ENUM
+    enum Parity { even, odd };
+#endif
 
 class RelativisticConfiguration
 {
@@ -15,25 +19,14 @@ class RelativisticConfiguration
 
     /** RelativisticConfiguration extends configuration by adding a set of projections
         and corresponding coefficients for a particular |J, M>.
-        map-like member functions are provided, as though RelativisticConfiguration
-        is a map<OrbitalInfo, int>, however internally it is stored as
-        list< pair<OrbitalInfo, int> > so that we can sort on occupancy as well.
-        This will make some operations (e.g. find, insert) inefficient.
-        Because we sort on occupancy also, operator[] is not implemented as changing the
-        associated value could break the ordering.
      */
 public:
-    RelativisticConfiguration():
-        num_states(0), j_coefficients(NULL)
-    {}
+    RelativisticConfiguration() {}
     RelativisticConfiguration(const RelativisticConfiguration& other);
-    virtual ~RelativisticConfiguration()
-    {   if(num_states)
-            delete[] j_coefficients;
-    }
+    virtual ~RelativisticConfiguration() {}
 
-    typedef std::list< std::pair<OrbitalInfo, int> >::iterator iterator;
-    typedef std::list< std::pair<OrbitalInfo, int> >::const_iterator const_iterator;
+    typedef std::map<OrbitalInfo, int>::iterator iterator;
+    typedef std::map<OrbitalInfo, int>::const_iterator const_iterator;
 
     iterator begin() { return config.begin(); }
     const_iterator begin() const { return config.begin(); }
@@ -58,6 +51,7 @@ public:
 
     /** Get occupancy of a particular single particle state (zero if absent). */
     int GetOccupancy(const OrbitalInfo& info) const;
+    int& operator[](const OrbitalInfo& info);
 
     /** Number of particles = number of electrons - number of holes. */
     virtual int ParticleNumber() const;
@@ -69,9 +63,40 @@ public:
     bool operator<(const RelativisticConfiguration& other) const;
     bool operator==(const RelativisticConfiguration& other) const;
 
-    /** Return whether a suitable projection with J = M = two_m/2 was found.
-     */
-//    bool GenerateProjections(int two_m);
+    /** Return whether a suitable projection with J = M = two_m/2 was found. */
+    bool GetProjections(pAngularDataLibrary data);
+
+    /** Get the number of CSFs that have been calculated. */
+    unsigned int NumCSFs() const;
+
+    /** Iterator over projections and CSFs. */
+//    class projection_iterator : public boost::iterator_adaptor<
+//        projection_iterator,
+//    typename ProjectionList::iterator,   //Base
+//    typename ConfigType::value_type  // Value
+//    >
+//    {
+//    private:
+//        struct enabler {};  // a private type avoids misuse
+//
+//    public:
+//        config_iterator():
+//        config_iterator::iterator_adaptor_(typename ConfigType::iterator()) {}
+//
+//        explicit config_iterator(typename ConfigType::iterator p):
+//        config_iterator::iterator_adaptor_(p) {}
+//
+//        template <class OtherConfigType>
+//        config_iterator(config_iterator<OtherConfigType> const& other,
+//                        typename boost::enable_if< boost::is_convertible<OtherConfigType,ConfigType>, enabler
+//                        >::type = enabler()
+//                        ):
+//        config_iterator::iterator_adaptor_(other.base()) {}
+//    };
+//
+//    typedef config_iterator<std::map<OrbitalInfo, int> > iterator;
+//    typedef config_iterator<const std::map<OrbitalInfo, int> > const_iterator;
+
 //    bool GenerateJCoefficients(double J);
 
     /** PRE: num_Jstates > 0
@@ -91,33 +116,19 @@ public:
 //
 //    inline double* GetJCoefficients()
 //    {   return j_coefficients; }
-//
-//    int GetTwiceMaxProjection() const;
 
-//    virtual std::string Name() const;
-    
-    Configuration GetNonRelConfiguration() const;
+    int GetTwiceMaxProjection() const;
 
-    // File storage (binary)
-//    virtual void Write(FILE* fp) const;
-//    virtual void Read(FILE* fp);
+    virtual std::string Name() const;
 
 protected:
-    static bool compare(std::pair<OrbitalInfo, int>& one, std::pair<OrbitalInfo, int>& two);
-//    double GetJSquared(const Projection& first, const Projection& second) const;
+    std::map<OrbitalInfo, int> config;
 
-    /** A complete set of projections with M = J */
-    ProjectionSet projections;
+    /** Pointer to angular data (CSFs) for this RelativisticConfiguration. */
+    pAngularData angular_data;
 
-    /** A superposition of projections that form an eigenstate of J^2 is called
-        a "JState". The set of coefficients for each JState is j_coefficients.
-        The number of Jstates is num_jstates.
-        j_coefficients = double[num_states * projections.size()]
-      */
-    unsigned int num_states;
-    double* j_coefficients;
-
-    std::list< std::pair<OrbitalInfo, int> > config;
+    /** Complete list of projections with required M, ordering taken directly from AngularData. */
+    ProjectionList projections;
 };
 
 typedef std::list<RelativisticConfiguration> RelativisticConfigList;

@@ -55,12 +55,12 @@ public:
     }
 
     /** Subclasses should call this inherited function. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override
     {   return component->ApplyTo(a);
     }
 
     /** Subclasses may call this inherited function. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override
     {   return component->ApplyTo(a, kappa_b);
     }
 
@@ -77,9 +77,9 @@ public:
     ZeroOperator(): OneBodyOperator() {}
 
 public:
-    double GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const;
-    SpinorFunction ApplyTo(const SpinorFunction& a) const;
-    SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const;
+    virtual double GetMatrixElement(const SpinorFunction& a, const SpinorFunction& b) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
 };
 
 #endif

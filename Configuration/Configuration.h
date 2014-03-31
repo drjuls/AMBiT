@@ -3,15 +3,11 @@
 
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/NonRelInfo.h"
+#include "RelativisticConfiguration.h"
 #include <map>
 #include <set>
 #include <list>
 #include <string>
-
-#ifndef PARITY_ENUM
-#define PARITY_ENUM
-    enum Parity { even, odd };
-#endif
 
 class Configuration
 {
@@ -21,6 +17,7 @@ class Configuration
 public:
     Configuration() {}
     Configuration(const Configuration& other): config(other.config) {}
+    Configuration(const RelativisticConfiguration& other);
     Configuration(const std::string& name);
     virtual ~Configuration() {}
 

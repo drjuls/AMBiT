@@ -2,7 +2,6 @@
 #define PROJECTION_H
 
 #include "ElectronInfo.h"
-#include "Configuration.h"
 #include <vector>
 #include <list>
 
@@ -20,8 +19,9 @@ class Projection
         part of the configuration.
      */
 public:
-    Projection(const RelativisticConfiguration& relconfig, std::vector<int>& twoMs);
+    Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& twoMs);
     Projection(const Projection& other);
+    Projection(Projection&& other);
     virtual ~Projection(void) {}
 
     typedef std::vector<ElectronInfo>::iterator iterator;
@@ -39,8 +39,6 @@ public:
     Parity GetParity() const;
     int GetTwoM() const;
 
-//    bool operator<(const Projection& other) const;
-//    bool operator==(const Projection& other) const;
     std::string Name() const;
 
     /** This function finds differences between p1 and p2 (up to two differences).
@@ -62,13 +60,10 @@ public:
      */
     static int GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff);
 
-//    /** Get equivalent non-relativistic configuration. */
-//    inline const Configuration& GetNonRelConfiguration() const;
-//
 protected:
     std::vector<ElectronInfo> config;
 };
 
-typedef std::list<Projection> ProjectionSet;
+typedef std::list<Projection> ProjectionList;
 
 #endif

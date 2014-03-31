@@ -17,8 +17,8 @@ public:
         OneBodyOperatorDecorator(wrapped, integration_strategy)
     {}
 
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
 };
 
 

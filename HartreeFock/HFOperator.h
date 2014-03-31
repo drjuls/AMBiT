@@ -105,28 +105,28 @@ public:
     virtual ~HFOperatorDecorator() {}
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
-    virtual void SetCore(pCoreConst hf_core)
+    virtual void SetCore(pCoreConst hf_core) override
     {   wrapped->SetCore(hf_core);
         core = hf_core;
         directPotential.Clear();
     }
 
-    virtual RadialFunction GetDirectPotential() const
+    virtual RadialFunction GetDirectPotential() const override
     {   return wrapped->GetDirectPotential();
     }
 
     /** Get size of valid latticepoints. */
-    virtual unsigned int Size() const
+    virtual unsigned int Size() const override
     {   return wrapped->Size();
     }
 
     /** Extend direct potential to match lattice size. */
-    virtual void ExtendPotential()
+    virtual void ExtendPotential() override
     {   wrapped->ExtendPotential();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)
+    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override
     {   wrapped->SetODEParameters(kappa, energy, exchange);
         currentEnergy = energy;
         currentKappa = kappa;
@@ -134,7 +134,7 @@ public:
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation)
+    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override
     {   wrapped->SetODEParameters(approximation);
         currentEnergy = approximation.Energy();
         currentKappa = approximation.Kappa();
@@ -142,21 +142,21 @@ public:
     }
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const
+    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override
     {   return wrapped->GetExchange(approximation);
     }
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
      PRE: w should be an allocated 2 dimensional array.
      */
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override
     {   wrapped->GetODEFunction(latticepoint, fg, w);
     }
 
     /** Get numerical coefficients of the ODE at the point r, (f,g).
      PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
      */
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override
     {   wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
     }
 
@@ -164,25 +164,25 @@ public:
      PRE: jacobian should be an allocated 2x2 matrix,
      dwdr should be an allocated 2 dimensional array.
      */
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override
     {   wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
     }
 
     /** Get approximation to eigenfunction for first numpoints near the origin. */
-    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
+    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override
     {   wrapped->EstimateOrbitalNearOrigin(numpoints, s);
     }
 
     /** Get approximation to eigenfunction for last numpoints far from the origin.
      This routine can change the size of the orbital.
      */
-    virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const
+    virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const override
     {   wrapped->EstimateOrbitalNearInfinity(numpoints, s);
     }
 
 public:
     /** Potential = t | a > for an operator t. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override
     {   return wrapped->ApplyTo(a);
     }
 

@@ -30,14 +30,6 @@ public:
     inline int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
-public:
-    /** Alternative ordering for CSF lookup. */
-    class KappaFirstOrdering
-    {
-    public:
-        inline bool operator()(const OrbitalInfo& a, const OrbitalInfo& b);
-    };
-
 protected:
     int pqn;
     int kappa;
@@ -89,19 +81,6 @@ inline int OrbitalInfo::L_Prime() const
 inline int OrbitalInfo::TwoJ() const
 {
     return (2*abs(kappa) - 1);
-}
-
-inline bool OrbitalInfo::KappaFirstOrdering::operator()(const OrbitalInfo& a, const OrbitalInfo& b)
-{
-    if(a.Kappa() < b.Kappa())
-        return true;
-    else if (a.Kappa() > b.Kappa())
-        return false;
-
-    if(a.PQN() < b.PQN())
-        return true;
-    else
-        return false;
 }
 
 #endif

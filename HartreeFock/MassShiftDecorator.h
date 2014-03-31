@@ -25,17 +25,17 @@ public:
 
 public:
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation);
+    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
     
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation) const;
+    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation) const override;
 
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
 public:
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 protected:
     virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const;

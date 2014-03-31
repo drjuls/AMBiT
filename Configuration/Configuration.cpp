@@ -9,6 +9,16 @@ Configuration::Configuration(const std::string& name)
     *this = ConfigurationParser::ParseConfiguration(name);
 }
 
+Configuration::Configuration(const RelativisticConfiguration& other)
+{
+    for(auto& element: other)
+    {   int& occ = config[NonRelInfo(element.first)];
+        occ += element.second;
+        if(!occ)
+            erase(NonRelInfo(element.first));
+    }
+}
+
 int Configuration::GetOccupancy(const NonRelInfo& info) const
 {
     auto r_it = config.find(info);

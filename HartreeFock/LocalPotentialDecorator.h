@@ -14,13 +14,13 @@ public:
     LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
 public:
-    virtual RadialFunction GetDirectPotential() const;
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
+    virtual RadialFunction GetDirectPotential() const override;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
 public:
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 };
 
 /** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations. */
@@ -29,7 +29,7 @@ class LocalExchangeApproximation : public LocalPotentialDecorator
 public:
     LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
-    virtual void SetCore(pCoreConst hf_core);
+    virtual void SetCore(pCoreConst hf_core) override;
 };
 
 #endif

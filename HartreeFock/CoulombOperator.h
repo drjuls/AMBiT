@@ -36,23 +36,23 @@ public:
     /** Get df/dr = w[0] given point r, f.
      PRE: w should be an allocated double.
      */
-    virtual void GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const;
+    virtual void GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const override;
     
     /** Get numerical coefficients of the ODE at the point r, f.
      PRE: w_f and w_const should be allocated 2 dimensional arrays.
      */
-    virtual void GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const;
+    virtual void GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const override;
     
     /** Get Jacobian dw[i]/df and dw[i]/dr at a point r, f.
      PRE: jacobian and dwdr should allocated doubles.
      */
-    virtual void GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const;
+    virtual void GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const override;
     
     /** Get approximation to solution for first numpoints near the origin. */
-    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, RadialFunction& f) const;
+    virtual void EstimateSolutionNearOrigin(unsigned int numpoints, RadialFunction& f) const override;
     
     /** Get approximation to solution for last numpoints far from the origin. */
-    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const;
+    virtual void EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const override;
 
 protected:
     int k;

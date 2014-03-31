@@ -3,15 +3,16 @@
 #include "RelativisticConfiguration.h"
 #include "HartreeFock/NonRelInfo.h"
 
-Projection::Projection(const RelativisticConfiguration& relconfig, std::vector<int>& TwoMs)
+Projection::Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& TwoMs)
 {
     config.reserve(relconfig.ExcitationNumber());
 
-    int i = 0;
+    int count = 0;
     for(auto& relconfig_it: relconfig)
     {
         const OrbitalInfo& orbital = relconfig_it.first;
-        config[i] = ElectronInfo(orbital.PQN(), orbital.Kappa(), TwoMs[i], (relconfig_it.second < 0));
+        for(int i = 0; i < abs(relconfig_it.second); i++)
+            config.push_back(ElectronInfo(orbital.PQN(), orbital.Kappa(), TwoMs[count++], (relconfig_it.second < 0)));
     }
 
     config.shrink_to_fit();
@@ -20,6 +21,11 @@ Projection::Projection(const RelativisticConfiguration& relconfig, std::vector<i
 Projection::Projection(const Projection& other): config(other.config)
 {
     config.shrink_to_fit();
+}
+
+Projection::Projection(Projection&& other)
+{
+    config.swap(other.config);
 }
 
 ElectronInfo& Projection::operator[](unsigned int i)
@@ -54,57 +60,6 @@ int Projection::GetTwoM() const
 
     return sum;
 }
-
-//bool Projection::operator<(const Projection& other) const
-//{
-//    const std::vector<ElectronInfo>& first_config(Config);
-//    const std::vector<ElectronInfo>& second_config(other.Config);
-//
-//    //Sort(first_config);
-//    //Sort(second_config);
-//
-//    std::vector<ElectronInfo>::const_iterator first = first_config.begin();
-//    std::vector<ElectronInfo>::const_iterator second = second_config.begin();
-//
-//    while((first != first_config.end()) && (second != second_config.end()))
-//    {
-//        // Order by electron info
-//        if(*first < *second)
-//            return true;
-//        else if(*second < *first)
-//            return false;
-//        
-//        first++;
-//        second++;
-//    }
-//
-//    if((first == first_config.end()) && (second != second_config.end()))
-//        return true;
-//    else return false;
-//}
-//
-//bool Projection::operator==(const Projection& other) const
-//{
-//    const std::vector<ElectronInfo>& first_config(Config);
-//    const std::vector<ElectronInfo>& second_config(other.Config);
-//
-//    std::vector<ElectronInfo>::const_iterator first = first_config.begin();
-//    std::vector<ElectronInfo>::const_iterator second = second_config.begin();
-//
-//    while(first != first_config.end())
-//    {
-//        if((second == second_config.end()) || (*first != *second))
-//            return false;
-//        
-//        first++;
-//        second++;
-//    }
-//
-//    if(second != second_config.end())
-//        return false;
-//    else 
-//        return true;
-//}
 
 std::string Projection::Name() const
 {

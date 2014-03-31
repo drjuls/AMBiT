@@ -95,7 +95,6 @@ protected:
         When config.AtEnd(), add it to rlist.
       */
     void SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, RelativisticConfigList& rlist);
-//    void SplitNonRelInfo(Configuration& config, Configuration::iterator current_orbital, RelativisticConfigList& rlist);
 
     /** Restore nrlist from rlist.
         Usually we no longer want the nrlist after a read, but if it is wanted,

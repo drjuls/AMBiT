@@ -457,7 +457,7 @@ void ConfigGenerator::RestoreNonRelConfigs()
     nrlist.clear();
     RelativisticConfigList::const_iterator it = rlist->begin();
     while(it != rlist->end())
-    {   nrlist.push_back(it->GetNonRelConfiguration());
+    {   nrlist.push_back(Configuration(*it));
         it++;
     }
     nrlist.sort();
