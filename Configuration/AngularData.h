@@ -7,6 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 
 class RelativisticConfiguration;
 
@@ -22,6 +23,7 @@ public:
     AngularData(const RelativisticConfiguration& config, int two_m, int two_j); //!< Generate projections and CSFs.
     ~AngularData();
 
+    typedef std::vector< std::pair<int, int> > ConfigKeyType;   // pair(kappa, pqn) for all orbitals in RelativisticConfiguration
     typedef std::list< std::vector<int> >::const_iterator const_projection_iterator;
     typedef const double* const_CSF_iterator;
 
@@ -33,8 +35,8 @@ public:
     /** Random access iterator over CSFs corresponding to projection i.
         PRE: 0 <= i <= projection_size()
      */
-    const_CSF_iterator CSF_begin(int i) const { return CSFs + i * projections.size(); }
-    const_CSF_iterator CSF_end(int i) const { return CSFs + i * projections.size() + num_CSFs; };
+    const_CSF_iterator CSF_begin(int i) const { return CSFs + i * num_CSFs; }
+    const_CSF_iterator CSF_end(int i) const { return CSFs + (i+1) * num_CSFs; }
 
     int GetTwoM() const { return two_m; }
     int GetTwoJ() const { return two_j; }
@@ -42,6 +44,7 @@ public:
 
     /** Generate CSFs by diagonalising projections over J^2. */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
+    int GenerateCSFs(const ConfigKeyType& key, int two_j);
 
 protected:
     int GenerateProjections(const RelativisticConfiguration& config, int two_m);
@@ -54,7 +57,7 @@ protected:
     int two_m;
 
     /** CSF coefficients for a given J. Usually one requires all coefficients for a given projection,
-        so the projection comes first: CSFs[proj * N + csf] where N is projections.size().
+        so the projection comes first: CSFs[proj * N + csf] where N is NumCSFs().
      */
     double* CSFs;
     unsigned int num_CSFs;
@@ -80,12 +83,15 @@ public:
      */
     pAngularData operator[](const RelativisticConfiguration& config);
 
+    void GenerateCSFs();
+
     void Read();
     void Write() const;
 
 protected:
+    typedef AngularData::ConfigKeyType KeyType;
+
     int two_m, two_j;
-    typedef std::vector<int> KeyType;
     KeyType GenerateKey(const RelativisticConfiguration& config) const;
 
     std::string filename;

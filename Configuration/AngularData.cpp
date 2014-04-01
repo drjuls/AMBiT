@@ -166,10 +166,6 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     i = 0;
     while(i_it != real_Projection_list.end())
     {
-        for(unsigned int k = 0; k < i_it->size(); k++)
-            *logstream << (*i_it)[k].TwoM();
-        *logstream << std::endl;
-
         j_it = i_it;
         j = i;
         while(j_it != real_Projection_list.end())
@@ -180,15 +176,6 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         }
 
         i_it++; i++;
-    }
-
-    for(i=0; i<N; i++)
-    {
-        *outstream << "{" << M[i*N];
-        for(j=1; j<N; j++)
-            *outstream << ", " << M[i*N+j];
-
-        *outstream << "}," << std::endl;
     }
 
     // Solve the matrix
@@ -202,8 +189,15 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     double JSquared = double(two_j * (two_j + 2.)) / 4.;
     num_CSFs = 0;
     for(i=0; i<N; i++)
-    {   // j^2 + j - V = 0
-        *outstream << V[i] << " ";
+    {   // Check that all eigenvalues are good
+        // j^2 + j - V = 0
+        double TwoJ = (std::sqrt(1. + 4 * V[i]) - 1.);
+        if(fabs(floor(TwoJ + 0.5) - TwoJ) > 1.e-6)
+        {   *errstream << "AngularData::GenerateCSFs(): generated noninteger TwoJ:\n"
+                       << "    config: " << config.Name()
+                       << "    eigenvalue = " << V[i] << std::endl;
+        }
+
         if(fabs(V[i] - JSquared) < 1.e-6)
             num_CSFs++;
     }
@@ -313,6 +307,28 @@ double AngularData::GetJSquared(const Projection& first, const Projection& secon
     return ret;
 }
 
+int AngularData::GenerateCSFs(const AngularData::ConfigKeyType& key, int two_j)
+{
+    this->two_j = two_j;
+
+    // Create equivalent RelativisticConfiguration and use it.
+    RelativisticConfiguration rconfig;
+    int prev_kappa = 0;
+    int pqn = 1;
+
+    for(auto pair: key)
+    {   // Set PQN to some integer
+        if(pair.first == prev_kappa)
+            pqn++;
+        else
+            pqn = 1;
+
+        rconfig[OrbitalInfo(pqn, pair.first)] = pair.second;
+    }
+
+    return GenerateCSFs(rconfig, two_j);
+}
+
 AngularDataLibrary::AngularDataLibrary(int particle_number, int two_m, int two_j):
     two_m(two_m), two_j(two_j)
 {
@@ -340,8 +356,16 @@ AngularDataLibrary::KeyType AngularDataLibrary::GenerateKey(const RelativisticCo
 {
     KeyType key;
     for(auto& config_it: config)
-    {   key.push_back(config_it.first.Kappa());
-        key.push_back(config_it.second);
+    {   key.push_back(std::make_pair(config_it.first.Kappa(), config_it.second));
     }
     return key;
 }
+
+void AngularDataLibrary::GenerateCSFs()
+{
+    for(auto& pair: library)
+    {   auto& pAng = pair.second;
+        pAng->GenerateCSFs(pair.first, two_j);
+    }
+}
+

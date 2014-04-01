@@ -90,8 +90,9 @@ TEST(AngularDataTester, CSFs)
     ASSERT_EQ(2, ang4s5s.projection_size());
     ASSERT_EQ(1, ang4s5s.NumCSFs());
     it = ang4s5s.CSF_begin(0);
-    EXPECT_DOUBLE_EQ(1./sqrt(2.), fabs(*it++));
-    EXPECT_DOUBLE_EQ(1./sqrt(2.), fabs(*it++));
+    EXPECT_DOUBLE_EQ(1./sqrt(2.), fabs(*it));
+    it = ang4s5s.CSF_begin(1);
+    EXPECT_DOUBLE_EQ(1./sqrt(2.), fabs(*it));
 }
 
 TEST(AngularDataTester, CountCSFs)
@@ -115,4 +116,41 @@ TEST(AngularDataTester, CountCSFs)
     }
 
     EXPECT_EQ(proj_count_0, csf_count);
+}
+
+TEST(AngularDataTester, Iterators)
+{
+    // Create some RelativisticConfigurations and check the projections correspond to those expected.
+    RelativisticConfiguration rconfig;
+
+    //4d4
+    rconfig.insert(std::make_pair(OrbitalInfo(4, -3), 3));
+    rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
+
+    int min_TwoJ = (rconfig.ExcitationNumber()%2 == 0)? 0 : 1;
+    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ExcitationNumber(), min_TwoJ, min_TwoJ));
+
+    rconfig.GetProjections(library);
+
+    // Generate CSFs
+    library->GenerateCSFs();
+
+    // Norm check on CSFs
+    ASSERT_LE(1, rconfig.NumCSFs());    // Make sure we're testing something
+
+    std::vector<double> norm(rconfig.NumCSFs());
+    auto it = rconfig.projection_begin();
+    while(it != rconfig.projection_end())
+    {
+        auto csf_it = it.CSF_begin();
+        int i = 0;
+        while(csf_it != it.CSF_end())
+        {   norm[i++] += (*csf_it) * (*csf_it);
+            csf_it++;
+        }
+
+        it++;
+    }
+    for(int i = 0; i < norm.size(); i++)
+        EXPECT_NEAR(1., norm[i], 1.e-6);
 }

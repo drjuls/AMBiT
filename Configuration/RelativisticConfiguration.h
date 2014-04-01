@@ -27,6 +27,7 @@ public:
 
     typedef std::map<OrbitalInfo, int>::iterator iterator;
     typedef std::map<OrbitalInfo, int>::const_iterator const_iterator;
+    typedef const double* const_CSF_iterator;
 
     iterator begin() { return config.begin(); }
     const_iterator begin() const { return config.begin(); }
@@ -69,57 +70,53 @@ public:
     /** Get the number of CSFs that have been calculated. */
     unsigned int NumCSFs() const;
 
-    /** Iterator over projections and CSFs. */
-//    class projection_iterator : public boost::iterator_adaptor<
-//        projection_iterator,
-//    typename ProjectionList::iterator,   //Base
-//    typename ConfigType::value_type  // Value
-//    >
-//    {
-//    private:
-//        struct enabler {};  // a private type avoids misuse
-//
-//    public:
-//        config_iterator():
-//        config_iterator::iterator_adaptor_(typename ConfigType::iterator()) {}
-//
-//        explicit config_iterator(typename ConfigType::iterator p):
-//        config_iterator::iterator_adaptor_(p) {}
-//
-//        template <class OtherConfigType>
-//        config_iterator(config_iterator<OtherConfigType> const& other,
-//                        typename boost::enable_if< boost::is_convertible<OtherConfigType,ConfigType>, enabler
-//                        >::type = enabler()
-//                        ):
-//        config_iterator::iterator_adaptor_(other.base()) {}
-//    };
-//
-//    typedef config_iterator<std::map<OrbitalInfo, int> > iterator;
-//    typedef config_iterator<const std::map<OrbitalInfo, int> > const_iterator;
-
-//    bool GenerateJCoefficients(double J);
-
-    /** PRE: num_Jstates > 0
-             coefficients = double[num_Jstates * projections.size()]
-        This class assumes responsibility for freeing the memory in coefficients.
-     */
-//    void SetJCoefficients(unsigned int num_Jstates, double* coefficients);
-//
-//    inline const ProjectionSet& GetProjections() const
-//    {   return projections; }
-//
-//    inline unsigned int NumJStates() const
-//    {   return num_states;  }
-//
-//    inline const double* GetJCoefficients() const
-//    {   return j_coefficients; }
-//
-//    inline double* GetJCoefficients()
-//    {   return j_coefficients; }
-
+    /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;
 
     virtual std::string Name() const;
+    
+public:
+    class const_projection_iterator : public boost::iterator_facade<
+        const_projection_iterator,
+        const Projection,
+        boost::bidirectional_traversal_tag
+        >
+    {
+        /** Iterator over projections and CSFs. */
+    public:
+        const_projection_iterator():
+        m_base(), current_CSFs(0)
+        {}
+
+        explicit const_projection_iterator(ProjectionList::const_iterator p, const_CSF_iterator csf, unsigned int num_CSFs):
+            m_base(p), current_CSFs(csf), num_CSFs(num_CSFs)
+        {}
+
+        const_projection_iterator(const const_projection_iterator& other):
+            m_base(other.m_base), current_CSFs(other.current_CSFs), num_CSFs(other.num_CSFs)
+        {}
+
+        const_CSF_iterator CSF_begin() const { return current_CSFs; }
+        const_CSF_iterator CSF_end() const { return current_CSFs + num_CSFs; }
+        unsigned int NumCSFs() const { return num_CSFs; }
+
+    private:
+        friend class boost::iterator_core_access;
+
+        value_type dereference() const { return *m_base; }
+        bool equal(const const_projection_iterator& other) const { return this->m_base == other.m_base; }
+        void increment() { m_base++; current_CSFs += num_CSFs; }
+        void decrement() { m_base--; current_CSFs -= num_CSFs; }
+
+    private:
+        ProjectionList::const_iterator m_base;
+        AngularData::const_CSF_iterator current_CSFs;
+        unsigned int num_CSFs;
+    };
+
+    const_projection_iterator projection_begin() const { return const_projection_iterator(projections.begin(), angular_data->CSF_begin(0), angular_data->NumCSFs()); }
+    const_projection_iterator projection_end() const { return const_projection_iterator(projections.end(), angular_data->CSF_begin(angular_data->NumCSFs()), angular_data->NumCSFs()); }
+    unsigned int projection_size() const { return angular_data->projection_size(); }
 
 protected:
     std::map<OrbitalInfo, int> config;
