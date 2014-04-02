@@ -4,6 +4,7 @@
 #include "HartreeFock/OrbitalInfo.h"
 #include "Projection.h"
 #include "AngularData.h"
+#include "SortedList.h"
 #include <boost/iterator_adaptors.hpp>
 #include <string>
 
@@ -14,9 +15,6 @@
 
 class RelativisticConfiguration
 {
-//    friend struct RelConfProjectionSizeRanking;
-//    friend struct RelConfNumJStatesRanking;
-
     /** RelativisticConfiguration extends configuration by adding a set of projections
         and corresponding coefficients for a particular |J, M>.
      */
@@ -128,36 +126,34 @@ protected:
     ProjectionList projections;
 };
 
-typedef std::list<RelativisticConfiguration> RelativisticConfigList;
+class MostCSFsFirstComparator;
+
+class RelativisticConfigList: public SortedList<RelativisticConfiguration, MostCSFsFirstComparator>
+{
+public:
+    RelativisticConfigList() {}
+    RelativisticConfigList(const RelativisticConfigList& other): BaseSortedList(other) {}
+    RelativisticConfigList(RelativisticConfigList&& other): BaseSortedList(other) {}
+    RelativisticConfigList(const RelativisticConfiguration& val): BaseSortedList(val) {}
+    RelativisticConfigList(RelativisticConfiguration&& val): BaseSortedList(val) {}
+    virtual ~RelativisticConfigList() {}
+};
+
+class MostCSFsFirstComparator
+{
+public:
+    bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        if(first.NumCSFs() > second.NumCSFs())
+            return true;
+        else if(first.NumCSFs() < second.NumCSFs())
+            return false;
+        else
+            return(first < second);
+    }
+};
+
 typedef boost::shared_ptr<RelativisticConfigList> pRelativisticConfigList;
 typedef boost::shared_ptr<const RelativisticConfigList> pRelativisticConfigListConst;
-
-//struct RelConfProjectionSizeRanking
-//{
-//    // Sort in descending order of projection
-//    inline bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
-//    {
-//        if(first.projections.size() > second.projections.size())
-//            return true;
-//        else if(first.projections.size() < second.projections.size())
-//            return false;
-//        else
-//            return (first < second);
-//    }
-//};
-//
-//struct RelConfNumJStatesRanking
-//{
-//    // Sort in descending order of number of Jstates
-//    inline bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
-//    {
-//        if(first.num_states > second.num_states)
-//            return true;
-//        else if(first.num_states < second.num_states)
-//            return false;
-//        else
-//            return (first < second);
-//    }
-//};
 
 #endif

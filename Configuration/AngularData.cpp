@@ -369,3 +369,10 @@ void AngularDataLibrary::GenerateCSFs()
     }
 }
 
+void AngularDataLibrary::Read()
+{
+}
+
+void AngularDataLibrary::Write() const
+{
+}

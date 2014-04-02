@@ -22,11 +22,6 @@ public:
     ConfigGenerator(pStateManagerConst coreStates, pStateManagerConst excitedStates, MultirunOptions& userInput);
     virtual ~ConfigGenerator();
 
-    void SetTwoM(int two_m) { TwoM = two_m; }
-    int GetTwoM() const { return TwoM; }
-    void SetParity(Parity P) { parity = P; }
-    Parity GetParity() const { return parity; }
-
     /** Clear the non-relativistic and relativistic config lists and free memory.
         Use Read() to restore.
      */
@@ -36,46 +31,36 @@ public:
     std::set<Configuration>* GetLeadingConfigs();
     const std::set<Configuration>* GetLeadingConfigs() const;
 
-    /** Get list of non-relativistic configurations. */
-    virtual ConfigList* GetNonRelConfigs();
+    /** Generate list of non-relativistic configurations from relativistic config list. */
+//    virtual ConfigList GetNonRelConfigs();
 
-    /** Get list of relativistic configurations. */
-    virtual pRelativisticConfigList GetRelConfigs() {  return rlist; }
-    virtual pRelativisticConfigListConst GetRelConfigs() const { return rlist; }
-
-public:
-    /** Generate non-relativistic and then relativistic configurations based on the input file. */
-    pRelativisticConfigList GenerateRelativisticConfigurations();
-
-    /** Add to the set of leading configurations. */
-    DEPRECATED void AddLeadingConfiguration(const Configuration& config);
-    DEPRECATED void AddLeadingConfigurations(const std::set<Configuration> config_set);
-    DEPRECATED void AddNonRelConfiguration(const Configuration& config);
-
-    /** Generate all non-relativistic configurations possible by exciting num_excitations
-        electrons. Append the new configurations to the list.
-        All new configurations must have the same parity as the first.
-        Returns a sorted, unique list and appends that list to local nrlist.
+    /** Generate non-relativistic and then relativistic configurations based on the input file.
+        Returned list has CSFs with J = M.
      */
-    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL);
+    pRelativisticConfigList GenerateRelativisticConfigurations(Parity parity, int two_j);
+
+protected:
+    /** Generate all non-relativistic configurations possible by exciting num_excitations
+        electrons. Append the new configurations to the list, keeping it sorted and unique.
+        All new configurations must have the same parity as the first.
+     */
+    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL) const;
 
     /** Call GenerateMultipleExcitations() with leading configurations as input. */
-    void GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL);
+    ConfigList GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL) const;
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
         PRE: nrlist should be unique.
         POST: rlist is sorted and unique.
       */
-    void GenerateRelativisticConfigs();
+    pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
 
     /** Make all projections of the rlist that have a projection M = two_m/2.
-        Remove configurations that cannot have this projection. If two_m is not given,
-        the default is M = J.
+        Remove configurations that cannot have this projection.
         PRE: rlist should be unique.
      */
-//    void GenerateProjections(int two_m);
-//    void GenerateProjections();
+    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const;
 
     /** Store the leading_configs and rlist (RelativisticConfigList).
         Filename is "identifier.twoJ.P.configs".
@@ -89,12 +74,12 @@ protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
      */
-    void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* states_to_be_excited_to = NULL);
+    void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* states_to_be_excited_to = NULL) const;
 
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When config.AtEnd(), add it to rlist.
       */
-    void SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, RelativisticConfigList& rlist);
+    void SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const;
 
     /** Restore nrlist from rlist.
         Usually we no longer want the nrlist after a read, but if it is wanted,
@@ -107,15 +92,11 @@ protected:
     MultirunOptions& user_input;
     pStateManagerConst core;
     pStateManagerConst excited;
-    Parity parity;
-    int TwoM;
 
     // Set of all valence states
     NonRelInfoSet NonRelSet;
 
     std::set<Configuration> leading_configs;
-    ConfigList nrlist;
-    pRelativisticConfigList rlist;
 };
 
 #endif

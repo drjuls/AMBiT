@@ -7,11 +7,8 @@
 #include <sstream>
 
 ConfigGenerator::ConfigGenerator(pStateManagerConst coreStates, pStateManagerConst excitedStates, MultirunOptions& userInput):
-    core(coreStates), excited(excitedStates), user_input(userInput), rlist(new RelativisticConfigList())
+    core(coreStates), excited(excitedStates), user_input(userInput)
 {
-    parity = even;
-    TwoM = 0;
-
     NonRelSet.clear();
 
     ConstStateIterator it = excited->GetConstStateIterator();
@@ -35,8 +32,6 @@ ConfigGenerator::~ConfigGenerator(void)
 void ConfigGenerator::Clear()
 {
     leading_configs.clear();
-    nrlist.clear();
-    rlist->clear();
 }
 
 std::set<Configuration>* ConfigGenerator::GetLeadingConfigs()
@@ -47,16 +42,16 @@ const std::set<Configuration>* ConfigGenerator::GetLeadingConfigs() const
 {   return &leading_configs;
 }
 
-ConfigList* ConfigGenerator::GetNonRelConfigs()
-{
-    // Check to see if we haven't restored nrlist since a read.
-    if(nrlist.empty() && !rlist->empty())
-        RestoreNonRelConfigs();
+//ConfigList* ConfigGenerator::GetNonRelConfigs()
+//{
+//    // Check to see if we haven't restored nrlist since a read.
+//    if(nrlist.empty() && !rlist->empty())
+//        RestoreNonRelConfigs();
+//
+//    return &nrlist;
+//}
 
-    return &nrlist;
-}
-
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations()
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Parity parity, int two_j)
 {
     bool allow_different_excitations = false;
     unsigned int electron_excitations = 0;
@@ -85,6 +80,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations()
     }
 
     // TODO: Generate non-relativistic configs from file.
+    ConfigList nrlist;
     bool GenerateFromFile = false;
 
     int num_configs = user_input.vector_variable_size("CI/LeadingConfigurations");
@@ -126,7 +122,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations()
                            << " does not have correct number of valence electrons." << std::endl;
                 exit(1);
             }
-            nrlist.push_back(extraconfig);
+            nrlist.add(extraconfig);
         }
     }
 
@@ -163,12 +159,12 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations()
                 nrset.erase(si.GetOrbitalInfo());
             }
 
-            GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset);
+            nrlist.merge(GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset));
         }
     }
     else
     {
-        GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations, &NonRelSet);
+        nrlist.merge(GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations, &NonRelSet));
     }
 
     // Remove states of wrong parity
@@ -177,78 +173,48 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations()
     while(it != nrlist.end())
     {
         if(it->GetParity() != parity)
-        {   //std::cout << "                              " << it->Name() << std::endl;
-            it = nrlist.erase(it);
+        {   it = nrlist.erase(it);
         }
         else
             it++;
     }
 
-    GenerateRelativisticConfigs();
-//    GenerateProjections();
+    nrlist.unique();
+
+    pRelativisticConfigList rlist = GenerateRelativisticConfigs(nrlist);
+    GenerateProjections(rlist, two_j);
 
     return rlist;
 }
 
-void ConfigGenerator::AddLeadingConfiguration(const Configuration& config)
+void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to) const
 {
-    leading_configs.insert(config);
-}
-
-void ConfigGenerator::AddNonRelConfiguration(const Configuration& config)
-{
-    nrlist.push_back(config);
-    nrlist.sort();
-    nrlist.unique();
-}
-
-void ConfigGenerator::AddLeadingConfigurations(const std::set<Configuration> config_set)
-{
-    std::set<Configuration>::const_iterator it = config_set.begin();
-    while(it != config_set.end())
-    {   leading_configs.insert(*it);
-        it++;
-    }
-}
-
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to)
-{
-    // Check to see if we haven't restored nrlist since a read.
-    if(nrlist.empty() && !rlist->empty())
-        RestoreNonRelConfigs();
-
-    configlist.sort();
     configlist.unique();
 
     for(unsigned int i=0; i<num_excitations; i++)
     {
         GenerateExcitations(configlist, states_to_be_excited_to);
-        configlist.sort();
         configlist.unique();
     }
-
-    // Append new configurations to nrlist.
-    nrlist.insert(nrlist.end(), configlist.begin(), configlist.end());
-    nrlist.sort();
-    nrlist.unique();
 }
 
-void ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to)
+ConfigList ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to) const
 {
     // Move leading configs to configlist
-    ConfigList configlist;
+    ConfigList nrlist;
     
     std::set<Configuration>::const_iterator it = leading_configs.begin();
     while(it != leading_configs.end())
-    {   configlist.push_back(*it);
+    {   nrlist.add(*it);
         it++;
     }
     
     // Generate excitations
-    GenerateMultipleExcitations(configlist, num_excitations, states_to_be_excited_to);
+    GenerateMultipleExcitations(nrlist, num_excitations, states_to_be_excited_to);
+    return nrlist;
 }
 
-void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* AllowedStateSet)
+void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* AllowedStateSet) const
 {
     const NonRelInfoSet* allowed_state_set = AllowedStateSet;
     if(allowed_state_set == NULL)
@@ -277,7 +243,7 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelIn
                 {
                     Configuration new_config(other);
                     if(new_config.AddSingleParticle(*nrit))
-                        configlist.push_back(new_config);
+                        configlist.add(new_config);
                 }
                 nrit++;
             }
@@ -287,27 +253,44 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelIn
     }
 }
 
-void ConfigGenerator::GenerateRelativisticConfigs()
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const ConfigList& nrlist) const
 {
+    pRelativisticConfigList rlist(new RelativisticConfigList());
     ConfigList::const_iterator it = nrlist.begin();
     while(it != nrlist.end())
     {
         Configuration config(*it);
         RelativisticConfiguration rconfig;
-        SplitNonRelInfo(config, config.begin(), rconfig, *rlist);
+        SplitNonRelInfo(config, config.begin(), rconfig, rlist);
 
         it++;
     }
-    rlist->sort();
+
     rlist->unique();
+    return rlist;
+}
+
+void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m) const
+{
+    int particle_number = rlist->begin()->ParticleNumber();
+    pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, two_m, two_m));
+
+    angular_library->Read();
+
+    auto it = rlist->begin();
+    while(it != rlist->end())
+    {
+        if(it->GetProjections(angular_library))
+            it++;
+        else
+            it = rlist->erase(it);
+    }
+
+    angular_library->GenerateCSFs();
+    angular_library->Write();
 }
 
 /*
-void ConfigGenerator::GenerateProjections()
-{
-    GenerateProjections(TwoM);
-}
-
 void ConfigGenerator::GenerateProjections(int two_m)
 {
     RelativisticConfigList::iterator it = rlist->begin();
@@ -410,10 +393,10 @@ void ConfigGenerator::GenerateProjections(int two_m)
 }
 */
 
-void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, RelativisticConfigList& rlist)
+void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const
 {
     if(current_orbital == config.end())
-    {   rlist.push_back(relconfig);
+    {   rlist->add(relconfig);
         return;
     }
 
@@ -443,7 +426,7 @@ void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration
 
             if(i)
                 new_rconfig.insert(std::make_pair(rinfo1, i));
-            else if(num_electrons - i)
+            if(num_electrons - i)
                 new_rconfig.insert(std::make_pair(rinfo2, num_electrons-i));
 
             SplitNonRelInfo(config, next_orbital, new_rconfig, rlist);
@@ -451,6 +434,7 @@ void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration
     }
 }
 
+/*
 void ConfigGenerator::RestoreNonRelConfigs()
 {
     // Generate non-relativistic configurations
@@ -464,7 +448,6 @@ void ConfigGenerator::RestoreNonRelConfigs()
     nrlist.unique();
 }
 
-/*
 void ConfigGenerator::Write() const
 {
     if(ProcessorRank == 0)

@@ -31,10 +31,8 @@ int Configuration::GetOccupancy(const NonRelInfo& info) const
 
 int& Configuration::operator[](const NonRelInfo& info)
 {
-    if(find(info) == end())
-        config[info] = 0;
-
-    return config[info];
+    auto pair = config.insert(std::make_pair(info, 0));
+    return pair.first->second;
 }
 
 Configuration::iterator Configuration::find(const NonRelInfo& info)
@@ -291,14 +289,24 @@ void Configuration::Read(FILE* fp)
     }
 }
 
-void ConfigList::Print()
+ConfigList::ConfigList(const RelativisticConfigList& rlist)
 {
-    ConfigList::iterator it = begin();
-    while(it != end())
-    {   *outstream << it->Name() << ",";
-        it++;
+    // Generate non-relativistic configurations
+    for(auto& rconfig: rlist)
+    {
+        m_list.push_back(Configuration(rconfig));
     }
-    *outstream << std::endl;
+
+    m_list.sort(BaseComparator());
+    unique();
+}
+
+std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
+{
+    for(auto& config: config_list)
+    {   stream << config.Name() << ",";
+    }
+    return stream;
 }
 
 ConfigurationPair::ConfigurationPair(const Configuration& aConfiguration, const double& aDouble)

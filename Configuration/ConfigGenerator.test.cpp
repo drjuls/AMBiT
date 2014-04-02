@@ -39,16 +39,14 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     int total_rel = 0;
     ConfigGenerator gen(core, excited, userInput);
 
-    gen.SetParity(even);
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations();
-    ConfigList* nonrelconfigs = gen.GetNonRelConfigs();
-    total_non_rel += nonrelconfigs->size();
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(even, 0);
+    ConfigList nonrelconfigs(*relconfigs);
+    total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
 
-    gen.SetParity(odd);
-    relconfigs = gen.GenerateRelativisticConfigurations();
-    nonrelconfigs = gen.GetNonRelConfigs();
-    total_non_rel += nonrelconfigs->size();
+    relconfigs = gen.GenerateRelativisticConfigurations(odd, 0);
+    nonrelconfigs = *relconfigs;
+    total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
 
     // Check number of non-rel configurations:

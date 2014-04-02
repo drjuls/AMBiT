@@ -4,9 +4,9 @@
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "RelativisticConfiguration.h"
+#include "SortedList.h"
 #include <map>
 #include <set>
-#include <list>
 #include <string>
 
 class Configuration
@@ -37,8 +37,8 @@ public:
     iterator find(const NonRelInfo& info);
     const_iterator find(const NonRelInfo& info) const;
 
-    void clear();
-    bool empty() const;
+    void clear() { config.clear(); }
+    bool empty() const { return config.empty(); }
     int size() const { return config.size(); }
 
     iterator erase(const_iterator position);
@@ -69,21 +69,29 @@ protected:
     std::map<NonRelInfo, int> config;
 };
 
-class ConfigList : public std::list<Configuration>
+class ConfigList : public SortedList<Configuration>
 {
 public:
-    void Print();
+    ConfigList() {}
+    ConfigList(const ConfigList& other): BaseSortedList(other) {}
+    ConfigList(ConfigList&& other): BaseSortedList(other) {}
+    ConfigList(const Configuration& val): BaseSortedList(val) {}
+    ConfigList(Configuration&& val): BaseSortedList(val) {}
+
+    /** Create unique non-relativistic list from rlist. */
+    ConfigList(const RelativisticConfigList& rlist);
+
+    ConfigList& operator=(const ConfigList& other)
+    {   BaseSortedList::operator=(other);
+        return *this;
+    }
+    ConfigList& operator=(ConfigList&& other)
+    {   BaseSortedList::operator=(other);
+        return *this;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
 };
-
-inline void Configuration::clear()
-{
-    config.clear();
-}
-
-inline bool Configuration::empty() const
-{
-    return config.empty();
-}
 
 class ConfigurationPair : public std::pair<Configuration, double>
 {
