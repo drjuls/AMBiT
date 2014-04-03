@@ -47,6 +47,10 @@ public:
     iterator erase(const_iterator position) { return m_list.erase(position); }
     iterator erase(const_iterator first, const_iterator last) { return m_list.erase(first, last); }
 
+    /** PRE: size() > 0 */
+    Value& front() { return m_list.front(); }
+    const Value& front() const { return m_list.front(); }
+
     void merge(BaseSortedList& other) { m_list.merge(other.m_list, Compare()); }
     void merge(BaseSortedList&& other) { m_list.merge(other.m_list, Compare()); }
 

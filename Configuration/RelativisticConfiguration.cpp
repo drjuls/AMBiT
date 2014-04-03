@@ -4,174 +4,29 @@
 #include "Universal/Eigensolver.h"
 
 RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfiguration& other):
-    config(other.config), projections(other.projections), angular_data(other.angular_data)
+    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
 {}
 
-int RelativisticConfiguration::ParticleNumber() const
-{
-    int num = 0;
-    for(auto& value : config)
-        num += value.second;
+RelativisticConfiguration::RelativisticConfiguration(RelativisticConfiguration&& other):
+    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
+{}
 
-    return num;
+RelativisticConfiguration& RelativisticConfiguration::operator=(const RelativisticConfiguration& other)
+{
+    m_config = other.m_config;
+    angular_data = other.angular_data;
+    projections = other.projections;
+
+    return *this;
 }
 
-/** Excitation number = number of electrons + number of holes. */
-int RelativisticConfiguration::ExcitationNumber() const
+RelativisticConfiguration& RelativisticConfiguration::operator=(RelativisticConfiguration&& other)
 {
-    int num = 0;
-    for(auto& value : config)
-        num += value.second;
+    m_config.swap(other.m_config);
+    angular_data = other.angular_data;
+    projections.swap(other.projections);
 
-    return num;
-}
-
-/** Get occupancy of a particular single particle state (zero if absent). */
-int RelativisticConfiguration::GetOccupancy(const OrbitalInfo& info) const
-{
-    auto it = find(info);
-    if(it != end())
-        return it->second;
-    else
-        return 0;
-}
-
-int& RelativisticConfiguration::operator[](const OrbitalInfo& info)
-{
-    return config[info];
-}
-
-RelativisticConfiguration::iterator RelativisticConfiguration::insert(const std::pair<OrbitalInfo, int>& val)
-{
-    auto it = find(val.first);
-    if(it != end())
-    {
-        if(val.second)
-        {   it->second = val.second;
-            return it;
-        }
-        else
-        {   config.erase(it);
-            return end();
-        }
-    }
-
-    // Not found already
-    if(val.second)
-    {   return config.insert(val).first;
-    }
-    else
-        return end();
-}
-
-RelativisticConfiguration::iterator RelativisticConfiguration::find(const OrbitalInfo& info)
-{
-    for(auto it = config.begin(); it != config.end(); it++)
-        if(it->first == info)
-            return it;
-
-    return config.end();
-}
-
-RelativisticConfiguration::const_iterator RelativisticConfiguration::find(const OrbitalInfo& info) const
-{
-    for(auto it = config.begin(); it != config.end(); it++)
-        if(it->first == info)
-            return it;
-
-    return config.end();
-}
-
-void RelativisticConfiguration::clear()
-{
-    config.clear();
-}
-
-bool RelativisticConfiguration::empty() const
-{
-    return config.empty();
-}
-
-RelativisticConfiguration::iterator RelativisticConfiguration::erase(const_iterator position)
-{
-    return config.erase(position);
-}
-
-int RelativisticConfiguration::erase(const OrbitalInfo& info)
-{
-    auto it = find(info);
-    if(it != end())
-    {   erase(it);
-        return 1;
-    }
-    else
-        return 0;
-}
-
-RelativisticConfiguration::iterator RelativisticConfiguration::erase(const_iterator first, const_iterator last)
-{
-    return config.erase(first, last);
-}
-
-std::string RelativisticConfiguration::Name() const
-{
-    std::string ret;
-    for(auto& element: config)
-        ret += element.first.Name() + itoa(element.second);
-
-    return ret;
-}
-
-bool RelativisticConfiguration::operator<(const RelativisticConfiguration& other) const
-{
-    auto first = config.begin();
-    auto second = other.config.begin();
-
-    while((first != config.end()) && (second != other.config.end()))
-    {
-        // Order by single particle info
-        if(first->first < second->first)
-            return true;
-        else if(second->first < first->first)
-            return false;
-
-        // Then by number of electrons
-        if(abs(first->second) < abs(second->second))
-            return true;
-        else if(abs(first->second) > abs(second->second))
-            return false;
-
-        first++;
-        second++;
-    }
-
-    if((first == config.end()) && (second != other.config.end()))
-        return true;
-    else return false;
-}
-
-bool RelativisticConfiguration::operator==(const RelativisticConfiguration& other) const
-{
-    auto first = config.begin();
-    auto second = other.config.begin();
-
-    while((first != config.end()) && (second != other.config.end()))
-    {
-        // Order by single particle info
-        if(first->first != second->first)
-            return false;
-
-        // Then by number of electrons
-        if(first->second != second->second)
-            return false;
-
-        first++;
-        second++;
-    }
-
-    if((first != config.end()) || (second != other.config.end()))
-        return false;
-    else return true;
+    return *this;
 }
 
 bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data)
@@ -201,7 +56,7 @@ unsigned int RelativisticConfiguration::NumCSFs() const
 int RelativisticConfiguration::GetTwiceMaxProjection() const
 {
     int maximum_two_m = 0;
-    for(auto& it: config)
+    for(auto& it: m_config)
     {   // max M = J + (J-1) + (J-2) + ...
         //       = NJ - N(N-1)/2
         int N = abs(it.second);

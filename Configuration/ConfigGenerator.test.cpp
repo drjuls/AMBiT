@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"
+#include "HartreeFock/ConfigurationParser.h"
 
 TEST(ConfigGeneratorTester, CountConfigurations)
 {

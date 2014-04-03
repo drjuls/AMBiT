@@ -8,9 +8,11 @@ class NonRelInfo : public OrbitalInfo
 {
     /** Stores a non-relativistic single particle state info. */
 public:
-    NonRelInfo(unsigned int principal_qn, unsigned int ll):
-        OrbitalInfo(principal_qn, -(int(ll) + 1))
-    {}
+    NonRelInfo(int principal_qn, int kappa_or_l):
+        OrbitalInfo(principal_qn, kappa_or_l)
+    {   if(kappa_or_l >= 0)
+            kappa = -(kappa_or_l + 1);
+    }
     NonRelInfo(const NonRelInfo& other):
         OrbitalInfo(other.pqn, other.kappa)
     {}

@@ -104,7 +104,7 @@ TEST(AngularDataTester, CountCSFs)
     rconfig.insert(std::make_pair(OrbitalInfo(4, -3), 2));
     rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
 
-    int min_TwoJ = (rconfig.ExcitationNumber()%2 == 0)? 0 : 1;
+    int min_TwoJ = (rconfig.ParticleNumber()%2 == 0)? 0 : 1;
     AngularData ang(rconfig, min_TwoJ, min_TwoJ);
 
     int csf_count = 0;
@@ -127,8 +127,8 @@ TEST(AngularDataTester, Iterators)
     rconfig.insert(std::make_pair(OrbitalInfo(4, -3), 3));
     rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
 
-    int min_TwoJ = (rconfig.ExcitationNumber()%2 == 0)? 0 : 1;
-    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ExcitationNumber(), min_TwoJ, min_TwoJ));
+    int min_TwoJ = (rconfig.ParticleNumber()%2 == 0)? 0 : 1;
+    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ParticleNumber(), min_TwoJ, min_TwoJ));
 
     rconfig.GetProjections(library);
 

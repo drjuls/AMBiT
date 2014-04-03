@@ -5,7 +5,9 @@
 #include "StateIterator.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
-#include "ConfigurationParser.h"
+#include "Configuration.h"
+
+typedef Configuration<OrbitalInfo, double> OccupationMap;
 
 /** Core is a StateManager container class with orbital occupancies added. */
 class Core : public StateManager

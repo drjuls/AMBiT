@@ -2,6 +2,7 @@
 #define RELATIVISTIC_CONFIGURATION_H
 
 #include "HartreeFock/OrbitalInfo.h"
+#include "HartreeFock/Configuration.h"
 #include "Projection.h"
 #include "AngularData.h"
 #include "SortedList.h"
@@ -13,54 +14,23 @@
     enum Parity { even, odd };
 #endif
 
-class RelativisticConfiguration
+class RelativisticConfiguration: public Configuration<OrbitalInfo, int>
 {
     /** RelativisticConfiguration extends configuration by adding a set of projections
         and corresponding coefficients for a particular |J, M>.
      */
 public:
     RelativisticConfiguration() {}
+    RelativisticConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
+    RelativisticConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
     RelativisticConfiguration(const RelativisticConfiguration& other);
+    RelativisticConfiguration(RelativisticConfiguration&& other);
     virtual ~RelativisticConfiguration() {}
 
-    typedef std::map<OrbitalInfo, int>::iterator iterator;
-    typedef std::map<OrbitalInfo, int>::const_iterator const_iterator;
+    RelativisticConfiguration& operator=(const RelativisticConfiguration& other);
+    RelativisticConfiguration& operator=(RelativisticConfiguration&& other);
+
     typedef const double* const_CSF_iterator;
-
-    iterator begin() { return config.begin(); }
-    const_iterator begin() const { return config.begin(); }
-    iterator end() { return config.end(); }
-    const_iterator end() const { return config.end(); }
-    iterator find(const OrbitalInfo& info);
-    const_iterator find(const OrbitalInfo& info) const;
-
-    void clear();
-    bool empty() const;
-    int size() const { return config.size(); }
-
-    /** Different to STL map insert, in that it always changes the occupancy associated
-        with OrbitalInfo, regardless of whether it existed previously.
-        Returns iterator to new value, or end() if occupancy = 0.
-     */
-    iterator insert(const std::pair<OrbitalInfo, int>& val);
-
-    iterator erase(const_iterator position);
-    int erase(const OrbitalInfo& info);
-    iterator erase(const_iterator first, const_iterator last);
-
-    /** Get occupancy of a particular single particle state (zero if absent). */
-    int GetOccupancy(const OrbitalInfo& info) const;
-    int& operator[](const OrbitalInfo& info);
-
-    /** Number of particles = number of electrons - number of holes. */
-    virtual int ParticleNumber() const;
-
-    /** Excitation number = number of electrons + number of holes. */
-    virtual int ExcitationNumber() const;
-    Parity GetParity() const;
-
-    bool operator<(const RelativisticConfiguration& other) const;
-    bool operator==(const RelativisticConfiguration& other) const;
 
     /** Return whether a suitable projection with J = M = two_m/2 was found. */
     bool GetProjections(pAngularDataLibrary data);
@@ -71,8 +41,6 @@ public:
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;
 
-    virtual std::string Name() const;
-    
 public:
     class const_projection_iterator : public boost::iterator_facade<
         const_projection_iterator,
@@ -117,8 +85,6 @@ public:
     unsigned int projection_size() const { return angular_data->projection_size(); }
 
 protected:
-    std::map<OrbitalInfo, int> config;
-
     /** Pointer to angular data (CSFs) for this RelativisticConfiguration. */
     pAngularData angular_data;
 
@@ -132,11 +98,26 @@ class RelativisticConfigList: public SortedList<RelativisticConfiguration, MostC
 {
 public:
     RelativisticConfigList() {}
-    RelativisticConfigList(const RelativisticConfigList& other): BaseSortedList(other) {}
-    RelativisticConfigList(RelativisticConfigList&& other): BaseSortedList(other) {}
-    RelativisticConfigList(const RelativisticConfiguration& val): BaseSortedList(val) {}
-    RelativisticConfigList(RelativisticConfiguration&& val): BaseSortedList(val) {}
+    RelativisticConfigList(const RelativisticConfigList& other): BaseSortedList(other), num_electrons(other.num_electrons) {}
+    RelativisticConfigList(RelativisticConfigList&& other): BaseSortedList(other), num_electrons(other.num_electrons) {}
+    RelativisticConfigList(const RelativisticConfiguration& val): BaseSortedList(val) { num_electrons = front().ElectronNumber(); }
+    RelativisticConfigList(RelativisticConfiguration&& val): BaseSortedList(val) { num_electrons = front().ElectronNumber(); }
     virtual ~RelativisticConfigList() {}
+
+    RelativisticConfigList& operator=(const RelativisticConfigList& other)
+    {   BaseSortedList::operator=(other);
+        num_electrons = other.num_electrons;
+        return *this;
+    }
+
+    RelativisticConfigList& operator=(RelativisticConfigList&& other)
+    {   BaseSortedList::operator=(other);
+        num_electrons = other.num_electrons;
+        return *this;
+    }
+
+protected:
+    int num_electrons;
 };
 
 class MostCSFsFirstComparator

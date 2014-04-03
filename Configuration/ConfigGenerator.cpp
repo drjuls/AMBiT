@@ -10,6 +10,7 @@ ConfigGenerator::ConfigGenerator(pStateManagerConst coreStates, pStateManagerCon
     core(coreStates), excited(excitedStates), user_input(userInput)
 {
     NonRelSet.clear();
+    leading_configs = pConfigList(new ConfigList());
 
     ConstStateIterator it = excited->GetConstStateIterator();
     while(!it.AtEnd())
@@ -31,15 +32,15 @@ ConfigGenerator::~ConfigGenerator(void)
 
 void ConfigGenerator::Clear()
 {
-    leading_configs.clear();
+    leading_configs->clear();
 }
 
-std::set<Configuration>* ConfigGenerator::GetLeadingConfigs()
-{   return &leading_configs;
+pConfigList ConfigGenerator::GetLeadingConfigs()
+{   return leading_configs;
 }
 
-const std::set<Configuration>* ConfigGenerator::GetLeadingConfigs() const
-{   return &leading_configs;
+pConfigListConst ConfigGenerator::GetLeadingConfigs() const
+{   return leading_configs;
 }
 
 //ConfigList* ConfigGenerator::GetNonRelConfigs()
@@ -94,17 +95,17 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
     for(int i = 0; i < num_configs; i++)
     {
         const std::string name = user_input("CI/LeadingConfigurations", "", i);
-        Configuration config(name);
+        NonRelConfiguration config(name);
 
         // Check that the configuration gels with the number of electrons
         if(i == 0)
-            numValenceElectrons = config.ParticleNumber();
-        else if(config.ParticleNumber() != numValenceElectrons)
+            numValenceElectrons = config.ElectronNumber();
+        else if(config.ElectronNumber() != numValenceElectrons)
         {   *errstream << "USAGE: LeadingConfiguration " << name
                        << " does not have correct number of valence electrons." << std::endl;
             exit(1);
         }
-        leading_configs.insert(config);
+        leading_configs->add(config);
     }
 
     // Adds extra configurations not to be considered leading configurations.
@@ -114,9 +115,9 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
         for(int i = 0; i < num_extra_configs; i++)
         {
             const std::string extraname = user_input("CI/ExtraConfigurations", "", i);
-            Configuration extraconfig(extraname);
+            NonRelConfiguration extraconfig(extraname);
 
-            if(extraconfig.ParticleNumber() != numValenceElectrons)
+            if(extraconfig.ElectronNumber() != numValenceElectrons)
             {
                 *errstream << "USAGE: LeadingConfiguration " << extraname
                            << " does not have correct number of valence electrons." << std::endl;
@@ -202,15 +203,12 @@ ConfigList ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsign
 {
     // Move leading configs to configlist
     ConfigList nrlist;
-    
-    std::set<Configuration>::const_iterator it = leading_configs.begin();
-    while(it != leading_configs.end())
-    {   nrlist.add(*it);
-        it++;
-    }
-    
+    for(auto& config: *leading_configs)
+        nrlist.add(config);
+
     // Generate excitations
     GenerateMultipleExcitations(nrlist, num_excitations, states_to_be_excited_to);
+
     return nrlist;
 }
 
@@ -226,12 +224,12 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelIn
     while(it != old_list.end())
     {   
         // For each single particle state in the configuration
-        Configuration start(*it);
+        NonRelConfiguration start(*it);
 
-        Configuration::const_iterator m_it = start.begin();
+        NonRelConfiguration::const_iterator m_it = start.begin();
         while(m_it != start.end())
         {
-            Configuration other(start);
+            NonRelConfiguration other(start);
             other.RemoveSingleParticle(m_it->first);
 
             // Get another single particle state to move to
@@ -241,7 +239,7 @@ void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelIn
                 // If the new state is not the same as the old one
                 if(*nrit != m_it->first)
                 {
-                    Configuration new_config(other);
+                    NonRelConfiguration new_config(other);
                     if(new_config.AddSingleParticle(*nrit))
                         configlist.add(new_config);
                 }
@@ -259,7 +257,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
     ConfigList::const_iterator it = nrlist.begin();
     while(it != nrlist.end())
     {
-        Configuration config(*it);
+        NonRelConfiguration config(*it);
         RelativisticConfiguration rconfig;
         SplitNonRelInfo(config, config.begin(), rconfig, rlist);
 
@@ -272,7 +270,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m) const
 {
-    int particle_number = rlist->begin()->ParticleNumber();
+    int particle_number = rlist->begin()->ElectronNumber();
     pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, two_m, two_m));
 
     angular_library->Read();
@@ -393,7 +391,7 @@ void ConfigGenerator::GenerateProjections(int two_m)
 }
 */
 
-void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const
+void ConfigGenerator::SplitNonRelInfo(const NonRelConfiguration& config, NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const
 {
     if(current_orbital == config.end())
     {   rlist->add(relconfig);
@@ -418,7 +416,7 @@ void ConfigGenerator::SplitNonRelInfo(const Configuration& config, Configuration
 
         // Next orbital is the same for all loops
         current_orbital++;
-        Configuration::const_iterator next_orbital = current_orbital;
+        NonRelConfiguration::const_iterator next_orbital = current_orbital;
 
         for(unsigned int i=start; i<=end; i++)
         {

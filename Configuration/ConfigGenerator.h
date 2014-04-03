@@ -3,11 +3,12 @@
 
 #include "Atom/MultirunOptions.h"
 #include "HartreeFock/StateManager.h"
-#include "Configuration.h"
+#include "NonRelConfiguration.h"
 #include "RelativisticConfiguration.h"
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Symmetry.h"
+#include <set>
 
 /** ConfigGenerator makes the set of projections for use in CI method.
     This includes a bunch of routines to create a set of
@@ -28,11 +29,8 @@ public:
     virtual void Clear();
 
     /** Get list of leading configurations. */
-    std::set<Configuration>* GetLeadingConfigs();
-    const std::set<Configuration>* GetLeadingConfigs() const;
-
-    /** Generate list of non-relativistic configurations from relativistic config list. */
-//    virtual ConfigList GetNonRelConfigs();
+    pConfigList GetLeadingConfigs();
+    pConfigListConst GetLeadingConfigs() const;
 
     /** Generate non-relativistic and then relativistic configurations based on the input file.
         Returned list has CSFs with J = M.
@@ -79,7 +77,7 @@ protected:
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When config.AtEnd(), add it to rlist.
       */
-    void SplitNonRelInfo(const Configuration& config, Configuration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const;
+    void SplitNonRelInfo(const NonRelConfiguration& config, NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const;
 
     /** Restore nrlist from rlist.
         Usually we no longer want the nrlist after a read, but if it is wanted,
@@ -96,7 +94,7 @@ protected:
     // Set of all valence states
     NonRelInfoSet NonRelSet;
 
-    std::set<Configuration> leading_configs;
+    pConfigList leading_configs;
 };
 
 #endif

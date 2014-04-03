@@ -51,7 +51,7 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     // Stop when desired M is reached.
 
     // Create set of boxes, one for each orbital, each with a list of projections to be filled.
-    int projection_size = config.ExcitationNumber();
+    int projection_size = config.ParticleNumber();
     std::vector<int> box_number(projection_size);
     std::vector<int> min_projection(projection_size);
     std::vector<int> max_projection(projection_size);

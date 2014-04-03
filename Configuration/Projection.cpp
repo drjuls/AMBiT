@@ -5,7 +5,7 @@
 
 Projection::Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& TwoMs)
 {
-    config.reserve(relconfig.ExcitationNumber());
+    config.reserve(relconfig.ParticleNumber());
 
     int count = 0;
     for(auto& relconfig_it: relconfig)

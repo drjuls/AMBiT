@@ -5,6 +5,7 @@
 #include "ODESolver.h"
 #include "Universal/PhysicalConstant.h"
 #include "HartreeFocker.h"
+#include "ConfigurationParser.h"
 
 TEST(MassShiftDecoratorTester, CaII)
 {
