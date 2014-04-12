@@ -33,7 +33,7 @@ void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorF
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
 
-    if(include_nonlocal && latticepoint < currentExchangePotential.Size())
+    if(include_nonlocal && latticepoint < currentExchangePotential.size())
     {   double alpha = PhysicalConstant::Instance()->GetAlpha();
         w[0] += alpha * currentExchangePotential.g[latticepoint];
         w[1] -= alpha * currentExchangePotential.f[latticepoint];
@@ -43,7 +43,7 @@ void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const Spi
 {
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
-    if(include_nonlocal && latticepoint < currentExchangePotential.Size())
+    if(include_nonlocal && latticepoint < currentExchangePotential.size())
     {   double alpha = PhysicalConstant::Instance()->GetAlpha();
         w_const[0] += alpha * currentExchangePotential.g[latticepoint];
         w_const[1] -= alpha * currentExchangePotential.f[latticepoint];
@@ -53,7 +53,7 @@ void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorF
 {
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
-    if(include_nonlocal && latticepoint < currentExchangePotential.Size())
+    if(include_nonlocal && latticepoint < currentExchangePotential.size())
     {   double alpha = PhysicalConstant::Instance()->GetAlpha();
         dwdr[0] += alpha * currentExchangePotential.dgdr[latticepoint];
         dwdr[1] -= alpha * currentExchangePotential.dfdr[latticepoint];
@@ -73,9 +73,9 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     bool NON_REL_SCALING = true;
 
     SpinorFunction exchange(s.Kappa());
-    exchange.ReSize(s.Size());
+    exchange.resize(s.size());
 
-    pOneBodyOperator zero(new ZeroOperator());
+    pHartreeY zero(new HartreeYBase());
     pOneBodyOperator sms(new NonRelativisticSMSOperator(zero, integrator));
 
     // Find out whether s is in the core
@@ -84,10 +84,10 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
         current_in_core = NULL;
     
     // Sum over all core states
-    ConstStateIterator cs = core->GetConstStateIterator();
-    while(!cs.AtEnd())
+    auto cs = core->begin();
+    while(cs != core->end())
     {
-        pOrbitalConst core_orbital = cs.GetState();
+        pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
         // Sum over all k
@@ -141,7 +141,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
             }
 
         }
-        cs.Next();
+        cs++;
     }
     
     return exchange;

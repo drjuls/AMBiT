@@ -126,12 +126,12 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
     if(numdiff == 0)
     {
         // Sum <i|f|i>
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
             value += integrals.GetOneElectronIntegral(first[i], first[i]);
             
             // Sum(i < j) <ij|g|ij> - <ij|g|ji>
-            for(unsigned int j=i+1; j<first.Size(); j++)
+            for(unsigned int j=i+1; j<first.size(); j++)
             {
                 value += CoulombMatrixElement(first[i], first[j], first[i], first[j])
                          - CoulombMatrixElement(first[i], first[j], first[j], first[i]);
@@ -149,7 +149,7 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
             value = integrals.GetOneElectronIntegral(f1, s1) * sign;
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
             if(i != diff[0])
             {   const ElectronInfo& e(first[i]);
@@ -285,10 +285,10 @@ double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projec
     if(numdiff == 0)
     {
         // Sum <i|f|i>
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
             // Sum(i < j) <ij|g|ij> - <ij|g|ji>
-            for(unsigned int j=i+1; j<first.Size(); j++)
+            for(unsigned int j=i+1; j<first.size(); j++)
             {
                 value += SMSMatrixElement(first[i], first[j], first[i], first[j])
                          - SMSMatrixElement(first[i], first[j], first[j], first[i]);
@@ -301,7 +301,7 @@ double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projec
         const ElectronInfo& s1 = second[diff[1]];
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {   
             if(i != diff[0])
             {   const ElectronInfo& e(first[i]);
@@ -810,11 +810,11 @@ double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& s
     if(numdiff == 0)
     {
         // Sum(i < j < k) Sigma3(ijk, ijk)
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
-            for(unsigned int j=i+1; j<first.Size(); j++)
+            for(unsigned int j=i+1; j<first.size(); j++)
             {
-                for(unsigned int k=j+1; k<first.Size(); k++)
+                for(unsigned int k=j+1; k<first.size(); k++)
                 {
                     value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
                 }
@@ -827,9 +827,9 @@ double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& s
         const ElectronInfo& s1 = second[diff[1]];
 
         // Sum(i < j) Sigma3(aij, bij)
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
-            for(unsigned int j=i+1; j<first.Size(); j++)
+            for(unsigned int j=i+1; j<first.size(); j++)
             {
                 if((i != diff[0]) && (j != diff[0]))
                 {   
@@ -846,7 +846,7 @@ double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& s
         const ElectronInfo& s2 = second[diff[3]];
 
         // Sum(i) Sigma3(abi, cdi)
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
             if((i != diff[0]) && (i != diff[2]))
                value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);

@@ -706,7 +706,7 @@ double RateCalculator::GetE1MatrixElement(const ElectronInfo& e1, const Electron
 
                 const double* R = excited->GetLattice()->R();
                 const double* dR = excited->GetLattice()->dR();
-                for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+                for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
                     overlap += (p1.f[x] * p2.f[x] + p1.g[x] * p2.g[x]) * R[x] * dR[x];
 
                 E1Integrals[key] = overlap;
@@ -834,7 +834,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
             {
                 double S = cs->Overlap(*other, excited->GetLattice());
 
-                for(unsigned int i=0; i<mmin(other->Size(), cs->Size()); i++)
+                for(unsigned int i=0; i<mmin(other->size(), cs->size()); i++)
                 {
                     cs->f[i] = cs->f[i] - S * other->f[i];
                     cs->g[i] = cs->g[i] - S * other->g[i];
@@ -987,7 +987,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
 
     if(abs(numdiff) == 1)
     {
-        if(diff[0] != first.Size())
+        if(diff[0] != first.size())
         {   *errstream << "RateCalculator::GetProjectionH: diff doesn't include continuum state!" << std::endl;
             exit(1);
         }
@@ -1010,7 +1010,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
 //        }
 
         // Sum(e) <ae|g|be> - <ae|g|eb>
-        for(unsigned int i=0; i<first.Size(); i++)
+        for(unsigned int i=0; i<first.size(); i++)
         {
             if(i != diff[0])
             {   const ElectronInfo& e(first[i]);
@@ -1021,7 +1021,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
     }
     else if(abs(numdiff) == 2)
     {
-        if(diff[2] != first.Size())
+        if(diff[2] != first.size())
         {   *errstream << "RateCalculator::GetProjectionH: diff doesn't include continuum state!" << std::endl;
             exit(1);
         }
@@ -1084,7 +1084,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
     const double core_rad = excited->GetCore()->GetClosedShellRadius();
 
     // Get density24
-    std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
+    std::vector<double> density(mmin(s_2->size(), s_4->size()));
     for(p=0; p<density.size(); p++)
     {
         density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
@@ -1099,7 +1099,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
         cs_orth = pSingleParticleWavefunction(new ContinuumWave(*cs));
         double S = cs_orth->Overlap(*s_3, excited->GetLattice());
 
-        for(unsigned int i=0; i<mmin(cs_orth->Size(), s_3->Size()); i++)
+        for(unsigned int i=0; i<mmin(cs_orth->size(), s_3->size()); i++)
         {
             cs_orth->f[i] = cs_orth->f[i] - S * s_3->f[i];
             cs_orth->g[i] = cs_orth->g[i] - S * s_3->g[i];
@@ -1139,7 +1139,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
             std::vector<double> Pot24(density.size());
             CI.FastCoulombIntegrate(density, Pot24, k);
 
-            unsigned int limit = mmin(s_1->Size(), s_3->Size());
+            unsigned int limit = mmin(s_1->size(), s_3->size());
             limit = mmin(limit, Pot24.size());
             for(p=0; p<limit; p++)
             {
@@ -1211,7 +1211,7 @@ double RateCalculator::SubtractionDiagram(pContinuumWaveConst cs, pSingleParticl
     const double core_rad = excited->GetCore()->GetClosedShellRadius();
 
     // Get density24
-    std::vector<double> density(mmin(sb->Size(), sd->Size()));
+    std::vector<double> density(mmin(sb->size(), sd->size()));
     for(p=0; p<density.size(); p++)
     {
         density[p] = sb->f[p] * sd->f[p] + sb->g[p] * sd->g[p];
@@ -1232,7 +1232,7 @@ double RateCalculator::SubtractionDiagram(pContinuumWaveConst cs, pSingleParticl
         {
             double radial = 0.;
 
-            unsigned int limit = mmin(sa->Size(), sc->Size());
+            unsigned int limit = mmin(sa->size(), sc->size());
             limit = mmin(limit, Pot24.size());
             for(p=0; p<limit; p++)
             {
@@ -1309,7 +1309,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
             // For the same state to itself, a special case is needed to compute the
             // overlap, because dependence of the spherical bessel function on k
             // exactly cancels the k dependence added by reintroducing dimensionality
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+            for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
             {
                 overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
             }
@@ -1319,7 +1319,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
         }
         else
         {
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+            for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
             {
                 overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * boost::math::sph_bessel(J, R[x] * k) * dR[x];
                 overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * boost::math::sph_bessel(J + 1, R[x] * k) * ((((double) e1.Kappa()) - ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
@@ -1341,7 +1341,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
             // For the same state to itself, a special case is needed to compute the
             // overlap, because dependence of the spherical bessel function on k
             // exactly cancels the k dependence added by reintroducing dimensionality
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+            for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
             {
                 //overlap += ((p1.f[x] * p2.f[x]) + (p1.g[x] * p2.g[x])) * sph_bessel_small_limit(J, R[x]) * dR[x];
             }
@@ -1350,7 +1350,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
         }
         else
         {
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+            for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
             {
                 overlap += -1.0 * ((((double) e1.Kappa()) - ((double) e2.Kappa()))/(((double) J) + 1.0)) * (sph_bessel_prime(J, k * R[x]) + (boost::math::sph_bessel(J, k * R[x])/(k *R[x]))) * ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * dR[x];
                 overlap += ((p1.f[x] * p2.g[x]) - (p1.g[x] * p2.f[x])) * J * (boost::math::sph_bessel(J, k * R[x])/(k * R[x])) * alpha * dR[x];
@@ -1358,7 +1358,7 @@ double RateCalculator::GetEJMatrixElement(unsigned int J, const ElectronInfo& e1
             
             double overlap1 = 0.0;
             double overlap2 = 0.0;
-            for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+            for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
             {
                 overlap1 += -1.0 * ((((double) e1.Kappa()) - ((double) e2.Kappa()))/(((double) J) + 1.0)) * (sph_bessel_prime(J, k * R[x]) + (boost::math::sph_bessel(J, k * R[x])/(k *R[x]))) * ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * dR[x];
                 overlap2 += ((p1.f[x] * p2.g[x]) - (p1.g[x] * p2.f[x])) * J * (boost::math::sph_bessel(J, k * R[x])/(k * R[x])) * alpha * dR[x];
@@ -1488,7 +1488,7 @@ double RateCalculator::GetMJMatrixElement(Atom* A, unsigned int J, const Electro
         // For the same state to itself, a special case is needed to compute the
         // overlap, because dependence of the spherical bessel function on k
         // exactly cancels the k dependence added by reintroducing dimensionality
-        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
         {
             overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * sph_bessel_small_limit(J, R[x]) * ((((double) e1.Kappa()) + ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
         }
@@ -1501,7 +1501,7 @@ double RateCalculator::GetMJMatrixElement(Atom* A, unsigned int J, const Electro
     }
     else
     {
-        for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+        for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
         {
             overlap += ((p1.f[x] * p2.g[x]) + (p1.g[x] * p2.f[x])) * alpha * boost::math::sph_bessel(J, R[x] * k) * ((((double) e1.Kappa()) + ((double) e2.Kappa()))/(((double) J) + 1.0)) * dR[x];
         }

@@ -30,7 +30,7 @@ protected:
     //double calculate_dr(double r_point) const;
 
     /** Resizes the lattice such that NumPoints > min_size. */
-    //void ReSize(unsigned int min_size);
+    //void size(unsigned int min_size);
 
     /** Create a grid (knot sequence) for the splines.
      *  PRE: t[n+k]

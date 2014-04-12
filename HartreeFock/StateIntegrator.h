@@ -26,19 +26,19 @@ public:
         The nuclear charge is only needed if there is no previous approximation to work from,
         it is only used to provide an appropriate norm.
         PRE:
-          N-2 < end_point <= s.Size()
+          N-2 < end_point <= s.size()
                 end_point <= HFPotential.size()
-                end_point <= exchange.Size()
+                end_point <= exchange.size()
           exchange may be NULL
      */
     void IntegrateForwards(SingleParticleWavefunction& s, const std::vector<double>& HFPotential, const SpinorFunction* exchange, int end_point, double nuclear_charge = 1.);
 
-    /** Set up the wavefunction at r->infinity (points s.Size()-adams_N+1 to s.Size()-1)
+    /** Set up the wavefunction at r->infinity (points s.size()-adams_N+1 to s.size()-1)
         and integrate backwards until (not including) end_point.
         PRE:
-            -1 <= end_point < s.Size()-(adams_N-1)
-            s.Size() <= HFPotential.size()
-            s.Size()-(adams_N-1) <= exchange.Size()
+            -1 <= end_point < s.size()-(adams_N-1)
+            s.size() <= HFPotential.size()
+            s.size()-(adams_N-1) <= exchange.size()
             exchange may be NULL
         POST:
             SingleParticleWavefunction s may be enlarged if necessary, up to a maximum of HFPotential.size().
@@ -47,7 +47,7 @@ public:
 
     /** Set up the wavefunction at r->infinity and integrate backwards until a peak is reached
         (s.dfdr[] changes sign between two points or equals zero), or end_point is reached.
-        PRE: s.Size() <= HFPotential.size()
+        PRE: s.size() <= HFPotential.size()
         POST:
             Returns the lattice point of the peak.
             If no peak is reached, returns end_point of integration.
@@ -84,7 +84,7 @@ protected:
 
     /** Checks that s is large enough to accomodate wavefunction, otherwise enlarges it to a
         maximum of HFPotential.size().
-        Initialise last four values of state s from s.Size()-(adams_N-1) to s.Size()-1.
+        Initialise last four values of state s from s.size()-(adams_N-1) to s.size()-1.
      */
     virtual void SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential);
 

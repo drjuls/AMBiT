@@ -869,14 +869,14 @@ void Atom::PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds)
     }
 
     // Upper component
-    fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1], -ds->Energy());
+    fprintf(fp, "     %4s     %5d%12.4E%12.4E%12.4E\n", ds->Name().c_str(), lattice->size(), f[0], f[1], -ds->Energy());
 */
     // Upper component
-    fprintf(fp, "     %2d%2d     %5d\n", ds->PQN(), ds->Kappa(), ds->Size());
+    fprintf(fp, "     %2d%2d     %5d\n", ds->PQN(), ds->Kappa(), ds->size());
 
     unsigned int count = 0;
     unsigned int i;
-    for(i = 0; i < ds->Size(); i++)
+    for(i = 0; i < ds->size(); i++)
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -885,7 +885,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds)
             count++;
         fprintf(fp, "%14.7E", ds->f[i]);
     }
-/*    while(i < lattice->Size())
+/*    while(i < lattice->size())
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -910,11 +910,11 @@ void Atom::PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds)
         exit(1);
     }
 */
-    //fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->Size(), f[0], f[1]);
-    fprintf(fp, "\n     %2d%2d     %5d\n", ds->PQN(), ds->Kappa(), ds->Size());
+    //fprintf(fp, "\n     %4s     %5d%12.4E%12.4E\n", ds->Name().c_str(), lattice->size(), f[0], f[1]);
+    fprintf(fp, "\n     %2d%2d     %5d\n", ds->PQN(), ds->Kappa(), ds->size());
 
     count = 0;
-    for(i = 0; i < ds->Size(); i++)
+    for(i = 0; i < ds->size(); i++)
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -923,7 +923,7 @@ void Atom::PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds)
             count++;
         fprintf(fp, "%14.7E", ds->g[i]*PhysicalConstant::Instance()->GetAlpha());
     }
-/*    while(i < lattice->Size())
+/*    while(i < lattice->size())
     {   if(count == 5)
         {   fprintf(fp, "\n");
             count = 1;
@@ -1062,8 +1062,8 @@ bool Atom::ReadGraspMCDF(const std::string& filename)
         i = N - 1;
         while((i > 0) && (P[i] == 0.0) && (Q[i] == 0.0))
             i--;
-        ds->ReSize(i+1);
-        for(i = 0; i < ds->Size(); i++)
+        ds->size(i+1);
+        for(i = 0; i < ds->size(); i++)
         {   ds->f[i] = P[i];
             ds->g[i] = Q[i]/PhysicalConstant::Instance()->GetAlpha();
         }
@@ -1127,13 +1127,13 @@ void Atom::WriteGraspMCDF() const
     ConstStateIterator it = core->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
-    {   N = mmax(N, it.GetState()->Size());
+    {   N = mmax(N, it.GetState()->size());
         it.Next();
     }
     it = excited->GetConstStateIterator();
     it.First();
     while(!it.AtEnd())
-    {   N = mmax(N, it.GetState()->Size());
+    {   N = mmax(N, it.GetState()->size());
         it.Next();
     }
     record_size = 4 * sizeof(int);
@@ -1208,7 +1208,7 @@ void Atom::WriteGraspMcdfOrbital(FILE* fp, pOrbitalConst ds, unsigned int lattic
     double P[N], Q[N];
     bool switch_sign = (ds->f[0] < 0.0);
     unsigned int i;
-    for(i = 0; i < ds->Size(); i++)
+    for(i = 0; i < ds->size(); i++)
     {   if(switch_sign)
         {   P[i] = -ds->f[i];
             Q[i] = -ds->g[i]*PhysicalConstant::Instance()->GetAlpha();

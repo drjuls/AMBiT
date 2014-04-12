@@ -17,22 +17,26 @@ class SpinorFunction
 public:
     SpinorFunction(int kappa, unsigned int size = 0);
     SpinorFunction(const SpinorFunction& other);
+    SpinorFunction(SpinorFunction&& other);
     virtual ~SpinorFunction() {}
+
+    const SpinorFunction& operator=(const SpinorFunction& other);
+    SpinorFunction& operator=(SpinorFunction&& other);
 
     std::vector<double> f, g,       // Upper and lower components of the radial functions
                         dfdr, dgdr; // Function derivatives, ie. df/dr, dg/dr
 
-    virtual unsigned int Size() const { return static_cast<unsigned int>(f.size()); }
+    virtual unsigned int size() const { return static_cast<unsigned int>(f.size()); }
     int Kappa() const { return kappa; }
     int L() const;
     double J() const;
     int TwoJ() const;
 
     /** Resize the functions. Pad with zeros if necessary. */
-    virtual void ReSize(unsigned int size);
+    virtual void resize(unsigned int size);
     virtual void Clear();
 
-    const SpinorFunction& operator=(const SpinorFunction& other);
+    virtual void swap(SpinorFunction& other);
 
     /** Multiply all points of all vectors (f, g, df, dg) by the scale factor. */
     const SpinorFunction& operator*=(double scale_factor);
@@ -99,15 +103,19 @@ class RadialFunction
 public:
     RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr);
     RadialFunction(unsigned int size = 0);
+    RadialFunction(const RadialFunction& other): f(other.f), dfdr(other.dfdr) {}
+    RadialFunction(RadialFunction&& other): f(other.f), dfdr(other.dfdr) {}
     virtual ~RadialFunction() {}
+
+    const RadialFunction& operator=(const RadialFunction& other);
+    RadialFunction& operator=(RadialFunction&& other);
 
     std::vector<double> f, dfdr;
     
-    virtual unsigned int Size() const { return static_cast<unsigned int>(f.size()); }
+    virtual unsigned int size() const { return static_cast<unsigned int>(f.size()); }
     /** Resize the functions. Pad with zeros if necessary. */
-    virtual void ReSize(unsigned int size);
+    virtual void resize(unsigned int size);
     virtual void Clear();
-    const RadialFunction& operator=(const RadialFunction& other);
 
     /** Multiply all points by the scale factor. */
     const RadialFunction& operator*=(double scale_factor);

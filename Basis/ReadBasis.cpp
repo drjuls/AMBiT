@@ -116,7 +116,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
 
         pOrbital ds;
         pOrbital ds_readlattice = pOrbital(new Orbital(kappa, pqn));
-        ds_readlattice->ReSize(numpoints);
+        ds_readlattice->size(numpoints);
 
         if(CMCCORE_FILE)
         {   for(i = 0; i<numpoints; i++)
@@ -152,7 +152,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         }
 
         if(pqn != ds_readlattice->PQN() || kappa != ds_readlattice->Kappa() ||
-           numpoints != ds_readlattice->Size())
+           numpoints != ds_readlattice->size())
         {   *errstream << "Lower component doesn't match upper in " << ds_readlattice->Name() << std::endl;
             PAUSE;
             exit(1);
@@ -190,13 +190,13 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
             Interpolator interp(read_lattice);            
             ds = pOrbital(new Orbital(kappa, pqn));
 
-            unsigned int size = lattice->real_to_lattice(read_lattice->R(ds_readlattice->Size()-1));
-            ds->ReSize(size);
+            unsigned int size = lattice->real_to_lattice(read_lattice->R(ds_readlattice->size()-1));
+            ds->size(size);
 
             const double* R = lattice->R();
 
             double dfdr, dgdr;
-            for(unsigned int i = 0; i < ds->Size(); i++)
+            for(unsigned int i = 0; i < ds->size(); i++)
             {
                 interp.Interpolate(ds_readlattice->f, R[i], ds->f[i], dfdr, order);
                 interp.Interpolate(ds_readlattice->g, R[i], ds->g[i], dgdr, order);

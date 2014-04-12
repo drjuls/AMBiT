@@ -66,14 +66,14 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 if(DebugOptions.OutputHFExcited())
                 {   unsigned int count, r;
                     double fmax = 0.;
-                    for(count = 0; count < ds->Size(); count++)
+                    for(count = 0; count < ds->size(); count++)
                         if(fabs(ds->f[count]) > fmax)
                         {   fmax = fabs(ds->f[count]);
                             r = count;
                         }
 
                     *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
-                               << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                               << "  size: " << ds->size() << "  Rmax: " << r << "  NZ: " 
                                << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
@@ -96,14 +96,14 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     if(DebugOptions.OutputHFExcited())
                     {   unsigned int count, r;
                         double fmax = 0.;
-                        for(count = 0; count < ds->Size(); count++)
+                        for(count = 0; count < ds->size(); count++)
                             if(fabs(ds->f[count]) > fmax)
                             {   fmax = fabs(ds->f[count]);
                                 r = count;
                             }
 
                         *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
-                                   << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                                   << "  size: " << ds->size() << "  Rmax: " << r << "  NZ: " 
                                    << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }
@@ -148,14 +148,14 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                 if(DebugOptions.OutputHFExcited())
                 {   unsigned int count, r;
                     double fmax = 0.;
-                    for(count = 0; count < ds->Size(); count++)
+                    for(count = 0; count < ds->size(); count++)
                         if(fabs(ds->f[count]) > fmax)
                         {   fmax = fabs(ds->f[count]);
                             r = count;
                         }
 
                     *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
-                               << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                               << "  size: " << ds->size() << "  Rmax: " << r << "  NZ: " 
                                << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
 
@@ -186,14 +186,14 @@ void CustomBasis::CreateExcitedStates(const std::vector<unsigned int>& num_state
                     if(DebugOptions.OutputHFExcited())
                     {   unsigned int count, r;
                         double fmax = 0.;
-                        for(count = 0; count < ds->Size(); count++)
+                        for(count = 0; count < ds->size(); count++)
                             if(fabs(ds->f[count]) > fmax)
                             {   fmax = fabs(ds->f[count]);
                                 r = count;
                             }
 
                         *outstream << "  " << ds->Name() << "  en: " << std::setprecision(8) << ds->Energy()
-                                   << "  size: " << ds->Size() << "  Rmax: " << r << "  NZ: " 
+                                   << "  size: " << ds->size() << "  Rmax: " << r << "  NZ: " 
                                    << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                     }
                 }

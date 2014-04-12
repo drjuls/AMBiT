@@ -227,7 +227,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
 
             // Get density
             if(k <= kmax)
-            {   for(p=0; p < mmin(sn->Size(), sa->Size()); p++)
+            {   for(p=0; p < mmin(sn->size(), sa->size()); p++)
                 {   density[p] = sn->f[p] * sa->f[p] + sn->g[p] * sa->g[p];
                 }
             }
@@ -235,7 +235,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
             while(k <= kmax)
             {
                 // n, a, k -> potential
-                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->Size(), sa->Size()));
+                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->size(), sa->size()));
 
                 it_c = valence_states.begin();
                 while(it_c != valence_states.end())
@@ -265,7 +265,7 @@ void Sigma3Integrals::UpdateTwoElectronIntegrals()
                                   *it_c;
 
                             value = 0.;
-                            unsigned int limit = mmin(sb->Size(), sc->Size());
+                            unsigned int limit = mmin(sb->size(), sc->size());
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {

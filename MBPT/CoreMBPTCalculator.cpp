@@ -173,11 +173,11 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
                                                 / (2. * k1 + 1.);
                     C_nalpha = C_nalpha * it_alpha.Weight();
 
-                    for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
+                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
                     {
                         density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
+                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
 
                     double SMS_nalpha = 0.;
                     if(NuclearInverseMass && (k1 == 1))
@@ -202,7 +202,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                             // R1 = R_k1 (a n, beta alpha)
                             // R2 = R_k1 (b n, beta alpha)
-                            Y_size = sbeta.Size();
+                            Y_size = sbeta.size();
                             for(i=0; i < Y_size; i++)
                                 Y[i] = P_nalpha[i] * sbeta.f[i];
 
@@ -238,7 +238,7 @@ void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* si
 
                             // R1 = R_k1 (a alpha, m n)
                             // R2 = R_k1 (b alpha, m n)
-                            Y_size = sm.Size();
+                            Y_size = sm.size();
                             for(i=0; i < Y_size; i++)
                                 Y[i] = P_nalpha[i] * sm.f[i];
 
@@ -322,11 +322,11 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
                 {
                     C_nalpha = C_nalpha * (sn.TwoJ() + 1) * (salpha.TwoJ() + 1);
 
-                    for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
+                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
                     {
                         density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
+                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
 
                     double SMS_nalpha = 0.;
                     if(NuclearInverseMass && (k1 == 1))
@@ -367,18 +367,18 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
 
                                 if(coeff)
                                 {
-                                    for(i=0; i<mmin(sn.Size(), sbeta.Size()); i++)
+                                    for(i=0; i<mmin(sn.size(), sbeta.size()); i++)
                                     {
                                         density[i] = sn.f[i] * sbeta.f[i] + sn.g[i] * sbeta.g[i];
                                     }
-                                    I.FastCoulombIntegrate(density, P_nbeta, k2, mmin(sn.Size(), sbeta.Size()));
+                                    I.FastCoulombIntegrate(density, P_nbeta, k2, mmin(sn.size(), sbeta.size()));
 
                                     double SMS_nbeta = 0.;
                                     if(NuclearInverseMass && (k2 == 1))
                                         SMS_nbeta = -SI.IsotopeShiftIntegral(sbeta, sn);
 
                                     // R1 = R_k1 (a n, beta alpha)
-                                    Y1_size = sbeta.Size();
+                                    Y1_size = sbeta.size();
                                     for(i = 0; i < Y1_size; i++)
                                         Y1[i] = P_nalpha[i] * sbeta.f[i];
         
@@ -391,7 +391,7 @@ void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma)
                                     }
 
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
-                                    Y2_size = salpha.Size();
+                                    Y2_size = salpha.size();
                                     for(i = 0; i < Y2_size; i++)
                                         Y2[i] = P_nbeta[i] * salpha.f[i];
 
@@ -479,11 +479,11 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
                 {
                     C_nalpha = C_nalpha * (sn.TwoJ() + 1) * (salpha.TwoJ() + 1);
 
-                    for(i=0; i<mmin(sn.Size(), salpha.Size()); i++)
+                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
                     {
                         density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
                     }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.Size(), salpha.Size()));
+                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
 
                     double SMS_nalpha = 0.;
                     if(NuclearInverseMass && (k1 == 1))
@@ -525,18 +525,18 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
 
                                 if(coeff)
                                 {
-                                    for(i=0; i<mmin(sm.Size(), salpha.Size()); i++)
+                                    for(i=0; i<mmin(sm.size(), salpha.size()); i++)
                                     {
                                         density[i] = sm.f[i] * salpha.f[i] + sm.g[i] * salpha.g[i];
                                     }
-                                    I.FastCoulombIntegrate(density, P_malpha, k2, mmin(sm.Size(), salpha.Size()));
+                                    I.FastCoulombIntegrate(density, P_malpha, k2, mmin(sm.size(), salpha.size()));
 
                                     double SMS_malpha = 0.;
                                     if(NuclearInverseMass && (k2 == 1))
                                         SMS_malpha = -SI.IsotopeShiftIntegral(salpha, sm);
 
                                     // R1 = R_k1 (a alpha, m n)
-                                    Y1_size = sm.Size();
+                                    Y1_size = sm.size();
                                     for(i=0; i < Y1_size; i++)
                                         Y1[i] = P_nalpha[i] * sm.f[i];
 
@@ -549,7 +549,7 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
                                     }
 
                                     // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
-                                    Y2_size = sn.Size();
+                                    Y2_size = sn.size();
                                     for(i=0; i < Y2_size; i++)
                                         Y2[i] = P_malpha[i] * sn.f[i];
 

@@ -51,7 +51,7 @@ BSplineGrid::~BSplineGrid(void)
 //double BSplineGrid::calculate_dr(double r_point) const;
 
 /** Resizes the lattice such that NumPoints > min_size. */
-//void BSplineGrid::ReSize(unsigned int min_size);
+//void BSplineGrid::size(unsigned int min_size);
 
 void BSplineGrid::CreateSplineKnots(double dr0, double rmax)
 {

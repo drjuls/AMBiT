@@ -336,7 +336,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
 
             // Get density
             if(k <= kmax)
-            {   for(p=0; p < mmin(sn->Size(), salpha->Size()); p++)
+            {   for(p=0; p < mmin(sn->size(), salpha->size()); p++)
                 {   density[p] = sn->f[p] * salpha->f[p] + sn->g[p] * salpha->g[p];
                 }
             }
@@ -344,7 +344,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
             while(k <= kmax)
             {
                 // n, alpha, k -> potential
-                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->Size(), salpha->Size()));
+                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->size(), salpha->size()));
 
                 it_beta = excited_states.begin();
                 while(it_beta != excited_states.end())
@@ -388,7 +388,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
                                   i4;
 
                             value = 0.;
-                            unsigned int limit = mmin(sa->Size(), sbeta->Size());
+                            unsigned int limit = mmin(sa->size(), sbeta->size());
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {
@@ -424,7 +424,7 @@ void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
                                   *it_beta;
 
                             value = 0.;
-                            unsigned int limit = mmin(sm->Size(), sbeta->Size());
+                            unsigned int limit = mmin(sm->size(), sbeta->size());
                             limit = mmin(limit, potential.size());
                             for(p=0; p<limit; p++)
                             {

@@ -143,13 +143,13 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
                     {
                         // R1 = R_k1 (ab, mn)
                         double R1 = 0.;
-                        for(i=0; i<mmin(sb.Size(), s4.Size()); i++)
+                        for(i=0; i<mmin(sb.size(), s4.size()); i++)
                         {
                             density[i] = sb.f[i] * s4.f[i] + sb.g[i] * s4.g[i];
                         }
-                        I.FastCoulombIntegrate(density, pot, k1, mmin(sb.Size(), s4.Size()));
+                        I.FastCoulombIntegrate(density, pot, k1, mmin(sb.size(), s4.size()));
                         
-                        for(i=0; i < mmin(sa.Size(), s3.Size()); i++)
+                        for(i=0; i < mmin(sa.size(), s3.size()); i++)
                             R1 = R1 + pot[i] * (sa.f[i] * s3.f[i] + sa.g[i] * s3.g[i]) * dR[i];
 
                         if(NuclearInverseMass && (k1 == 1))
@@ -173,13 +173,13 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
 
                                 // R2 = R_k2 (mn, cd)
                                 double R2 = 0.;
-                                for(i=0; i<mmin(s4.Size(), sd.Size()); i++)
+                                for(i=0; i<mmin(s4.size(), sd.size()); i++)
                                 {
                                     density[i] = s4.f[i] * sd.f[i] + s4.g[i] * sd.g[i];
                                 }
-                                I.FastCoulombIntegrate(density, pot, k2, mmin(s4.Size(), sd.Size()));
+                                I.FastCoulombIntegrate(density, pot, k2, mmin(s4.size(), sd.size()));
                                 
-                                for(i=0; i < mmin(s3.Size(), sc.Size()); i++)
+                                for(i=0; i < mmin(s3.size(), sc.size()); i++)
                                     R2 = R2 + pot[i] * (s3.f[i] * sc.f[i] + s3.g[i] * sc.g[i]) * dR[i];
 
                                 if(NuclearInverseMass && (k2 == 1))
@@ -221,11 +221,11 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     double energy = 0.;
 
     // Hole line is attached to sa or sc
-    for(i=0; i<mmin(sb.Size(), sd.Size()); i++)
+    for(i=0; i<mmin(sb.size(), sd.size()); i++)
     {
         density[i] = sb.f[i] * sd.f[i] + sb.g[i] * sd.g[i];
     }
-    I.FastCoulombIntegrate(density, pot, k, mmin(sb.Size(), sd.Size()));
+    I.FastCoulombIntegrate(density, pot, k, mmin(sb.size(), sd.size()));
 
     double SMS_bd = 0.;
     if(NuclearInverseMass && (k == 1))
@@ -239,7 +239,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         if(s3.PQN() >= 5 && s3.Kappa() == sa.Kappa())
         {
             double R1 = 0.;
-            for(i=0; i < mmin(s3.Size(), sc.Size()); i++)
+            for(i=0; i < mmin(s3.size(), sc.size()); i++)
                 R1 += pot[i] * (s3.f[i] * sc.f[i] + s3.g[i] * sc.g[i]) * dR[i];
 
             if(SMS_bd)
@@ -252,7 +252,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         if(s3.PQN() >= 5 && s3.Kappa() == sc.Kappa())
         {
             double R1 = 0.;
-            for(i=0; i < mmin(sa.Size(), s3.Size()); i++)
+            for(i=0; i < mmin(sa.size(), s3.size()); i++)
                 R1 += pot[i] * (sa.f[i] * s3.f[i] + sa.g[i] * s3.g[i]) * dR[i];
 
             if(SMS_bd)
@@ -266,11 +266,11 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
     }
 
     // Hole line is attached to sb or sd.
-    for(i=0; i<mmin(sa.Size(), sc.Size()); i++)
+    for(i=0; i<mmin(sa.size(), sc.size()); i++)
     {
         density[i] = sa.f[i] * sc.f[i] + sa.g[i] * sc.g[i];
     }
-    I.FastCoulombIntegrate(density, pot, k, mmin(sa.Size(), sc.Size()));
+    I.FastCoulombIntegrate(density, pot, k, mmin(sa.size(), sc.size()));
 
     double SMS_ac = 0.;
     if(NuclearInverseMass && (k == 1))
@@ -284,7 +284,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         if(s3.PQN() >= 5 && s3.Kappa() == sb.Kappa())
         {
             double R1 = 0.;
-            for(i=0; i < mmin(s3.Size(), sd.Size()); i++)
+            for(i=0; i < mmin(s3.size(), sd.size()); i++)
                 R1 += pot[i] * (s3.f[i] * sd.f[i] + s3.g[i] * sd.g[i]) * dR[i];
 
             if(SMS_ac)
@@ -297,7 +297,7 @@ double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavef
         if(s3.PQN() >= 5 && s3.Kappa() == sd.Kappa())
         {
             double R1 = 0.;
-            for(i=0; i < mmin(sb.Size(), s3.Size()); i++)
+            for(i=0; i < mmin(sb.size(), s3.size()); i++)
                 R1 += pot[i] * (sb.f[i] * s3.f[i] + sb.g[i] * s3.g[i]) * dR[i];
 
             if(SMS_ac)

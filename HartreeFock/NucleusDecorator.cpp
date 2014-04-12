@@ -19,7 +19,7 @@ void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
 
         // Remove point-nucleus potential
         unsigned int i = 0;
-        while(i < directPotential.Size())
+        while(i < directPotential.size())
         {   directPotential.f[i] -= Z/R[i];
             directPotential.dfdr[i] += -Z/(R[i]*R[i]);
             i++;
@@ -40,7 +40,7 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
     const double* R = lattice->R();
 
     if(radius < R[1])
-        density.ReSize(0);
+        density.resize(0);
     else if(thickness > 0.01 * fermi_length)
     {
         double B = 4.*log(3.)/thickness;
@@ -59,7 +59,7 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
                                                  / ((1. + exp_X) * (1. + exp_X));
             }
             else
-            {   density.ReSize(i);
+            {   density.resize(i);
                 break;
             }
         }
@@ -72,7 +72,7 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
         {   density.f[i] = A * R[i] * R[i];
             density.dfdr[i] = 2.0 * A * R[i];
         }
-        density.ReSize(i);
+        density.resize(i);
     }
 
     return density;

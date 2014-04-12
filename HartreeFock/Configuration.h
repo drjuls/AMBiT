@@ -10,7 +10,7 @@
 
 #ifndef PARITY_ENUM
 #define PARITY_ENUM
-enum Parity { even, odd };
+    enum Parity { even, odd };
 #endif
 
 template <class OrbitalType, class OccupancyType>

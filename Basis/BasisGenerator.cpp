@@ -1,5 +1,6 @@
 #include "BasisGenerator.h"
 #include "Include.h"
+#include "HartreeFock/ConfigurationParser.h"
 #include "HartreeFock/OpIntegrator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/NucleusDecorator.h"
@@ -132,10 +133,10 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
     // Orthogonalise to core
     if(closed_core)
     {
-        ConstStateIterator it = closed_core->GetConstStateIterator();
-        while(!it.AtEnd())
+        auto it = closed_core->begin();
+        while(it != closed_core->end())
         {
-            pOrbitalConst other = it.GetState();
+            pOrbitalConst other = it->second;
             if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
             {
                 double S = integrator->GetInnerProduct(*other, *current);
@@ -143,17 +144,17 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
 
                 current->ReNormalise(lattice);
             }
-            it.Next();
+            it++;
         }
     }
 
     // Orthogonalise to other excited states.
     if(excited)
     {
-        ConstStateIterator it = excited->GetConstStateIterator();
-        while(!it.AtEnd())
+        auto it = excited->begin();
+        while(it != excited->end())
         {
-            pOrbitalConst other = it.GetState();
+            pOrbitalConst other = it->second;
             if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
             {
                 double S = integrator->GetInnerProduct(*other, *current);
@@ -161,7 +162,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
 
                 current->ReNormalise(lattice);
             }
-            it.Next();
+            it++;
         }
     }
 
@@ -186,28 +187,22 @@ double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j)
     else if(closed_core)
         all_states = *closed_core;
 
-    ConstStateIterator it = all_states.GetConstStateIterator();
-    ConstStateIterator jt = all_states.GetConstStateIterator();
-
-    it.First();
-    while(!it.AtEnd())
+    auto it = all_states.begin();
+    while(it != all_states.end())
     {
-        jt.First();
-        while(!jt.AtEnd() && (it.GetOrbitalInfo() != jt.GetOrbitalInfo()))
+        auto jt = all_states.begin();
+        while(jt != all_states.end() && (it->first != jt->first))
         {
-            if(it.GetOrbitalInfo() != jt.GetOrbitalInfo())
-            {
-                double orth = fabs(integrator->GetInnerProduct(*it.GetState(), *jt.GetState()));
-                if(orth > max_orth)
-                {   max_orth = orth;
-                    max_i = it.GetOrbitalInfo();
-                    max_j = jt.GetOrbitalInfo();
-                }
+            double orth = fabs(integrator->GetInnerProduct(*it->second, *jt->second));
+            if(orth > max_orth)
+            {   max_orth = orth;
+                max_i = it->first;
+                max_j = jt->first;
             }
-            jt.Next();
+            jt++;
         }
 
-        it.Next();
+        it++;
     }
 
     return max_orth;

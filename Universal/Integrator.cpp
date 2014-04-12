@@ -311,26 +311,26 @@ double Integrator::AIntegralUpper(const SpinorFunction& s1, const SpinorFunction
 {
     boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
     
-    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 1, 0, 0, 0);
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.size(), s2.size()), 1, 1, 0, 0, 0);
 }
 
 double Integrator::AIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(AIntegralFunction, J, k, _1);
     
-    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 0, 0, 1, 1, 1);
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.size(), s2.size()), 0, 0, 1, 1, 1);
 }
 
 double Integrator::BIntegralUpper(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
 
-    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 1, 0, 0, 1, 1);
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.size(), s2.size()), 1, 0, 0, 1, 1);
 }
 
 double Integrator::BIntegralLower(const SpinorFunction& s1, const SpinorFunction& s2, unsigned int J, double k)
 {
     boost::function<double (double)> f = boost::bind<double>(BIntegralFunction, J, k, _1);
 
-    return BracketIntegral(s1, s2, f, 0, mmin(s1.Size(), s2.Size()), 0, 1, 1, 0, 1);
+    return BracketIntegral(s1, s2, f, 0, mmin(s1.size(), s2.size()), 0, 1, 1, 0, 1);
 }

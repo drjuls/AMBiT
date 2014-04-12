@@ -58,7 +58,7 @@ public:
     virtual void IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution) = 0;
 
     /** Get solution of the ODE operator by integrating from r=rmax to 0.
-        PRE: solution->Size() <= op->Size().
+        PRE: solution->size() <= op->size().
      */
     virtual void IntegrateBackwards(pSpinorODEConst op, Orbital* solution) = 0;
 
@@ -87,7 +87,7 @@ public:
     virtual void IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution);
     
     /** Get solution of the ODE operator by integrating from r=rmax to 0.
-        PRE: solution->Size() <= op->Size().
+        PRE: solution->size() <= op->size().
      */
     virtual void IntegrateBackwards(pSpinorODEConst op, Orbital* solution);
 

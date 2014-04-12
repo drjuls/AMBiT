@@ -6,14 +6,18 @@ SpinorFunction::SpinorFunction(int kappa, unsigned int size):
     kappa(kappa)
 {
     if(size)
-        ReSize(size);
+        resize(size);
 }
 
 SpinorFunction::SpinorFunction(const SpinorFunction& other):
     f(other.f), g(other.g), dfdr(other.dfdr), dgdr(other.dgdr), kappa(other.kappa)
 {}
 
-void SpinorFunction::ReSize(unsigned int size)
+SpinorFunction::SpinorFunction(SpinorFunction&& other):
+    f(other.f), g(other.g), dfdr(other.dfdr), dgdr(other.dgdr), kappa(other.kappa)
+{}
+
+void SpinorFunction::resize(unsigned int size)
 {   f.resize(size);
     g.resize(size);
     dfdr.resize(size);
@@ -39,10 +43,26 @@ const SpinorFunction& SpinorFunction::operator=(const SpinorFunction& other)
     return *this;
 }
 
+SpinorFunction& SpinorFunction::operator=(SpinorFunction&& other)
+{
+    swap(other);
+    kappa = other.kappa;
+
+    return *this;
+}
+
+void SpinorFunction::swap(SpinorFunction& other)
+{
+    f.swap(other.f);
+    g.swap(other.g);
+    dfdr.swap(other.dfdr);
+    dgdr.swap(other.dgdr);
+}
+
 const SpinorFunction& SpinorFunction::operator*=(double scale_factor)
 {
     if(scale_factor != 1.)
-        for(unsigned int i=0; i<Size(); i++)
+        for(unsigned int i=0; i<size(); i++)
         {   f[i] = f[i] * scale_factor;
             g[i] = g[i] * scale_factor;
             dfdr[i] = dfdr[i] * scale_factor;
@@ -60,10 +80,10 @@ SpinorFunction SpinorFunction::operator*(double scale_factor) const
 
 const SpinorFunction& SpinorFunction::operator+=(const SpinorFunction& other)
 {
-    if(Size() < other.Size())
-        ReSize(other.Size());
+    if(size() < other.size())
+        resize(other.size());
 
-    for(unsigned int i = 0; i < other.Size(); i++)
+    for(unsigned int i = 0; i < other.size(); i++)
     {   f[i] += other.f[i];
         g[i] += other.g[i];
         dfdr[i] += other.dfdr[i];
@@ -94,10 +114,10 @@ SpinorFunction SpinorFunction::operator-(const SpinorFunction& other) const
 const SpinorFunction& SpinorFunction::operator*=(const RadialFunction& chi)
 {
     // Outside range of chi, chi is assumed to be zero.
-    if(chi.Size() < Size())
-        ReSize(chi.Size());
+    if(chi.size() < size())
+        resize(chi.size());
 
-    for(unsigned int i = 0; i < Size(); i++)
+    for(unsigned int i = 0; i < size(); i++)
     {   f[i] *= chi.f[i];
         g[i] *= chi.f[i];
         dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
@@ -115,9 +135,9 @@ SpinorFunction SpinorFunction::operator*(const RadialFunction& chi) const
 
 RadialFunction SpinorFunction::GetDensity() const
 {
-    RadialFunction ret(Size());
+    RadialFunction ret(size());
 
-    for(unsigned int i = 0; i < ret.Size(); i++)
+    for(unsigned int i = 0; i < ret.size(); i++)
     {   ret.f[i] = f[i] * f[i] + g[i] * g[i];
         ret.dfdr[i] = 2. * (f[i] * dfdr[i] + g[i] * dgdr[i]);
     }
@@ -127,9 +147,9 @@ RadialFunction SpinorFunction::GetDensity() const
 
 RadialFunction SpinorFunction::GetDensity(const SpinorFunction& other) const
 {
-    RadialFunction ret(mmin(Size(), other.Size()));
+    RadialFunction ret(mmin(size(), other.size()));
 
-    for(unsigned int i = 0; i < ret.Size(); i++)
+    for(unsigned int i = 0; i < ret.size(); i++)
     {   ret.f[i] = f[i] * other.f[i] + g[i] * other.g[i];
         ret.dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i]
                      +g[i] * other.dgdr[i] + dgdr[i] * other.g[i];
@@ -142,12 +162,12 @@ void SpinorFunction::Write(FILE* fp) const
 {
     fwrite(&kappa, sizeof(int), 1, fp);
 
-    unsigned int size = Size();
-    fwrite(&size, sizeof(unsigned int), 1, fp);
+    unsigned int my_size = size();
+    fwrite(&my_size, sizeof(unsigned int), 1, fp);
 
     // Copy each vector to a buffer and then write in one hit.
     // This is important when the code is run on the supercomputer.
-    double* buffer = new double[size];
+    double* buffer = new double[my_size];
     for(unsigned int i=0; i<4; i++)
     {
         const std::vector<double>* v;
@@ -174,7 +194,7 @@ void SpinorFunction::Write(FILE* fp) const
             pbuffer++;
             it++;
         }
-        fwrite(buffer, sizeof(double), size, fp);
+        fwrite(buffer, sizeof(double), my_size, fp);
     }
 
     delete[] buffer;
@@ -184,16 +204,16 @@ void SpinorFunction::Read(FILE* fp)
 {
     fread(&kappa, sizeof(int), 1, fp);
 
-    unsigned int size;
-    fread(&size, sizeof(unsigned int), 1, fp);
-    ReSize(size);
+    unsigned int my_size;
+    fread(&my_size, sizeof(unsigned int), 1, fp);
+    resize(my_size);
 
     // Copy each vector to a buffer and then write in one hit.
     // This is important when the code is run on the supercomputer.
-    double* buffer = new double[size];
+    double* buffer = new double[my_size];
     for(unsigned int i=0; i<4; i++)
     {
-        fread(buffer, sizeof(double), size, fp);
+        fread(buffer, sizeof(double), my_size, fp);
         std::vector<double>* v;
         switch(i)
         {
@@ -233,10 +253,22 @@ RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<
 
 RadialFunction::RadialFunction(unsigned int size)
 {   Clear();
-    ReSize(size);
+    resize(size);
 }
 
-void RadialFunction::ReSize(unsigned int size)
+const RadialFunction& RadialFunction::operator=(const RadialFunction& other)
+{   f = other.f;
+    dfdr = other.dfdr;
+    return *this;
+}
+
+RadialFunction& RadialFunction::operator=(RadialFunction&& other)
+{   f.swap(other.f);
+    dfdr.swap(other.dfdr);
+    return *this;
+}
+
+void RadialFunction::resize(unsigned int size)
 {   f.resize(size);
     dfdr.resize(size);
 }
@@ -244,12 +276,6 @@ void RadialFunction::ReSize(unsigned int size)
 void RadialFunction::Clear()
 {   f.clear();
     dfdr.clear();
-}
-
-const RadialFunction& RadialFunction::operator=(const RadialFunction& other)
-{   f = other.f;
-    dfdr = other.dfdr;
-    return *this;
 }
 
 const RadialFunction& RadialFunction::operator*=(double scale_factor)
@@ -271,10 +297,10 @@ RadialFunction RadialFunction::operator*(double scale_factor) const
 
 const RadialFunction& RadialFunction::operator+=(const RadialFunction& other)
 {
-    if(Size() < other.Size())
-        ReSize(other.Size());
+    if(size() < other.size())
+        resize(other.size());
     
-    for(unsigned int i = 0; i < other.Size(); i++)
+    for(unsigned int i = 0; i < other.size(); i++)
     {   f[i] += other.f[i];
         dfdr[i] += other.dfdr[i];
     }
@@ -284,10 +310,10 @@ const RadialFunction& RadialFunction::operator+=(const RadialFunction& other)
 
 const RadialFunction& RadialFunction::operator-=(const RadialFunction& other)
 {
-    if(Size() < other.Size())
-        ReSize(other.Size());
+    if(size() < other.size())
+        resize(other.size());
     
-    for(unsigned int i = 0; i < other.Size(); i++)
+    for(unsigned int i = 0; i < other.size(); i++)
     {   f[i] -= other.f[i];
         dfdr[i] -= other.dfdr[i];
     }
@@ -309,10 +335,10 @@ RadialFunction RadialFunction::operator-(const RadialFunction& other) const
 
 const RadialFunction& RadialFunction::operator*=(const RadialFunction& other)
 {
-    if(Size() > other.Size())
-        ReSize(other.Size());
+    if(size() > other.size())
+        resize(other.size());
 
-    for(unsigned int i = 0; i < Size(); i++)
+    for(unsigned int i = 0; i < size(); i++)
     {
         f[i] *= other.f[i];
         dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];

@@ -43,7 +43,7 @@ protected:
     void WriteOut() const;
     void ReadIn();
 
-    void ReSize(unsigned int new_size);
+    void Size(unsigned int new_size);
     
     mutable bool changed_since_store;
     std::string filename;

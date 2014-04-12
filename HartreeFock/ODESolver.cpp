@@ -22,7 +22,7 @@ void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, RadialFunction*
     op->EstimateSolutionNearOrigin(order, s);
 
     int start_point = order;
-    int end_point = s.Size();
+    int end_point = s.size();
 
     double w_f, w_const;
 
@@ -50,7 +50,7 @@ void AdamsSolver::IntegrateBackwards(const OneDimensionalODE* op, RadialFunction
     RadialFunction& s = *solution;
     op->EstimateSolutionNearInfinity(order, s);
     
-    int start_point = s.Size() - order;
+    int start_point = s.size() - order;
     int end_point = 0;
     
     double w_f, w_const;
@@ -80,7 +80,7 @@ void AdamsSolver::IntegrateForwards(pSpinorODEConst op, SpinorFunction* solution
     op->EstimateOrbitalNearOrigin(order, s);
 
     int start_point = order;
-    int end_point = s.Size();
+    int end_point = s.size();
 
     double w_f[2];
     double w_g[2];
@@ -120,7 +120,7 @@ void AdamsSolver::IntegrateBackwards(pSpinorODEConst op, Orbital* solution)
     Orbital& s = *solution;
     op->EstimateOrbitalNearInfinity(order, s);
 
-    int start_point = s.Size()-order;
+    int start_point = s.size()-order;
     int end_point = 0;
     
     double w_f[2];
@@ -161,7 +161,7 @@ unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbita
     Orbital& s = *solution;
     op->EstimateOrbitalNearInfinity(order, s);
 
-    int start_point = s.Size()-order;
+    int start_point = s.size()-order;
     int end_point = 0;
     unsigned int peak = 0;
 

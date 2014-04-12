@@ -10,7 +10,7 @@ std::vector<double> GreensIntegrator::GetGreensInfinity()
     {   return Ginf;
     }
 
-    unsigned int limit = mmax(s_inf->Size(), G->Size());
+    unsigned int limit = mmax(s_inf->size(), G->size());
     Ginf.resize(limit);
 
     // Make integrand
@@ -19,7 +19,7 @@ std::vector<double> GreensIntegrator::GetGreensInfinity()
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
     std::vector<double> integrand(limit);
-    for(i = 0; i<mmin(s_inf->Size(), G->Size()); i++)
+    for(i = 0; i<mmin(s_inf->size(), G->size()); i++)
     {   W = (s_0->f[i] * s_inf->g[i] - s_inf->f[i] * s_0->g[i])/alpha;
         integrand[i] = - (G->f[i] * s_inf->f[i] + G->g[i] * s_inf->g[i])/W;
     }
@@ -47,7 +47,7 @@ std::vector<double> GreensIntegrator::GetGreensOrigin()
     {   return G0;
     }
 
-    unsigned int limit = mmax(s_0->Size(), G->Size());
+    unsigned int limit = mmax(s_0->size(), G->size());
     G0.resize(limit);
 
     // Make integrand
@@ -55,7 +55,7 @@ std::vector<double> GreensIntegrator::GetGreensOrigin()
     double W;
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
     std::vector<double> integrand(limit);
-    for(i = 0; i<mmin(s_0->Size(), G->Size()); i++)
+    for(i = 0; i<mmin(s_0->size(), G->size()); i++)
     {   W = (s_0->f[i] * s_inf->g[i] - s_inf->f[i] * s_0->g[i])/alpha;
         integrand[i] = (G->f[i] * s_0->f[i] + G->g[i] * s_0->g[i])/W;
     }

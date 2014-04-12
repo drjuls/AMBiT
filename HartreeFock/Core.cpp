@@ -37,9 +37,9 @@ Core Core::Copy(pLattice new_lattice) const
     return ret;
 }
 
-void Core::Clear()
+void Core::clear()
 {
-    StateManager::Clear();
+    StateManager::clear();
     occupancy.clear();
 }
 
@@ -140,7 +140,7 @@ void Core::Write(FILE* fp) const
 
 void Core::Read(FILE* fp)
 {
-    Clear();    
+    clear();
     unsigned int num_core, i;
     unsigned int max_size = 0;
 
@@ -167,7 +167,7 @@ void Core::Read(FILE* fp)
     {
         pOrbital ds(new Orbital(-1));
         ds->Read(fp);
-        max_size = mmax(max_size, ds->Size());
+        max_size = mmax(max_size, ds->size());
         AddState(ds);
     }
 

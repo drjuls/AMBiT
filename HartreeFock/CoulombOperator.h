@@ -34,7 +34,7 @@ public:
 
 public:
     /** Get df/dr = w[0] given point r, f.
-     PRE: w should be an allocated double.
+        PRE: w should be an allocated double.
      */
     virtual void GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const override;
     

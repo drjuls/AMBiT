@@ -1,11 +1,6 @@
 #include "Include.h"
 #include "StateManager.h"
-#include "StateIterator.h"
 #include "Universal/Interpolator.h"
-
-StateManager::StateManager(pLattice lat):
-    lattice(lat)
-{}
 
 StateManager::StateManager(const StateManager& other)
 {
@@ -14,7 +9,7 @@ StateManager::StateManager(const StateManager& other)
 
 StateManager::~StateManager(void)
 {
-    Clear();
+    clear();
 }
 
 const StateManager& StateManager::operator=(const StateManager& other)
@@ -37,8 +32,6 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
 
     AllStates.clear();
 
-    ConstStateIterator it = other.GetConstStateIterator();
-
     if(interpolate)
     {
         Interpolator interp(other.lattice);
@@ -47,17 +40,16 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
         const double* R_old = other.lattice->R();
         const double* R = lattice->R();
 
-        it.First();
-        while(!it.AtEnd())
+        for(auto pair: other)
         {
-            pOrbitalConst old_orbital = it.GetState();
+            pOrbitalConst old_orbital = pair.second;
 
             // Copy kappa, pqn, etc.
             pOrbital s(new Orbital(old_orbital->Kappa(), old_orbital->PQN(), old_orbital->Energy()));
 
-            double real_orbital_size = R_old[old_orbital->Size() - 1];
+            double real_orbital_size = R_old[old_orbital->size() - 1];
             unsigned int new_size = lattice->real_to_lattice(real_orbital_size);
-            s->ReSize(new_size);
+            s->resize(new_size);
 
             for(unsigned int i = 0; i < new_size; i++)
             {   interp.Interpolate(old_orbital->f, R[i], s->f[i], s->dfdr[i], order);
@@ -65,21 +57,20 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
             }
             
             AddState(s);
-            it.Next();
         }
 
     }
     else
     {   //Simply copy orbitals
-        it.First();
-        while(!it.AtEnd())
+        auto it = other.begin();
+        while(it != other.end())
         {
-            pOrbitalConst old_orbital = it.GetState();
+            pOrbitalConst old_orbital = it->second;
 
             pOrbital s(new Orbital(*old_orbital));
             AddState(s);
 
-            it.Next();
+            it++;
         }
     }
 
@@ -119,34 +110,13 @@ void StateManager::AddState(pOrbital s)
     AllStates[info] = s;
 }
 
-void StateManager::Clear()
-{
-    AllStates.clear();
-}
-
-StateIterator StateManager::GetStateIterator()
-{
-    StateIterator it(this);
-    return it;
-}
-
-ConstStateIterator StateManager::GetConstStateIterator() const
-{
-    ConstStateIterator it(this);
-    return it;
-}
-
 void StateManager::Write(FILE* fp) const
 {
-    unsigned int num_states = NumStates();
-
+    unsigned int num_states = size();
     fwrite(&num_states, sizeof(unsigned int), 1, fp);
-    ConstStateIterator it = GetConstStateIterator();
-    while(!it.AtEnd())
-    {
-        it.GetState()->Write(fp);
-        it.Next();
-    }
+
+    for(auto it = begin(); it != end(); it++)
+        it->second->SpinorFunction::Write(fp);
 }
 
 void StateManager::Read(FILE* fp)
@@ -163,7 +133,7 @@ void StateManager::Read(FILE* fp)
         pOrbital current = GetState(OrbitalInfo(&ds));
         if(current)
         {   *current = ds;
-            max_size = mmax(max_size, ds.Size());
+            max_size = mmax(max_size, ds.size());
         }
     }
 
@@ -173,11 +143,6 @@ void StateManager::Read(FILE* fp)
 
 void StateManager::AddStates(StateManager& other)
 {
-    StateIterator it = other.GetStateIterator();
-    it.First();
-    while(!it.AtEnd())
-    {
-        AddState(it.GetState());
-        it.Next();
-    }
+    for(auto it = other.begin(); it != other.end(); it++)
+        AddState(it->second);
 }

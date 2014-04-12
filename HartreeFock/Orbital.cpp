@@ -4,26 +4,15 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
-Orbital::Orbital(const OrbitalInfo& info):
-    SingleParticleWavefunction(info)
-{
-    occupancy = 2.*abs(kappa);
-}
-
-Orbital::Orbital(int kappa, unsigned int pqn, double energy, unsigned int size):
-    SingleParticleWavefunction(kappa, pqn, energy, size)
-{
-    occupancy = 2.*abs(kappa);
-}
-
-Orbital::Orbital(const Orbital& other):
-    SingleParticleWavefunction(other), occupancy(other.occupancy)
-{}
-
 const Orbital& Orbital::operator=(const Orbital& other)
 {
     SingleParticleWavefunction::operator=(other);
-    occupancy = other.occupancy;
+    return *this;
+}
+
+Orbital& Orbital::operator=(Orbital&& other)
+{
+    SingleParticleWavefunction::operator=(other);
     return *this;
 }
 
@@ -86,14 +75,14 @@ double Orbital::Norm(pLatticeConst lattice) const
     const double* dR = lattice->dR();
 
     norm = f[0]*f[0] * g[0]*g[0] * dR[0];
-    for(i=0; i<Size()-2; i+=2)
+    for(i=0; i<size()-2; i+=2)
     {   norm = norm + 4. * (f[i]*f[i] + g[i]*g[i]) * dR[i];
         norm = norm + 2. * (f[i+1]*f[i+1] + g[i+1]*g[i+1]) * dR[i+1];
     }
 
     norm = norm/3.;
 
-    while(i<Size())
+    while(i<size())
     {   norm = norm + (f[i]*f[i] + g[i]*g[i]) * dR[i];
         i++;
     }
@@ -159,7 +148,7 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
         {   max++;
             f_max = f_max * f_ratio;
         }
-        ReSize(max+1);
+        resize(max+1);
 
         // Exponential decay (assumes dr changes slowly).
         unsigned int i = old_size;
@@ -172,13 +161,13 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
 
             i++;
         }
-        ReSize(i+1);
+        resize(i+1);
 
         return false;
     }
     else if(i+2 < f.size())
     {   // Reduce size
-        ReSize(i+2);
+        resize(i+2);
         return false;
     }
     else return true;
@@ -235,7 +224,6 @@ void Orbital::Write(FILE* fp) const
     // As well as the SpinorFunction vectors, we need to output some other things
     fwrite(&kappa, sizeof(int), 1, fp);
     fwrite(&pqn, sizeof(unsigned int), 1, fp);
-    fwrite(&occupancy, sizeof(double), 1, fp);
 
     SingleParticleWavefunction::Write(fp);
 }
@@ -244,7 +232,6 @@ void Orbital::Read(FILE* fp)
 {
     fread(&kappa, sizeof(int), 1, fp);
     fread(&pqn, sizeof(unsigned int), 1, fp);
-    fread(&occupancy, sizeof(double), 1, fp);
 
     SingleParticleWavefunction::Read(fp);
 }

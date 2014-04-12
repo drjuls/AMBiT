@@ -15,7 +15,7 @@ typedef pOrbital pBSpline;
 
 pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
-    excited->Clear();
+    excited->clear();
 
     if(!max_pqn.size())
         return excited;
@@ -201,7 +201,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         //     g = Sum_i (d_i. B_i)
         // To make integrals b(i,j) = <Bi|Bj> and A(i,j) = <Bi|H|Bj>
 
-        unsigned int n2 = B_lattice.size();      // Size of the matrices A and b
+        unsigned int n2 = B_lattice.size();      // size of the matrices A and b
         double* b = new double[n2*n2];
         double* A = new double[n2*n2];
         double* eigenvalues = new double[n2];
@@ -296,7 +296,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                 else
                 {   // Construct the orbital by summing splines with coefficients
                     pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
-                    ds->ReSize(lattice_size);
+                    ds->resize(lattice_size);
 
                     double* coeff = &A[i*n2];
 

@@ -115,7 +115,7 @@ Lattice::~Lattice(void)
     }
 }
 
-void Lattice::ReSize(double min_size)
+void Lattice::size(double min_size)
 {
     if(min_size <= r[NumPoints-1])
         return;
@@ -178,7 +178,7 @@ double Lattice::lattice_to_real(unsigned int i) const
 unsigned int Lattice::real_to_lattice(double r_point)
 {
     if(r_point > MaxRealDistance())
-        ReSize(r_point);
+        size(r_point);
     else if (r_point <= r[0])
         return 0;
 

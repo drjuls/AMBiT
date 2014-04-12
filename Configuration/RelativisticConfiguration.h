@@ -9,11 +9,6 @@
 #include <boost/iterator_adaptors.hpp>
 #include <string>
 
-#ifndef PARITY_ENUM
-#define PARITY_ENUM
-    enum Parity { even, odd };
-#endif
-
 class RelativisticConfiguration: public Configuration<OrbitalInfo, int>
 {
     /** RelativisticConfiguration extends configuration by adding a set of projections

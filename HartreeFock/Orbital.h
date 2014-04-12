@@ -10,19 +10,20 @@
 class Orbital : public SingleParticleWavefunction  
 {
 public:
-    Orbital(const OrbitalInfo& info);
-    Orbital(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0);
-    Orbital(const Orbital& other);
+    Orbital(const OrbitalInfo& info): SingleParticleWavefunction(info) {}
+    Orbital(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0):
+        SingleParticleWavefunction(kappa, pqn, energy, size) {}
+    Orbital(const Orbital& other): SingleParticleWavefunction(other) {}
+    Orbital(Orbital&& other): SingleParticleWavefunction(other) {}
     virtual ~Orbital() {}
+
+    const Orbital& operator=(const Orbital& other);
+    Orbital& operator=(Orbital&& other);
 
     double Norm(pLatticeConst lattice) const; // Deprecate
 
-    DEPRECATED inline void SetOccupancy(double number_electrons);
-    DEPRECATED double Occupancy() const { return occupancy; }
-
     virtual std::string Name() const;
 
-    const Orbital& operator=(const Orbital& other);
     const Orbital& operator*=(double scale_factor);
     Orbital operator*(double scale_factor) const;
     const Orbital& operator+=(const Orbital& other);
@@ -33,9 +34,9 @@ public:
     Orbital operator*(const RadialFunction& chi) const;
 
     /** Check that the ratio
-          f[Size()-1]/f_max < tolerance
+          f[size()-1]/f_max < tolerance
         and
-          f[Size()-2]/f_max > tolerance
+          f[size()-2]/f_max > tolerance
         and if they are not, enlarge or reduce the size of the wavefunctions.
         Return true if the size was correct, false if there was a change.
       */
@@ -52,18 +53,10 @@ public:
 
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
-
-protected:
-    double occupancy;
 };
 
 typedef boost::shared_ptr<Orbital> pOrbital;
 typedef boost::shared_ptr<const Orbital> pOrbitalConst;
-
-inline void Orbital::SetOccupancy(double number_electrons)
-{   if(number_electrons <= (double)(2*abs(kappa)))
-        occupancy = number_electrons;
-}
 
 #endif
 

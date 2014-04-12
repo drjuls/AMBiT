@@ -22,7 +22,7 @@ public:
     pLattice GetLattice() { return lattice; }
 
     /** Get size of valid latticepoints. */
-    virtual unsigned int Size() const = 0;
+    virtual unsigned int size() const = 0;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) = 0;
@@ -38,21 +38,21 @@ public:
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array;
-             latticepoint < Size().
+             latticepoint < size().
      */
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const = 0;
 
     /** Get numerical coefficients of the ODE at the point r, (f,g).
         w_f and w_g are coefficients of f and g in w; w_const is the constant term of w (not proportional to f or g).
         PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays;
-             latticepoint < Size().
+             latticepoint < size().
      */
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const = 0;
     
     /** Get Jacobian (dw[i]/df and dw[i]/dg), dw[i]/dr at a point r, (f, g).
         PRE: jacobian should be an allocated 2x2 matrix;
              dwdr and w_const should be allocated 2 dimensional arrays;
-             latticepoint < Size().
+             latticepoint < size().
      */
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const = 0;
     
@@ -87,8 +87,8 @@ public:
     SpinorODEDecorator(pSpinorODE decorated_object): SpinorODE(decorated_object->GetLattice()), wrapped(decorated_object) {}
     virtual ~SpinorODEDecorator() {}
 
-    virtual unsigned int Size() const
-    {   return wrapped->Size();
+    virtual unsigned int size() const
+    {   return wrapped->size();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

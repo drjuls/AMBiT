@@ -27,11 +27,11 @@ public:
     double R(unsigned int i);
     double dR(unsigned int i);
 
-    /** Return all points of R, from 0 to Size()-1 */
+    /** Return all points of R, from 0 to size()-1 */
     const double* R() const { return r; }
     const double* dR() const { return dr; }
 
-    /** Return all points of R^k, from 0 to Size()-1.
+    /** Return all points of R^k, from 0 to size()-1.
         PRE: k > 0
       */
     const double* Rpower(unsigned int k);
@@ -61,7 +61,7 @@ protected:
     const double* Calculate_Rpower(unsigned int k);
     
     /** Resizes the lattice such that NumPoints > min_size. */
-    virtual void ReSize(double min_size);
+    virtual void size(double min_size);
 
 protected:
     unsigned int NumPoints;
@@ -78,13 +78,13 @@ typedef boost::shared_ptr<const Lattice> pLatticeConst;
 
 inline double Lattice::R(unsigned int i)
 {   if(i >= NumPoints)
-        ReSize(i);
+        size(i);
     return r[i];
 }
 
 inline double Lattice::dR(unsigned int i)
 {   if(i >= NumPoints)
-        ReSize(i);
+        size(i);
     return dr[i];
 }
 

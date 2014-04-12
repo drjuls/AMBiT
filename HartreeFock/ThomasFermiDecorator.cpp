@@ -24,10 +24,10 @@ void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
     if(hf_mixing == 0.0)
     {
         // Thomas-Fermi potential.
-        directPotential.ReSize(lattice->Size());
+        directPotential.resize(lattice->Size());
         double P = 2.235 * pow((Z/55.), 1./3.);
 
-        for(i = 0; i < directPotential.Size(); i++)
+        for(i = 0; i < directPotential.size(); i++)
         {
             double r = R[i];
             double denom = 1. + P * r;
@@ -42,7 +42,7 @@ void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
         directPotential = directPotential * (1. - hf_mixing) + hf_pot * hf_mixing;
 
         // potential should be at least C/r everywhere.
-        for(i = 0; i < directPotential.Size(); i++)
+        for(i = 0; i < directPotential.size(); i++)
             directPotential.f[i] = mmax(directPotential.f[i], C/R[i]);
     }
 
@@ -59,13 +59,13 @@ void ThomasFermiDecorator::ExtendPotential()
 {
     wrapped->ExtendPotential();
 
-    unsigned int i = Size();
+    unsigned int i = size();
     const double* R = lattice->R();
     double C = mmax(charge, 1.);
 
-    directPotential.ReSize(lattice->Size());
+    directPotential.resize(lattice->Size());
 
-    while(i < directPotential.Size())
+    while(i < directPotential.size())
     {   directPotential.f[i] = C/R[i];
         directPotential.dfdr[i] = -C/(R[i]*R[i]);
         i++;
@@ -126,7 +126,7 @@ void ThomasFermiDecorator::GetODEJacobian(unsigned int latticepoint, const Spino
 
 SpinorFunction ThomasFermiDecorator::ApplyTo(const SpinorFunction& a) const
 {
-    SpinorFunction ta(a.Kappa(), a.Size());
+    SpinorFunction ta(a.Kappa(), a.size());
 
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
     const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
@@ -134,13 +134,13 @@ SpinorFunction ThomasFermiDecorator::ApplyTo(const SpinorFunction& a) const
 
     double kappa = a.Kappa();
 
-    std::vector<double> d2fdr2(a.Size());
-    std::vector<double> d2gdr2(a.Size());
+    std::vector<double> d2fdr2(a.size());
+    std::vector<double> d2gdr2(a.size());
     Interpolator I(lattice);
     I.GetDerivative(a.dfdr, d2fdr2, 6);
     I.GetDerivative(a.dgdr, d2gdr2, 6);
 
-    for(unsigned int i = 0; i < ta.Size(); i++)
+    for(unsigned int i = 0; i < ta.size(); i++)
     {
         ta.f[i] = -directPotential.f[i]*a.f[i]
                   + (-a.dgdr[i] + kappa/R[i]*a.g[i])/alpha;

@@ -125,7 +125,7 @@ void SigmaPotential::AddToSigma(const std::vector<double>& f1, const std::vector
 {
     if(((f1.size() - start)/gap > size) || ((f2.size() - start)/gap > size))
     {   
-        ReSize((mmax(f1.size(), f2.size()) - start)/gap);
+        size((mmax(f1.size(), f2.size()) - start)/gap);
     }
 
     for(unsigned int i = 0; i<(f1.size() - start)/gap; i++)
@@ -141,7 +141,7 @@ void SigmaPotential::AddToSigma(const std::vector<double>& f1, const std::vector
 {
     if(((f1_size - start)/gap > size) || ((f2_size - start)/gap > size))
     {   
-        ReSize((mmax(f1_size, f2_size) - start)/gap);
+        size((mmax(f1_size, f2_size) - start)/gap);
     }
 
     for(unsigned int i = 0; i<(f1_size - start)/gap; i++)
@@ -180,7 +180,7 @@ void SigmaPotential::ReadIn()
     fread(&new_size, sizeof(unsigned int), 1, fp);
     fread(&start, sizeof(unsigned int), 1, fp);
 
-    ReSize(new_size);
+    size(new_size);
 
     for(unsigned int i = 0; i<size; i++)
     {
@@ -212,12 +212,12 @@ void SigmaPotential::WriteOut() const
     changed_since_store = false;
 }
 
-unsigned int SigmaPotential::Size()
+unsigned int SigmaPotential::size()
 {
     return (size * gap + start);
 }
 
-void SigmaPotential::ReSize(unsigned int new_size)
+void SigmaPotential::size(unsigned int new_size)
 {
     if(new_size < size)
     {

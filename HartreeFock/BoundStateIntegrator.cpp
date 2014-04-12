@@ -37,7 +37,7 @@ void BoundStateIntegrator::SetUpForwardsIntegral(SingleParticleWavefunction& s, 
 void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s, const std::vector<double>& HFPotential)
 {
     // Get start point
-    unsigned int start_point = s.Size() - 1;
+    unsigned int start_point = s.size() - 1;
     unsigned int i = start_point - (adams_N-2);
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
 
@@ -50,7 +50,7 @@ void BoundStateIntegrator::SetUpBackwardsIntegral(SingleParticleWavefunction& s,
     }
 
     start_point = i + (adams_N-2);
-    s.ReSize(start_point+1);
+    s.size(start_point+1);
 
     double correction = s.f[start_point];
     double S = -9.;
@@ -203,7 +203,7 @@ void BoundStateIntegrator::SolveDiracBoundary(SingleParticleWavefunction& s, con
     {   unsigned int old_N = adams_N;
         SetAdamsOrder(5);
 
-        SpinorFunction exchange(s.Kappa(), s.Size());
+        SpinorFunction exchange(s.Kappa(), s.size());
         StateFunction Af(lattice);
         Af.SetHFPotential(HFPotential);
         Af.SetState(s);

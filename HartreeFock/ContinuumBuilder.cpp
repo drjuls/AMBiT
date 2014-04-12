@@ -49,7 +49,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
     double ds, old_phase = 0.;
     unsigned int start_sine = 0;
 
-    s->ReSize(HFPotential.size());
+    s->size(HFPotential.size());
     unsigned int lattice_extensions = 0;
 
     do
@@ -69,7 +69,7 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
             lattice->R(HFPotential.size()+1);
             core->ExtendPotential();
             s->Clear();
-            s->ReSize(HFPotential.size());
+            s->size(HFPotential.size());
             *logstream << "Resizing continuum lattice; new size = " << HFPotential.size() << std::endl;
             old_phase = 0.0;
             start_sine = 0;
@@ -79,8 +79,8 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
         {   ds = (final_phase - old_phase)/MathConstant::Instance()->Pi();
             if(fabs(ds) > Core::StateParameters::EnergyTolerance)
             {   core->CalculateExchange(*s, new_exchange);
-                exchange.ReSize(new_exchange.Size());
-                for(unsigned int i = 0; i<exchange.Size(); i++)
+                exchange.size(new_exchange.size());
+                for(unsigned int i = 0; i<exchange.size(); i++)
                     exchange.f[i] = 0.5 * exchange.f[i] + 0.5 * new_exchange.f[i];
                 old_phase = final_phase;
             }
@@ -123,11 +123,11 @@ unsigned int ContinuumBuilder::CalculateContinuumWave(pContinuumWave s, pLattice
 
         // Determine size of new continuum state
         s->Clear();
-        unsigned int size = external_lattice->Size();
+        unsigned int size = external_lattice->size();
         if(external_lattice->MaxRealDistance() > lattice->MaxRealDistance())
         {   size = external_lattice->real_to_lattice(lattice->MaxRealDistance());
         }
-        s->ReSize(size);
+        s->size(size);
 
         // Interpolate
         for(unsigned int i = 0; i < size; i++)
@@ -206,10 +206,10 @@ bool ContinuumBuilder::ReadContinuumWave(pContinuumWave s, pLattice external_lat
         // Interpolate onto external lattice
         unsigned int size;
         if(external_lattice->MaxRealDistance() < R[R.size()-1])
-            size = external_lattice->Size();
+            size = external_lattice->size();
         else
             size = external_lattice->real_to_lattice(R[R.size()-1]);
-        s->ReSize(size);
+        s->size(size);
 
         unsigned int order = 6;
         Interpolator interp(R, order);
@@ -218,7 +218,7 @@ bool ContinuumBuilder::ReadContinuumWave(pContinuumWave s, pLattice external_lat
         const double* extdR = external_lattice->dR(); 
 
         double dfdr, dgdr;
-        for(unsigned int i = 0; i < s->Size(); i++)
+        for(unsigned int i = 0; i < s->size(); i++)
         {
             interp.Interpolate(f, extR[i], s->f[i], dfdr, order);
             interp.Interpolate(g, extR[i], s->g[i], dgdr, order);

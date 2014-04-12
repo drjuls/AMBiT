@@ -1,7 +1,7 @@
 #ifndef HF_OPERATOR_H
 #define HF_OPERATOR_H
 
-#include "Operator.h"
+#include "OneBodyOperator.h"
 #include "SpinorODE.h"
 #include "Core.h"
 #include "CoulombOperator.h"
@@ -31,50 +31,51 @@ public:
     virtual double GetCharge() const { return charge; } //!< Get ion charge.
 
     /** Get size of valid latticepoints. */
-    virtual unsigned int Size() const;
+    virtual unsigned int size() const;
 
     /** Extend direct potential to match lattice size. */
     virtual void ExtendPotential();
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL);
+    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override;
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation);
+    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const;
-    
+    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override;
+
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array;
-             latticepoint < Size().
+             latticepoint < size().
      */
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
 
     /** Get numerical coefficients of the ODE at the point r, (f,g).
         PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays;
-             latticepoint < Size().
+             latticepoint < size().
      */
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
 
     /** Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
         PRE: jacobian should be an allocated 2x2 matrix;
              dwdr should be an allocated 2 dimensional array;
-             latticepoint < Size().
+             latticepoint < size().
      */
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
     /** Get approximation to eigenfunction for first numpoints near the origin. */
-    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const;
+    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override;
 
     /** Get approximation to eigenfunction for last numpoints far from the origin.
         This routine can change the size of the orbital.
      */
-    virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const;
+    virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const override;
 
 public:
     /** Potential = t | a > for an operator t. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
 protected:
     virtual SpinorFunction CalculateExchange(const SpinorFunction& s) const;
@@ -116,8 +117,8 @@ public:
     }
 
     /** Get size of valid latticepoints. */
-    virtual unsigned int Size() const override
-    {   return wrapped->Size();
+    virtual unsigned int size() const override
+    {   return wrapped->size();
     }
 
     /** Extend direct potential to match lattice size. */

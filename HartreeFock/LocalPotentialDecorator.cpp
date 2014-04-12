@@ -25,7 +25,7 @@ void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const Sp
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
 
-    if(latticepoint < directPotential.Size())
+    if(latticepoint < directPotential.size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
         w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
         w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
@@ -36,7 +36,7 @@ void LocalPotentialDecorator::GetODECoefficients(unsigned int latticepoint, cons
 {
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
-    if(latticepoint < directPotential.Size())
+    if(latticepoint < directPotential.size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
         w_g[0] += alpha * directPotential.f[latticepoint];
         w_f[1] -= alpha * directPotential.f[latticepoint];
@@ -47,7 +47,7 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
 {
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
-    if(latticepoint < directPotential.Size())
+    if(latticepoint < directPotential.size())
     {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
         jacobian[0][1] += alpha * directPotential.f[latticepoint];
         jacobian[1][0] -= alpha * directPotential.f[latticepoint];
@@ -61,7 +61,7 @@ SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
     ta -= a * directPotential;
-    
+
     return ta;
 }
 
@@ -77,28 +77,28 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
     // Get electron density function
     RadialFunction density;
     
-    ConstStateIterator cs = core->GetConstStateIterator();
-    while(!cs.AtEnd())
+    auto cs = core->begin();
+    while(cs != core->end())
     {
-        const Orbital& s = *cs.GetState();
+        const Orbital& s = *cs->second;
         double number_electrons = core->GetOccupancy(OrbitalInfo(&s));
         
         density += s.GetDensity() * number_electrons;
         
-        cs.Next();
+        cs++;
     }
 
-    RadialFunction y(density.Size());
+    RadialFunction y(density.size());
 
-    if(density.Size())
+    if(density.size())
         coulombSolver->GetPotential(density, y, Z-charge);
 
     unsigned int i = 0;
 
     // Get local exchange approximation
-    directPotential.ReSize(density.Size());
+    directPotential.resize(density.size());
     double C = 0.635348143228;
-    for(i = 0; i < density.Size(); i++)
+    for(i = 0; i < density.size(); i++)
     {
         directPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);
         directPotential.dfdr[i] = C/3. * pow((density.f[i]/(R[i]*R[i])), -2./3.) * (density.dfdr[i] - 2.*density.f[i]/R[i])/(R[i]*R[i]);
@@ -107,7 +107,7 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
             break;
     }
 
-    while(i < density.Size())
+    while(i < density.size())
     {   directPotential.f[i] = (Z - charge)/R[i] - y.f[i];
         directPotential.dfdr[i] = -(Z - charge)/(R[i]*R[i]) - y.dfdr[i];
         i++;

@@ -77,7 +77,7 @@ double ExcitedStates::CreateSecondOrderSigma(const OrbitalInfo& info, const Core
 
     SigmaMap::iterator it = SecondOrderSigma.find(s->Kappa());
     if(it == SecondOrderSigma.end())
-    {   sigma = new SigmaPotential(lattice, sigma_file, s->Size(), 100);
+    {   sigma = new SigmaPotential(lattice, sigma_file, s->size(), 100);
         sigma->Reset();
         mbpt.GetSecondOrderSigma(s->Kappa(), sigma);
         SecondOrderSigma[s->Kappa()] = sigma;
@@ -98,7 +98,7 @@ bool ExcitedStates::RetrieveSecondOrderSigma(const OrbitalInfo& info)
     std::string sigma_file = identifier + "." + itoa(info.Kappa()) + ".sigma";
     SigmaPotential* sigma = new SigmaPotential(lattice, sigma_file);
 
-    if(sigma->Size())
+    if(sigma->size())
     {
         SigmaMap::iterator it = SecondOrderSigma.find(info.Kappa());
         if(it != SecondOrderSigma.end())
@@ -176,7 +176,7 @@ double ExcitedStates::GetSigmaAmount(const OrbitalInfo& info) const
 
 void ExcitedStates::MultiplyByR(pOrbitalConst previous, pOrbital current) const
 {
-    current->ReSize(previous->Size());
+    current->size(previous->size());
 
     std::vector<double> Potential(core->GetHFPotential());
     std::vector<double> LocalExchange(core->GetLocalExchangeApproximation());
@@ -197,7 +197,7 @@ void ExcitedStates::MultiplyByR(pOrbitalConst previous, pOrbital current) const
 
     double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
-    for(i=0; i<previous->Size(); i++)
+    for(i=0; i<previous->size(); i++)
     {
         current->f[i] = previous->f[i] * R[i];
         current->g[i] = (R[i]*previous->dfdr[i] + (1. + kappa)*previous->f[i])
@@ -217,7 +217,7 @@ void ExcitedStates::MultiplyByR(pOrbitalConst previous, pOrbital current) const
 
 void ExcitedStates::MultiplyBySinR(pOrbitalConst previous, pOrbital current) const
 {
-    current->ReSize(previous->Size());
+    current->size(previous->size());
 
     std::vector<double> Potential(core->GetHFPotential());
     std::vector<double> LocalExchange(core->GetLocalExchangeApproximation());
@@ -235,11 +235,11 @@ void ExcitedStates::MultiplyBySinR(pOrbitalConst previous, pOrbital current) con
     const double* R = lattice->R();
     const double* dR = lattice->dR();
     double kappa = current->Kappa();
-    double k = MathConstant::Instance()->Pi()/lattice->R(previous->Size());
+    double k = MathConstant::Instance()->Pi()/lattice->R(previous->size());
 
     double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
-    for(i=0; i<previous->Size(); i++)
+    for(i=0; i<previous->size(); i++)
     {
         double sinp = sin(k*R[i]);
         double kcosp = k * cos(k*R[i]);
@@ -263,7 +263,7 @@ void ExcitedStates::MultiplyBySinR(pOrbitalConst previous, pOrbital current) con
 
 void ExcitedStates::MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const
 {
-    current->ReSize(previous->Size());
+    current->size(previous->size());
 
     std::vector<double> Potential(core->GetHFPotential());
     std::vector<double> LocalExchange(core->GetLocalExchangeApproximation());
@@ -282,11 +282,11 @@ void ExcitedStates::MultiplyByRSinR(pOrbitalConst previous, pOrbital current) co
     const double* dR = lattice->dR();
     double kappa_c = current->Kappa();
     double kappa_p = previous->Kappa();
-    double k = MathConstant::Instance()->Pi()/lattice->R(previous->Size());
+    double k = MathConstant::Instance()->Pi()/lattice->R(previous->size());
 
     double AlphaSquared = PhysicalConstant::Instance()->GetAlphaSquared(); // Set to zero to remove effect of core potential
 
-    for(i=0; i<previous->Size(); i++)
+    for(i=0; i<previous->size(); i++)
     {
         double sinp = sin(k*R[i]);
         double kcosp = k * cos(k*R[i]);
@@ -326,11 +326,11 @@ void ExcitedStates::Orthogonalise(pOrbital current) const
         {
             double S = 0.;
             unsigned int i;
-            for(i=0; i<mmin(other->Size(), current->Size()); i++)
+            for(i=0; i<mmin(other->size(), current->size()); i++)
             {   S = S + ((other->f[i])*(current->f[i]) + (other->g[i])*(current->g[i])) * dR[i];
             }
 
-            for(i=0; i<mmin(other->Size(), current->Size()); i++)
+            for(i=0; i<mmin(other->size(), current->size()); i++)
             {
                 current->f[i] = current->f[i] - S * other->f[i];
                 current->g[i] = current->g[i] - S * other->g[i];
@@ -351,12 +351,12 @@ void ExcitedStates::Orthogonalise(pOrbital current) const
         {
             double S = 0.;
             unsigned int i;
-            for(i=0; i<mmin(other->Size(), current->Size()); i++)
+            for(i=0; i<mmin(other->size(), current->size()); i++)
             {   S += ((other->f[i])*(current->f[i]) + (other->g[i])*(current->g[i]))
                     * dR[i];
             }
 
-            for(i=0; i<mmin(other->Size(), current->Size()); i++)
+            for(i=0; i<mmin(other->size(), current->size()); i++)
             {
                 current->f[i] = current->f[i] - S * other->f[i];
                 current->g[i] = current->g[i] - S * other->g[i];

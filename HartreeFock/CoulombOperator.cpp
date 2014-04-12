@@ -23,8 +23,8 @@ void CoulombOperator::GetPotential(int k, const RadialFunction& density, RadialF
     else
         ode_to_use = pODESolver(new AdamsSolver(lattice));
 
-    if(pot.Size() < density.Size())
-        pot.ReSize(density.Size());
+    if(pot.size() < density.size())
+        pot.resize(density.size());
 
     // Integrate forwards to obtain I1
     fwd_direction = true;
@@ -32,7 +32,7 @@ void CoulombOperator::GetPotential(int k, const RadialFunction& density, RadialF
 
     // Integrate backwards to obtain I2
     fwd_direction = false;
-    RadialFunction I2(pot.Size());
+    RadialFunction I2(pot.size());
 
     ode_to_use->IntegrateBackwards(this, &I2);
 
@@ -53,8 +53,8 @@ void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot,
     else
         ode_to_use = pODESolver(new AdamsSolver(lattice));
 
-    if(pot.Size() < density.Size())
-        pot.ReSize(density.Size());
+    if(pot.size() < density.size())
+        pot.resize(density.size());
 
     // Integrate forwards to obtain I1
     fwd_direction = true;
@@ -64,7 +64,7 @@ void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot,
     // To generalise this function use potential = charge/R^(k+1) here rather than just R;
     if(fabs(charge) > 1.e-6)
     {
-        double norm = pot.f[pot.Size()-1] * lattice->R(pot.Size()-1);
+        double norm = pot.f[pot.size()-1] * lattice->R(pot.size()-1);
         norm = charge/norm;
 
         pot *= norm;
@@ -73,7 +73,7 @@ void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot,
 
     // Integrate backwards to obtain I2
     fwd_direction = false;
-    RadialFunction I2(pot.Size());
+    RadialFunction I2(pot.size());
 
     ode_to_use->IntegrateBackwards(this, &I2);
     
@@ -84,7 +84,7 @@ void CoulombOperator::GetODEFunction(unsigned int latticepoint, const RadialFunc
 {
     double r = lattice->R(latticepoint);
     double density = 0.;
-    if(latticepoint < rho.Size())
+    if(latticepoint < rho.size())
         density = rho.f[latticepoint];
 
     if(fwd_direction)
@@ -97,7 +97,7 @@ void CoulombOperator::GetODECoefficients(unsigned int latticepoint, const Radial
 {
     double r = lattice->R(latticepoint);
     double density = 0.;
-    if(latticepoint < rho.Size())
+    if(latticepoint < rho.size())
         density = rho.f[latticepoint];
 
     if(fwd_direction)
@@ -121,7 +121,7 @@ void CoulombOperator::GetODEJacobian(unsigned int latticepoint, const RadialFunc
     double r = lattice->R(latticepoint);
     double density = 0.;
     double drhodr = 0.;
-    if(latticepoint < rho.Size())
+    if(latticepoint < rho.size())
     {   density = rho.f[latticepoint];
         drhodr = rho.dfdr[latticepoint];
     }
@@ -145,8 +145,8 @@ void CoulombOperator::EstimateSolutionNearOrigin(unsigned int numpoints, RadialF
     // Assume fwd_direction == true and estimate I1.
     double integrand = 0.0;
     double w;
-    if(f.Size() < numpoints)
-        f.ReSize(numpoints);
+    if(f.size() < numpoints)
+        f.resize(numpoints);
 
     // Use trapezoidal rule for integrand
     for(unsigned int i = 0; i < numpoints; i++)
@@ -166,7 +166,7 @@ void CoulombOperator::EstimateSolutionNearInfinity(unsigned int numpoints, Radia
     double integrand = 0.0;
     double w;
 
-    for(unsigned int i = f.Size() - 1; i >= f.Size() - numpoints; i--)
+    for(unsigned int i = f.size() - 1; i >= f.size() - numpoints; i--)
     {
         integrand += 0.5 * 1./pow(lattice->R(i), k+1) * rho.f[i] * lattice->dR(i);
         f.f[i] = pow(lattice->R(i), k) * integrand;

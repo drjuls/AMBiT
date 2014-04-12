@@ -1,8 +1,6 @@
 #include "Include.h"
 #include "CIIntegrals.h"
-#include "HartreeFock/StateIntegrator.h"
-#include "Universal/CoulombIntegrator.h"
-#include "MBPT/CoreMBPTCalculator.h"
+//#include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/PhysicalConstant.h"
 
 inline void swap(unsigned int& i1, unsigned int& i2)
@@ -13,47 +11,55 @@ inline void swap(unsigned int& i1, unsigned int& i2)
 
 unsigned int CIIntegrals::GetStorageSize() const
 {
-    unsigned int num_states = states.NumStates();
+    unsigned int num_states = states->size();
     unsigned int size1 = 0;
     unsigned int size2 = 0;
 
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
 
-    ConstStateIterator it_1 = states.GetConstStateIterator();
-    ConstStateIterator it_2 = states.GetConstStateIterator();
-    ConstStateIterator it_3 = states.GetConstStateIterator();
-    ConstStateIterator it_4 = states.GetConstStateIterator();
+    StateManager::const_iterator it_1 = states->begin();
+    StateManager::const_iterator it_2 = states->begin();
+    StateManager::const_iterator it_3 = states->begin();
+    StateManager::const_iterator it_4 = states->begin();
+    StateManager::const_iterator it_end = states->end();
 
     // One electron integrals
-    it_1.First();
-    while(!it_1.AtEnd())
+    while(it_1 != states->end())
     {
         it_2 = it_1;
-        while(!it_2.AtEnd())
+        while(it_2 != states->end())
         {
-            pOrbitalConst si = it_1.GetState();
-            pOrbitalConst sj = it_2.GetState();
+            pOrbitalConst si = it_1->second;
+            pOrbitalConst sj = it_2->second;
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
                 size1++;
 
-            it_2.Next();
+            it_2++;
         }
-        it_1.Next();
+        it_1++;
     }
     *logstream << "Num one-electron integrals: " << size1 << std::endl;
 
     // Two-electron integrals
-    it_2.First(); i2 = 0;
-    while(!it_2.AtEnd())
+    it_2 = states->begin(); i2 = 0;
+    while(it_2 != it_end)
     {
-        pOrbitalConst s_2 = it_2.GetState();
-        it_4 = it_2; i4 = i2;
-        while(!it_4.AtEnd())
+        pOrbitalConst s_2 = it_2->second;
+
+        if(two_body_operator_reverse_symmetry)
+        {   // i2 <= i4
+            it_4 = it_2; i4 = i2;
+        }
+        else
+        {   it_4 = states->begin(); i4 = 0;
+        }
+
+        while(it_4 != it_end)
         {
-            pOrbitalConst s_4 = it_4.GetState();
+            pOrbitalConst s_4 = it_4->second;
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -67,20 +73,35 @@ unsigned int CIIntegrals::GetStorageSize() const
             while(k <= kmax)
             {
                 // s1 is the smallest
-                it_1.First(); i1 = 0;
-                while((i1 <= i2) && (it_1.GetState()->PQN() <= max_pqn_1))
+                it_1 = states->begin(); i1 = 0;
+                while((i1 <= i2) && (i1 <= i4) && (it_1->second->PQN() <= max_pqn_1))
                 {
-                    pOrbitalConst s_1 = it_1.GetState();
+                    pOrbitalConst s_1 = it_1->second;
+
+                    // i1 is smallest && (if i1 == i2, then (i3 <= i4))
+                    //                && (if i1 == i3, then (i2 <= i4))
+                    //                && (if i1 == i4, then (i2 <= i3))
 
                     it_3 = it_1; i3 = i1;
+
+                    // if i1 == i3, then (i2 <= i4)
+                    if(!two_body_operator_reverse_symmetry && (i2 > i4))
+                    {   it_3++; i3++;
+                    }
+                    // if i1 == i4, then (i2 <= i3)
+                    if(!two_body_operator_reverse_symmetry && (i1 == i4))
+                    {   it_3 = it_2; i3 = i2;
+                    }
+
                     unsigned int i3_limit;
                     if(i1 == i2)
                         i3_limit = i4;
                     else
                         i3_limit = num_states;
-                    while((i3 <= i3_limit) && !it_3.AtEnd())
+
+                    while((i3 <= i3_limit) && it_3 != it_end)
                     {
-                        pOrbitalConst s_3 = it_3.GetState();
+                        pOrbitalConst s_3 = it_3->second;
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->PQN() <= max_pqn_2) || (s_3->PQN() <= max_pqn_2)) &&
@@ -94,36 +115,40 @@ unsigned int CIIntegrals::GetStorageSize() const
                                 size2++;
                         }
 
-                        it_3.Next(); i3++;
+                        it_3++; i3++;
                     }
-                    it_1.Next(); i1++;
+                    it_1++; i1++;
                 }
                 k+=2;
             }
-            it_4.Next(); i4++;
+            it_4++; i4++;
         }
-        it_2.Next(); i2++;
+        it_2++; i2++;
     }
 
     *logstream << "Num two-electron integrals: " << size2 << std::endl;
     return (size1 + size2);
 }
 
-void CIIntegrals::Clear()
+void CIIntegrals::clear()
 {
     state_index.clear();
     reverse_state_index.clear();
     OneElectronIntegrals.clear();
-    SMSIntegrals.clear();
     TwoElectronIntegrals.clear();
     OverlapIntegrals.clear();
 
     UpdateStateIndexes();
 }
 
+unsigned int CIIntegrals::size() const
+{
+    return OneElectronIntegrals.size() + TwoElectronIntegrals.size();
+}
+
 void CIIntegrals::Update()
 {
-    Clear();
+    clear();
 
     UpdateOneElectronIntegrals();
     UpdateTwoElectronIntegrals();
@@ -131,31 +156,28 @@ void CIIntegrals::Update()
 
 void CIIntegrals::UpdateStateIndexes()
 {
-    NumStates = states.NumStates();
+    NumStates = states->size();
     state_index.clear();
     reverse_state_index.clear();
 
-    ConstStateIterator it_i = states.GetConstStateIterator();
-    unsigned int i;
-
     // Iterate through states, assign in order
-    it_i.First(); i = 0;
-    while(!it_i.AtEnd())
+    StateManager::const_iterator it_i = states->begin();
+    unsigned int i = 0;
+    while(it_i != states->end())
     {
-        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, OrbitalInfo(it_i.GetState())));
+        state_index.insert(std::make_pair(it_i->first, i));
+        reverse_state_index.insert(std::make_pair(i, it_i->first));
 
-        it_i.Next(); i++;
+        it_i++; i++;
     }
 }
 
 void CIIntegrals::UpdateOneElectronIntegrals()
 {
-    StateIntegrator SI(states.GetLattice());
     unsigned int i, j;
 
-    ConstStateIterator it_i = states.GetConstStateIterator();
-    ConstStateIterator it_j = states.GetConstStateIterator();
+    StateManager::const_iterator it_i = states->begin();
+    StateManager::const_iterator it_j = states->begin();
 
     // If fp is NULL, calculate one electron integrals, otherwise read them in.
     std::string file1 = read_id + ".one.int";
@@ -169,15 +191,17 @@ void CIIntegrals::UpdateOneElectronIntegrals()
         }
     }
 
+    pOPIntegrator integrator = one_body_operator->GetOPIntegrator();
+
     // Get single particle integrals
-    it_i.First(); i = 0;
-    while(!it_i.AtEnd())
+    it_i = states->begin(); i = 0;
+    while(it_i != states->end())
     {
         it_j = it_i; j = i;
-        while(!it_j.AtEnd())
+        while(it_j != states->end())
         {
-            pOrbitalConst si = it_i.GetState();
-            pOrbitalConst sj = it_j.GetState();
+            pOrbitalConst si = it_i->second;
+            pOrbitalConst sj = it_j->second;
 
             // Calculate any remaining one electron integrals
             if(si->Kappa() == sj->Kappa())
@@ -188,31 +212,21 @@ void CIIntegrals::UpdateOneElectronIntegrals()
                 // (it may have been read in)
                 if(OneElectronIntegrals.find(key) == OneElectronIntegrals.end())
                 {
-                    double integral = SI.HamiltonianMatrixElement(*si, *sj, *states.GetCore());
+                    double integral = one_body_operator->GetMatrixElement(*si, *sj);
                     OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, integral));
                 }
             }
 
-            // i.pqn <= j.pqn, so calculate using derivative of i instead of j
-            SMSIntegrals.insert(std::pair<unsigned int, double>(i* NumStates + j,
-                -SI.IsotopeShiftIntegral(*it_j.GetState(), *it_i.GetState())));
-
             // Overlap integrals
-            const SingleParticleWavefunction& p1 = *it_i.GetState();
-            const SingleParticleWavefunction& p2 = *it_j.GetState();
-            if(p1.L() == p2.L())
+            if(si->L() == sj->L())
             {
-                double overlap = 0.;
-                const double* dR = states.GetLattice()->dR();
-                for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
-                    overlap += (p1.f[x] * p2.f[x] + p1.g[x] * p2.g[x]) * dR[x];
-
+                double overlap = integrator->GetInnerProduct(*si, *sj);
                 OverlapIntegrals.insert(std::pair<unsigned int, double>(i * NumStates + j, overlap));
             }
 
-            it_j.Next(); j++;
+            it_j++; j++;
         }
-        it_i.Next(); i++;
+        it_i++; i++;
     }
 }
 
@@ -231,32 +245,24 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     }
 
     // Calculate any remaining two electron integrals.
-    CoulombIntegrator CI(states.GetLattice());
-    std::vector<double> density(states.GetCore()->GetHFPotential().size());
-    std::vector<double> Pot24(states.GetCore()->GetHFPotential().size());
-    const double* dR = states.GetLattice()->dR();
-    const double* R = states.GetLattice()->R();
-    const double core_pol = states.GetCore()->GetPolarisability();
-    const double core_rad = states.GetCore()->GetClosedShellRadius();
-
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
-    unsigned int p;  // just a counter
 
-    ConstStateIterator it_1 = states.GetConstStateIterator();
-    ConstStateIterator it_2 = states.GetConstStateIterator();
-    ConstStateIterator it_3 = states.GetConstStateIterator();
-    ConstStateIterator it_4 = states.GetConstStateIterator();
+    StateManager::const_iterator it_1 = states->begin();
+    StateManager::const_iterator it_2 = states->begin();
+    StateManager::const_iterator it_3 = states->begin();
+    StateManager::const_iterator it_4 = states->begin();
+    StateManager::const_iterator it_end = states->end();
 
     // Get 2 -> 4
-    it_2.First(); i2 = 0;
-    while(!it_2.AtEnd())
+    it_2 = states->begin(); i2 = 0;
+    while(it_2 != it_end)
     {
-        pOrbitalConst s_2 = it_2.GetState();
+        pOrbitalConst s_2 = it_2->second;
         it_4 = it_2; i4 = i2;
-        while(!it_4.AtEnd())
+        while(it_4 != it_end)
         {
-            pOrbitalConst s_4 = it_4.GetState();
+            pOrbitalConst s_4 = it_4->second;
 
             // Limits on k
             k = abs(int(s_2->L()) - int(s_4->L()));
@@ -267,23 +273,16 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
             if(s_2->J() + s_4->J() < double(kmax))
                 kmax -= 2;
 
-            // Get density24
-            if(k <= kmax)
-            {   for(p=0; p<mmin(s_2->Size(), s_4->Size()); p++)
-                {   density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
-                }
-            }
-
             while(k <= kmax)
             {
                 // Get Pot24
-                CI.FastCoulombIntegrate(density, Pot24, k, mmin(s_2->Size(), s_4->Size()));
+                hartreeY_operator->SetParameters(k, *s_2, *s_4);
 
                 // s1 is the smallest
-                it_1.First(); i1 = 0;
-                while((i1 <= i2) && (it_1.GetState()->PQN() <= max_pqn_1))
+                it_1 = states->begin(); i1 = 0;
+                while((i1 <= i2) && (it_1->second->PQN() <= max_pqn_1))
                 {
-                    pOrbitalConst s_1 = it_1.GetState();
+                    pOrbitalConst s_1 = it_1->second;
 
                     it_3 = it_1; i3 = i1;
                     unsigned int i3_limit;
@@ -291,9 +290,10 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                         i3_limit = i4;
                     else
                         i3_limit = NumStates;
-                    while((i3 <= i3_limit) && !it_3.AtEnd())
+
+                    while((i3 <= i3_limit) && it_3 != it_end)
                     {
-                        pOrbitalConst s_3 = it_3.GetState();
+                        pOrbitalConst s_3 = it_3->second;
 
                         // Check max_pqn conditions and k conditions
                         if(((s_2->PQN() <= max_pqn_2) || (s_3->PQN() <= max_pqn_2)) &&
@@ -314,41 +314,67 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                             // (it may have been read in)
                             if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                             {
-                                double radial = 0.;
-                                unsigned int limit = mmin(s_1->Size(), s_3->Size());
-                                limit = mmin(limit, Pot24.size());
-                                for(p=0; p<limit; p++)
-                                {
-                                    radial += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])
-                                            * Pot24[p] * dR[p];
-                                }
-
-                                if(core_pol && k == 1)
-                                {
-                                    double R1 = 0.;
-                                    double R2 = 0.;
-                                    for(p=0; p<limit; p++)
-                                    {
-                                        double r2 = R[p]*R[p] + core_rad*core_rad;
-                                        R1 += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])/r2 * dR[p];
-                                        R2 += density[p]/r2 * dR[p];
-                                    }
-
-                                    radial -= core_pol * R1 * R2;
-                                }
-
+                                double radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3);
                                 TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
                             }
                         }
-                        it_3.Next(); i3++;
+                        it_3++; i3++;
                     }
-                    it_1.Next(); i1++;
+
+                    // Add case where i2 > i4 (swap i2 and i4)
+                    if(!two_body_operator_reverse_symmetry && (i2 != i4))
+                    {
+                        it_3 = it_1; i3 = i1;
+
+                        // if (i1 == i3) then (i2 <= i4) so no swapped version necessary
+                        it_3++; i3++;
+
+                        // i2 and i4 are swapped, therefore with new labels
+                        // if (i1 == i2) then (i4 <= i3)
+                        if(i1 == i2)
+                        {   it_3 = it_4; i3 = i4;
+                        }
+
+                        i3_limit = NumStates;
+
+                        while((i3 <= i3_limit) && it_3 != it_end)
+                        {
+                            pOrbitalConst s_3 = it_3->second;
+
+                            // Check max_pqn conditions and k conditions
+                            if(((s_2->PQN() <= max_pqn_2) || (s_3->PQN() <= max_pqn_2)) &&
+                               (s_2->PQN() <= max_pqn_3) && (s_3->PQN() <= max_pqn_3) &&
+                               ((s_1->L() + s_3->L() + k)%2 == 0) &&
+                               (int(k) >= abs(int(s_1->L()) - int(s_3->L()))) &&
+                               (double(k) >= fabs(s_1->J() - s_3->J())) &&
+                               (k <= s_1->L() + s_3->L()) &&
+                               (double(k) <= s_1->J() + s_3->J()))
+                            {
+                                unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
+                                i1 * NumStates*NumStates*NumStates +
+                                i4 * NumStates*NumStates +
+                                i3 * NumStates +
+                                i2;
+
+                                // Check that this integral doesn't already exist
+                                // (it may have been read in)
+                                if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
+                                {
+                                    double radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3, true);
+                                    TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                }
+                            }
+                            it_3++; i3++;
+                        }
+                    }
+
+                    it_1++; i1++;
                 }
                 k+=2;
             }
-            it_4.Next(); i4++;
+            it_4++; i4++;
         }
-        it_2.Next(); i2++;
+        it_2++; i2++;
     }
 }
 
@@ -361,17 +387,6 @@ double CIIntegrals::GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalI
         return OneElectronIntegrals.find(i1 * NumStates + i2)->second;
     else
         return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
-}
-
-double CIIntegrals::GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-
-    if(i1 <= i2)
-        return SMSIntegrals.find(i1 * NumStates + i2)->second;
-    else
-        return -SMSIntegrals.find(i2 * NumStates + i1)->second;
 }
 
 double CIIntegrals::GetOverlapIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
@@ -391,8 +406,6 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
     unsigned int i2 = state_index.find(s2)->second;
     unsigned int i3 = state_index.find(s3)->second;
     unsigned int i4 = state_index.find(s4)->second;
-
-    bool sms_sign = TwoElectronIntegralOrdering(i1, i2, i3, i4);
 
     unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
                        i1 * NumStates*NumStates*NumStates +
@@ -415,89 +428,59 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
              (double(k) > s2.J() + s4.J()))
             return 0.;
 
-        pSingleParticleWavefunctionConst s_1 = states.GetState(reverse_state_index.find(i1)->second);
-        pSingleParticleWavefunctionConst s_2 = states.GetState(reverse_state_index.find(i2)->second);
-        pSingleParticleWavefunctionConst s_3 = states.GetState(reverse_state_index.find(i3)->second);
-        pSingleParticleWavefunctionConst s_4 = states.GetState(reverse_state_index.find(i4)->second);
+        pSingleParticleWavefunctionConst s_1 = states->GetState(reverse_state_index.find(i1)->second);
+        pSingleParticleWavefunctionConst s_2 = states->GetState(reverse_state_index.find(i2)->second);
+        pSingleParticleWavefunctionConst s_3 = states->GetState(reverse_state_index.find(i3)->second);
+        pSingleParticleWavefunctionConst s_4 = states->GetState(reverse_state_index.find(i4)->second);
 
-        unsigned int p;
-        CoulombIntegrator CI(states.GetLattice());
-        const double* R = states.GetLattice()->R();
-        const double* dR = states.GetLattice()->dR();
-        const double core_pol = states.GetCore()->GetPolarisability();
-        const double core_rad = states.GetCore()->GetClosedShellRadius();
-
-        // Get density24
-        std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
-        for(p=0; p<density.size(); p++)
-        {
-            density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
-        }
-        density.resize(states.GetCore()->GetHFPotential().size());
-
-        // Get Pot24
-        std::vector<double> Pot24(density.size());
-        CI.FastCoulombIntegrate(density, Pot24, k);
-
-        unsigned int limit = mmin(s_1->Size(), s_3->Size());
-        limit = mmin(limit, Pot24.size());
-        for(p=0; p<limit; p++)
-        {
-            radial += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])
-                        * Pot24[p] * dR[p];
-        }
-
-        if(core_pol && k == 1)
-        {
-            double R1 = 0.;
-            double R2 = 0.;
-            for(p=0; p<limit; p++)
-            {
-                double r2 = R[p]*R[p] + core_rad*core_rad;
-                R1 += (s_1->f[p] * s_3->f[p] + s_1->g[p] * s_3->g[p])/r2 * dR[p];
-                R2 += density[p]/r2 * dR[p];
-            }
-
-            radial -= core_pol * R1 * R2;
-        }
-    }
-
-    if(include_valence_sms && (k == 1))
-    {   double SMS = GetNuclearInverseMass();
-        if(SMS)
-        {   SMS = SMS * SMSIntegrals.find(i1*NumStates + i3)->second * SMSIntegrals.find(i2*NumStates + i4)->second;
-            if(!sms_sign)
-                SMS = -SMS;
-            radial = radial - SMS;
-        }
+        hartreeY_operator->SetParameters(k, *s_2, *s_4);
+        radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3, false);
     }
 
     return radial;
 }
 
-bool CIIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
+void CIIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
 {
-    bool sms_sign = true;
+    if(two_body_operator_reverse_symmetry)
+    {   // Ordering of indices:
+        // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
+        // therefore (i1 <= i2 <= i4) and (i1 <= i3)
+        if(i3 < i1)
+            swap(i3, i1);
+        if(i4 < i2)
+            swap(i4, i2);
+        if(i2 < i1)
+        {   swap(i2, i1);
+            swap(i3, i4);
+        }
+        if((i1 == i2) && (i4 < i3))
+            swap(i3, i4);
+    }
+    else
+    {   // Ordering of indices:
+        // i1 is smallest && (if i1 == i2, then (i3 <= i4))
+        //                && (if i1 == i3, then (i2 <= i4))
+        //                && (if i1 == i4, then (i2 <= i3))
 
-    // Ordering of indices:
-    // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
-    // therefore (i1 <= i2 <= i4) and (i1 <= i3)
-    if(i3 < i1)
-    {   swap(i3, i1);
-        sms_sign = !sms_sign;
-    }
-    if(i4 < i2)
-    {   swap(i4, i2);
-        sms_sign = !sms_sign;
-    }
-    if(i2 < i1)
-    {   swap(i2, i1);
-        swap(i3, i4);
-    }
-    if((i1 == i2) && (i4 < i3))
-        swap(i3, i4);
+        // Assert one of i1, i3 is smallest
+        if(mmin(i1, i3) > mmin(i2, i4))
+        {   swap(i1, i2);
+            swap(i3, i4);
+        }
+        // Assert i1 <= i3
+        if(i1 > i3)
+        {   swap(i1, i3);
+            swap(i2, i4);
+        }
 
-    return sms_sign;
+        if((i1 == i2) && (i4 < i3))
+            swap(i3, i4);
+        if((i1 == i3) && (i4 < i2))
+            swap(i2, i4);
+        if((i1 == i4) && (i3 < i2))
+            swap(i2, i3);
+    }
 }
 
 void CIIntegrals::SetIdentifier(const std::string& storage_id)

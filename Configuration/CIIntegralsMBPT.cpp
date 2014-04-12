@@ -309,8 +309,8 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
 
                 SigmaPotential* pot = new SigmaPotential(states.GetLattice(), sigma_file);
 
-                // If (pot->Size() == 0), then it didn't already exist on disk, so make it.
-                if(!pot->Size() && PT)
+                // If (pot->size() == 0), then it didn't already exist on disk, so make it.
+                if(!pot->size() && PT)
                 {
                     PT->GetSecondOrderSigma(kappa, pot);
                     pot->Store();
@@ -397,7 +397,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
             {
                 double overlap = 0.;
                 const double* dR = states.GetLattice()->dR();
-                for(unsigned int x=0; x<mmin(p1.Size(), p2.Size()); x++)
+                for(unsigned int x=0; x<mmin(p1.size(), p2.size()); x++)
                     overlap += (p1.f[x] * p2.f[x] + p1.g[x] * p2.g[x]) * dR[x];
 
                 OverlapIntegrals.insert(std::pair<unsigned int, double>(i * NumStates + j, overlap));
@@ -475,7 +475,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
 
             // Get density24
             if(k <= kmax)
-            {   for(p=0; p < mmin(s2->Size(), s4->Size()); p++)
+            {   for(p=0; p < mmin(s2->size(), s4->size()); p++)
                 {   density[p] = s2->f[p] * s4->f[p] + s2->g[p] * s4->g[p];
                 }
             }
@@ -483,7 +483,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
             while(k <= kmax)
             {
                 // Get Pot24
-                CI.FastCoulombIntegrate(density, Pot24, k, mmin(s2->Size(), s4->Size()));
+                CI.FastCoulombIntegrate(density, Pot24, k, mmin(s2->size(), s4->size()));
 
                 // s1 is the smallest
                 it_1.First(); i1 = 0;
@@ -545,7 +545,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     {
                                   #endif
                                     double radial = 0.;
-                                    unsigned int limit = mmin(s1->Size(), s3->Size());
+                                    unsigned int limit = mmin(s1->size(), s3->size());
                                     limit = mmin(limit, Pot24.size());
                                     for(p=0; p<limit; p++)
                                     {
@@ -795,7 +795,7 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo
         const double core_rad = states.GetCore()->GetClosedShellRadius();
 
         // Get density24
-        std::vector<double> density(mmin(s_2->Size(), s_4->Size()));
+        std::vector<double> density(mmin(s_2->size(), s_4->size()));
         for(p=0; p<density.size(); p++)
         {
             density[p] = s_2->f[p] * s_4->f[p] + s_2->g[p] * s_4->g[p];
@@ -806,7 +806,7 @@ double CIIntegralsMBPT::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo
         std::vector<double> Pot24(density.size());
         CI.FastCoulombIntegrate(density, Pot24, k);
 
-        unsigned int limit = mmin(s_1->Size(), s_3->Size());
+        unsigned int limit = mmin(s_1->size(), s_3->size());
         limit = mmin(limit, Pot24.size());
         for(p=0; p<limit; p++)
         {

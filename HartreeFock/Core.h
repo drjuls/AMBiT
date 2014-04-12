@@ -2,7 +2,6 @@
 #define CORE_H
 
 #include "StateManager.h"
-#include "StateIterator.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
 #include "Configuration.h"
@@ -34,11 +33,11 @@ public:
     virtual void SetOccupancies(const OccupationMap& occupancies);
     virtual const OccupationMap& GetOccupancies() const;
 
-    virtual void Write(FILE* fp) const;
-    virtual void Read(FILE* fp);
+    virtual void Write(FILE* fp) const override;
+    virtual void Read(FILE* fp) override;
 
     /** Delete all currently stored states. */
-    virtual void Clear();
+    virtual void clear() override;
 
     virtual int NumElectrons() const;
 

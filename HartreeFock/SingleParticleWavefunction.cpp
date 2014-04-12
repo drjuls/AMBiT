@@ -15,6 +15,21 @@ SingleParticleWavefunction::SingleParticleWavefunction(const SingleParticleWavef
     SpinorFunction(other), pqn(other.pqn), energy(other.energy)
 {}
 
+const SingleParticleWavefunction& SingleParticleWavefunction::operator=(const SingleParticleWavefunction& other)
+{
+    SpinorFunction::operator=(other);
+    pqn = other.pqn;
+    energy = other.energy;
+    return *this;
+}
+
+SingleParticleWavefunction& SingleParticleWavefunction::operator=(SingleParticleWavefunction&& other)
+{
+    SpinorFunction::operator=(other);
+    pqn = other.pqn;
+    energy = other.energy;
+    return *this;
+}
 
 double SingleParticleWavefunction::Energy() const
 {
@@ -70,7 +85,7 @@ double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction &oth
     {
         const double* dR = lattice->dR();
 
-        for(unsigned int i=0; i<mmin(Size(), other.Size()); i++)
+        for(unsigned int i=0; i<mmin(size(), other.size()); i++)
         {
             total += (f[i] * other.f[i] + g[i] * other.g[i])*dR[i];
         }
@@ -98,14 +113,6 @@ std::string SingleParticleWavefunction::Name() const
 #endif
     
     return ret;
-}
-
-const SingleParticleWavefunction& SingleParticleWavefunction::operator=(const SingleParticleWavefunction& other)
-{
-    SpinorFunction::operator=(other);
-    pqn = other.pqn;
-    energy = other.energy;
-    return *this;
 }
 
 const SingleParticleWavefunction& SingleParticleWavefunction::operator*=(double scale_factor)
@@ -199,13 +206,13 @@ bool SingleParticleWavefunction::Print(FILE* fp, pLattice lattice) const
 {
     unsigned int i;
     if(lattice)
-        for(i = 0; i < Size(); i++)
+        for(i = 0; i < size(); i++)
         {
             fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
                 f[i], g[i], dfdr[i], dgdr[i]);
         }
     else
-        for(i = 0; i < Size(); i++)
+        for(i = 0; i < size(); i++)
         {
             fprintf(fp, "%d %12.6e %12.6e %12.6e %12.6e\n", i,
                 f[i], g[i], dfdr[i], dgdr[i]);

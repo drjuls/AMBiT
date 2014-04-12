@@ -8,17 +8,12 @@
 
 typedef std::map<OrbitalInfo, pOrbital> OrbitalMap;
 
-class StateIterator;
-class ConstStateIterator;
-
+/** StateManager is functionally a map from OrbitalInfo to pOrbital.
+ */
 class StateManager
 {
 public:
-    friend class StateIterator;
-    friend class ConstStateIterator;
-
-public:
-    StateManager(pLattice lat);
+    StateManager(pLattice lat): lattice(lat) {}
     StateManager(const StateManager& other);
     virtual ~StateManager(void);
 
@@ -30,17 +25,22 @@ public:
     const StateManager& Copy(const StateManager& other, pLattice new_lattice = pLattice());
     StateManager Copy(pLattice new_lattice = pLattice()) const;
 
-    virtual bool Empty() const { return AllStates.empty(); }
-    virtual unsigned int NumStates() const { return static_cast<unsigned int>(AllStates.size()); }
+    typedef OrbitalMap::iterator iterator;
+    typedef OrbitalMap::const_iterator const_iterator;
+
+    virtual iterator begin() { return AllStates.begin(); }
+    virtual const_iterator begin() const { return AllStates.begin(); }
+    virtual void clear() { AllStates.clear(); }
+    virtual bool empty() const { return AllStates.empty(); }
+    virtual iterator end() { return AllStates.end(); }
+    virtual const_iterator end() const { return AllStates.end(); }
+    virtual unsigned int size() const { return static_cast<unsigned int>(AllStates.size()); }
 
     /** Get pointer to discrete state.
         Return null if no such state exists.
      */
     virtual pOrbitalConst GetState(const OrbitalInfo& info) const;
     virtual pOrbital GetState(const OrbitalInfo& info);
-
-    virtual StateIterator GetStateIterator();
-    virtual ConstStateIterator GetConstStateIterator() const;
 
     /** Write all electron states to a file. */
     virtual void Write(FILE* fp) const;
@@ -58,9 +58,6 @@ public:
 
     /** Add all states from another StateManager. */
     virtual void AddStates(StateManager& other);
-
-    /** Delete all currently stored states. */
-    virtual void Clear();
 
 protected:
     OrbitalMap AllStates;

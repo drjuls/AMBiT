@@ -3,16 +3,18 @@
 
 #include "Include.h"
 #include "Basis/ExcitedStates.h"
+#include "HartreeFock/OneBodyOperator.h"
+#include "HartreeFock/HartreeY.h"
 
+/** Class to hold Coulomb integrals for use in CI calculation. */
 class CIIntegrals
 {
-    /** Class to hold Coulomb integrals for use in CI calculation. */
 public:
     /** If storage_id is used we assume that the user either wants to use stored integrals
         or output integrals once calculated.
      */
-    CIIntegrals(const ExcitedStates& excited_states, const std::string& storage_id = ""):
-        states(excited_states), include_valence_sms(false)
+    CIIntegrals(pOneBodyOperatorConst one_body_op, pHartreeY hartreeY_op, pStateManagerConst valence_states, const std::string& storage_id = "", bool two_body_symmetry_exists = false):
+        states(valence_states), one_body_operator(one_body_op), hartreeY_operator(hartreeY_op), two_body_operator_reverse_symmetry(two_body_symmetry_exists)
     {   SetTwoElectronStorageLimits();
         SetIdentifier(storage_id);
         UpdateStateIndexes();
@@ -52,22 +54,15 @@ public:
     virtual unsigned int GetStorageSize() const;
 
     /** Clear all integrals. */
-    virtual void Clear();
+    virtual void clear();
+    virtual unsigned int size() const;
 
     /** Update all integrals (on the assumption that the excited states have changed). */
     virtual void Update();
 
-    /** Include the scaled specific mass shift in the two electron integrals. */
-    inline void IncludeValenceSMS(bool include)
-    {   include_valence_sms = include;
-    }
-
     /** GetOneElectronIntegral(i, j) = <i|H|j> */
     double GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
 
-    /** GetSMSIntegral(i, j) = <i|p|j> */
-    double GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
-    
     /** GetOverlapIntegral(i, j) = <i|j>.
         PRE: i.L() == j.L()
      */
@@ -75,10 +70,6 @@ public:
     
     /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
     virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
-
-    inline double GetNuclearInverseMass() const
-    {   return states.GetCore()->GetNuclearInverseMass();
-    }
 
     /** The identifier is used to choose filenames for integrals. */
     virtual void SetIdentifier(const std::string& storage_id = "");
@@ -104,10 +95,8 @@ public:
     void WriteTwoElectronIntegrals(bool use_read_id = false) const;
 
 protected:
-    /** Change ordering of states so that it corresponds to a stored integral.
-        Returns false if SMS sign needs to be changed.
-     */
-    virtual bool TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
+    /** Change ordering of states so that it corresponds to a stored integral. */
+    virtual void TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
 
     /** Read single electron integrals from binary *.one.int file. */
     void ReadOneElectronIntegrals(FILE* fp);
@@ -120,9 +109,14 @@ protected:
     virtual void UpdateTwoElectronIntegrals();
 
 protected:
+    // Operators
+    pOneBodyOperatorConst one_body_operator;
+    pHartreeY hartreeY_operator;
+    bool two_body_operator_reverse_symmetry;
+
     std::string read_id;    // Read and write files may be different (e.g. multiprocessor)
     std::string write_id;
-    const ExcitedStates& states;
+    pStateManagerConst states;
 
     unsigned int NumStates;
     // The ordering of states is not arbitrary; they should be ordered by pqn first.
@@ -139,14 +133,8 @@ protected:
     // TwoElectronIntegrals(k, i, j, l, m) = R_k(ij, lm): i->l, j->m
     std::map<unsigned int, double> TwoElectronIntegrals;
 
-    // SMSIntegrals(i, j) = <i|p|j>
-    std::map<unsigned int, double> SMSIntegrals;
-
     // Overlap = <i|j>
     std::map<unsigned int, double> OverlapIntegrals;
-
-    // Include SMS in two-body integrals.
-    bool include_valence_sms;
 
     // Limits on stored two-body integrals.
     unsigned int max_pqn_1, max_pqn_2, max_pqn_3;

@@ -11,7 +11,7 @@ void GreensMethodODE::SetHomogenousSolutions(const SpinorFunction& fromOrigin, c
     s0 = fromOrigin;
     sInf = fromInfinity;
 
-    wronskian.resize(mmin(s0.Size(), sInf.Size()));
+    wronskian.resize(mmin(s0.size(), sInf.size()));
     unsigned int i;
     for(i = 0; i < wronskian.size(); i++)
     {
@@ -32,7 +32,7 @@ void GreensMethodODE::GetODEFunction(unsigned int latticepoint, const RadialFunc
 {
     double integrand = 0.;
 
-    if(latticepoint < wronskian.size() && latticepoint < source.Size())
+    if(latticepoint < wronskian.size() && latticepoint < source.size())
     {
         if(solutionRegularAtOrigin)
             integrand = s0.f[latticepoint] * source.f[latticepoint] + s0.g[latticepoint] * source.g[latticepoint];
@@ -106,13 +106,13 @@ void GreensMethodODE::EstimateSolutionNearInfinity(unsigned int numpoints, Radia
     double w_i;
     const double* dR = lattice->dR();
     
-    unsigned int i = f.Size()-1;
+    unsigned int i = f.size()-1;
     
     GetODEFunction(i, f, &w_i);
     f.f[i] = 0.5 * w_i * dR[i];
     f.dfdr[i] = w_i;
     
-    for(i=f.Size()-2; i >= f.Size()-numpoints; i--)
+    for(i=f.size()-2; i >= f.size()-numpoints; i--)
     {
         GetODEFunction(i, f, &w_i);
         f.dfdr[i] = w_i;

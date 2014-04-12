@@ -2,7 +2,6 @@
 #define EXCITED_STATES_H
 
 #include "HartreeFock/StateManager.h"
-#include "HartreeFock/StateIterator.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/SigmaPotential.h"
 #include <set>

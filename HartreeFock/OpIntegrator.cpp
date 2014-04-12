@@ -22,11 +22,11 @@ double SimpsonsIntegrator::Integrate(const RadialFunction& integrand) const
     double total = 0.;
     const double* dR = lattice->dR();
 
-    if(integrand.Size() == 0)
+    if(integrand.size() == 0)
         return 0.0;
 
     unsigned int i;
-    for(i = 1; i < integrand.Size()-1; i+=2)
+    for(i = 1; i < integrand.size()-1; i+=2)
     {
         total += 4. * integrand.f[i] * dR[i]
                 + 2. * integrand.f[i+1] * dR[i+1];
@@ -34,7 +34,7 @@ double SimpsonsIntegrator::Integrate(const RadialFunction& integrand) const
     total = total/3.;
     total += integrand.f[0] * dR[0];
 
-    while(i < integrand.Size())
+    while(i < integrand.size())
     {   total += integrand.f[i] * dR[i];
         i++;
     }

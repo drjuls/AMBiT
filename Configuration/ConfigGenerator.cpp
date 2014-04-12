@@ -3,7 +3,6 @@
 #endif
 #include "Include.h"
 #include "ConfigGenerator.h"
-#include "HartreeFock/StateIterator.h"
 #include <sstream>
 
 ConfigGenerator::ConfigGenerator(pStateManagerConst coreStates, pStateManagerConst excitedStates, MultirunOptions& userInput):
@@ -12,16 +11,16 @@ ConfigGenerator::ConfigGenerator(pStateManagerConst coreStates, pStateManagerCon
     NonRelSet.clear();
     leading_configs = pConfigList(new ConfigList());
 
-    ConstStateIterator it = excited->GetConstStateIterator();
-    while(!it.AtEnd())
+    auto it = excited->begin();
+    while(it != excited->end())
     {
-        pOrbitalConst ds = it.GetState();
+        pOrbitalConst ds = it->second;
         if(ds != NULL)
         {
             if(ds->Kappa() < 0)
                 NonRelSet.insert(NonRelInfo(ds->PQN(), ds->L()));
         }
-        it.Next();
+        it++;
     }
 }
 
@@ -139,7 +138,6 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
         std::string CI_basis_string;
 
         NonRelInfoSet nrset;
-        ConstStateIterator si = core->GetConstStateIterator();
 
         for(int i = 0; i < num_electron_excitation_inputs; i += 2)
         {
@@ -154,10 +152,11 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
 
             nrset.clear();
             nrset.AddConfigs(CI_basis_string.c_str());
+
             // Erase core set
-            for(si.First(); !si.AtEnd(); si.Next())
+            for(auto si = core->begin(); si != core->end(); si++)
             {
-                nrset.erase(si.GetOrbitalInfo());
+                nrset.erase(si->first);
             }
 
             nrlist.merge(GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset));

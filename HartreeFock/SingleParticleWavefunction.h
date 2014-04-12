@@ -24,7 +24,11 @@ public:
     SingleParticleWavefunction(const OrbitalInfo& info);
     SingleParticleWavefunction(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0);
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
+    SingleParticleWavefunction(SingleParticleWavefunction&& other);
     virtual ~SingleParticleWavefunction() {}
+
+    const SingleParticleWavefunction& operator=(const SingleParticleWavefunction& other);
+    SingleParticleWavefunction& operator=(SingleParticleWavefunction&& other);
 
     virtual double Energy() const;
 
@@ -38,7 +42,6 @@ public:
 
     virtual std::string Name() const;
 
-    const SingleParticleWavefunction& operator=(const SingleParticleWavefunction& other);
     const SingleParticleWavefunction& operator*=(double scale_factor);
     SingleParticleWavefunction operator*(double scale_factor) const;
     const SingleParticleWavefunction& operator+=(const SingleParticleWavefunction& other);
