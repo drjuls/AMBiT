@@ -2,6 +2,7 @@
 #define ORBITAL_H
 
 #include "SingleParticleWavefunction.h"
+#include "OpIntegrator.h"
 #include <boost/shared_ptr.hpp>
 
 /** Orbital is really no different to SingleParticleWavefunction,
@@ -19,8 +20,6 @@ public:
 
     const Orbital& operator=(const Orbital& other);
     Orbital& operator=(Orbital&& other);
-
-    double Norm(pLatticeConst lattice) const; // Deprecate
 
     virtual std::string Name() const;
 
@@ -42,8 +41,11 @@ public:
       */
     bool CheckSize(pLattice lattice, double tolerance);
 
-    /** Scale the state so that it is normalised to "norm". */
-    void ReNormalise(pLatticeConst lattice, double norm = 1.); // Deprecate
+    /** Get current normalisation of the orbital. */
+    double Norm(pOPIntegrator integrator) const;
+
+    /** Scale the orbital so that it is normalised to "norm". */
+    void ReNormalise(pOPIntegrator integrator, double norm = 1.);
 
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;

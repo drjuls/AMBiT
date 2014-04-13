@@ -6,7 +6,7 @@
 #include "Basis/BasisGenerator.h"
 #include "Include.h"
 
-TEST(CIIntegralsTester, StandardCoulomb)
+TEST(CIIntegralsTester, StandardCoulombSlow)
 {
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
@@ -23,7 +23,7 @@ TEST(CIIntegralsTester, StandardCoulomb)
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
 
-    CIIntegrals integrals(hf, hartreeY, valence, "", false);
+    CIIntegrals integrals(hf, hartreeY, valence, "", true);
 
     unsigned int size = integrals.GetStorageSize();
     integrals.Update();

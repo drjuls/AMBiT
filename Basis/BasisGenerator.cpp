@@ -54,7 +54,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     }
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pODESolver ode_solver(new AdamsSolver(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
     hf.reset(new HFOperator(Z, open_core, integrator, coulomb));
@@ -127,8 +127,8 @@ pStateManager BasisGenerator::GenerateBasis()
 
 void BasisGenerator::Orthogonalise(pOrbital current) const
 {
-    current->ReNormalise(lattice);
     pOPIntegrator integrator(hf->GetOPIntegrator());
+    current->ReNormalise(integrator);
 
     // Orthogonalise to core
     if(closed_core)
@@ -142,7 +142,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
                 double S = integrator->GetInnerProduct(*other, *current);
                 (*current) -= (*other) * S;
 
-                current->ReNormalise(lattice);
+                current->ReNormalise(integrator);
             }
             it++;
         }
@@ -160,7 +160,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
                 double S = integrator->GetInnerProduct(*other, *current);
                 (*current) -= (*other) * S;
 
-                current->ReNormalise(lattice);
+                current->ReNormalise(integrator);
             }
             it++;
         }

@@ -49,7 +49,7 @@ unsigned int CIIntegrals::GetStorageSize() const
     {
         pOrbitalConst s_2 = it_2->second;
 
-        if(two_body_operator_reverse_symmetry)
+        if(two_body_reverse_symmetry)
         {   // i2 <= i4
             it_4 = it_2; i4 = i2;
         }
@@ -85,11 +85,11 @@ unsigned int CIIntegrals::GetStorageSize() const
                     it_3 = it_1; i3 = i1;
 
                     // if i1 == i3, then (i2 <= i4)
-                    if(!two_body_operator_reverse_symmetry && (i2 > i4))
+                    if(!two_body_reverse_symmetry && (i2 > i4))
                     {   it_3++; i3++;
                     }
                     // if i1 == i4, then (i2 <= i3)
-                    if(!two_body_operator_reverse_symmetry && (i1 == i4))
+                    if(!two_body_reverse_symmetry && (i1 == i4))
                     {   it_3 = it_2; i3 = i2;
                     }
 
@@ -322,7 +322,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
                     }
 
                     // Add case where i2 > i4 (swap i2 and i4)
-                    if(!two_body_operator_reverse_symmetry && (i2 != i4))
+                    if(!two_body_reverse_symmetry && (i2 != i4))
                     {
                         it_3 = it_1; i3 = i1;
 
@@ -442,7 +442,7 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
 
 void CIIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
 {
-    if(two_body_operator_reverse_symmetry)
+    if(two_body_reverse_symmetry)
     {   // Ordering of indices:
         // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
         // therefore (i1 <= i2 <= i4) and (i1 <= i3)

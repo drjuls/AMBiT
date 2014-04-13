@@ -23,7 +23,7 @@ TEST(HFOperatorTester, ODESolver)
     core->SetOccupancies(filling);
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pODESolver ode_solver(new AdamsSolver(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pHFOperator t(new HFOperator(Z, core, integrator, coulomb));
 
@@ -39,7 +39,7 @@ TEST(HFOperatorTester, ODESolver)
     HF_Solver.CalculateExcitedState(new_4s, t);
 
     EXPECT_NEAR(new_4s->Energy(), -0.41663154, 1.e-6 * 0.41663154);
-    EXPECT_NEAR(new_4s->Norm(lattice), 1.0, 1.e-8);
+    EXPECT_NEAR(new_4s->Norm(integrator), 1.0, 1.e-8);
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6  * 0.41663154);
 
     // Check core orbital

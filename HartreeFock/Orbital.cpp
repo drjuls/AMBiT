@@ -68,28 +68,6 @@ Orbital Orbital::operator*(const RadialFunction& chi) const
     return ret;
 }
 
-double Orbital::Norm(pLatticeConst lattice) const
-{
-    double norm = 0.;
-    unsigned int i;
-    const double* dR = lattice->dR();
-
-    norm = f[0]*f[0] * g[0]*g[0] * dR[0];
-    for(i=0; i<size()-2; i+=2)
-    {   norm = norm + 4. * (f[i]*f[i] + g[i]*g[i]) * dR[i];
-        norm = norm + 2. * (f[i+1]*f[i+1] + g[i+1]*g[i+1]) * dR[i+1];
-    }
-
-    norm = norm/3.;
-
-    while(i<size())
-    {   norm = norm + (f[i]*f[i] + g[i]*g[i]) * dR[i];
-        i++;
-    }
-
-    return norm;
-}
-
 std::string Orbital::Name() const
 {
     return OrbitalInfo(this).Name();
@@ -173,11 +151,17 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
     else return true;
 }
 
-void Orbital::ReNormalise(pLatticeConst lattice, double norm)
+double Orbital::Norm(pOPIntegrator integrator) const
 {
-    double scaling = sqrt(norm/Norm(lattice));
-    if(scaling)
-        (*this) *= scaling;
+    return integrator->GetNorm(*this);
+}
+
+void Orbital::ReNormalise(pOPIntegrator integrator, double norm)
+{
+    if(norm > 0.)
+        (*this) *= sqrt(norm/Norm(integrator));
+    else
+        Clear();
 }
 
 unsigned int Orbital::NumNodes() const

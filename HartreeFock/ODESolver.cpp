@@ -1,6 +1,6 @@
 #include "ODESolver.h"
 
-AdamsSolver::AdamsSolver(pLattice lat): ODESolver(lat)
+AdamsSolver::AdamsSolver(pOPIntegrator integrator): ODESolver(integrator)
 {
     order = 10;
     const double adams_10[10]

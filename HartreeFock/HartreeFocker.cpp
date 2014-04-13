@@ -218,7 +218,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
             *core_state += *new_state;
             
             // Renormalise core states (should be close already) and update energy.
-            core_state->ReNormalise(core->GetLattice());
+            core_state->ReNormalise(odesolver->GetIntegrator());
             core_state->CheckSize(core->GetLattice(), WavefunctionTolerance);
             
             double energy = (1. - prop_new) * core_state->Energy() + prop_new * new_state->Energy();
@@ -407,7 +407,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
                 *orbital += (*new_orbital) * prop_new;
 
                 // Renormalise core states (should be close already) and update energy.
-                orbital->ReNormalise(hf->GetLattice());
+                orbital->ReNormalise(odesolver->GetIntegrator());
                 orbital->SetEnergy((1. - prop_new) * orbital->Energy() + prop_new * new_orbital->Energy());
 
                 *new_orbital = *orbital;
@@ -462,7 +462,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
     do
     {   // Use greens method to iterate orbital
         orbital->CheckSize(lattice, WavefunctionTolerance);
-        orbital->ReNormalise(lattice);
+        orbital->ReNormalise(integrator);
 
         // Make sure hf operator is big enough.
         if(hf->size() < orbital->size())
@@ -500,7 +500,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
         *orbital = originregular * GInf - infinityregular * G0;
 
         // Now modify energy if required
-        double norm = orbital->Norm(lattice);
+        double norm = orbital->Norm(integrator);
 
         // Get delta_psi using Greens operator with psi as the source term
         greens.SetSourceTerm(*orbital, true);
@@ -534,7 +534,8 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetZ();
     const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    AdamsSolver adamssolver(lattice);
+    pOPIntegrator integrator = odesolver->GetIntegrator();
+    AdamsSolver adamssolver(integrator);
 
     if(orbital->size())
         orbital->CheckSize(lattice, WavefunctionTolerance);
@@ -590,7 +591,7 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
             orbital->dgdr[i] = tail_scaling * backwards.dgdr[i];
         }
         
-        double norm = orbital->Norm(lattice);
+        double norm = orbital->Norm(integrator);
         delta = pow(orbital->Nu(), 3.) * orbital->f[peak] * (tail_scaling * g_right - orbital->g[peak])/norm/alpha;
 
         if(fabs(delta) > 0.1)
@@ -598,14 +599,13 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
         
         // Set new principal quantum number
         orbital->SetNu(orbital->Nu() - delta);
-        orbital->ReNormalise(lattice);
+        orbital->ReNormalise(integrator);
         
         orbital->CheckSize(lattice, WavefunctionTolerance);
     }
     while((loop < MaxHFIterations) && (fabs(delta) > TailMatchingEnergyTolerance));
 
-    orbital->ReNormalise(lattice);
-//    hf->GetDerivative(*orbital);
+    orbital->ReNormalise(integrator);
 
     return loop;
 }

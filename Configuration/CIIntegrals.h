@@ -6,15 +6,20 @@
 #include "HartreeFock/OneBodyOperator.h"
 #include "HartreeFock/HartreeY.h"
 
-/** Class to hold Coulomb integrals for use in CI calculation. */
+/** Class to hold Coulomb integrals for use in CI calculation,
+    ie. R^k(ij,kl) where i,j,k,l are all valence particles.
+    storage_id is used to store and retrieve integrals in files.
+    The existence of reversal symmetry
+        R^k(ij,kl) = R^k(ij,lk) = R^k(ji,kl)
+    is specified by two_body_reverse_symmetry, which defaults to false.
+    The symmetry is present in the usual Coulomb operator but is broken by
+    operators such as specific mass shift as well as MBPT.
+ */
 class CIIntegrals
 {
 public:
-    /** If storage_id is used we assume that the user either wants to use stored integrals
-        or output integrals once calculated.
-     */
-    CIIntegrals(pOneBodyOperatorConst one_body_op, pHartreeY hartreeY_op, pStateManagerConst valence_states, const std::string& storage_id = "", bool two_body_symmetry_exists = false):
-        states(valence_states), one_body_operator(one_body_op), hartreeY_operator(hartreeY_op), two_body_operator_reverse_symmetry(two_body_symmetry_exists)
+    CIIntegrals(pOneBodyOperatorConst one_body_op, pHartreeY hartreeY_op, pStateManagerConst valence_states, const std::string& storage_id = "", bool two_body_reverse_symmetry_exists = false):
+        states(valence_states), one_body_operator(one_body_op), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
     {   SetTwoElectronStorageLimits();
         SetIdentifier(storage_id);
         UpdateStateIndexes();
@@ -112,7 +117,7 @@ protected:
     // Operators
     pOneBodyOperatorConst one_body_operator;
     pHartreeY hartreeY_operator;
-    bool two_body_operator_reverse_symmetry;
+    bool two_body_reverse_symmetry;
 
     std::string read_id;    // Read and write files may be different (e.g. multiprocessor)
     std::string write_id;

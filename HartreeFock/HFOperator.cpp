@@ -2,7 +2,7 @@
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
-#include "StateIntegrator.h"
+#include "Universal/MathConstant.h"
 
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
     OneBodyOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)

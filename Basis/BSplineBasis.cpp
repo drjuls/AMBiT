@@ -6,7 +6,6 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Eigensolver.h"
-#include "HartreeFock/StateIntegrator.h"
 #include "Atom/MultirunOptions.h"
 
 enum SplineType {NotreDame, Reno, Vanderbilt};
@@ -307,10 +306,10 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                     }
 
                     // Remove spurious states
-                    if(fabs(ds->Norm(lattice) - 1.) > 1.e-2)
+                    if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
                     {   if(debug)
                             *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
-                                       << "  norm = " << ds->Norm(lattice) << std::endl;
+                                       << "  norm = " << ds->Norm(integrator) << std::endl;
                     }
                     else
                     {   if(reorth)
@@ -319,7 +318,7 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 
                         if(debug)
                         {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                       << " norm: " << ds->Norm(lattice) - 1. << std::endl;
+                                       << " norm: " << ds->Norm(integrator) - 1. << std::endl;
                         }
 
                         pqn++;

@@ -17,6 +17,12 @@ double OPIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFuncti
     return Integrate(integrand);
 }
 
+double OPIntegrator::GetNorm(const SpinorFunction& a) const
+{
+    RadialFunction integrand = a.GetDensity();
+    return Integrate(integrand);
+}
+
 double SimpsonsIntegrator::Integrate(const RadialFunction& integrand) const
 {
     double total = 0.;
