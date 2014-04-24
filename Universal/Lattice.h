@@ -47,7 +47,7 @@ public:
     virtual bool operator==(const Lattice& other) const;
 
 protected:
-    Lattice() {}
+    Lattice(): r(nullptr), dr(nullptr), NumPoints(0), beta(0.), h(0.), rmin(0.) {}
 
     /** Calculate the value that r[i] should be. */
     virtual double lattice_to_real(unsigned int i) const;

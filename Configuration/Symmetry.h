@@ -2,11 +2,7 @@
 #define SYMMETRY_H
 
 #include <iostream>
-
-#ifndef PARITY_ENUM
-#define PARITY_ENUM
-    enum Parity { even, odd };
-#endif
+#include "Universal/Enums.h"
 
 class Symmetry
 {

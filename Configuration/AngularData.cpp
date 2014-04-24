@@ -142,10 +142,9 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     this->two_j = two_j;
 
     // Clear existing
-    if(num_CSFs)
+    if(CSFs)
     {   delete[] CSFs;
         CSFs = nullptr;
-        num_CSFs = 0;
     }
 
     if(N == 0 || two_j < abs(two_m))
@@ -157,7 +156,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
 
     // Make list of Projections.
     std::list< Projection > real_Projection_list;
-    for(auto& p: projections)
+    for(const auto& p: projections)
         real_Projection_list.push_back(Projection(config, p));
 
     auto i_it = real_Projection_list.begin();
@@ -191,7 +190,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     for(i=0; i<N; i++)
     {   // Check that all eigenvalues are good
         // j^2 + j - V = 0
-        double TwoJ = (std::sqrt(1. + 4 * V[i]) - 1.);
+        double TwoJ = (std::sqrt(1. + 4. * V[i]) - 1.);
         if(fabs(floor(TwoJ + 0.5) - TwoJ) > 1.e-6)
         {   *errstream << "AngularData::GenerateCSFs(): generated noninteger TwoJ:\n"
                        << "    config: " << config.Name()
@@ -201,14 +200,13 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         if(fabs(V[i] - JSquared) < 1.e-6)
             num_CSFs++;
     }
-    *outstream << std::endl;
 
     // Transfer eigenvalues
     if(num_CSFs)
     {
         CSFs = new double[N * num_CSFs];
         unsigned int count = 0;
-        for(i=0; i<N; i++)
+        for(i=0; i < N && count < num_CSFs; i++)
         {
             if(fabs(V[i] - JSquared) < 1.e-6)
             {
@@ -321,7 +319,9 @@ int AngularData::GenerateCSFs(const AngularData::ConfigKeyType& key, int two_j)
         if(pair.first == prev_kappa)
             pqn++;
         else
-            pqn = 1;
+        {   pqn = 1;
+            prev_kappa = pair.first;
+        }
 
         rconfig[OrbitalInfo(pqn, pair.first)] = pair.second;
     }

@@ -2,11 +2,9 @@
 #include "Include.h"
 #include "Spline.h"
 
-BSplineGrid::BSplineGrid(unsigned int n, unsigned int k, double dr0, double rmax)
+BSplineGrid::BSplineGrid(unsigned int n, unsigned int k, double dr0, double rmax):
+    Lattice(), n(n), k(k)
 {
-    this->n = n;
-    this->k = k;
-
     // Create Spline knots and gaussian coords
     t = new double[n+k];
     CreateSplineKnots(dr0, rmax);

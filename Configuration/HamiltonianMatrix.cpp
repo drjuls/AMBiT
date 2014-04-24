@@ -5,39 +5,36 @@
 #include "HartreeFock/SingleParticleWavefunction.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
-#include "ConfigFileGenerator.h"
+//#include "ConfigFileGenerator.h"
 
 #define SMALL_MATRIX_LIM 2000
 
 // Include this define for the box diagrams of "wrong" parity.
-#define INCLUDE_EXTRA_BOX_DIAGRAMS
+//#define INCLUDE_EXTRA_BOX_DIAGRAMS
 
 // Include this define to only include sigma3 when both states are leading configurations
 // (instead of just one).
 //#define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, ConfigGenerator* config_generator):
-    integrals(coulomb_integrals), confgen(config_generator), M(NULL), include_sigma3(false)
+HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs):
+    integrals(coulomb_integrals), configs(relconfigs), M(nullptr)//, include_sigma3(false)
 {
-    configs = confgen->GetRelConfigs();
-
     // Set up matrix
-    N = 0;
-    RelativisticConfigList::const_iterator it = configs->begin();
-    while(it != configs->end())
-    {   N += it->NumJStates();
-        it++;
-    }
+    N = configs->NumCSFs();
 
     *logstream << " " << N << " " << std::flush;
-    *outstream << " Number of J-configurations = " << N << std::endl;
+    *outstream << " Number of CSFs = " << N << std::endl;
+}
+
+HamiltonianMatrix::~HamiltonianMatrix()
+{
+    if(M)
+        delete M;
 }
 
 void HamiltonianMatrix::GenerateMatrix()
 {
-    unsigned int i, j;
-
-    if(M == NULL)
+    if(M == nullptr)
     {   if(N <= SMALL_MATRIX_LIM)
             M = new SmallMatrix(N);
         else
@@ -48,65 +45,45 @@ void HamiltonianMatrix::GenerateMatrix()
 
     M->WriteMode(true);
 
-    // Loop through relativistic configurations
-    RelativisticConfigList::const_iterator list_it = configs->begin();
-    i=0;
-    while(list_it != configs->end())
+    // Loop through projections
+    auto proj_it = configs->projection_begin();
+    while(proj_it != configs->projection_end())
     {
-        const ProjectionSet& proj_i = list_it->GetProjections();
-        unsigned int proj_i_size = proj_i.size();
-        unsigned int num_states_i = list_it->NumJStates();
-        const double* coefficients_i = list_it->GetJCoefficients();
+        auto proj_jt = proj_it;
 
-        RelativisticConfigList::const_iterator list_jt = list_it;
-        j = i;
-        
-        while(list_jt != configs->end())
+        while(proj_jt != configs->projection_end())
         {
-            // Iterate over projections
-            const ProjectionSet& proj_j = list_jt->GetProjections();
-            unsigned int proj_j_size = proj_j.size();
-            unsigned int num_states_j = list_jt->NumJStates();
-            const double* coefficients_j = list_jt->GetJCoefficients();
+            double operatorH = GetProjectionH(*proj_it, *proj_jt);
 
-            ProjectionSet::const_iterator proj_it = proj_i.begin();
-            ProjectionSet::const_iterator proj_jt = proj_j.begin();
-            unsigned int pi = 0, pj;
-
-            while(proj_it != proj_i.end())
+            if(fabs(operatorH) > 1.e-15)
             {
-                proj_jt = proj_j.begin();
-                pj = 0;
-                while(proj_jt != proj_j.end())
+                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                 {
-                    double operatorH = GetProjectionH(*proj_it, *proj_jt);
+                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
 
-                    if(fabs(operatorH) > 1.e-16)
-                    // Loop through JStates of the relativistic configurations and update M
-                    for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
+                    if(proj_it == proj_jt)
+                        start_j = coeff_i;
+
+                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                     {
-                        unsigned int jstate_j_start = 0;
-                        if(j == i)
-                            jstate_j_start = jstate_i;
+                        // See notes for an explanation
+                        int i = coeff_i.index();
+                        int j = coeff_j.index();
 
-                        for(unsigned int jstate_j = jstate_j_start; jstate_j < num_states_j; jstate_j++)
-                        {
-                            double matrix_element = coefficients_i[jstate_i*proj_i_size + pi]
-                                                   * coefficients_j[jstate_j*proj_j_size + pj];
-                            matrix_element = matrix_element * operatorH;
-
-                            M->At(i + jstate_i, j + jstate_j) += matrix_element;
-                        }
+                        if(i < j)
+                            M->At(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                        else if(i > j)
+                            M->At(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                        else if(proj_it == proj_jt)
+                            M->At(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                        else
+                            M->At(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
                     }
-                    proj_jt++; pj++;
                 }
-                proj_it++; pi++;
             }
-
-            list_jt++; j += num_states_j;
+            proj_jt++;
         }
-
-        list_it++; i += num_states_i;
+        proj_it++;
     }
 }
 
@@ -171,8 +148,8 @@ double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projecti
                         - CoulombMatrixElement(f1, f2, s2, s1));
     }
 
-    if(include_sigma3)
-        value += GetSigma3(first, second);
+//    if(include_sigma3)
+//        value += GetSigma3(first, second);
 
     return value;
 }
@@ -269,6 +246,7 @@ double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const Ele
     return total;
 }
 
+/*
 double HamiltonianMatrix::GetProjectionSMS(const Projection& first, const Projection& second) const
 {
     unsigned int diff[4];
@@ -380,6 +358,7 @@ double HamiltonianMatrix::SMSMatrixElement(const ElectronInfo& e1, const Electro
 
     return total;
 }
+*/
 
 void HamiltonianMatrix::WriteToFile(const std::string& filename)
 {
@@ -416,7 +395,7 @@ void HamiltonianMatrix::PollMatrix()
         *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
 }
 
-void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eigenstates, SolutionMap* aSolutionMapPointer, bool gFactors, bool TruncateDisplayAtMaxEnergy, double min_percentage,  double DavidsonMaxEnergy)
+void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels, bool get_gFactors)
 {
     if(N == 0)
     {   *outstream << "\nNo solutions" << std::endl;
@@ -424,8 +403,6 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
     }
 
     M->WriteMode(false);
-    ConfigFileGenerator* config_file_gen = dynamic_cast<ConfigFileGenerator*>(confgen);
-    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
 
     *outstream << "\nFinding solutions" << std::endl;
 
@@ -437,111 +414,21 @@ void HamiltonianMatrix::SolveMatrix(unsigned int num_solutions, Eigenstates& eig
     Eigensolver solver;
     solver.SolveLargeSymmetric(M, E, V, N, NumSolutions);
 
-    eigenstates.SetEigenvalues(E, NumSolutions);
-    eigenstates.SetEigenvectors(V, NumSolutions);
+    for(unsigned int i = 0; i < NumSolutions; i++)
+    {
+        pLevel level(new Level(E[i], (V + N * i), configs, N));
+        (*levels)[LevelID(sym, i)] = level;
+    }
+
+    delete[] E;
+    delete[] V;
 
     // Calculate g-Factors
-    double* g_factors = NULL;
-    if(gFactors && eigenstates.GetTwoJ())
-    {   g_factors = new double[NumSolutions];
-        GetgFactors(eigenstates, g_factors);
-        eigenstates.SetgFactors(g_factors, NumSolutions);
-    }
-
-    unsigned int i, j;
-
-    *outstream << "Solutions for J = " << double(eigenstates.GetTwoJ())/2. << ", P = ";
-    if(eigenstates.GetParity() == even)
-        *outstream << "even:" << std::endl;
-    else
-        *outstream << "odd:" << std::endl;
-
-    for(i=0; i<NumSolutions; i++)
-    {
-        unsigned int solution = i;
-
-        if(TruncateDisplayAtMaxEnergy && E[solution] > DavidsonMaxEnergy)
-        {
-            break;  
-        }
-
-        *outstream << i << ": " << std::setprecision(8) << E[solution] << "    "
-            << std::setprecision(12) << E[solution]*MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm" << std::endl;
-
-        // Get non-rel configuration percentages
-        RelativisticConfigList::const_iterator list_it = configs->begin();
-        std::map<Configuration, double> percentages;  // Map non-rel configurations to percentages
-
-        j = 0;
-        while(list_it != configs->end())
-        {
-            Configuration nrconfig(list_it->GetNonRelConfiguration());
-            if(percentages.find(nrconfig) == percentages.end())
-                percentages[nrconfig] = 0.;
-
-            for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
-            {
-                double coeff = V[solution*N + j];
-                coeff = coeff * coeff * 100;
-
-                percentages[nrconfig] += coeff;
-                j++;
-            }
-
-            list_it++;
-        }
-
-        // Find most important configuration, and print all leading configurations.
-        std::map<Configuration, double>::const_iterator it_largest_percentage = percentages.begin();
-        double largest_percentage = 0.0;
-
-        std::map<Configuration, double>::const_iterator it = percentages.begin();
-        while(it != percentages.end())
-        {
-            if(it->second > largest_percentage)
-            {   it_largest_percentage = it;
-                largest_percentage = it->second;
-            }
-
-            if(it->second > min_percentage)
-                *outstream << std::setw(20) << it->first.Name() << "  " << std::setprecision(2)
-                    << it->second << "%" << std::endl;
-            it++;
-        }
-
-        // If the most important configuration is a leading configuration, add this state to the config file.
-        if(config_file_gen && (leading_configs->find(it_largest_percentage->first) != leading_configs->end()))
-            config_file_gen->AddPercentages(percentages);
-
-        if(g_factors)
-            *outstream << "    g-factor = " << std::setprecision(5) << g_factors[solution] << std::endl;
-
-        *outstream << std::endl;
-        if(g_factors)
-        {
-            if(eigenstates.GetParity() == even)
-            {
-                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages, g_factors[solution])));
-            }
-            else
-            {
-                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages, g_factors[solution])));
-            }
-        }
-        else
-        {
-            if(eigenstates.GetParity() == even)
-            {
-                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Even, i), Solution(E[solution], percentages)));
-            }
-            else
-            {
-                aSolutionMapPointer->insert(std::pair<SolutionID, Solution>(SolutionID(double(eigenstates.GetTwoJ())/2., ParityType::Odd, i), Solution(E[solution], percentages)));
-            }
-        }
-    }
+    if(get_gFactors && sym.GetTwoJ())
+        GetgFactors(sym, levels);
 }
 
+/*
 void HamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
 {
     unsigned int NumSolutions = eigenstates.GetNumEigenvectors();
@@ -633,117 +520,102 @@ void HamiltonianMatrix::GetEigenvalues(const Eigenstates& eigenstates) const
     delete[] total;
     delete[] coeff;
 }
+*/
 
-void HamiltonianMatrix::GetgFactors(const Eigenstates& eigenstates, double* g_factors) const
+void HamiltonianMatrix::GetgFactors(const Symmetry& sym, pLevelMap levels) const
 {
-    unsigned int NumSolutions = eigenstates.GetNumEigenvectors();
-    const double* V = eigenstates.GetEigenvectors();
-
-    // Case where J=0
-    if(eigenstates.GetTwoJ() == 0)
+    unsigned int NumSolutions = levels->size(sym);
+    if(NumSolutions == 0)
         return;
 
-    double* total = new double[NumSolutions];
-    double* coeff = new double[NumSolutions];
-    unsigned int solution;
-    for(solution = 0; solution < NumSolutions; solution++)
-        total[solution] = 0.;
+    std::vector<double> total(NumSolutions);
+    std::vector<double> coeff(NumSolutions);
+    std::vector<const double*> eigenvector(NumSolutions);
 
-    unsigned int diff[4];   // Storage for projection differences.
-    unsigned int num_electrons = configs->front().NumParticles();
-
-    // Iterate over different relativistic configurations
-    unsigned int i=0, j;
-    RelativisticConfigList::const_iterator list_it = configs->begin();
-    while(list_it != configs->end())
+    unsigned int solution = 0;
+    LevelMap::symmetry_iterator it = levels->begin(sym);
+    while(solution < NumSolutions && it != levels->end(sym))
     {
-        const ProjectionSet& proj_i = list_it->GetProjections();
-        unsigned int proj_i_size = proj_i.size();
-        unsigned int num_states_i = list_it->NumJStates();
-        const double* coefficients_i = list_it->GetJCoefficients();
-
-        RelativisticConfigList::const_iterator list_jt = list_it;
-        j = i;
-        while(list_jt != configs->end())
-        {
-            const ProjectionSet& proj_j = list_jt->GetProjections();
-            unsigned int proj_j_size = proj_j.size();
-            unsigned int num_states_j = list_jt->NumJStates();
-            const double* coefficients_j = list_jt->GetJCoefficients();
-
-            // Iterate over projections
-            ProjectionSet::const_iterator pi_it = proj_i.begin();
-            unsigned int pi = 0;
-            while(pi_it != proj_i.end())
-            {
-                ProjectionSet::const_iterator pj_it = proj_j.begin();
-                unsigned int pj = 0;
-                while(pj_it != proj_j.end())
-                {
-                    // <pi| Jz | pj>
-                    double matrix_element = 0.;
-                    int num_diff = Projection::GetProjectionDifferences(*pi_it, *pj_it, diff);
-                    if(num_diff == 0)
-                    {
-                        for(unsigned int i=0; i<num_electrons; i++)
-                            matrix_element += GetSz((*pi_it)[i]);
-                    }
-                    else if(abs(num_diff) == 1)
-                    {
-                        matrix_element = GetSz((*pi_it)[diff[0]], (*pj_it)[diff[1]]);
-                        if(num_diff == -1)
-                            matrix_element = -matrix_element;
-                    }
-
-                    // coefficients
-                    if(matrix_element)
-                    {
-                        // Summation over jstates
-                        for(solution = 0; solution < NumSolutions; solution++)
-                            coeff[solution] = 0.;
-
-                        for(unsigned int jstate_i = 0; jstate_i < num_states_i; jstate_i++)
-                        {
-                            for(unsigned int jstate_j = 0; jstate_j < num_states_j; jstate_j++)
-                            {
-                                for(solution = 0; solution < NumSolutions; solution++)
-                                {
-                                    coeff[solution] += coefficients_i[jstate_i*proj_i_size + pi]
-                                                    * coefficients_j[jstate_j*proj_j_size + pj]
-                                                    * V[solution*N + i + jstate_i]
-                                                    * V[solution*N + j + jstate_j];
-                                }
-                            }
-                        }
-
-                        // If the relativistic configs are different, count twice
-                        if(i != j)
-                        {   for(solution = 0; solution < NumSolutions; solution++)
-                                coeff[solution] = coeff[solution] * 2.;
-                        }
-
-                        for(solution = 0; solution < NumSolutions; solution++)
-                            total[solution] += coeff[solution] * matrix_element;
-                    }
-
-                    pj_it++; pj++;
-                }
-
-                pi_it++; pi++;
-            }
-
-            list_jt++; j+=num_states_j;
-        }
-
-        list_it++; i+=num_states_i;
+        total[solution] = 0.;
+        eigenvector[solution] = it->second->GetEigenvector();
+        it++; solution++;
     }
 
-    double J = double(eigenstates.GetTwoJ())/2.;
-    for(solution = 0; solution < NumSolutions; solution++)
-        g_factors[solution] = total[solution]/J + 1.;
+    unsigned int diff[4];   // Storage for projection differences.
+    it = levels->begin(sym);
+    pRelativisticConfigListConst configs = it->second->GetRelativisticConfigList();
 
-    delete[] coeff;
-    delete[] total;
+    unsigned int num_electrons = configs->front().ElectronNumber();
+
+    // Iterate over projections
+    // Loop through projections
+    auto proj_it = configs->projection_begin();
+    while(proj_it != configs->projection_end())
+    {
+        auto proj_jt = proj_it;
+//        auto proj_jt = configs->projection_begin();
+
+        while(proj_jt != configs->projection_end())
+        {
+            // <pi| Sz | pj>
+            double matrix_element = 0.;
+            int num_diff = Projection::GetProjectionDifferences(*proj_it, *proj_jt, diff);
+            if(num_diff == 0)
+            {
+                for(unsigned int i=0; i<num_electrons; i++)
+                    matrix_element += GetSz((*proj_it)[i]);
+            }
+            else if(abs(num_diff) == 1)
+            {
+                matrix_element = GetSz((*proj_it)[diff[0]], (*proj_jt)[diff[1]]);
+                if(num_diff == -1)
+                    matrix_element = -matrix_element;
+            }
+
+            // coefficients
+            if(matrix_element)
+            {
+                // Summation over jstates
+                for(solution = 0; solution < NumSolutions; solution++)
+                    coeff[solution] = 0.;
+
+                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                {
+                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                    {
+                        for(solution = 0; solution < NumSolutions; solution++)
+                        {
+                            coeff[solution] += (*coeff_i) * (*coeff_j)
+                                * eigenvector[solution][coeff_i.index()]
+                                * eigenvector[solution][coeff_j.index()];
+                        }
+                    }
+                }
+
+                // If the projections are different, count twice
+                if(proj_it != proj_jt)
+                {   for(solution = 0; solution < NumSolutions; solution++)
+                        coeff[solution] = coeff[solution] * 2.;
+                }
+
+                for(solution = 0; solution < NumSolutions; solution++)
+                    total[solution] += coeff[solution] * matrix_element;
+            }
+            proj_jt++;
+        }
+        proj_it++;
+    }
+
+    solution = 0;
+    it = levels->begin(sym);
+    while(solution < NumSolutions && it != levels->end(sym))
+    {
+        it->second->SetgFactor(total[solution]/sym.GetJ() + 1.);
+        solution++;
+        it++;
+    }
 }
 
 double HamiltonianMatrix::GetSz(const ElectronInfo& e) const
@@ -780,135 +652,135 @@ double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) 
     return val;
 }
 
-double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
-{
-    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
-
-#ifdef SIGMA3_AND
-    // Check that first AND second are leading configurations
-    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) ||
-       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-        return 0.;
-#else
-    // Check that first OR second is a leading configuration
-    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) &&
-       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-        return 0.;
-#endif
-
-    unsigned int diff[6];
-    int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
-
-    int sign;
-    if(numdiff >= 0)
-        sign = 1;
-    else
-        sign = -1;
-
-    double value = 0.;
-
-    if(numdiff == 0)
-    {
-        // Sum(i < j < k) Sigma3(ijk, ijk)
-        for(unsigned int i=0; i<first.size(); i++)
-        {
-            for(unsigned int j=i+1; j<first.size(); j++)
-            {
-                for(unsigned int k=j+1; k<first.size(); k++)
-                {
-                    value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
-                }
-            }
-        }
-    }
-    else if(abs(numdiff) == 1)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-
-        // Sum(i < j) Sigma3(aij, bij)
-        for(unsigned int i=0; i<first.size(); i++)
-        {
-            for(unsigned int j=i+1; j<first.size(); j++)
-            {
-                if((i != diff[0]) && (j != diff[0]))
-                {   
-                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
-                }
-            }
-        }
-    }
-    else if(abs(numdiff) == 2)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-        const ElectronInfo& f2 = first[diff[2]];
-        const ElectronInfo& s2 = second[diff[3]];
-
-        // Sum(i) Sigma3(abi, cdi)
-        for(unsigned int i=0; i<first.size(); i++)
-        {
-            if((i != diff[0]) && (i != diff[2]))
-               value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);
-        }
-    }
-    else if(abs(numdiff) == 3)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-        const ElectronInfo& f2 = first[diff[2]];
-        const ElectronInfo& s2 = second[diff[3]];
-        const ElectronInfo& f3 = first[diff[4]];
-        const ElectronInfo& s3 = second[diff[5]];
-
-        // Sigma3(abc, def)
-        value = sign * Sigma3(f1, f2, f3, s1, s2, s3);
-    }
-
-    return value;
-}
-
-double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-{
-    // Check momentum projections
-    if(e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM())
-        return 0.;
-
-    // Check parity
-    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2)
-        return 0.;
-
-    double value = 0.;
-    
-    // The sign changes for odd permutations
-    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
-            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
-            + Sigma3LinePermutations(e1, e2, e3, e6, e4, e5)
-            - Sigma3LinePermutations(e1, e2, e3, e5, e4, e6)
-            - Sigma3LinePermutations(e1, e2, e3, e6, e5, e4)
-            - Sigma3LinePermutations(e1, e2, e3, e4, e6, e5);
-
-    return value;
-}
-
-/** This function does the line permutations, putting the pairs on different levels
-    of the three-body interaction.
-    */
-inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-{
-    double value = 0.;
-
-    // There are no sign changes, since there are the same number
-    // of permutations on both sides
-
-    value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
-            + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
-            + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)
-            + sigma3calc->GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4)
-            + sigma3calc->GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6)
-            + sigma3calc->GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
-
-    return value;
-}
+//double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
+//{
+//    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
+//
+//#ifdef SIGMA3_AND
+//    // Check that first AND second are leading configurations
+//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) ||
+//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
+//        return 0.;
+//#else
+//    // Check that first OR second is a leading configuration
+//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) &&
+//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
+//        return 0.;
+//#endif
+//
+//    unsigned int diff[6];
+//    int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
+//
+//    int sign;
+//    if(numdiff >= 0)
+//        sign = 1;
+//    else
+//        sign = -1;
+//
+//    double value = 0.;
+//
+//    if(numdiff == 0)
+//    {
+//        // Sum(i < j < k) Sigma3(ijk, ijk)
+//        for(unsigned int i=0; i<first.size(); i++)
+//        {
+//            for(unsigned int j=i+1; j<first.size(); j++)
+//            {
+//                for(unsigned int k=j+1; k<first.size(); k++)
+//                {
+//                    value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
+//                }
+//            }
+//        }
+//    }
+//    else if(abs(numdiff) == 1)
+//    {
+//        const ElectronInfo& f1 = first[diff[0]];
+//        const ElectronInfo& s1 = second[diff[1]];
+//
+//        // Sum(i < j) Sigma3(aij, bij)
+//        for(unsigned int i=0; i<first.size(); i++)
+//        {
+//            for(unsigned int j=i+1; j<first.size(); j++)
+//            {
+//                if((i != diff[0]) && (j != diff[0]))
+//                {   
+//                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
+//                }
+//            }
+//        }
+//    }
+//    else if(abs(numdiff) == 2)
+//    {
+//        const ElectronInfo& f1 = first[diff[0]];
+//        const ElectronInfo& s1 = second[diff[1]];
+//        const ElectronInfo& f2 = first[diff[2]];
+//        const ElectronInfo& s2 = second[diff[3]];
+//
+//        // Sum(i) Sigma3(abi, cdi)
+//        for(unsigned int i=0; i<first.size(); i++)
+//        {
+//            if((i != diff[0]) && (i != diff[2]))
+//               value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);
+//        }
+//    }
+//    else if(abs(numdiff) == 3)
+//    {
+//        const ElectronInfo& f1 = first[diff[0]];
+//        const ElectronInfo& s1 = second[diff[1]];
+//        const ElectronInfo& f2 = first[diff[2]];
+//        const ElectronInfo& s2 = second[diff[3]];
+//        const ElectronInfo& f3 = first[diff[4]];
+//        const ElectronInfo& s3 = second[diff[5]];
+//
+//        // Sigma3(abc, def)
+//        value = sign * Sigma3(f1, f2, f3, s1, s2, s3);
+//    }
+//
+//    return value;
+//}
+//
+//double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
+//{
+//    // Check momentum projections
+//    if(e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM())
+//        return 0.;
+//
+//    // Check parity
+//    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2)
+//        return 0.;
+//
+//    double value = 0.;
+//    
+//    // The sign changes for odd permutations
+//    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
+//            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
+//            + Sigma3LinePermutations(e1, e2, e3, e6, e4, e5)
+//            - Sigma3LinePermutations(e1, e2, e3, e5, e4, e6)
+//            - Sigma3LinePermutations(e1, e2, e3, e6, e5, e4)
+//            - Sigma3LinePermutations(e1, e2, e3, e4, e6, e5);
+//
+//    return value;
+//}
+//
+///** This function does the line permutations, putting the pairs on different levels
+//    of the three-body interaction.
+//    */
+//inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
+//{
+//    double value = 0.;
+//
+//    // There are no sign changes, since there are the same number
+//    // of permutations on both sides
+//
+//    value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
+//            + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
+//            + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)
+//            + sigma3calc->GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4)
+//            + sigma3calc->GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6)
+//            + sigma3calc->GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
+//
+//    return value;
+//}

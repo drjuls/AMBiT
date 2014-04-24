@@ -2,29 +2,25 @@
 #define PROJECTION_H
 
 #include "ElectronInfo.h"
+#include "HartreeFock/Configuration.h"
 #include <vector>
 #include <list>
 
-#ifndef PARITY_ENUM
-#define PARITY_ENUM
-    enum Parity { even, odd };
-#endif
-
 class RelativisticConfiguration;
 
+/** A projection is really a kind of configuration, however there
+    is no occupancy: either a state has one electron or it isn't
+    part of the configuration.
+ */
 class Projection
 {
-    /** A projection is really a kind of configuration, however there
-        is no occupancy: either a state has one electron or it isn't
-        part of the configuration.
-     */
 public:
     Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& twoMs);
     Projection(const Projection& other);
     Projection(Projection&& other);
     virtual ~Projection(void) {}
 
-    Projection& operator=(const Projection& other) { config = other.config; return *this; }
+    const Projection& operator=(const Projection& other) { config = other.config; return *this; }
     Projection& operator=(Projection&& other) { config.swap(other.config); return *this; }
 
     typedef std::vector<ElectronInfo>::iterator iterator;

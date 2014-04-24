@@ -40,12 +40,12 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     int total_rel = 0;
     ConfigGenerator gen(core, excited, userInput);
 
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(even, 0);
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
     ConfigList nonrelconfigs(*relconfigs);
     total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
 
-    relconfigs = gen.GenerateRelativisticConfigurations(odd, 0);
+    relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::odd));
     nonrelconfigs = *relconfigs;
     total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
@@ -58,4 +58,28 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     // Number of relativistic configurations:
     // 2 electrons into 23 orbitals
     EXPECT_EQ(276, total_rel);
+
+    // Test RelativisticConfigList projection iterator
+    int projection_count = 0;
+    for(auto rconfig: *relconfigs)
+    {
+        projection_count += rconfig.projection_size();
+        RelativisticConfiguration::const_projection_iterator it = rconfig.projection_begin();
+        while(it != rconfig.projection_end())
+        {   *outstream << "  " << it->Name() << std::endl;
+            it++;
+        }
+    }
+
+    int iterator_count = 0;
+    auto proj_it = relconfigs->projection_begin();
+    while(proj_it != relconfigs->projection_end())
+    {
+        *outstream << proj_it->Name() << std::endl;
+        iterator_count++;
+        proj_it++;
+    }
+
+    EXPECT_EQ(projection_count, iterator_count);
+    EXPECT_EQ(projection_count, relconfigs->projection_size());
 }

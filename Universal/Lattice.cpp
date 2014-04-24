@@ -38,7 +38,6 @@ Lattice::Lattice(const Lattice& other):
     {   r[i] = other.r[i];
         dr[i] = other.dr[i];
     }
-
 }
 
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
@@ -105,8 +104,11 @@ Lattice::Lattice(const std::string& filename)
 }
 
 Lattice::~Lattice(void)
-{   free(r);
-    free(dr);
+{
+    if(r)
+        free(r);
+    if(dr)
+        free(dr);
 
     std::vector<double*>::iterator it = r_power.begin();
     while(it != r_power.end())

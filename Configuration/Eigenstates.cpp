@@ -4,11 +4,11 @@
 
 #define CONFIG_PRINT_LIMIT 5.
 
-Eigenstates::Eigenstates(const std::string& atom_identifier, ConfigGenerator* configlist, bool configlist_owner):
-    identifier(atom_identifier), configs(configlist), config_owner(configlist_owner),
-    num_eigenvalues(0), num_eigenvectors(0), num_gFactors(0), eigenvalues(NULL), eigenvectors(NULL), gFactors(NULL)
+Eigenstates::Eigenstates(const std::string& atom_identifier, pRelativisticConfigListConst configlist):
+    identifier(atom_identifier), configs(configlist),
+    num_eigenvalues(0), num_eigenvectors(0), num_gFactors(0), eigenvalues(nullptr), eigenvectors(nullptr), gFactors(nullptr)
 {
-    N = configs->GetNumJStates();
+    N = configs->NumCSFs();
 }
 
 Eigenstates::Eigenstates(const Eigenstates& other):
@@ -19,8 +19,6 @@ Eigenstates::Eigenstates(const Eigenstates& other):
 
 Eigenstates::~Eigenstates()
 {
-    if(config_owner)
-        delete configs;
     if(num_eigenvalues && eigenvalues)
         delete[] eigenvalues;
     if(num_eigenvectors && eigenvectors)
@@ -29,17 +27,13 @@ Eigenstates::~Eigenstates()
         delete[] gFactors;
 }
 
-unsigned int Eigenstates::GetTwoJ() const
-{   return configs->GetTwoJ();
-}
-
-Parity Eigenstates::GetParity() const
-{   return configs->GetParity();
-}
-
-ConfigGenerator* Eigenstates::GetConfigGenerator() const
-{   return configs;
-}
+//unsigned int Eigenstates::GetTwoJ() const
+//{   return configs->GetTwoJ();
+//}
+//
+//Parity Eigenstates::GetParity() const
+//{   return configs->GetParity();
+//}
 
 void Eigenstates::SetEigenvalues(double* values, unsigned int num_values)
 {
@@ -71,12 +65,8 @@ void Eigenstates::SetgFactors(double* g_factors, unsigned int num_gfactors)
 {
     if(gFactors)
         delete[] gFactors;
-    num_gFactors = 0;
-
-    if(GetTwoJ())
-    {   num_gFactors = num_gfactors;
-        gFactors = g_factors;
-    }
+    num_gFactors = num_gfactors;
+    gFactors = g_factors;
 }
 
 const double* Eigenstates::GetgFactors() const
@@ -91,7 +81,8 @@ void Eigenstates::Write() const
 {
     if(ProcessorRank == 0)
     {
-        std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
+//        std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
+        std::string filename = identifier + ".eigenstates";
 
         FILE* fp = fopen(filename.c_str(), "wb");
 
@@ -107,7 +98,7 @@ void Eigenstates::Write() const
         fwrite(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
 
         // Write g-factors
-        if(GetTwoJ() && num_gFactors && gFactors)
+        if(num_gFactors && gFactors)
         {   fwrite(&num_gFactors, sizeof(unsigned int), 1, fp);
             fwrite(gFactors, sizeof(double), num_gFactors, fp);
         }
@@ -122,7 +113,8 @@ void Eigenstates::Write() const
 
 bool Eigenstates::Read()
 {
-    std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
+//    std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
+    std::string filename = identifier + ".eigenstates";
 
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
@@ -154,7 +146,7 @@ bool Eigenstates::Read()
     fread(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
 
     // Read g-factors
-    if(GetTwoJ() && gFactors)
+    if(gFactors)
         delete[] gFactors;
 
     fread(&num_gFactors, sizeof(unsigned int), 1, fp);
@@ -163,7 +155,7 @@ bool Eigenstates::Read()
         fread(gFactors, sizeof(double), num_gFactors, fp);
     }
     else
-        gFactors = NULL;
+        gFactors = nullptr;
 
     fclose(fp);
     
@@ -185,9 +177,6 @@ bool Eigenstates::Restore()
 
 void Eigenstates::Clear()
 {
-    if(config_owner)
-        configs->Clear();
-
     if(num_eigenvalues && eigenvalues)
     {   num_eigenvalues = 0;
         delete[] eigenvalues;

@@ -193,11 +193,14 @@ double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j)
         auto jt = all_states.begin();
         while(jt != all_states.end() && (it->first != jt->first))
         {
-            double orth = fabs(integrator->GetInnerProduct(*it->second, *jt->second));
-            if(orth > max_orth)
-            {   max_orth = orth;
-                max_i = it->first;
-                max_j = jt->first;
+            if(it->first.Kappa() == jt->first.Kappa())
+            {
+                double orth = fabs(integrator->GetInnerProduct(*it->second, *jt->second));
+                if(orth > max_orth)
+                {   max_orth = orth;
+                    max_i = it->first;
+                    max_j = jt->first;
+                }
             }
             jt++;
         }

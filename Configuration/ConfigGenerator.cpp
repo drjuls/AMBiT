@@ -51,7 +51,7 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 //    return &nrlist;
 //}
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Parity parity, int two_j)
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym)
 {
     bool allow_different_excitations = false;
     unsigned int electron_excitations = 0;
@@ -80,8 +80,8 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
     }
 
     // TODO: Generate non-relativistic configs from file.
+    // bool GenerateFromFile = false;
     ConfigList nrlist;
-    bool GenerateFromFile = false;
 
     int num_configs = user_input.vector_variable_size("CI/LeadingConfigurations");
     if(num_configs < 1)
@@ -172,7 +172,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
 
     while(it != nrlist.end())
     {
-        if(it->GetParity() != parity)
+        if(it->GetParity() != sym.GetParity())
         {   it = nrlist.erase(it);
         }
         else
@@ -182,7 +182,16 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(Pari
     nrlist.unique();
 
     pRelativisticConfigList rlist = GenerateRelativisticConfigs(nrlist);
-    GenerateProjections(rlist, two_j);
+    GenerateProjections(rlist, sym.GetTwoJ());
+
+//    auto rlist_it = rlist->begin();
+//    while(rlist_it != rlist->end())
+//    {
+//        if(rlist_it->NumCSFs() == 0)
+//            rlist_it = rlist->erase(rlist_it);
+//        else
+//            rlist_it++;
+//    }
 
     return rlist;
 }
@@ -284,6 +293,8 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two
     }
 
     angular_library->GenerateCSFs();
+
+    // Write even if there are no CSFs for a given J since this is not so obvious
     angular_library->Write();
 }
 

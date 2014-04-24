@@ -6,24 +6,19 @@
 #include "RelativisticConfiguration.h"
 #include "Symmetry.h"
 
+/** Storage class for eigenstates of the Hamiltonian with a particular (J, P) symmetry. */
 class Eigenstates
 {
-    /** Storage class for eigenstates of the Hamiltonian with a particular (J, P) symmetry.
-        Eigenstates also takes posession of configlist (the ConfigGenerator) if initialised with
-        configlist_owner = true.
-     */
 public:
-    Eigenstates(const std::string& atom_identifier, ConfigGenerator* configlist, bool configlist_owner = true);
+    Eigenstates(const std::string& atom_identifier, pRelativisticConfigListConst configlist);
     Eigenstates(const Eigenstates& other);
     virtual ~Eigenstates();
 
-    unsigned int GetTwoJ() const;
-    Parity GetParity() const;
+//    unsigned int GetTwoJ() const;
+//    Parity GetParity() const;
 
-    ConfigGenerator* GetConfigGenerator() const;
-
-    RelativisticConfigList* GetRelConfigs() const
-    {   return configs->GetRelConfigs();
+    pRelativisticConfigListConst GetRelConfigs() const
+    {   return configs;
     }
 
     unsigned int GetNumEigenvalues() const
@@ -79,7 +74,7 @@ protected:
 
     unsigned int N;             // size of Hamiltonian matrix, length of eigenvectors
     bool config_owner;
-    ConfigGenerator* configs;
+    pRelativisticConfigListConst configs;
 
     unsigned int num_eigenvalues;   // number of eigenvalues stored
     double* eigenvalues;

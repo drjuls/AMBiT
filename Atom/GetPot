@@ -63,6 +63,7 @@ typedef  std::vector<std::string>  STRING_VECTOR;
 
 class GetPot {
     //--------
+protected:
     inline void __basic_initialization();
 public:
     // (*) constructors, destructor, assignment operator -----------------------
@@ -189,7 +190,7 @@ public:
     // (*) output --------------------------------------------------------------
     inline int print() const;
 
-private:
+protected:
     // (*) Type Declaration ----------------------------------------------------
     struct variable {
         //-----------

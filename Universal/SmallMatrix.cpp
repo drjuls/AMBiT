@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "SmallMatrix.h"
 
-SmallMatrix::SmallMatrix(unsigned int size): Matrix(size)
+SmallMatrix::SmallMatrix(unsigned int size): Matrix(size), M(nullptr)
 {
     try
     {   M = new double[N*N];
@@ -15,7 +15,8 @@ SmallMatrix::SmallMatrix(unsigned int size): Matrix(size)
 }
 
 SmallMatrix::~SmallMatrix(void)
-{   delete[] M;
+{   if(M)
+        delete[] M;
 }
 
 void SmallMatrix::WriteMode(bool write)
@@ -29,8 +30,7 @@ void SmallMatrix::WriteMode(bool write)
 
 void SmallMatrix::Clear()
 {
-    for(unsigned int i = 0; i < N*N; i++)
-        M[i] = 0.;
+    memset(M, 0, N * N * sizeof(double));
 }
 
 double& SmallMatrix::At(unsigned int i, unsigned int j)

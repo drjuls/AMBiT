@@ -3,9 +3,63 @@
 
 #include <string>
 
+enum class Parity { start, even = 0, odd, end };
+
+inline std::string Name(Parity from)
+{
+    switch(from)
+    {
+        case Parity::even:
+            return "Even";
+        case Parity::odd:
+            return "Odd";
+        default:
+            return "";
+    }
+}
+
+inline std::string LowerName(Parity from)
+{
+    switch(from)
+    {
+        case Parity::even:
+            return "even";
+        case Parity::odd:
+            return "odd";
+        default:
+            return "";
+    }
+}
+
+inline std::string ShortName(Parity from)
+{
+    switch(from)
+    {
+        case Parity::even:
+            return "+1";
+        case Parity::odd:
+            return "-1";
+        default:
+            return "";
+    }
+}
+
+inline std::string VeryShortName(Parity from)
+{
+    switch(from)
+    {
+        case Parity::even:
+            return "e";
+        case Parity::odd:
+            return "o";
+        default:
+            return "";
+    }
+}
+
 namespace DisplayOutputType
 {
-    enum Enum 
+    enum Enum
     {
         Start,
         Standard = 0,
@@ -14,7 +68,7 @@ namespace DisplayOutputType
         TabSeparated,
         End
     };
-    
+
     inline std::string Name(Enum from)
     {
         switch(from)
@@ -75,69 +129,6 @@ namespace TransitionGaugeType
                 return "Length";
             case Velocity:
                 return "Velocity";
-            default:
-                return "";
-        }
-    }
-}
-
-namespace ParityType
-{
-    enum Enum 
-    {
-        Start,
-        Even = 0,
-        Odd,
-        End
-    };
-
-    inline std::string Name(Enum from)
-    {
-        switch(from)
-        {
-            case Even:
-                return "Even";
-            case Odd:
-                return "Odd";
-            default:
-                return "";
-        }
-    }
-    
-    inline std::string LowerName(Enum from)
-    {
-        switch(from)
-        {
-            case Even:
-                return "even";
-            case Odd:
-                return "odd";
-            default:
-                return "";
-        }
-    }
-
-    inline std::string ShortName(Enum from)
-    {
-        switch(from)
-        {
-            case Even:
-                return "+1";
-            case Odd:
-                return "-1";
-            default:
-                return "";
-        }
-    }
-    
-    inline std::string VeryShortName(Enum from)
-    {
-        switch(from)
-        {
-            case Even:
-                return "e";
-            case Odd:
-                return "o";
             default:
                 return "";
         }

@@ -10,12 +10,12 @@ public:
     bool operator()(const Value& first, const Value& second) { return (first < second); }
 };
 
+/** Template for an extensible, sorted forward_list with a simplified STL interface.
+    Compare::operator() is a binary predicate that defines a strict weak ordering between two Value objects.
+ */
 template <class Value, class Compare =  DefaultComparator<Value> >
 class SortedList
 {
-    /** Template for an extensible, sorted forward_list with a simplified STL interface.
-        Compare::operator() is a binary predicate that defines a strict weak ordering between two Value objects.
-     */
 protected:
     typedef SortedList<Value, Compare> BaseSortedList;
     typedef Compare BaseComparator;

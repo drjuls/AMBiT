@@ -12,7 +12,7 @@ public:
 
     virtual double Integrate(const RadialFunction& integrand) const = 0;
 
-    /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr . delta(a.Kappa, b.Kappa) */
+    /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
     virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const;
 
     /** < a | a > */

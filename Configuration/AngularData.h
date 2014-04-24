@@ -11,12 +11,12 @@
 
 class RelativisticConfiguration;
 
+/** Store projections and configuration state functions (CSF) corresponding to
+    the angular part of a RelativisticConfiguration.
+    Access is only provided by const iterators.
+ */
 class AngularData
 {
-    /** Store projections and configuration state functions (CSF) corresponding to
-        the angular part of a RelativisticConfiguration.
-        Access is only provided by const iterators.
-    */
 public:
     AngularData(): CSFs(nullptr) {}
     AngularData(const RelativisticConfiguration& config, int two_m); //!< Generate projections but not CSFs.
@@ -41,6 +41,7 @@ public:
     int GetTwoM() const { return two_m; }
     int GetTwoJ() const { return two_j; }
     unsigned int NumCSFs() const { return num_CSFs; }
+    const double* GetCSFs() const { return CSFs; }
 
     /** Generate CSFs by diagonalising projections over J^2. */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
@@ -67,12 +68,12 @@ protected:
 typedef boost::shared_ptr<AngularData> pAngularData;
 typedef boost::shared_ptr<const AngularData> pAngularDataConst;
 
+/** Collection of AngularData elements, indexed by RelativisticConfiguration.
+    The collection is stored on disk in
+    AMBiT/AngularData/particle_number.two_m.two_j.angular
+ */
 class AngularDataLibrary
 {
-    /** Collection of AngularData elements, indexed by RelativisticConfiguration.
-        The collection is stored on disk in
-            AMBiT/AngularData/particle_number.two_m.two_j.angular
-     */
 public:
     AngularDataLibrary(int particle_number, int two_m, int two_j);
     ~AngularDataLibrary() {}

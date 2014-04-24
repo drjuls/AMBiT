@@ -11,7 +11,7 @@ RelativisticConfiguration::RelativisticConfiguration(RelativisticConfiguration&&
     BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
 {}
 
-RelativisticConfiguration& RelativisticConfiguration::operator=(const RelativisticConfiguration& other)
+const RelativisticConfiguration& RelativisticConfiguration::operator=(const RelativisticConfiguration& other)
 {
     m_config = other.m_config;
     angular_data = other.angular_data;
@@ -64,6 +64,45 @@ int RelativisticConfiguration::GetTwiceMaxProjection() const
     }
 
     return maximum_two_m;
+}
+
+unsigned int RelativisticConfigList::NumCSFs() const
+{
+    unsigned int total = 0;
+    for(auto& rconfig: m_list)
+    {
+        total += rconfig.NumCSFs();
+    }
+
+    return total;
+}
+
+RelativisticConfigList::const_projection_iterator RelativisticConfigList::projection_begin() const
+{
+    return const_projection_iterator(this);
+}
+
+RelativisticConfigList::const_projection_iterator RelativisticConfigList::projection_end() const
+{
+    const_iterator last = end();
+
+    // Check size = 0 case
+    if(begin() == last)
+        return const_projection_iterator(this);
+
+    last--;
+    return const_projection_iterator(this, last->projection_end(), end(), NumCSFs());
+}
+
+unsigned int RelativisticConfigList::projection_size() const
+{
+    unsigned int total = 0;
+    for(auto& rconfig: m_list)
+    {
+        total += rconfig.projection_size();
+    }
+
+    return total;
 }
 
 /*

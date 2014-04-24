@@ -35,7 +35,7 @@ public:
     /** Generate non-relativistic and then relativistic configurations based on the input file.
         Returned list has CSFs with J = M.
      */
-    pRelativisticConfigList GenerateRelativisticConfigurations(Parity parity, int two_j);
+    pRelativisticConfigList GenerateRelativisticConfigurations(const Symmetry& sym);
 
 protected:
     /** Generate all non-relativistic configurations possible by exciting num_excitations

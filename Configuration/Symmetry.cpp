@@ -7,7 +7,7 @@ std::string Symmetry::GetString() const
     std::stringstream angmom;
     angmom << twoJ;
     ret = angmom.str();
-    if(P == even)
+    if(P == Parity::even)
         ret = ret + ".even";
     else
         ret = ret + ".odd";
@@ -18,7 +18,7 @@ std::string Symmetry::GetString() const
 bool Symmetry::operator<(const Symmetry& other) const
 {
     if(P != other.P)
-        return (P == even);
+        return (P == Parity::even);
     else
         return (twoJ < other.twoJ);
 }

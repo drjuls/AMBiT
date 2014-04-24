@@ -30,6 +30,9 @@ public:
     inline MultirunOptions(const char* FileName,
                            const char* CommentStart=0x0, const char* CommentEnd=0x0,
                            const char* FieldSeparator=0x0);
+    inline MultirunOptions(std::istream& InputStream,
+                           const char* CommentStart=0x0, const char* CommentEnd=0x0,
+                           const char* FieldSeparator=0x0);
     inline ~MultirunOptions() {}
 
     inline MultirunOptions& operator=(const MultirunOptions& other);
@@ -73,6 +76,29 @@ inline MultirunOptions::MultirunOptions(const int argc_, char** argv_, const cha
 inline MultirunOptions::MultirunOptions(const char* FileName, const char* CommentStart, const char* CommentEnd, const char* FieldSeparator):
     GetPot(FileName, CommentStart, CommentEnd, FieldSeparator), num_runs(1), current_run_index(0)
 {   ParseMultirun();
+}
+
+inline
+MultirunOptions::MultirunOptions(std::istream& InputStream,
+               const char* CommentStart  /* = 0x0 */, const char* CommentEnd /* = 0x0 */,
+               const char* FieldSeparator/* = 0x0 */):
+    GetPot()
+{
+    // if specified -> overwrite default strings
+    if( CommentStart )   _comment_start = std::string(CommentStart);
+    if( CommentEnd )     _comment_end   = std::string(CommentEnd);
+    if( FieldSeparator ) _field_separator = FieldSeparator;
+
+    STRING_VECTOR _apriori_argv;
+    // First argument is not parsed for
+    //    variable assignments or nominuses.
+    _apriori_argv.push_back(std::string("StreamInput"));
+    
+    STRING_VECTOR args = __read_in_stream(InputStream);
+    _apriori_argv.insert(_apriori_argv.begin()+1, args.begin(), args.end());
+    __parse_argument_vector(_apriori_argv);
+
+    ParseMultirun();
 }
 
 inline MultirunOptions& MultirunOptions::operator=(const MultirunOptions& other)

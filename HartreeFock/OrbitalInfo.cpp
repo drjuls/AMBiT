@@ -2,24 +2,24 @@
 #include "OrbitalInfo.h"
 #include "Universal/MathConstant.h"
 
+const OrbitalInfo& OrbitalInfo::operator=(const OrbitalInfo& other)
+{
+    pqn = other.pqn;
+    kappa = other.kappa;
+
+    return *this;
+}
+
 bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
-    // Sort on abs(kappa):
+    // Sort on abs(kappa) first:
     //  |-1| < |1| < |-2| < |2| < |-3| ...
-    if(abs(this->kappa) < abs(other.kappa))
-        return true;
-    else if(abs(this->kappa) > abs(other.kappa))
-        return false;
-    // And finally sort on kappa itself
-    else if (this->kappa < other.kappa)
-        return true;
-    else if (this->kappa > other.kappa)
-        return false;
-
-    // Sort on pqn
-    if(this->pqn < other.pqn)
-       return true;
-    else return false;
+    if(abs(this->kappa) != abs(other.kappa))
+        return (abs(this->kappa) < abs(other.kappa));
+    else if(this->kappa != other.kappa)
+        return (this->kappa < other.kappa);
+    else
+        return (this->pqn < other.pqn);
 }
 
 bool OrbitalInfo::operator==(const OrbitalInfo& other) const

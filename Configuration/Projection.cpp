@@ -46,9 +46,9 @@ Parity Projection::GetParity() const
     } );
 
     if(sum%2 == 0)
-        return even;
+        return Parity::even;
     else
-        return odd;
+        return Parity::odd;
 }
 
 int Projection::GetTwoM() const
@@ -64,7 +64,7 @@ int Projection::GetTwoM() const
 std::string Projection::Name() const
 {
     std::string name;
-    for(auto electron : config)
+    for(auto& electron: config)
         name.append(" " + electron.Name());
 
     return name;

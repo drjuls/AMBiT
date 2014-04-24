@@ -210,7 +210,6 @@ pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         memset(A, 0, n2*n2*sizeof(double));
         memset(eigenvalues, 0, n2*sizeof(double));
 
-
         /* jcb: I removed the Gaussian integration that was previously being used to calculate <Bi|Bj>
                 as well as the direct part of the potential. I think using the normal lattice is good enough.
                 If someone wants to restore the Gaussian integration, use something like

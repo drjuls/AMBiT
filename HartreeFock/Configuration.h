@@ -3,15 +3,11 @@
 
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/NonRelInfo.h"
+#include "Universal/Enums.h"
 #include <map>
 #include <string>
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
-
-#ifndef PARITY_ENUM
-#define PARITY_ENUM
-    enum Parity { even, odd };
-#endif
 
 template <class OrbitalType, class OccupancyType>
 class Configuration
@@ -33,8 +29,8 @@ public:
     typedef typename std::map<OrbitalType, OccupancyType>::iterator iterator;
     typedef typename std::map<OrbitalType, OccupancyType>::const_iterator const_iterator;
 
-    BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
-    BaseConfiguration& operator=(BaseConfiguration&& other) { m_config = other.m_config; return *this; }
+    const BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
+    BaseConfiguration& operator=(BaseConfiguration&& other) { m_config.swap(other.m_config); return *this; }
 
     bool operator<(const BaseConfiguration& other) const;
     bool operator==(const BaseConfiguration& other) const;
@@ -80,7 +76,7 @@ public:
      */
     iterator insert(const std::pair<OrbitalType, OccupancyType>& val);
 
-    /** Number of electrons = number of electrons - number of holes. */
+    /** Electron number = number of electrons - number of holes. */
     OccupancyType ElectronNumber() const
     {   OccupancyType ret = OccupancyType(0);
         for(auto& pair: m_config)
@@ -88,7 +84,7 @@ public:
         return ret;
     }
 
-    /** Excitation number = number of electrons + number of holes. */
+    /** Particle number = number of electrons + number of holes. */
     template<typename U = OccupancyType>
     typename boost::enable_if<boost::is_integral<U>, OccupancyType>::type
     ParticleNumber() const
@@ -114,9 +110,9 @@ public:
         for(auto& pair: m_config)
             sum += pair.first.L() * abs(pair.second);
         if(sum%2 == 0)
-            return even;
+            return Parity::even;
         else
-            return odd;
+            return Parity::odd;
     }
 
     virtual std::string Name() const;
@@ -212,9 +208,13 @@ std::string Configuration<OrbitalType, OccupancyType>::Name() const
     std::stringstream buffer;
     auto it = m_config.begin();
     if(m_config.size())
-        buffer << it->first.Name() << it->second;
+    {   buffer << it->first.Name() << it->second;
+        it++;
+    }
     while(it != m_config.end())
-        buffer << " " << it->first.Name() << it->second;
+    {   buffer << " " << it->first.Name() << it->second;
+        it++;
+    }
     return buffer.str();
 }
 

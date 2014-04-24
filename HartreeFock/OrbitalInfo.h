@@ -16,6 +16,8 @@ public:
     OrbitalInfo(const OrbitalInfo& other);
     virtual ~OrbitalInfo(void) {}
 
+    const OrbitalInfo& operator=(const OrbitalInfo& other);
+
     virtual bool operator<(const OrbitalInfo& other) const;
     virtual bool operator==(const OrbitalInfo& other) const;
     virtual bool operator!=(const OrbitalInfo& other) const;

@@ -1,6 +1,15 @@
 #include "Include.h"
 #include "ElectronInfo.h"
 
+const ElectronInfo& ElectronInfo::operator=(const ElectronInfo& other)
+{
+    OrbitalInfo::operator=(other);
+    two_m = other.two_m;
+    is_hole = other.is_hole;
+
+    return *this;
+}
+
 bool ElectronInfo::operator<(const ElectronInfo& other) const
 {
     // We redo the OrbitalInfo rather than calling OrbitalInfo::operator<()
@@ -8,26 +17,18 @@ bool ElectronInfo::operator<(const ElectronInfo& other) const
 
     // Sort on abs(kappa):
     //  |-1| < |1| < |-2| < |2| < |-3| ...
-    if(abs(this->kappa) < abs(other.kappa))
-        return true;
-    else if(abs(this->kappa) > abs(other.kappa))
-        return false;
-    // Sort on kappa itself
-    else if(this->kappa < other.kappa)
-        return true;
-    else if(this->kappa > other.kappa)
-        return false;
-
-    // Sort on pqn
-    if(this->pqn < other.pqn)
-        return true;
-    else if(this->pqn > other.pqn)
-        return false;
+    if(abs(this->kappa) != abs(other.kappa))
+        return (abs(this->kappa) < abs(other.kappa));
+    else if(this->kappa != other.kappa)
+        return (this->kappa < other.kappa);
+    else if(this->pqn != other.pqn)
+        return (this->pqn < other.pqn);
 
     // And sort on m such that AngularData generates projections sorted correctly
     // (so they don't need to be resorted).
     // Sorted Projections are required for GetProjectionDifferences()
-    return (this->two_m > other.two_m);
+    else
+        return (this->two_m > other.two_m);
 }
 
 bool ElectronInfo::operator==(const ElectronInfo& other) const

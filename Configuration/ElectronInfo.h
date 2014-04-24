@@ -17,6 +17,8 @@ public:
     {}
     virtual ~ElectronInfo() {}
 
+    const ElectronInfo& operator=(const ElectronInfo& other);
+
     virtual bool operator<(const ElectronInfo& other) const;
     virtual bool operator==(const ElectronInfo& other) const;
     virtual bool operator!=(const ElectronInfo& other) const;

@@ -56,10 +56,6 @@ public:
     /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
     virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
-    inline double GetNuclearInverseMass() const
-    {   return core.GetNuclearInverseMass();
-    }
-
 protected:
     /** Change ordering of states so that it corresponds to a stored integral.
         Returns false if SMS sign needs to be changed.
