@@ -64,18 +64,12 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     for(auto rconfig: *relconfigs)
     {
         projection_count += rconfig.projection_size();
-        RelativisticConfiguration::const_projection_iterator it = rconfig.projection_begin();
-        while(it != rconfig.projection_end())
-        {   *outstream << "  " << it->Name() << std::endl;
-            it++;
-        }
     }
 
     int iterator_count = 0;
     auto proj_it = relconfigs->projection_begin();
     while(proj_it != relconfigs->projection_end())
     {
-        *outstream << proj_it->Name() << std::endl;
         iterator_count++;
         proj_it++;
     }

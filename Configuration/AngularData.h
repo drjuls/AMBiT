@@ -3,13 +3,15 @@
 
 #include "HartreeFock/OrbitalInfo.h"
 #include "Projection.h"
+#include "Symmetry.h"
 #include <list>
-#include <boost/shared_ptr.hpp>
 #include <unordered_map>
+#include <boost/shared_ptr.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
 class RelativisticConfiguration;
+class AngularDataLibrary;
 
 /** Store projections and configuration state functions (CSF) corresponding to
     the angular part of a RelativisticConfiguration.
@@ -17,13 +19,16 @@ class RelativisticConfiguration;
  */
 class AngularData
 {
+protected:
+    friend class AngularDataLibrary;
+    AngularData(int two_m);
+
 public:
-    AngularData(): CSFs(nullptr) {}
-    AngularData(const RelativisticConfiguration& config, int two_m); //!< Generate projections but not CSFs.
+    AngularData(const RelativisticConfiguration& config, int two_m);    //!< Generate projections but not CSFs.
     AngularData(const RelativisticConfiguration& config, int two_m, int two_j); //!< Generate projections and CSFs.
     ~AngularData();
 
-    typedef std::vector< std::pair<int, int> > ConfigKeyType;   // pair(kappa, pqn) for all orbitals in RelativisticConfiguration
+    typedef std::vector< std::pair<int, int> > ConfigKeyType;   // pair(kappa, number of particles) for all orbitals in RelativisticConfiguration
     typedef std::list< std::vector<int> >::const_iterator const_projection_iterator;
     typedef const double* const_CSF_iterator;
 
@@ -31,6 +36,9 @@ public:
     const_projection_iterator projection_begin() const { return projections.begin(); }
     const_projection_iterator projection_end() const { return projections.end(); }
     unsigned int projection_size() const { return projections.size(); }
+
+    /** Return whether CSFs have been calculated (or read in). */
+    bool CSFs_calculated() const { return have_CSFs; }
 
     /** Random access iterator over CSFs corresponding to projection i.
         PRE: 0 <= i <= projection_size()
@@ -40,7 +48,7 @@ public:
 
     int GetTwoM() const { return two_m; }
     int GetTwoJ() const { return two_j; }
-    unsigned int NumCSFs() const { return num_CSFs; }
+    int NumCSFs() const { return num_CSFs; }
     const double* GetCSFs() const { return CSFs; }
 
     /** Generate CSFs by diagonalising projections over J^2. */
@@ -60,8 +68,9 @@ protected:
     /** CSF coefficients for a given J. Usually one requires all coefficients for a given projection,
         so the projection comes first: CSFs[proj * N + csf] where N is NumCSFs().
      */
+    bool have_CSFs;
     double* CSFs;
-    unsigned int num_CSFs;
+    int num_CSFs;
     int two_j;
 };
 
@@ -69,13 +78,19 @@ typedef boost::shared_ptr<AngularData> pAngularData;
 typedef boost::shared_ptr<const AngularData> pAngularDataConst;
 
 /** Collection of AngularData elements, indexed by RelativisticConfiguration.
-    The collection is stored on disk in
-    AMBiT/AngularData/particle_number.two_m.two_j.angular
+    The collection is stored on disk in the directory specified by lib_directory, with filename
+        <particle_number>.<two_j>.<parity>.two_m.angular
+    As usually specified in the Makefile, the directory is
+        AMBiT/AngularData/
  */
 class AngularDataLibrary
 {
 public:
-    AngularDataLibrary(int particle_number, int two_m, int two_j);
+    /** Initialise with number of particles (electrons+holes), symmetry, and directory of stored libraries.
+        If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
+        If lib_directory does not exist already, then this is an error so that the user can check the path specification.
+     */
+    AngularDataLibrary(int particle_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
     ~AngularDataLibrary() {}
 
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
@@ -92,7 +107,7 @@ public:
 protected:
     typedef AngularData::ConfigKeyType KeyType;
 
-    int two_m, two_j;
+    int particle_number, two_m, two_j;
     KeyType GenerateKey(const RelativisticConfiguration& config) const;
 
     std::string filename;

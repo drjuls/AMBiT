@@ -128,7 +128,7 @@ TEST(AngularDataTester, Iterators)
     rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
 
     int min_TwoJ = (rconfig.ParticleNumber()%2 == 0)? 0 : 1;
-    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ParticleNumber(), min_TwoJ, min_TwoJ));
+    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ParticleNumber(), Symmetry(min_TwoJ, rconfig.GetParity()), min_TwoJ));
 
     rconfig.GetProjections(library);
 

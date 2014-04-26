@@ -279,7 +279,13 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m) const
 {
     int particle_number = rlist->begin()->ElectronNumber();
-    pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, two_m, two_m));
+    Parity parity = rlist->begin()->GetParity();
+
+    std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
+    if(user_input.search("AngularDataDirectory"))
+        angular_directory = user_input("AngularDataDirectory", "");
+
+    pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, Symmetry(two_m, parity), two_m, angular_directory));
 
     angular_library->Read();
 

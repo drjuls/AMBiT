@@ -3,15 +3,20 @@
 #include "RelativisticConfiguration.h"
 #include "Universal/Eigensolver.h"
 #include <numeric>
+#include <dirent.h>
+
+AngularData::AngularData(int two_m):
+    two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
+{}
 
 AngularData::AngularData(const RelativisticConfiguration& config, int two_m):
-    two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr)
+    two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
 {
     GenerateProjections(config, two_m);
 }
 
 AngularData::AngularData(const RelativisticConfiguration& config, int two_m, int two_j):
-    two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr)
+    two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
 {
     GenerateProjections(config, two_m);
     GenerateCSFs(config, two_j);
@@ -145,6 +150,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     if(CSFs)
     {   delete[] CSFs;
         CSFs = nullptr;
+        have_CSFs = false;
     }
 
     if(N == 0 || two_j < abs(two_m))
@@ -200,6 +206,8 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         if(fabs(V[i] - JSquared) < 1.e-6)
             num_CSFs++;
     }
+
+    have_CSFs = true;
 
     // Transfer eigenvalues
     if(num_CSFs)
@@ -329,10 +337,24 @@ int AngularData::GenerateCSFs(const AngularData::ConfigKeyType& key, int two_j)
     return GenerateCSFs(rconfig, two_j);
 }
 
-AngularDataLibrary::AngularDataLibrary(int particle_number, int two_m, int two_j):
-    two_m(two_m), two_j(two_j)
+AngularDataLibrary::AngularDataLibrary(int particle_number, const Symmetry& sym, int two_m, std::string lib_directory):
+    particle_number(particle_number), two_m(two_m), two_j(sym.GetTwoJ())
 {
-    filename = itoa(particle_number) + "." + itoa(two_m) + "." + itoa(two_j) + ".angular";
+    if(lib_directory == "")
+        filename.clear();
+
+    else
+    {   // Check library directory exists
+        if(!opendir(lib_directory.c_str()))
+        {   *errstream << "AngularDataLibarary: unknown directory path " << lib_directory << std::endl;
+            exit(1);
+        }
+
+        filename = lib_directory;
+        if(filename[filename.length()-1] != '/')
+            filename.append("/");
+        filename += itoa(particle_number) + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+    }
 }
 
 pAngularData AngularDataLibrary::operator[](const RelativisticConfiguration& config)
@@ -365,14 +387,120 @@ void AngularDataLibrary::GenerateCSFs()
 {
     for(auto& pair: library)
     {   auto& pAng = pair.second;
-        pAng->GenerateCSFs(pair.first, two_j);
+        if(pAng->CSFs_calculated() == false)
+            pAng->GenerateCSFs(pair.first, two_j);
     }
 }
 
+/** Structure of *.angular files:
+    (Note: number of particles and symmetry is stored in filename)
+    - (int) number of stored AngularData objects
+    then for each AngularData object
+        - (int) key size = number of pairs
+        - (int) number of projections = N
+        - projections
+        - (int) numCSFs
+        - CSFs: double* (numCSFs * N)
+ */
 void AngularDataLibrary::Read()
 {
+    if(filename.empty())
+        return;
+
+    FILE* fp = fopen(filename.c_str(), "rb");
+
+    int num_angular_data_objects = 0;
+
+    if(fp)
+        fread(&num_angular_data_objects, sizeof(int), 1, fp);
+
+    int count = 0;
+    int projection_array[particle_number];
+
+    while(count < num_angular_data_objects)
+    {
+        // Key
+        int key_size = 0;
+        fread(&key_size, sizeof(int), 1, fp);
+
+        KeyType key;    // pair(kappa, num particles)
+        for(int i = 0; i < key_size; i++)
+        {
+            int kappa, num_particles;
+            fread(&kappa, sizeof(int), 1, fp);
+            fread(&num_particles, sizeof(int), 1, fp);
+
+            key.push_back(std::make_pair(kappa, num_particles));
+        }
+
+        pAngularData ang(new AngularData(two_m));
+        ang->two_j = two_j;
+
+        // Projections
+        int num_projections = 0;
+        fread(&num_projections, sizeof(int), 1, fp);
+
+        for(int i = 0; i < num_projections; i++)
+        {
+            fread(projection_array, sizeof(int), particle_number, fp);
+            ang->projections.push_back(std::vector<int>(projection_array, projection_array + particle_number));
+        }
+
+        // CSFs
+        fread(&ang->num_CSFs, sizeof(int), 1, fp);
+        if(ang->num_CSFs)
+        {   ang->CSFs = new double[num_projections * ang->num_CSFs];
+            fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
+        }
+        ang->have_CSFs = true;
+
+        library[key] = ang;
+        count++;
+    }
+
+    fclose(fp);
 }
 
 void AngularDataLibrary::Write() const
 {
+    if(filename.empty())
+        return;
+
+    FILE* fp = fopen(filename.c_str(), "wb");
+
+    if(!fp)
+    {   *errstream << "AngularData::Couldn't open file " << filename << " for writing." << std::endl;
+    }
+
+    int num_angular_data_objects = library.size();
+    fwrite(&num_angular_data_objects, sizeof(int), 1, fp);
+
+    for(const auto& pair: library)
+    {
+        // Key
+        int key_size = pair.first.size();
+        fwrite(&key_size, sizeof(int), 1, fp);
+
+        for(auto& key_pair: pair.first)
+        {
+            fwrite(&key_pair.first, sizeof(int), 1, fp);
+            fwrite(&key_pair.second, sizeof(int), 1, fp);
+        }
+
+        // Projections
+        int num_projections = pair.second->projections.size();
+        fwrite(&num_projections, sizeof(int), 1, fp);
+
+        for(const auto& projection: pair.second->projections)
+        {
+            fwrite(&projection[0], sizeof(int), particle_number, fp);
+        }
+
+        // CSFs
+        fwrite(&pair.second->num_CSFs, sizeof(int), 1, fp);
+        if(pair.second->num_CSFs)
+            fwrite(pair.second->CSFs, sizeof(double), pair.second->num_CSFs * num_projections, fp);
+    }
+
+    fclose(fp);
 }

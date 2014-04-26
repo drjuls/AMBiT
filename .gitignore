@@ -1,4 +1,5 @@
 # Input and output files
+AngularData/
 *.txt
 *.input
 *.out
@@ -23,6 +24,7 @@ ambit
 ambit_test
 
 # Auxillary documentation files
+Documentation/*
 *.aux
 *.dvi
 *.log

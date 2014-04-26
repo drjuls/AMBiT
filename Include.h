@@ -13,6 +13,9 @@
 
 #include "Atom/Debug.h"
 
+#define string_macro(x) _stringify(x)
+#define _stringify(x) #x
+
 #ifdef WIN32
     #pragma warning ( disable : 4786 )
     #pragma warning ( disable : 4290 )
