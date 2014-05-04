@@ -3,7 +3,7 @@
 
 #include "Include.h"
 #include "Basis/ExcitedStates.h"
-#include "HartreeFock/OneBodyOperator.h"
+#include "HartreeFock/SpinorOperator.h"
 #include "HartreeFock/HartreeY.h"
 
 /** Class to hold Coulomb integrals for use in CI calculation,
@@ -18,7 +18,7 @@
 class CIIntegrals
 {
 public:
-    CIIntegrals(pOneBodyOperatorConst one_body_op, pHartreeY hartreeY_op, pStateManagerConst valence_states, const std::string& storage_id = "", bool two_body_reverse_symmetry_exists = false):
+    CIIntegrals(pSpinorOperatorConst one_body_op, pHartreeY hartreeY_op, pOrbitalMapConst valence_states, const std::string& storage_id = "", bool two_body_reverse_symmetry_exists = false):
         states(valence_states), one_body_operator(one_body_op), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
     {   SetTwoElectronStorageLimits();
         SetIdentifier(storage_id);
@@ -115,13 +115,13 @@ protected:
 
 protected:
     // Operators
-    pOneBodyOperatorConst one_body_operator;
+    pSpinorOperatorConst one_body_operator;
     pHartreeY hartreeY_operator;
     bool two_body_reverse_symmetry;
 
     std::string read_id;    // Read and write files may be different (e.g. multiprocessor)
     std::string write_id;
-    pStateManagerConst states;
+    pOrbitalMapConst states;
 
     unsigned int NumStates;
     // The ordering of states is not arbitrary; they should be ordered by pqn first.

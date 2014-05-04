@@ -1,7 +1,7 @@
 #ifndef HARTREE_Y_FUNCTION_H
 #define HARTREE_Y_FUNCTION_H
 
-#include "OneBodyOperator.h"
+#include "SpinorOperator.h"
 #include "CoulombOperator.h"
 
 /** HartreeY is a one-body operator defined by
@@ -21,10 +21,10 @@
     HartreeYBase itself is the zero operator \f$ Y^k_{cd} = 0 \f$,
     used to wrap Decorators around when you want just the extra bit.
  */
-class HartreeYBase : public OneBodyOperator
+class HartreeYBase : public SpinorOperator
 {
 public:
-    HartreeYBase(pOPIntegrator integration_strategy = nullptr): OneBodyOperator(integration_strategy) {}
+    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.

@@ -5,26 +5,26 @@
 #include "Universal/Interpolator.h"
 #include "ConfigurationParser.h"
 
-Core::Core(pLattice lat, const std::string& filling): StateManager(lat)
+Core::Core(pLattice lat, const std::string& filling): OrbitalMap(lat)
 {
     if(!filling.empty())
         SetOccupancies(ConfigurationParser::ParseFractionalConfiguration(filling));
 }
 
 Core::Core(const Core& other):
-    StateManager(other), occupancy(other.occupancy)
+    OrbitalMap(other), occupancy(other.occupancy)
 {}
 
 const Core& Core::operator=(const Core& other)
 {
-    StateManager::operator=(other);
+    OrbitalMap::operator=(other);
     occupancy = other.occupancy;
     return *this;
 }
 
 const Core& Core::Copy(const Core& other, pLattice new_lattice)
 {
-    StateManager::Copy(other, new_lattice);
+    OrbitalMap::Copy(other, new_lattice);
     occupancy = other.occupancy;
 
     return *this;
@@ -39,7 +39,7 @@ Core Core::Copy(pLattice new_lattice) const
 
 void Core::clear()
 {
-    StateManager::clear();
+    OrbitalMap::clear();
     occupancy.clear();
 }
 
@@ -62,14 +62,11 @@ void Core::SetOccupancies(const OccupationMap& occupancies)
     occupancy = occupancies;
 
     // Remove orbitals with zero occupancy
-    OrbitalMap::iterator it = AllStates.begin();
-    while(it != AllStates.end())
+    auto it = m_orbitals.begin();
+    while(it != end())
     {
         if(!occupancy.count(it->first))
-        {   OrbitalMap::iterator remove = it;
-            it++;
-            AllStates.erase(remove);
-        }
+            it = m_orbitals.erase(it);
         else
             it++;
     }
@@ -78,7 +75,7 @@ void Core::SetOccupancies(const OccupationMap& occupancies)
     OccupationMap::const_iterator occ = occupancy.begin();
     while(occ != occupancy.end())
     {
-        if(!AllStates.count(occ->first))
+        if(!count(occ->first))
         {   pOrbital s(new Orbital(occ->first.Kappa(), occ->first.PQN()));
             AddState(s);
         }
@@ -106,13 +103,13 @@ void Core::Write(FILE* fp) const
     // TODO: Output occupancies
 
     // Output core
-    StateManager::Write(fp);
+    OrbitalMap::Write(fp);
 //
 //    // Output open shell states
 //    unsigned int num_open = OpenShellStorage.size();
 //    fwrite(&num_open, sizeof(unsigned int), 1, fp);
 //
-//    OrbitalMap::const_iterator it = OpenShellStorage.begin();
+//    BaseMap::const_iterator it = OpenShellStorage.begin();
 //    while(it != OpenShellStorage.end())
 //    {
 //        it->second->Write(fp);

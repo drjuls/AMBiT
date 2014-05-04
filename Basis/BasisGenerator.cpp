@@ -105,9 +105,9 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     return open_core;
 }
 
-pStateManager BasisGenerator::GenerateBasis()
+pOrbitalMap BasisGenerator::GenerateBasis()
 {
-    excited = pStateManager(new StateManager(lattice));
+    excited = pOrbitalMap(new OrbitalMap(lattice));
 
     std::string valence_states = user_input("Basis/ValenceBasis", "");
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
@@ -174,7 +174,7 @@ double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j)
     double max_orth = 0.;
     pOPIntegrator integrator = hf->GetOPIntegrator();
 
-    StateManager all_states(lattice);
+    OrbitalMap all_states(lattice);
     if(excited)
     {   all_states = *excited;
         if(closed_core)

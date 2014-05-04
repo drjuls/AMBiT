@@ -15,7 +15,7 @@
     \f]
     Multipolarity K == 1.
 
-    One can also use it as a normal OneBodyOperator by not using SetInverseMass or SetParameters, which
+    One can also use it as a normal SpinorOperator by not using SetInverseMass or SetParameters, which
     default to 1 and hence \f$ P^1 = p_{ab} \f$.
  */
 class NonRelativisticSMSOperator : public HartreeYDecorator

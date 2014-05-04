@@ -2,7 +2,7 @@
 #define CONFIG_GENERATOR_H
 
 #include "Atom/MultirunOptions.h"
-#include "HartreeFock/StateManager.h"
+#include "HartreeFock/OrbitalMap.h"
 #include "NonRelConfiguration.h"
 #include "RelativisticConfiguration.h"
 #include "Projection.h"
@@ -20,7 +20,7 @@
 class ConfigGenerator
 {
 public:
-    ConfigGenerator(pStateManagerConst coreStates, pStateManagerConst excitedStates, MultirunOptions& userInput);
+    ConfigGenerator(pOrbitalMapConst coreStates, pOrbitalMapConst excitedStates, MultirunOptions& userInput);
     virtual ~ConfigGenerator();
 
     /** Clear the non-relativistic and relativistic config lists and free memory.
@@ -88,8 +88,8 @@ protected:
 protected:
     // Inputs
     MultirunOptions& user_input;
-    pStateManagerConst core;
-    pStateManagerConst excited;
+    pOrbitalMapConst core;
+    pOrbitalMapConst excited;
 
     // Set of all valence states
     NonRelInfoSet NonRelSet;

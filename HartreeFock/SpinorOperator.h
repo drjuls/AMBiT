@@ -5,17 +5,17 @@
 #include "OpIntegrator.h"
 #include "Include.h"
 
-/** OneBodyOperator is a base class for calculating radial matrix elements with an orbital basis.
+/** SpinorOperator is a base class for calculating radial matrix elements with an orbital basis.
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
     Operators are also components of the Strategy pattern; they are initialised with an Integrator that the client can choose.
     Subclasses may choose their default integrator.
-    OneBodyOperator is itself a valid zero operator, < b | 0 | a > = 0,
+    SpinorOperator is itself a valid zero operator, < b | 0 | a > = 0,
     useful to wrap Decorators around when you want just the extra bit.
  */
-class OneBodyOperator
+class SpinorOperator
 {
 public:
-    OneBodyOperator(pOPIntegrator integration_strategy = pOPIntegrator()): integrator(integration_strategy), K(0) {}
+    SpinorOperator(pOPIntegrator integration_strategy = pOPIntegrator()): integrator(integration_strategy), K(0) {}
 
     /** < b | t | a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
@@ -48,18 +48,18 @@ protected:
     int K;
 };
 
-typedef boost::shared_ptr<OneBodyOperator> pOneBodyOperator;
-typedef boost::shared_ptr<const OneBodyOperator> pOneBodyOperatorConst;
+typedef boost::shared_ptr<SpinorOperator> pSpinorOperator;
+typedef boost::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
 
-/** OneBodyOperatorDecorator is for adding extra terms to an existing operator.
+/** SpinorOperatorDecorator is for adding extra terms to an existing operator.
     The Decorator pattern allows nesting of additional terms in any order.
     When using, remember that the Decorator wraps objects, not classes.
     Wrap around a zero operator object if only the extra term is required.
  */
-class OneBodyOperatorDecorator : public OneBodyOperator
+class SpinorOperatorDecorator : public SpinorOperator
 {
 public:
-    OneBodyOperatorDecorator(pOneBodyOperator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): OneBodyOperator(integration_strategy)
+    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): SpinorOperator(integration_strategy)
     {   component = wrapped;
         if(!integrator)
             integrator = component->GetOPIntegrator();
@@ -79,15 +79,15 @@ public:
     virtual int GetMaxK() const override { return mmax(K, component->GetMaxK()); }
 
 protected:
-    pOneBodyOperator component;
+    pSpinorOperator component;
 };
 
-inline double OneBodyOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const
+inline double SpinorOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const
 {
     SpinorFunction ta = this->ApplyTo(a, b.Kappa());
     if(ta.size())
     {   if(!integrator)
-        throw "OneBodyOperator::GetMatrixElement(): no integrator found.";
+        throw "SpinorOperator::GetMatrixElement(): no integrator found.";
         return integrator->GetInnerProduct(ta, b);
     }
     else

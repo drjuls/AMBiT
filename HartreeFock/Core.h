@@ -1,15 +1,15 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include "StateManager.h"
+#include "OrbitalMap.h"
 #include "Atom/Debug.h"
 #include "SigmaPotential.h"
 #include "Configuration.h"
 
 typedef Configuration<OrbitalInfo, double> OccupationMap;
 
-/** Core is a StateManager container class with orbital occupancies added. */
-class Core : public StateManager
+/** Core is a OrbitalMap container class with orbital occupancies added. */
+class Core : public OrbitalMap
 {
 public:
     Core(pLattice lat, const std::string& filling = "");

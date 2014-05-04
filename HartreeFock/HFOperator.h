@@ -1,7 +1,7 @@
 #ifndef HF_OPERATOR_H
 #define HF_OPERATOR_H
 
-#include "OneBodyOperator.h"
+#include "SpinorOperator.h"
 #include "SpinorODE.h"
 #include "Core.h"
 #include "CoulombOperator.h"
@@ -15,7 +15,7 @@
     \f]
     where V is the electrostatic potential (V > 0) which leads to -V for electrons.
  */
-class HFOperator : public OneBodyOperator, public SpinorODE
+class HFOperator : public SpinorOperator, public SpinorODE
 {
 public:
     HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb);

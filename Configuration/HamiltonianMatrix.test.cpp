@@ -78,7 +78,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     // Get core and excited basis
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
-    pStateManager valence = basis_generator.GenerateBasis();
+    pOrbitalMap valence = basis_generator.GenerateBasis();
 
     // Generate integrals
     pHFOperatorConst hf = basis_generator.GetHFOperator();

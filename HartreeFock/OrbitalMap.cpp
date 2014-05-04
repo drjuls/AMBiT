@@ -1,26 +1,26 @@
 #include "Include.h"
-#include "StateManager.h"
+#include "OrbitalMap.h"
 #include "Universal/Interpolator.h"
 
-StateManager::StateManager(const StateManager& other)
+OrbitalMap::OrbitalMap(const OrbitalMap& other)
 {
     (*this) = other;
 }
 
-StateManager::~StateManager(void)
+OrbitalMap::~OrbitalMap(void)
 {
     clear();
 }
 
-const StateManager& StateManager::operator=(const StateManager& other)
+const OrbitalMap& OrbitalMap::operator=(const OrbitalMap& other)
 {
     lattice = other.lattice;
-    AllStates = other.AllStates;
+    m_orbitals = other.m_orbitals;
 
     return *this;
 }
 
-const StateManager& StateManager::Copy(const StateManager& other, pLattice new_lattice)
+const OrbitalMap& OrbitalMap::Copy(const OrbitalMap& other, pLattice new_lattice)
 {
     bool interpolate = false;
     if(new_lattice && new_lattice != other.lattice)
@@ -30,7 +30,7 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
     else
         lattice = other.lattice;
 
-    AllStates.clear();
+    clear();
 
     if(interpolate)
     {
@@ -77,40 +77,40 @@ const StateManager& StateManager::Copy(const StateManager& other, pLattice new_l
     return *this;
 }
 
-StateManager StateManager::Copy(pLattice new_lattice) const
+OrbitalMap OrbitalMap::Copy(pLattice new_lattice) const
 {
-    StateManager ret(new_lattice);
+    OrbitalMap ret(new_lattice);
     ret.Copy(*this, new_lattice);
     return ret;
 }
 
-pOrbitalConst StateManager::GetState(const OrbitalInfo& info) const
+pOrbitalConst OrbitalMap::GetState(const OrbitalInfo& info) const
 {
-    OrbitalMap::const_iterator it;
+    const_iterator it;
 
-    if((it = AllStates.find(info)) != AllStates.end())
+    if((it = m_orbitals.find(info)) != m_orbitals.end())
         return it->second;
     else
         return pOrbitalConst();
 }
 
-pOrbital StateManager::GetState(const OrbitalInfo& info)
+pOrbital OrbitalMap::GetState(const OrbitalInfo& info)
 {
-    OrbitalMap::iterator it;
+    iterator it;
 
-    if((it = AllStates.find(info)) != AllStates.end())
+    if((it = m_orbitals.find(info)) != m_orbitals.end())
         return it->second;
     else
         return pOrbital();
 }
 
-void StateManager::AddState(pOrbital s)
+void OrbitalMap::AddState(pOrbital s)
 {
     OrbitalInfo info(s);
-    AllStates[info] = s;
+    m_orbitals[info] = s;
 }
 
-void StateManager::Write(FILE* fp) const
+void OrbitalMap::Write(FILE* fp) const
 {
     unsigned int num_states = size();
     fwrite(&num_states, sizeof(unsigned int), 1, fp);
@@ -119,7 +119,7 @@ void StateManager::Write(FILE* fp) const
         it->second->SpinorFunction::Write(fp);
 }
 
-void StateManager::Read(FILE* fp)
+void OrbitalMap::Read(FILE* fp)
 {
     unsigned int num_core, i;
     Orbital ds(-1);
@@ -141,7 +141,7 @@ void StateManager::Read(FILE* fp)
     lattice->R(max_size);
 }
 
-void StateManager::AddStates(StateManager& other)
+void OrbitalMap::AddStates(OrbitalMap& other)
 {
     for(auto it = other.begin(); it != other.end(); it++)
         AddState(it->second);

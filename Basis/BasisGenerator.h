@@ -25,15 +25,15 @@ public:
     /** Generate excited states.
         PRE: core must have been built using GenerateCore() already.
      */
-    virtual pStateManager GenerateBasis();
+    virtual pOrbitalMap GenerateBasis();
 
     virtual pHFOperatorConst GetHFOperator() const { return hf; }
     virtual pCoreConst GetHFCore() const { return open_core; }
     virtual pCoreConst GetFermiCore() const { return closed_core; }
-    virtual pStateManagerConst GetExcitedStates() const { return excited; }
+    virtual pOrbitalMapConst GetExcitedStates() const { return excited; }
 
 protected:
-    virtual pStateManager GenerateBSplines(const std::vector<int>& max_pqn);
+    virtual pOrbitalMap GenerateBSplines(const std::vector<int>& max_pqn);
 
     /** Orthogonalise to all states that have the same kappa and principal quantum number
         less than current (both in core and in excited states).
@@ -52,7 +52,7 @@ protected:
     pHFOperator hf;
     pCore open_core;
     pCore closed_core;
-    pStateManager excited;
+    pOrbitalMap excited;
 };
 
 #endif

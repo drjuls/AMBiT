@@ -1,7 +1,7 @@
 #ifndef EXCITED_STATES_H
 #define EXCITED_STATES_H
 
-#include "HartreeFock/StateManager.h"
+#include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/SigmaPotential.h"
 #include <set>
@@ -13,7 +13,7 @@ typedef std::map<OrbitalInfo, double> SigmaAmount;
 
 class CoreMBPTCalculator;
 
-class ExcitedStates : public StateManager
+class ExcitedStates : public OrbitalMap
 {
 public:
     ExcitedStates(pLattice lattice);

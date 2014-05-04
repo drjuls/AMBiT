@@ -5,14 +5,14 @@
 #include "Universal/MathConstant.h"
 
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
-    OneBodyOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
+    SpinorOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
     SetCore(hf_core);
 }
 
 HFOperator::HFOperator(const HFOperator& other):
-    OneBodyOperator(other.integrator), SpinorODE(other.lattice), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(other.integrator), SpinorODE(other.lattice), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     Z = other.Z;
     SetCore(other.GetCore());

@@ -12,7 +12,7 @@ enum SplineType {NotreDame, Reno, Vanderbilt};
 typedef Orbital BSpline;
 typedef pOrbital pBSpline;
 
-pStateManager BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
+pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
     excited->clear();
 

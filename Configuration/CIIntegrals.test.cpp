@@ -1,6 +1,6 @@
 #include "CIIntegrals.h"
 #include "gtest/gtest.h"
-#include "HartreeFock/StateManager.h"
+#include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "Basis/BasisGenerator.h"
@@ -17,7 +17,7 @@ TEST(CIIntegralsTester, StandardCoulombSlow)
 
     BasisGenerator generator(lattice, userInput);
     pCore core = generator.GenerateHFCore();
-    pStateManager valence = generator.GenerateBasis();
+    pOrbitalMap valence = generator.GenerateBasis();
 
     pHFOperatorConst hf = generator.GetHFOperator();
     pCoulombOperator coulomb(new CoulombOperator(lattice));

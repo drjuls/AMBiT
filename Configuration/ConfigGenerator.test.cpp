@@ -16,7 +16,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     pCore core(new Core(lattice));
     core->SetOccupancies(occ);
 
-    pStateManager excited = pStateManager(new StateManager(lattice));
+    pOrbitalMap excited = pOrbitalMap(new OrbitalMap(lattice));
     std::vector<int> limits = ConfigurationParser::ParseBasisSize("6spdf");
     for(int L = 0; L < limits.size(); L++)
     {

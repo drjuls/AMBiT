@@ -77,7 +77,7 @@ protected:
 typedef boost::shared_ptr<SpinorODE> pSpinorODE;
 typedef boost::shared_ptr<const SpinorODE> pSpinorODEConst;
 
-/** OneBodyOperatorDecorator is for adding extra terms to an existing SpinorODE.
+/** SpinorODEDecorator is for adding extra terms to an existing SpinorODE.
     The Decorator pattern allows nesting of additional terms in any order.
     When using, remember that the Decorator wraps objects, not classes.
  */

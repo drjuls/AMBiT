@@ -5,7 +5,7 @@
 #include "ConfigGenerator.h"
 #include <sstream>
 
-ConfigGenerator::ConfigGenerator(pStateManagerConst coreStates, pStateManagerConst excitedStates, MultirunOptions& userInput):
+ConfigGenerator::ConfigGenerator(pOrbitalMapConst coreStates, pOrbitalMapConst excitedStates, MultirunOptions& userInput):
     core(coreStates), excited(excitedStates), user_input(userInput)
 {
     NonRelSet.clear();

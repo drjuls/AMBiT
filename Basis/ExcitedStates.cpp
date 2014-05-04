@@ -6,7 +6,7 @@
 #include "HartreeFock/StateIntegrator.h"
 #include <stdio.h>
 
-ExcitedStates::ExcitedStates(pLattice lattice): StateManager(lattice)
+ExcitedStates::ExcitedStates(pLattice lattice): OrbitalMap(lattice)
 {}
 
 ExcitedStates::~ExcitedStates()
@@ -425,6 +425,6 @@ double ExcitedStates::TestOrthogonality(pCoreConst core) const
 
 void ExcitedStates::Clear()
 {
-    StateManager::Clear();
+    OrbitalMap::Clear();
     ClearSigmas();
 }

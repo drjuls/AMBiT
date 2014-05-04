@@ -10,7 +10,7 @@ SubsetBasis::SubsetBasis(pLattice lattice, pExcitedStates superset_basis):
 SubsetBasis::~SubsetBasis()
 {
     // After this, the ExcitedState destructor will be called. It in turn calls
-    // StateManager::Clear(), which deletes all states. We do not own these states,
+    // OrbitalMap::Clear(), which deletes all states. We do not own these states,
     // therefore we delete the StateSet here.
     AllStates.clear();
 }

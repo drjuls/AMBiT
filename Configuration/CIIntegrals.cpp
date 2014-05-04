@@ -18,11 +18,11 @@ unsigned int CIIntegrals::GetStorageSize() const
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
 
-    StateManager::const_iterator it_1 = states->begin();
-    StateManager::const_iterator it_2 = states->begin();
-    StateManager::const_iterator it_3 = states->begin();
-    StateManager::const_iterator it_4 = states->begin();
-    StateManager::const_iterator it_end = states->end();
+    OrbitalMap::const_iterator it_1 = states->begin();
+    OrbitalMap::const_iterator it_2 = states->begin();
+    OrbitalMap::const_iterator it_3 = states->begin();
+    OrbitalMap::const_iterator it_4 = states->begin();
+    OrbitalMap::const_iterator it_end = states->end();
 
     // One electron integrals
     while(it_1 != states->end())
@@ -161,7 +161,7 @@ void CIIntegrals::UpdateStateIndexes()
     reverse_state_index.clear();
 
     // Iterate through states, assign in order
-    StateManager::const_iterator it_i = states->begin();
+    OrbitalMap::const_iterator it_i = states->begin();
     unsigned int i = 0;
     while(it_i != states->end())
     {
@@ -176,8 +176,8 @@ void CIIntegrals::UpdateOneElectronIntegrals()
 {
     unsigned int i, j;
 
-    StateManager::const_iterator it_i = states->begin();
-    StateManager::const_iterator it_j = states->begin();
+    OrbitalMap::const_iterator it_i = states->begin();
+    OrbitalMap::const_iterator it_j = states->begin();
 
     // If fp is NULL, calculate one electron integrals, otherwise read them in.
     std::string file1 = read_id + ".one.int";
@@ -248,11 +248,11 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
     unsigned int i1, i2, i3, i4;
     unsigned int k, kmax;
 
-    StateManager::const_iterator it_1 = states->begin();
-    StateManager::const_iterator it_2 = states->begin();
-    StateManager::const_iterator it_3 = states->begin();
-    StateManager::const_iterator it_4 = states->begin();
-    StateManager::const_iterator it_end = states->end();
+    OrbitalMap::const_iterator it_1 = states->begin();
+    OrbitalMap::const_iterator it_2 = states->begin();
+    OrbitalMap::const_iterator it_3 = states->begin();
+    OrbitalMap::const_iterator it_4 = states->begin();
+    OrbitalMap::const_iterator it_end = states->end();
 
     // Get 2 -> 4
     it_2 = states->begin(); i2 = 0;
