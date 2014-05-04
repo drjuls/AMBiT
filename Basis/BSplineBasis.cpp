@@ -14,7 +14,7 @@ typedef pOrbital pBSpline;
 
 pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
-    excited->clear();
+    pOrbitalMap excited(new OrbitalMap(lattice));
 
     if(!max_pqn.size())
         return excited;
@@ -283,7 +283,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                                    << "  deltaE: " << diff << std::endl;
                     }
 
-                    if(!closed_core->GetState(OrbitalInfo(pqn, kappa)))
+                    if(!orbitals->core->GetState(OrbitalInfo(pqn, kappa)))
                     {   pOrbital s_copy(new Orbital(s));
                         *s_copy = *s;
                         excited->AddState(s_copy);

@@ -59,7 +59,7 @@ public:
     virtual void AddState(pOrbital s);
 
     /** Add all states from another OrbitalMap. */
-    virtual void AddStates(OrbitalMap& other);
+    virtual void AddStates(const OrbitalMap& other);
 
 protected:
     BaseMap m_orbitals;

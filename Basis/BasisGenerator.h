@@ -4,6 +4,7 @@
 #include "Atom/MultirunOptions.h"
 #include "HartreeFock/Orbital.h"
 #include "HartreeFock/HFOperator.h"
+#include "OrbitalManager.h"
 #include <list>
 
 /** Based on user input:
@@ -18,21 +19,21 @@ public:
     virtual ~BasisGenerator();
 
     /** Generate core orbitals. If open_shell_core is supplied, then use this as a starting approximation.
-        Return open shell core.
+        Return open shell Hartree-Fock core.
      */
     virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
 
     /** Generate excited states.
         PRE: core must have been built using GenerateCore() already.
      */
-    virtual pOrbitalMap GenerateBasis();
+    virtual pOrbitalManager GenerateBasis();
 
     virtual pHFOperatorConst GetHFOperator() const { return hf; }
     virtual pCoreConst GetHFCore() const { return open_core; }
-    virtual pCoreConst GetFermiCore() const { return closed_core; }
-    virtual pOrbitalMapConst GetExcitedStates() const { return excited; }
+    virtual pOrbitalManagerConst GetOrbitals() const { return orbitals; }
 
 protected:
+    /** When generating excited states, assume that states below Fermi level in "orbitals" are good to go. */
     virtual pOrbitalMap GenerateBSplines(const std::vector<int>& max_pqn);
 
     /** Orthogonalise to all states that have the same kappa and principal quantum number
@@ -51,8 +52,8 @@ protected:
     MultirunOptions& user_input;
     pHFOperator hf;
     pCore open_core;
-    pCore closed_core;
-    pOrbitalMap excited;
+
+    pOrbitalManager orbitals;
 };
 
 #endif

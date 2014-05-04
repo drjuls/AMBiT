@@ -141,8 +141,7 @@ void OrbitalMap::Read(FILE* fp)
     lattice->R(max_size);
 }
 
-void OrbitalMap::AddStates(OrbitalMap& other)
+void OrbitalMap::AddStates(const OrbitalMap& other)
 {
-    for(auto it = other.begin(); it != other.end(); it++)
-        AddState(it->second);
+    m_orbitals.insert(other.begin(), other.end());
 }

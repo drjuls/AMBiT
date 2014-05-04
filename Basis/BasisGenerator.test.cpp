@@ -61,7 +61,7 @@ TEST_F(BasisGeneratorTester, BSplineBasis)
     DebugOptions.OutputHFExcited(true);
     pHFOperatorConst hf = core_generator->GetHFOperator();
     pOPIntegrator integrator = hf->GetOPIntegrator();
-    pOrbitalMapConst excited = core_generator->GenerateBasis();
+    pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
 
     // Check that < 4s | h | 4s > = h.Energy()
     pOrbitalConst valence_state = excited->GetState(OrbitalInfo(4, -1));

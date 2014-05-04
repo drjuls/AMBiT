@@ -17,7 +17,7 @@ TEST(CIIntegralsTester, StandardCoulombSlow)
 
     BasisGenerator generator(lattice, userInput);
     pCore core = generator.GenerateHFCore();
-    pOrbitalMap valence = generator.GenerateBasis();
+    pOrbitalMap valence = generator.GenerateBasis()->valence;
 
     pHFOperatorConst hf = generator.GetHFOperator();
     pCoulombOperator coulomb(new CoulombOperator(lattice));

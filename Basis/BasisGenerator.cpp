@@ -7,8 +7,10 @@
 #include "HartreeFock/MassShiftDecorator.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput):
-    hf(pHFOperator()), lattice(lat), user_input(userInput)
-{}
+    hf(pHFOperator()), lattice(lat), user_input(userInput), open_core(nullptr)
+{
+    orbitals = pOrbitalManager(new OrbitalManager());
+}
 
 BasisGenerator::~BasisGenerator()
 {}
@@ -33,19 +35,15 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 
     // Get orbitals and occupancies
     std::string open_shell_string;
-    std::string closed_shell_string;
-
     size_t colon_pos = config.find(':');
     if(colon_pos == std::string::npos)
-        closed_shell_string = open_shell_string = config;
-    else
-    {   closed_shell_string = config.substr(0, colon_pos);
         open_shell_string = config;
+    else
+    {   open_shell_string = config;
         open_shell_string.erase(colon_pos, 1);
     }
 
     OccupationMap open_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(open_shell_string);
-    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
 
     open_core->SetOccupancies(open_shell_occupations);
     if(open_core->NumElectrons() != Z - Charge)
@@ -96,25 +94,43 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
                    << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
     }
 
-    // Make closed shell core. Ensure that all shells are completely filled.
-    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
-        it->second = 2. * abs(it->first.Kappa());
-    closed_core = pCore(new Core(open_core->Copy()));
-    closed_core->SetOccupancies(closed_shell_occupations);
-
     return open_core;
 }
 
-pOrbitalMap BasisGenerator::GenerateBasis()
+pOrbitalManager BasisGenerator::GenerateBasis()
 {
-    excited = pOrbitalMap(new OrbitalMap(lattice));
+    // Core states first
+    // Get closed shell orbitals and occupancies
+    std::string config(user_input("HF/Configuration", ""));
+    std::string closed_shell_string;
+    size_t colon_pos = config.find(':');
+    if(colon_pos == std::string::npos)
+        closed_shell_string = config;
+    else
+        closed_shell_string = config.substr(0, colon_pos);
+    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
 
+    // Make closed shell core. Ensure that all shells are completely filled.
+    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
+        it->second = 2. * abs(it->first.Kappa());
+
+    pCore closed_core = pCore(new Core(open_core->Copy()));
+    closed_core->SetOccupancies(closed_shell_occupations);
+    orbitals->core = closed_core;
+
+    // TODO: implement hole states.
+    orbitals->hole = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->deep = orbitals->core;
+
+    // Excited states
     std::string valence_states = user_input("Basis/ValenceBasis", "");
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
 
     if(user_input.search("Basis/--bspline-basis"))
-    {   GenerateBSplines(max_pqn_per_l);
+    {   orbitals->excited = GenerateBSplines(max_pqn_per_l);
     }
+    else
+        orbitals->excited = pOrbitalMap(new OrbitalMap(lattice));   // Just to stop seg-faults
 
     if(DebugOptions.OutputHFExcited())
     {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
@@ -122,7 +138,17 @@ pOrbitalMap BasisGenerator::GenerateBasis()
         *outstream << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
     }
 
-    return excited;
+    // TODO: implement high (virtual) states.
+    orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->particle = orbitals->excited;
+    orbitals->valence = orbitals->excited;
+
+    // Finally create orbitals->all
+    orbitals->all = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->all->AddStates(*orbitals->core);
+    orbitals->all->AddStates(*orbitals->excited);
+
+    return orbitals;
 }
 
 void BasisGenerator::Orthogonalise(pOrbital current) const
@@ -131,10 +157,10 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
     current->ReNormalise(integrator);
 
     // Orthogonalise to core
-    if(closed_core)
+    if(orbitals->core)
     {
-        auto it = closed_core->begin();
-        while(it != closed_core->end())
+        auto it = orbitals->core->begin();
+        while(it != orbitals->core->end())
         {
             pOrbitalConst other = it->second;
             if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
@@ -149,10 +175,10 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
     }
 
     // Orthogonalise to other excited states.
-    if(excited)
+    if(orbitals->excited)
     {
-        auto it = excited->begin();
-        while(it != excited->end())
+        auto it = orbitals->excited->begin();
+        while(it != orbitals->excited->end())
         {
             pOrbitalConst other = it->second;
             if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
@@ -174,24 +200,19 @@ double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j)
     double max_orth = 0.;
     pOPIntegrator integrator = hf->GetOPIntegrator();
 
-    OrbitalMap all_states(lattice);
-    if(excited)
-    {   all_states = *excited;
-        if(closed_core)
-            all_states.AddStates(*closed_core);
-        else if(open_core)
-            all_states.AddStates(*open_core);
-    }
+    pOrbitalMap all_states;
+    if(orbitals->all)
+        all_states = orbitals->all;
     else if(open_core)
-        all_states = *open_core;
-    else if(closed_core)
-        all_states = *closed_core;
+        all_states = open_core;
+    else
+        return max_orth;
 
-    auto it = all_states.begin();
-    while(it != all_states.end())
+    auto it = all_states->begin();
+    while(it != all_states->end())
     {
-        auto jt = all_states.begin();
-        while(jt != all_states.end() && (it->first != jt->first))
+        auto jt = all_states->begin();
+        while(jt != all_states->end() && (it->first != jt->first))
         {
             if(it->first.Kappa() == jt->first.Kappa())
             {
