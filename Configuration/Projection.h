@@ -8,9 +8,11 @@
 
 class RelativisticConfiguration;
 
-/** A projection is really a kind of configuration, however there
+/** A projection is kind of like a configuration, however there
     is no occupancy: either a state has one electron or it isn't
     part of the configuration.
+    Like std::vector, the elements (ElectronInfo) are guaranteed to be stored contiguously,
+    so a pointer retrieved via, e.g. data(), can be offset to access other elements.
  */
 class Projection
 {
@@ -30,6 +32,12 @@ public:
     const_iterator begin() const { return config.begin(); }
     iterator end() { return config.end(); }
     const_iterator end() const { return config.end(); }
+
+    /** Get pointer to front(). */
+    const ElectronInfo* data() const { return config.data(); }
+
+    /** Get pointer just past the last element. */
+    const ElectronInfo* data_end() const { return config.data() + config.size(); }
 
     unsigned int size() const { return config.size(); }
     ElectronInfo& operator[](unsigned int i);

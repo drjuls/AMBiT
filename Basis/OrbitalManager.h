@@ -15,6 +15,7 @@
         core        -- below Fermi level (includes deep + hole)
         excited     -- above Fermi level (includes particle + high)
         valence     -- sometimes occupied in CI model space (includes hole + particle)
+        all         -- all orbitals
  */
 class OrbitalManager
 {
@@ -29,9 +30,27 @@ public:
     pOrbitalMap valence;    //!< sometimes occupied in CI model space == hole + particle
 
     pOrbitalMap all;        //!< all orbitals == deep + hole + particle + high == core + excited
+
+    std::map<OrbitalInfo, unsigned int> state_index;
+    std::map<unsigned int, OrbitalInfo> reverse_state_index;
+
+public:
+    OrbitalManager() {}
+
+    unsigned int size() const { return all->size(); }
+    void UpdateStateIndexes();
+
+    void Read(const std::string& filename);
+    void Write(const std::string& filename) const;
+
+protected:
+    void ReadInfo(FILE* fp, pOrbitalMap& orbitals);
+    void WriteInfo(FILE* fp, const pOrbitalMap& orbitals) const;
 };
 
 typedef boost::shared_ptr<OrbitalManager> pOrbitalManager;
 typedef boost::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
+
+enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
 
 #endif

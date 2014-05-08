@@ -16,8 +16,27 @@
 // (instead of just one).
 //#define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs):
-    integrals(coulomb_integrals), configs(relconfigs), M(nullptr)//, include_sigma3(false)
+class HamiltonianOperator
+{
+public:
+    HamiltonianOperator(const CIIntegrals& ci_integrals): integrals(ci_integrals) {}
+
+    inline double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
+    {
+        if(e1.TwoM() == e2.TwoM() && e1.Kappa() == e2.Kappa())
+            return integrals.GetOneElectronIntegral(e1, e2);
+        else
+            return 0.;
+    }
+
+    double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
+
+protected:
+    const CIIntegrals& integrals;
+};
+
+HamiltonianMatrix::HamiltonianMatrix(const CIIntegrals* coulomb_integrals, pRelativisticConfigListConst relconfigs):
+integrals(*coulomb_integrals), configs(relconfigs), M(nullptr), Sz(*coulomb_integrals)//, hamiltonian(coulomb_integrals)//, include_sigma3(false)
 {
     // Set up matrix
     N = configs->NumCSFs();
@@ -45,6 +64,9 @@ void HamiltonianMatrix::GenerateMatrix()
 
     M->WriteMode(true);
 
+    HamiltonianOperator H_operator(integrals);
+    ManyBodyOperator<HamiltonianOperator*, HamiltonianOperator*> H(&H_operator, &H_operator);
+
     // Loop through projections
     auto proj_it = configs->projection_begin();
     while(proj_it != configs->projection_end())
@@ -53,7 +75,7 @@ void HamiltonianMatrix::GenerateMatrix()
 
         while(proj_jt != configs->projection_end())
         {
-            double operatorH = GetProjectionH(*proj_it, *proj_jt);
+            double operatorH = H.GetMatrixElement(*proj_it, *proj_jt);
 
             if(fabs(operatorH) > 1.e-15)
             {
@@ -87,74 +109,78 @@ void HamiltonianMatrix::GenerateMatrix()
     }
 }
 
-double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projection& second) const
-{
-    unsigned int diff[4];
-    int numdiff = Projection::GetProjectionDifferences(first, second, diff);
+//double HamiltonianMatrix::GetProjectionH(const Projection& first, const Projection& second) const
+//{
+//    // Create mutable vectors of pointers to projection elements
+//    std::vector<const ElectronInfo*> left, right;
+//    for(auto& it: first)
+//        left.push_back(&it);
+//    for(auto& it: second)
+//        right.push_back(&it);
+//
+//    int numdiff = GetProjectionDifferences(left, right);
+//
+//    int sign;
+//    if(numdiff >= 0)
+//        sign = 1;
+//    else
+//        sign = -1;
+//
+//    double value = 0.;
+//
+//    if(numdiff == 0)
+//    {
+//        // Sum <i|f|i>
+//        for(unsigned int i=0; i<left.size(); i++)
+//        {
+//            value += integrals.GetOneElectronIntegral(*left[i], *left[i]);
+//            
+//            // Sum(i < j) <ij|g|ij> - <ij|g|ji>
+//            for(unsigned int j=i+1; j<first.size(); j++)
+//            {
+//                value += CoulombMatrixElement(*left[i], *left[j], *left[i], *left[j])
+//                         - CoulombMatrixElement(*left[i], *left[j], *left[j], *left[i]);
+//            }
+//        }
+//    }
+//    else if(abs(numdiff) == 1)
+//    {
+//        const ElectronInfo& f1 = *left[0];
+//        const ElectronInfo& s1 = *right[0];
+//
+//        // a->b
+//        // <a|f|b>
+//        if((f1.M() == s1.M()) && (f1.Kappa() == s1.Kappa()))
+//            value = integrals.GetOneElectronIntegral(f1, s1) * sign;
+//
+//        // Sum(e) <ae|g|be> - <ae|g|eb>
+//        for(unsigned int i = 1; i < left.size(); i++)
+//        {
+//            const ElectronInfo& e(*left[i]);
+//            value += sign * (CoulombMatrixElement(f1, e, s1, e)
+//                            - CoulombMatrixElement(f1, e, e, s1));
+//        }
+//    }
+//    else if(abs(numdiff) == 2)
+//    {
+//        const ElectronInfo& f1 = *left[0];
+//        const ElectronInfo& s1 = *right[0];
+//        const ElectronInfo& f2 = *left[1];
+//        const ElectronInfo& s2 = *right[1];
+//
+//        // a->b, c->d
+//        // <ac|g|bd> - <ac|g|db>
+//        value = sign * (CoulombMatrixElement(f1, f2, s1, s2)
+//                        - CoulombMatrixElement(f1, f2, s2, s1));
+//    }
+//
+////    if(include_sigma3)
+////        value += GetSigma3(first, second);
+//
+//    return value;
+//}
 
-    int sign;
-    if(numdiff >= 0)
-        sign = 1;
-    else
-        sign = -1;
-
-    double value = 0.;
-
-    if(numdiff == 0)
-    {
-        // Sum <i|f|i>
-        for(unsigned int i=0; i<first.size(); i++)
-        {
-            value += integrals.GetOneElectronIntegral(first[i], first[i]);
-            
-            // Sum(i < j) <ij|g|ij> - <ij|g|ji>
-            for(unsigned int j=i+1; j<first.size(); j++)
-            {
-                value += CoulombMatrixElement(first[i], first[j], first[i], first[j])
-                         - CoulombMatrixElement(first[i], first[j], first[j], first[i]);
-            }
-        }
-    }
-    else if(abs(numdiff) == 1)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-
-        // a->b
-        // <a|f|b>
-        if((f1.M() == s1.M()) && (f1.Kappa() == s1.Kappa()))
-            value = integrals.GetOneElectronIntegral(f1, s1) * sign;
-
-        // Sum(e) <ae|g|be> - <ae|g|eb>
-        for(unsigned int i=0; i<first.size(); i++)
-        {
-            if(i != diff[0])
-            {   const ElectronInfo& e(first[i]);
-                value += sign * (CoulombMatrixElement(f1, e, s1, e) 
-                                - CoulombMatrixElement(f1, e, e, s1));
-            }
-        }
-    }
-    else if(abs(numdiff) == 2)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-        const ElectronInfo& f2 = first[diff[2]];
-        const ElectronInfo& s2 = second[diff[3]];
-
-        // a->b, c->d
-        // <ac|g|bd> - <ac|g|db>
-        value = sign * (CoulombMatrixElement(f1, f2, s1, s2)
-                        - CoulombMatrixElement(f1, f2, s2, s1));
-    }
-
-//    if(include_sigma3)
-//        value += GetSigma3(first, second);
-
-    return value;
-}
-
-double HamiltonianMatrix::CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
+double HamiltonianOperator::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
 {
     if((e1.L() + e2.L() + e3.L() + e4.L())%2)
         return 0.;
@@ -528,105 +554,30 @@ void HamiltonianMatrix::GetgFactors(const Symmetry& sym, pLevelMap levels) const
     if(NumSolutions == 0)
         return;
 
-    std::vector<double> total(NumSolutions);
-    std::vector<double> coeff(NumSolutions);
-    std::vector<const double*> eigenvector(NumSolutions);
+    const SzOperator* pSz = &Sz;
+    ManyBodyOperator<const SzOperator*> many_body_Sz(pSz);
+
+    std::vector<double> total_Sz = many_body_Sz.GetMatrixElement(levels->begin(sym), levels->end(sym));
 
     unsigned int solution = 0;
-    LevelMap::symmetry_iterator it = levels->begin(sym);
+    auto it = levels->begin(sym);
     while(solution < NumSolutions && it != levels->end(sym))
     {
-        total[solution] = 0.;
-        eigenvector[solution] = it->second->GetEigenvector();
-        it++; solution++;
-    }
-
-    unsigned int diff[4];   // Storage for projection differences.
-    it = levels->begin(sym);
-    pRelativisticConfigListConst configs = it->second->GetRelativisticConfigList();
-
-    unsigned int num_electrons = configs->front().ElectronNumber();
-
-    // Iterate over projections
-    // Loop through projections
-    auto proj_it = configs->projection_begin();
-    while(proj_it != configs->projection_end())
-    {
-        auto proj_jt = proj_it;
-//        auto proj_jt = configs->projection_begin();
-
-        while(proj_jt != configs->projection_end())
-        {
-            // <pi| Sz | pj>
-            double matrix_element = 0.;
-            int num_diff = Projection::GetProjectionDifferences(*proj_it, *proj_jt, diff);
-            if(num_diff == 0)
-            {
-                for(unsigned int i=0; i<num_electrons; i++)
-                    matrix_element += GetSz((*proj_it)[i]);
-            }
-            else if(abs(num_diff) == 1)
-            {
-                matrix_element = GetSz((*proj_it)[diff[0]], (*proj_jt)[diff[1]]);
-                if(num_diff == -1)
-                    matrix_element = -matrix_element;
-            }
-
-            // coefficients
-            if(matrix_element)
-            {
-                // Summation over jstates
-                for(solution = 0; solution < NumSolutions; solution++)
-                    coeff[solution] = 0.;
-
-                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                {
-                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                    {
-                        for(solution = 0; solution < NumSolutions; solution++)
-                        {
-                            coeff[solution] += (*coeff_i) * (*coeff_j)
-                                * eigenvector[solution][coeff_i.index()]
-                                * eigenvector[solution][coeff_j.index()];
-                        }
-                    }
-                }
-
-                // If the projections are different, count twice
-                if(proj_it != proj_jt)
-                {   for(solution = 0; solution < NumSolutions; solution++)
-                        coeff[solution] = coeff[solution] * 2.;
-                }
-
-                for(solution = 0; solution < NumSolutions; solution++)
-                    total[solution] += coeff[solution] * matrix_element;
-            }
-            proj_jt++;
-        }
-        proj_it++;
-    }
-
-    solution = 0;
-    it = levels->begin(sym);
-    while(solution < NumSolutions && it != levels->end(sym))
-    {
-        it->second->SetgFactor(total[solution]/sym.GetJ() + 1.);
+        it->second->SetgFactor(total_Sz[solution]/sym.GetJ() + 1.);
         solution++;
         it++;
     }
 }
 
-double HamiltonianMatrix::GetSz(const ElectronInfo& e) const
-{
-    if(e.Kappa() > 0)   // J = L - 1/2
-        return -e.M()/(2.*e.L() + 1.);
-    else
-        return e.M()/(2.*e.L() + 1.);
-}
+//double HamiltonianMatrix::GetSz(const ElectronInfo& e) const
+//{
+//    if(e.Kappa() > 0)   // J = L - 1/2
+//        return -e.M()/(2.*e.L() + 1.);
+//    else
+//        return e.M()/(2.*e.L() + 1.);
+//}
 
-double HamiltonianMatrix::GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const
+double HamiltonianMatrix::SzOperator::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
 {
     double val = 0.;
 

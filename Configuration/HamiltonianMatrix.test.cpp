@@ -97,7 +97,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
 
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
-    HamiltonianMatrix H_even(integrals, relconfigs);
+    HamiltonianMatrix H_even(&integrals, relconfigs);
     H_even.GenerateMatrix();
 
     // Solve matrix
@@ -109,7 +109,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     sym = Symmetry(2, Parity::odd);
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
 
-    HamiltonianMatrix H_odd(integrals, relconfigs);
+    HamiltonianMatrix H_odd(&integrals, relconfigs);
     H_odd.GenerateMatrix();
     H_odd.SolveMatrix(sym, 3, levels, true);
     levels->Print(sym);

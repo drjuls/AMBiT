@@ -10,11 +10,12 @@
 //#include "MBPT/Sigma3Calculator.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
+#include "ManyBodyOperator.h"
 
 class HamiltonianMatrix
 {
 public:
-    HamiltonianMatrix(const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs);
+    HamiltonianMatrix(const CIIntegrals* coulomb_integrals, pRelativisticConfigListConst relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void GenerateMatrix();
@@ -44,10 +45,10 @@ public:
 
 protected:
     /** Get the Hamiltonian matrix element between two projections. */
-    double GetProjectionH(const Projection& first, const Projection& second) const;
+//    double GetProjectionH(const Projection& first, const Projection& second) const;
 
     /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >. */
-    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
+//    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
 
     /** Get the SMS matrix element between two projections. */
 //    double GetProjectionSMS(const Projection& first, const Projection& second) const;
@@ -61,8 +62,8 @@ protected:
     virtual void GetgFactors(const Symmetry& sym, pLevelMap levels) const;
 
     /** Get average z-component of spin for single electron. */
-    double GetSz(const ElectronInfo& e) const;
-    double GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const;
+//    double GetSz(const ElectronInfo& e) const;
+//    double GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const;
 
 //protected:
 //    bool include_sigma3;
@@ -87,8 +88,21 @@ protected:
 //                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
 
 protected:
+    class SzOperator
+    {
+    public:
+        SzOperator(const CIIntegrals& integrals): integrals(integrals) {}
+        double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const;
+
+    private:
+        const CIIntegrals& integrals;
+    } Sz;
+
+protected:
     pRelativisticConfigListConst configs;
     const CIIntegrals& integrals;
+
+//    ManyBodyOperator<const CIIntegrals*> hamiltonian;
 
     Matrix* M;      // Hamiltonian Matrix
     unsigned int N; // Matrix M dimension = N x N

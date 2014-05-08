@@ -143,10 +143,12 @@ pOrbitalManager BasisGenerator::GenerateBasis()
     orbitals->particle = orbitals->excited;
     orbitals->valence = orbitals->excited;
 
-    // Finally create orbitals->all
+    // Finally create orbitals->all and the state index
     orbitals->all = pOrbitalMap(new OrbitalMap(lattice));
     orbitals->all->AddStates(*orbitals->core);
     orbitals->all->AddStates(*orbitals->excited);
+
+    orbitals->UpdateStateIndexes();
 
     return orbitals;
 }
