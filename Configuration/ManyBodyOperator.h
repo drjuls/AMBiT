@@ -120,7 +120,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 
     switch(sizeof...(pElectronOperators))
     {
-    case 1:
+        case 1:
             if(num_diffs == 0)
             {
                 for(auto& e: left)
@@ -131,7 +131,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
                 matrix_element += OneBodyMatrixElements(*left[0], *right[0]);
             }
             break;
-    case 2:
+        case 2:
             if(num_diffs == 0)
             {
                 auto i = boost::make_indirect_iterator(left.begin());
@@ -167,7 +167,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
                 matrix_element += TwoBodyMatrixElements(*left[0], *left[1], *right[0], *right[1]);
             }
             break;
-    default:
+        default:
             break;
     }
 

@@ -148,7 +148,7 @@ pOrbitalManager BasisGenerator::GenerateBasis()
     orbitals->all->AddStates(*orbitals->core);
     orbitals->all->AddStates(*orbitals->excited);
 
-    orbitals->UpdateStateIndexes();
+    orbitals->MakeStateIndexes();
 
     return orbitals;
 }

@@ -5,6 +5,7 @@
 #include "Basis/ExcitedStates.h"
 #include "HartreeFock/SpinorOperator.h"
 #include "HartreeFock/HartreeY.h"
+#include "ElectronInfo.h"
 
 /** Class to hold Coulomb integrals for use in CI calculation,
     ie. R^k(ij,kl) where i,j,k,l are all valence particles.
@@ -144,5 +145,18 @@ protected:
     // Limits on stored two-body integrals.
     unsigned int max_pqn_1, max_pqn_2, max_pqn_3;
 };
+
+class TwoElectronCoulombOperator
+{
+public:
+    TwoElectronCoulombOperator(const CIIntegrals& ci_integrals): integrals(ci_integrals) {}
+
+    double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
+
+protected:
+    const CIIntegrals& integrals;
+};
+
+typedef boost::shared_ptr<TwoElectronCoulombOperator> pTwoElectronCoulombOperator;
 
 #endif

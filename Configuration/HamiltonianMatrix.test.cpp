@@ -5,6 +5,7 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
 #include "ConfigGenerator.h"
+#include "GFactor.h"
 #include "Atom/MultirunOptions.h"
 
 TEST(HamiltonianMatrixTester, LevelIteratorTest)
@@ -78,18 +79,18 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     // Get core and excited basis
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
-    pOrbitalMap valence = basis_generator.GenerateBasis()->valence;
+    pOrbitalManager orbitals = basis_generator.GenerateBasis();
 
     // Generate integrals
     pHFOperatorConst hf = basis_generator.GetHFOperator();
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
-    CIIntegrals integrals(hf, hartreeY, valence, "", true);
+    CIIntegrals integrals(hf, hartreeY, orbitals->valence, "", true);
     integrals.Update();
 
     EXPECT_EQ(31809, integrals.size());
 
-    ConfigGenerator config_generator(core, valence, userInput);
+    ConfigGenerator config_generator(core, orbitals->valence, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     pLevelMap levels = pLevelMap(new LevelMap());
@@ -97,7 +98,8 @@ TEST(HamiltonianMatrixTester, MgIILevels)
 
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
-    HamiltonianMatrix H_even(&integrals, relconfigs);
+    pHFElectronOperator hf_electron(new HFElectronOperator(hf, orbitals));
+    HamiltonianMatrix H_even(hf_electron, integrals, relconfigs);
     H_even.GenerateMatrix();
 
     // Solve matrix
@@ -109,9 +111,11 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     sym = Symmetry(2, Parity::odd);
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
 
-    HamiltonianMatrix H_odd(&integrals, relconfigs);
+    HamiltonianMatrix H_odd(hf_electron, integrals, relconfigs);
     H_odd.GenerateMatrix();
-    H_odd.SolveMatrix(sym, 3, levels, true);
+    H_odd.SolveMatrix(sym, 3, levels);
+    GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+    g_factors.CalculateGFactors(*levels, sym);
     levels->Print(sym);
     excited_state_energy = levels->begin(sym)->second->GetEnergy();
 

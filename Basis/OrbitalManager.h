@@ -4,6 +4,9 @@
 #include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Core.h"
 
+/** Classification of orbitals matches maps OrbitalManager. */
+enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
+
 /** An overgrown struct holding all OrbitalMaps including core and excited.
     Classification (each Orbital appears in exactly one of the following):
         deep        -- always occupied in the CI model space
@@ -16,6 +19,8 @@
         excited     -- above Fermi level (includes particle + high)
         valence     -- sometimes occupied in CI model space (includes hole + particle)
         all         -- all orbitals
+
+    For convenience, all OrbitalMaps are public members, but they will usually be const.
  */
 class OrbitalManager
 {
@@ -31,14 +36,19 @@ public:
 
     pOrbitalMap all;        //!< all orbitals == deep + hole + particle + high == core + excited
 
-    std::map<OrbitalInfo, unsigned int> state_index;
-    std::map<unsigned int, OrbitalInfo> reverse_state_index;
+    std::map<OrbitalInfo, unsigned int> state_index;            //!< Unique key for all orbitals
+    std::map<unsigned int, OrbitalInfo> reverse_state_index;    //!< Unique key for all orbitals
 
 public:
     OrbitalManager() {}
 
+    /** Get total number of orbitals stored (for making keys). */
     unsigned int size() const { return all->size(); }
-    void UpdateStateIndexes();
+
+    pOrbitalMapConst GetOrbitalMap(OrbitalClassification type) const;
+
+    /** Initialise state_index and reverse_state_index. */
+    void MakeStateIndexes();
 
     void Read(const std::string& filename);
     void Write(const std::string& filename) const;
@@ -50,7 +60,5 @@ protected:
 
 typedef boost::shared_ptr<OrbitalManager> pOrbitalManager;
 typedef boost::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
-
-enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
 
 #endif

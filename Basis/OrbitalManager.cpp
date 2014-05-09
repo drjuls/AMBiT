@@ -2,7 +2,34 @@
 #include "Include.h"
 #include "IndexedIterator.h"
 
-void OrbitalManager::UpdateStateIndexes()
+pOrbitalMapConst OrbitalManager::GetOrbitalMap(OrbitalClassification type) const
+{
+    switch(type)
+    {
+        case OrbitalClassification::deep:
+            return deep;
+        case OrbitalClassification::hole:
+            return hole;
+        case OrbitalClassification::particle:
+            return particle;
+        case OrbitalClassification::high:
+            return high;
+        case OrbitalClassification::core:
+            return core;
+        case OrbitalClassification::excited:
+            return excited;
+        case OrbitalClassification::valence:
+            return valence;
+        case OrbitalClassification::all:
+            return all;
+        // Leave this here in case new OrbitalClassifications are made and not dealt with.
+        default:
+            *errstream << "OrbitalManager::GetOrbitalMap(): unknown OrbitalClassification." << std::endl;
+            return pOrbitalMapConst();
+    }
+}
+
+void OrbitalManager::MakeStateIndexes()
 {
     state_index.clear();
     reverse_state_index.clear();

@@ -1,21 +1,30 @@
 #ifndef HAMILTONIAN_MATRIX_H
 #define HAMILTONIAN_MATRIX_H
 
-#include <map>
 #include "RelativisticConfiguration.h"
 #include "NonRelConfiguration.h"
 #include "CIIntegrals.h"
+#include "HartreeFock/HFOperator.h"
 #include "Level.h"
 #include "Basis/ExcitedStates.h"
 //#include "MBPT/Sigma3Calculator.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
+#include "OneElectronOperator.h"
+
+typedef OneElectronOperator<pHFOperatorConst> HFElectronOperator;
+typedef boost::shared_ptr<HFElectronOperator> pHFElectronOperator;
+typedef boost::shared_ptr<const HFElectronOperator> pHFElectronOperatorConst;
+
+typedef ManyBodyOperator<pHFElectronOperator, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
+typedef boost::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
+typedef boost::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
 
 class HamiltonianMatrix
 {
 public:
-    HamiltonianMatrix(const CIIntegrals* coulomb_integrals, pRelativisticConfigListConst relconfigs);
+    HamiltonianMatrix(pHFElectronOperator hf, const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void GenerateMatrix();
@@ -26,9 +35,7 @@ public:
         If gFactors are required, set boolean to true.
         min_percentage is the threshold whereby leading configurations are printed
      */
-    virtual void SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels, bool get_gFactors = false);
-
-//    virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
+    virtual void SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels);
 
     Matrix* GetMatrix()
     {
@@ -42,30 +49,7 @@ public:
 //            include_sigma3 = true;
 //        sigma3calc = sigma3;
 //    }
-
-protected:
-    /** Get the Hamiltonian matrix element between two projections. */
-//    double GetProjectionH(const Projection& first, const Projection& second) const;
-
-    /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >. */
-//    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
-
-    /** Get the SMS matrix element between two projections. */
-//    double GetProjectionSMS(const Projection& first, const Projection& second) const;
-
-    /** Get the SMS matrix element < e1, e2 | p.p | e3, e4 >. */
-//    double SMSMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
-
-    /** Calculate the Lande g-factors for levels with symmetry sym.
-        PRE: sym.GetJ() != 0.
-     */
-    virtual void GetgFactors(const Symmetry& sym, pLevelMap levels) const;
-
-    /** Get average z-component of spin for single electron. */
-//    double GetSz(const ElectronInfo& e) const;
-//    double GetSz(const ElectronInfo& e1, const ElectronInfo& e2) const;
-
-//protected:
+//
 //    bool include_sigma3;
 //    Sigma3Calculator* sigma3calc;
 //    pConfigListConst leading_configs;
@@ -88,21 +72,8 @@ protected:
 //                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
 
 protected:
-    class SzOperator
-    {
-    public:
-        SzOperator(const CIIntegrals& integrals): integrals(integrals) {}
-        double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const;
-
-    private:
-        const CIIntegrals& integrals;
-    } Sz;
-
-protected:
     pRelativisticConfigListConst configs;
-    const CIIntegrals& integrals;
-
-//    ManyBodyOperator<const CIIntegrals*> hamiltonian;
+    pTwoBodyHamiltonianOperator H_two_body;
 
     Matrix* M;      // Hamiltonian Matrix
     unsigned int N; // Matrix M dimension = N x N
