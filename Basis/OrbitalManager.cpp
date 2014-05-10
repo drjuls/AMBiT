@@ -2,6 +2,35 @@
 #include "Include.h"
 #include "IndexedIterator.h"
 
+OrbitalManager::OrbitalManager(pLattice lattice)
+{
+    pOrbitalMap empty = pOrbitalMap(new OrbitalMap(lattice));
+    deep = empty;
+    hole = empty;
+    particle = empty;
+    high = empty;
+    core = empty;
+    excited = empty;
+    valence = empty;
+    all = empty;
+}
+
+OrbitalManager::OrbitalManager(pOrbitalMap core, pOrbitalMap valence):
+    core(core), valence(valence)
+{
+    pOrbitalMap empty = pOrbitalMap(new OrbitalMap(core->GetLattice()));
+    deep = core;
+    hole = empty;
+    particle = valence;
+    high = empty;
+    excited = valence;
+
+    all = pOrbitalMap(new OrbitalMap(*core));
+    all->AddStates(*valence);
+
+    MakeStateIndexes();
+}
+
 pOrbitalMapConst OrbitalManager::GetOrbitalMap(OrbitalClassification type) const
 {
     switch(type)

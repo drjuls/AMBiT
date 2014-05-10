@@ -3,12 +3,9 @@
 
 #include "Atom/GetPot"
 #include "Basis/ExcitedStates.h"
-#include "Configuration/Configuration.h"
 #include "Configuration/CIIntegrals.h"
-#include "Configuration/CIIntegralsMBPT.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/Eigenstates.h"
-#include "Configuration/Solution.h"
 #include "HartreeFock/Core.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
@@ -21,14 +18,11 @@ class Sigma3Calculator;
 class Atom
 {
 public:
-    Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier);
-
-    // Calculate or read Hartree-Fock and set up basis. Call single or multiple electron routines.
-    bool Run();
-
-public:
-    Atom(unsigned int atomic_number, int charge, const std::string& atom_identifier, bool read = false);
+    Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier);
     ~Atom();
+
+    /** Calculate or read Hartree-Fock and set up basis. */
+    void CreateBasis();
 
     /** Identifier is only really used to identify this atom in filenames for storage.
         Should be altered when one of the physical parameters (eg nuclear) changes.
@@ -55,14 +49,6 @@ protected:
     // Main structure calculation routines
     void RunSingleElectron();
     void RunMultipleElectron();
-
-public:
-    /** Create a virtual basis, which is discrete yet takes into account parts of the continuum. */
-    void CreateRBasis(bool UseMBPT = false);
-    void CreateBSplineBasis(bool UseMBPT = false);
-    void CreateCustomBasis(bool UseMBPT = false);
-    void CreateHartreeFockBasis(bool UseMBPT = false);
-    void CreateReadBasis(bool UseMBPT = false);
 
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
@@ -137,33 +123,21 @@ public:
     void CalculateMultipleClosedShell(bool include_mbpt);
 
 public:
-    /** Get previously calculated Eigenstates of Symmetry sym. */
-    Eigenstates* GetEigenstates(const Symmetry& sym);
-    inline const SymmetryEigenstatesMap* GetSymmetryEigenstatesMap() const
-    { return &symEigenstates;
-    }
-    
     bool RestoreAllEigenstates();
 
     /** Get the set of atomic core orbitals. */
-    pCore GetCore() { return core; }
+    pCore GetCore() { return hf_core; }
 
-    /** Get the set of valence orbitals. */
-    pExcitedStates GetBasis() { return excited; }
+    /** Get the orbital basis. */
+    pOrbitalManagerConst GetBasis() { return orbitals; }
     
     /** Get the lattice */
     pLattice GetLattice() { return lattice; }
 
     CIIntegrals* GetCIIntegrals() { return integrals; }
 
-    SolutionMap* GetSolutionMap() { return mSolutionMap; }
-    void WriteEigenstatesToSolutionMap();
-    
-    StateIterator GetIteratorToNextOrbitalToFill();
+    OrbitalMap::iterator GetIteratorToNextOrbitalToFill();
     std::string GetNextConfigString();
-    
-    unsigned int GetCurrentRunIndex() { return current_run_index; }
-    std::vector<unsigned int> GetCurrentRunSelection() { return current_run_selection; }
 
 public:
     void GenerateCowanInputFile();
@@ -180,26 +154,27 @@ protected:
     void CreateBasis(bool UseMBPT);
 
 protected:
-    GetPot userInput_;
+    MultirunOptions user_input;
 
     std::string identifier;
     double Z;         // Nuclear charge
-    double Charge;    // Degree of ionisation
 
-    unsigned int numValenceElectrons_;
+    unsigned int num_valence_electrons;
 
     pLattice lattice;
-    pCore core;
-    pExcitedStates excited;
-    pExcitedStates excited_mbpt;
-    CIIntegrals* integrals;
-    CIIntegralsMBPT* integralsMBPT;
-    CoreMBPTCalculator* mbpt;
-    ValenceCalculator* valence_mbpt;
-    Sigma3Calculator* sigma3;
+    pCore hf_core;
+    pOrbitalManagerConst orbitals;
 
-    SymmetryEigenstatesMap symEigenstates;
-    SolutionMap* mSolutionMap;
+    CIIntegrals* integrals;
+    pLevelMap levels;
+
+//    CIIntegralsMBPT* integralsMBPT;
+//    CoreMBPTCalculator* mbpt;
+//    ValenceCalculator* valence_mbpt;
+//    Sigma3Calculator* sigma3;
+
+//    SymmetryEigenstatesMap symEigenstates;
+//    SolutionMap* mSolutionMap;
 
     // Operational parameters
     bool useRead;     // Read when possible from file
@@ -217,20 +192,6 @@ protected:
     bool includeSigma1;
     bool includeSigma2;
     bool includeSigma3;
-
-    // Multiple run parameters
-    unsigned int multiple_length;
-    std::vector<unsigned int> current_run_selection;
-    unsigned int current_run_index;
-
-    std::string original_id;
-    std::vector<double> multiple_SMS;
-    std::vector<double> multiple_alpha;
-    std::vector<double> multiple_volume;
-    std::vector<double> multiple_radius;
-    std::vector<double> mbpt_delta;
-
-    std::vector<double>* multiple_parameters;
 };
 
 #endif

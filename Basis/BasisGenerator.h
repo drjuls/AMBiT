@@ -23,16 +23,28 @@ public:
      */
     virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
 
-    /** Generate excited states.
-        PRE: core must have been built using GenerateCore() already.
+    /** Create open shell core and Hartree-Fock operator using existing orbitals.
+        This function will not change orbital_manager, but later non-const functions might.
      */
-    virtual pOrbitalManager GenerateBasis();
+    virtual pHFOperator CreateHFOperator(pOrbitalManager orbital_manager);
+
+    /** Generate excited states.
+        PRE: core must have been built using GenerateHFCore() already.
+     */
+    virtual pOrbitalManagerConst GenerateBasis();
 
     virtual pHFOperatorConst GetHFOperator() const { return hf; }
     virtual pCoreConst GetHFCore() const { return open_core; }
     virtual pOrbitalManagerConst GetOrbitals() const { return orbitals; }
 
 protected:
+    /** Create hf operator and set open_core occupancies. Used by GenerateHFCore() and CreateHFOperator().
+        POST: this->hf is dressed HF operator;
+              undressed_hf is base HF with finite nuclear radius;
+              this->open_core has correct occupancies.
+     */
+    virtual void InitialiseHF(pHFOperator& undressed_hf);
+
     /** When generating excited states, assume that states below Fermi level in "orbitals" are good to go. */
     virtual pOrbitalMap GenerateBSplines(const std::vector<int>& max_pqn);
 

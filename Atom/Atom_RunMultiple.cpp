@@ -6,8 +6,6 @@
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
-#include "Configuration/MPIHamiltonianMatrix.h"
-#include "Basis/BSplineBasis.h"
 
 void Atom::InitialiseRunIndex()
 {
@@ -68,54 +66,6 @@ void Atom::InitialiseRunIndex()
     }
 
     original_id = identifier;
-
-    // Choose which of the multiple run options are being used in the current calculation
-    current_run_selection.clear();
-    unsigned int total_run_selections = userInput_.vector_variable_size("-r");
-
-    if((multiple_length <= 1) || userInput_.search("--check-sizes"))
-    {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
-        current_run_selection.push_back(0);
-    }
-    else if(total_run_selections)
-    {
-        for(i = 0; i < total_run_selections; i++)
-        {
-            int selection = userInput_("-r", 0, i);
-
-            if(selection == 0)
-            {   // "-r=0" is shorthand for "just do the zero variation variety"
-                if(total_run_selections > 1)
-                {   *outstream << "USAGE: \"-r=0\" can only be used by itself." << std::endl;
-                    exit(1);
-                }
-
-                for(unsigned int j = 0; j < multiple_length; j++)
-                    if((*multiple_parameters)[j] == 0.0)
-                    {   current_run_selection.push_back(j);
-                        break;
-                    }
-
-                if(current_run_selection.size() == 0)
-                {   *outstream << "ERROR: Multiple run option couldn't find zero-variation option." << std::endl;
-                    exit(1);
-                }
-            }
-            else if((selection < 0) || (selection > multiple_length))
-            {   *outstream << "USAGE: Option \"-r\" included index outside of multiple run range." << std::endl;
-                exit(1);
-            }
-            else
-            {   // Subtract one from the user's selection to make it start at zero
-                current_run_selection.push_back(selection-1);
-            }
-        }
-    }
-    else
-    {   // If "-r" is not found, do all of the multiple run options
-        for(i = 0; i < multiple_length; i++)
-            current_run_selection.push_back(i);
-    }
 }
 
 unsigned int Atom::NumberRunsSelected()

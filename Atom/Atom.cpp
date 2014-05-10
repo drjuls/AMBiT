@@ -3,15 +3,7 @@
 #endif
 #include "Include.h"
 #include "Atom.h"
-#include "OutStreams.h"
-
-#include "Basis/RStates.h"
-#include "Basis/RSinStates.h"
-#include "Basis/CustomBasis.h"
-#include "Basis/ReadBasis.h"
-#include "Basis/SubsetBasis.h"
-#include "Basis/BSplineBasis.h"
-#include "Basis/HartreeFockBasis.h"
+#include "Basis/BasisGenerator.h"
 
 #include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/ScalapackMatrix.h"
@@ -19,25 +11,20 @@
 #include "Universal/Eigensolver.h"
 #include "Universal/Interpolator.h"
 #include "RateCalculator.h"
-#include "HartreeFock/ContinuumBuilder.h"
-#include "HartreeFock/StateIntegrator.h"
 #include <fstream>
 #include <sstream>
 
-Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, const std::string& atom_identifier):
-    userInput_(userInput), Z(atomic_number), identifier(atom_identifier)
+Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier):
+    user_input(userInput), Z(atomic_number), identifier(atom_identifier)
 {
-    Charge = Z - num_electrons;
-
     lattice = pLattice();
-    core = NULL;
-    excited = NULL;
-    excited_mbpt = NULL;
-    integrals = NULL;
-    integralsMBPT = NULL;
-    mbpt = NULL;
-    valence_mbpt = NULL;
-    sigma3 = NULL;
+    integrals = nullptr;
+    orbitals = nullptr;
+
+//    integralsMBPT = NULL;
+//    mbpt = NULL;
+//    valence_mbpt = NULL;
+//    sigma3 = NULL;
 
     // Operational parameters
     useRead = true;
@@ -54,49 +41,38 @@ Atom::Atom(GetPot userInput, unsigned int atomic_number, int num_electrons, cons
     includeSigma1 = false;
     includeSigma2 = false;
     includeSigma3 = false;
-
-    // Multiple run parameters
-    multiple_length = 0;
-    current_run_index = 0;
-    original_id = identifier;
-    
-    mSolutionMap = new SolutionMap();
 }
 
 Atom::~Atom(void)
 {
     if(integrals)
         delete integrals;
-    if(excited)
-        delete excited;
-    if(excited_mbpt)
-        delete excited_mbpt;
-    if(mbpt)
-        delete mbpt;
-    if(sigma3)
-        delete sigma3;
 }
 
-bool Atom::Run()
+void Atom::CreateBasis()
 {
-    DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited((userInput_("Z", Z) == Z) && (userInput_("ZIterations", 1) == 1) && !userInput_.search("--recursive-build"));
+    DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    // Check for numValenceElectrons
-    numValenceElectrons_ = userInput_("NumValenceElectrons", 0);
-    if(numValenceElectrons_ <= 0)
-    {   *errstream << "USAGE: must have NumValenceElectrons set." << std::endl;
-        return false;
+    int N = user_input("HF/N", -1);  // Number of electrons
+    if(N == -1 || N > Z)
+    {   *errstream << "Must specify N (number of electrons) with Z >= N" << std::endl;
+        exit(1);
     }
 
-    InitialiseRunIndex();
+    // Check for numValenceElectrons
+    num_valence_electrons = user_input("NumValenceElectrons", 0);
+    if(num_valence_electrons <= 0)
+    {   *errstream << "USAGE: must have NumValenceElectrons set." << std::endl;
+        exit(1);
+    }
 
-    if(userInput_.search(2, "-c", "--clean"))
+    if(user_input.search(2, "-c", "--clean"))
         useRead = false;
 
-    if(userInput_.search(2, "-d", "--dont-save"))
+    if(user_input.search(2, "-d", "--dont-save"))
     {   // Cannot use "-d" with multiple runs
         if(NumberRunsSelected() > 1)
         {   *errstream << "USAGE:  \"-d\" ignored: cannot use with multiple runs." << std::endl;
@@ -106,63 +82,32 @@ bool Atom::Run()
             useWrite = false;
     }
 
-    if(userInput_.search("HF/--read-grasp0"))
+    if(user_input.search("HF/--read-grasp0"))
     {   // Read lattice and core and basis orbitals
         ReadGraspMCDF("MCDF.DAT");
     }
     else
     {   // Lattice parameters
-        if(userInput_.search("Lattice/--exp-lattice"))
-        {   int num_points = userInput_("Lattice/NumPoints", 300);
-            double first_point = userInput_("Lattice/StartPoint", 1.e-5);
-            double h = userInput_("Lattice/H", 0.05);
+        if(user_input.search("Lattice/--exp-lattice"))
+        {   int num_points = user_input("Lattice/NumPoints", 300);
+            double first_point = user_input("Lattice/StartPoint", 1.e-5);
+            double h = user_input("Lattice/H", 0.05);
             lattice = pLattice(new ExpLattice(num_points, first_point, h));
         }
         else
-        {   int num_points = userInput_("Lattice/NumPoints", 1000);
-            double first_point = userInput_("Lattice/StartPoint", 1.e-6);
-            double lattice_size = userInput_("Lattice/EndPoint", 50.);
+        {   int num_points = user_input("Lattice/NumPoints", 1000);
+            double first_point = user_input("Lattice/StartPoint", 1.e-6);
+            double lattice_size = user_input("Lattice/EndPoint", 50.);
             lattice = pLattice(new Lattice(num_points, first_point, lattice_size));
         }
-
-        // Relativistic Hartree-Fock
-        core = new Core(lattice, Z, Charge);
-
-        InitialiseParameters((userInput_("Z", Z) == Z && !userInput_.search("--recursive-build")));
-        RunIndexBegin(true);
-
-        if(!useRead || !ReadCore())
-        {   DebugOptions.LogFirstBuild(true);
-            DebugOptions.LogHFIterations(true);
-
-            core->Initialise(userInput_("HF/Configuration", ""));
-        }
     }
+
+    // Relativistic Hartree-Fock
+    BasisGenerator basis_generator(lattice, user_input);
+    hf_core = basis_generator.GenerateHFCore();
 
     // Create Basis
-    bool bsplinebasis = userInput_.search("Basis/--bspline-basis");
-    bool hfbasis = userInput_.search("Basis/--hf-basis");
-    bool rbasis  = userInput_.search("Basis/--r-basis");
-    bool custombasis = userInput_.search("Basis/--custom-basis");
-
-    // Generate larger mbpt basis even if this run will not actually run the MBPT part
-    mbptBasisString = userInput_("MBPT/Basis", "");
-    bool generate_mbpt_basis = (mbptBasisString != "");
-
-    core->ToggleOpenShellCore();
-
-    if(bsplinebasis && !hfbasis && !rbasis && !custombasis)
-        CreateBSplineBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && hfbasis && !rbasis && !custombasis)
-        CreateHartreeFockBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && !hfbasis && rbasis && !custombasis)
-        CreateRBasis(generate_mbpt_basis);
-    else if(!bsplinebasis && !hfbasis && !rbasis && custombasis)
-        CreateCustomBasis(generate_mbpt_basis);
-    else
-    {   *outstream << "USAGE: must have one and only one basis type (e.g. --bspline-basis)" << std::endl;
-        return false;
-    }
+    orbitals = basis_generator.GenerateBasis();
 
     if(useRead && useWrite)
         ReadOrWriteBasis();
@@ -170,58 +115,9 @@ bool Atom::Run()
         Write();
     else if(useRead)
         Read();
-
-    DebugOptions.LogHFIterations(false);
-    DebugOptions.OutputHFExcited(false);
-
-    // Loop through all multiple runs saving the basis
-    if(NumberRunsSelected() > 1)
-    {
-        RunIndexNext(false);
-        while(!RunIndexAtEnd())
-        {
-            core->ToggleOpenShellCore();
-
-            // Try read, if it fails then update and write
-            if(!useRead || !Read())
-            {
-                if(!useRead || !ReadCore())
-                    core->Update();
-                excited->Update();
-                if(excited_mbpt)
-                    excited_mbpt->Update();
-                Write();
-            }
-
-            RunIndexNext(false);
-        }
-        RunIndexBegin(false);
-
-        // From now on, read core and basis
-        useRead = true;
-    }
-
-    // Print basis only option
-    if(userInput_.search(2, "--print-basis", "-p"))
-    {   // Check follower for option
-        std::string print_option = userInput_.next("");
-        if(print_option == "Cowan")
-            GenerateCowanInputFile();
-        else
-            WriteGraspMCDF();
-
-        return true;
-    }
-
-    // Go do single-electron or many-electron work.
-    if(numValenceElectrons_ == 1 && !userInput_.search(2, "--force-ci", "-x"))
-        RunSingleElectron();
-    else
-        RunMultipleElectron();
-
-    return true;
 }
 
+/*
 void Atom::RunSingleElectron()
 {
     core->ToggleClosedShellCore();
@@ -790,7 +686,7 @@ void Atom::ReadOrWriteBasis()
         Write();
     }
 }
-
+*/
 void Atom::GenerateCowanInputFile()
 {
     FILE* fp = fopen("mitch.txt", "wt");

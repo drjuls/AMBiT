@@ -9,18 +9,14 @@
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput):
     hf(pHFOperator()), lattice(lat), user_input(userInput), open_core(nullptr)
 {
-    orbitals = pOrbitalManager(new OrbitalManager());
+    orbitals = pOrbitalManager(new OrbitalManager(lattice));
 }
 
 BasisGenerator::~BasisGenerator()
 {}
 
-pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
+void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 {
-    open_core = pCore(new Core(lattice));
-    if(open_shell_core)
-        open_core->Copy(*open_shell_core);
-
     unsigned int Z = user_input("Z", 0);
 
     int Charge = user_input("HF/Charge", -1);
@@ -45,6 +41,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 
     OccupationMap open_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(open_shell_string);
 
+    // Set open_core occupancies
     open_core->SetOccupancies(open_shell_occupations);
     if(open_core->NumElectrons() != Z - Charge)
     {   *errstream << "Core::BuildFirstApproximation: Incorrect electron count in configuration." << std::endl;
@@ -55,7 +52,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
-    hf.reset(new HFOperator(Z, open_core, integrator, coulomb));
+    hf = pHFOperator(new HFOperator(Z, open_core, integrator, coulomb));
 
     // Add nuclear potential
     double nuclear_radius = user_input("NuclearRadius", 0.0);
@@ -66,14 +63,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
         nucleus->SetFermiParameters(nuclear_radius, nuclear_thickness);
         nucleus->SetCore(open_core);
         hf = nucleus;
-    }
-
-    HartreeFocker HF_Solver(ode_solver);
-
-    // TODO: Check occupancies match
-    if(!open_shell_core)
-    {   HF_Solver.StartCore(open_core, hf);
-        HF_Solver.SolveCore(open_core, hf);
+        undressed_hf = hf;
     }
 
     // Add additional operators
@@ -83,6 +73,27 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
         sms_op->SetInverseMass(NuclearInverseMass);
         sms_op->SetCore(open_core);
         hf = sms_op;
+    }
+}
+
+pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
+{
+    open_core = pCore(new Core(lattice));
+    if(open_shell_core)
+        open_core->Copy(*open_shell_core);
+
+    pHFOperator undressed_hf;
+    InitialiseHF(undressed_hf);
+
+    // Create Hartree-Fock solver; define integrators.
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    HartreeFocker HF_Solver(ode_solver);
+
+    // TODO: Check occupancies match
+    if(!open_shell_core)
+    {   HF_Solver.StartCore(open_core, undressed_hf);
+        HF_Solver.SolveCore(open_core, undressed_hf);
     }
 
     HF_Solver.SolveCore(open_core, hf);
@@ -97,7 +108,30 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     return open_core;
 }
 
-pOrbitalManager BasisGenerator::GenerateBasis()
+pHFOperator BasisGenerator::CreateHFOperator(pOrbitalManager orbital_manager)
+{
+    open_core = pCore(new Core(lattice));
+
+    pHFOperator undressed_hf;
+    InitialiseHF(undressed_hf);
+
+    // Copy orbitals from orbital_manager to open_core
+    for(auto pair: *open_core)
+    {
+        pOrbital state = orbital_manager->all->GetState(pair.first);
+        if(state == nullptr)
+        {   *errstream << "BasisGenerator::CreateHFOperator(): orbital " << pair.first.Name() << " not found." << std::endl;
+            exit(1);
+        }
+        *pair.second = *state;
+    }
+
+    hf->SetCore(open_core);
+
+    return hf;
+}
+
+pOrbitalManagerConst BasisGenerator::GenerateBasis()
 {
     // Core states first
     // Get closed shell orbitals and occupancies

@@ -5,14 +5,15 @@
 #include "ConfigGenerator.h"
 #include <sstream>
 
-ConfigGenerator::ConfigGenerator(pOrbitalMapConst coreStates, pOrbitalMapConst excitedStates, MultirunOptions& userInput):
-    core(coreStates), excited(excitedStates), user_input(userInput)
+ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput):
+    orbitals(orbitals), user_input(userInput)
 {
     NonRelSet.clear();
     leading_configs = pConfigList(new ConfigList());
 
-    auto it = excited->begin();
-    while(it != excited->end())
+    pOrbitalMapConst valence = orbitals->GetOrbitalMap(OrbitalClassification::valence);
+    auto it = valence->begin();
+    while(it != valence->end())
     {
         pOrbitalConst ds = it->second;
         if(ds != NULL)
@@ -41,15 +42,6 @@ pConfigList ConfigGenerator::GetLeadingConfigs()
 pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 {   return leading_configs;
 }
-
-//ConfigList* ConfigGenerator::GetNonRelConfigs()
-//{
-//    // Check to see if we haven't restored nrlist since a read.
-//    if(nrlist.empty() && !rlist->empty())
-//        RestoreNonRelConfigs();
-//
-//    return &nrlist;
-//}
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym)
 {
@@ -134,7 +126,6 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     if(allow_different_excitations)
     {
         unsigned int CI_num_excitations;
-//        std::vector<unsigned int> CI_electron_excitation_states;
         std::string CI_basis_string;
 
         NonRelInfoSet nrset;
@@ -154,6 +145,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
             nrset.AddConfigs(CI_basis_string.c_str());
 
             // Erase core set
+            pOrbitalMapConst core = orbitals->GetOrbitalMap(OrbitalClassification::core);
             for(auto si = core->begin(); si != core->end(); si++)
             {
                 nrset.erase(si->first);

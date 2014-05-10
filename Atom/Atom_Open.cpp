@@ -7,10 +7,8 @@
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
-#include "Configuration/MPIHamiltonianMatrix.h"
-#include "Configuration/MPIMatrix.h"
-#include "Basis/BSplineBasis.h"
-#include "Basis/ReadBasis.h"
+//#include "Configuration/MPIHamiltonianMatrix.h"
+//#include "Configuration/MPIMatrix.h"
 
 void Atom::RunMultipleElectron()
 {

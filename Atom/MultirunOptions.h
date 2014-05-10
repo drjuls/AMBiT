@@ -17,10 +17,10 @@
     MultirunOptions will mask this, so that, e.g., on the first run a call
         MultirunOptions("NuclearInverseMass", 0.0);
     will simply return -0.001.
-    Note that MultirunOptions doesn't support polymorphism (since GetPot functions are non-virtual)
-    so functions must be called from an explicit instance of MultirunOptions.
+
+    GetPot is inherited privately because polymorphism cannot be supported since GetPot functions are non-virtual.
  */
-class MultirunOptions : public GetPot
+class MultirunOptions : private GetPot
 {
 public:
     inline MultirunOptions();
@@ -40,13 +40,29 @@ public:
     // (*) absorbing contents of another MultirunOptions object
     inline void absorb(const MultirunOptions& That);
 
+    inline int GetNumRuns() const;
+    inline void SetRun(int run_index);
+
+    /** Attempt to find a run where varying parameter is zero.
+        If successful, return parameter name and run where it is zero.
+        If unsuccessful, return null string and -1.
+     */
+    inline std::pair<std::string, int> FindZeroParameterRun() const;
+
+    /** Print special conditions of current run separated by separator. */
+    inline void PrintCurrentRunCondition(std::ostream& outstream, const std::string& separator) const;
+
+public:
+    using GetPot::next;
+    using GetPot::next_nominus;
+    using GetPot::operator[];
+    using GetPot::search;
+    using GetPot::size;
+    using GetPot::vector_variable_size;
+
     // Overwrite scalar double variables to hide multirun vectors.
     using GetPot::operator();
     inline double operator()(const char* VarName, const double& Default) const;
-
-public:
-    inline int GetNumRuns() const;
-    inline void SetRun(int run_index);
 
 protected:
     inline void ParseMultirun();
@@ -161,6 +177,24 @@ inline void MultirunOptions::SetRun(int run_index)
     else
     {   *errstream << "MultirunOptions::SetRun(): run_index out of bounds." << std::endl;
         exit(1);
+    }
+}
+
+inline std::pair<std::string, int> MultirunOptions::FindZeroParameterRun() const
+{
+    for(int i = 0; i < multirun_keys.size(); i++)
+        for(int run_index = 0; run_index < num_runs; run_index++)
+            if(multirun_values[i][run_index] == 0.0)
+                return std::make_pair(multirun_keys[i], run_index);
+
+    return std::make_pair("", -1);
+}
+
+inline void MultirunOptions::PrintCurrentRunCondition(std::ostream& outstream, const std::string& separator) const
+{
+    for(int i = 0; i < multirun_keys.size(); i++)
+    {
+        outstream << multirun_keys[i] << " = " << multirun_values[i][current_run_index] << separator;
     }
 }
 

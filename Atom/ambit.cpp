@@ -4,12 +4,9 @@
 #include "Include.h"
 #include "OutStreams.h"
 #include "gitInfo.h"
+#include "ambit.h"
 #include "Atom.h"
-#include "RateCalculator.h"
-#include "Universal/Enums.h"
-#include "Universal/Function.h"
-#include "Universal/Integrator.h"
-#include "Atom/GetPot"
+#include "Atom/MultirunOptions.h"
 #include <boost/math/special_functions/bessel.hpp>
 
 #include <string>
@@ -36,8 +33,6 @@ unsigned int ProcessorRank;
 // The debug options for the whole program.
 Debug DebugOptions;
 
-void PrintHelp(const std::string& ApplicationName);
-
 int main(int argc, char* argv[])
 {
     #ifdef _MPI
@@ -53,12 +48,13 @@ int main(int argc, char* argv[])
     OutStreams::InitialiseStreams();
 
     try
-    {
-        GetPot lineInput(argc, argv, ",");
+    {   MultirunOptions lineInput(argc, argv, ",");
 
         // Check for help message
         if(lineInput.size() == 1 || lineInput.search(2, "--help", "-h"))
-            PrintHelp(lineInput[0]);
+        {   Ambit::PrintHelp(lineInput[0]);
+            return 0;
+        }
 
         *outstream << "AMBiT version:    " << GIT_LAST_TAG << std::endl;
         *outstream << "      git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
@@ -74,7 +70,7 @@ int main(int argc, char* argv[])
         if(lineInput.search("-f"))
         {   inputFileName = lineInput.next("");
             if(inputFileName == "")
-                PrintHelp(lineInput[0]);
+                Ambit::PrintHelp(lineInput[0]);
         }
         else
         {   // Else look for .input arguments
@@ -91,113 +87,33 @@ int main(int argc, char* argv[])
             
             if(endOfInput && !lineInput.search("--recursive-build"))
             {   *errstream << "Input file not found" << std::endl;
-                PrintHelp(lineInput[0]);
+                Ambit::PrintHelp(lineInput[0]);
             }
         }
 
-        GetPot fileInput(inputFileName.c_str(), "//", "\n", ",");
+        MultirunOptions fileInput(inputFileName.c_str(), "//", "\n", ",");
         fileInput.absorb(lineInput);
+
+        // Identifier
+        std::string identifier = fileInput("ID", "");
+        if(identifier == "")
+        {
+            if(inputFileName.find(extension) != std::string::npos)
+                identifier = inputFileName.substr(0, inputFileName.find(extension));
+            else
+            {   *errstream << "No ID could be found." << std::endl;
+                exit(1);
+            }
+        }
+
+        Ambit ambit(fileInput, identifier);
 
         if(fileInput.search("--recursive-build"))
         {
-            int Z = fileInput("Z", 0);
-            std::ofstream outfile;
-            outfile.open("temp.out", std::ios_base::trunc);
-            if(!outfile.is_open())
-            {
-                *errstream << "Error: Could not open file 'temp.out' for use in recursive building." << std::endl;
-                exit(1);
-            }
-            std::string configstring = fileInput("HF/Configuration", "1s1:");
-            outfile << "ID = " << fileInput("ID", "") << "N" << fileInput("N", 1) << std::endl << "Z = " << Z << std::endl << "N = " << fileInput("N", 1) << std::endl << "NumValenceElectrons = " << 1 << std::endl;
-            outfile << "-c" << std::endl << "-d" << std::endl;
-            outfile << "--recursive-build" << std::endl << std::endl;
-            outfile << "NuclearRadius = " << fileInput("NuclearRadius", 0) << std::endl << "NuclearThickness = " << fileInput("NuclearThickness", 0) << std::endl << std::endl;
-            outfile << "[Lattice]" << std::endl << "NumPoints = " << fileInput("Lattice/NumPoints", 1000) << std::endl;
-            outfile << "StartPoint = " << fileInput("Lattice/StartPoint", 1.e-6) << std::endl << "EndPoint = " << fileInput("Lattice/EndPoint", 50.) << std::endl << std::endl;
-            outfile << "[HF]" << std::endl << "Configuration = '" << configstring << "'" << std::endl << std::endl;
-            outfile << "[Basis]" << std::endl << "--bspline-basis" << std::endl << "ValenceBasis = " << fileInput("Basis/ValenceBasis", "4spdf") << std::endl << std::endl;
-            outfile << "BSpline/N = " << fileInput("Basis/BSpline/N", 40) << std::endl << "BSpline/K = " << fileInput("Basis/BSpline/K", 7) << std::endl;
-            outfile << "BSpline/Rmax = " << fileInput("Basis/BSpline/Rmax", 50.) << std::endl << std::endl;
-            outfile.close();
-            for(int i = fileInput("N", 1) - 1; i < Z; i++)
-            {
-                GetPot tempInput("temp.out", "//", "\n", ",");
-                Atom* A;
-                A = new Atom(tempInput, Z, tempInput("N", 1), tempInput("ID", ""));
-                A->Run();
-
-                if(i + 2 <= Z)
-                {
-                    configstring = A->GetNextConfigString();
-                    *outstream << "+ " <<A->GetIteratorToNextOrbitalToFill().GetState()->Name() << " = " <<  std::endl;
-                    outfile.open("temp.out", std::ios_base::trunc);
-                    outfile << "ID = " << fileInput("ID", "") << "N" << i + 2 << std::endl << "Z = " << Z << std::endl << "N = " << i + 2 << std::endl << "NumValenceElectrons = " << 1 << std::endl;
-                    outfile << "-c" << std::endl << "-d" << std::endl;
-                    outfile << "--recursive-build" << std::endl << std::endl;
-                    outfile << "NuclearRadius = " << fileInput("NuclearRadius", 0) << std::endl << "NuclearThickness = " << fileInput("NuclearThickness", 0) << std::endl << std::endl;
-                    outfile << "[Lattice]" << std::endl << "NumPoints = " << fileInput("Lattice/NumPoints", 1000) << std::endl;
-                    outfile << "StartPoint = " << fileInput("Lattice/StartPoint", 1.e-6) << std::endl << "EndPoint = " << fileInput("Lattice/EndPoint", 50.) << std::endl << std::endl;
-                    outfile << "[HF]" << std::endl << "Configuration = '" << configstring << "'" << std::endl << std::endl;
-                    outfile << "[Basis]" << std::endl << "--bspline-basis" << std::endl << "ValenceBasis = " << fileInput("Basis/ValenceBasis", "4spdf") << std::endl << std::endl;
-                    outfile << "BSpline/N = " << fileInput("Basis/BSpline/N", 40) << std::endl << "BSpline/K = " << fileInput("Basis/BSpline/K", 7) << std::endl;
-                    outfile << "BSpline/Rmax = " << fileInput("Basis/BSpline/Rmax", 50.) << std::endl << std::endl;
-                    outfile.close();
-                }
-                delete A;
-            }
-            
-            *outstream << std::endl << std::endl << "Final configuration: " << configstring;
+            ambit.Recursive();
         }
         else
-        {
-            // Must-have arguments. This also checks on the file's existence.
-            int Z, ZIterations, N, Charge;
-            Z = fileInput("Z", 0);
-            N = fileInput("HF/N", -1);  // Number of electrons
-            ZIterations = fileInput("ZIterations", 1);
-            if(Z != 0 && N == -1)
-            {   Charge = fileInput("HF/Charge", -1);
-                N = Z - Charge;
-            }
-            if(Z == 0 || N == -1 || N > Z)
-            {   *errstream << inputFileName << " must specify Z, and either N (number of electrons) or Charge.\n"
-                           << "    Furthermore Z >= N." << std::endl;
-                exit(1);
-            }
-    
-            // Identifier
-            std::string identifier = fileInput("ID", "");
-            if(identifier == "")
-            {
-                if(inputFileName.find(extension) != std::string::npos)
-                    identifier = inputFileName.substr(0, inputFileName.find(extension));
-                else
-                {   *errstream << "No ID could be found." << std::endl;
-                    exit(1);
-                }
-            }
-    
-            if(ZIterations > 1 && fileInput("NumValenceElectrons", 1) > 1)
-            {
-                *errstream << "Configuration interaction for multiple atoms with differing charge is not supported yet." << std::endl;
-                exit(1);
-            }
-    
-            // That's all we need to start the Atom class
-            Atom A(fileInput, Z, N, identifier);
-            A.Run();
-            if(ZIterations > 1)
-            {
-                int ZCounter = 1;
-                while(ZCounter < ZIterations) {
-                    Atom aA(fileInput, Z + ZCounter, N, identifier);
-                    aA.Run();
-                    ZCounter++;
-                }
-            }
-            
-
+        {   /*
             if(fileInput.search("--print-wf"))
             {                
                 StateIterator it = A.GetCore()->GetStateIterator();
@@ -339,7 +255,8 @@ int main(int argc, char* argv[])
                 }
                 SMapMap.Print();
             }
-        }
+            */
+        } // End not recursive build
         
         // Transition calculations should be performed here!
         //A.GetSolutionMap()->FindByIdentifier("0e0")->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier("0e0")->first, A.GetSolutionMap()->FindByIdentifier("2o0")->first));
@@ -376,7 +293,93 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void PrintHelp(const std::string& ApplicationName)
+void Ambit::EnergyCalculations()
+{
+    int Z = user_input("Z", 0);
+    if(Z <= 0)
+    {   *errstream << "Z not specified correctly." << std::endl;
+        exit(1);
+    }
+
+    // Choose which of the multiple runs are being done in the current calculation
+    std::vector<unsigned int> run_indexes;
+    unsigned int total_run_selections = user_input.vector_variable_size("-r");
+
+    if((user_input.GetNumRuns() <= 1) || user_input.search("--check-sizes"))
+    {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
+        run_indexes.push_back(0);
+    }
+    else if(total_run_selections)
+    {
+        for(int i = 0; i < total_run_selections; i++)
+        {
+            int selection = user_input("-r", 0, i);
+
+            if(selection == 0)
+            {   // "-r=0" is shorthand for "just do the zero variation variety"
+                if(total_run_selections > 1)
+                {   *outstream << "USAGE: \"-r=0\" can only be used by itself." << std::endl;
+                    exit(1);
+                }
+
+                // Try to find a good candidate for -r=0
+                auto pair = user_input.FindZeroParameterRun();
+                if(pair.second < 0)
+                {   *errstream << "ERROR: Multiple run option couldn't find zero-variation option." << std::endl;
+                    exit(1);
+                }
+                else
+                {   *outstream << "Running case " << pair.second+1 << ": " << pair.first << " = 0." << std::endl;
+                    run_indexes.push_back(pair.second);
+                }
+            }
+            else if((selection < 0) || (selection > user_input.GetNumRuns()))
+            {   *outstream << "USAGE: Option \"-r\" included index outside of multiple run range." << std::endl;
+                exit(1);
+            }
+            else
+            {   // Subtract one from the user's selection to make it start at zero
+                run_indexes.push_back(selection-1);
+            }
+        }
+    }
+    else
+    {   // If "-r" is not found, do all of the multiple run options
+        for(int i = 0; i < user_input.GetNumRuns(); i++)
+            run_indexes.push_back(i);
+    }
+
+    // That's all we need to start the Atom class
+    for(int i: run_indexes)
+    {
+        user_input.SetRun(i);
+        std::string id = identifier + "_" + itoa(i);
+        atoms.push_back(Atom(user_input, Z, id));
+    }
+
+    for(auto atom: atoms)
+    {
+        atom.CreateBasis();
+
+        // Print basis only option
+        if(user_input.search(2, "--print-basis", "-p"))
+        {   // Check follower for option
+            std::string print_option = user_input.next("");
+            if(print_option == "Cowan")
+                atom.GenerateCowanInputFile();
+            else
+                atom.WriteGraspMCDF();
+        }
+    }
+
+    // Go do single-electron or many-electron work.
+//    if(numValenceElectrons_ == 1 && !userInput_.search(2, "--force-CI", "-x"))
+//        RunSingleElectron();
+//    else
+//        RunMultipleElectron();
+}
+
+void Ambit::PrintHelp(const std::string& ApplicationName)
 {
     *outstream << ApplicationName << std::endl;
     *outstream
@@ -408,5 +411,4 @@ void PrintHelp(const std::string& ApplicationName)
         << "   --generate-integrals-mbpt\n"
         << "                    calculate specified MBPT integrals\n\n"
         << "Sample input files are included with the documentation." << std::endl;
-    exit(0);
 }

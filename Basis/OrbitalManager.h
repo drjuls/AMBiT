@@ -40,7 +40,11 @@ public:
     std::map<unsigned int, OrbitalInfo> reverse_state_index;    //!< Unique key for all orbitals
 
 public:
-    OrbitalManager() {}
+    /** Create a new (empty) pOrbitalMap pointed to by all states. */
+    OrbitalManager(pLattice lattice);
+
+    /** Initialise simple frozen core, all-valence model where there are no holes or pure excited states. */
+    OrbitalManager(pOrbitalMap core, pOrbitalMap valence);
 
     /** Get total number of orbitals stored (for making keys). */
     unsigned int size() const { return all->size(); }

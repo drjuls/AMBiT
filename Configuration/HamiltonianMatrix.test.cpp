@@ -8,45 +8,6 @@
 #include "GFactor.h"
 #include "Atom/MultirunOptions.h"
 
-TEST(HamiltonianMatrixTester, LevelIteratorTest)
-{
-    pLevelMap levels = pLevelMap(new LevelMap());
-    Symmetry sym(0, Parity::even);
-    int i;
-    for(i = 0; i < 3; i++)
-        (*levels)[LevelID(sym, i)] = nullptr;
-    sym = Symmetry(2, Parity::even);
-    for(i = 0; i < 2; i++)
-        (*levels)[LevelID(sym, i)] = nullptr;
-    sym = Symmetry(2, Parity::odd);
-    for(i = 0; i < 4; i++)
-        (*levels)[LevelID(sym, i)] = nullptr;
-
-    sym = Symmetry(2, Parity::even);
-    int count = 0;
-    LevelMap::symmetry_iterator it = levels->begin(sym);
-    while(it != levels->end(sym))
-    {
-        EXPECT_TRUE(it->first.GetSymmetry() == sym);
-        count++;
-        it++;
-    }
-    EXPECT_EQ(2, count);
-
-    count = 0;
-    sym = Symmetry(2, Parity::odd);
-    it = levels->begin(sym);
-    while(it.base() != it.end())
-    {
-        EXPECT_TRUE(it->first.GetSymmetry() == sym);
-        count++;
-        it++;
-    }
-    EXPECT_EQ(4, count);
-
-    EXPECT_EQ(9, levels->size());
-}
-
 TEST(HamiltonianMatrixTester, MgIILevels)
 {
     DebugOptions.LogHFIterations(true);
@@ -79,7 +40,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     // Get core and excited basis
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
-    pOrbitalManager orbitals = basis_generator.GenerateBasis();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
 
     // Generate integrals
     pHFOperatorConst hf = basis_generator.GetHFOperator();
@@ -90,7 +51,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
 
     EXPECT_EQ(31809, integrals.size());
 
-    ConfigGenerator config_generator(core, orbitals->valence, userInput);
+    ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     pLevelMap levels = pLevelMap(new LevelMap());

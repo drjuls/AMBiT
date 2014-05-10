@@ -36,9 +36,11 @@ TEST(ConfigGeneratorTester, CountConfigurations)
         }
     }
 
+    pOrbitalManager orbitals(new OrbitalManager(core, excited));
+
     int total_non_rel = 0;
     int total_rel = 0;
-    ConfigGenerator gen(core, excited, userInput);
+    ConfigGenerator gen(orbitals, userInput);
 
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
     ConfigList nonrelconfigs(*relconfigs);
