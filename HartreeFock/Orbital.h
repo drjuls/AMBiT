@@ -50,11 +50,8 @@ public:
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;
 
-    /** Store the state. File pointer fp must be open and writable. */
-    virtual void Write(FILE* fp) const;
-
-    /** Read the state from file. fp must be open and readable. */
-    virtual void Read(FILE* fp);
+    using SingleParticleWavefunction::Read;
+    using SingleParticleWavefunction::Write;
 };
 
 typedef boost::shared_ptr<Orbital> pOrbital;

@@ -2,49 +2,15 @@
 #include "Lattice.h"
 #include <fstream>
 
-// Take a little endian, 4 byte DWORD and contract to a number
-inline unsigned long DWORD_LE_CONTRACT(const char* dw)
-{
-    unsigned long ret =
-        (static_cast<unsigned char>(dw[0])) +
-        (static_cast<unsigned char>(dw[1])<<8) +
-        (static_cast<unsigned char>(dw[2])<<16) +
-        (static_cast<unsigned char>(dw[3])<<24);
-    return ret;
-}
-
-void CollectFloatingValues(const char* buff, double* values, unsigned int size)
-{
-    unsigned long lvalue;
-    float& fvalue = reinterpret_cast<float&>(lvalue);
-    const char* pbuff = buff;
-
-    unsigned int i = 0;
-    while(i < size)
-    {   lvalue = DWORD_LE_CONTRACT(pbuff);
-        values[i] = fvalue;
-        i++;
-        pbuff += 4;
-    }
-}
-
 Lattice::Lattice(const Lattice& other):
-    beta(other.beta), NumPoints(other.NumPoints), rmin(other.rmin), h(other.h)
-{
-    r = (double*)malloc(NumPoints * sizeof(double));
-    dr = (double*)malloc(NumPoints * sizeof(double));
-    
-    for(unsigned int i=0; i<NumPoints; i++)
-    {   r[i] = other.r[i];
-        dr[i] = other.dr[i];
-    }
-}
+    r(other.dr), dr(other.dr), beta(other.beta), NumPoints(other.NumPoints), rmin(other.rmin), h(other.h), r_power(other.r_power)
+{}
 
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), NumPoints(numpoints), rmin(r_min)
 {
-    r = (double*)malloc(NumPoints * sizeof(double));
-    dr = (double*)malloc(NumPoints * sizeof(double));
+    r.resize(NumPoints);
+    dr.resize(NumPoints);
     
     h =(r_max - rmin + beta*log(r_max/rmin))/(NumPoints-1);
     
@@ -54,70 +20,24 @@ Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     }
 }
 
-Lattice::Lattice(const std::string& filename)
+Lattice::Lattice(FILE* binary_infile)
 {
-    std::fstream infile;
-    infile.open(filename.c_str(), std::ios::in | std::ios::binary);
-    
-    if(!infile)
-        return;
+    fread(&beta, sizeof(double), 1, binary_infile);
+    fread(&h, sizeof(double), 1, binary_infile);
+    fread(&rmin, sizeof(double), 1, binary_infile);
+    fread(&NumPoints, sizeof(unsigned int), 1, binary_infile);
 
-    unsigned int size = 1000;
-    r = new double[size];
-    dr = new double[size];
-    NumPoints = size;
+    r.resize(NumPoints);
+    dr.resize(NumPoints);
 
-    char short_buff[4];
-    infile.clear();
-    infile.read(short_buff, 4);
-    unsigned int block_size = static_cast<unsigned int>(DWORD_LE_CONTRACT(short_buff));
-
-    char* buffer = new char[block_size];
-
-    // Skip potential
-    infile.read(buffer, 4*size);
-
-    // Get lattice definition
-    infile.read(buffer, 4*size);
-    CollectFloatingValues(buffer, r, size);
-
-    infile.read(buffer, 4*size);
-    CollectFloatingValues(buffer, dr, size);
-
-    infile.read(buffer, 4*181);
-    infile.read(short_buff, 4);
-
-    beta = 4;
-
-    unsigned long lvalue = DWORD_LE_CONTRACT(short_buff);
-    float& fvalue = reinterpret_cast<float&>(lvalue);
-    h = fvalue;
-
-    infile.close();
-
-    for(unsigned int i=0; i<size; i++)
-    {   dr[i] = (dr[i]) * (r[i]) * h;
-    }
-    rmin = r[0];
-
-    delete[] buffer;
+    fread(r.data(), sizeof(double), NumPoints, binary_infile);
+    fread(dr.data(), sizeof(double), NumPoints, binary_infile);
 }
 
 Lattice::~Lattice(void)
-{
-    if(r)
-        free(r);
-    if(dr)
-        free(dr);
+{}
 
-    std::vector<double*>::iterator it = r_power.begin();
-    while(it != r_power.end())
-    {   free(*it);
-        it++;
-    }
-}
-
-void Lattice::size(double min_size)
+void Lattice::resize(double min_size)
 {
     if(min_size <= r[NumPoints-1])
         return;
@@ -128,8 +48,8 @@ void Lattice::size(double min_size)
     {   NumPoints *= 2;
     }while(lattice_to_real(NumPoints - 1) <= min_size);
 
-    r = (double*)realloc(r, NumPoints * sizeof(double));
-    dr = (double*)realloc(dr, NumPoints * sizeof(double));
+    r.resize(NumPoints);
+    dr.resize(NumPoints);
 
     for(unsigned int i=old_size; i<NumPoints; i++)
     {   r[i] = lattice_to_real(i);
@@ -137,18 +57,15 @@ void Lattice::size(double min_size)
     }
 
     // Do powers of r
-    for(unsigned int k =0; k < r_power.size(); k++)
+    for(unsigned int k = 0; k < r_power.size(); k++)
     {
-        r_power[k] = (double*)realloc(r_power[k], NumPoints * sizeof(double));
-        double* points = r_power[k];
+        std::vector<double>& previous = (k == 0)? r : r_power[k-1];
+        std::vector<double>& current = r_power[k];
 
-        memcpy(points+old_size, r+old_size, (NumPoints - old_size) * sizeof(double));
-        
+        current.resize(NumPoints);
+
         for(unsigned int i=old_size; i<NumPoints; i++)
-        {
-            for(unsigned int j = 2; j<k+2; j++)
-                points[i] = points[i] * r[i];
-        }
+            current[i] = previous[i] * r[i];
     }
 }
 
@@ -180,7 +97,7 @@ double Lattice::lattice_to_real(unsigned int i) const
 unsigned int Lattice::real_to_lattice(double r_point)
 {
     if(r_point > MaxRealDistance())
-        size(r_point);
+        resize(r_point);
     else if (r_point <= r[0])
         return 0;
 
@@ -212,22 +129,34 @@ double Lattice::calculate_dr(double r_point) const
 
 const double* Lattice::Calculate_Rpower(unsigned int k)
 {
+    unsigned int kminustwo = k - 2;
+
+    unsigned int old_size = r_power.size();
+    if(kminustwo >= old_size)
+        r_power.resize(kminustwo+1);
+
     // Create all powers up to and including k
-    for(unsigned int power = r_power.size()+2; power <= k; power++)
+    for(unsigned int new_k = old_size; new_k <= kminustwo; new_k++)
     {
-        double* points = (double*)malloc(NumPoints * sizeof(double));
-        if(power == 2)
-            memcpy(points, r, NumPoints * sizeof(double));
-        else
-            memcpy(points, r_power[power-3], NumPoints * sizeof(double));
+        std::vector<double>& previous = (new_k == 0)? r : r_power[new_k-1];
+        std::vector<double>& current = r_power[new_k];
 
-        for(unsigned int i=0; i<NumPoints; i++)
-        {
-            points[i] = points[i] * r[i];
-        }
+        current.resize(NumPoints);
 
-        r_power.push_back(points);
+        for(unsigned int i = 0; i < NumPoints; i++)
+            current[i] = previous[i] * r[i];
     }
 
-    return r_power[k-2];
+    return r_power[kminustwo].data();
+}
+
+void Lattice::Write(FILE* binary_outfile) const
+{
+    fwrite(&beta, sizeof(double), 1, binary_outfile);
+    fwrite(&h, sizeof(double), 1, binary_outfile);
+    fwrite(&rmin, sizeof(double), 1, binary_outfile);
+    fwrite(&NumPoints, sizeof(unsigned int), 1, binary_outfile);
+
+    fwrite(r.data(), sizeof(double), NumPoints, binary_outfile);
+    fwrite(dr.data(), sizeof(double), NumPoints, binary_outfile);
 }

@@ -1,22 +1,9 @@
 #include "Include.h"
 #include "ExpLattice.h"
 
-ExpLattice::ExpLattice(const ExpLattice& other)
-{
-    beta = other.beta;
-    NumPoints = other.NumPoints;
-    rmin = other.rmin;
-    h = other.h;
-
-    r = (double*)malloc(NumPoints * sizeof(double));
-    dr = (double*)malloc(NumPoints * sizeof(double));
-    
-    for(unsigned int i=0; i<NumPoints; i++)
-    {   r[i] = other.r[i];
-        dr[i] = other.dr[i];
-    }
-
-}
+ExpLattice::ExpLattice(const ExpLattice& other):
+    Lattice(other)
+{}
 
 ExpLattice::ExpLattice(unsigned int numpoints, double r_min, double H):
     Lattice()
@@ -26,8 +13,8 @@ ExpLattice::ExpLattice(unsigned int numpoints, double r_min, double H):
     rmin = r_min;
     h = H;
 
-    r = (double*)malloc(NumPoints * sizeof(double));
-    dr = (double*)malloc(NumPoints * sizeof(double));
+    r.resize(numpoints);
+    dr.resize(numpoints);
 
     for(unsigned int i=0; i<NumPoints; i++)
     {   r[i] = lattice_to_real(i);

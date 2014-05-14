@@ -18,7 +18,7 @@ class Lattice
 public:
     Lattice(const Lattice& other);
     Lattice(unsigned int numpoints, double r_min, double r_max);
-    Lattice(const std::string& filename);
+    Lattice(FILE* binary_infile);
     virtual ~Lattice(void);
 
     unsigned int Size() const { return NumPoints; }
@@ -28,8 +28,8 @@ public:
     double dR(unsigned int i);
 
     /** Return all points of R, from 0 to size()-1 */
-    const double* R() const { return r; }
-    const double* dR() const { return dr; }
+    const double* R() const { return r.data(); }
+    const double* dR() const { return dr.data(); }
 
     /** Return all points of R^k, from 0 to size()-1.
         PRE: k > 0
@@ -46,8 +46,10 @@ public:
     /** Equality does not check size of lattice. */
     virtual bool operator==(const Lattice& other) const;
 
+    virtual void Write(FILE* binary_outfile) const;
+
 protected:
-    Lattice(): r(nullptr), dr(nullptr), NumPoints(0), beta(0.), h(0.), rmin(0.) {}
+    Lattice(): NumPoints(0), beta(0.), h(0.), rmin(0.) {}
 
     /** Calculate the value that r[i] should be. */
     virtual double lattice_to_real(unsigned int i) const;
@@ -56,19 +58,19 @@ protected:
     virtual double calculate_dr(double r_point) const;
 
     /** Calculate R^power and store, for all powers up to k.
-        PRE: k > 0
+        PRE: k >= 2
      */
     const double* Calculate_Rpower(unsigned int k);
     
     /** Resizes the lattice such that NumPoints > min_size. */
-    virtual void size(double min_size);
+    virtual void resize(double min_size);
 
 protected:
     unsigned int NumPoints;
-    double* r;
-    double* dr;
+    std::vector<double> r, dr;
 
-    std::vector<double*> r_power;
+    // r_power[k-2] = R^k, defined for k >= 2.
+    std::vector<std::vector<double>> r_power;
 
     double beta, h, rmin;
 };
@@ -78,13 +80,13 @@ typedef boost::shared_ptr<const Lattice> pLatticeConst;
 
 inline double Lattice::R(unsigned int i)
 {   if(i >= NumPoints)
-        size(i);
+        resize(i);
     return r[i];
 }
 
 inline double Lattice::dR(unsigned int i)
 {   if(i >= NumPoints)
-        size(i);
+        resize(i);
     return dr[i];
 }
 
@@ -93,9 +95,9 @@ inline const double* Lattice::Rpower(unsigned int k)
     if(k == 0)
         return NULL;
     if(k == 1)
-        return r;
+        return r.data();
     if(k <= r_power.size()+1)
-        return r_power[k - 2];
+        return r_power[k - 2].data();
     else
         return Calculate_Rpower(k);
 }

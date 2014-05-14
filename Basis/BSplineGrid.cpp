@@ -18,8 +18,8 @@ BSplineGrid::BSplineGrid(unsigned int n, unsigned int k, double dr0, double rmax
 
     // BSpline coordinate grid
     unsigned int size = (n-k+1)*k;
-    r = (double*)malloc(sizeof(double) * size);
-    dr = (double*)malloc(sizeof(double) * size);
+    r.resize(size);
+    dr.resize(size);
 
     unsigned int point = 0;
     for(unsigned int left = k-1; left < n; left++)

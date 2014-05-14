@@ -3,6 +3,7 @@ AngularData/
 *.txt
 *.input
 *.out
+*.basis
 *.core.atom
 *.excited.atom
 *.sigma

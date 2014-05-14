@@ -2,7 +2,8 @@
 #include "Include.h"
 #include "IndexedIterator.h"
 
-OrbitalManager::OrbitalManager(pLattice lattice)
+OrbitalManager::OrbitalManager(pLattice lattice):
+    lattice(lattice)
 {
     pOrbitalMap empty = pOrbitalMap(new OrbitalMap(lattice));
     deep = empty;
@@ -15,10 +16,10 @@ OrbitalManager::OrbitalManager(pLattice lattice)
     all = empty;
 }
 
-OrbitalManager::OrbitalManager(pOrbitalMap core, pOrbitalMap valence):
-    core(core), valence(valence)
+OrbitalManager::OrbitalManager(pCore core, pOrbitalMap valence):
+    lattice(core->GetLattice()), core(core), valence(valence)
 {
-    pOrbitalMap empty = pOrbitalMap(new OrbitalMap(core->GetLattice()));
+    pOrbitalMap empty = pOrbitalMap(new OrbitalMap(lattice));
     deep = core;
     hole = empty;
     particle = valence;
@@ -29,6 +30,11 @@ OrbitalManager::OrbitalManager(pOrbitalMap core, pOrbitalMap valence):
     all->AddStates(*valence);
 
     MakeStateIndexes();
+}
+
+OrbitalManager::OrbitalManager(const std::string& filename)
+{
+    Read(filename);
 }
 
 pOrbitalMapConst OrbitalManager::GetOrbitalMap(OrbitalClassification type) const
@@ -75,6 +81,8 @@ void OrbitalManager::Read(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rb");
 
+    lattice = pLattice(new Lattice(fp));
+    all = pOrbitalMap(new OrbitalMap(lattice));
     all->Read(fp);
 
     // Read OrbitalInfo for all other maps and get corresponding Orbital from all
@@ -85,12 +93,15 @@ void OrbitalManager::Read(const std::string& filename)
     ReadInfo(fp, core);
     ReadInfo(fp, excited);
     ReadInfo(fp, valence);
+
+    MakeStateIndexes();
 }
 
 void OrbitalManager::Write(const std::string& filename) const
 {
     FILE* fp = fopen(filename.c_str(), "wb");
 
+    lattice->Write(fp);
     all->Write(fp);
 
     // Write OrbitalInfo for all other maps.
@@ -107,6 +118,8 @@ void OrbitalManager::ReadInfo(FILE* fp, pOrbitalMap& orbitals)
 {
     unsigned int size;
     int pqn, kappa;
+
+    orbitals = pOrbitalMap(new OrbitalMap(lattice));
 
     fread(&size, sizeof(unsigned int), 1, fp);
 

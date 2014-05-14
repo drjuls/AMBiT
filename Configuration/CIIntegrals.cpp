@@ -408,6 +408,8 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
     unsigned int i3 = state_index.find(s3)->second;
     unsigned int i4 = state_index.find(s4)->second;
 
+    TwoElectronIntegralOrdering(i1, i2, i3, i4);
+
     unsigned int key = k  * NumStates*NumStates*NumStates*NumStates +
                        i1 * NumStates*NumStates*NumStates +
                        i2 * NumStates*NumStates +
@@ -421,21 +423,24 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
     }
     else
     {   // Check triangle and parity conditions on k
-        if(((k + s1.L() + s3.L())%2 == 1) ||
-             (double(k) < fabs(s1.J() - s3.J())) ||
-             (double(k) > s1.J() + s3.J()) ||
-           ((k + s2.L() + s4.L())%2 == 1) ||
-             (double(k) < fabs(s2.J() - s4.J())) ||
-             (double(k) > s2.J() + s4.J()))
-            return 0.;
-
-        pSingleParticleWavefunctionConst s_1 = states->GetState(reverse_state_index.find(i1)->second);
-        pSingleParticleWavefunctionConst s_2 = states->GetState(reverse_state_index.find(i2)->second);
-        pSingleParticleWavefunctionConst s_3 = states->GetState(reverse_state_index.find(i3)->second);
-        pSingleParticleWavefunctionConst s_4 = states->GetState(reverse_state_index.find(i4)->second);
-
-        hartreeY_operator->SetParameters(k, *s_2, *s_4);
-        radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3, false);
+//        if(((k + s1.L() + s3.L())%2 == 1) ||
+//             (double(k) < fabs(s1.J() - s3.J())) ||
+//             (double(k) > s1.J() + s3.J()) ||
+//           ((k + s2.L() + s4.L())%2 == 1) ||
+//             (double(k) < fabs(s2.J() - s4.J())) ||
+//             (double(k) > s2.J() + s4.J()))
+//            return 0.;
+//
+//        pSingleParticleWavefunctionConst s_1 = states->GetState(reverse_state_index.find(i1)->second);
+//        pSingleParticleWavefunctionConst s_2 = states->GetState(reverse_state_index.find(i2)->second);
+//        pSingleParticleWavefunctionConst s_3 = states->GetState(reverse_state_index.find(i3)->second);
+//        pSingleParticleWavefunctionConst s_4 = states->GetState(reverse_state_index.find(i4)->second);
+//
+//        hartreeY_operator->SetParameters(k, *s_2, *s_4);
+//        radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3, false);
+        *errstream << "Cannot find integral: k = " << k << "; "
+                   << s1.Name() << " " << s2.Name() << " " << s3.Name() << " " << s4.Name() << std::endl;
+        exit(2);
     }
 
     return radial;

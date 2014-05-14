@@ -15,35 +15,58 @@
 class SolutionMap;
 class Sigma3Calculator;
 
+/** Atom is something like a "LevelGenerator", but with Read/Write operations,
+    multiprocessor functions, etc, based on user input.
+ */
 class Atom
 {
 public:
     Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier);
     ~Atom();
 
-    /** Calculate or read Hartree-Fock and set up basis. */
-    void CreateBasis();
+    /** Read existing basis or perform Hartree-Fock calculation
+        (optionally using hf_open_core_start as a starting approximation).
+        Set up basis orbitals and operators; write orbitals.
+        Return open-shell core orbitals.
+     */
+    pCore MakeBasis(pCoreConst hf_open_core_start = nullptr);
 
-    /** Identifier is only really used to identify this atom in filenames for storage.
-        Should be altered when one of the physical parameters (eg nuclear) changes.
-      */
-    const std::string& GetIdentifier() { return identifier; }
-    void SetIdentifier(const std::string& atom_identifier) { identifier = atom_identifier; }
+    /** Get the open-shell core orbitals. */
+    pCore GetOpenShellCore() { return hf_core; }
 
-    /** Write the atomic state to file, including all known electron wavefunctions. */
-    void Write() const;
+    /** Get the orbital basis. */
+    pOrbitalManagerConst GetBasis() { return orbitals; }
 
-    /** Attempt to read core. Return success.
-      */
-    bool ReadCore();
+    /** Get the lattice */
+    pLattice GetLattice() { return lattice; }
 
-    /** Read should be called immediately after initialisation of the atom, in order that
-        initial Hartree-Fock values are not calculated (just to save computational time).
-      */
-    bool Read();
+public:
+    /** Generate integrals with MBPT (if requested), store and collate from all processors.
+        PRE: MakeBasis() must have been run.
+     */
+    void MakeIntegralsMBPT();
 
-    /** Read core and excited states if core file exists, otherwise write them. */
-    void ReadOrWriteBasis();
+    /** Check sizes of matrices before doing full scale calculation. */
+    void CheckMatrixSizes();
+
+    /** Calculate levels for all chosen symmetries in user input.
+        PRE: Need to have generated all integrals.
+     */
+    pLevelMap CalculateEnergies();
+
+    /** Calculate levels for given symmetry.
+        PRE: Need to have generated all integrals.
+    */
+    pLevelMap CalculateEnergies(const Symmetry& sym);
+
+    pLevelMap GetLevels() { return levels; }
+protected:
+    /** Attempt to read basis from file and generate HF operator.
+        Return true if successful, false if file "identifier.basis" not found.
+     */
+    bool ReadBasis();
+
+    void PrintBasis();
 
 protected:
     // Main structure calculation routines
@@ -63,76 +86,8 @@ public:
      */
     void CollateIntegralsMBPT(unsigned int num_processors = 0);
 
-    /** Read stored integrals and calculate any remaining without MBPT. */
-    void GenerateIntegrals();
-
-    /** Fill symmetries in Symmetry-Eigenstates map.*/
-    void ChooseSymmetries();
-    
-    /** Generate configurations, projections, and JStates for a symmetry, and store on disk.
-        If(save_configurations)
-          - checks to see if the configurations exist on file already
-          - saves them to disk if not
-     */
-    ConfigGenerator* GenerateConfigurations(const Symmetry& sym);
-
-    /** Check sizes of matrices before doing full scale calculation. */
-    void CheckMatrixSizes();
-
-    /** Calculate energies for all chosen symmetries.
-        PRE: Need to have generated all integrals.
-     */
-    void CalculateEnergies();
-
-public:
-    /** Initialise multiple run index. */
-    void InitialiseRunIndex();
-
-    /** Total number of runs selected for this calculation. */
-    unsigned int NumberRunsSelected();
-
-    /** Manipulate run index for multiple runs. */
-    void RunIndexBegin(bool print = true);
-    void RunIndexNext(bool print = true);
-    bool RunIndexAtEnd();
-
-    void InitialiseParameters(bool print = true);
-    void SetRunParameters(bool print = true);
-    void SetRunCore(bool force = false);
-    void SetRunIntegrals(bool force = false);
-
-    /** Run atomic energy code multiple times, varying some parameter like
-        alpha, NuclearInverseMass (for SMS), or volume shift parameter.
-     */
-    void RunMultiple(bool include_mbpt = false, bool closed_shell = false);
-
-    /** Set up core, excited states, and integrals some value of the varying parameter.
-        PRE: Need to have initialised CIIntegrals* integrals, core and excited states.
-     */
-    void SetMultipleIntegralsAndCore(unsigned int index);
-
-    /** Read stored integrals and calculate any remaining without MBPT.
-        The MBPT_CI flag tells it whether to use CIIntegralsMBPT or not (CIIntegralsMBPT stores around
-        twice as many integrals because of the loss of symmetry due to box diagrams).
-     */
-    void GenerateMultipleIntegrals(bool MBPT_CI);
-
-    /** Calculate energies for all chosen symmetries. Integrals are generated as needed. */
-    void CalculateMultipleEnergies();
-
-    void CalculateMultipleClosedShell(bool include_mbpt);
-
 public:
     bool RestoreAllEigenstates();
-
-    /** Get the set of atomic core orbitals. */
-    pCore GetCore() { return hf_core; }
-
-    /** Get the orbital basis. */
-    pOrbitalManagerConst GetBasis() { return orbitals; }
-    
-    /** Get the lattice */
-    pLattice GetLattice() { return lattice; }
 
     CIIntegrals* GetCIIntegrals() { return integrals; }
 
@@ -162,10 +117,15 @@ protected:
     unsigned int num_valence_electrons;
 
     pLattice lattice;
-    pCore hf_core;
+    pCore hf_core;                  //!< Open-shell HF core
+    pHFOperator hf;                 //!< Closed-shell HF operator
     pOrbitalManagerConst orbitals;
+    pHartreeY hartreeY;
+    bool hartreeY_reverse_symmetry;
 
-    CIIntegrals* integrals;
+    CIIntegrals* integrals;             //!< Two-body Hamiltonian
+    pHFElectronOperator hf_electron;    //!< One-body Hamiltonian
+    std::set<Symmetry> symmetries;
     pLevelMap levels;
 
 //    CIIntegralsMBPT* integralsMBPT;
@@ -175,10 +135,6 @@ protected:
 
 //    SymmetryEigenstatesMap symEigenstates;
 //    SolutionMap* mSolutionMap;
-
-    // Operational parameters
-    bool useRead;     // Read when possible from file
-    bool useWrite;    // Write when possible
 
     // CI + MBPT parameters
     unsigned int NumSolutions;

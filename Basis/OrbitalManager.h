@@ -18,7 +18,7 @@ enum class OrbitalClassification { deep, hole, particle, high, core, excited, va
         core        -- below Fermi level (includes deep + hole)
         excited     -- above Fermi level (includes particle + high)
         valence     -- sometimes occupied in CI model space (includes hole + particle)
-        all         -- all orbitals
+        all         -- all orbitals, potentially including some never used in the calculation
 
     For convenience, all OrbitalMaps are public members, but they will usually be const.
  */
@@ -30,11 +30,11 @@ public:
     pOrbitalMap particle;   //!< sometimes occupied in the CI model space (above Fermi level)
     pOrbitalMap high;       //!< never occupied in the CI model space
 
-    pOrbitalMap core;       //!< below Fermi level == deep + hole
+    pOrbitalMap core;             //!< below Fermi level == deep + hole
     pOrbitalMap excited;    //!< above Fermi level == particle + high
     pOrbitalMap valence;    //!< sometimes occupied in CI model space == hole + particle
 
-    pOrbitalMap all;        //!< all orbitals == deep + hole + particle + high == core + excited
+    pOrbitalMap all;        //!< all orbitals >= deep + hole + particle + high == core + excited
 
     std::map<OrbitalInfo, unsigned int> state_index;            //!< Unique key for all orbitals
     std::map<unsigned int, OrbitalInfo> reverse_state_index;    //!< Unique key for all orbitals
@@ -44,7 +44,12 @@ public:
     OrbitalManager(pLattice lattice);
 
     /** Initialise simple frozen core, all-valence model where there are no holes or pure excited states. */
-    OrbitalManager(pOrbitalMap core, pOrbitalMap valence);
+    OrbitalManager(pCore core, pOrbitalMap valence);
+
+    /** Initialise using Read(). */
+    OrbitalManager(const std::string& filename);
+
+    pLattice GetLattice() { return lattice; }
 
     /** Get total number of orbitals stored (for making keys). */
     unsigned int size() const { return all->size(); }
@@ -58,6 +63,8 @@ public:
     void Write(const std::string& filename) const;
 
 protected:
+    pLattice lattice;
+
     void ReadInfo(FILE* fp, pOrbitalMap& orbitals);
     void WriteInfo(FILE* fp, const pOrbitalMap& orbitals) const;
 };

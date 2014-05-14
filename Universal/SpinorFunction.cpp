@@ -165,39 +165,12 @@ void SpinorFunction::Write(FILE* fp) const
     unsigned int my_size = size();
     fwrite(&my_size, sizeof(unsigned int), 1, fp);
 
-    // Copy each vector to a buffer and then write in one hit.
+    // Write each vector in one hit.
     // This is important when the code is run on the supercomputer.
-    double* buffer = new double[my_size];
-    for(unsigned int i=0; i<4; i++)
-    {
-        const std::vector<double>* v;
-        switch(i)
-        {
-        case 0:
-            v = &f;
-            break;
-        case 1:
-            v = &g;
-            break;
-        case 2:
-            v = &dfdr;
-            break;
-        case 3:
-            v = &dgdr;
-            break;
-        }
-
-        double* pbuffer = buffer;
-        std::vector<double>::const_iterator it = v->begin();
-        while(it != v->end())
-        {   *pbuffer = *it;
-            pbuffer++;
-            it++;
-        }
-        fwrite(buffer, sizeof(double), my_size, fp);
-    }
-
-    delete[] buffer;
+    fwrite(f.data(), sizeof(double), my_size, fp);
+    fwrite(g.data(), sizeof(double), my_size, fp);
+    fwrite(dfdr.data(), sizeof(double), my_size, fp);
+    fwrite(dgdr.data(), sizeof(double), my_size, fp);
 }
 
 void SpinorFunction::Read(FILE* fp)
@@ -208,39 +181,10 @@ void SpinorFunction::Read(FILE* fp)
     fread(&my_size, sizeof(unsigned int), 1, fp);
     resize(my_size);
 
-    // Copy each vector to a buffer and then write in one hit.
-    // This is important when the code is run on the supercomputer.
-    double* buffer = new double[my_size];
-    for(unsigned int i=0; i<4; i++)
-    {
-        fread(buffer, sizeof(double), my_size, fp);
-        std::vector<double>* v;
-        switch(i)
-        {
-        case 0:
-            v = &f;
-            break;
-        case 1:
-            v = &g;
-            break;
-        case 2:
-            v = &dfdr;
-            break;
-        case 3:
-            v = &dgdr;
-            break;
-        }
-
-        double* pbuffer = buffer;
-        std::vector<double>::iterator it = v->begin();
-        while(it != v->end())
-        {   *it = *pbuffer;
-            pbuffer++;
-            it++;
-        }
-    }
-
-    delete[] buffer;
+    fread(f.data(), sizeof(double), my_size, fp);
+    fread(g.data(), sizeof(double), my_size, fp);
+    fread(dfdr.data(), sizeof(double), my_size, fp);
+    fread(dgdr.data(), sizeof(double), my_size, fp);
 }
 
 RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr)

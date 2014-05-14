@@ -2,6 +2,7 @@
 
 void Ambit::Recursive()
 {
+/*
     int Z = fileInput("Z", 0);
     std::ofstream outfile;
     outfile.open("temp.out", std::ios_base::trunc);
@@ -50,4 +51,5 @@ void Ambit::Recursive()
     }
 
     *outstream << std::endl << std::endl << "Final configuration: " << configstring;
+ */
 }

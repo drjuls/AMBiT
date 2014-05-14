@@ -5,6 +5,7 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/MassShiftDecorator.h"
+#include "HartreeFock/NonRelativisticSMSOperator.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput):
     hf(pHFOperator()), lattice(lat), user_input(userInput), open_core(nullptr)
@@ -66,6 +67,10 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         undressed_hf = hf;
     }
 
+    // Hartree operator
+    hartreeY = pHartreeY(new HartreeY(integrator, coulomb));
+    hartreeY_reverse_symmetry = true;
+
     // Add additional operators
     double NuclearInverseMass = user_input("NuclearInverseMass", 0.0);
     if(NuclearInverseMass)
@@ -73,7 +78,65 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         sms_op->SetInverseMass(NuclearInverseMass);
         sms_op->SetCore(open_core);
         hf = sms_op;
+
+        pHartreeY dressed(new NonRelativisticSMSOperator(hartreeY));
+        hartreeY = dressed;
+        hartreeY_reverse_symmetry = false;
     }
+}
+
+void BasisGenerator::SetOrbitalMaps()
+{
+    // Get closed-shell core orbitals and occupancies
+    std::string config(user_input("HF/Configuration", ""));
+    std::string closed_shell_string;
+    size_t colon_pos = config.find(':');
+    if(colon_pos == std::string::npos)
+        closed_shell_string = config;
+    else
+        closed_shell_string = config.substr(0, colon_pos);
+    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
+
+    // Make closed shell core. Ensure that all shells are completely filled.
+    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
+        it->second = 2. * abs(it->first.Kappa());
+
+    // Create closed core with empty pointers for all occupied orbitals
+    pCore closed_core = pCore(new Core(lattice));
+    closed_core->SetOccupancies(closed_shell_occupations);
+
+    // Transfer from all to closed core
+    OrbitalMap& all = *orbitals->all;
+    for(auto core_occupation: closed_shell_occupations)
+    {
+        closed_core->AddState(all.GetState(core_occupation.first));
+    }
+    orbitals->core = closed_core;
+
+    // TODO: implement hole states.
+    orbitals->hole = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->deep = orbitals->core;
+
+    // Transfer from all to excited states
+    std::string valence_states = user_input("Basis/ValenceBasis", "");
+    std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
+
+    pOrbitalMap excited = pOrbitalMap(new OrbitalMap(lattice));
+    for(auto orbital: all)
+    {
+        if(orbital.first.L() < max_pqn_per_l.size()
+           && orbital.first.PQN() <= max_pqn_per_l[orbital.first.L()]
+           && closed_core->GetState(orbital.first) == nullptr)
+        {
+            excited->AddState(orbital.second);
+        }
+    }
+    orbitals->excited = excited;
+
+    // TODO: implement high (virtual) states.
+    orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->particle = orbitals->excited;
+    orbitals->valence = orbitals->excited;
 }
 
 pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
@@ -108,8 +171,9 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     return open_core;
 }
 
-pHFOperator BasisGenerator::CreateHFOperator(pOrbitalManager orbital_manager)
+pHFOperator BasisGenerator::RecreateBasis(pOrbitalManager orbital_manager)
 {
+    lattice = orbital_manager->GetLattice();
     open_core = pCore(new Core(lattice));
 
     pHFOperator undressed_hf;
@@ -128,61 +192,48 @@ pHFOperator BasisGenerator::CreateHFOperator(pOrbitalManager orbital_manager)
 
     hf->SetCore(open_core);
 
+    // Modify orbital manager maps according to input file
+    orbitals = orbital_manager;
+    SetOrbitalMaps();
+
     return hf;
 }
 
 pOrbitalManagerConst BasisGenerator::GenerateBasis()
 {
-    // Core states first
-    // Get closed shell orbitals and occupancies
-    std::string config(user_input("HF/Configuration", ""));
-    std::string closed_shell_string;
-    size_t colon_pos = config.find(':');
-    if(colon_pos == std::string::npos)
-        closed_shell_string = config;
-    else
-        closed_shell_string = config.substr(0, colon_pos);
-    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
+    // Generate excited states
+    std::string all_states = user_input("Basis/BasisSize", "");
+    if(all_states.empty())
+        all_states = user_input("MBPT/Basis", "");
+    if(all_states.empty())
+        all_states = user_input("Basis/ValenceBasis", "");
 
-    // Make closed shell core. Ensure that all shells are completely filled.
-    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
-        it->second = 2. * abs(it->first.Kappa());
+    std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(all_states);
 
-    pCore closed_core = pCore(new Core(open_core->Copy()));
-    closed_core->SetOccupancies(closed_shell_occupations);
-    orbitals->core = closed_core;
-
-    // TODO: implement hole states.
-    orbitals->hole = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->deep = orbitals->core;
-
-    // Excited states
-    std::string valence_states = user_input("Basis/ValenceBasis", "");
-    std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
+    pOrbitalMap excited;
 
     if(user_input.search("Basis/--bspline-basis"))
-    {   orbitals->excited = GenerateBSplines(max_pqn_per_l);
+    {   excited = GenerateBSplines(max_pqn_per_l);
     }
     else
-        orbitals->excited = pOrbitalMap(new OrbitalMap(lattice));   // Just to stop seg-faults
+        excited = pOrbitalMap(new OrbitalMap(lattice));   // Just to stop seg-faults
+
+    // Place all orbitals in orbitals->all.
+    // Finally create orbitals->all and the state index
+    orbitals->all = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->all->AddStates(*open_core);
+    orbitals->all->AddStates(*excited);
+
+    orbitals->MakeStateIndexes();
+
+    // Organise orbitals
+    SetOrbitalMaps();
 
     if(DebugOptions.OutputHFExcited())
     {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
         double orth = TestOrthogonality(max_i, max_j);
         *outstream << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
     }
-
-    // TODO: implement high (virtual) states.
-    orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->particle = orbitals->excited;
-    orbitals->valence = orbitals->excited;
-
-    // Finally create orbitals->all and the state index
-    orbitals->all = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->all->AddStates(*orbitals->core);
-    orbitals->all->AddStates(*orbitals->excited);
-
-    orbitals->MakeStateIndexes();
 
     return orbitals;
 }

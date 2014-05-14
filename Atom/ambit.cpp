@@ -113,7 +113,12 @@ int main(int argc, char* argv[])
             ambit.Recursive();
         }
         else
-        {   /*
+        {
+            ambit.EnergyCalculations();
+        }
+    /*
+        else
+        {
             if(fileInput.search("--print-wf"))
             {                
                 StateIterator it = A.GetCore()->GetStateIterator();
@@ -255,9 +260,9 @@ int main(int argc, char* argv[])
                 }
                 SMapMap.Print();
             }
-            */
         } // End not recursive build
-        
+    */
+
         // Transition calculations should be performed here!
         //A.GetSolutionMap()->FindByIdentifier("0e0")->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier("0e0")->first, A.GetSolutionMap()->FindByIdentifier("2o0")->first));
         //A.GetSolutionMap()->FindByIdentifier("0e0")->second.GetTransitionSet()->insert(Transition(&A, TransitionType(MultipolarityType::E, 1), A.GetSolutionMap()->FindByIdentifier("0e0")->first, A.GetSolutionMap()->FindByIdentifier("2o1")->first));
@@ -302,7 +307,6 @@ void Ambit::EnergyCalculations()
     }
 
     // Choose which of the multiple runs are being done in the current calculation
-    std::vector<unsigned int> run_indexes;
     unsigned int total_run_selections = user_input.vector_variable_size("-r");
 
     if((user_input.GetNumRuns() <= 1) || user_input.search("--check-sizes"))
@@ -354,29 +358,60 @@ void Ambit::EnergyCalculations()
     {
         user_input.SetRun(i);
         std::string id = identifier + "_" + itoa(i);
-        atoms.push_back(Atom(user_input, Z, id));
+        atoms.emplace_back(user_input, Z, id);
     }
 
-    for(auto atom: atoms)
-    {
-        atom.CreateBasis();
+    // Start with -r=0 if possible, otherwise just first one
+    int zero_index = user_input.FindZeroParameterRun().second;
+    unsigned int start_run = run_indexes.size();
+    if(zero_index > 0)
+    {   // Check whether it is in current runs
+        for(start_run = 0; start_run < run_indexes.size(); start_run++)
+            if(run_indexes[start_run] == zero_index)
+                break;
+    }
+    if(start_run >= run_indexes.size())   // -r=0 not found
+        start_run = 0;
 
-        // Print basis only option
-        if(user_input.search(2, "--print-basis", "-p"))
-        {   // Check follower for option
-            std::string print_option = user_input.next("");
-            if(print_option == "Cowan")
-                atom.GenerateCowanInputFile();
-            else
-                atom.WriteGraspMCDF();
+    DebugOptions.LogFirstBuild(true);
+    DebugOptions.LogHFIterations(true);
+    DebugOptions.OutputHFExcited(true);
+    DebugOptions.HartreeEnergyUnits(true);
+
+    // CI
+    std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
+
+    pCoreConst hf_open_core = atoms[start_run].MakeBasis();
+
+    DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(false);
+
+    for(unsigned int run = 0; run < run_indexes.size(); run++)
+        if(run != start_run)
+            atoms[run].MakeBasis(hf_open_core);
+
+    // Print basis only option
+//    if(user_input.search(2, "--print-basis", "-p"))
+//    {   // Check follower for option
+//        std::string print_option = user_input.next("");
+//        if(print_option == "Cowan")
+//            atom.GenerateCowanInputFile();
+//        else
+//            atom.WriteGraspMCDF();
+//    }
+
+    // MBPT and Integrals
+    for(auto& atom: atoms)
+        atom.MakeIntegralsMBPT();
+
+    for(auto& sym: symmetries)
+    {
+        for(auto& atom: atoms)
+        {
+            atom.CalculateEnergies(sym);
         }
     }
-
-    // Go do single-electron or many-electron work.
-//    if(numValenceElectrons_ == 1 && !userInput_.search(2, "--force-CI", "-x"))
-//        RunSingleElectron();
-//    else
-//        RunMultipleElectron();
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

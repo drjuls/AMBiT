@@ -3,7 +3,7 @@
 
 #include <string>
 
-enum class Parity { start, even = 0, odd, end };
+enum class Parity { even, odd };
 
 inline std::string Name(Parity from)
 {

@@ -15,6 +15,17 @@ Core::Core(const Core& other):
     OrbitalMap(other), occupancy(other.occupancy)
 {}
 
+Core::Core(Core&& other):
+    OrbitalMap(other), occupancy(other.occupancy)
+{}
+
+Core::Core(const OrbitalMap& other):
+    OrbitalMap(other)
+{
+    for(auto orbital: m_orbitals)
+        occupancy[orbital.first] = 2 * abs(orbital.first.Kappa());
+}
+
 const Core& Core::operator=(const Core& other)
 {
     OrbitalMap::operator=(other);

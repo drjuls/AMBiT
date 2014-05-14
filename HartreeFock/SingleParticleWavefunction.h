@@ -22,7 +22,7 @@ class SingleParticleWavefunction : public SpinorFunction
 {
 public:
     SingleParticleWavefunction(const OrbitalInfo& info);
-    SingleParticleWavefunction(int kappa, unsigned int pqn = 0, double energy = 0.0, unsigned int size = 0);
+    SingleParticleWavefunction(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0);
     SingleParticleWavefunction(const SingleParticleWavefunction& other);
     SingleParticleWavefunction(SingleParticleWavefunction&& other);
     virtual ~SingleParticleWavefunction() {}

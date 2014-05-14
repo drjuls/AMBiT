@@ -1,8 +1,10 @@
 #ifndef SYMMETRY_H
 #define SYMMETRY_H
 
-#include <iostream>
 #include "Universal/Enums.h"
+#include "Atom/MultirunOptions.h"
+#include <iostream>
+#include <set>
 
 class Symmetry
 {
@@ -42,5 +44,8 @@ protected:
     unsigned int twoJ;
     Parity P;
 };
+
+/** Get set of requested symmetries from user input. */
+std::set<Symmetry> ChooseSymmetries(const MultirunOptions& user_input);
 
 #endif

@@ -15,8 +15,9 @@ protected:
 
 public:
     OrbitalMap(pLattice lat): lattice(lat) {}
-    OrbitalMap(const OrbitalMap& other);
-    virtual ~OrbitalMap(void);
+    OrbitalMap(const OrbitalMap& other): lattice(other.lattice), m_orbitals(other.m_orbitals) {}
+    OrbitalMap(OrbitalMap&& other): lattice(other.lattice), m_orbitals(other.m_orbitals) {}
+    virtual ~OrbitalMap() {}
 
     const OrbitalMap& operator=(const OrbitalMap& other);
 
@@ -58,7 +59,7 @@ public:
     /** Add or replace state. */
     virtual void AddState(pOrbital s);
 
-    /** Add all states from another OrbitalMap. */
+    /** Add all states from another OrbitalMap. Does not replace duplicates. */
     virtual void AddStates(const OrbitalMap& other);
 
 protected:

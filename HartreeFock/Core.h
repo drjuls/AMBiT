@@ -14,6 +14,8 @@ class Core : public OrbitalMap
 public:
     Core(pLattice lat, const std::string& filling = "");
     Core(const Core& other);
+    Core(Core&& other);
+    Core(const OrbitalMap& other);  //!< Create closed-shell core with fully occupied orbitals from other.
     virtual ~Core() {}
 
     const Core& operator=(const Core& other);

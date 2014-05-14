@@ -18,7 +18,9 @@ public:
 
     std::string identifier;
     MultirunOptions& user_input;
-    std::vector<Atom> atoms;
+
+    std::vector<unsigned int> run_indexes;  // run indexes according to multi-parameters
+    std::vector<Atom> atoms;                // atoms[i] corresponds to run_indexes[i]
 };
 
 #endif

@@ -2,16 +2,6 @@
 #include "OrbitalMap.h"
 #include "Universal/Interpolator.h"
 
-OrbitalMap::OrbitalMap(const OrbitalMap& other)
-{
-    (*this) = other;
-}
-
-OrbitalMap::~OrbitalMap(void)
-{
-    clear();
-}
-
 const OrbitalMap& OrbitalMap::operator=(const OrbitalMap& other)
 {
     lattice = other.lattice;
@@ -116,25 +106,23 @@ void OrbitalMap::Write(FILE* fp) const
     fwrite(&num_states, sizeof(unsigned int), 1, fp);
 
     for(auto it = begin(); it != end(); it++)
-        it->second->SpinorFunction::Write(fp);
+        it->second->Write(fp);
 }
 
 void OrbitalMap::Read(FILE* fp)
 {
+    clear();
     unsigned int num_core, i;
-    Orbital ds(-1);
     unsigned int max_size = 0;
 
     // Read states
     fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
-        ds.Read(fp);
-        pOrbital current = GetState(OrbitalInfo(&ds));
-        if(current)
-        {   *current = ds;
-            max_size = mmax(max_size, ds.size());
-        }
+        pOrbital ds(new Orbital(-1));
+        ds->Read(fp);
+        AddState(ds);
+        max_size = mmax(max_size, ds->size());
     }
 
     // Ensure lattice is large enough for new states

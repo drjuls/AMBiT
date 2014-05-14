@@ -7,9 +7,178 @@
 #include "HartreeFock/NonRelInfo.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
+#include "Configuration/GFactor.h"
 //#include "Configuration/MPIHamiltonianMatrix.h"
 //#include "Configuration/MPIMatrix.h"
 
+void Atom::MakeIntegralsMBPT()
+{
+    //TODO: MBPT part
+    if(integrals)
+        delete integrals;
+    integrals = nullptr;
+
+    integrals = new CIIntegrals(hf, hartreeY, orbitals->valence, identifier, hartreeY_reverse_symmetry);
+
+    if(user_input.search("--check-sizes"))
+        *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
+    else
+        integrals->Update();
+
+    hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
+}
+
+/** Check sizes of matrices before doing full scale calculation. */
+void Atom::CheckMatrixSizes()
+{
+    // Generate configurations again; don't read from disk. */
+    ConfigGenerator gen(orbitals, user_input);
+
+    for(auto& sym: symmetries)
+    {
+        pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
+        *outstream << "\nJ = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << ":   "
+                   << std::setw(6) << std::right << configs->size() << " rel. configurations; "
+                   << configs->NumCSFs() <<  " CSFs." << std::endl;
+    }
+}
+
+pLevelMap Atom::CalculateEnergies()
+{
+    symmetries = ChooseSymmetries(user_input);
+
+    for(auto& sym: symmetries)
+        CalculateEnergies(sym);
+
+    return levels;
+}
+
+pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
+{
+    ConfigGenerator gen(orbitals, user_input);
+    pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
+
+    bool use_read = true;
+    if(user_input.search(2, "--clean", "-c"))
+        use_read = false;
+
+    bool use_write = true;
+    if(user_input.search(2, "--dont-save", "-d"))
+        use_write = false;
+
+    std::string filename = identifier + ".levels";
+
+    if(levels == nullptr)
+    {
+        levels = pLevelMap(new LevelMap());
+//        if(use_read)
+//            levels->Read(filename);
+    }
+
+    if(levels->size(sym) < NumSolutions)
+    {
+        HamiltonianMatrix* H;
+
+        #ifdef _MPI
+            H = new MPIHamiltonianMatrix(*integrals, gen);
+        #else
+            H = new HamiltonianMatrix(hf_electron, *integrals, configs);
+        #endif
+
+//        if(sigma3)
+//            H->IncludeSigma3(sigma3);
+
+        H->GenerateMatrix();
+        //H->PollMatrix();
+
+        if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
+        {
+            #ifdef _MPI
+                std::string filename = identifier + "." + it->first.GetString() + ".matrix";
+                dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
+            #else
+                RelativisticConfigList::iterator rel_it = configs->begin();
+                while(rel_it != configs->end())
+                {
+                    *outstream << rel_it->Name();
+                    if(rel_it++ != configs->end())
+                    {
+                        *outstream << ",";
+                    }
+                }
+                *outstream << std::endl;
+
+                *outstream << std::setprecision(12);
+                *outstream << "Matrix Before:" << std::endl;
+                for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
+                {
+                    for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
+                    {
+                        *outstream << H->GetMatrix()->At(i,j) << " ";
+                    }
+                    *outstream << std::endl;
+                }
+            #endif
+        }
+
+        #ifdef _SCALAPACK
+            H->WriteToFile("temp.matrix");
+            MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
+            MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
+        #else
+            H->SolveMatrix(sym, NumSolutions, levels);
+        #endif
+
+        if(sym.GetTwoJ() != 0)
+        {
+            GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+            g_factors.CalculateGFactors(*levels, sym);
+        }
+
+        delete H;
+
+//            ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
+//            if(filegenerator)
+//            {   filegenerator->SetOutputFile("PercentagesOut.txt");
+//                filegenerator->WriteConfigs();
+//            }
+
+//        if(use_write)
+//            levels->Write(filename);
+    }
+
+    // Set up output options
+    bool ShowgFactors = true;
+    if((user_input("CI/Output/ShowgFactors", "true") == "false") || (user_input("CI/Output/ShowgFactors", 1) == 0))
+    {   ShowgFactors = false;
+    }
+
+    bool ShowPercentages = true;
+    if((user_input("CI/Output/ShowPercentages", "true") == "false") || (user_input("CI/Output/ShowPercentages", 1) == 0))
+    {   ShowPercentages = false;
+    }
+    double min_percent_displayed;
+
+    if(ShowPercentages)
+    {   min_percent_displayed = user_input("CI/Output/MinimumDisplayedPercentage", 1.);
+    }
+    else
+    {   min_percent_displayed = 101.;
+    }
+
+    bool TruncateDisplayAtMaxEnergy = user_input.search("CI/Output/MaxDisplayedEnergy");
+    double DavidsonMaxEnergy = 0.;
+    if(TruncateDisplayAtMaxEnergy)
+    {
+        DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
+    }
+
+    levels->Print(sym, min_percent_displayed, DavidsonMaxEnergy);
+
+    return levels;
+}
+
+/*
 void Atom::RunMultipleElectron()
 {
     check_size_only = userInput_.search("--check-sizes");
@@ -229,12 +398,6 @@ void Atom::GenerateIntegrals()
     if(integrals)
         delete integrals;
 
-    //core->ToggleOpenShellCore();
-    //core->SetNuclearInverseMass(0.);
-    //if(MBPT_CI)
-    //  Read();
-    core->ToggleClosedShellCore();
-
     if(includeSigma1 || includeSigma2)
         integrals = new CIIntegralsMBPT(*excited);
     else
@@ -243,211 +406,14 @@ void Atom::GenerateIntegrals()
     integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
 
     integrals->IncludeValenceSMS(false);
-    integrals->SetIdentifier(identifier);
-    integrals->Clear();
-    if(!check_size_only)
-    {   integrals->Update();
 
+    integrals = new CIIntegrals(hf, hartreeY, orbitals->valence, identifier, hartreeY_reverse_symmetry);
+
+    if(!user_input.search("--check-sizes"))
+    {
+        integrals->Update();
         if(sigma3)
             sigma3->UpdateIntegrals(excited);
-    }
-}
-
-void Atom::ChooseSymmetries()
-{
-    int i, num_symmetries;
-    int two_j;
-
-    // Even parity
-    num_symmetries = userInput_.vector_variable_size("CI/EvenParityTwoJ");
-    for(i = 0; i < num_symmetries; i++)
-    {
-        two_j = userInput_("CI/EvenParityTwoJ", 0, i);
-        symEigenstates[Symmetry(two_j, even)] = NULL;
-    }
-
-    // Odd parity
-    num_symmetries = userInput_.vector_variable_size("CI/OddParityTwoJ");
-    for(i = 0; i < num_symmetries; i++)
-    {
-        two_j = userInput_("CI/OddParityTwoJ", 0, i);
-        symEigenstates[Symmetry(two_j, odd)] = NULL;
-    }
-
-    if(symEigenstates.empty())
-    {   *errstream << "USAGE: No symmetries requested (EvenParityTwoJ or OddParityTwoJ)" << std::endl;
-        exit(1);
-    }
-}
-
-ConfigGenerator* Atom::GenerateConfigurations(const Symmetry& sym)
-{
-    bool allow_different_excitations = false;
-    unsigned int electron_excitations = 0;
-    int num_electron_excitation_inputs = userInput_.vector_variable_size("CI/ElectronExcitations");
-
-    // Default if no input detected is 2 electron excitations.
-    // If input is detected it can either be a number, which would set electron_excitations and use ValenceBasis to determine states to excite to,
-    // otherwise if input is of the form 'X, Y, ...' where X is the pqn and Y is the string with the basis (eg. 8spdf) then the code will
-    // allow X excitations to the states in Y
-    if(num_electron_excitation_inputs < 1) 
-    {
-        electron_excitations = 2;
-    }
-    else if(num_electron_excitation_inputs == 1 && ((int) userInput_("CI/ElectronExcitations", 2)) >= 0)
-    {
-        electron_excitations = (int) userInput_("CI/ElectronExcitations", 2);
-    }
-    else if(num_electron_excitation_inputs%2 != 0)  // Input should come in pairs
-    {
-        *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
-        exit(1);
-    }
-    else
-    {
-        allow_different_excitations = true;
-    }
-
-    // Generate non-relativistic configs from file.
-    bool GenerateFromFile = false;
-
-    ConfigGenerator* generator;
-
-    if(GenerateFromFile)
-        generator = new ConfigFileGenerator(excited, original_id, sym);
-    else
-        generator = new ConfigGenerator(excited, original_id, sym);
-
-    bool read_from_disk = false;
-    if(useRead)
-        read_from_disk = generator->Read();
-
-    if(!read_from_disk)
-    {
-        std::set<Configuration> leading_configs;
-
-        int num_configs = userInput_.vector_variable_size("CI/LeadingConfigurations");
-
-        if(num_configs < 1)
-        {   *errstream << "USAGE: Need CI/LeadingConfigurations (e.g. '3d7, 4s2 3d5')" << std::endl;
-            exit(1);
-        }
-
-        generator->Clear();
-        for(int i = 0; i < num_configs; i++)
-        {
-            const std::string name = userInput_("CI/LeadingConfigurations", "", i);
-            Configuration config(name);
-
-            // Check that the configuration gels with the number of electrons
-            if(config.NumParticles() != numValenceElectrons_)
-            {   *errstream << "USAGE: LeadingConfiguration " << name
-                           << " does not have correct number of valence electrons." << std::endl;
-                exit(1);
-            }
-            generator->AddLeadingConfiguration(config);
-        }
-
-        // Adds extra configurations not to be considered leading configurations.
-        if(userInput_.vector_variable_size("CI/ExtraConfigurations") > 0)
-        {
-            int num_extra_configs = userInput_.vector_variable_size("CI/ExtraConfigurations");
-            for(int i = 0; i < num_extra_configs; i++) 
-            {
-                const std::string extraname = userInput_("CI/ExtraConfigurations", "", i);
-                Configuration extraconfig(extraname);
-
-                if(extraconfig.NumParticles() != numValenceElectrons_) 
-                {
-                    *errstream << "USAGE: LeadingConfiguration " << extraname
-                           << " does not have correct number of valence electrons." << std::endl;
-                    exit(1);
-                }
-                generator->AddNonRelConfiguration(extraconfig);
-            }
-        }
-
-        if(GenerateFromFile)
-        {   ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
-            filegenerator->SetInputFile("PercentagesIn.txt");
-            filegenerator->ReadConfigs(0.05);
-        }
-        else if(allow_different_excitations)
-        {
-            unsigned int CI_num_excitations;
-            std::vector<unsigned int> CI_electron_excitation_states;
-            std::string CI_basis_string;
-
-            NonRelInfoSet nrset;
-            ConstStateIterator si = core->GetConstStateIterator();
-
-            for(int i = 0; i < num_electron_excitation_inputs; i += 2)
-            {
-                CI_num_excitations = atoi(userInput_("CI/ElectronExcitations", "", i).c_str());
-                CI_basis_string = userInput_("CI/ElectronExcitations", "", i+1);
-
-                if(!ParseBasisSize(CI_basis_string.c_str(), CI_electron_excitation_states))
-                {
-                    *errstream << "USAGE: CI/ElectronExcitations = " << CI_basis_string << " incorrectly specified." << std::endl;
-                    exit(1);
-                }
-
-                nrset.clear();
-                nrset.AddConfigs(CI_basis_string.c_str());
-                // Erase core set
-                for(si.First(); !si.AtEnd(); si.Next())
-                {
-                    nrset.erase(si.GetOrbitalInfo());
-                }
-
-                generator->GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset);
-            }
-        }
-        else
-        {
-            generator->GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations);
-        }
-
-        generator->GenerateRelativisticConfigs();
-        generator->GenerateProjections();
-
-        if(useWrite)
-            generator->Write();
-    }
-
-    return generator;
-}
-
-void Atom::CheckMatrixSizes()
-{
-    // Two electron integral storage size
-    if(integrals)
-        *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
-
-    SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
-
-    while(it != symEigenstates.end())
-    {
-        // Generate configurations again; don't read from disk. */
-        ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
-        Eigenstates* E = new Eigenstates(identifier, conf_gen);
-
-        *outstream << "\nJ = " << it->first.GetJ() << ", P = ";
-        if(it->first.GetParity() == even)
-            *outstream << "even" << std::endl;
-        else
-            *outstream << "odd" << std::endl;
-
-        // Print number of relativistic configurations
-        *outstream << " Number of rel configurations = "
-                   << E->GetConfigGenerator()->GetRelConfigs()->size() << std::endl;
-        
-        // Print number of JStates
-        *outstream << " Number of J-configurations = "
-                   << E->GetConfigGenerator()->GetNumJStates() << std::endl;
-
-        delete E;
-        it++;
     }
 }
 
@@ -586,12 +552,4 @@ void Atom::CalculateEnergies()
         it++;
     }
 }
-
-Eigenstates* Atom::GetEigenstates(const Symmetry& sym)
-{
-    SymmetryEigenstatesMap::iterator it = symEigenstates.find(sym);    
-    if(it != symEigenstates.end())
-        return it->second;
-    else
-        return NULL;
-}
+*/

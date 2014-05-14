@@ -202,20 +202,3 @@ unsigned int Orbital::NumNodes() const
     }
     return zeros;
 }
-
-void Orbital::Write(FILE* fp) const
-{
-    // As well as the SpinorFunction vectors, we need to output some other things
-    fwrite(&kappa, sizeof(int), 1, fp);
-    fwrite(&pqn, sizeof(unsigned int), 1, fp);
-
-    SingleParticleWavefunction::Write(fp);
-}
-
-void Orbital::Read(FILE* fp)
-{
-    fread(&kappa, sizeof(int), 1, fp);
-    fread(&pqn, sizeof(unsigned int), 1, fp);
-
-    SingleParticleWavefunction::Read(fp);
-}

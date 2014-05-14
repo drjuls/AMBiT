@@ -7,7 +7,7 @@ SingleParticleWavefunction::SingleParticleWavefunction(const OrbitalInfo& info):
     SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
 {}
 
-SingleParticleWavefunction::SingleParticleWavefunction(int kappa, unsigned int pqn, double energy, unsigned int size):
+SingleParticleWavefunction::SingleParticleWavefunction(int kappa, int pqn, double energy, unsigned int size):
     SpinorFunction(kappa, size), pqn(pqn), energy(energy)
 {}
 
