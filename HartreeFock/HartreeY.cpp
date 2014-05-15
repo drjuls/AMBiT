@@ -31,7 +31,7 @@ double HartreeY::GetMatrixElement(const SpinorFunction& b, const SpinorFunction&
        (abs(a.TwoJ() - b.TwoJ()) <= 2 * K) &&
        (2 * K <= a.TwoJ() + b.TwoJ()))
     {
-        return integrator->Integrate(potential * b.GetDensity(a));
+        return integrator->GetPotentialMatrixElement(a, b, potential);
     }
     else
         return 0.;

@@ -29,7 +29,7 @@ public:
     }
 
     typedef std::vector<const ElectronInfo*> IndirectProjection;
-    inline IndirectProjection make_indirect_projection(const Projection& proj) const;
+    inline void make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const;
 
     /** Rearrange p1 and p2 so that differences are at the beginning (up to max differences).
         abs(return value) is number of differences found
@@ -106,13 +106,15 @@ template <typename... pElectronOperators>
 double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right) const
 {
     int num_diffs = 0;
-    ManyBodyOperator<>::IndirectProjection left = make_indirect_projection(proj_left);
-    ManyBodyOperator<>::IndirectProjection right;
+
+    // NB: These are static for speed: to prevent memory (de)allocation
+    static ManyBodyOperator<>::IndirectProjection left, right;
+    make_indirect_projection(proj_left, left);
 
     // Skip this for same projection
     if(&proj_left != &proj_right)
     {
-        right = make_indirect_projection(proj_right);
+        make_indirect_projection(proj_right, right);
         num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(left, right);
     }
 
@@ -178,23 +180,27 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 }
 
 template<typename... pElectronOperators>
-typename ManyBodyOperator<pElectronOperators...>::IndirectProjection ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Projection& proj) const
+void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
 {
-    ManyBodyOperator<>::IndirectProjection ret;
+    indirect_proj.clear();
+    indirect_proj.reserve(proj.size());
 
     std::copy(boost::make_counting_iterator(proj.data()),
               boost::make_counting_iterator(proj.data_end()),
-              std::back_inserter(ret));
-
-    return ret;
+              std::back_inserter(indirect_proj));
 }
 
 template<typename... pElectronOperators>
 template<int max_diffs>
 int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2) const
 {
-    IndirectProjection diff1, diff2;
-    IndirectProjection sorted_p1, sorted_p2;
+    // NB: These are static for speed: to prevent memory (de)allocation
+    static IndirectProjection diff1, diff2;
+    diff1.clear(); diff1.reserve(p1.size() + max_diffs);
+    diff2.clear(); diff2.reserve(p2.size() + max_diffs);
+    static IndirectProjection sorted_p1, sorted_p2;
+    sorted_p1.clear(); sorted_p1.reserve(p1.size());
+    sorted_p2.clear(); sorted_p2.reserve(p2.size());
 
     auto it1 = p1.begin();
     auto it2 = p2.begin();
@@ -228,6 +234,8 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         diff2.push_back(*it2++);
     }
 
+    int num_diffs = diff1.size();
+
     // TODO: Hole shifties
     if((diff1.size() > max_diffs) || (diff2.size() > max_diffs))
         return max_diffs+1;
@@ -236,16 +244,16 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         return 0;
 
     //Copy differences
-    sorted_p1.insert(sorted_p1.begin(), diff1.begin(), diff1.end());
-    sorted_p2.insert(sorted_p2.begin(), diff2.begin(), diff2.end());
+    diff1.insert(diff1.end(), sorted_p1.begin(), sorted_p1.end());
+    diff2.insert(diff2.end(), sorted_p2.begin(), sorted_p2.end());
 
-    p1.swap(sorted_p1);
-    p2.swap(sorted_p2);
+    p1 = diff1;
+    p2 = diff2;
 
     if(permutations%2 == 0)
-        return int(diff1.size());
+        return num_diffs;
     else
-        return -int(diff1.size());
+        return -num_diffs;
 }
 
 template<typename... pElectronOperators>

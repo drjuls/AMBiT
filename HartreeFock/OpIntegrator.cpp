@@ -1,12 +1,5 @@
-//
-//  OpIntegrator.cpp
-//  AMBiT
-//
-//  Created by Julian Berengut on 16/08/13.
-//  Copyright (c) 2013 UNSW. All rights reserved.
-//
-
 #include "OpIntegrator.h"
+#include "Include.h"
 
 double OPIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
 {
@@ -20,27 +13,49 @@ double OPIntegrator::GetNorm(const SpinorFunction& a) const
     return Integrate(integrand);
 }
 
+double OPIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const SpinorFunction& b, const RadialFunction& V) const
+{
+    RadialFunction integrand = a.GetDensity(b);
+    integrand *= V;
+    return Integrate(integrand);
+}
+
+double OPIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const RadialFunction& V) const
+{
+    RadialFunction integrand = a.GetDensity();
+    integrand *= V;
+    return Integrate(integrand);
+}
+
 double SimpsonsIntegrator::Integrate(const RadialFunction& integrand) const
 {
-    double total = 0.;
-    const double* dR = lattice->dR();
+    return Integrate(integrand.size(), [&](int i){ return (integrand.f[i]); });
+}
 
-    if(integrand.size() == 0)
-        return 0.0;
+/** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
+double SimpsonsIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
+{
+    int size = mmin(a.size(), b.size());
+    return Integrate(size, [&](int i){ return (a.f[i] * b.f[i] + a.g[i] * b.g[i]); });
+}
 
-    unsigned int i;
-    for(i = 1; i < integrand.size()-1; i+=2)
-    {
-        total += 4. * integrand.f[i] * dR[i]
-                + 2. * integrand.f[i+1] * dR[i+1];
-    }
-    total = total/3.;
-    total += integrand.f[0] * dR[0];
+/** < a | a > */
+double SimpsonsIntegrator::GetNorm(const SpinorFunction& a) const
+{
+    return Integrate(a.size(), [&](int i){ return (a.f[i] * a.f[i] + a.g[i] * a.g[i]); });
+}
 
-    while(i < integrand.size())
-    {   total += integrand.f[i] * dR[i];
-        i++;
-    }
+/** < a | V | b > = Integral (f_a * f_b + g_a * g_b) * V(r) dr */
+double SimpsonsIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const SpinorFunction& b, const RadialFunction& V) const
+{
+    int size = mmin(a.size(), b.size());
+    size = mmin(size, V.size());
+    return Integrate(size, [&](int i){ return (a.f[i] * b.f[i] + a.g[i] * b.g[i]) * V.f[i]; });
+}
 
-    return total;
+/** < a | V | a > */
+double SimpsonsIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const RadialFunction& V) const
+{
+    int size = mmin(a.size(), V.size());
+    return Integrate(size, [&](int i){ return (a.f[i] * a.f[i] + a.g[i] * a.g[i]) * V.f[i]; });
 }

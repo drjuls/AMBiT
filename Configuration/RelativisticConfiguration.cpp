@@ -91,7 +91,12 @@ RelativisticConfigList::const_projection_iterator RelativisticConfigList::projec
         return const_projection_iterator(this);
 
     last--;
-    return const_projection_iterator(this, last->projection_end(), end(), NumCSFs());
+
+    // NB: below we use const_projection_iterator(this, last->projection_end(), end(), 0) rather than
+    //                  const_projection_iterator(this, last->projection_end(), end(), NumCSFs())
+    //     even though the latter makes more sense. But the comparison is only made on
+    //     const_projection_iterator.m_base, i.e. last->projection_end(), and so the CSF_index is meaningless
+    return const_projection_iterator(this, last->projection_end(), end(), 0);
 }
 
 unsigned int RelativisticConfigList::projection_size() const
