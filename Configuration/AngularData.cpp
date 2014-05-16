@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "RelativisticConfiguration.h"
 #include "Universal/Eigensolver.h"
+#include "ManyBodyOperator.h"
 #include <numeric>
 #include <dirent.h>
 
@@ -168,6 +169,8 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     auto i_it = real_Projection_list.begin();
     auto j_it = i_it;
 
+    ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
+
     i = 0;
     while(i_it != real_Projection_list.end())
     {
@@ -175,7 +178,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         j = i;
         while(j_it != real_Projection_list.end())
         {
-            double matrix_element = GetJSquared(*i_it, *j_it);
+            double matrix_element = J_squared.GetMatrixElement(*i_it, *j_it);
             M[i*N + j] = M[j*N + i] = matrix_element;
             j_it++; j++;
         }
@@ -230,87 +233,6 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     delete[] V;
 
     return num_CSFs;
-}
-
-double AngularData::GetJSquared(const Projection& first, const Projection& second) const
-{
-    double ret = 0.;
-    unsigned int i, j;
-    unsigned int diff[4];
-
-    int numdiff = Projection::GetProjectionDifferences(first, second, diff);
-    if(numdiff == 0)
-    {   // <J^2> += Sum_i (j_i)(j_i + 1)  + Sum_(i<j) 2(m_i)(m_j)
-        i=0;
-        while(i < first.size())
-        {
-            ret += first[i].J() * (first[i].J() + 1);
-
-            j = i+1;
-            while(j < second.size())
-            {   ret += 2. * first[i].M() * second[j].M();
-                j++;
-            }
-
-            i++;
-        }
-        // <J^2> += Sum_(i<j) (j+_i)(j-_j) + (j-_i)(j+_j)
-        for(i=0; i<second.size(); i++)
-        {
-            for(j=i+1; j<second.size(); j++)
-            {
-                // Assume ordering from large M to small M.
-                if((first[i].Kappa() == first[j].Kappa()) && (first[i].PQN() == first[j].PQN())
-                   && (abs(first[i].TwoM() - first[j].TwoM()) == 2))
-                {
-                    double J = first[i].J();
-                    double M;
-                    if(first[i].TwoM() > first[j].TwoM())
-                        M = first[j].M();
-                    else
-                        M = first[i].M();
-
-                    double value = (J * (J + 1) - M * (M + 1));
-                    ret -= value;
-//                    if((j-i)%2)
-//                        ret -= value;
-//                    else
-//                        ret += value;
-                }
-                else
-                    break;  // WARNING: Assumes ordering of electrons in projection
-            }               //          is grouped by PQN and Kappa.
-        }
-    }
-    else if(abs(numdiff) == 2)
-    {
-        const ElectronInfo& f1 = first[diff[0]];
-        const ElectronInfo& s1 = second[diff[1]];
-        const ElectronInfo& f2 = first[diff[2]];
-        const ElectronInfo& s2 = second[diff[3]];
-
-        if((f1.Kappa() == s1.Kappa()) && (f1.PQN() == s1.PQN())
-           && (f2.Kappa() == s2.Kappa()) && (f2.PQN() == s2.PQN())
-           && (abs(f1.TwoM() - s1.TwoM()) == 2) && (abs(f2.TwoM() - s2.TwoM()) == 2)
-           && (f1.TwoM() + f2.TwoM() == s1.TwoM() + s2.TwoM())) // This should be automatic?
-        {
-            ret = sqrt(f1.J() * (f1.J() + 1.) - f1.M() * s1.M())*
-                  sqrt(f2.J() * (f2.J() + 1.) - f2.M() * s2.M());
-        }
-        else if((f1.Kappa() == s2.Kappa()) && (f1.PQN() == s2.PQN())
-                && (f2.Kappa() == s1.Kappa()) && (f2.PQN() == s1.PQN())
-                && (abs(f1.TwoM() - s2.TwoM()) == 2) && (abs(f2.TwoM() - s1.TwoM()) == 2)
-                && (f1.TwoM() + f2.TwoM() == s1.TwoM() + s2.TwoM()))
-        {
-            ret = - sqrt(f1.J() * (f1.J() + 1.) - f1.M() * s2.M())*
-                    sqrt(f2.J() * (f2.J() + 1.) - f2.M() * s1.M());
-        }
-
-        if(numdiff < 0)
-            ret = -ret;
-    }
-    
-    return ret;
 }
 
 int AngularData::GenerateCSFs(const AngularData::ConfigKeyType& key, int two_j)
@@ -396,7 +318,8 @@ void AngularDataLibrary::GenerateCSFs()
     (Note: number of particles and symmetry is stored in filename)
     - (int) number of stored AngularData objects
     then for each AngularData object
-        - (int) key size = number of pairs
+        - (int) key size = number of pairs (kappa, num particles)
+        - key
         - (int) number of projections = N
         - projections
         - (int) numCSFs
@@ -423,7 +346,8 @@ void AngularDataLibrary::Read()
         int key_size = 0;
         fread(&key_size, sizeof(int), 1, fp);
 
-        KeyType key;    // pair(kappa, num particles)
+        KeyType key;    // vector of pair(kappa, num particles)
+        key.reserve(key_size);
         for(int i = 0; i < key_size; i++)
         {
             int kappa, num_particles;

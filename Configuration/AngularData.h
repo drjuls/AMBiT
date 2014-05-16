@@ -57,8 +57,6 @@ public:
 
 protected:
     int GenerateProjections(const RelativisticConfiguration& config, int two_m);
-    double GetJSquared(const Projection& first, const Projection& second) const;
-
     static bool ProjectionCompare(const std::vector<int>& first, const std::vector<int>& second);
 
     /** List of "projections": in this context, vectors of two_Ms. */
@@ -72,6 +70,44 @@ protected:
     double* CSFs;
     int num_CSFs;
     int two_j;
+
+protected:
+    /** J^2 = Sum_i j_i^2 + 2 Sum_(i<j) j_i . j_j
+        One-body operator = j(j+1)
+        Two-body operator = 2 (jz_i.jz_j) + (j+_i.j-_j + j-_i.j+_j)
+     */
+    class JSquaredOperator
+    {
+    public:
+        double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
+        {
+            if(e1 == e2)
+                return e1.J() * (e1.J() + 1);
+            else
+                return 0.0;
+        }
+
+        double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
+        {
+            if(e1.Kappa() == e3.Kappa() && e1.PQN() == e3.PQN()
+               && e2.Kappa() == e4.Kappa() && e2.PQN() == e4.PQN())
+            {
+                // 2 (jz_i.jz_j)
+                if(e1.TwoM() == e3.TwoM() && e2.TwoM() == e4.TwoM())
+                    return 2. * e1.M() * e2.M();
+
+                // (j+_i.j-_j + j-_i.j+_j)
+                if((abs(e1.TwoM() - e3.TwoM()) == 2) && (abs(e2.TwoM() - e4.TwoM()) == 2)
+                    && (e1.TwoM() + e2.TwoM() == e3.TwoM() + e4.TwoM()))
+                {
+                    return (sqrt(e1.J() * (e1.J() + 1.) - e1.M() * e3.M()) *
+                            sqrt(e2.J() * (e2.J() + 1.) - e2.M() * e4.M()));
+                }
+            }
+
+            return 0.;
+        }
+    } J_squared_operator;
 };
 
 typedef boost::shared_ptr<AngularData> pAngularData;

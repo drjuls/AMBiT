@@ -378,9 +378,6 @@ void Ambit::EnergyCalculations()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    // CI
-    std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
-
     pCoreConst hf_open_core = atoms[start_run].MakeBasis();
 
     DebugOptions.LogFirstBuild(false);
@@ -404,6 +401,9 @@ void Ambit::EnergyCalculations()
     // MBPT and Integrals
     for(auto& atom: atoms)
         atom.MakeIntegralsMBPT();
+
+    // CI
+    std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
 
     for(auto& sym: symmetries)
     {

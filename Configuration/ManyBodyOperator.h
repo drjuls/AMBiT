@@ -18,6 +18,10 @@ public:
 /** ManyBodyOperator is instantiated with a set of pointers to operators,
     each of which must supply GetMatrixElement(const ElectronInfo& e1, ...).
     The number of operators supplied must be between one and three.
+    Ordering of electrons in GetMatrixElement (la->ra, lb->rb, etc):
+        One-body:   (la, ra)
+        Two-body:   (la, lb, ra, rb)
+        Three-body: (la, lb, lc, ra, rb, rc)
  */
 template <typename... pElectronOperators>
 class ManyBodyOperator
