@@ -89,6 +89,16 @@ unsigned int LevelMap::size(const Symmetry& sym) const
     return total;
 }
 
+std::set<Symmetry> LevelMap::GetSymmetries() const
+{
+    std::set<Symmetry> ret;
+
+    for(auto pair: *this)
+        ret.insert(pair.first.GetSymmetry());
+
+    return ret;
+}
+
 void LevelMap::Print(const Symmetry& sym, double min_percentage, bool use_max_energy, double max_energy) const
 {
     const_symmetry_iterator solution_it = begin(sym);
@@ -158,4 +168,116 @@ void LevelMap::Print(const Symmetry& sym, double min_percentage, bool use_max_en
         *outstream << std::endl;
         solution_it++;
     }
+}
+
+bool LevelMap::Read(const std::string& filename, const std::string& angular_directory)
+{
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        return false;
+
+    std::map<Symmetry, pRelativisticConfigList> sym_config_map;
+
+    unsigned int num_symmetries;
+    int two_j;
+    Parity P;
+
+    // Read symmetries and relativistic configurations
+    fread(&num_symmetries, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < num_symmetries; i++)
+    {
+        fread(&two_j, sizeof(int), 1, fp);
+        fread(&P, sizeof(Parity), 1, fp);
+
+        pRelativisticConfigList configs(new RelativisticConfigList());
+        configs->Read(fp);
+        sym_config_map[Symmetry(two_j, P)] = configs;
+
+        // Recover angular data
+        int particle_number = configs->front().ElectronNumber();
+        pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, Symmetry(two_j, P), two_j, angular_directory));
+        angular_library->Read();
+
+        for(auto& relconfig: *configs)
+            relconfig.GetProjections(angular_library);
+
+        // These should be generated already, but in case they weren't saved...
+        angular_library->GenerateCSFs();
+    }
+
+    // Read LevelIDs and Levels
+    unsigned int num_levels;
+    unsigned int ID;
+    fread(&num_levels, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < num_levels; i++)
+    {
+        // LevelID
+        fread(&two_j, sizeof(int), 1, fp);
+        fread(&P, sizeof(Parity), 1, fp);
+        fread(&ID, sizeof(unsigned int), 1, fp);
+
+        // Level
+        pLevel level(new Level());
+        fread(&level->eigenvalue, sizeof(double), 1, fp);
+        fread(&level->N, sizeof(unsigned int), 1, fp);
+        level->eigenvector = new double[level->N];
+        fread(level->eigenvector, sizeof(double), level->N, fp);
+        fread(&level->gFactor, sizeof(double), 1, fp);
+
+        level->configs = sym_config_map[Symmetry(two_j, P)];
+
+        // Add to this
+        insert(std::make_pair(LevelID(two_j, P, ID), level));
+    }
+
+    fclose(fp);
+    return true;
+}
+
+void LevelMap::Write(const std::string& filename) const
+{
+    FILE* fp = fopen(filename.c_str(), "wb");
+    std::set<Symmetry> symmetries = GetSymmetries();
+
+    // Write symmetries and relativistic configurations
+    unsigned int num_symmetries = symmetries.size();
+    fwrite(&num_symmetries, sizeof(unsigned int), 1, fp);
+
+    for(const Symmetry& sym: symmetries)
+    {
+        int two_j = sym.GetTwoJ();
+        Parity P = sym.GetParity();
+        fwrite(&two_j, sizeof(int), 1, fp);
+        fwrite(&P, sizeof(Parity), 1, fp);
+
+        // Config list
+        begin(sym)->second->GetRelativisticConfigList()->Write(fp);
+    }
+
+    // Write all LevelIDs and Level information
+    unsigned int num_levels = size();
+    fwrite(&num_levels, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: *this)
+    {
+        // LevelID
+        int two_j = pair.first.GetTwoJ();
+        Parity P = pair.first.GetParity();
+        unsigned int ID = pair.first.GetID();
+
+        fwrite(&two_j, sizeof(int), 1, fp);
+        fwrite(&P, sizeof(Parity), 1, fp);
+        fwrite(&ID, sizeof(unsigned int), 1, fp);
+
+        // Level
+        pLevelConst level = pair.second;
+        fwrite(&level->eigenvalue, sizeof(double), 1, fp);
+        fwrite(&level->N, sizeof(unsigned int), 1, fp);
+        fwrite(level->eigenvector, sizeof(double), level->N, fp);
+        fwrite(&level->gFactor, sizeof(double), 1, fp);
+    }
+
+    fclose(fp);
 }

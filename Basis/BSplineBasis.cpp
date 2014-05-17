@@ -48,8 +48,8 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
     double dr0;
 
     Eigensolver E;
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    const double alpha = physical_constant->GetAlpha();
+    const double alphasquared = physical_constant->GetAlphaSquared();
     pOPIntegrator integrator = hf->GetOPIntegrator();
 
     for(int l = 0; l < max_pqn.size(); l++)

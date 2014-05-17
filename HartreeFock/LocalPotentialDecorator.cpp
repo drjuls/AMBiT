@@ -26,7 +26,7 @@ void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const Sp
     wrapped->GetODEFunction(latticepoint, fg, w);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha();
         w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
         w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
     }
@@ -37,7 +37,7 @@ void LocalPotentialDecorator::GetODECoefficients(unsigned int latticepoint, cons
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha();
         w_g[0] += alpha * directPotential.f[latticepoint];
         w_f[1] -= alpha * directPotential.f[latticepoint];
     }
@@ -48,7 +48,7 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha();
         jacobian[0][1] += alpha * directPotential.f[latticepoint];
         jacobian[1][0] -= alpha * directPotential.f[latticepoint];
 

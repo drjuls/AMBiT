@@ -294,6 +294,15 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two
 
     // Write even if there are no CSFs for a given J since this is not so obvious
     angular_library->Write();
+
+    it = rlist->begin();
+    while(it != rlist->end())
+    {
+        if(it->NumCSFs())
+            it++;
+        else
+            it = rlist->erase(it);
+    }
 }
 
 /*

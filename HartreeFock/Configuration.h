@@ -9,13 +9,13 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 
+/** Configuration is similar to std::map<OrbitalType, OccupancyType>,
+    with a simplified, and sometimes intentionally modified, interface.
+    OrbitalType should have functions L() and Name().
+ */
 template <class OrbitalType, class OccupancyType>
 class Configuration
 {
-    /** Configurationuration is similar to std::map<OrbitalType, OccupancyType>,
-        with a simplified, and sometimes intentionally modified, interface.
-        OrbitalType should have functions L() and Name().
-     */
 protected:
     typedef Configuration<OrbitalType, OccupancyType> BaseConfiguration;
     typedef std::map<OrbitalType, OccupancyType> ConfigurationMapType;
@@ -93,6 +93,7 @@ public:
             ret += abs(pair.second);
         return ret;
     }
+    /** Particle number = number of electrons + number of holes. */
     template<typename U = OccupancyType>
     typename boost::lazy_enable_if<boost::is_floating_point<U>, OccupancyType>::type
     ParticleNumber() const

@@ -25,7 +25,8 @@ TEST(HFOperatorTester, ODESolver)
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
-    pHFOperator t(new HFOperator(Z, core, integrator, coulomb));
+    pPhysicalConstant physical_constant(new PhysicalConstant());
+    pHFOperator t(new HFOperator(Z, core, physical_constant, integrator, coulomb));
 
     HartreeFocker HF_Solver(ode_solver);
     HF_Solver.StartCore(core, t);

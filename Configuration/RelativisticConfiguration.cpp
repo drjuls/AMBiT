@@ -38,7 +38,7 @@ bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data)
 
     auto it = angular_data->projection_begin();
     while(it != angular_data->projection_end())
-    {   projections.push_back(Projection(*this, *it));
+    {   projections.emplace_back(*this, *it);
         it++;
     }
 
@@ -64,6 +64,48 @@ int RelativisticConfiguration::GetTwiceMaxProjection() const
     }
 
     return maximum_two_m;
+}
+
+void RelativisticConfiguration::Write(FILE* fp) const
+{
+    // Write config
+    unsigned int config_size = m_config.size();
+    fwrite(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: *this)
+    {
+        int pqn = pair.first.PQN();
+        int kappa = pair.first.Kappa();
+        int occupancy = pair.second;
+
+        // Write PQN, Kappa, occupancy
+        fwrite(&pqn, sizeof(int), 1, fp);
+        fwrite(&kappa, sizeof(int), 1, fp);
+        fwrite(&occupancy, sizeof(int), 1, fp);
+    }
+}
+
+void RelativisticConfiguration::Read(FILE* fp)
+{
+    // Clear the current configuration
+    clear();
+
+    unsigned int config_size;
+    fread(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < config_size; i++)
+    {
+        int pqn;
+        int kappa;
+        int occupancy;
+
+        // Read PQN, Kappa, occupancy
+        fread(&pqn, sizeof(int), 1, fp);
+        fread(&kappa, sizeof(int), 1, fp);
+        fread(&occupancy, sizeof(int), 1, fp);
+
+        m_config[OrbitalInfo(pqn, kappa)] = occupancy;
+    }
 }
 
 unsigned int RelativisticConfigList::NumCSFs() const
@@ -108,6 +150,31 @@ unsigned int RelativisticConfigList::projection_size() const
     }
 
     return total;
+}
+
+void RelativisticConfigList::Read(FILE* fp)
+{
+    clear();
+    unsigned int num_configs;
+    fread(&num_configs, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < num_configs; i++)
+    {
+        RelativisticConfiguration config;
+        config.Read(fp);
+        add(config);
+    }
+}
+
+void RelativisticConfigList::Write(FILE* fp) const
+{
+    unsigned int num_configs = size();
+    fwrite(&num_configs, sizeof(unsigned int), 1, fp);
+
+    for(const auto& relconfig: *this)
+    {
+        relconfig.Write(fp);
+    }
 }
 
 /*

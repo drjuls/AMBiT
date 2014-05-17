@@ -16,7 +16,7 @@
 class BasisGenerator
 {
 public:
-    BasisGenerator(pLattice lat, MultirunOptions& userInput);
+    BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant = nullptr);
     virtual ~BasisGenerator();
 
     /** Generate core orbitals. If open_shell_core is supplied, then use this as a starting approximation.
@@ -87,6 +87,7 @@ protected:
 protected:
     pLattice lattice;
     MultirunOptions& user_input;
+    pPhysicalConstant physical_constant;
 
     pCore open_core;
     pOrbitalManager orbitals;

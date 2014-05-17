@@ -7,8 +7,8 @@
 #include "HartreeFock/MassShiftDecorator.h"
 #include "HartreeFock/NonRelativisticSMSOperator.h"
 
-BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput):
-    hf(pHFOperator()), lattice(lat), user_input(userInput), open_core(nullptr)
+BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
+    hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
 {
     orbitals = pOrbitalManager(new OrbitalManager(lattice));
 }
@@ -53,7 +53,14 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
-    hf = pHFOperator(new HFOperator(Z, open_core, integrator, coulomb));
+    if(physical_constant == nullptr)
+    {
+        physical_constant = pPhysicalConstant(new PhysicalConstant());
+        double alpha_variation = user_input("AlphaSquaredVariation", 0.0);
+        if(alpha_variation)
+            physical_constant->SetAlphaSquaredIncreaseRatio(alpha_variation);
+    }
+    hf = pHFOperator(new HFOperator(Z, open_core, physical_constant, integrator, coulomb));
 
     // Add nuclear potential
     double nuclear_radius = user_input("NuclearRadius", 0.0);

@@ -1,14 +1,15 @@
 #ifndef PHYSICAL_CONSTANT_H
 #define PHYSICAL_CONSTANT_H
 
-/** Fundamental physical constants, following the Singleton pattern.
+/** Fundamental physical constants.
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
       c = 1/alpha ~ 137 depends on alpha.
  */
 class PhysicalConstant
 {
 public:
-    static PhysicalConstant* Instance();
+    PhysicalConstant();
+    ~PhysicalConstant() {}
 
     double GetAlpha() const;
     double GetAlphaSquared() const;
@@ -29,12 +30,11 @@ public:
     void SetAlpha(double alpha);
 
 protected:
-    PhysicalConstant();
-    ~PhysicalConstant();
-
-protected:
     double AlphaSquared;
     double NucleonElectronMassRatio;
 };
+
+typedef std::shared_ptr<PhysicalConstant> pPhysicalConstant;
+typedef std::shared_ptr<const PhysicalConstant> pPhysicalConstantConst;
 
 #endif

@@ -4,6 +4,7 @@ AngularData/
 *.input
 *.out
 *.basis
+*.levels
 *.core.atom
 *.excited.atom
 *.sigma

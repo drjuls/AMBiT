@@ -4,20 +4,11 @@
 #define ALPHA_0        0.007297352932703
 #define NUCLEON_MASS_0 1822.888
 
-PhysicalConstant* PhysicalConstant::Instance()
-{
-    static PhysicalConstant instance;
-    return &instance;
-}
-
 PhysicalConstant::PhysicalConstant()
 {
-    NucleonElectronMassRatio = 1822.888;
+    NucleonElectronMassRatio = NUCLEON_MASS_0;
     SetAlphaToEarthValue();
 }
-
-PhysicalConstant::~PhysicalConstant()
-{}
 
 double PhysicalConstant::GetAlpha() const
 {

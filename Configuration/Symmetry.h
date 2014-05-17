@@ -12,7 +12,7 @@ class Symmetry
         J = total angular momentum and P = parity.
     */
 public:
-    Symmetry(unsigned int two_j, Parity parity):
+    Symmetry(int two_j, Parity parity):
         twoJ(two_j), P(parity)
     {}
     Symmetry(const Symmetry& other):
@@ -20,7 +20,7 @@ public:
     {}
     ~Symmetry() {}
 
-    unsigned int GetTwoJ() const
+    int GetTwoJ() const
     {   return twoJ;
     }
 
@@ -41,7 +41,7 @@ public:
     const Symmetry& operator=(const Symmetry& other);
 
 protected:
-    unsigned int twoJ;
+    int twoJ;
     Parity P;
 };
 

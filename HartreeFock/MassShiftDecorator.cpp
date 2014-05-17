@@ -34,7 +34,7 @@ void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorF
     wrapped->GetODEFunction(latticepoint, fg, w);
 
     if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   double alpha = physicalConstant->GetAlpha();
         w[0] += alpha * currentExchangePotential.g[latticepoint];
         w[1] -= alpha * currentExchangePotential.f[latticepoint];
     }
@@ -44,7 +44,7 @@ void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const Spi
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
     if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   double alpha = physicalConstant->GetAlpha();
         w_const[0] += alpha * currentExchangePotential.g[latticepoint];
         w_const[1] -= alpha * currentExchangePotential.f[latticepoint];
     }
@@ -54,7 +54,7 @@ void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorF
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
     if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = PhysicalConstant::Instance()->GetAlpha();
+    {   double alpha = physicalConstant->GetAlpha();
         dwdr[0] += alpha * currentExchangePotential.dgdr[latticepoint];
         dwdr[1] -= alpha * currentExchangePotential.dfdr[latticepoint];
     }

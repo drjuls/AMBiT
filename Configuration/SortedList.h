@@ -57,7 +57,7 @@ public:
     BaseSortedList& operator=(const BaseSortedList& other) { m_list = other.m_list; return *this; }
     BaseSortedList& operator=(BaseSortedList&& other) { m_list = other.m_list; return *this; }
 
-    int size() const { return m_list.size(); }
+    unsigned int size() const { return m_list.size(); }
 
     void unique() { return m_list.unique(); }
 

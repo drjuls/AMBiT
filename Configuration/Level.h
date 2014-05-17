@@ -21,6 +21,7 @@ public:
     }
 
     double GetJ() const { return double(m_twoJ)/2.0; }
+    int GetTwoJ() const { return m_twoJ; }
     Parity GetParity() const { return m_parity; }
     unsigned int GetID() const { return m_ID; }
     Symmetry GetSymmetry() const { return Symmetry(m_twoJ, m_parity); }
@@ -36,6 +37,7 @@ protected:
  */
 class Level
 {
+    friend class LevelMap;
 public:
     /** Initialise Level with energy eigenvalue, eigenvector, and pointer to relativistic configurations (CSFs).
         PRE: length(csf_eigenvector) == configlist->NumCSFs() == numCSFs (if supplied).
@@ -70,6 +72,8 @@ public:
 //    }
 
 protected:
+    Level(): N(0), eigenvector(nullptr) {}  //!< For use by LevelMap::Read()
+
     double eigenvalue;
     unsigned int N;     // length of eigenvector = configs->NumCSFs()
     double* eigenvector;
@@ -147,6 +151,9 @@ public:
     /** Number of stored levels with symmetry sym. */
     unsigned int size(const Symmetry& sym) const;
 
+    /** Return set of all symmetries for which size(symmetry) > 0. */
+    std::set<Symmetry> GetSymmetries() const;
+
     /** Print all levels with given symmetry.
         Include parentage of all configurations which contribute more than min_percentage.
         PRE: Assumes all levels with same symmetry point to same RelativisticConfigList.
@@ -162,6 +169,9 @@ public:
     inline void Print(const Symmetry& sym, double min_percentage, double max_energy) const
     {   Print(sym, min_percentage, true, max_energy);
     }
+
+    bool Read(const std::string& filename, const std::string& angular_directory);
+    void Write(const std::string& filename) const;
 
 protected:
     /** Hidden version with all possible options for printing. All other print functions call this one. */

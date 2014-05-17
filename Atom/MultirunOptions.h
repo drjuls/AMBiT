@@ -131,7 +131,7 @@ inline MultirunOptions& MultirunOptions::operator=(const MultirunOptions& other)
 inline void MultirunOptions::absorb(const MultirunOptions& other)
 {
     GetPot::absorb(other);
-    if(other.num_runs)
+    if(other.num_runs > 1)
     {
         if(multirun_keys.size() && num_runs != other.num_runs)
         {   *errstream << "MultirunOptions::absorb() cannot absorb another object with a different run size." << std::endl;

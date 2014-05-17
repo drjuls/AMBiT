@@ -84,7 +84,7 @@ SpinorFunction ThomasFermiDecorator::GetExchange(pSingleParticleWavefunctionCons
 void ThomasFermiDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     const unsigned int i = latticepoint;
 
@@ -95,7 +95,7 @@ void ThomasFermiDecorator::GetODEFunction(unsigned int latticepoint, const Spino
 void ThomasFermiDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     const unsigned int i = latticepoint;
 
@@ -111,7 +111,7 @@ void ThomasFermiDecorator::GetODECoefficients(unsigned int latticepoint, const S
 void ThomasFermiDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     const unsigned int i = latticepoint;
 
@@ -128,8 +128,8 @@ SpinorFunction ThomasFermiDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta(a.Kappa(), a.size());
 
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    const double alpha = physicalConstant->GetAlpha();
+    const double alphasquared = physicalConstant->GetAlphaSquared();
     const double* R = lattice->R();
 
     double kappa = a.Kappa();

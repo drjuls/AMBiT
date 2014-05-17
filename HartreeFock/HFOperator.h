@@ -5,6 +5,7 @@
 #include "SpinorODE.h"
 #include "Core.h"
 #include "CoulombOperator.h"
+#include "Universal/PhysicalConstant.h"
 
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     \f[
@@ -18,7 +19,7 @@
 class HFOperator : public SpinorOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
+    HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
     HFOperator(const HFOperator& other);
     virtual ~HFOperator();
 
@@ -29,6 +30,8 @@ public:
     virtual RadialFunction GetDirectPotential() const;  //!< Get the direct potential.
     virtual double GetZ() const { return Z; }           //!< Get nuclear charge.
     virtual double GetCharge() const { return charge; } //!< Get ion charge.
+
+    virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
 
     /** Get size of valid latticepoints. */
     virtual unsigned int size() const;
@@ -85,6 +88,7 @@ protected:
     double charge;
     pCoreConst core;
     pCoulombOperator coulombSolver;
+    pPhysicalConstant physicalConstant;
 
     RadialFunction directPotential;
     SpinorFunction currentExchangePotential;

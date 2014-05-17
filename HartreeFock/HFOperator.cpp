@@ -4,15 +4,15 @@
 #include "Universal/Interpolator.h"
 #include "Universal/MathConstant.h"
 
-HFOperator::HFOperator(double Z, pCoreConst hf_core, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
-    SpinorOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), coulombSolver(coulomb), currentExchangePotential(-1)
+HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
+    SpinorOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
     SetCore(hf_core);
 }
 
 HFOperator::HFOperator(const HFOperator& other):
-    SpinorOperator(other.integrator), SpinorODE(other.lattice), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(other.integrator), SpinorODE(other.lattice), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     Z = other.Z;
     SetCore(other.GetCore());
@@ -121,7 +121,7 @@ SpinorFunction HFOperator::GetExchange(pSingleParticleWavefunctionConst approxim
 void HFOperator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     const unsigned int i = latticepoint;
 
@@ -137,7 +137,7 @@ void HFOperator::GetODEFunction(unsigned int latticepoint, const SpinorFunction&
 void HFOperator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     
     const unsigned int i = latticepoint;
     
@@ -160,7 +160,7 @@ void HFOperator::GetODECoefficients(unsigned int latticepoint, const SpinorFunct
 void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
 {
     const double R = lattice->R(latticepoint);
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     
     const unsigned int i = latticepoint;
 
@@ -181,7 +181,7 @@ void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction&
 void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
 {
     const int start_point = 0;
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     double correction = 0.;
     if(s.size() >= numpoints)
@@ -221,7 +221,7 @@ void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunctio
 
 void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const
 {
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
 
     // Get end point
     unsigned int end_point, original_end_point = 0;
@@ -284,8 +284,8 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta(a.Kappa(), a.size());
 
-    const double alpha = PhysicalConstant::Instance()->GetAlpha();
-    const double alphasquared = PhysicalConstant::Instance()->GetAlphaSquared();
+    const double alpha = physicalConstant->GetAlpha();
+    const double alphasquared = physicalConstant->GetAlphaSquared();
     const double* R = lattice->R();
     
     double kappa = a.Kappa();

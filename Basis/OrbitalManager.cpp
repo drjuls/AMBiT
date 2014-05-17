@@ -94,6 +94,8 @@ void OrbitalManager::Read(const std::string& filename)
     ReadInfo(fp, excited);
     ReadInfo(fp, valence);
 
+    fclose(fp);
+
     MakeStateIndexes();
 }
 
@@ -112,6 +114,8 @@ void OrbitalManager::Write(const std::string& filename) const
     WriteInfo(fp, core);
     WriteInfo(fp, excited);
     WriteInfo(fp, valence);
+
+    fclose(fp);
 }
 
 void OrbitalManager::ReadInfo(FILE* fp, pOrbitalMap& orbitals)

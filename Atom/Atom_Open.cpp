@@ -71,8 +71,13 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
     if(levels == nullptr)
     {
         levels = pLevelMap(new LevelMap());
-//        if(use_read)
-//            levels->Read(filename);
+
+        std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
+        if(user_input.search("AngularDataDirectory"))
+            angular_directory = user_input("AngularDataDirectory", "");
+
+        if(use_read)
+            levels->Read(filename, angular_directory);
     }
 
     if(levels->size(sym) < NumSolutions)
@@ -143,8 +148,8 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 //                filegenerator->WriteConfigs();
 //            }
 
-//        if(use_write)
-//            levels->Write(filename);
+        if(use_write)
+            levels->Write(filename);
     }
 
     // Set up output options

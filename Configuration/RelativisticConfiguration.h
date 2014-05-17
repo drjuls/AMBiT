@@ -86,6 +86,9 @@ public:
     const_projection_iterator projection_end() const { return const_projection_iterator(projections.end(), angular_data->CSF_begin(angular_data->NumCSFs()), angular_data->NumCSFs()); }
     unsigned int projection_size() const { return angular_data->projection_size(); }
 
+    void Read(FILE* fp);        //!< Read configuration only (angular data can be recovered from library)
+    void Write(FILE* fp) const; //!< Write configuration only (not projections or angular data)
+
 protected:
     /** Pointer to angular data (CSFs) for this RelativisticConfiguration. */
     pAngularData angular_data;
@@ -105,21 +108,19 @@ class RelativisticConfigList: public SortedList<RelativisticConfiguration, MostC
 {
 public:
     RelativisticConfigList() {}
-    RelativisticConfigList(const RelativisticConfigList& other): BaseSortedList(other), num_electrons(other.num_electrons) {}
-    RelativisticConfigList(RelativisticConfigList&& other): BaseSortedList(other), num_electrons(other.num_electrons) {}
-    RelativisticConfigList(const RelativisticConfiguration& val): BaseSortedList(val) { num_electrons = front().ElectronNumber(); }
-    RelativisticConfigList(RelativisticConfiguration&& val): BaseSortedList(val) { num_electrons = front().ElectronNumber(); }
+    RelativisticConfigList(const RelativisticConfigList& other): BaseSortedList(other) {}
+    RelativisticConfigList(RelativisticConfigList&& other): BaseSortedList(other) {}
+    RelativisticConfigList(const RelativisticConfiguration& val): BaseSortedList(val) {}
+    RelativisticConfigList(RelativisticConfiguration&& val): BaseSortedList(val) {}
     virtual ~RelativisticConfigList() {}
 
     const RelativisticConfigList& operator=(const RelativisticConfigList& other)
     {   BaseSortedList::operator=(other);
-        num_electrons = other.num_electrons;
         return *this;
     }
 
     RelativisticConfigList& operator=(RelativisticConfigList&& other)
     {   BaseSortedList::operator=(other);
-        num_electrons = other.num_electrons;
         return *this;
     }
 
@@ -205,8 +206,8 @@ public:
     /** Return total number of projections stored in entire list. */
     unsigned int projection_size() const;
 
-protected:
-    int num_electrons;
+    void Read(FILE* fp);        //!< Read configurations
+    void Write(FILE* fp) const; //!< Write configurations
 };
 
 class MostCSFsFirstComparator
