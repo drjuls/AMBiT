@@ -3,18 +3,18 @@
 #include <fstream>
 
 Lattice::Lattice(const Lattice& other):
-    r(other.dr), dr(other.dr), beta(other.beta), NumPoints(other.NumPoints), rmin(other.rmin), h(other.h), r_power(other.r_power)
+    r(other.dr), dr(other.dr), beta(other.beta), num_points(other.num_points), original_size(other.original_size), rmin(other.rmin), h(other.h), r_power(other.r_power)
 {}
 
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
-    beta(4.0), NumPoints(numpoints), rmin(r_min)
+    beta(4.0), num_points(numpoints), original_size(numpoints), rmin(r_min)
 {
-    r.resize(NumPoints);
-    dr.resize(NumPoints);
+    r.resize(num_points);
+    dr.resize(num_points);
     
-    h =(r_max - rmin + beta*log(r_max/rmin))/(NumPoints-1);
+    h =(r_max - rmin + beta*log(r_max/rmin))/(num_points-1);
     
-    for(unsigned int i=0; i<NumPoints; i++)
+    for(unsigned int i=0; i<num_points; i++)
     {   r[i] = lattice_to_real(i);
         dr[i] = calculate_dr(r[i]);
     }
@@ -25,48 +25,54 @@ Lattice::Lattice(FILE* binary_infile)
     fread(&beta, sizeof(double), 1, binary_infile);
     fread(&h, sizeof(double), 1, binary_infile);
     fread(&rmin, sizeof(double), 1, binary_infile);
-    fread(&NumPoints, sizeof(unsigned int), 1, binary_infile);
+    fread(&num_points, sizeof(unsigned int), 1, binary_infile);
 
-    r.resize(NumPoints);
-    dr.resize(NumPoints);
+    r.resize(num_points);
+    dr.resize(num_points);
 
-    fread(r.data(), sizeof(double), NumPoints, binary_infile);
-    fread(dr.data(), sizeof(double), NumPoints, binary_infile);
+    fread(r.data(), sizeof(double), num_points, binary_infile);
+    fread(dr.data(), sizeof(double), num_points, binary_infile);
 }
 
-Lattice::~Lattice(void)
-{}
-
-void Lattice::resize(double min_size)
+unsigned int Lattice::resize(unsigned int new_size)
 {
-    if(min_size <= r[NumPoints-1])
-        return;
+    unsigned int old_size = size();
+    new_size = mmax(new_size, original_size);
 
-    unsigned int old_size = NumPoints;
-
-    do
-    {   NumPoints *= 2;
-    }while(lattice_to_real(NumPoints - 1) <= min_size);
-
-    r.resize(NumPoints);
-    dr.resize(NumPoints);
-
-    for(unsigned int i=old_size; i<NumPoints; i++)
-    {   r[i] = lattice_to_real(i);
-        dr[i] = calculate_dr(r[i]);
-    }
-
-    // Do powers of r
-    for(unsigned int k = 0; k < r_power.size(); k++)
+    if(old_size != new_size)
     {
-        std::vector<double>& previous = (k == 0)? r : r_power[k-1];
-        std::vector<double>& current = r_power[k];
+        r.resize(new_size);
+        dr.resize(new_size);
+        for(auto& r_k: r_power)
+            r_k.resize(new_size);
 
-        current.resize(NumPoints);
+        for(unsigned int i = old_size; i < new_size; i++)
+        {   r[i] = lattice_to_real(i);
+            dr[i] = calculate_dr(r[i]);
+        }
 
-        for(unsigned int i=old_size; i<NumPoints; i++)
-            current[i] = previous[i] * r[i];
+        // Do powers of r
+        for(unsigned int k = 0; k < r_power.size(); k++)
+        {
+            std::vector<double>& previous = (k == 0)? r : r_power[k-1];
+            std::vector<double>& current = r_power[k];
+
+            current.resize(new_size);
+
+            for(unsigned int i = old_size; i < new_size; i++)
+                current[i] = previous[i] * r[i];
+        }
+
+        num_points = new_size;
+        Notify();
     }
+
+    return num_points;
+}
+
+unsigned int Lattice::resize(double r_max)
+{
+    return resize(real_to_lattice(r_max));
 }
 
 double Lattice::lattice_to_real(unsigned int i) const
@@ -94,27 +100,13 @@ double Lattice::lattice_to_real(unsigned int i) const
     return r;
 }
 
-unsigned int Lattice::real_to_lattice(double r_point)
+unsigned int Lattice::real_to_lattice(double r_point) const
 {
-    if(r_point > MaxRealDistance())
-        resize(r_point);
-    else if (r_point <= r[0])
+    if(r_point <= rmin)
         return 0;
 
-    unsigned int i_min = 0;
-    unsigned int i_max = NumPoints;
-    unsigned int i_mid;
-
-    // Bisection search
-    while(i_max - i_min > 1)
-    {   i_mid = (i_min + i_max)/2;
-        (r_point >= r[i_mid]) ? i_min = i_mid : i_max = i_mid;
-    }
-
-    if(r_point == r[i_min])
-        return i_min;
-    else
-        return i_min + 1;
+    double i_point = (r_point - rmin + beta * log(r_point/rmin))/h;
+    return (unsigned int)(i_point + 0.5);
 }
 
 bool Lattice::operator==(const Lattice& other) const
@@ -141,13 +133,34 @@ const double* Lattice::Calculate_Rpower(unsigned int k)
         std::vector<double>& previous = (new_k == 0)? r : r_power[new_k-1];
         std::vector<double>& current = r_power[new_k];
 
-        current.resize(NumPoints);
+        current.resize(num_points);
 
-        for(unsigned int i = 0; i < NumPoints; i++)
+        for(unsigned int i = 0; i < num_points; i++)
             current[i] = previous[i] * r[i];
     }
 
     return r_power[kminustwo].data();
+}
+
+void Lattice::Subscribe(LatticeObserver* observer)
+{
+    // Often (but not always) last to subscribe is first to unsubscribe.
+    // So we add to front so that it is found more quickly in list.
+    observers.push_front(observer);
+}
+
+void Lattice::Unsubscribe(LatticeObserver* observer)
+{
+    auto it = observers.begin();
+    while(it != observers.end())
+    {
+        if(*it == observer)
+        {   observers.erase(it);
+            break;
+        }
+        else
+            it++;
+    }
 }
 
 void Lattice::Write(FILE* binary_outfile) const
@@ -155,8 +168,8 @@ void Lattice::Write(FILE* binary_outfile) const
     fwrite(&beta, sizeof(double), 1, binary_outfile);
     fwrite(&h, sizeof(double), 1, binary_outfile);
     fwrite(&rmin, sizeof(double), 1, binary_outfile);
-    fwrite(&NumPoints, sizeof(unsigned int), 1, binary_outfile);
+    fwrite(&num_points, sizeof(unsigned int), 1, binary_outfile);
 
-    fwrite(r.data(), sizeof(double), NumPoints, binary_outfile);
-    fwrite(dr.data(), sizeof(double), NumPoints, binary_outfile);
+    fwrite(r.data(), sizeof(double), num_points, binary_outfile);
+    fwrite(dr.data(), sizeof(double), num_points, binary_outfile);
 }

@@ -27,7 +27,7 @@ void HFOperator::SetCore(pCoreConst hf_core)
 
     double N = double(core->NumElectrons());
     charge = Z - N;
-    directPotential.resize(lattice->Size());
+    directPotential.resize(lattice->size());
     const double* R = lattice->R();
 
     // Get electron density function
@@ -70,23 +70,21 @@ RadialFunction HFOperator::GetDirectPotential() const
     return directPotential;
 }
 
-unsigned int HFOperator::size() const
+void HFOperator::Alert()
 {
-    return directPotential.size();
-}
-
-void HFOperator::ExtendPotential()
-{
-    unsigned int i = size();
+    unsigned int i = directPotential.size();
     const double* R = lattice->R();
 
-    directPotential.resize(lattice->Size());
+    directPotential.resize(lattice->size());
 
     while(i < directPotential.size())
     {   directPotential.f[i] = charge/R[i];
         directPotential.dfdr[i] = -charge/(R[i]*R[i]);
         i++;
     }
+
+    if(directPotential.size() < currentExchangePotential.size())
+        currentExchangePotential.resize(directPotential.size());
 }
 
 void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exchange)
@@ -331,8 +329,8 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
-    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
-        current_in_core = NULL;
+    if(current_in_core && core->GetState(OrbitalInfo(current_in_core)) == nullptr)
+        current_in_core = nullptr;
 
     // Sum over all core states
     for(auto cs = core->begin(); cs != core->end(); cs++)

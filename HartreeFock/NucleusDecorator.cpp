@@ -21,7 +21,7 @@ void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
         unsigned int i = 0;
         while(i < directPotential.size())
         {   directPotential.f[i] -= Z/R[i];
-            directPotential.dfdr[i] += -Z/(R[i]*R[i]);
+            directPotential.dfdr[i] += Z/(R[i]*R[i]);
             i++;
         }
     }
@@ -29,7 +29,7 @@ void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
 
 RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double thickness) const
 {
-    RadialFunction density(lattice->Size());
+    RadialFunction density(lattice->size());
 
     const double fermi_length = 1.0/MathConstant::Instance()->BohrRadiusInFermi();
     const double pi = MathConstant::Instance()->Pi();
@@ -45,7 +45,7 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
     {
         double B = 4.*log(3.)/thickness;
         double A = 3.*Z/(radius * (radius*radius + (pi*pi)/(B*B)));
-        for(unsigned int i=0; i<lattice->Size(); i++)
+        for(unsigned int i=0; i<lattice->size(); i++)
         {
             double X = B * (R[i] - radius);
             if(X <= -20.)

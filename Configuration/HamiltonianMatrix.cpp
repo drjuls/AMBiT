@@ -28,7 +28,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFElectronOperator hf, const CIIntegrals& 
     N = configs->NumCSFs();
 
     *logstream << " " << N << " " << std::flush;
-    *outstream << " Number of CSFs = " << N << std::endl;
+    *outstream << " Number of CSFs = " << N << std::flush;
 }
 
 HamiltonianMatrix::~HamiltonianMatrix()
@@ -136,7 +136,7 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
 
     M->WriteMode(false);
 
-    *outstream << "\nFinding solutions" << std::endl;
+    *outstream << "; Finding solutions..." << std::endl;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
     

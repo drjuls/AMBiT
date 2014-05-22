@@ -33,9 +33,15 @@ public:
     pConfigListConst GetLeadingConfigs() const;
 
     /** Generate non-relativistic and then relativistic configurations based on the input file.
-        Returned list has CSFs with J = M.
+        If(generate_projections == true), returned list includes projections and CSFs with J = M.
      */
-    pRelativisticConfigList GenerateRelativisticConfigurations(const Symmetry& sym);
+    pRelativisticConfigList GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections = true);
+
+    /** Make all projections of the rlist that have a projection M = two_m/2.
+        Remove configurations that cannot have this projection.
+        PRE: rlist should be unique.
+     */
+    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const;
 
 protected:
     /** Generate all non-relativistic configurations possible by exciting num_excitations
@@ -53,12 +59,6 @@ protected:
         POST: rlist is sorted and unique.
       */
     pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
-
-    /** Make all projections of the rlist that have a projection M = two_m/2.
-        Remove configurations that cannot have this projection.
-        PRE: rlist should be unique.
-     */
-    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const;
 
     /** Store the leading_configs and rlist (RelativisticConfigList).
         Filename is "identifier.twoJ.P.configs".

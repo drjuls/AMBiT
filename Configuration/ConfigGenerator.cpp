@@ -43,7 +43,7 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 {   return leading_configs;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym)
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections)
 {
     bool allow_different_excitations = false;
     unsigned int electron_excitations = 0;
@@ -174,16 +174,9 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     nrlist.unique();
 
     pRelativisticConfigList rlist = GenerateRelativisticConfigs(nrlist);
-    GenerateProjections(rlist, sym.GetTwoJ());
 
-//    auto rlist_it = rlist->begin();
-//    while(rlist_it != rlist->end())
-//    {
-//        if(rlist_it->NumCSFs() == 0)
-//            rlist_it = rlist->erase(rlist_it);
-//        else
-//            rlist_it++;
-//    }
+    if(generate_projections)
+        GenerateProjections(rlist, sym.GetTwoJ());
 
     return rlist;
 }

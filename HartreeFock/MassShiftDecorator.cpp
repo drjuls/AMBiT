@@ -9,6 +9,12 @@ MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator int
     HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(0.0)
 {}
 
+void MassShiftDecorator::Alert()
+{
+    if(currentExchangePotential.size() > lattice->size())
+        currentExchangePotential.resize(lattice->size());
+}
+
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
 void MassShiftDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
 {

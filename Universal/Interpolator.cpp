@@ -114,3 +114,29 @@ void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<doubl
         }
     }
 }
+
+double Interpolator::FindExtremum(const std::vector<double>& function, unsigned int zero_point, double& x)
+{
+    // TODO: change order
+    double f1 = function[zero_point-1];
+    double f2 = function[zero_point];
+    double f3 = function[zero_point+1];
+    double f4 = function[zero_point+2];
+
+    double A = (f4 - 3*f3 + 3*f2 - f1)/(6 * pow(lattice->H(), 3.));
+    double B = (f3 - 2*f2 + f1)/(2 * lattice->H() * lattice->H());
+    double C = (-f4 + 6*f3 - 3*f2 - 2*f1)/(6 * lattice->H());
+    double D = f2;
+
+    double x_offset = 0.;
+    if(fabs(B/D) > 1.e-10)
+    {   if(fabs(A/D) > 1.e-10)
+            x_offset = -B/(3.*A)*(1.-sqrt(1. - 3.*A*C/(B*B)));
+        else
+            x_offset = -C/(2*B);
+    }
+    x = lattice->R(zero_point) + x_offset;
+
+    return A*x_offset*x_offset*x_offset + B*x_offset*x_offset + C*x_offset + D;
+}
+

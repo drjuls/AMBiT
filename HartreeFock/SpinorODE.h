@@ -12,17 +12,16 @@
     where w is a linear function of f and g (e.g. Hartree-Fock).
     w_const is the "nonlocal" part (the exchange part).
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
+    It is also a LatticeObserver, and is guaranteed to provide correct differential equations over
+    the entire lattice.
  */
-class SpinorODE
+class SpinorODE : public LatticeObserver
 {
 public:
     SpinorODE(pLattice lattice);
     virtual ~SpinorODE() {}
 
     pLattice GetLattice() { return lattice; }
-
-    /** Get size of valid latticepoints. */
-    virtual unsigned int size() const = 0;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) = 0;
@@ -70,7 +69,6 @@ public:
     virtual void GetDerivative(SingleParticleWavefunction& fg);
     
 protected:
-    pLattice lattice;
     bool include_nonlocal;
 };
 
@@ -87,9 +85,8 @@ public:
     SpinorODEDecorator(pSpinorODE decorated_object): SpinorODE(decorated_object->GetLattice()), wrapped(decorated_object) {}
     virtual ~SpinorODEDecorator() {}
 
-    virtual unsigned int size() const
-    {   return wrapped->size();
-    }
+    /** Lattice has changed size, but maybe I don't care. */
+    virtual void Alert() override {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)

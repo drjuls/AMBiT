@@ -18,13 +18,16 @@ public:
 
     /** Equality does not check size of lattice. */
     virtual bool operator==(const ExpLattice& other) const;
+    virtual bool operator==(const Lattice& other) const { return false; }
 
-protected:
     /** Calculate the value that r[i] should be. */
-    virtual double lattice_to_real(unsigned int i) const;
+    virtual double lattice_to_real(unsigned int i) const override;
+
+    /** Calculate the closest point i to r_point. */
+    virtual unsigned int real_to_lattice(double r_point) const override;
 
     /** Calculate the lattice spacing at a point. */
-    virtual double calculate_dr(double r_point) const;
+    virtual double calculate_dr(double r_point) const override;
 };
 
 #endif

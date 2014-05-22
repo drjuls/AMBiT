@@ -128,6 +128,9 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
         }
         resize(max+1);
 
+        if(lattice->size() < max+1)
+            lattice->resize(max+1);
+
         // Exponential decay (assumes dr changes slowly).
         unsigned int i = old_size;
         while((i < max) && (fabs(f[i])/maximum > tolerance))

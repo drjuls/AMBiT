@@ -17,16 +17,16 @@ public:
     ThomasFermiDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator());
 
     virtual void SetCore(pCoreConst hf_core, double hf_mixing = 0.0);
-    virtual RadialFunction GetDirectPotential() const;
-    virtual void ExtendPotential();
+    virtual RadialFunction GetDirectPotential() const override;
+    virtual void Alert() override;
 
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const;
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const;
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const;
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const;
+    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
 public:
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 };
 
 typedef boost::shared_ptr<ThomasFermiDecorator> pThomasFermiDecorator;

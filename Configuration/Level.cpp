@@ -107,8 +107,6 @@ void LevelMap::Print(const Symmetry& sym, double min_percentage, bool use_max_en
         return;
     }
 
-    *outstream << "Solutions for J = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << ":\n";
-
     bool print_gFactors = false;
     if(sym.GetJ() != 0)
     {
@@ -129,6 +127,9 @@ void LevelMap::Print(const Symmetry& sym, double min_percentage, bool use_max_en
     }
 
     solution_it = begin(sym);
+    *outstream << "Solutions for J = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity())
+               << " (N = " << solution_it->second->GetEigenvectorLength() << "):\n";
+
     while(solution_it != end(sym) &&
           (!use_max_energy || solution_it->second->GetEnergy() < max_energy))
     {

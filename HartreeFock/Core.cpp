@@ -180,5 +180,6 @@ void Core::Read(FILE* fp)
     }
 
     // Ensure lattice is large enough for all states
-    lattice->R(max_size);
+    if(max_size > lattice->size())
+        lattice->resize(max_size);
 }

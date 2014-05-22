@@ -11,13 +11,15 @@
 //#include "Configuration/MPIHamiltonianMatrix.h"
 //#include "Configuration/MPIMatrix.h"
 
-void Atom::MakeIntegralsMBPT()
+void Atom::MakeMBPTIntegrals()
 {
     //TODO: MBPT part
-    if(integrals)
-        delete integrals;
-    integrals = nullptr;
+}
 
+void Atom::MakeIntegrals()
+{
+    //TODO: Use stored MBPT integrals
+    ClearIntegrals();
     integrals = new CIIntegrals(hf, hartreeY, orbitals->valence, identifier, hartreeY_reverse_symmetry);
 
     if(user_input.search("--check-sizes"))
@@ -26,6 +28,13 @@ void Atom::MakeIntegralsMBPT()
         integrals->Update();
 
     hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
+}
+
+void Atom::ClearIntegrals()
+{
+    if(integrals)
+        delete integrals;
+    integrals = nullptr;
 }
 
 /** Check sizes of matrices before doing full scale calculation. */
@@ -82,6 +91,9 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
     if(levels->size(sym) < NumSolutions)
     {
+        if(integrals == nullptr)
+            MakeIntegrals();
+
         HamiltonianMatrix* H;
 
         #ifdef _MPI

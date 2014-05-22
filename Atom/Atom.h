@@ -41,25 +41,34 @@ public:
     pLattice GetLattice() { return lattice; }
 
 public:
-    /** Generate integrals with MBPT (if requested), store and collate from all processors.
+    /** Generate integrals with MBPT, store and collate from all processors.
         PRE: MakeBasis() must have been run.
      */
-    void MakeIntegralsMBPT();
+    void MakeMBPTIntegrals();
+
+    /** Generate integrals for CI using any stored MBPT integrals and calculating the rest with no MBPT.
+        PRE: MakeBasis() must have been run.
+     */
+    void MakeIntegrals();
+
+    /** Clear integrals for CI. */
+    void ClearIntegrals();
 
     /** Check sizes of matrices before doing full scale calculation. */
     void CheckMatrixSizes();
 
     /** Calculate levels for all chosen symmetries in user input.
-        PRE: Need to have generated all integrals.
+        PRE: MakeBasis() must have been run.
      */
     pLevelMap CalculateEnergies();
 
-    /** Calculate levels for given symmetry.
-        PRE: Need to have generated all integrals.
+    /** Calculate levels for given symmetry, generating CI integrals if required via. MakeIntegrals().
+        PRE: MakeBasis() must have been run.
     */
     pLevelMap CalculateEnergies(const Symmetry& sym);
 
     pLevelMap GetLevels() { return levels; }
+
 protected:
     /** Attempt to read basis from file and generate HF operator.
         Return true if successful, false if file "identifier.basis" not found.

@@ -333,7 +333,7 @@ void Ambit::EnergyCalculations()
                     exit(1);
                 }
                 else
-                {   *outstream << "Running case " << pair.second+1 << ": " << pair.first << " = 0." << std::endl;
+                {   *outstream << "Running case " << pair.second+1 << ": " << pair.first << " = 0.\n" << std::endl;
                     run_indexes.push_back(pair.second);
                 }
             }
@@ -354,39 +354,43 @@ void Ambit::EnergyCalculations()
     }
 
     // That's all we need to start the Atom class
-    for(int i: run_indexes)
+    for(int run: run_indexes)
     {
-        user_input.SetRun(i);
-        std::string id = identifier + "_" + itoa(i);
-        atoms.emplace_back(user_input, Z, id);
+        user_input.SetRun(run);
+        std::string id = identifier + "_" + itoa(run);
+        atoms.emplace_back(user_input, Z, id);      // This copies the user_input, so each atom has its own.
     }
 
     // Start with -r=0 if possible, otherwise just first one
     int zero_index = user_input.FindZeroParameterRun().second;
-    unsigned int start_run = run_indexes.size();
+    unsigned int start_run_index = run_indexes.size();
     if(zero_index > 0)
     {   // Check whether it is in current runs
-        for(start_run = 0; start_run < run_indexes.size(); start_run++)
-            if(run_indexes[start_run] == zero_index)
+        for(start_run_index = 0; start_run_index < run_indexes.size(); start_run_index++)
+            if(run_indexes[start_run_index] == zero_index)
                 break;
     }
-    if(start_run >= run_indexes.size())   // -r=0 not found
-        start_run = 0;
+    if(start_run_index >= run_indexes.size())   // -r=0 not found
+        start_run_index = 0;
 
+    // Log first build
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    pCoreConst hf_open_core = atoms[start_run].MakeBasis();
+    user_input.SetRun(run_indexes[start_run_index]);        // Just for the printing (each atom has its own user_input)
+    user_input.PrintCurrentRunCondition(*outstream, "\n");
+    pCoreConst hf_open_core = atoms[start_run_index].MakeBasis();
+    *outstream << std::endl;
 
+    // Don't output the others
     DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
 
-    for(unsigned int run = 0; run < run_indexes.size(); run++)
-        if(run != start_run)
-            atoms[run].MakeBasis(hf_open_core);
+    for(unsigned int index = 0; index < run_indexes.size(); index++)
+        if(index != start_run_index)
+            atoms[index].MakeBasis(hf_open_core);
 
     // Print basis only option
 //    if(user_input.search(2, "--print-basis", "-p"))
@@ -398,18 +402,22 @@ void Ambit::EnergyCalculations()
 //            atom.WriteGraspMCDF();
 //    }
 
-    // MBPT and Integrals
+    // Generate MBPT integrals
     for(auto& atom: atoms)
-        atom.MakeIntegralsMBPT();
+        atom.MakeMBPTIntegrals();
 
     // CI
     std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
 
     for(auto& sym: symmetries)
     {
-        for(auto& atom: atoms)
+        for(int i = 0; i < run_indexes.size(); i++)
         {
-            atom.CalculateEnergies(sym);
+            if(user_input.GetNumRuns() > 1)
+            {   user_input.SetRun(run_indexes[i]);
+                user_input.PrintCurrentRunCondition(*outstream, "\n");
+            }
+            atoms[i].CalculateEnergies(sym);
         }
     }
 }

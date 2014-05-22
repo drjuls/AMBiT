@@ -6,6 +6,7 @@
 #include "GreensMethodODE.h"
 #include "LocalPotentialDecorator.h"
 #include "ThomasFermiDecorator.h"
+#include "Universal/Interpolator.h"
 
 void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 {
@@ -464,18 +465,6 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
         orbital->CheckSize(lattice, WavefunctionTolerance);
         orbital->ReNormalise(integrator);
 
-        // Make sure hf operator is big enough.
-        if(hf->size() < orbital->size())
-        {   hf->ExtendPotential();
-
-            // If it didn't work we might be in real trouble
-            if(hf->size() < orbital->size())
-            {   *errstream << "HartreeFocker::IterateOrbital(): hf->size() < orbital->size() and cannot be fixed.\n"
-                << "    hf->size() = " << hf->size() << ", orbital->size() = " << orbital->size() << std::endl;
-                orbital->resize(hf->size());
-            }
-        }
-
         E = orbital->Energy();
 
         // Get solutions to homogenous equation (no exchange)
@@ -544,6 +533,8 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
         orbital->SetNu(nu);
         double r_cutoff = (2. * hf->GetCharge() * nu + 10.) * nu;
         orbital->resize(lattice->real_to_lattice(r_cutoff));
+        if(orbital->size() > lattice->size())
+            lattice->resize(orbital->size());
     }
 
     double delta = 0.;
@@ -551,18 +542,6 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
     
     do
     {   loop++;
-
-        // Make sure hf operator is big enough.
-        if(hf->size() < orbital->size())
-        {   hf->ExtendPotential();
-
-            // If it didn't work we might be in real trouble
-            if(hf->size() < orbital->size())
-            {   *errstream << "HartreeFocker::IterateOrbitalTailMatching(): hf->size() < orbital->size() and cannot be fixed.\n"
-                << "    hf->size() = " << hf->size() << ", orbital->size() = " << orbital->size() << std::endl;
-                orbital->resize(hf->size());
-            }
-        }
 
         // Get forward and backwards meeting point
         unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->Nu())/2.);
@@ -608,4 +587,201 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
     orbital->ReNormalise(integrator);
 
     return loop;
+}
+
+unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator hf)
+{
+    unsigned int loop = 0;
+    double final_amplitude, final_phase;
+    pSpinorFunction exchange(new SpinorFunction(s->Kappa()));
+    double ds, old_phase = 0.;
+    unsigned int start_sine = 0;
+
+    pLattice lattice = hf->GetLattice();
+    s->resize(lattice->size());
+
+    do
+    {   loop++;
+
+        start_sine = IntegrateContinuum(s, hf, exchange, final_amplitude, final_phase);
+        if(!start_sine)
+        {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
+            if(hf->GetLattice()->MaxRealDistance() > 1000.)
+            {   *errstream << "ContinuumBuilder::CalculateContinuumWave:\n"
+                           << "    start_sine not reached; Rmax = " << hf->GetLattice()->MaxRealDistance() << std::endl;
+                return 0;
+            }
+
+            lattice->resize(lattice->MaxRealDistance() * 2.);
+            s->Clear();
+            s->resize(lattice->size());
+            old_phase = 0.0;
+            start_sine = 0;
+            ds = 1.0;   // Do another loop!
+        }
+        else
+        {   ds = (final_phase - old_phase)/MathConstant::Instance()->Pi();
+            if(fabs(ds) > EnergyTolerance)
+            {
+                *exchange *= 0.5;
+                *exchange += hf->GetExchange(s) * 0.5;
+                old_phase = final_phase;
+            }
+            else
+            {   *exchange = hf->GetExchange(s);
+                old_phase = final_phase;
+                ds = 1.0;   // One more loop!
+            }
+        }
+    }
+    while((loop < MaxHFIterations) && (fabs(ds) > EnergyTolerance));
+
+    // Actual amplitude of wavefunction as r->Infinity (from IntegrateContinuum),
+    //      A = final_amplitude/(2E)^(1/4)
+    switch(continuum_normalisation_type)
+    {
+        case ContinuumNormalisation::LandauNu:
+            // Normalization with respect to delta function in nu rather than energy:
+            //      A = 2 * Pi^(-1/2) * E^(1/2)
+            {   double nu = fabs(s->Nu());
+                final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*nu*nu*nu))/final_amplitude;
+            }
+            break;
+
+        case ContinuumNormalisation::LandauEnergy:
+        case ContinuumNormalisation::Cowan:
+            // Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)
+            final_amplitude = sqrt(2./MathConstant::Instance()->Pi())/final_amplitude;
+            break;
+
+        case ContinuumNormalisation::Unitary:
+            // Unitary normalization:   A = 1
+            final_amplitude = sqrt(sqrt(2.*s->Energy()))/final_amplitude;
+            break;
+    }
+
+    (*s) *= final_amplitude;
+
+/*
+    // Interpolate back onto external lattice
+    if(external_lattice && !(*external_lattice == *lattice))
+    {
+        // Copy current state
+        ContinuumWave cs_old(*s);
+
+        Interpolator interp(lattice);
+        const double* extR = external_lattice->R();
+        unsigned int order = 6;
+        double dfdr, dgdr;
+
+        // Determine size of new continuum state
+        s->Clear();
+        unsigned int size = external_lattice->size();
+        if(external_lattice->MaxRealDistance() > lattice->MaxRealDistance())
+        {   size = external_lattice->real_to_lattice(lattice->MaxRealDistance());
+        }
+        s->size(size);
+
+        // Interpolate
+        for(unsigned int i = 0; i < size; i++)
+        {
+            interp.Interpolate(cs_old.f, extR[i], s->f[i], dfdr, order);
+            interp.Interpolate(cs_old.g, extR[i], s->g[i], dgdr, order);
+            s->dfdr[i] = dfdr;
+            s->dgdr[i] = dgdr;
+        }
+    }
+*/
+
+    if(DebugOptions.LogHFContinuum())
+    {
+        *logstream << std::setprecision(8);
+
+        double energy = s->Energy();
+        if(DebugOptions.InvCmEnergyUnits())
+            energy *= MathConstant::Instance()->HartreeEnergyInInvCm();
+        *logstream << s->Name() << "  E = " << energy;
+
+        *logstream << std::setprecision(4);
+        *logstream << "  loops: " << loop << "  start sine: (" << start_sine << ") " << lattice->R(start_sine) << std::endl;
+    }
+    
+    return loop;
+}
+
+unsigned int HartreeFocker::IntegrateContinuum(pContinuumWave s, pHFOperator hf, pSpinorFunction exchange, double& final_amplitude, double& final_phase)
+{
+    static double accuracy = 0.001;  // Accuracy of equality of amplitudes over one cycle
+
+    // Start by getting wavefunction
+    int kappa = s->Kappa();
+    double energy = s->Energy();
+    hf->SetODEParameters(kappa, energy, exchange.get());
+    odesolver->IntegrateForwards(hf, s.get());
+
+    // Now we need to check the boundary condition (sine wave) at infinity and return final amplitude and phase
+    double pi = MathConstant::Instance()->Pi();
+    const double* R = hf->GetLattice()->R();
+    const RadialFunction hf_direct(hf->GetDirectPotential());
+
+    // Get momentum function sqrt(E-V)
+    RadialFunction P(hf_direct.size());
+    double kappa_squared = kappa * (kappa + 1);
+    for(unsigned int i = 0; i < P.size(); i++)
+    {
+        P.f[i] = sqrt(2. * fabs(energy + hf_direct.f[i] - kappa_squared/(2. * R[i] * R[i])));
+        P.dfdr[i] = (hf_direct.dfdr[i] + kappa_squared/(R[i] * R[i] * R[i]))/P.f[i];
+    }
+
+    unsigned int size = P.size();
+    RadialFunction S(size);
+
+    unsigned int start_sine = 0;
+    final_amplitude = 0.;
+    double peak_phase = 0.;
+
+    // Find sine
+    ContinuumPhaseODE phase_ode(hf->GetLattice(), hf->GetDirectPotential(), kappa, energy);
+    odesolver->IntegrateForwards(&phase_ode, &S);
+
+    Interpolator I(hf->GetLattice());
+    int i = hf->GetLattice()->real_to_lattice(1.e-4);    // Outside nucleus
+
+    while(i < size && !start_sine)
+    {
+        if((hf_direct.f[i] < 2.5 * energy) && (s->dfdr[i-1]/s->dfdr[i-2] < 0.))
+        {
+            double x_max;
+            double f_max = I.FindExtremum(s->f, i-2, x_max);
+            bool maximum = (s->dfdr[i-2] > 0.);
+            double p_max, dpdr;
+            I.Interpolate(P.f, x_max, p_max, dpdr, 4);
+
+            double old_amplitude = final_amplitude;
+            final_amplitude = fabs(f_max * sqrt(p_max));
+            if(fabs((final_amplitude - old_amplitude)/final_amplitude) < accuracy)
+            {
+                double old_peak_phase = peak_phase;
+                I.Interpolate(S.f, x_max, peak_phase, dpdr, 4);
+                if((old_peak_phase != 0.) && (fabs((peak_phase - old_peak_phase)/pi - 1.) < accuracy))
+                {
+                    start_sine = i;
+                    if(!maximum)
+                        peak_phase = peak_phase - pi;
+                }
+            }
+            else
+                peak_phase = 0.;    // Reset
+        }
+
+        i++;
+    }
+
+    if(start_sine)
+    {
+        final_phase = S.f[s->size() - 1] - peak_phase;
+    }
+    
+    return start_sine;
+
 }

@@ -3,8 +3,9 @@
 #include "Core.h"
 #include "Include.h"
 #include "ODESolver.h"
-#include "Universal/PhysicalConstant.h"
+#include "Universal/MathConstant.h"
 #include "HartreeFocker.h"
+#include "NucleusDecorator.h"
 
 TEST(HartreeFockerTester, CaIIOrbital)
 {
@@ -64,4 +65,74 @@ TEST(HartreeFockerTester, CaIIOrbital)
     new_2p->SetEnergy(-12.0);
     HF_Solver.SolveOrbital(new_2p, t);
     EXPECT_NEAR(new_2p->Energy(), -14.282789, 1.e-6 * 14.282789);
+}
+
+TEST(HartreeFockerTester, ContinuumOrbital)
+{
+    pLattice lattice(new Lattice(1500, 1.e-6, 100.));
+
+    // Ca
+    unsigned int Z = 12;
+    std::string filling = "1s2 2s2 2p6";
+
+    DebugOptions.LogFirstBuild(true);
+    DebugOptions.LogHFIterations(true);
+    DebugOptions.HartreeEnergyUnits(true);
+
+    pCore core(new Core(lattice, filling));
+
+    // Set up HF ODE and HartreeFocker
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
+    pPhysicalConstant physical_constant(new PhysicalConstant());
+    pHFOperator t(new HFOperator(Z, core, physical_constant, integrator, coulomb));
+    HartreeFocker HF_Solver(ode_solver);
+
+    HF_Solver.StartCore(core, t);
+    HF_Solver.SolveCore(core, t);
+
+    pContinuumWave epsilon(new ContinuumWave(-1, 100, 0.2));    // kappa, pqn, energy
+
+    unsigned int loop = HF_Solver.CalculateContinuumWave(epsilon, t);
+    EXPECT_NE(0, loop);
+    epsilon->Print();
+}
+
+TEST(HartreeFockerTester, AuContinuum)
+{
+    pLattice lattice(new Lattice(1500, 1.e-6, 50.));
+    lattice->resize(600.);
+
+    // Au25+
+    unsigned int Z = 79;
+    std::string filling = "1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f8";
+
+    DebugOptions.LogFirstBuild(true);
+    DebugOptions.LogHFIterations(true);
+    DebugOptions.HartreeEnergyUnits(true);
+
+    pCore core(new Core(lattice, filling));
+
+    // Set up HF ODE and HartreeFocker
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
+    pPhysicalConstant physical_constant(new PhysicalConstant());
+    pHFOperator t(new HFOperator(Z, core, physical_constant, integrator, coulomb));
+    HartreeFocker HF_Solver(ode_solver);
+
+    pNucleusDecorator nuc(new NucleusDecorator(t));
+    nuc->SetFermiParameters(6.5544);
+    t = nuc;
+
+    HF_Solver.StartCore(core, t);
+    HF_Solver.SolveCore(core, t);
+
+    double eV = 1./MathConstant::Instance()->HartreeEnergyIneV();
+    pContinuumWave epsilon(new ContinuumWave(-1, 100, 1. * eV));    // kappa, pqn, energy
+
+    unsigned int loop = HF_Solver.CalculateContinuumWave(epsilon, t);
+    EXPECT_NE(0, loop);
+    epsilon->Print(lattice);
 }

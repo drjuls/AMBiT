@@ -5,6 +5,8 @@
 
 enum class Parity { even, odd };
 
+enum class ContinuumNormalisation { LandauNu, LandauEnergy, Cowan, Unitary };
+
 inline std::string Name(Parity from)
 {
     switch(from)

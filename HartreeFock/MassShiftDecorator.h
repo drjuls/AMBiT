@@ -24,6 +24,8 @@ public:
     double GetInverseMass() const { return lambda; }
 
 public:
+    virtual void Alert() override;
+
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
     

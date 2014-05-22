@@ -24,7 +24,7 @@ void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
     if(hf_mixing == 0.0)
     {
         // Thomas-Fermi potential.
-        directPotential.resize(lattice->Size());
+        directPotential.resize(lattice->size());
         double P = 2.235 * pow((Z/55.), 1./3.);
 
         for(i = 0; i < directPotential.size(); i++)
@@ -55,15 +55,13 @@ RadialFunction ThomasFermiDecorator::GetDirectPotential() const
     return directPotential;
 }
 
-void ThomasFermiDecorator::ExtendPotential()
+void ThomasFermiDecorator::Alert()
 {
-    wrapped->ExtendPotential();
-
-    unsigned int i = size();
+    unsigned int i = directPotential.size();
     const double* R = lattice->R();
     double C = mmax(charge, 1.);
 
-    directPotential.resize(lattice->Size());
+    directPotential.resize(lattice->size());
 
     while(i < directPotential.size())
     {   directPotential.f[i] = C/R[i];

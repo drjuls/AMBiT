@@ -1,6 +1,6 @@
 #include "SpinorODE.h"
 
-SpinorODE::SpinorODE(pLattice lattice): lattice(lattice),include_nonlocal(true)
+SpinorODE::SpinorODE(pLattice lattice): LatticeObserver(lattice), include_nonlocal(true)
 {}
 
 void SpinorODE::IncludeExchangeInODE(bool include_exchange)

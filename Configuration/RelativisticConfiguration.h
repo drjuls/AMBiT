@@ -82,9 +82,29 @@ public:
     /** Usual begin() and end() are inherited from Configuration and iterate over pair(OrbitalInfo, occupancy).
         projection_begin(), projection_end(), etc, provide iterators over the projection list.
      */
-    const_projection_iterator projection_begin() const { return const_projection_iterator(projections.begin(), angular_data->GetCSFs(), angular_data->NumCSFs()); }
-    const_projection_iterator projection_end() const { return const_projection_iterator(projections.end(), angular_data->CSF_begin(angular_data->NumCSFs()), angular_data->NumCSFs()); }
-    unsigned int projection_size() const { return angular_data->projection_size(); }
+    const_projection_iterator projection_begin() const
+    {
+        if(!angular_data)
+            return const_projection_iterator(projections.begin(), nullptr, 0);
+
+        return const_projection_iterator(projections.begin(), angular_data->GetCSFs(), angular_data->NumCSFs());
+    }
+
+    const_projection_iterator projection_end() const
+    {
+        if(!angular_data)
+            return const_projection_iterator(projections.end(), nullptr, 0);
+
+        return const_projection_iterator(projections.end(), angular_data->CSF_begin(angular_data->NumCSFs()), angular_data->NumCSFs());
+    }
+
+    unsigned int projection_size() const
+    {
+        if(!angular_data)
+            return 0;
+
+        return angular_data->projection_size();
+    }
 
     void Read(FILE* fp);        //!< Read configuration only (angular data can be recovered from library)
     void Write(FILE* fp) const; //!< Write configuration only (not projections or angular data)

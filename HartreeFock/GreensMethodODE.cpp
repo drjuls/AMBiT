@@ -25,9 +25,6 @@ void GreensMethodODE::SetSourceTerm(const SpinorFunction& sourceTerm, bool fromO
     solutionRegularAtOrigin = fromOrigin;
 }
 
-/** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
- PRE: w should be an allocated 2 dimensional array.
- */
 void GreensMethodODE::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const
 {
     double integrand = 0.;
@@ -45,9 +42,6 @@ void GreensMethodODE::GetODEFunction(unsigned int latticepoint, const RadialFunc
     *w = integrand;
 }
 
-/** Get numerical coefficients of the ODE at the point r, (f,g).
- PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
- */
 void GreensMethodODE::GetODECoefficients(unsigned int latticepoint, const RadialFunction& f, double* w_f, double* w_const) const
 {
     *w_f = 0.;
@@ -55,11 +49,6 @@ void GreensMethodODE::GetODECoefficients(unsigned int latticepoint, const Radial
     GetODEFunction(latticepoint, f, w_const);
 }
 
-/** Get Jacobian (dw[i]/df and dw[i]/dg), dw[i]/dr, and w_const at a point r, (f, g).
- w_const is the constant term of w (not proportional to f or g).
- PRE: jacobian should be an allocated 2x2 matrix,
- dwdr and w_const should be allocated 2 dimensional arrays.
- */
 void GreensMethodODE::GetODEJacobian(unsigned int latticepoint, const RadialFunction& f, double* jacobian, double* dwdr) const
 {
     *jacobian = 0.;
@@ -98,9 +87,6 @@ void GreensMethodODE::EstimateSolutionNearOrigin(unsigned int numpoints, RadialF
     }
 }
 
-/** Get approximation to eigenfunction for last numpoints far from the origin.
- This routine can change the size of the orbital.
- */
 void GreensMethodODE::EstimateSolutionNearInfinity(unsigned int numpoints, RadialFunction& f) const
 {
     double w_i;

@@ -42,12 +42,12 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     int total_rel = 0;
     ConfigGenerator gen(orbitals, userInput);
 
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even), false);
     ConfigList nonrelconfigs(*relconfigs);
     total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
 
-    relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::odd));
+    relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::odd), false);
     nonrelconfigs = *relconfigs;
     total_non_rel += nonrelconfigs.size();
     total_rel += relconfigs->size();
@@ -62,8 +62,9 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     EXPECT_EQ(276, total_rel);
 
     // Test RelativisticConfigList projection iterator
+    gen.GenerateProjections(relconfigs, 0);
     int projection_count = 0;
-    for(auto rconfig: *relconfigs)
+    for(auto& rconfig: *relconfigs)
     {
         projection_count += rconfig.projection_size();
     }

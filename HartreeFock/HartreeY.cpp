@@ -1,7 +1,7 @@
 #include "HartreeY.h"
 
 HartreeY::HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb):
-    HartreeYBase(integration_strategy), coulomb(coulomb)
+    HartreeYBase(integration_strategy), LatticeObserver(integration_strategy->GetLattice()), coulomb(coulomb)
 {}
 
 bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunction& d)
@@ -13,7 +13,7 @@ bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunctio
        (2 * K <= c.TwoJ() + d.TwoJ()))
     {
         RadialFunction density = c.GetDensity(d);
-        density.resize(integrator->GetLattice()->Size());
+        density.resize(integrator->GetLattice()->size());
 
         coulomb->GetPotential(K, density, potential);
         return true;
@@ -21,6 +21,30 @@ bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunctio
     else
     {   potential.Clear();
         return false;
+    }
+}
+
+void HartreeY::Alert()
+{
+    if(isZero())
+        return;
+
+    unsigned int i = potential.size();
+    potential.resize(lattice->size());
+
+    // If potential has grown, add points
+    if(i < potential.size())
+    {
+        const double* R_k = lattice->Rpower(K);
+        const double* R_kplusone = lattice->Rpower(K+1);
+        double charge = potential.f[i-1] * R_k[i-1];
+
+        while(i < potential.size())
+        {
+            potential.f[i] = charge/R_k[i];
+            potential.dfdr[i] = - K * charge/R_kplusone[i];
+            i++;
+        }
     }
 }
 

@@ -32,7 +32,7 @@ BSplineGrid::BSplineGrid(unsigned int n, unsigned int k, double dr0, double rmax
             point++;
         }
     }
-    NumPoints = size;
+    num_points = size;
 }
 
 BSplineGrid::~BSplineGrid(void)

@@ -85,11 +85,14 @@ typedef boost::shared_ptr<const HartreeYBase> pHartreeYConst;
     Therefore a boolean argument to the usual one-body operator functions provide for reversed versions.
     (HartreeY itself ignores the reverse boolean.)
  */
-class HartreeY : public HartreeYBase
+class HartreeY : public HartreeYBase, public LatticeObserver
 {
 public:
     HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb);
     virtual ~HartreeY() {}
+
+    /** Resize potential to match lattice. */
+    virtual void Alert() override;
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
         Return false if resulting HartreeY function is zero (i.e. isZero() returns true).

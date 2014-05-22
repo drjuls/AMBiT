@@ -114,3 +114,8 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
     }
 }
 
+void LocalExchangeApproximation::Alert()
+{
+    if(directPotential.size() > lattice->size())
+        directPotential.resize(lattice->size());
+}

@@ -30,6 +30,7 @@ public:
     LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
     virtual void SetCore(pCoreConst hf_core) override;
+    virtual void Alert() override;
 };
 
 #endif

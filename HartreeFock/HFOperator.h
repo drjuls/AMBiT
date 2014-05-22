@@ -33,11 +33,8 @@ public:
 
     virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
 
-    /** Get size of valid latticepoints. */
-    virtual unsigned int size() const;
-
-    /** Extend direct potential to match lattice size. */
-    virtual void ExtendPotential();
+    /** Extend/reduce direct potential to match lattice size. */
+    virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override;
@@ -120,15 +117,10 @@ public:
     {   return wrapped->GetDirectPotential();
     }
 
-    /** Get size of valid latticepoints. */
-    virtual unsigned int size() const override
-    {   return wrapped->size();
-    }
-
-    /** Extend direct potential to match lattice size. */
-    virtual void ExtendPotential() override
-    {   wrapped->ExtendPotential();
-    }
+    /** Extend/reduce direct potential to match lattice size.
+        Note that wrapped object will itself be registered, so there is no need to pass this along.
+     */
+    virtual void Alert() override {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override
