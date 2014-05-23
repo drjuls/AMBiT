@@ -596,9 +596,11 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
     pSpinorFunction exchange(new SpinorFunction(s->Kappa()));
     double ds, old_phase = 0.;
     unsigned int start_sine = 0;
+    bool all_done = false;
 
     pLattice lattice = hf->GetLattice();
     s->resize(lattice->size());
+    double pi = MathConstant::Instance()->Pi();
 
     do
     {   loop++;
@@ -606,7 +608,14 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
         start_sine = IntegrateContinuum(s, hf, exchange, final_amplitude, final_phase);
         if(!start_sine)
         {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
-            if(hf->GetLattice()->MaxRealDistance() > 1000.)
+
+            // Probably get worried if we've had, say, fifty complete oscillations and still no good.
+            // k ~ sqrt(2(energy + V(r))) => 50 oscillations = 50 * 2 Pi/k
+            double Vmin = hf->GetDirectPotential().f[lattice->size()-1];
+            double kmin = sqrt(2. * (s->Energy() + Vmin));
+            double Rmax = 100. * pi/kmin;
+
+            if(lattice->MaxRealDistance() > mmax(Rmax, 1000))
             {   *errstream << "ContinuumBuilder::CalculateContinuumWave:\n"
                            << "    start_sine not reached; Rmax = " << hf->GetLattice()->MaxRealDistance() << std::endl;
                 return 0;
@@ -630,7 +639,10 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             else
             {   *exchange = hf->GetExchange(s);
                 old_phase = final_phase;
-                ds = 1.0;   // One more loop!
+                if(!all_done)
+                {   all_done = true;
+                    ds = 1.0;   // One more loop!
+                }
             }
         }
     }
@@ -644,14 +656,14 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             // Normalization with respect to delta function in nu rather than energy:
             //      A = 2 * Pi^(-1/2) * E^(1/2)
             {   double nu = fabs(s->Nu());
-                final_amplitude = sqrt(2./(MathConstant::Instance()->Pi()*nu*nu*nu))/final_amplitude;
+                final_amplitude = sqrt(2./(pi*nu*nu*nu))/final_amplitude;
             }
             break;
 
         case ContinuumNormalisation::LandauEnergy:
         case ContinuumNormalisation::Cowan:
             // Cowan normalization:     A = Pi^(-1/2) * (2/E)^(1/4)
-            final_amplitude = sqrt(2./MathConstant::Instance()->Pi())/final_amplitude;
+            final_amplitude = sqrt(2./pi)/final_amplitude;
             break;
 
         case ContinuumNormalisation::Unitary:
@@ -661,37 +673,6 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
     }
 
     (*s) *= final_amplitude;
-
-/*
-    // Interpolate back onto external lattice
-    if(external_lattice && !(*external_lattice == *lattice))
-    {
-        // Copy current state
-        ContinuumWave cs_old(*s);
-
-        Interpolator interp(lattice);
-        const double* extR = external_lattice->R();
-        unsigned int order = 6;
-        double dfdr, dgdr;
-
-        // Determine size of new continuum state
-        s->Clear();
-        unsigned int size = external_lattice->size();
-        if(external_lattice->MaxRealDistance() > lattice->MaxRealDistance())
-        {   size = external_lattice->real_to_lattice(lattice->MaxRealDistance());
-        }
-        s->size(size);
-
-        // Interpolate
-        for(unsigned int i = 0; i < size; i++)
-        {
-            interp.Interpolate(cs_old.f, extR[i], s->f[i], dfdr, order);
-            interp.Interpolate(cs_old.g, extR[i], s->g[i], dgdr, order);
-            s->dfdr[i] = dfdr;
-            s->dgdr[i] = dgdr;
-        }
-    }
-*/
 
     if(DebugOptions.LogHFContinuum())
     {
@@ -711,7 +692,7 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
 
 unsigned int HartreeFocker::IntegrateContinuum(pContinuumWave s, pHFOperator hf, pSpinorFunction exchange, double& final_amplitude, double& final_phase)
 {
-    static double accuracy = 0.001;  // Accuracy of equality of amplitudes over one cycle
+    static double accuracy = 0.01;  // Accuracy of equality of amplitudes over one cycle
 
     // Start by getting wavefunction
     int kappa = s->Kappa();

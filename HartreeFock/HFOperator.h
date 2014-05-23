@@ -110,7 +110,6 @@ public:
     virtual void SetCore(pCoreConst hf_core) override
     {   wrapped->SetCore(hf_core);
         core = hf_core;
-        directPotential.Clear();
     }
 
     virtual RadialFunction GetDirectPotential() const override
@@ -127,7 +126,6 @@ public:
     {   wrapped->SetODEParameters(kappa, energy, exchange);
         currentEnergy = energy;
         currentKappa = kappa;
-        currentExchangePotential.Clear();
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
@@ -135,7 +133,6 @@ public:
     {   wrapped->SetODEParameters(approximation);
         currentEnergy = approximation.Energy();
         currentKappa = approximation.Kappa();
-        currentExchangePotential.Clear();
     }
 
     /** Get exchange (nonlocal) potential. */

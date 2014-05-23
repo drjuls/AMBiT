@@ -296,3 +296,33 @@ RadialFunction RadialFunction::operator*(const RadialFunction& other) const
     RadialFunction ret(*this);
     return (ret *= other);
 }
+
+bool RadialFunction::Print(const std::string& filename, pLattice lattice) const
+{
+    FILE* fp = fopen(filename.c_str(), "wt");
+
+    if(fp)
+    {   bool success = Print(fp, lattice);
+        fclose(fp);
+        return success;
+    }
+    else
+        return false;
+}
+
+bool RadialFunction::Print(FILE* fp, pLattice lattice) const
+{
+    unsigned int i;
+    if(lattice)
+        for(i = 0; i < size(); i++)
+        {
+            fprintf(fp, "%12.6e %12.6e %12.6e\n", lattice->R(i), f[i], dfdr[i]);
+        }
+    else
+        for(i = 0; i < size(); i++)
+        {
+            fprintf(fp, "%d %12.6e %12.6e\n", i, f[i], dfdr[i]);
+        }
+
+    return true;
+}

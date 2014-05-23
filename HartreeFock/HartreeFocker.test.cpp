@@ -102,7 +102,7 @@ TEST(HartreeFockerTester, ContinuumOrbital)
 TEST(HartreeFockerTester, AuContinuum)
 {
     pLattice lattice(new Lattice(1500, 1.e-6, 50.));
-    lattice->resize(600.);
+    lattice->resize(100.);
 
     // Au25+
     unsigned int Z = 79;
@@ -110,6 +110,7 @@ TEST(HartreeFockerTester, AuContinuum)
 
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
+    DebugOptions.LogHFContinuum(true);
     DebugOptions.HartreeEnergyUnits(true);
 
     pCore core(new Core(lattice, filling));
@@ -134,5 +135,4 @@ TEST(HartreeFockerTester, AuContinuum)
 
     unsigned int loop = HF_Solver.CalculateContinuumWave(epsilon, t);
     EXPECT_NE(0, loop);
-    epsilon->Print(lattice);
 }

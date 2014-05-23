@@ -1,6 +1,7 @@
 #ifndef SPINOR_FUNCTION_H
 #define SPINOR_FUNCTION_H
 
+#include "Lattice.h"
 #include <boost/shared_ptr.hpp>
 #include <stdio.h>
 #include <vector>
@@ -129,6 +130,10 @@ public:
     /** Multiply radial function by another (assumed zero outside range). */
     const RadialFunction& operator*=(const RadialFunction& other);
     RadialFunction operator*(const RadialFunction& other) const;
+
+    /** Print state to file, optionally printing lattice. Return success. */
+    bool Print(const std::string& filename, pLattice lattice = pLattice()) const;
+    bool Print(FILE* fp, pLattice lattice = pLattice()) const;
 };
 
 #endif
