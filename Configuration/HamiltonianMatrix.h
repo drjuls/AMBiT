@@ -24,7 +24,7 @@ typedef boost::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianO
 class HamiltonianMatrix
 {
 public:
-    HamiltonianMatrix(pHFElectronOperator hf, const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs);
+    HamiltonianMatrix(pHFElectronOperator hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void GenerateMatrix();

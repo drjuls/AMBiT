@@ -17,11 +17,10 @@
 // (instead of just one).
 //#define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(pHFElectronOperator hf, const CIIntegrals& coulomb_integrals, pRelativisticConfigListConst relconfigs):
+HamiltonianMatrix::HamiltonianMatrix(pHFElectronOperator hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs):
     H_two_body(nullptr), configs(relconfigs), M(nullptr) //, include_sigma3(false)
 {
     // Set up Hamiltonian operator
-    pTwoElectronCoulombOperator coulomb(new TwoElectronCoulombOperator(coulomb_integrals));
     H_two_body = pTwoBodyHamiltonianOperator(new TwoBodyHamiltonianOperator(hf, coulomb));
 
     // Set up matrix

@@ -60,7 +60,9 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         if(alpha_variation)
             physical_constant->SetAlphaSquaredIncreaseRatio(alpha_variation);
     }
-    hf = pHFOperator(new HFOperator(Z, open_core, physical_constant, integrator, coulomb));
+
+    undressed_hf = pHFOperator(new HFOperator(Z, open_core, physical_constant, integrator, coulomb));
+    hf = undressed_hf;
 
     // Add nuclear potential
     double nuclear_radius = user_input("NuclearRadius", 0.0);
@@ -149,8 +151,15 @@ void BasisGenerator::SetOrbitalMaps()
 pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 {
     open_core = pCore(new Core(lattice));
+    hf = nullptr;
+    hartreeY = nullptr;
+
     if(open_shell_core)
+    {   // Copy, use same lattice
         open_core->Copy(*open_shell_core);
+        lattice = open_core->GetLattice();
+        orbitals = pOrbitalManager(new OrbitalManager(lattice));
+    }
 
     pHFOperator undressed_hf;
     InitialiseHF(undressed_hf);
@@ -167,13 +176,6 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     }
 
     HF_Solver.SolveCore(open_core, hf);
-
-    if(DebugOptions.LogHFIterations())
-    {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
-        double orth = TestOrthogonality(max_i, max_j);
-        *logstream << "Core Orthogonality test: "
-                   << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
-    }
 
     return open_core;
 }

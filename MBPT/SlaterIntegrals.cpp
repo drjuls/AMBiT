@@ -1,139 +1,177 @@
 #include "Include.h"
-#include "SlaterIntegrals.h"
+// Below purposely not included: this file is for a template class and should be included in the header.
+// #include "SlaterIntegrals.h"
 
-#include "HartreeFock/StateIntegrator.h"
-#include "Universal/CoulombIntegrator.h"
-
-SlaterIntegrals::SlaterIntegrals(pExcitedStatesConst excited_states):
-    core(*excited_states->GetCore()), excited(*excited_states), include_valence_sms(false)
+template<class MapType>
+SlaterIntegrals<MapType>::SlaterIntegrals(pHartreeY hartreeY_op, pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
+    hartreeY_operator(hartreeY_op), orbitals(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
-    if(core.GetNuclearInverseMass())
-        include_valence_sms = true;
+    NumStates = orbitals->size();
 }
 
-void SlaterIntegrals::UpdateStateIndexes(const ExcitedStates& valence)
+template<class MapType>
+unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(OrbitalClassification s1_type, OrbitalClassification s2_type, OrbitalClassification s3_type, OrbitalClassification s4_type, bool check_size_only)
 {
-    if(core.GetNuclearInverseMass())
-        include_valence_sms = true;
+    // NOTE: For each set of orbitals, we actually calculate
+    //       R^k(12,34) = < 4 | Y^k_{31} | 2 >
+    // on the assumption that i1 and i2 are smaller.
 
-    NumStates = core.NumStates() + excited.NumStates();
-    state_index.clear();
-    reverse_state_index.clear();
+    unsigned int i1, i2, i3, i4;
+    unsigned int k, kmax;
+    pOrbitalConst s1, s2, s3, s4;
 
-    ConstStateIterator it_i = core.GetConstStateIterator();
-    unsigned int i;
+    pOrbitalMapConst orbital_map_1 = orbitals->GetOrbitalMap(s1_type);
+    pOrbitalMapConst orbital_map_2 = orbitals->GetOrbitalMap(s2_type);
+    pOrbitalMapConst orbital_map_3 = orbitals->GetOrbitalMap(s3_type);
+    pOrbitalMapConst orbital_map_4 = orbitals->GetOrbitalMap(s4_type);
 
-    // Iterate through states, assign in order
-    it_i.First(); i = 0;
-    while(!it_i.AtEnd())
+    std::set<KeyType> found_keys;   // For check_size_only
+
+    // Get Y^k_{31}
+    auto it_1 = orbital_map_1->begin();
+    while(it_1 != orbital_map_1->end())
     {
-        core_states.insert(i);
-        state_index.insert(std::pair<OrbitalInfo, unsigned int>(OrbitalInfo(it_i.GetState()), i));
-        reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, OrbitalInfo(it_i.GetState())));
+        i1 = orbitals->state_index.at(it_1->first);
+        s1 = it_1->second;
 
-        it_i.Next(); i++;
-    }
-
-    it_i = excited.GetConstStateIterator();
-    it_i.First();
-    while(!it_i.AtEnd())
-    {
-        OrbitalInfo info(it_i.GetState());
-
-        // Check not already present from open shell core
-        if(state_index.find(info) == state_index.end())
-        {   state_index.insert(std::pair<OrbitalInfo, unsigned int>(info, i));
-            reverse_state_index.insert(std::pair<unsigned int, OrbitalInfo>(i, info));
+        auto it_3 = orbital_map_3->begin();
+        if(s1_type == s3_type)
+        {   it_3 = it_1;
+            i3 = i1;
         }
 
-        excited_states.insert(i);
-        if(valence.GetState(info))
-            valence_states.insert(i);
+        while(it_3 != orbital_map_3->end())
+        {
+            i3 = orbitals->state_index.at(it_3->first);
+            s3 = it_3->second;
 
-        it_i.Next(); i++;
+            // Limits on k
+            k = abs(s1->L() - s3->L());
+            if(abs(s1->TwoJ() - s3->TwoJ()) > 2 * k)
+                k += 2;
+
+            kmax = s1->L() + s3->L();
+            if(s1->TwoJ() + s3->TwoJ() <  2 * kmax)
+                kmax -= 2;
+
+            while(k <= kmax)
+            {
+                // Get Pot31
+                if(!check_size_only)
+                {   hartreeY_operator->SetParameters(k, *s3, *s1);
+                    if(hartreeY_operator->isZero())
+                        break;
+                }
+
+                auto it_2 = orbital_map_2->begin();
+                while(it_2 != orbital_map_2->end())
+                {
+                    i2 = orbitals->state_index.at(it_2->first);
+                    s2 = it_2->second;
+
+                    auto it_4 = orbital_map_4->begin();
+                    while(it_4 != orbital_map_4->end())
+                    {
+                        i4 = orbitals->state_index.at(it_4->first);
+                        s4 = it_4->second;
+
+                        // Check max_pqn conditions and k conditions
+                        if(((s2->L() + s4->L() + k)%2 == 0) &&
+                           (k >= abs(s2->L() - s4->L())) &&
+                           (2 * k >= abs(s2->TwoJ() - s4->TwoJ())) &&
+                           (k <= s2->L() + s4->L()) &&
+                           (2 * k <= s2->TwoJ() + s4->TwoJ()))
+                        {
+                            KeyType key = GetKey(k, i1, i2, i3, i4);
+
+                            if(check_size_only)
+                                found_keys.insert(key);
+                            else
+                            {   // Check that this integral doesn't already exist
+                                if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
+                                {
+                                    double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
+                                    TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                }
+                            }
+                        }
+                        it_4++;
+                    }
+                    it_2++;
+                }
+                k+=2;
+            }
+            it_3++;
+        }
+        it_1++;
     }
-}
 
-void SlaterIntegrals::Clear()
-{
-    state_index.clear();
-    reverse_state_index.clear();
-    OneElectronIntegrals.clear();
-    SMSIntegrals.clear();
-    TwoElectronIntegrals.clear();
-}
-
-void SlaterIntegrals::Update(const ExcitedStates& valence)
-{
-    Clear();
-    UpdateStateIndexes(valence);
-
-    UpdateOneElectronIntegrals();
-    UpdateTwoElectronIntegrals();
-}
-
-double SlaterIntegrals::GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-
-    if(i1 <= i2)
-        return OneElectronIntegrals.find(i1 * NumStates + i2)->second;
+    if(check_size_only)
+        return found_keys.size();
     else
-        return OneElectronIntegrals.find(i2 * NumStates + i1)->second;
+        return TwoElectronIntegrals.size();
 }
 
-double SlaterIntegrals::GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const
+template<class MapType>
+auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const -> KeyType
 {
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-
-    if(i1 <= i2)
-        return SMSIntegrals.find(i1 * NumStates + i2)->second;
+    if(two_body_reverse_symmetry)
+    {   // Ordering of indices:
+        // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
+        // therefore (i1 <= i2 <= i4) and (i1 <= i3)
+        if(i3 < i1)
+            swap(i3, i1);
+        if(i4 < i2)
+            swap(i4, i2);
+        if(i2 < i1)
+        {   swap(i2, i1);
+            swap(i3, i4);
+        }
+        if((i1 == i2) && (i4 < i3))
+            swap(i3, i4);
+    }
     else
-        return -SMSIntegrals.find(i2 * NumStates + i1)->second;
-}
+    {   // Ordering of indices:
+        // i1 is smallest && (if i1 == i2, then (i3 <= i4))
+        //                && (if i1 == i3, then (i2 <= i4))
+        //                && (if i1 == i4, then (i2 <= i3))
 
-bool SlaterIntegrals::TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const
-{
-    bool sms_sign = true;
+        // Assert one of i1, i3 is smallest
+        if(mmin(i1, i3) > mmin(i2, i4))
+        {   swap(i1, i2);
+            swap(i3, i4);
+        }
+        // Assert i1 <= i3
+        if(i1 > i3)
+        {   swap(i1, i3);
+            swap(i2, i4);
+        }
 
-    // Ordering of indices:
-    // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
-    // therefore (i1 <= i2 <= i4) and (i1 <= i3)
-    if(i3 < i1)
-    {   swap(i3, i1);
-        sms_sign = !sms_sign;
+        if((i1 == i2) && (i4 < i3))
+            swap(i3, i4);
+        if((i1 == i3) && (i4 < i2))
+            swap(i2, i4);
+        if((i1 == i4) && (i3 < i2))
+            swap(i2, i3);
     }
-    if(i4 < i2)
-    {   swap(i4, i2);
-        sms_sign = !sms_sign;
-    }
-    if(i2 < i1)
-    {   swap(i2, i1);
-        swap(i3, i4);
-    }
-    if((i1 == i2) && (i4 < i3))
-        swap(i3, i4);
 
-    return sms_sign;
-}
-
-double SlaterIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-    unsigned int i3 = state_index.find(s3)->second;
-    unsigned int i4 = state_index.find(s4)->second;
-
-    bool sms_sign = TwoElectronIntegralOrdering(i1, i2, i3, i4);
-
-    LongKey key = k  * NumStates*NumStates*NumStates*NumStates +
+    KeyType key = k  * NumStates*NumStates*NumStates*NumStates +
                   i1 * NumStates*NumStates*NumStates +
                   i2 * NumStates*NumStates +
                   i3 * NumStates +
                   i4;
+    return key;
+}
 
+template<class MapType>
+double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
+{
+    unsigned int i1 = orbitals->state_index.at(s1);
+    unsigned int i2 = orbitals->state_index.at(s2);
+    unsigned int i3 = orbitals->state_index.at(s3);
+    unsigned int i4 = orbitals->state_index.at(s4);
+
+    KeyType key = GetKey(k, i1, i2, i3, i4);
     double radial = 0.;
 
     if(TwoElectronIntegrals.find(key) != TwoElectronIntegrals.end())
@@ -145,16 +183,6 @@ double SlaterIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo
                    << "\n  key = " << key << "  num_states = " << NumStates 
                    << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
-    }
-
-    if(include_valence_sms && (k == 1))
-    {   double SMS = GetNuclearInverseMass();
-        if(SMS)
-        {   SMS = SMS * SMSIntegrals.find(i1*NumStates + i3)->second * SMSIntegrals.find(i2*NumStates + i4)->second;
-            if(!sms_sign)
-                SMS = -SMS;
-            radial = radial - SMS;
-        }
     }
 
     return radial;

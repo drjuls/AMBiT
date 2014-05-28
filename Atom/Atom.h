@@ -98,8 +98,6 @@ public:
 public:
     bool RestoreAllEigenstates();
 
-    CIIntegrals* GetCIIntegrals() { return integrals; }
-
     OrbitalMap::iterator GetIteratorToNextOrbitalToFill();
     std::string GetNextConfigString();
 
@@ -132,8 +130,8 @@ protected:
     pHartreeY hartreeY;
     bool hartreeY_reverse_symmetry;
 
-    CIIntegrals* integrals;             //!< Two-body Hamiltonian
-    pHFElectronOperator hf_electron;    //!< One-body Hamiltonian
+    pHFElectronOperator hf_electron;              //!< One-body Hamiltonian
+    pTwoElectronCoulombOperator twobody_electron; //!< Two-body Hamiltonian
     std::set<Symmetry> symmetries;
     pLevelMap levels;
 

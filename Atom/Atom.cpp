@@ -5,7 +5,7 @@
 #include "Atom.h"
 #include "Basis/BasisGenerator.h"
 
-#include "MBPT/CoreMBPTCalculator.h"
+//#include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/ScalapackMatrix.h"
 #include "Universal/ExpLattice.h"
 #include "Universal/Eigensolver.h"
@@ -18,7 +18,6 @@ Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const st
     user_input(userInput), Z(atomic_number), identifier(atom_identifier)
 {
     lattice = pLattice();
-    integrals = nullptr;
     orbitals = nullptr;
 
 //    integralsMBPT = NULL;
@@ -40,10 +39,7 @@ Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const st
 }
 
 Atom::~Atom(void)
-{
-    if(integrals)
-        delete integrals;
-}
+{}
 
 pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 {

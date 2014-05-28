@@ -35,6 +35,9 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
     int k = user_input("Basis/BSpline/K", 7);
     double rmax = user_input("Basis/BSpline/Rmax", lattice->MaxRealDistance());
 
+    if(rmax > lattice->MaxRealDistance())
+        lattice->resize(rmax);
+
     if(spline_type == Reno)
     {   // Fix k. k should be at least lmax + 3
         int lmax = max_pqn.size() - 1;

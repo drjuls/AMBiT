@@ -20,21 +20,26 @@ void Atom::MakeIntegrals()
 {
     //TODO: Use stored MBPT integrals
     ClearIntegrals();
-    integrals = new CIIntegrals(hf, hartreeY, orbitals->valence, identifier, hartreeY_reverse_symmetry);
+    pSlaterIntegralsMap integrals(new SlaterIntegralsMap(hartreeY, orbitals, hartreeY_reverse_symmetry));
 
     if(user_input.search("--check-sizes"))
-        *outstream << "\nNum coulomb integrals: " << integrals->GetStorageSize() << std::endl;
+    {
+        unsigned int size = integrals->CalculateTwoElectronIntegrals(OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, true);
+        *outstream << "\nNum coulomb integrals: " << size << std::endl;
+    }
     else
-        integrals->Update();
+    {
+        integrals->CalculateTwoElectronIntegrals(OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence);
 
-    hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
+        hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
+        twobody_electron = pTwoElectronCoulombOperator(new TwoElectronCoulombOperator<pSlaterIntegralsMap>(integrals));
+    }
 }
 
 void Atom::ClearIntegrals()
 {
-    if(integrals)
-        delete integrals;
-    integrals = nullptr;
+    hf_electron = nullptr;
+    twobody_electron = nullptr;
 }
 
 /** Check sizes of matrices before doing full scale calculation. */
@@ -91,7 +96,7 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
     if(levels->size(sym) < NumSolutions)
     {
-        if(integrals == nullptr)
+        if(twobody_electron == nullptr)
             MakeIntegrals();
 
         HamiltonianMatrix* H;
@@ -99,7 +104,7 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
         #ifdef _MPI
             H = new MPIHamiltonianMatrix(*integrals, gen);
         #else
-            H = new HamiltonianMatrix(hf_electron, *integrals, configs);
+            H = new HamiltonianMatrix(hf_electron, twobody_electron, configs);
         #endif
 
 //        if(sigma3)

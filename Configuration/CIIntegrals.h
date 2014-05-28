@@ -6,6 +6,8 @@
 #include "HartreeFock/SpinorOperator.h"
 #include "HartreeFock/HartreeY.h"
 #include "ElectronInfo.h"
+#include "Universal/MathConstant.h"
+#include "MBPT/SlaterIntegrals.h"
 
 /** Class to hold Coulomb integrals for use in CI calculation,
     ie. R^k(ij,kl) where i,j,k,l are all valence particles.
@@ -146,17 +148,111 @@ protected:
     unsigned int max_pqn_1, max_pqn_2, max_pqn_3;
 };
 
+template <class pTwoElectronIntegralType>
 class TwoElectronCoulombOperator
 {
 public:
-    TwoElectronCoulombOperator(const CIIntegrals& ci_integrals): integrals(ci_integrals) {}
+    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals): integrals(ci_integrals) {}
 
     double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
 
 protected:
-    const CIIntegrals& integrals;
+    pTwoElectronIntegralType integrals;
 };
 
-typedef boost::shared_ptr<TwoElectronCoulombOperator> pTwoElectronCoulombOperator;
+typedef boost::shared_ptr<TwoElectronCoulombOperator<pSlaterIntegralsMap>> pTwoElectronCoulombOperator;
+
+template <class TwoElectronIntegralType>
+double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
+{
+    if((e1.L() + e2.L() + e3.L() + e4.L())%2)
+        return 0.;
+
+    int two_q = e1.TwoM() - e3.TwoM();
+    if(two_q != - e2.TwoM() + e4.TwoM())
+        return 0.;
+
+    unsigned int k = mmax(abs(int(e1.L()) - int(e3.L())), abs(int(e2.L()) - int(e4.L())));
+    if((fabs(e1.J() - e3.J()) > double(k)) || (fabs(e2.J() - e4.J()) > double(k)))
+        k += 2;
+
+    unsigned int kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L());
+    if((e1.J() + e3.J() < double(kmax)) || (e2.J() + e4.J() < double(kmax)))
+        kmax -= 2;
+
+    double q = double(two_q)/2.;
+
+    double total = 0.;
+
+    MathConstant* constants = MathConstant::Instance();
+
+    while(k <= kmax)
+    {
+        double coeff = 0.;
+        if(fabs(q) <= k)
+            coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+
+        if(coeff)
+            coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+
+        if(coeff)
+        {
+            if(int(q - e1.M() - e2.M() + 1.)%2)
+                coeff = - coeff;
+
+            coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                        e3.MaxNumElectrons() * e4.MaxNumElectrons()));
+
+            double radial = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
+
+            total += coeff * radial;
+        }
+
+        k = k+2;
+    }
+
+#ifdef INCLUDE_EXTRA_BOX_DIAGRAMS
+    // Include the box diagrams with "wrong" parity.
+    k = (unsigned int)mmax(fabs(e1.J() - e3.J()), fabs(e2.J() - e4.J()));
+    if((k + e1.L() + e3.L())%2 == 0)
+        k++;
+
+    kmax = (unsigned int)mmin(e1.J() + e3.J(), e2.J() + e4.J());
+
+    while(k <= kmax)
+    {
+        double radial = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
+
+        if(radial)
+        {
+            double coeff = 0.;
+            if(fabs(q) <= k)
+                coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+
+            if(coeff)
+                coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+
+            if(coeff)
+            {
+                if(int(q - e1.M() - e2.M() + 1.)%2)
+                    coeff = - coeff;
+
+                coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                            e3.MaxNumElectrons() * e4.MaxNumElectrons()));
+                
+                total += coeff * radial;
+            }
+        }
+        
+        k = k+2;
+    }
+#endif
+    
+    return total;
+}
 
 #endif

@@ -46,10 +46,10 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     pHFOperatorConst hf = basis_generator.GetHFOperator();
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
-    CIIntegrals integrals(hf, hartreeY, orbitals->valence, "", true);
-    integrals.Update();
+    pSlaterIntegralsMap integrals(new SlaterIntegralsMap(hartreeY, orbitals, true));
+    integrals->CalculateTwoElectronIntegrals(OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence);
 
-    EXPECT_EQ(31809, integrals.size());
+    EXPECT_EQ(31747, integrals->size());
 
     ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
@@ -60,7 +60,8 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
     pHFElectronOperator hf_electron(new HFElectronOperator(hf, orbitals));
-    HamiltonianMatrix H_even(hf_electron, integrals, relconfigs);
+    pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegralsMap>(integrals));
+    HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();
 
     // Solve matrix
@@ -72,7 +73,7 @@ TEST(HamiltonianMatrixTester, MgIILevels)
     sym = Symmetry(2, Parity::odd);
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
 
-    HamiltonianMatrix H_odd(hf_electron, integrals, relconfigs);
+    HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
     H_odd.SolveMatrix(sym, 3, levels);
     GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);

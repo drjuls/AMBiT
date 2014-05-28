@@ -1,119 +1,86 @@
 #ifndef SLATER_INTEGRALS_H
 #define SLATER_INTEGRALS_H
 
-/** Set one of these to use a hash map to store the Slater integrals.
- *    hash_map is smaller than map, and is fast
- *    google::sparse_hash_map is very space-efficient, but can take a long time to build
+#include "Basis/OrbitalManager.h"
+#include "HartreeFock/HartreeY.h"
+#include <map>
+#include <unordered_map>
+
+/** Class to hold Slater integrals \f$ R^k(12,34) \f$.
+    storage_id is used to store and retrieve integrals in files.
+    The existence of reversal symmetry
+        \f$ R^k(12,34) = R^k(12,43) = R^k(21,34) \f$
+    is specified by two_body_reverse_symmetry, which defaults to false.
+    The symmetry is present in the usual Coulomb operator but is broken by
+    operators such as specific mass shift as well as MBPT.
+
+    If the size of the map becomes very large you may like to use a
+    hash map to store the Slater integrals.
+        std::unordered_map is smaller than map, and is fast
+        google::sparse_hash_map is very space-efficient, but can take a long time to build
  */
-#define USE_HASH_MAP 0
-#define USE_GOOGLE_SPARSEHASH 0
-
-#include "Basis/ExcitedStates.h"
-
-#if USE_HASH_MAP
-#include <ext/hash_map>
-#elif USE_GOOGLE_SPARSEHASH
-#include <google/sparse_hash_map>
-#endif
-
-#define LongKey unsigned long long int
-
-struct LongKey_hash_function
-{   std::size_t operator()(LongKey x) const
-    {   return (x >> 12)^x;
-    }
-};
-
+template <class MapType>
 class SlaterIntegrals
 {
-    /** Class to hold Slater integrals. */
+    typedef typename MapType::key_type KeyType;
+
 public:
-    SlaterIntegrals(pExcitedStatesConst excited_states);
+    SlaterIntegrals(pHartreeY hartreeY_op, pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists = false);
     virtual ~SlaterIntegrals() {}
 
-    /** Calculate number of one-electron and two-electron integrals that will be stored.
-        Return total.
+    /** Calculate two-electron Slater integrals, \f$ R^k(12,34) \f$, and return number of integrals that will be stored.
+        The first four arguments are the types of orbitals to store for each limb of the Slater integral
+            1 ------- 3
+                 |
+            2 ------- 4
+        Only unique integrals are stored in any case.
+        If check_size_only is true, the integrals are not calculated, but the storage size is returned.
      */
-    virtual unsigned int GetStorageSize(const ExcitedStates& valence) = 0;
-
-    /** Update all integrals (on the assumption that the excited states have changed). */
-    virtual void Update(const ExcitedStates& valence);
+    virtual unsigned int CalculateTwoElectronIntegrals(OrbitalClassification s1_type, OrbitalClassification s2_type, OrbitalClassification s3_type, OrbitalClassification s4_type, bool check_size_only = false);
 
     /** Clear all integrals. */
-    virtual void Clear();
+    void clear() { TwoElectronIntegrals.clear(); }
 
-    /** Include the scaled specific mass shift in the two electron integrals. */
-    inline void IncludeValenceSMS(bool include)
-    {   include_valence_sms = include;
-    }
+    /** Number of stored integrals. */
+    unsigned int size() const { return TwoElectronIntegrals.size(); }
 
-    /** GetOneElectronIntegral(i, j) = <i|H|j> */
-    double GetOneElectronIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
-
-    /** GetSMSIntegral(i, j) = <i|p|j> */
-    double GetSMSIntegral(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
-    
-    /** GetTwoElectronIntegral(k, i, j, l, m) = R_k(ij, lm): i->l, j->m */
+    /** GetTwoElectronIntegral(k, 1, 2, 3, 4) = R_k(12, 34): 1->3, 2->4
+        PRE: s1, s2, s3, and s4 are all in orbital manager and conform to a orbital type pattern that has been
+             calculated using CalculateTwoElectronIntegrals.
+     */
     virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
 protected:
-    /** Change ordering of states so that it corresponds to a stored integral.
-        Returns false if SMS sign needs to be changed.
-     */
-    virtual bool TwoElectronIntegralOrdering(unsigned int& i1, unsigned int& i2, unsigned int& i3, unsigned int& i4) const;
+    /** Change ordering of states so that it corresponds to a stored integral and return key. */
+    virtual KeyType GetKey(unsigned int k, unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const;
 
-    virtual void UpdateStateIndexes(const ExcitedStates& valence_states);
-
-    virtual void UpdateOneElectronIntegrals() = 0;
-    virtual void UpdateTwoElectronIntegrals() = 0;
-
-    void swap(unsigned int& i1, unsigned int& i2) const;
+    inline void swap(unsigned int& i1, unsigned int& i2) const
+    {   unsigned int temp = i1;
+        i1 = i2;
+        i2 = temp;
+    }
 
 protected:
-    const Core& core;
-    const ExcitedStates& excited;
+    pHartreeY hartreeY_operator;
+    bool two_body_reverse_symmetry;
 
-    LongKey NumStates;
-
-    // The ordering of states is not arbitrary:
-    // - core states should have lower indices
-    // - excited states should be ordered by pqn first.
-    std::map<OrbitalInfo, unsigned int> state_index;
-    std::map<unsigned int, OrbitalInfo> reverse_state_index;
-
-    // Sets of state indices indicate what type of orbital.
-    //   core = closed shell core states
-    //   valence is a subset of excited states that are external lines in MBPT diagrams
-    //      (and then are generally included in CI calculations)
-    std::set<unsigned int> core_states;
-    std::set<unsigned int> valence_states;
-    std::set<unsigned int> excited_states;
-
-    // Storage for one and two electron integrals.
-
-    // OneElectronIntegrals(i, j) = <i|H|j>
-    std::map<unsigned int, double> OneElectronIntegrals;
+    pOrbitalManagerConst orbitals;
+    KeyType NumStates;
 
     // TwoElectronIntegrals(k, i, j, l, m) = R_k(ij, lm): i->l, j->m
-#if USE_HASH_MAP
-    __gnu_cxx::hash_map<LongKey, double, LongKey_hash_function> TwoElectronIntegrals;
-#elif USE_GOOGLE_SPARSEHASH
-    google::sparse_hash_map<LongKey, double, LongKey_hash_function> TwoElectronIntegrals;
-#else
-    std::map<LongKey, double> TwoElectronIntegrals;
-#endif
-
-    // SMSIntegrals(i, j) = <i|p|j>
-    std::map<unsigned int, double> SMSIntegrals;
-
-    // Include SMS in two-body integrals.
-    bool include_valence_sms;
+    MapType TwoElectronIntegrals;
 };
 
-inline void SlaterIntegrals::swap(unsigned int& i1, unsigned int& i2) const
-{   unsigned int temp = i1;
-    i1 = i2;
-    i2 = temp;
-}
+typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
+typedef boost::shared_ptr<SlaterIntegralsMap> pSlaterIntegralsMap;
+
+typedef SlaterIntegrals<std::unordered_map<unsigned long long int, double>> SlaterIntegralsHash;
+
+#if USE_GOOGLE_SPARSEHASH
+    #include <google/sparse_hash_map>
+    typedef SlaterIntegrals<LongKey, google::sparse_hash_map<LongKey, double>> SlaterIntegralsSparseHash;
+#endif
+
+#include "SlaterIntegrals.cpp"
 
 #endif
