@@ -2,6 +2,7 @@
 #define SPINOR_FUNCTION_H
 
 #include "Lattice.h"
+#include "Enums.h"
 #include <boost/shared_ptr.hpp>
 #include <stdio.h>
 #include <vector>
@@ -32,6 +33,7 @@ public:
     int L() const;
     double J() const;
     int TwoJ() const;
+    inline Parity GetParity() const;
 
     /** Resize the functions. Pad with zeros if necessary. */
     virtual void resize(unsigned int size);
@@ -95,6 +97,12 @@ inline int SpinorFunction::TwoJ() const
 {   return (2*abs(kappa) - 1);
 }
 
+inline Parity SpinorFunction::GetParity() const
+{   if(L()%2 == 0)
+        return Parity::even;
+    else
+        return Parity::odd;
+}
 
 /** RadialFunction is a vector function and its derivative,
     similar to one component of a SpinorFunction.

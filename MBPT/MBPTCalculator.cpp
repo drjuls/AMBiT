@@ -1,10 +1,7 @@
 #include "MBPTCalculator.h"
-#include "Universal/MathConstant.h"
-#include "Universal/CoulombIntegrator.h"
-#include "HartreeFock/StateIntegrator.h"
 
-MBPTCalculator::MBPTCalculator(pLattice lat, pCoreConst atom_core, pExcitedStatesConst excited_states):
-    lattice(lat), core(atom_core), excited(excited_states), delta(0.)
+MBPTCalculator::MBPTCalculator(pOrbitalManagerConst pOrbitals):
+    orbitals(pOrbitals)
 {
     SetValenceEnergies();
 }
@@ -14,34 +11,36 @@ MBPTCalculator::~MBPTCalculator(void)
 
 void MBPTCalculator::SetValenceEnergies()
 {
-    ConstStateIterator it_i = excited->GetConstStateIterator();
+    pOrbitalMapConst valence = orbitals->GetOrbitalMap(OrbitalClassification::valence);
     ValenceEnergies.clear();
 
     // Get maximum angular momentum in excited states
     unsigned int max_l = 0;
-    it_i.First();
-    while(!it_i.AtEnd())
-    {   max_l = mmax(it_i.GetState()->L(), max_l);
-        it_i.Next();
+    auto it_i = valence->begin();
+    while(it_i != valence->end())
+    {   max_l = mmax(it_i->first.L(), max_l);
+        it_i++;
     }
 
     for(int kappa = - (int)max_l - 1; kappa <= (int)max_l; kappa++)
+    {
         if(kappa != 0)
         {
             double valence_energy = 0.;
             unsigned int pqn = 10;
 
             // Get leading state (for energy denominator)
-            it_i.First();
-            while(!it_i.AtEnd())
-            {   pOrbitalConst ds = it_i.GetState();
+            it_i = valence->begin();
+            while(it_i != valence->end())
+            {   pOrbitalConst ds = it_i->second;
                 if((ds->Kappa() == kappa) && (ds->PQN() < pqn))
                 {   pqn = ds->PQN();
                     valence_energy = ds->Energy();
                 }
-                it_i.Next();
+                it_i++;
             }
 
             ValenceEnergies.insert(std::pair<int, double>(kappa, valence_energy));
         }
+    }
 }

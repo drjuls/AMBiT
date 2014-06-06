@@ -1,29 +1,40 @@
 #include "Include.h"
+#include "OrbitalManager.h"
+
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
 template<class MapType>
-SlaterIntegrals<MapType>::SlaterIntegrals(pHartreeY hartreeY_op, pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
-    hartreeY_operator(hartreeY_op), orbitals(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
+SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
+    SlaterIntegralsInterface(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
 }
 
 template<class MapType>
-unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(OrbitalClassification s1_type, OrbitalClassification s2_type, OrbitalClassification s3_type, OrbitalClassification s4_type, bool check_size_only)
+SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op, bool two_body_reverse_symmetry_exists):
+SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
+{
+    NumStates = orbitals->size();
+}
+
+template<class MapType>
+SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op):
+    SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(hartreeY_op->ReverseSymmetryExists())
+{
+    NumStates = orbitals->size();
+}
+
+template<class MapType>
+unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, pOrbitalMapConst orbital_map_3, pOrbitalMapConst orbital_map_4, bool check_size_only)
 {
     // NOTE: For each set of orbitals, we actually calculate
     //       R^k(12,34) = < 4 | Y^k_{31} | 2 >
     // on the assumption that i1 and i2 are smaller.
 
     unsigned int i1, i2, i3, i4;
-    unsigned int k, kmax;
+    int k, kmax;
     pOrbitalConst s1, s2, s3, s4;
-
-    pOrbitalMapConst orbital_map_1 = orbitals->GetOrbitalMap(s1_type);
-    pOrbitalMapConst orbital_map_2 = orbitals->GetOrbitalMap(s2_type);
-    pOrbitalMapConst orbital_map_3 = orbitals->GetOrbitalMap(s3_type);
-    pOrbitalMapConst orbital_map_4 = orbitals->GetOrbitalMap(s4_type);
 
     std::set<KeyType> found_keys;   // For check_size_only
 
@@ -35,7 +46,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(OrbitalClas
         s1 = it_1->second;
 
         auto it_3 = orbital_map_3->begin();
-        if(s1_type == s3_type)
+        if(orbital_map_1 == orbital_map_3)
         {   it_3 = it_1;
             i3 = i1;
         }
@@ -91,7 +102,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(OrbitalClas
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
                                     double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
-                                    TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
+                                    TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
                                 }
                             }
                         }
@@ -164,6 +175,12 @@ auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned 
 }
 
 template<class MapType>
+auto SlaterIntegrals<MapType>::GetKey(ExpandedKeyType expanded_key) const -> KeyType
+{
+    return GetKey(std::get<0>(expanded_key), std::get<1>(expanded_key), std::get<2>(expanded_key), std::get<3>(expanded_key), std::get<4>(expanded_key));
+}
+
+template<class MapType>
 double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = orbitals->state_index.at(s1);
@@ -186,4 +203,133 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     }
 
     return radial;
+}
+
+template<class MapType>
+void SlaterIntegrals<MapType>::Read(const std::string& filename)
+{
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+    {   *errstream << "SlaterIntegrals::Read: file " << filename << " not found." << std::endl;
+        exit(1);
+    }
+
+    OrbitalIndex old_state_index;
+    ReadOrbitalIndexes(old_state_index, fp);
+    ReverseOrbitalIndex old_reverse_index(GetReverseIndex(old_state_index));
+
+    unsigned int old_key_size;
+    fread(&old_key_size, sizeof(unsigned int), 1, fp);
+
+    switch(old_key_size)
+    {
+        case sizeof(unsigned long long int):
+        {
+            unsigned int num_integrals;
+            unsigned long long int old_key;
+            double value;
+
+            fread(&num_integrals, sizeof(unsigned int), 1, fp);
+
+            unsigned long long int old_num_states = old_state_index.size();
+
+            for(unsigned int i = 0; i < num_integrals; i++)
+            {
+                fread(&old_key, sizeof(unsigned long long int), 1, fp);
+                fread(&value, sizeof(double), 1, fp);
+
+                ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
+                KeyType new_key = GetKey(temp_expanded);
+
+                auto it = TwoElectronIntegrals.find(new_key);
+                if(it == TwoElectronIntegrals.end())
+                    TwoElectronIntegrals[new_key] = value;
+                else
+                    it->second += value;
+            }
+            break;
+        }
+
+        case sizeof(unsigned int):
+        {
+            unsigned int num_integrals;
+            unsigned int old_key;
+            double value;
+
+            fread(&num_integrals, sizeof(unsigned int), 1, fp);
+
+            unsigned long long int old_num_states = old_state_index.size();
+
+            for(unsigned int i = 0; i < num_integrals; i++)
+            {
+                fread(&old_key, sizeof(unsigned int), 1, fp);
+                fread(&value, sizeof(double), 1, fp);
+
+                ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
+                KeyType new_key = GetKey(temp_expanded);
+
+                auto it = TwoElectronIntegrals.find(new_key);
+                if(it == TwoElectronIntegrals.end())
+                    TwoElectronIntegrals[new_key] = value;
+                else
+                    it->second += value;
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
+}
+
+template<class MapType>
+auto SlaterIntegrals<MapType>::ReverseKey(unsigned long long int num_states, unsigned long long int key) -> ExpandedKeyType
+{
+    KeyType running_power = num_states * num_states * num_states * num_states;
+    KeyType remainder = key;
+    ExpandedKeyType expanded_key;
+
+    std::get<0>(expanded_key) = remainder/running_power;
+    remainder -= std::get<0>(expanded_key) * running_power;
+    running_power = running_power/num_states;
+
+    std::get<1>(expanded_key) = remainder/running_power;
+    remainder -= std::get<1>(expanded_key) * running_power;
+    running_power = running_power/num_states;
+
+    std::get<2>(expanded_key) = remainder/running_power;
+    remainder -= std::get<2>(expanded_key) * running_power;
+    running_power = running_power/num_states;
+
+    std::get<3>(expanded_key) = remainder/running_power;
+    remainder -= std::get<3>(expanded_key) * running_power;
+    running_power = running_power/num_states;
+
+    std::get<4>(expanded_key) = remainder/running_power;
+    remainder -= std::get<4>(expanded_key) * running_power;
+
+    return expanded_key;
+}
+
+template<class MapType>
+void SlaterIntegrals<MapType>::Write(const std::string& filename) const
+{
+    FILE* fp = fopen(filename.c_str(), "wb");
+
+    // Write state index
+    WriteOrbitalIndexes(orbitals->state_index, fp);
+
+    unsigned int KeyType_size = sizeof(KeyType);
+    fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
+
+    unsigned int num_integrals = size();
+    fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: TwoElectronIntegrals)
+    {
+        const double value = pair.second;   // Convert to double
+        fwrite(&pair.first, sizeof(KeyType), 1, fp);
+        fwrite(&value, sizeof(double), 1, fp);
+    }
+
+    fclose(fp);
 }

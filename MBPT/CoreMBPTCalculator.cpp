@@ -1,36 +1,33 @@
 #include "CoreMBPTCalculator.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/CoulombIntegrator.h"
-#include "HartreeFock/StateIntegrator.h"
+#include "Universal/MathConstant.h"
 
-CoreMBPTCalculator::CoreMBPTCalculator(pLattice lat, pCoreConst atom_core, pExcitedStatesConst excited_states):
-    MBPTCalculator(lat, atom_core, excited_states), integrals(NULL)
+CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pSlaterIntegrals two_body):
+    MBPTCalculator(orbitals), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 
-CoreMBPTCalculator::~CoreMBPTCalculator(void)
+CoreMBPTCalculator::~CoreMBPTCalculator()
 {
-    if(integrals)
-        delete integrals;
+    two_body->clear();
 }
 
-unsigned int CoreMBPTCalculator::GetStorageSize(pExcitedStatesConst valence_states)
+unsigned int CoreMBPTCalculator::GetStorageSize()
 {
-    if(!integrals)
-        integrals = new CoreValenceIntegrals(excited);
- 
-    return integrals->GetStorageSize(*valence_states);
+    unsigned int total = two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited, true);
+    total += two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core, true);
+
+    return total;
 }
 
-void CoreMBPTCalculator::UpdateIntegrals(pExcitedStatesConst valence_states)
+void CoreMBPTCalculator::UpdateIntegrals()
 {
     SetValenceEnergies();
-    if(integrals)
-        delete integrals;
 
-    integrals = new CoreValenceIntegrals(excited);
-    integrals->Update(*valence_states);
+    two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited);
+    two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core);
 }
 
+/*
 void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const
 {
     if(DebugOptions.LogMBPT())
@@ -42,6 +39,7 @@ void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma) c
     CalculateCorrelation2(kappa, sigma);
     CalculateCorrelation4(kappa, sigma);
 }
+*/
 
 double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
@@ -79,7 +77,7 @@ double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalI
         *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
-    double term = 0;
+    double term = 0.;
     term += CalculateTwoElectron1(k, s1, s2, s3, s4);
     term += CalculateTwoElectron2(k, s1, s2, s3, s4);
     term += CalculateTwoElectron3(k, s1, s2, s3, s4);
@@ -96,7 +94,7 @@ double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const Orbit
         *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
-    double term = 0;
+    double term = 0.;
     term += CalculateTwoElectron4(k, s1, s2, s3, s4);
     term += CalculateTwoElectron5(k, s1, s2, s3, s4);
     term += CalculateTwoElectron6(k, s1, s2, s3, s4);
@@ -113,6 +111,7 @@ double CoreMBPTCalculator::GetTwoElectronSubtraction(unsigned int k, const Orbit
     return CalculateTwoElectronSub(k, s1, s2, s3, s4);
 }
 
+/*
 void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* sigma) const
 {
     const bool debug = DebugOptions.LogMBPT();
@@ -576,11 +575,11 @@ void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma)
         it_alpha.Next();
     }
 }
+*/
 
 double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
     const bool debug = DebugOptions.LogMBPT();
-
     if(debug)
         *outstream << "Cor 1+3:  ";
 
@@ -591,17 +590,17 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
     double energy1 = 0., energy3 = 0.;
 
     // Firstly, get the loop 24
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             k1 = kmin(sn, salpha);
             k1max = kmax(sn, salpha);
@@ -614,14 +613,13 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                 {
                     C_nalpha = C_nalpha * C_nalpha * sn.MaxNumElectrons() * salpha.MaxNumElectrons()
                                                 / (2. * k1 + 1.);
-                    C_nalpha = C_nalpha * it_alpha.Weight();
 
                     // Correlation 1 has excited state beta
-                    ConstStateIterator it_beta = excited->GetConstStateIterator();
-                    while(!it_beta.AtEnd())
+                    auto it_beta = excited->begin();
+                    while(it_beta != excited->end())
                     {
-                        const OrbitalInfo sbeta = it_beta.GetOrbitalInfo();
-                        const double Ebeta = it_beta.GetState()->Energy();
+                        const OrbitalInfo& sbeta = it_beta->first;
+                        const double Ebeta = it_beta->second->Energy();
 
                         double coeff;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
@@ -636,20 +634,20 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 
                             // R1 = R_k1 (a n, beta alpha)
                             // R2 = R_k1 (b n, beta alpha)
-                            double R1 = integrals->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
-                            double R2 = integrals->GetTwoElectronIntegral(k1, sb, sn, sbeta, salpha);
+                            double R1 = two_body->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
+                            double R2 = two_body->GetTwoElectronIntegral(k1, sb, sn, sbeta, salpha);
                             
                             energy1 += R1 * R2 * coeff;
                         }
-                        it_beta.Next();
+                        it_beta++;
                     }
 
                     // Correlation 3 has core state m
-                    ConstStateIterator it_m = core->GetConstStateIterator();
-                    while(!it_m.AtEnd())
+                    auto it_m = core->begin();
+                    while(it_m != core->end())
                     {
-                        const OrbitalInfo sm = it_m.GetOrbitalInfo();
-                        const double Em = it_m.GetState()->Energy();
+                        const OrbitalInfo& sm = it_m->first;
+                        const double Em = it_m->second->Energy();
 
                         double coeff;
                         if((sa.L() + sm.L() + k1)%2 == 0)
@@ -664,19 +662,19 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 
                             // R1 = R_k1 (a alpha, m n)
                             // R2 = R_k1 (b alpha, m n)
-                            double R1 = integrals->GetTwoElectronIntegral(k1, sa, salpha, sm, sn);
-                            double R2 = integrals->GetTwoElectronIntegral(k1, sb, salpha, sm, sn);
+                            double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sm, sn);
+                            double R2 = two_body->GetTwoElectronIntegral(k1, sb, salpha, sm, sn);
 
                             energy3 += R1 * R2 * coeff;
                         }
-                        it_m.Next();
+                        it_m++;
                     }
                 }
                 k1 += 2;
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
     
     if(debug)
@@ -699,17 +697,17 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
     
     double energy = 0.;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             k1 = kmin(sn, salpha);
             k1max = kmax(sn, salpha);
@@ -722,11 +720,11 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                 {
                     C_nalpha = C_nalpha * sn.MaxNumElectrons() * salpha.MaxNumElectrons();
 
-                    ConstStateIterator it_beta = excited->GetConstStateIterator();
-                    while(!it_beta.AtEnd())
+                    auto it_beta = excited->begin();
+                    while(it_beta != excited->end())
                     {
-                        const OrbitalInfo sbeta = it_beta.GetOrbitalInfo();
-                        const double Ebeta = it_beta.GetState()->Energy();
+                        const OrbitalInfo& sbeta = it_beta->first;
+                        const double Ebeta = it_beta->second->Energy();
 
                         double C_abeta;
                         if((sa.L() + sbeta.L() + k1)%2 == 0)
@@ -757,24 +755,24 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                                 if(coeff)
                                 {
                                     // R1 = R_k1 (a n, beta alpha)
-                                    double R1 = integrals->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
+                                    double R1 = two_body->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
 
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (n b, beta alpha)
-                                    double R2 = integrals->GetTwoElectronIntegral(k2, sn, sb, sbeta, salpha);
+                                    double R2 = two_body->GetTwoElectronIntegral(k2, sn, sb, sbeta, salpha);
                                     
                                     energy += R1 * R2 * coeff;
                                 }
                                 k2 += 2;
                             }
                         }
-                        it_beta.Next();
+                        it_beta++;
                     } 
                 } // C_nalpha
                 k1 += 2;
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
     
     if(debug)
@@ -796,17 +794,17 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
     double energy = 0.;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             k1 = kmin(sn, salpha);
             k1max = kmax(sn, salpha);
@@ -819,11 +817,11 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                 {
                     C_nalpha = C_nalpha * sn.MaxNumElectrons() * salpha.MaxNumElectrons();
 
-                    ConstStateIterator it_m = core->GetConstStateIterator();
-                    while(!it_m.AtEnd())
+                    auto it_m = core->begin();
+                    while(it_m != core->end())
                     {
-                        const OrbitalInfo sm = it_m.GetOrbitalInfo();
-                        const double Em = it_m.GetState()->Energy();
+                        const OrbitalInfo sm = it_m->first;
+                        const double Em = it_m->second->Energy();
 
                         double C_am;
                         if((sa.L() + sm.L() + k1)%2 == 0)
@@ -852,24 +850,24 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
                                 if(coeff)
                                 {   // R1 = R_k1 (a alpha, m n)
-                                    double R1 = integrals->GetTwoElectronIntegral(k1, sa, salpha, sm, sn);
+                                    double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sm, sn);
 
                                     // R2 = R_k2 (m n, alpha b)
-                                    double R2 = integrals->GetTwoElectronIntegral(k2, sm, sn, salpha, sb);
+                                    double R2 = two_body->GetTwoElectronIntegral(k2, sm, sn, salpha, sb);
                                     
                                     energy += R1 * R2 * coeff;
                                 }
                                 k2 += 2;
                             }
                         }
-                        it_m.Next();
+                        it_m++;
                     } 
                 } // C_nalpha
                 k1 += 2;
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -886,36 +884,36 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
 
     double energy = 0.;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             if(sn.Kappa() == salpha.Kappa())
             {
-                double coeff = integrals->GetOneElectronIntegral(sn, salpha);
+                double coeff = one_body->GetMatrixElement(sn, salpha);
                 coeff = coeff * sn.MaxNumElectrons();
 
                 coeff = coeff/(En - Ealpha + delta);
 
                 // R1 = R_0 (a n, b alpha)
-                double R1 = integrals->GetTwoElectronIntegral(0, sa, sn, sb, salpha);
+                double R1 = two_body->GetTwoElectronIntegral(0, sa, sn, sb, salpha);
 
                 // Factor of 2 from identical mirror diagram:
                 //   R_0 (a n, b alpha) = R_0 (a alpha, b n)
                 // and no SMS since k == 0.
                 energy += 2. * R1 * coeff;
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -933,21 +931,21 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
     
     unsigned int k1, k1max;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             if(sn.Kappa() == salpha.Kappa())
             {
-                double C_nalpha = integrals->GetOneElectronIntegral(sn, salpha);
+                double C_nalpha = one_body->GetMatrixElement(sn, salpha);
                 C_nalpha = C_nalpha * sn.MaxNumElectrons();
                 C_nalpha = C_nalpha/(En - Ealpha + delta);
 
@@ -962,17 +960,17 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
                     if(coeff)
                     {
                         // R1 = R_k1 (a alpha, n b), R2 = R_k1 (a n, alpha b)
-                        double R1 = integrals->GetTwoElectronIntegral(k1, sa, salpha, sn, sb);
-                        double R2 = integrals->GetTwoElectronIntegral(k1, sa, sn, salpha, sb);
+                        double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sn, sb);
+                        double R2 = two_body->GetTwoElectronIntegral(k1, sa, sn, salpha, sb);
 
                         energy += (R1 + R2) * coeff;
                     }
                     k1 += 2;
                 }
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -990,20 +988,20 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
     double energy = 0.;
     double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
         if(sn.Kappa() == sa.Kappa())
         {
-            double term = integrals->GetOneElectronIntegral(sa, sn) * integrals->GetOneElectronIntegral(sn, sb);
+            double term = one_body->GetMatrixElement(sa, sn) * one_body->GetMatrixElement(sn, sb);
             term = term/(En - ValenceEnergy + delta);
 
             energy = energy - term;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -1020,17 +1018,17 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
 
     double energy = 0.;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             double coeff;
             if((sn.L() + salpha.L() + k)%2)
@@ -1047,17 +1045,20 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
                 // There are two diagrams:
                 //  1. R_k(a n, c alpha) * R_k(alpha b, n d)
                 //  2. R_k(a alpha, c n) * R_k(n b, alpha d)
-                // The first order SMS cancels for these two diagrams.
-                double R1 = integrals->GetTwoElectronIntegral(k, sa, sn, sc, salpha)
-                            * integrals->GetTwoElectronIntegral(k, salpha, sb, sn, sd);
-                double R2 = integrals->GetTwoElectronIntegral(k, sa, salpha, sc, sn)
-                            * integrals->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, salpha)
+                            * two_body->GetTwoElectronIntegral(k, salpha, sb, sn, sd);
+                double R2 = two_body->GetTwoElectronIntegral(k, sa, salpha, sc, sn)
+                            * two_body->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
+                if(R1*R2 == 0.)
+                    *errstream << "...  R^" << k << " ( " << sa.Name() << " " << sb.Name()
+                               << ", " << sc.Name() << " " << sd.Name() << ") :" << std::endl;
+
 
                 energy += (R1 + R2) * coeff;
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -1080,17 +1081,17 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
 
     unsigned int k1, k1max;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             double C_nalpha;
             if((sn.L() + salpha.L() + k)%2)
@@ -1123,10 +1124,10 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                     if(coeff)
                     {
                         // R1 = R_k1 (a alpha, n c)
-                        double R1 = integrals->GetTwoElectronIntegral(k1, sa, salpha, sn, sc);
+                        double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sn, sc);
 
                         // R2 = R_k (n b, alpha d)
-                        double R2 = integrals->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
+                        double R2 = two_body->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
 
                         energy += R1 * R2 * coeff;
                     }
@@ -1154,19 +1155,19 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                     if(coeff)
                     {
                         // R1 = R_k1 (b alpha, n d)
-                        double R1 = integrals->GetTwoElectronIntegral(k1, sb, salpha, sn, sd);
+                        double R1 = two_body->GetTwoElectronIntegral(k1, sb, salpha, sn, sd);
                         
                         // R2 = R_k (a n, c alpha)
-                        double R2 = integrals->GetTwoElectronIntegral(k, sa, sn, sc, salpha);
+                        double R2 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, salpha);
 
                         energy += R1 * R2 * coeff;
                     }
                     k1 += 2;
                 }
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -1195,17 +1196,17 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     unsigned int k1, k1max;
     unsigned int k2, k2max;
 
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
         {
-            const OrbitalInfo salpha = it_alpha.GetOrbitalInfo();
-            const double Ealpha = it_alpha.GetState()->Energy();
+            const OrbitalInfo& salpha = it_alpha->first;
+            const double Ealpha = it_alpha->second->Energy();
 
             double C_nalpha;
             if((sa.L() + sn.L())%2 != (salpha.L() + sd.L())%2)
@@ -1234,7 +1235,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
                     if(coeff_ad)
                     {
                         // R1 = R_k1 (a alpha, n d)
-                        double R1 = integrals->GetTwoElectronIntegral(k1, sa, salpha, sn, sd);
+                        double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sn, sd);
 
                         k2 = kmin(sn, sc, sb, salpha);
                         k2max = kmax(sn, sc, sb, salpha);
@@ -1252,7 +1253,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
                                 coeff = coeff * coeff_ad * C_nalpha;
 
                                 // R2 = R_k2 (2b, c4)
-                                double R2 = integrals->GetTwoElectronIntegral(k2, sn, sb, sc, salpha);
+                                double R2 = two_body->GetTwoElectronIntegral(k2, sn, sb, sc, salpha);
 
                                 energy += R1 * R2 * coeff;
                             }
@@ -1262,9 +1263,9 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
                     k1 += 2;
                 }
             }
-            it_alpha.Next();
+            it_alpha++;
         }
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)
@@ -1295,17 +1296,17 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     unsigned int k1, k1max;
     unsigned int k2, k2max;
 
-    ConstStateIterator it_m = core->GetConstStateIterator();
-    while(!it_m.AtEnd())
+    auto it_m = core->begin();
+    while(it_m != core->end())
     {
-        const OrbitalInfo sm = it_m.GetOrbitalInfo();
-        const double Em = it_m.GetState()->Energy();
+        const OrbitalInfo& sm = it_m->first;
+        const double Em = it_m->second->Energy();
 
-        ConstStateIterator it_n = core->GetConstStateIterator();
-        while(!it_n.AtEnd())
+        auto it_n = core->begin();
+        while(it_n != core->end())
         {
-            const OrbitalInfo sn = it_n.GetOrbitalInfo();
-            const double En = it_n.GetState()->Energy();
+            const OrbitalInfo& sn = it_n->first;
+            const double En = it_n->second->Energy();
 
             double coeff_mn;
             if((sa.L() + sm.L())%2 != (sb.L() + sn.L())%2)
@@ -1334,7 +1335,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                     if(coeff_ab)
                     {
                         // R1 = R_k1 (ab, mn)
-                        double R1 = integrals->GetTwoElectronIntegral(k1, sa, sb, sm, sn);
+                        double R1 = two_body->GetTwoElectronIntegral(k1, sa, sb, sm, sn);
                         
                         k2 = kmin(sm, sc, sn, sd);
                         k2max = kmax(sm, sc, sn, sd);
@@ -1354,7 +1355,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                                     coeff = -coeff;
 
                                 // R2 = R_k2 (mn, cd)
-                                double R2 = integrals->GetTwoElectronIntegral(k2, sm, sn, sc, sd);
+                                double R2 = two_body->GetTwoElectronIntegral(k2, sm, sn, sc, sd);
 
                                 energy += R1 * R2 * coeff;
                             }
@@ -1364,9 +1365,9 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                     k1 += 2;
                 }
             }
-            it_n.Next();
+            it_n++;
         }
-        it_m.Next();
+        it_m++;
     }
 
     if(debug)
@@ -1389,47 +1390,47 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     const double Ed = ValenceEnergies.find(sd.Kappa())->second;
 
     // Hole line is attached to sa or sc
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
+    auto it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
         if(sn.Kappa() == sa.Kappa())
         {
-            double R1 = integrals->GetTwoElectronIntegral(k, sn, sb, sc, sd);
-            energy -= R1 * integrals->GetOneElectronIntegral(sa, sn) / (En - Ea + delta);
+            double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
+            energy -= R1 * one_body->GetMatrixElement(sa, sn) / (En - Ea + delta);
         }
 
         if(sn.Kappa() == sc.Kappa())
         {
-            double R1 = integrals->GetTwoElectronIntegral(k, sa, sb, sn, sd);
-            energy -= R1 * integrals->GetOneElectronIntegral(sn, sc) / (En - Ec + delta);
+            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
+            energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
         }
 
-        it_n.Next();
+        it_n++;
     }
 
     // Hole line is attached to sb or sd.
-    it_n.First();
-    while(!it_n.AtEnd())
+    it_n = core->begin();
+    while(it_n != core->end())
     {
-        const OrbitalInfo sn = it_n.GetOrbitalInfo();
-        const double En = it_n.GetState()->Energy();
+        const OrbitalInfo& sn = it_n->first;
+        const double En = it_n->second->Energy();
 
         if(sn.Kappa() == sb.Kappa())
         {
-            double R1 = integrals->GetTwoElectronIntegral(k, sa, sn, sc, sd);
-            energy -= R1 * integrals->GetOneElectronIntegral(sb, sn) / (En - Eb + delta);
+            double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
+            energy -= R1 * one_body->GetMatrixElement(sb, sn) / (En - Eb + delta);
         }
 
         if(sn.Kappa() == sd.Kappa())
         {
-            double R1 = integrals->GetTwoElectronIntegral(k, sa, sb, sc, sn);
-            energy -= R1 * integrals->GetOneElectronIntegral(sn, sd) / (En - Ed + delta);
+            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
+            energy -= R1 * one_body->GetMatrixElement(sn, sd) / (En - Ed + delta);
         }
 
-        it_n.Next();
+        it_n++;
     }
 
     if(debug)

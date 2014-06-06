@@ -7,6 +7,9 @@
 /** Classification of orbitals matches maps OrbitalManager. */
 enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
 
+typedef std::map<OrbitalInfo, unsigned int> OrbitalIndex;
+typedef std::map<unsigned int, OrbitalInfo> ReverseOrbitalIndex;
+
 /** An overgrown struct holding all OrbitalMaps including core and excited.
     Classification (each Orbital appears in exactly one of the following):
         deep        -- always occupied in the CI model space
@@ -30,14 +33,14 @@ public:
     pOrbitalMap particle;   //!< sometimes occupied in the CI model space (above Fermi level)
     pOrbitalMap high;       //!< never occupied in the CI model space
 
-    pOrbitalMap core;             //!< below Fermi level == deep + hole
+    pOrbitalMap core;       //!< below Fermi level == deep + hole
     pOrbitalMap excited;    //!< above Fermi level == particle + high
     pOrbitalMap valence;    //!< sometimes occupied in CI model space == hole + particle
 
     pOrbitalMap all;        //!< all orbitals >= deep + hole + particle + high == core + excited
 
-    std::map<OrbitalInfo, unsigned int> state_index;            //!< Unique key for all orbitals
-    std::map<unsigned int, OrbitalInfo> reverse_state_index;    //!< Unique key for all orbitals
+    OrbitalIndex state_index;            //!< Unique key for all orbitals
+    ReverseOrbitalIndex reverse_state_index;    //!< Unique key for all orbitals
 
 public:
     /** Create a new (empty) pOrbitalMap pointed to by all states. */
@@ -71,5 +74,51 @@ protected:
 
 typedef boost::shared_ptr<OrbitalManager> pOrbitalManager;
 typedef boost::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
+
+/** Free function to read state indexes. */
+inline void ReadOrbitalIndexes(OrbitalIndex& state_index, FILE* fp)
+{
+    unsigned int size;
+    fread(&size, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < size; i++)
+    {
+        unsigned int index;
+        int pqn, kappa;
+
+        fread(&index, sizeof(unsigned int), 1, fp);
+        fread(&pqn, sizeof(int), 1, fp);
+        fread(&kappa, sizeof(int), 1, fp);
+
+        state_index[OrbitalInfo(pqn, kappa)] = index;
+    }
+}
+
+/** Free function to write state indexes. */
+inline void WriteOrbitalIndexes(const OrbitalIndex& state_index, FILE* fp)
+{
+    unsigned int size = state_index.size();
+    fwrite(&size, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: state_index)
+    {
+        const int pqn = pair.first.PQN();
+        const int kappa = pair.first.Kappa();
+
+        fwrite(&pair.second, sizeof(unsigned int), 1, fp);
+        fwrite(&pqn, sizeof(int), 1, fp);
+        fwrite(&kappa, sizeof(int), 1, fp);
+    }
+}
+
+/** Reverse state index. */
+inline ReverseOrbitalIndex GetReverseIndex(const OrbitalIndex& state_index)
+{
+    ReverseOrbitalIndex ret;
+    for(auto& pair: state_index)
+        ret.insert(std::make_pair(pair.second, pair.first));
+
+    return ret;
+}
 
 #endif

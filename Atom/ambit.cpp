@@ -409,17 +409,20 @@ void Ambit::EnergyCalculations()
     // CI
     std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
 
-    for(auto& sym: symmetries)
-    {
-        for(int i = 0; i < run_indexes.size(); i++)
+    if(user_input.search("--check-sizes"))
+        atoms[0].CheckMatrixSizes();
+    else
+        for(auto& sym: symmetries)
         {
-            if(user_input.GetNumRuns() > 1)
-            {   user_input.SetRun(run_indexes[i]);
-                user_input.PrintCurrentRunCondition(*outstream, "\n");
+            for(int i = 0; i < run_indexes.size(); i++)
+            {
+                if(user_input.GetNumRuns() > 1)
+                {   user_input.SetRun(run_indexes[i]);
+                    user_input.PrintCurrentRunCondition(*outstream, "\n");
+                }
+                atoms[i].CalculateEnergies(sym);
             }
-            atoms[i].CalculateEnergies(sym);
         }
-    }
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

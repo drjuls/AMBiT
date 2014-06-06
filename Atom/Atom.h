@@ -128,7 +128,6 @@ protected:
     pHFOperator hf;                 //!< Closed-shell HF operator
     pOrbitalManagerConst orbitals;
     pHartreeY hartreeY;
-    bool hartreeY_reverse_symmetry;
 
     pHFElectronOperator hf_electron;              //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron; //!< Two-body Hamiltonian

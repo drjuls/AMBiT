@@ -78,7 +78,6 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     // Hartree operator
     hartreeY = pHartreeY(new HartreeY(integrator, coulomb));
-    hartreeY_reverse_symmetry = true;
 
     // Add additional operators
     double NuclearInverseMass = user_input("NuclearInverseMass", 0.0);
@@ -90,7 +89,6 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
         pHartreeY dressed(new NonRelativisticSMSOperator(hartreeY));
         hartreeY = dressed;
-        hartreeY_reverse_symmetry = false;
     }
 }
 
@@ -130,22 +128,45 @@ void BasisGenerator::SetOrbitalMaps()
     std::string valence_states = user_input("Basis/ValenceBasis", "");
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
 
-    pOrbitalMap excited = pOrbitalMap(new OrbitalMap(lattice));
+    pOrbitalMap particle = pOrbitalMap(new OrbitalMap(lattice));
     for(auto orbital: all)
     {
         if(orbital.first.L() < max_pqn_per_l.size()
            && orbital.first.PQN() <= max_pqn_per_l[orbital.first.L()]
            && closed_core->GetState(orbital.first) == nullptr)
         {
-            excited->AddState(orbital.second);
+            particle->AddState(orbital.second);
         }
     }
-    orbitals->excited = excited;
+    orbitals->valence = particle;
+    orbitals->particle = particle;
 
-    // TODO: implement high (virtual) states.
-    orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->particle = orbitals->excited;
-    orbitals->valence = orbitals->excited;
+    // high (virtual) states.
+    std::string virtual_states = user_input("MBPT/Basis", "");
+    if(virtual_states.size())
+    {
+        max_pqn_per_l = ConfigurationParser::ParseBasisSize(virtual_states);
+
+        pOrbitalMap excited = pOrbitalMap(new OrbitalMap(lattice));
+        pOrbitalMap high = pOrbitalMap(new OrbitalMap(lattice));
+        for(auto orbital: all)
+        {
+            if(orbital.first.L() < max_pqn_per_l.size()
+               && orbital.first.PQN() <= max_pqn_per_l[orbital.first.L()]
+               && closed_core->GetState(orbital.first) == nullptr)
+            {
+                excited->AddState(orbital.second);
+                if(particle->GetState(orbital.first) == nullptr)
+                    high->AddState(orbital.second);
+            }
+        }
+        orbitals->excited = excited;
+        orbitals->high = high;
+    }
+    else
+    {   orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
+        orbitals->excited = orbitals->particle;
+    }
 }
 
 pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)

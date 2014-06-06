@@ -2,34 +2,36 @@
 #define CORE_MBPT_CALCULATOR_H
 
 #include "MBPTCalculator.h"
-#include "HartreeFock/SigmaPotential.h"
-#include "CoreValenceIntegrals.h"
+#include "SlaterIntegrals.h"
+#include "Configuration/OneElectronOperator.h"
+//#include "HartreeFock/SigmaPotential.h"
+//#include "CoreValenceIntegrals.h"
 
+/** Calculate diagrams of many-body perturbation theory.
+    One-body diagrams (functions GetSecondOrderSigma()) are of the form
+           _____
+     s1___|     |___s2    (non-zero only if s1.kappa == s2.kappa)
+          |_____|
+
+    Two-body diagrams (function GetTwoElectronDiagrams()) are of the form
+      a___ _____ ___b
+          |     |
+      c___|_____|___d
+
+    Use Brillouin-Wigner perturbation theory, where the energy of external lines is
+    kept constant in the energy denominator (this ensures that the operator is hermitian).
+ */
 class CoreMBPTCalculator : public MBPTCalculator
 {
-    /** Calculate diagrams of many-body perturbation theory.
-        One-body diagrams (functions GetSecondOrderSigma()) are of the form
-               _____
-         s1___|     |___s2    (non-zero only if s1.kappa == s2.kappa)
-              |_____|
-
-        Two-body diagrams (function GetTwoElectronDiagrams()) are of the form
-          a___ _____ ___b
-              |     |
-          c___|_____|___d
-
-        Use Brillouin-Wigner perturbation theory, where the energy of external lines is
-        kept constant in the energy denominator (this ensures that the operator is hermitian).
-     */
 public:
-    CoreMBPTCalculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
-    virtual ~CoreMBPTCalculator(void);
+    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pSlaterIntegrals two_body);
+    virtual ~CoreMBPTCalculator();
 
-    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states);
-    virtual void UpdateIntegrals(pExcitedStatesConst valence_states);
+    virtual unsigned int GetStorageSize() override;
+    virtual void UpdateIntegrals() override;
 
     /** Create a second-order one-electron MBPT (sigma1) operator. */
-    void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;
+//    void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;
 
     /** Return value is the matrix element < s1 | Sigma1 | s2 >. */
     double GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
@@ -48,17 +50,6 @@ public:
      */
     double GetTwoElectronBoxDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const;
 
-    /** Add a constant, delta, to the energy denominator in all diagrams.
-        This corresponds to H_0 -> H_0 + delta, so V -> V - delta
-        and the energy denominator becomes
-            1/(E + delta - H_0)
-        To choose delta to adjust E closer to the BW value, use
-            delta = E_CI - E_HF
-     */
-    void SetEnergyShift(double energy_shift)
-    {   delta = energy_shift;
-    }
-
 protected:
     /** Calculate diagrams of second order (shown here 1 through 4).
         ->>------>------>>--  ->>------>------<---  ->>------<------>>--  ->>------<------>---
@@ -69,9 +60,9 @@ protected:
 
          PRE: si.kappa == sf.kappa
      */
-    void CalculateCorrelation1and3(int kappa, SigmaPotential* sigma) const;
-    void CalculateCorrelation2(int kappa, SigmaPotential* sigma) const;
-    void CalculateCorrelation4(int kappa, SigmaPotential* sigma) const;
+//    void CalculateCorrelation1and3(int kappa, SigmaPotential* sigma) const;
+//    void CalculateCorrelation2(int kappa, SigmaPotential* sigma) const;
+//    void CalculateCorrelation4(int kappa, SigmaPotential* sigma) const;
 
     double CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     double CalculateCorrelation2(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
@@ -141,7 +132,13 @@ protected:
     double CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
 protected:
-    CoreValenceIntegrals* integrals;
+    pHFElectronOperatorConst one_body;
+    pSlaterIntegrals two_body;
+
+    pOrbitalMapConst core;
+    pOrbitalMapConst excited;
 };
+
+typedef boost::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
 
 #endif

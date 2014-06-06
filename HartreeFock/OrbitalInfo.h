@@ -28,6 +28,7 @@ public:
     inline double J() const;
     inline int TwoJ() const;
     inline int L_Prime() const; //!< Return the value of L for the lower component of the wavefunction.
+    inline Parity GetParity() const;
 
     inline int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
@@ -83,6 +84,14 @@ inline int OrbitalInfo::L_Prime() const
 inline int OrbitalInfo::TwoJ() const
 {
     return (2*abs(kappa) - 1);
+}
+
+inline Parity OrbitalInfo::GetParity() const
+{
+    if(L()%2 == 0)
+        return Parity::even;
+    else
+        return Parity::odd;
 }
 
 #endif

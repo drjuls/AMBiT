@@ -20,11 +20,16 @@
     This allows us to remove potentials, etc. from decorator objects.
     HartreeYBase itself is the zero operator \f$ Y^k_{cd} = 0 \f$,
     used to wrap Decorators around when you want just the extra bit.
+ 
+    Each HartreeY operator needs to know whether it is "reversible" in the sense
+    \f$ Y^k_{cd} = Y^k_{dc} \f$, i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
+    The boolean two_body_reverse_symmetry_exists contains this information, which is
+    accessible via the function ReverseSymmetryExists().
  */
 class HartreeYBase : public SpinorOperator
 {
 public:
-    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy) {}
+    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy), two_body_reverse_symmetry_exists(true) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
@@ -34,6 +39,11 @@ public:
 
     /** Check whether the potential Y^k_{cd} is zero. (e.g. angular momentum conditions not satisfied). */
     virtual bool isZero() const { return true; }
+
+    /** Whether this is "reversible" in the sense \f$ Y^k_{cd} = Y^k_{dc} \f$,
+        i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
+     */
+    virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const override
@@ -64,6 +74,9 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const
     {   return SpinorFunction(kappa_b);
     }
+
+protected:
+    bool two_body_reverse_symmetry_exists;
 };
 
 typedef boost::shared_ptr<HartreeYBase> pHartreeY;
@@ -132,6 +145,13 @@ public:
     /** Should be overwritten to take boolean AND of all wrapped objects. */
     virtual bool isZero() const override
     {   return component->isZero();
+    }
+
+    /** Whether this is "reversible" in the sense \f$ Y^k_{cd} = Y^k_{dc} \f$,
+        i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
+     */
+    virtual bool ReverseSymmetryExists() const override final
+    {   return two_body_reverse_symmetry_exists && component->ReverseSymmetryExists();
     }
 
     /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */

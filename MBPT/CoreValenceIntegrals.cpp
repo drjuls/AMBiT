@@ -1,452 +1,171 @@
 #include "Include.h"
-#include "CoreValenceIntegrals.h"
-#include "HartreeFock/StateIntegrator.h"
-#include "Universal/CoulombIntegrator.h"
-#include "Universal/PhysicalConstant.h"
 
-unsigned int CoreValenceIntegrals::GetStorageSize(const ExcitedStates& valence)
+// Below purposely not included: this file is for a template class and should be included in the header.
+// #include "CoreValenceIntegrals.h"
+
+template <class MapType>
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pHartreeY hartreeY_op):
+    CoreValenceIntegrals(one_body, pSlaterIntegrals(new SlaterIntegrals<MapType>(orbitals, hartreeY_op)))
+{}
+
+template <class MapType>
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pSlaterIntegrals bare_integrals):
+    SlaterIntegrals<MapType>(orbitals, false), core_PT(nullptr),
+    include_core(true), include_core_subtraction(true), include_core_extra_box(true),
+    include_valence(false), include_valence_subtraction(false), include_valence_extra_box(false)
 {
-    UpdateStateIndexes(valence);
+    core_PT.reset(new CoreMBPTCalculator(this->orbitals, one_body, bare_integrals));
+}
 
-    unsigned int size1 = 0;
-    unsigned int size2 = 0;
-    unsigned int sizesms = 0;
+template <class MapType>
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator):
+    SlaterIntegrals<MapType>(orbitals, false), core_PT(core_mbpt_calculator),
+    include_core(true), include_core_subtraction(true), include_core_extra_box(true),
+    include_valence(false), include_valence_subtraction(false), include_valence_extra_box(false)
+{}
 
-    std::set<unsigned int>::const_iterator it_n, it_alpha;
+template <class MapType>
+CoreValenceIntegrals<MapType>::~CoreValenceIntegrals()
+{}
 
-    *outstream << "Core states: " << core_states.size() << std::endl;
-    *outstream << "Valence states: " << valence_states.size() << std::endl;
-    *outstream << "Excited states: " << excited_states.size() << std::endl;
-    *outstream << "NumStates: " << NumStates << std::endl;
+template <class MapType>
+unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, pOrbitalMapConst orbital_map_3, pOrbitalMapConst orbital_map_4, bool check_size_only)
+{
+    unsigned int i1, i2, i3, i4;
+    int k, kmax;
 
-    // One electron integrals: need all < n | H | alpha >
-    // where n is core; alpha is excited (superset of valence)
+    std::set<KeyType> found_keys;   // For check_size_only
 
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
+    if(!check_size_only)
+        core_PT->UpdateIntegrals();
+
+    auto it_1 = orbital_map_1->begin();
+    while(it_1 != orbital_map_1->end())
     {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-        it_alpha = excited_states.begin();
-        while(it_alpha != excited_states.end())
+        i1 = this->orbitals->state_index.at(it_1->first);
+        const auto& s1 = it_1->first;
+
+        auto it_3 = orbital_map_3->begin();
+        while(it_3 != orbital_map_3->end())
         {
-            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
-            if(n.Kappa() == alpha.Kappa())
-                size1++;
+            i3 = this->orbitals->state_index.at(it_3->first);
+            const auto& s3 = it_3->first;
 
-            it_alpha++;
+            auto it_2 = orbital_map_2->begin();
+            while(it_2 != orbital_map_2->end())
+            {
+                i2 = this->orbitals->state_index.at(it_2->first);
+                const auto& s2 = it_2->first;
+
+                auto it_4 = orbital_map_4->begin();
+                while(it_4 != orbital_map_4->end())
+                {
+                    i4 = this->orbitals->state_index.at(it_4->first);
+                    const auto& s4 = it_4->first;
+
+                    // Check parity conservation
+                    if((s1.L() + s2.L() + s3.L() + s4.L())%2 == 0)
+                    {
+                        // Limits on k
+                        k = mmax(abs(s1.L() - s3.L()), abs(s2.L() - s4.L()));
+                        if((abs(s1.TwoJ() - s3.TwoJ()) > 2 * k) || abs(s2.TwoJ() - s4.TwoJ()) > 2 * k)
+                        {
+                            if(include_core_extra_box || include_valence_extra_box)
+                                k++;
+                            else
+                                k+=2;
+                        }
+
+                        kmax = mmin(s1.L() + s3.L(), s2.L() + s4.L());
+                        if((s1.TwoJ() + s3.TwoJ() <  2 * kmax) || (s2.TwoJ() + s4.TwoJ() <  2 * kmax))
+                        {
+                            if(include_core_extra_box || include_valence_extra_box)
+                                kmax--;
+                            else
+                                kmax-=2;
+                        }
+                            
+                        while(k <= kmax)
+                        {
+                            // Usual multipolarity rules
+                            if((s2.L() + s4.L() + k)%2 == 0)
+                            {
+                                KeyType key = this->GetKey(k, i1, i2, i3, i4);
+
+                                if(check_size_only)
+                                {
+                                    if(include_core || include_core_subtraction || include_valence || include_valence_subtraction)
+                                        found_keys.insert(key);
+                                }
+                                else
+                                {   // Check that this integral doesn't already exist
+                                    if(this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end())
+                                    {
+                                        double radial = 0;
+                                        if(include_core)
+                                            radial += core_PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
+                                        if(include_core_subtraction)
+                                            radial += core_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
+
+                                        this->TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
+                                    }
+                                }
+                            }
+                            // Wrong multipolarity
+                            else if(include_core_extra_box || include_valence_extra_box)
+                            {
+                                KeyType key = this->GetKey(k, i1, i2, i3, i4);
+
+                                if(check_size_only)
+                                {
+                                    found_keys.insert(key);
+                                }
+                                else
+                                {   // Check that this integral doesn't already exist
+                                    if(this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end())
+                                    {
+                                        double radial = 0;
+                                        if(include_core_extra_box)
+                                            radial += core_PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
+
+                                        this->TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
+                                    }
+                                }
+                            }
+
+                            if(include_core_extra_box || include_valence_extra_box)
+                                k++;
+                            else
+                                k+=2;
+                        }
+                    }
+                    it_4++;
+                }
+                it_2++;
+            }
+            it_3++;
         }
-
-        it_n++;
+        it_1++;
     }
-
-    *logstream << "Num one-electron integrals: " << size1 << std::endl;
-
-    // SMS integrals: need all < n | p | alpha > and < a | p | alpha >
-    // where n is core; a is valence; alpha is excited (superset of valence)
-
-    // k == 1
-    // triangle(k, j1, j2) -> j1 + j2 >= 1 (always satisfied)
-    //                     -> |j1 - j2| <= 1
-    // (l1 + l2 + 1)%2 == 0
-
-    std::set<unsigned int>::const_iterator it_a;
-
-    it_alpha = excited_states.begin();
-    while(it_alpha != excited_states.end())
-    {
-        OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
     
-        it_n = core_states.begin();
-        while(it_n != core_states.end())
-        {
-            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-
-            if((abs(alpha.TwoJ() - n.TwoJ()) <= 2) &&
-               ((n.L() + alpha.L() + 1)%2 == 0))
-                sizesms++;
-
-            it_n++;
-        }
-
-        it_a = valence_states.begin();
-        while((it_a != valence_states.end()) && (*it_a <= *it_alpha))
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-            if((abs(alpha.TwoJ() - a.TwoJ()) <= 2) &&
-               ((a.L() + alpha.L() + 1)%2 == 0))
-                sizesms++;
-
-            it_a++;
-        }
-
-        it_alpha++;
-    }
-
-    *logstream << "Num sms integrals: " << sizesms << std::endl;
-
-    // Two-electron Slater integrals for MBPT diagrams are of two types:
-    //   R^k(n a, alpha beta), a <= beta
-    //   R^k(n m, alpha beta), n <= m; if n == m then alpha <= beta
-    // where n and m are core; a is valence; alpha and beta are excited (superset of valence)
-
-    std::set<unsigned int>::const_iterator it_m, it_beta;
-    unsigned int k, kmax;
-
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
-    {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-        
-        it_alpha = excited_states.begin();
-        while(it_alpha != excited_states.end())
-        {
-            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
-
-            // (n, alpha) -> limits on k
-            k = abs(int(n.L()) - int(alpha.L()));
-            if(abs(int(n.TwoJ()) - int(alpha.TwoJ())) > 2 * k)
-                k += 2;
-
-            kmax = (n.TwoJ() + alpha.TwoJ())/2;
-
-            while(k <= kmax)
-            {
-                it_beta = excited_states.begin();
-                while(it_beta != excited_states.end())
-                {
-                    OrbitalInfo beta = reverse_state_index.find(*it_beta)->second;
-
-                    unsigned int Lsum = beta.L() + k;
-                    unsigned int TwoJmin = abs(2*k - int(beta.TwoJ()));
-                    unsigned int TwoJmax = 2*k + beta.TwoJ();
-
-                    it_a = valence_states.begin();
-
-                    // a <= beta, unless beta is not a valence state
-                    unsigned int alimit;
-                    if(valence_states.find(*it_beta) != valence_states.end())
-                        alimit = *it_beta;
-                    else
-                        alimit = NumStates;
-
-                    while((it_a != valence_states.end()) && (*it_a <= alimit))
-                    {
-                        OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-                        if((a.TwoJ() >= TwoJmin) &&
-                           (a.TwoJ() <= TwoJmax) &&
-                           ((Lsum + a.L())%2 == 0))
-                            size2++;
-
-                        it_a++;
-                    }
-
-                    // n <= m; if n == m then alpha <= beta
-                    it_m = it_n;
-                    if(*it_alpha > *it_beta)
-                        it_m++;
-
-                    while(it_m != core_states.end())
-                    {
-                        OrbitalInfo m = reverse_state_index.find(*it_m)->second;
-
-                        if((m.TwoJ() >= TwoJmin) &&
-                           (m.TwoJ() <= TwoJmax) &&
-                           ((Lsum + m.L())%2 == 0))
-                            size2++;
-
-                        it_m++;
-                    }
-                    
-                    it_beta++;
-                }
-
-                k += 2;
-            }
-
-            it_alpha++;
-        }
-
-        it_n++;
-    }
-
-    *logstream << "Num two-electron integrals: " << size2 << std::endl;
-
-    return (size1 + size2 + sizesms);
+    if(check_size_only)
+        return found_keys.size();
+    else
+        return this->TwoElectronIntegrals.size();
 }
 
-void CoreValenceIntegrals::UpdateOneElectronIntegrals()
+template <class MapType>
+void CoreValenceIntegrals<MapType>::IncludeCore(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams)
 {
-    unsigned int key;
-    double value;
-
-    std::set<unsigned int>::const_iterator it_n, it_alpha;
-
-    pOrbitalConst sn;
-    pSingleParticleWavefunctionConst salpha;
-
-    StateIntegrator SI(core.GetLattice());
-
-    // One electron integrals: need all < n | H | alpha >
-    // where n is core; alpha is excited (superset of valence)
-
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
-    {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-        sn = core.GetState(n);
-        
-        it_alpha = excited_states.begin();
-        while(it_alpha != excited_states.end())
-        {
-            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
-
-            if(n.Kappa() == alpha.Kappa())
-            {
-                salpha = excited.GetState(alpha);
-
-                key = *it_n * NumStates + *it_alpha;
-                value = SI.HamiltonianMatrixElement(*sn, *salpha, core);
-                if(OneElectronIntegrals.find(key) != OneElectronIntegrals.end())
-                    *outstream << "one electron overwrite" << std::endl;
-                OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, value));
-            }
-
-            it_alpha++;
-        }
-
-        it_n++;
-    }
-
-    // SMS integrals: need all < n | p | alpha > and < a | p | alpha >
-    // where n is core; a is valence; alpha is excited (superset of valence)
-
-    // k == 1
-    // triangle(k, j1, j2) -> j1 + j2 >= 1 (always satisfied)
-    //                     -> |j1 - j2| <= 1
-    // (l1 + l2 + 1)%2 == 0
-
-    std::set<unsigned int>::const_iterator it_a;
-    pSingleParticleWavefunctionConst sa;
-
-    it_alpha = excited_states.begin();
-    while(it_alpha != excited_states.end())
-    {
-        OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
-        salpha = excited.GetState(alpha);
-
-        it_n = core_states.begin();
-        while(it_n != core_states.end())
-        {
-            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-
-            if((abs(alpha.TwoJ() - n.TwoJ()) <= 2) &&
-               ((n.L() + alpha.L() + 1)%2 == 0))
-            {
-                sn = core.GetState(n);
-
-                key = *it_n * NumStates + *it_alpha;
-                value = -SI.IsotopeShiftIntegral(*salpha, *sn);
-                if(SMSIntegrals.find(key) != SMSIntegrals.end())
-                    *outstream << "sms overwrite" << std::endl;
-                SMSIntegrals.insert(std::pair<unsigned int, double>(key, value));
-            }
-
-            it_n++;
-        }
-
-        // a <= alpha, unless alpha is not a valence state
-        unsigned int alimit;
-        if(valence_states.find(*it_alpha) != valence_states.end())
-            alimit = *it_alpha;
-        else
-            alimit = NumStates;
-
-        it_a = valence_states.begin();
-        while((it_a != valence_states.end()) && (*it_a <= alimit))
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-            if((abs(alpha.TwoJ() - a.TwoJ()) <= 2) &&
-               ((a.L() + alpha.L() + 1)%2 == 0))
-            {
-                sa = excited.GetState(a);
-
-                if(*it_a < *it_alpha)
-                {   key = *it_a * NumStates + *it_alpha;
-                    value = -SI.IsotopeShiftIntegral(*salpha, *sa);
-                }
-                else
-                {   key = *it_alpha * NumStates + *it_a;
-                    value = -SI.IsotopeShiftIntegral(*sa, *salpha);
-                }
-
-                if(SMSIntegrals.find(key) != SMSIntegrals.end())
-                    *outstream << "sms overwrite" << std::endl;
-                SMSIntegrals.insert(std::pair<unsigned int, double>(key, value));
-            }
-
-            it_a++;
-        }
-
-        it_alpha++;
-    }
+    include_core = include_mbpt;
+    include_core_subtraction = include_subtraction;
+    include_core_extra_box = include_wrong_parity_box_diagrams;
 }
 
-void CoreValenceIntegrals::UpdateTwoElectronIntegrals()
+template <class MapType>
+void CoreValenceIntegrals<MapType>::IncludeValence(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams)
 {
-    LongKey key;
-    double value;
-
-    CoulombIntegrator CI(core.GetLattice());
-    std::vector<double> density(core.GetHFPotential().size());
-    std::vector<double> potential(core.GetHFPotential().size());
-    const double* dR = core.GetLattice()->dR();
-    unsigned int p;  // just a counter
-
-    // Two-electron Slater integrals for MBPT diagrams are of two types:
-    //   R^k(n a, alpha beta), a <= beta
-    //   R^k(n m, alpha beta), n <= m; if n == m then alpha <= beta
-    // where n and m are core; a is valence; alpha and beta are excited (superset of valence)
-
-    std::set<unsigned int>::const_iterator it_n, it_m, it_a, it_alpha, it_beta;
-    pOrbitalConst sn, sm;
-    pSingleParticleWavefunctionConst sa, salpha, sbeta;
-    unsigned int k, kmax;
-
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
-    {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-        sn = core.GetState(n);
-
-        it_alpha = excited_states.begin();
-        while(it_alpha != excited_states.end())
-        {
-            OrbitalInfo alpha = reverse_state_index.find(*it_alpha)->second;
-            salpha = excited.GetState(alpha);
-
-            // (n, alpha) -> limits on k
-            k = abs(int(n.L()) - int(alpha.L()));
-            if(abs(int(n.TwoJ()) - int(alpha.TwoJ())) > 2 * k)
-                k += 2;
-
-            kmax = (n.TwoJ() + alpha.TwoJ())/2;
-
-            // Get density
-            if(k <= kmax)
-            {   for(p=0; p < mmin(sn->size(), salpha->size()); p++)
-                {   density[p] = sn->f[p] * salpha->f[p] + sn->g[p] * salpha->g[p];
-                }
-            }
-
-            while(k <= kmax)
-            {
-                // n, alpha, k -> potential
-                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->size(), salpha->size()));
-
-                it_beta = excited_states.begin();
-                while(it_beta != excited_states.end())
-                {
-                    OrbitalInfo beta = reverse_state_index.find(*it_beta)->second;
-                    sbeta = excited.GetState(beta);
-
-                    unsigned int Lsum = beta.L() + k;
-                    unsigned int TwoJmin = abs(int(2*k) - int(beta.TwoJ()));
-                    unsigned int TwoJmax = 2*k + beta.TwoJ();
-
-                    it_a = valence_states.begin();
-
-                    // a <= beta, unless beta is not a valence state
-                    unsigned int alimit;
-                    if(valence_states.find(*it_beta) != valence_states.end())
-                        alimit = *it_beta;
-                    else
-                        alimit = NumStates;
-
-                    while((it_a != valence_states.end()) && (*it_a <= alimit))
-                    {
-                        OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-                        sa = excited.GetState(a);
-
-                        if((a.TwoJ() >= TwoJmin) &&
-                           (a.TwoJ() <= TwoJmax) &&
-                           ((Lsum + a.L())%2 == 0))
-                        {
-                            // Fix ordering
-                            unsigned int i1, i2, i3, i4;
-                            i1 = *it_n;
-                            i2 = *it_a;
-                            i3 = *it_alpha;
-                            i4 = *it_beta;
-                            TwoElectronIntegralOrdering(i1, i2, i3, i4);
-                            key = k  * NumStates*NumStates*NumStates*NumStates +
-                                  i1 * NumStates*NumStates*NumStates +
-                                  i2 * NumStates*NumStates +
-                                  i3 * NumStates +
-                                  i4;
-
-                            value = 0.;
-                            unsigned int limit = mmin(sa->size(), sbeta->size());
-                            limit = mmin(limit, potential.size());
-                            for(p=0; p<limit; p++)
-                            {
-                                value += (sa->f[p] * sbeta->f[p] + sa->g[p] * sbeta->g[p])
-                                         * potential[p] * dR[p];
-                            }
-
-                            TwoElectronIntegrals.insert(std::pair<LongKey, double>(key, value));
-                        }
-
-                        it_a++;
-                    }
-
-                    // n <= m; if n == m then alpha <= beta
-                    it_m = it_n;
-                    if(*it_alpha > *it_beta)
-                        it_m++;
-
-                    while(it_m != core_states.end())
-                    {
-                        OrbitalInfo m = reverse_state_index.find(*it_m)->second;
-                        sm = core.GetState(m);
-
-                        if((m.TwoJ() >= TwoJmin) &&
-                           (m.TwoJ() <= TwoJmax) &&
-                           ((Lsum + m.L())%2 == 0))
-                        {
-                            // Ordering should be correct
-                            key = k         * NumStates*NumStates*NumStates*NumStates +
-                                  *it_n     * NumStates*NumStates*NumStates +
-                                  *it_m     * NumStates*NumStates +
-                                  *it_alpha * NumStates +
-                                  *it_beta;
-
-                            value = 0.;
-                            unsigned int limit = mmin(sm->size(), sbeta->size());
-                            limit = mmin(limit, potential.size());
-                            for(p=0; p<limit; p++)
-                            {
-                                value += (sm->f[p] * sbeta->f[p] + sm->g[p] * sbeta->g[p])
-                                         * potential[p] * dR[p];
-                            }
-
-                            TwoElectronIntegrals.insert(std::pair<LongKey, double>(key, value));
-                        }
-
-                        it_m++;
-                    }
-                    
-                    it_beta++;
-                }
-
-                k += 2;
-            }
-
-            it_alpha++;
-        }
-
-        it_n++;
-    }
+    include_valence = include_mbpt;
+    include_valence_subtraction = include_subtraction;
+    include_valence_extra_box = include_wrong_parity_box_diagrams;
 }

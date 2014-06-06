@@ -2,7 +2,9 @@
 
 HartreeY::HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb):
     HartreeYBase(integration_strategy), LatticeObserver(integration_strategy->GetLattice()), coulomb(coulomb)
-{}
+{
+    two_body_reverse_symmetry_exists = true;
+}
 
 bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunction& d)
 {

@@ -8,31 +8,74 @@
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/GFactor.h"
+#include "MBPT/CoreValenceIntegrals.h"
 //#include "Configuration/MPIHamiltonianMatrix.h"
 //#include "Configuration/MPIMatrix.h"
 
 void Atom::MakeMBPTIntegrals()
 {
-    //TODO: MBPT part
+    // Bare integrals for MBPT
+    pSlaterIntegrals bare_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    auto& valence = orbitals->valence;
+
+    hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
+    pCoreValenceIntegralsMap mbpt_integrals;
+
+    if(user_input.search("--check-sizes"))
+    {
+        pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, hf_electron, bare_integrals));
+        *outstream << "Num stored coulomb integrals for MBPT = " << core_mbpt->GetStorageSize();
+
+        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, core_mbpt));
+    }
+    else
+    {
+        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, hf_electron, bare_integrals));
+    }
+
+    mbpt_integrals->IncludeCore(true, false, true);
+
+    if(user_input.search("--check-sizes"))
+    {
+        unsigned int size = mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        *outstream << "\nNum two-body mbpt integrals: " << size << std::endl;
+    }
+    else
+    {
+        mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+        mbpt_integrals->Write(identifier + ".two.int");
+    }
 }
 
 void Atom::MakeIntegrals()
 {
-    //TODO: Use stored MBPT integrals
     ClearIntegrals();
-    pSlaterIntegralsMap integrals(new SlaterIntegralsMap(hartreeY, orbitals, hartreeY_reverse_symmetry));
+
+    pSlaterIntegrals integrals;
+    bool mbpt_integrals = user_input.search("-s2");
+
+    if(!mbpt_integrals)
+        integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY));
+    else
+        integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
+
+    auto& valence = orbitals->valence;
 
     if(user_input.search("--check-sizes"))
     {
-        unsigned int size = integrals->CalculateTwoElectronIntegrals(OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, true);
+        unsigned int size = integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum coulomb integrals: " << size << std::endl;
     }
     else
     {
-        integrals->CalculateTwoElectronIntegrals(OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence, OrbitalClassification::valence);
+        integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+
+        // Read stored integrals
+        if(user_input.search("-s2"))
+            integrals->Read(identifier + ".two.int");
 
         hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
-        twobody_electron = pTwoElectronCoulombOperator(new TwoElectronCoulombOperator<pSlaterIntegralsMap>(integrals));
+        twobody_electron = pTwoElectronCoulombOperator(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
     }
 }
 
@@ -48,10 +91,14 @@ void Atom::CheckMatrixSizes()
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
 
+    // CI integrals
+    MakeIntegrals();
+
+    symmetries = ChooseSymmetries(user_input);
     for(auto& sym: symmetries)
     {
         pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
-        *outstream << "\nJ = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << ":   "
+        *outstream << "J(P) = " << sym.GetJ() << "(" << ShortName(sym.GetParity()) << "): "
                    << std::setw(6) << std::right << configs->size() << " rel. configurations; "
                    << configs->NumCSFs() <<  " CSFs." << std::endl;
     }

@@ -4,6 +4,7 @@
 #include "HartreeFock/SpinorOperator.h"
 #include "Basis/OrbitalManager.h"
 #include "ElectronInfo.h"
+#include "HartreeFock/HFOperator.h"
 
 /** OneElectronOperator takes a SpinorOperator and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, ...),
@@ -39,6 +40,20 @@ public:
         }
     }
 
+    inline double GetMatrixElement(const OrbitalInfo& e1, const OrbitalInfo& e2) const
+    {
+        if(e1.Kappa() == e2.Kappa())
+        {
+            unsigned int i1 = orbitals->state_index.at(e1);
+            unsigned int i2 = orbitals->state_index.at(e2);
+
+            IntegralOrdering(i1, i2);
+            return integrals.at(i1 * num_orbitals + i2);
+        }
+        else
+            return 0.0;
+    }
+
     inline double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
     {
         if(e1.Kappa() == e2.Kappa() && e1.TwoM() == e2.TwoM())
@@ -67,5 +82,9 @@ protected:
     unsigned int num_orbitals;
     std::map<unsigned int, double> integrals;
 };
+
+typedef OneElectronOperator<pHFOperatorConst> HFElectronOperator;
+typedef boost::shared_ptr<HFElectronOperator> pHFElectronOperator;
+typedef boost::shared_ptr<const HFElectronOperator> pHFElectronOperatorConst;
 
 #endif

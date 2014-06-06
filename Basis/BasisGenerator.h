@@ -49,11 +49,9 @@ public:
 
     virtual pOrbitalManagerConst GetBasis() const { return orbitals; }
 
-    /** Get HartreeY operator and whether the operator has reverse symmetry, i.e.
-        \f$ \left< a | Y^k_{cd} | b \right> = \left< a | Y^k_{dc} | b \right> \f$
-     */
-    virtual std::pair<pHartreeY, bool> GetHartreeY() { return std::make_pair(hartreeY, hartreeY_reverse_symmetry); }
-    virtual std::pair<pHartreeYConst, bool> GetHartreeY() const { return std::make_pair(hartreeY, hartreeY_reverse_symmetry); }
+    /** Get HartreeY operator. */
+    virtual pHartreeY GetHartreeY() { return hartreeY; }
+    virtual pHartreeYConst GetHartreeY() const { return hartreeY; }
 
 protected:
     /** Create open-shell hf operator and set open_core occupancies. Used by GenerateHFCore() and RecreateBasis().
@@ -94,7 +92,6 @@ protected:
 
     pHFOperator hf;     //!< Open-shell hf operator
     pHartreeY hartreeY; //!< Dressed HartreeY operator
-    bool hartreeY_reverse_symmetry;
 };
 
 #endif

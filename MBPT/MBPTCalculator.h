@@ -3,7 +3,7 @@
 
 #include "Include.h"
 #include "HartreeFock/Core.h"
-#include "Basis/ExcitedStates.h"
+#include "Basis/OrbitalManager.h"
 
 class MBPTCalculator
 {
@@ -12,11 +12,11 @@ class MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    MBPTCalculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states);
+    MBPTCalculator(pOrbitalManagerConst pOrbitals);
     virtual ~MBPTCalculator(void);
 
-    virtual unsigned int GetStorageSize(pExcitedStatesConst valence_states) = 0;
-    virtual void UpdateIntegrals(pExcitedStatesConst valence_states) = 0;
+    virtual unsigned int GetStorageSize() = 0;
+    virtual void UpdateIntegrals() = 0;
 
     /** Add a constant, delta, to the energy denominator in all diagrams.
         This corresponds to H_0 -> H_0 + delta, so V -> V - delta
@@ -60,9 +60,7 @@ protected:
     inline int kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
     
 protected:
-    pLattice lattice;
-    pCoreConst core;
-    pExcitedStatesConst excited;
+    pOrbitalManagerConst orbitals;
 
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;

@@ -20,11 +20,6 @@ Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const st
     lattice = pLattice();
     orbitals = nullptr;
 
-//    integralsMBPT = NULL;
-//    mbpt = NULL;
-//    valence_mbpt = NULL;
-//    sigma3 = NULL;
-
     // CI + MBPT parameters
     NumSolutions = user_input("CI/NumSolutions", 6);
     MaxEnergy = 0.0;
@@ -99,9 +94,7 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         hf->SetCore(closed_core);
 
         // HartreeY operator
-        auto hartreeY_pair = basis_generator.GetHartreeY();
-        hartreeY = hartreeY_pair.first;
-        hartreeY_reverse_symmetry = hartreeY_pair.second;
+        hartreeY = basis_generator.GetHartreeY();
 
         if(use_write)
         {
@@ -137,9 +130,7 @@ bool Atom::ReadBasis()
     hf_core = basis_generator.GetHFCore();
 
     // HartreeY operator
-    auto hartreeY_pair = basis_generator.GetHartreeY();
-    hartreeY = hartreeY_pair.first;
-    hartreeY_reverse_symmetry = hartreeY_pair.second;
+    hartreeY = basis_generator.GetHartreeY();
 
     return true;
 }

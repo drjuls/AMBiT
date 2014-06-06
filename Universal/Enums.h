@@ -7,6 +7,14 @@ enum class Parity { even, odd };
 
 enum class ContinuumNormalisation { LandauNu, LandauEnergy, Cowan, Unitary };
 
+inline Parity operator*(const Parity& first, const Parity& second)
+{
+    if(first == second)
+        return Parity::even;
+    else
+        return Parity::odd;
+}
+
 inline std::string Name(Parity from)
 {
     switch(from)
@@ -38,22 +46,9 @@ inline std::string ShortName(Parity from)
     switch(from)
     {
         case Parity::even:
-            return "+1";
+            return "+";
         case Parity::odd:
-            return "-1";
-        default:
-            return "";
-    }
-}
-
-inline std::string VeryShortName(Parity from)
-{
-    switch(from)
-    {
-        case Parity::even:
-            return "e";
-        case Parity::odd:
-            return "o";
+            return "-";
         default:
             return "";
     }

@@ -13,10 +13,6 @@
 #include "ManyBodyOperator.h"
 #include "OneElectronOperator.h"
 
-typedef OneElectronOperator<pHFOperatorConst> HFElectronOperator;
-typedef boost::shared_ptr<HFElectronOperator> pHFElectronOperator;
-typedef boost::shared_ptr<const HFElectronOperator> pHFElectronOperatorConst;
-
 typedef ManyBodyOperator<pHFElectronOperator, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef boost::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef boost::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;

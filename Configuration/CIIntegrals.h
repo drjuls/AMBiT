@@ -9,6 +9,8 @@
 #include "Universal/MathConstant.h"
 #include "MBPT/SlaterIntegrals.h"
 
+//#define INCLUDE_EXTRA_BOX_DIAGRAMS 1
+
 /** Class to hold Coulomb integrals for use in CI calculation,
     ie. R^k(ij,kl) where i,j,k,l are all valence particles.
     storage_id is used to store and retrieve integrals in files.
@@ -160,7 +162,7 @@ protected:
     pTwoElectronIntegralType integrals;
 };
 
-typedef boost::shared_ptr<TwoElectronCoulombOperator<pSlaterIntegralsMap>> pTwoElectronCoulombOperator;
+typedef boost::shared_ptr<TwoElectronCoulombOperator<pSlaterIntegrals>> pTwoElectronCoulombOperator;
 
 template <class TwoElectronIntegralType>
 double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
@@ -172,11 +174,11 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
     if(two_q != - e2.TwoM() + e4.TwoM())
         return 0.;
 
-    unsigned int k = mmax(abs(int(e1.L()) - int(e3.L())), abs(int(e2.L()) - int(e4.L())));
+    int k = mmax(abs(e1.L() - e3.L()), abs(e2.L() - e4.L()));
     if((fabs(e1.J() - e3.J()) > double(k)) || (fabs(e2.J() - e4.J()) > double(k)))
         k += 2;
 
-    unsigned int kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L());
+    int kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L());
     if((e1.J() + e3.J() < double(kmax)) || (e2.J() + e4.J() < double(kmax)))
         kmax -= 2;
 
@@ -191,11 +193,11 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
         double coeff = 0.;
         if(fabs(q) <= k)
             coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+                    constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
 
         if(coeff)
             coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+                    constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
 
         if(coeff)
         {
@@ -215,11 +217,8 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
 
 #ifdef INCLUDE_EXTRA_BOX_DIAGRAMS
     // Include the box diagrams with "wrong" parity.
-    k = (unsigned int)mmax(fabs(e1.J() - e3.J()), fabs(e2.J() - e4.J()));
-    if((k + e1.L() + e3.L())%2 == 0)
-        k++;
-
-    kmax = (unsigned int)mmin(e1.J() + e3.J(), e2.J() + e4.J());
+    k = mmax(abs(e1.L() - e3.L()), abs(e2.L() - e4.L())) + 1;
+    kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L()) - 1;
 
     while(k <= kmax)
     {
@@ -230,11 +229,11 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
             double coeff = 0.;
             if(fabs(q) <= k)
                 coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
 
             if(coeff)
                 coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-                constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
 
             if(coeff)
             {
