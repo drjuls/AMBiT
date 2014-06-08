@@ -4,28 +4,28 @@
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
-template<class MapType>
+template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
     SlaterIntegralsInterface(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
 }
 
-template<class MapType>
+template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op, bool two_body_reverse_symmetry_exists):
 SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
 }
 
-template<class MapType>
+template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op):
     SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(hartreeY_op->ReverseSymmetryExists())
 {
     NumStates = orbitals->size();
 }
 
-template<class MapType>
+template <class MapType>
 unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, pOrbitalMapConst orbital_map_3, pOrbitalMapConst orbital_map_4, bool check_size_only)
 {
     // NOTE: For each set of orbitals, we actually calculate
@@ -123,7 +123,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
         return TwoElectronIntegrals.size();
 }
 
-template<class MapType>
+template <class MapType>
 auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const -> KeyType
 {
     if(two_body_reverse_symmetry)
@@ -174,13 +174,13 @@ auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned 
     return key;
 }
 
-template<class MapType>
+template <class MapType>
 auto SlaterIntegrals<MapType>::GetKey(ExpandedKeyType expanded_key) const -> KeyType
 {
     return GetKey(std::get<0>(expanded_key), std::get<1>(expanded_key), std::get<2>(expanded_key), std::get<3>(expanded_key), std::get<4>(expanded_key));
 }
 
-template<class MapType>
+template <class MapType>
 double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     unsigned int i1 = orbitals->state_index.at(s1);
@@ -205,7 +205,7 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     return radial;
 }
 
-template<class MapType>
+template <class MapType>
 void SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rb");
@@ -216,7 +216,6 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
-    ReverseOrbitalIndex old_reverse_index(GetReverseIndex(old_state_index));
 
     unsigned int old_key_size;
     fread(&old_key_size, sizeof(unsigned int), 1, fp);
@@ -281,7 +280,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
     fclose(fp);
 }
 
-template<class MapType>
+template <class MapType>
 auto SlaterIntegrals<MapType>::ReverseKey(unsigned long long int num_states, unsigned long long int key) -> ExpandedKeyType
 {
     KeyType running_power = num_states * num_states * num_states * num_states;
@@ -310,7 +309,7 @@ auto SlaterIntegrals<MapType>::ReverseKey(unsigned long long int num_states, uns
     return expanded_key;
 }
 
-template<class MapType>
+template <class MapType>
 void SlaterIntegrals<MapType>::Write(const std::string& filename) const
 {
     FILE* fp = fopen(filename.c_str(), "wb");

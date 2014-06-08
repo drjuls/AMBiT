@@ -3,7 +3,7 @@
 
 #include "MBPTCalculator.h"
 #include "SlaterIntegrals.h"
-#include "Configuration/OneElectronOperator.h"
+#include "OneElectronIntegrals.h"
 //#include "HartreeFock/SigmaPotential.h"
 //#include "CoreValenceIntegrals.h"
 
@@ -24,7 +24,7 @@
 class CoreMBPTCalculator : public MBPTCalculator
 {
 public:
-    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pSlaterIntegrals two_body);
+    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals two_body);
     virtual ~CoreMBPTCalculator();
 
     virtual unsigned int GetStorageSize() override;
@@ -132,7 +132,7 @@ protected:
     double CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
 protected:
-    pHFElectronOperatorConst one_body;
+    pOneElectronIntegrals one_body;
     pSlaterIntegrals two_body;
 
     pOrbitalMapConst core;

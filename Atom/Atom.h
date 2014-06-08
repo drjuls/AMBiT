@@ -129,7 +129,7 @@ protected:
     pOrbitalManagerConst orbitals;
     pHartreeY hartreeY;
 
-    pHFElectronOperator hf_electron;              //!< One-body Hamiltonian
+    pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron; //!< Two-body Hamiltonian
     std::set<Symmetry> symmetries;
     pLevelMap levels;

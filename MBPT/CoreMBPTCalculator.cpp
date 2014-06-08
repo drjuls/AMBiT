@@ -2,7 +2,7 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 
-CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFElectronOperatorConst one_body, pSlaterIntegrals two_body):
+CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals two_body):
     MBPTCalculator(orbitals), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 
@@ -15,6 +15,7 @@ unsigned int CoreMBPTCalculator::GetStorageSize()
 {
     unsigned int total = two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited, true);
     total += two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core, true);
+    total += one_body->CalculateOneElectronIntegrals(core, excited, true);
 
     return total;
 }
@@ -23,6 +24,7 @@ void CoreMBPTCalculator::UpdateIntegrals()
 {
     SetValenceEnergies();
 
+    one_body->CalculateOneElectronIntegrals(core, excited);
     two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited);
     two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core);
 }

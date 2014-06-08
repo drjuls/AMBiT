@@ -44,6 +44,9 @@ TEST(HamiltonianMatrixTester, MgIILevels)
 
     // Generate integrals
     pHFOperatorConst hf = basis_generator.GetHFOperator();
+    pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+    hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
     pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
@@ -59,7 +62,6 @@ TEST(HamiltonianMatrixTester, MgIILevels)
 
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
-    pHFElectronOperator hf_electron(new HFElectronOperator(hf, orbitals));
     pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
     HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();

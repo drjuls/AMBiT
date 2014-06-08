@@ -11,16 +11,16 @@
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
-#include "OneElectronOperator.h"
+#include "OneElectronIntegrals.h"
 
-typedef ManyBodyOperator<pHFElectronOperator, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
+typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef boost::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef boost::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
 
 class HamiltonianMatrix
 {
 public:
-    HamiltonianMatrix(pHFElectronOperator hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs);
+    HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void GenerateMatrix();

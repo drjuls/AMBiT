@@ -15,29 +15,32 @@
 void Atom::MakeMBPTIntegrals()
 {
     // Bare integrals for MBPT
-    pSlaterIntegrals bare_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pOneElectronIntegrals bare_one_body_integrals(new OneElectronIntegrals(orbitals, hf));
+    pSlaterIntegrals bare_two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
     auto& valence = orbitals->valence;
 
-    hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
     pCoreValenceIntegralsMap mbpt_integrals;
 
     if(user_input.search("--check-sizes"))
     {
-        pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, hf_electron, bare_integrals));
+        pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, bare_one_body_integrals, bare_two_body_integrals));
         *outstream << "Num stored coulomb integrals for MBPT = " << core_mbpt->GetStorageSize();
 
         mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, core_mbpt));
     }
     else
     {
-        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, hf_electron, bare_integrals));
+        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, bare_one_body_integrals, bare_two_body_integrals));
     }
 
     mbpt_integrals->IncludeCore(true, false, true);
 
     if(user_input.search("--check-sizes"))
     {
-        unsigned int size = mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        unsigned int size = bare_one_body_integrals->CalculateOneElectronIntegrals(valence, valence, true);
+        *outstream << "\nNum one-body mbpt integrals: " << size << std::endl;
+
+        size = mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum two-body mbpt integrals: " << size << std::endl;
     }
     else
@@ -68,14 +71,15 @@ void Atom::MakeIntegrals()
     }
     else
     {
+        hf_electron.reset(new OneElectronIntegrals(orbitals, hf));
+        hf_electron->CalculateOneElectronIntegrals(valence, valence);
         integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
 
         // Read stored integrals
         if(user_input.search("-s2"))
             integrals->Read(identifier + ".two.int");
 
-        hf_electron = pHFElectronOperator(new HFElectronOperator(hf, orbitals));
-        twobody_electron = pTwoElectronCoulombOperator(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        twobody_electron.reset(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
     }
 }
 
