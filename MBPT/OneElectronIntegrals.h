@@ -60,6 +60,9 @@ public:
     virtual void Read(const std::string& filename);
     virtual void Write(const std::string& filename) const;
 
+    /** Get the spinor operator. */
+    pSpinorOperatorConst GetOperator() const { return op; }
+
 protected:
     inline unsigned int GetKey(unsigned int i1, unsigned int i2) const
     {

@@ -26,7 +26,8 @@ public:
 
     virtual ~CoreValenceIntegrals();
 
-    /** PRE: OrbitalClassifications should only be a subset of valence orbitals.
+    /** Calculate two-electron Slater integrals including requested MBPT.
+        PRE: OrbitalMaps should only include a subset of valence orbitals.
      */
     virtual unsigned int CalculateTwoElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, pOrbitalMapConst orbital_map_3, pOrbitalMapConst orbital_map_4, bool check_size_only = false) override;
 

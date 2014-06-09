@@ -8,6 +8,7 @@
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/GFactor.h"
+#include "MBPT/OneElectronMBPT.h"
 #include "MBPT/CoreValenceIntegrals.h"
 //#include "Configuration/MPIHamiltonianMatrix.h"
 //#include "Configuration/MPIMatrix.h"
@@ -17,36 +18,46 @@ void Atom::MakeMBPTIntegrals()
     // Bare integrals for MBPT
     pOneElectronIntegrals bare_one_body_integrals(new OneElectronIntegrals(orbitals, hf));
     pSlaterIntegrals bare_two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, bare_one_body_integrals, bare_two_body_integrals));
+
     auto& valence = orbitals->valence;
 
-    pCoreValenceIntegralsMap mbpt_integrals;
+    pOneElectronMBPT mbpt_integrals_one(new OneElectronMBPT(orbitals, core_mbpt, hf));
+    pCoreValenceIntegralsMap mbpt_integrals_two(new CoreValenceIntegralsMap(orbitals, core_mbpt));
+
+    mbpt_integrals_one->IncludeCore(true, false);
+    mbpt_integrals_two->IncludeCore(true, false, false);
+
+    // Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
+    // Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.
+    // For two electron integrals:
+    //      i1.pqn <= limit1
+    //      (i2.pqn or i3.pqn) <= limit2
+    //      (i2.pqn and i3.pqn) <= limit3
+    // For 'x'* 3 waves (spd) and 'y'* 4 waves (spdf) in basis set,
+    //      N = 61 x^4       N = 279 y^4.
+    // After max_pqn_1 = 4,
+    //      N ~ 502 x^3      N ~ 1858 y^3,
+    // and hopefully after max_pqn_2 and then max_pqn_3
+    //      N~ x^2 and then N ~ x, respectively.
 
     if(user_input.search("--check-sizes"))
     {
-        pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, bare_one_body_integrals, bare_two_body_integrals));
         *outstream << "Num stored coulomb integrals for MBPT = " << core_mbpt->GetStorageSize();
 
-        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, core_mbpt));
-    }
-    else
-    {
-        mbpt_integrals.reset(new CoreValenceIntegralsMap(orbitals, bare_one_body_integrals, bare_two_body_integrals));
-    }
+        unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence, true);
+        *outstream << "\nNum one-body mbpt integrals: " << size;
 
-    mbpt_integrals->IncludeCore(true, false, true);
-
-    if(user_input.search("--check-sizes"))
-    {
-        unsigned int size = bare_one_body_integrals->CalculateOneElectronIntegrals(valence, valence, true);
-        *outstream << "\nNum one-body mbpt integrals: " << size << std::endl;
-
-        size = mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum two-body mbpt integrals: " << size << std::endl;
     }
     else
     {
-        mbpt_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
-        mbpt_integrals->Write(identifier + ".two.int");
+        mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+        mbpt_integrals_one->Write(identifier + ".one.int");
+
+        mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+        mbpt_integrals_two->Write(identifier + ".two.int");
     }
 }
 
@@ -54,32 +65,35 @@ void Atom::MakeIntegrals()
 {
     ClearIntegrals();
 
-    pSlaterIntegrals integrals;
-    bool mbpt_integrals = user_input.search("-s2");
+    pSlaterIntegrals two_body_integrals;
+    bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
+    bool two_body_mbpt = user_input.search(3, "-s2", "-s12", "-s123");
 
-    if(!mbpt_integrals)
-        integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY));
+    if(!two_body_mbpt)
+        two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY));
     else
-        integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
+        two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
 
     auto& valence = orbitals->valence;
 
     if(user_input.search("--check-sizes"))
     {
-        unsigned int size = integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum coulomb integrals: " << size << std::endl;
     }
     else
-    {
+    {   // Normal integrals
         hf_electron.reset(new OneElectronIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(valence, valence);
-        integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+        two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
 
-        // Read stored integrals
-        if(user_input.search("-s2"))
-            integrals->Read(identifier + ".two.int");
+        // Add stored MBPT integrals
+        if(one_body_mbpt)
+            hf_electron->Read(identifier + ".one.int");
+        if(two_body_mbpt)
+            two_body_integrals->Read(identifier + ".two.int");
 
-        twobody_electron.reset(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        twobody_electron.reset(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
     }
 }
 

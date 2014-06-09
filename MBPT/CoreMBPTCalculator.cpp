@@ -8,6 +8,7 @@ CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pOneElectr
 
 CoreMBPTCalculator::~CoreMBPTCalculator()
 {
+    one_body->clear();
     two_body->clear();
 }
 
