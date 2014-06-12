@@ -3,7 +3,6 @@
 
 #include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Core.h"
-#include "HartreeFock/SigmaPotential.h"
 #include <set>
 #include <map>
 #include <vector>

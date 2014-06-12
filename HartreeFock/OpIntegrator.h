@@ -5,6 +5,10 @@
 #include "Universal/SpinorFunction.h"
 #include <boost/shared_ptr.hpp>
 
+/** OPIntegrator provides an interface for integrating radial functions and spinor functions.
+    A default implementation for spinor integration routines is provided, that defers the
+    actual integration to the abstract function Integrate().
+ */
 class OPIntegrator
 {
 public:

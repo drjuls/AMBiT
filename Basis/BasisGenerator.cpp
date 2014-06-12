@@ -177,7 +177,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 
     if(open_shell_core)
     {   // Copy, use same lattice
-        open_core->Copy(*open_shell_core);
+        open_core->Clone(*open_shell_core);
         lattice = open_core->GetLattice();
         orbitals = pOrbitalManager(new OrbitalManager(lattice));
     }
@@ -197,6 +197,11 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     }
 
     HF_Solver.SolveCore(open_core, hf);
+
+    // Resize lattice according to larger of core or user input.
+    unsigned int core_size = open_core->LargestOrbitalSize();
+    unsigned int original_lattice_size = user_input("Lattice/NumPoints", 1000);
+    lattice->resize(mmax(core_size, original_lattice_size));
 
     return open_core;
 }

@@ -4,8 +4,7 @@
 #include "MBPTCalculator.h"
 #include "SlaterIntegrals.h"
 #include "OneElectronIntegrals.h"
-//#include "HartreeFock/SigmaPotential.h"
-//#include "CoreValenceIntegrals.h"
+#include "MBPT/SigmaPotential.h"
 
 /** Calculate diagrams of many-body perturbation theory.
     One-body diagrams (functions GetSecondOrderSigma()) are of the form
@@ -29,9 +28,6 @@ public:
 
     virtual unsigned int GetStorageSize() override;
     virtual void UpdateIntegrals() override;
-
-    /** Create a second-order one-electron MBPT (sigma1) operator. */
-//    void GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const;
 
     /** Return value is the matrix element < s1 | Sigma1 | s2 >. */
     double GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const;
@@ -60,10 +56,6 @@ protected:
 
          PRE: si.kappa == sf.kappa
      */
-//    void CalculateCorrelation1and3(int kappa, SigmaPotential* sigma) const;
-//    void CalculateCorrelation2(int kappa, SigmaPotential* sigma) const;
-//    void CalculateCorrelation4(int kappa, SigmaPotential* sigma) const;
-
     double CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     double CalculateCorrelation2(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     double CalculateCorrelation4(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
@@ -140,5 +132,41 @@ protected:
 };
 
 typedef boost::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
+
+class BruecknerSigmaCalculator : public MBPTCalculator
+{
+public:
+    BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body);
+    virtual ~BruecknerSigmaCalculator() {}
+
+    virtual unsigned int GetStorageSize() override { return 0; }
+    virtual void UpdateIntegrals() override { return; }
+
+    /** Create a second-order one-electron MBPT (sigma1) operator. */
+    void GetSecondOrderSigma(int kappa, SigmaPotential& sigma);
+
+protected:
+    /** Calculate diagrams of second order (shown here 1 through 4).
+     ->>------>------>>--  ->>------>------<---  ->>------<------>>--  ->>------<------>---
+     a   |  beta |   b     a   |  beta |   n     a   |   m   |   b     a   |   m   | alpha
+     |       |             |       |             |       |             |       |
+     --<------>------<---  --<------>------>>--  --<------>------<---  -->------<------>>--
+     n     alpha     n     n     alpha     b     n     alpha     n    alpha    n       b
+
+     PRE: si.kappa == sf.kappa
+     */
+    void CalculateCorrelation1and3(int kappa, SigmaPotential& sigma);
+    void CalculateCorrelation2(int kappa, SigmaPotential& sigma);
+    void CalculateCorrelation4(int kappa, SigmaPotential& sigma);
+
+protected:
+    pSpinorOperatorConst hf;
+    pHartreeY hartreeY;
+
+    pOrbitalMapConst core;
+    pOrbitalMapConst excited;
+};
+
+typedef boost::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
 
 #endif

@@ -35,6 +35,12 @@ public:
 
     virtual bool isZero() const override;
 
+    /** Deep copy of the HartreeY object, including wrapped objects. */
+    virtual NonRelativisticSMSOperator* Clone() const override
+    {   pHartreeY wrapped_clone(component->Clone());
+        return new NonRelativisticSMSOperator(wrapped_clone);
+    }
+
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const override;
 

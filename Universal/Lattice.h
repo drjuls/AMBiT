@@ -44,7 +44,7 @@ public:
         Notifies observers if size changes.
         Returns new lattice size.
      */
-    unsigned int resize(double r_max);
+    unsigned int resize_to_r(double r_max);
 
     double MaxRealDistance() const { return r[num_points-1]; }
 

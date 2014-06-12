@@ -2,7 +2,6 @@
 #define ATOM_H
 
 #include "Atom/GetPot"
-#include "Basis/ExcitedStates.h"
 #include "Configuration/CIIntegrals.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/Eigenstates.h"

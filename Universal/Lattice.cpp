@@ -70,7 +70,7 @@ unsigned int Lattice::resize(unsigned int new_size)
     return num_points;
 }
 
-unsigned int Lattice::resize(double r_max)
+unsigned int Lattice::resize_to_r(double r_max)
 {
     return resize(real_to_lattice(r_max));
 }

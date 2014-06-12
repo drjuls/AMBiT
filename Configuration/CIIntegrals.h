@@ -2,7 +2,6 @@
 #define CI_INTEGRALS_H
 
 #include "Include.h"
-#include "Basis/ExcitedStates.h"
 #include "HartreeFock/SpinorOperator.h"
 #include "HartreeFock/HartreeY.h"
 #include "ElectronInfo.h"

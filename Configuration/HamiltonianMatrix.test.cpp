@@ -8,14 +8,14 @@
 #include "GFactor.h"
 #include "Atom/MultirunOptions.h"
 
-TEST(HamiltonianMatrixTester, MgIILevels)
+TEST(HamiltonianMatrixTester, MgILevels)
 {
     DebugOptions.LogHFIterations(true);
     DebugOptions.OutputHFExcited(true);
 
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
 
-    // MgII
+    // MgI
     std::string user_input_string = std::string() +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +

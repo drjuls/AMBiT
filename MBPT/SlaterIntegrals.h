@@ -110,6 +110,8 @@ public:
      */
     virtual double GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const override;
 
+    virtual pHartreeY GetHartreeY() { return hartreeY_operator; }
+
     /** Read integrals, adding to existing keys or creating new ones. */
     virtual void Read(const std::string& filename) override;
     virtual void Write(const std::string& filename) const override;

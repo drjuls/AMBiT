@@ -99,9 +99,10 @@ typedef boost::shared_ptr<const HFOperator> pHFOperatorConst;
 class HFOperatorDecorator : public HFOperator
 {
 public:
+    /** If integration_strategy is null, take from decorated_object. */
     HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
         HFOperator(*decorated_object), wrapped(decorated_object)
-    {   if(integration_strategy != NULL)
+    {   if(integration_strategy != nullptr)
             integrator = integration_strategy;
     }
     virtual ~HFOperatorDecorator() {}

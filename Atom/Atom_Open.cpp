@@ -10,11 +10,71 @@
 #include "Configuration/GFactor.h"
 #include "MBPT/OneElectronMBPT.h"
 #include "MBPT/CoreValenceIntegrals.h"
+#include "MBPT/BruecknerDecorator.h"
+#include "HartreeFock/HartreeFocker.h"
 //#include "Configuration/MPIHamiltonianMatrix.h"
 //#include "Configuration/MPIMatrix.h"
 
 void Atom::MakeMBPTIntegrals()
 {
+    bool make_new_integrals = user_input.search(2, "-m", "--mbpt");
+    bool check_sizes = user_input.search("--check-sizes");
+    bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
+    bool two_body_mbpt = user_input.search(3, "-s2", "-s12", "-s123");
+
+    // First make any Brueckner orbitals, and use these everywhere
+    if(user_input.search("--brueckner") && !check_sizes)
+    {
+        pBruecknerDecorator brueckner(new BruecknerDecorator(hf));
+        bool use_fg = user_input.search("MBPT/--brueckner-use-lower");
+        bool use_gg = user_input.search("MBPT/--brueckner-use-lower-lower");
+        brueckner->IncludeLower(use_fg, use_gg);
+
+        // Attempt to read all requested kappas
+        std::set<int> valence_kappas;
+        for(auto& pair: *orbitals->valence)
+            valence_kappas.insert(pair.first.Kappa());
+
+        for(int kappa: valence_kappas)
+            brueckner->Read(identifier, kappa);
+
+        // Replace hf operator for rest of calculation
+        hf = brueckner;
+
+        // Make new sigma potentials if they haven't been read (slowly)
+        if(make_new_integrals)
+        {
+            for(int kappa: valence_kappas)
+            {   brueckner->CalculateSigma(kappa, orbitals, hartreeY);
+                brueckner->Write(identifier, kappa);
+            }
+        }
+
+        // And finally change all our valence orbitals to Brueckner orbitals
+        pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+        pODESolver ode_solver(new AdamsSolver(integrator));
+        HartreeFocker hartree_focker(ode_solver);
+
+        DebugOptions.LogHFIterations(true);
+        DebugOptions.OutputHFExcited(true);
+
+        pOrbital brueckner_orbital;
+        for(auto& pair: *orbitals->valence)
+        {
+            // Make a copy of the old orbital
+            brueckner_orbital.reset(new Orbital(*pair.second));
+
+            // Iterate
+            hartree_focker.SolveOrbital(brueckner_orbital, brueckner);
+
+            // Copy back to orbital manager
+            *pair.second = *brueckner_orbital;
+        }
+    }
+
+    if(!make_new_integrals && !check_sizes)
+        return;
+
     // Bare integrals for MBPT
     pOneElectronIntegrals bare_one_body_integrals(new OneElectronIntegrals(orbitals, hf));
     pSlaterIntegrals bare_two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
@@ -25,6 +85,7 @@ void Atom::MakeMBPTIntegrals()
     pOneElectronMBPT mbpt_integrals_one(new OneElectronMBPT(orbitals, core_mbpt, hf));
     pCoreValenceIntegralsMap mbpt_integrals_two(new CoreValenceIntegralsMap(orbitals, core_mbpt));
 
+    // Use subtraction diagrams and extra box diagrams?
     mbpt_integrals_one->IncludeCore(true, false);
     mbpt_integrals_two->IncludeCore(true, false, false);
 
@@ -53,11 +114,17 @@ void Atom::MakeMBPTIntegrals()
     }
     else
     {
-        mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
-        mbpt_integrals_one->Write(identifier + ".one.int");
+        if(one_body_mbpt)
+        {
+            mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+            mbpt_integrals_one->Write(identifier + ".one.int");
+        }
 
-        mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
-        mbpt_integrals_two->Write(identifier + ".two.int");
+        if(two_body_mbpt)
+        {
+            mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+            mbpt_integrals_two->Write(identifier + ".two.int");
+        }
     }
 }
 

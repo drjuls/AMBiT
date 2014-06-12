@@ -6,8 +6,6 @@
 #include "CIIntegrals.h"
 #include "HartreeFock/HFOperator.h"
 #include "Level.h"
-#include "Basis/ExcitedStates.h"
-//#include "MBPT/Sigma3Calculator.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"

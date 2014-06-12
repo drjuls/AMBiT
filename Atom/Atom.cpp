@@ -10,7 +10,7 @@
 #include "Universal/ExpLattice.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/Interpolator.h"
-#include "RateCalculator.h"
+//#include "RateCalculator.h"
 #include <fstream>
 #include <sstream>
 

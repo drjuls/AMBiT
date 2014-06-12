@@ -10,7 +10,7 @@ const OrbitalMap& OrbitalMap::operator=(const OrbitalMap& other)
     return *this;
 }
 
-const OrbitalMap& OrbitalMap::Copy(const OrbitalMap& other, pLattice new_lattice)
+const OrbitalMap& OrbitalMap::Clone(const OrbitalMap& other, pLattice new_lattice)
 {
     bool interpolate = false;
     if(new_lattice && new_lattice != other.lattice)
@@ -67,10 +67,10 @@ const OrbitalMap& OrbitalMap::Copy(const OrbitalMap& other, pLattice new_lattice
     return *this;
 }
 
-OrbitalMap OrbitalMap::Copy(pLattice new_lattice) const
+OrbitalMap OrbitalMap::Clone(pLattice new_lattice) const
 {
     OrbitalMap ret(new_lattice);
-    ret.Copy(*this, new_lattice);
+    ret.Clone(*this, new_lattice);
     return ret;
 }
 
@@ -132,4 +132,13 @@ void OrbitalMap::Read(FILE* fp)
 void OrbitalMap::AddStates(const OrbitalMap& other)
 {
     m_orbitals.insert(other.begin(), other.end());
+}
+
+unsigned int OrbitalMap::LargestOrbitalSize() const
+{
+    unsigned int biggest = 0;
+    for(auto it: m_orbitals)
+        biggest = mmax(biggest, it.second->size());
+
+    return biggest;
 }

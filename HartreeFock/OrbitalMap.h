@@ -24,8 +24,8 @@ public:
     /** Deep copy of all orbitals, interpolating from new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice.
      */
-    const OrbitalMap& Copy(const OrbitalMap& other, pLattice new_lattice = pLattice());
-    OrbitalMap Copy(pLattice new_lattice = pLattice()) const;
+    const OrbitalMap& Clone(const OrbitalMap& other, pLattice new_lattice = pLattice());
+    OrbitalMap Clone(pLattice new_lattice = pLattice()) const;
 
     typedef BaseMap::iterator iterator;
     typedef BaseMap::const_iterator const_iterator;
@@ -45,14 +45,14 @@ public:
     virtual pOrbitalConst GetState(const OrbitalInfo& info) const;
     virtual pOrbital GetState(const OrbitalInfo& info);
 
-    /** Write all electron states to a file. */
-    virtual void Write(FILE* fp) const;
-
     /** Replaces electron states with those previously stored on disk. Ignores states
         that are not in both sets.
         Manager needs to know whether they're discrete or continuum states.
      */
     virtual void Read(FILE* fp);
+
+    /** Write all electron states to a file. */
+    virtual void Write(FILE* fp) const;
 
     pLattice GetLattice() const { return lattice; }
 
@@ -61,6 +61,9 @@ public:
 
     /** Add all states from another OrbitalMap. Does not replace duplicates. */
     virtual void AddStates(const OrbitalMap& other);
+
+    /** Get size of largest orbital. */
+    virtual unsigned int LargestOrbitalSize() const;
 
 protected:
     BaseMap m_orbitals;

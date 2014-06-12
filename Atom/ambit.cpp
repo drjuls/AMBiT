@@ -386,6 +386,7 @@ void Ambit::EnergyCalculations()
 
     // Don't output the others
     DebugOptions.LogFirstBuild(false);
+    DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
 
     for(unsigned int index = 0; index < run_indexes.size(); index++)
@@ -402,7 +403,7 @@ void Ambit::EnergyCalculations()
 //            atom.WriteGraspMCDF();
 //    }
 
-    // Generate MBPT integrals
+    // Generate Brueckner orbitals and MBPT integrals
     for(auto& atom: atoms)
         atom.MakeMBPTIntegrals();
 

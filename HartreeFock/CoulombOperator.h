@@ -18,7 +18,7 @@
         dI1/dr = -(k+1)/r .I1 + density/r
         dI2/dr =    k/r .I2   - density/r
  */
-class CoulombOperator : public OneDimensionalODE
+class CoulombOperator : protected OneDimensionalODE
 {
 public:
     CoulombOperator(pLattice lattice, pODESolver ode = pODESolver());

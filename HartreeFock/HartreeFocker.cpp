@@ -166,7 +166,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
     // 2. Mix old wavefunctions with new ones.
     // 3. Update potentials.
 
-    pCore next_states(new Core(core->Copy()));
+    pCore next_states(new Core(core->Clone()));
     double prop_new = 0.5;
     
     double deltaE, max_deltaE;
@@ -353,7 +353,8 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
             }
             
             zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
-            *logstream << orbital->Name() << " zero diff: " << zero_difference << ", E = " << orbital->Energy() << std::endl;
+            if(DebugOptions.LogFirstBuild())
+                *logstream << orbital->Name() << " zero diff: " << zero_difference << ", E = " << orbital->Energy() << std::endl;
 
             if(zero_difference)
             {   // This moves the state one pqn at a time

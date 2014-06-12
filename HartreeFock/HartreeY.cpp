@@ -26,6 +26,15 @@ bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunctio
     }
 }
 
+HartreeY* HartreeY::Clone() const
+{
+    HartreeY* copy = new HartreeY(integrator, coulomb);
+    copy->K = K;
+    copy->potential = potential;
+
+    return copy;
+}
+
 void HartreeY::Alert()
 {
     if(isZero())

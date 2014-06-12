@@ -45,6 +45,13 @@ public:
      */
     virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
 
+    /** Deep copy of the HartreeY object, particularly including wrapped objects.
+        The caller must take responsibility for deallocating the clone. A typical idiom would be
+        to wrap the pointer immediately with a shared pointer, e.g.:
+            pHartreeY cloned(old_hartreeY.Clone())
+     */
+    virtual HartreeYBase* Clone() const { return new HartreeYBase(integrator); }
+
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const override
     {   return GetMatrixElement(b, a, false);
@@ -62,16 +69,16 @@ public:
     }
 
     /** Potential = t | a > for an operator t such that the resulting Potential has the same angular symmetry as a.
-     i.e. t | a > has kappa == kappa_a.
+        i.e. t | a > has kappa == kappa_a.
      */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override { return ApplyTo(a, a.Kappa(), false); }
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, bool reverse) const { return ApplyTo(a, a.Kappa(), reverse); }
 
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
-     i.e. t | a > has kappa == kappa_b.
+        i.e. t | a > has kappa == kappa_b.
      */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const { return ApplyTo(a, kappa_b, false); }
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
     {   return SpinorFunction(kappa_b);
     }
 
@@ -115,6 +122,11 @@ public:
     /** Check whether the potential Y^k_{cd} is zero. (e.g. angular momentum conditions not satisfied). */
     virtual bool isZero() const override { return (potential.size() == 0); }
 
+    /** Deep copy of this HartreeY object.
+        NB: uses the same integrator and coulomb operator.
+     */
+    virtual HartreeY* Clone() const override;
+
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const override;
 
@@ -152,6 +164,12 @@ public:
      */
     virtual bool ReverseSymmetryExists() const override final
     {   return two_body_reverse_symmetry_exists && component->ReverseSymmetryExists();
+    }
+
+    /** Deep copy of the HartreeY object, including wrapped objects. */
+    virtual HartreeYDecorator* Clone() const override
+    {   pHartreeY wrapped_clone(component->Clone());
+        return new HartreeYDecorator(wrapped_clone);
     }
 
     /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */

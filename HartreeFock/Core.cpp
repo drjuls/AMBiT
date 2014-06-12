@@ -33,18 +33,18 @@ const Core& Core::operator=(const Core& other)
     return *this;
 }
 
-const Core& Core::Copy(const Core& other, pLattice new_lattice)
+const Core& Core::Clone(const Core& other, pLattice new_lattice)
 {
-    OrbitalMap::Copy(other, new_lattice);
+    OrbitalMap::Clone(other, new_lattice);
     occupancy = other.occupancy;
 
     return *this;
 }
 
-Core Core::Copy(pLattice new_lattice) const
+Core Core::Clone(pLattice new_lattice) const
 {
     Core ret(new_lattice);
-    ret.Copy(*this, new_lattice);
+    ret.Clone(*this, new_lattice);
     return ret;
 }
 

@@ -30,20 +30,6 @@ void CoreMBPTCalculator::UpdateIntegrals()
     two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core);
 }
 
-/*
-void CoreMBPTCalculator::GetSecondOrderSigma(int kappa, SigmaPotential* sigma) const
-{
-    if(DebugOptions.LogMBPT())
-        *outstream << "\nkappa = " << kappa << std::endl;
-
-    sigma->Reset();
-
-    CalculateCorrelation1and3(kappa, sigma);
-    CalculateCorrelation2(kappa, sigma);
-    CalculateCorrelation4(kappa, sigma);
-}
-*/
-
 double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const
 {
     if(s1.Kappa() != s2.Kappa())
@@ -113,472 +99,6 @@ double CoreMBPTCalculator::GetTwoElectronSubtraction(unsigned int k, const Orbit
 
     return CalculateTwoElectronSub(k, s1, s2, s3, s4);
 }
-
-/*
-void CoreMBPTCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential* sigma) const
-{
-    const bool debug = DebugOptions.LogMBPT();
-    unsigned int MaxStateSize = core->GetConstHFPotential().size();
-    const double NuclearInverseMass = core->GetNuclearInverseMass();
-
-    OrbitalInfo sa(100, kappa);
-
-    std::vector<double> density(MaxStateSize);
-    std::vector<double> P_nalpha(MaxStateSize);
-    std::vector<double> Y(MaxStateSize); unsigned int Y_size;
-    CoulombIntegrator I(lattice);
-    StateIntegrator SI(lattice);
-
-    if(debug)
-        *outstream << "Cor 1+3:  ";
-    double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0.;
-    unsigned int i;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance()->Instance();
-
-    unsigned int k1, k1max;
-
-    // Firstly, get the loop 24
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
-    {
-        const SingleParticleWavefunction& sn = *(it_n.GetState());
-
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
-        {
-            const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-
-            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-
-                if(C_nalpha)
-                {
-                    C_nalpha = C_nalpha * C_nalpha * (sn.TwoJ() + 1) * (salpha.TwoJ() + 1)
-                                                / (2. * k1 + 1.);
-                    C_nalpha = C_nalpha * it_alpha.Weight();
-
-                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
-                    {
-                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
-                    }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
-
-                    double SMS_nalpha = 0.;
-                    if(NuclearInverseMass && (k1 == 1))
-                        SMS_nalpha = -SI.IsotopeShiftIntegral(salpha, sn);
-
-                    // Correlation 1 has excited state beta
-                    ConstStateIterator it_beta = excited->GetConstStateIterator();
-                    while(!it_beta.AtEnd())
-                    {
-                        const SingleParticleWavefunction& sbeta = *(it_beta.GetState());
-
-                        double coeff;
-                        if((sa.L() + sbeta.L())%2 == k1%2)
-                            coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
-                        else
-                            coeff = 0.;
-
-                        if(coeff)
-                        {
-                            coeff = coeff * coeff * C_nalpha * (sbeta.TwoJ() + 1);
-                            coeff = coeff/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
-
-                            // R1 = R_k1 (a n, beta alpha)
-                            // R2 = R_k1 (b n, beta alpha)
-                            Y_size = sbeta.size();
-                            for(i=0; i < Y_size; i++)
-                                Y[i] = P_nalpha[i] * sbeta.f[i];
-
-                            if(SMS_nalpha)
-                            {
-                                std::vector<double> P(Y_size);
-                                SI.IsotopeShiftIntegral(sa.L(), sbeta, &P);
-                                for(i=0; i < Y_size; i++)
-                                    Y[i] = Y[i] - NuclearInverseMass * SMS_nalpha * P[i];
-                            }
-
-                            sigma->AddToSigma(Y, Y, coeff, Y_size, Y_size);
-                        }
-                        it_beta.Next();
-                    }
-
-                    // Correlation 3 has core state m
-                    ConstStateIterator it_m = core->GetConstStateIterator();
-                    while(!it_m.AtEnd())
-                    {
-                        const SingleParticleWavefunction& sm = *(it_m.GetState());
-
-                        double coeff;
-                        if((sa.L() + sm.L())%2 == k1%2)
-                            coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
-                        else
-                            coeff = 0.;
-
-                        if(coeff)
-                        {
-                            coeff = coeff * coeff * C_nalpha * (sm.TwoJ() + 1);
-                            coeff = coeff/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
-
-                            // R1 = R_k1 (a alpha, m n)
-                            // R2 = R_k1 (b alpha, m n)
-                            Y_size = sm.size();
-                            for(i=0; i < Y_size; i++)
-                                Y[i] = P_nalpha[i] * sm.f[i];
-
-                            if(SMS_nalpha)
-                            {   std::vector<double> P(Y_size);
-                                SI.IsotopeShiftIntegral(sa.L(), sm, &P);
-                                for(i=0; i < Y_size; i++)
-                                    Y[i] = Y[i] + NuclearInverseMass * SMS_nalpha * P[i];
-                            }
-
-                            sigma->AddToSigma(Y, Y, coeff, Y_size, Y_size);
-                        }
-                        it_m.Next();
-                    }
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_alpha.Next();
-        }
-        it_n.Next();
-    }
-}
-
-void CoreMBPTCalculator::CalculateCorrelation2(int kappa, SigmaPotential* sigma) const
-{
-    const bool debug = DebugOptions.LogMBPT();
-    unsigned int MaxStateSize = core->GetConstHFPotential().size();
-    const double NuclearInverseMass = core->GetNuclearInverseMass();
-
-    OrbitalInfo sa(100, kappa);
-
-    std::vector<double> density(MaxStateSize);
-    std::vector<double> P_nalpha(MaxStateSize);
-    std::vector<double> P_nbeta(MaxStateSize);
-    std::vector<double> Y1(MaxStateSize); unsigned int Y1_size;
-    std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
-    CoulombIntegrator I(lattice);
-    StateIntegrator SI(lattice);
-
-    if(debug)
-        *outstream << "Cor 2:    ";
-    double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0.;
-    unsigned int i;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance();
-
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
-
-    ConstStateIterator it_n = core->GetConstStateIterator();
-    while(!it_n.AtEnd())
-    {
-        const SingleParticleWavefunction& sn = *(it_n.GetState());
-
-        ConstStateIterator it_alpha = excited->GetConstStateIterator();
-        while(!it_alpha.AtEnd())
-        {
-            const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-
-            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-
-                if(C_nalpha)
-                {
-                    C_nalpha = C_nalpha * (sn.TwoJ() + 1) * (salpha.TwoJ() + 1);
-
-                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
-                    {
-                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
-                    }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
-
-                    double SMS_nalpha = 0.;
-                    if(NuclearInverseMass && (k1 == 1))
-                        SMS_nalpha = -SI.IsotopeShiftIntegral(salpha, sn);
-
-                    ConstStateIterator it_beta = excited->GetConstStateIterator();
-                    while(!it_beta.AtEnd())
-                    {
-                        const SingleParticleWavefunction& sbeta = *(it_beta.GetState());
-
-                        double C_abeta;
-                        if((sa.L() + sbeta.L() + k1)%2 == 0)
-                            C_abeta = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
-                        else
-                            C_abeta = 0.;
-
-                        if(C_abeta && ((sa.L() + salpha.L())%2 == (sn.L() + sbeta.L())%2))
-                        {
-                            C_abeta = C_abeta * (sbeta.TwoJ() + 1);
-                            C_abeta = C_abeta/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
-
-                            k2 = absdiff(sn.L(), sbeta.L());
-                            if(absdiff(sn.TwoJ(), sbeta.TwoJ()) > 2 * k2)
-                                k2 += 2;
-                            k2max = (sn.TwoJ() + sbeta.TwoJ())/2;
-
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_abeta = -C_abeta;
-
-                            while(k2 <= k2max)
-                            {
-                                double coeff
-                                    = C_abeta * C_nalpha * constants->Electron3j(sa.TwoJ(), salpha.TwoJ(), k2)
-                                    * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
-                                    * constants->Wigner6j(sa.J(), sbeta.J(), k1, sn.J(), salpha.J(), k2);
-                                    // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
-
-                                if(coeff)
-                                {
-                                    for(i=0; i<mmin(sn.size(), sbeta.size()); i++)
-                                    {
-                                        density[i] = sn.f[i] * sbeta.f[i] + sn.g[i] * sbeta.g[i];
-                                    }
-                                    I.FastCoulombIntegrate(density, P_nbeta, k2, mmin(sn.size(), sbeta.size()));
-
-                                    double SMS_nbeta = 0.;
-                                    if(NuclearInverseMass && (k2 == 1))
-                                        SMS_nbeta = -SI.IsotopeShiftIntegral(sbeta, sn);
-
-                                    // R1 = R_k1 (a n, beta alpha)
-                                    Y1_size = sbeta.size();
-                                    for(i = 0; i < Y1_size; i++)
-                                        Y1[i] = P_nalpha[i] * sbeta.f[i];
-        
-                                    if(SMS_nalpha)
-                                    {
-                                        std::vector<double> P1(Y1_size);
-                                        SI.IsotopeShiftIntegral(sa.L(), sbeta, &P1);
-                                        for(i = 0; i < Y1_size; i++)
-                                            Y1[i] = Y1[i] - NuclearInverseMass * SMS_nalpha * P1[i];
-                                    }
-
-                                    // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
-                                    Y2_size = salpha.size();
-                                    for(i = 0; i < Y2_size; i++)
-                                        Y2[i] = P_nbeta[i] * salpha.f[i];
-
-                                    if(SMS_nbeta)
-                                    {   
-                                        std::vector<double> P2(Y2_size);
-                                        SI.IsotopeShiftIntegral(sa.L(), salpha, &P2);
-                                        for(i=0; i<Y2_size; i++)
-                                            Y2[i] = Y2[i] - NuclearInverseMass * SMS_nbeta * P2[i];
-                                    }
-
-                                    sigma->AddToSigma(Y1, Y2, coeff, Y1_size, Y2_size);
-                                }
-                                k2 += 2;
-                            }
-                        }
-                        it_beta.Next();
-                    } 
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_alpha.Next();
-        }
-        it_n.Next();
-    }
-}
-
-void CoreMBPTCalculator::CalculateCorrelation4(int kappa, SigmaPotential* sigma) const
-{
-    const bool debug = DebugOptions.LogMBPT();
-    unsigned int MaxStateSize = core->GetConstHFPotential().size();
-    const double NuclearInverseMass = core->GetNuclearInverseMass();
-
-    OrbitalInfo sa(100, kappa);
-
-    std::vector<double> density(MaxStateSize);
-    std::vector<double> P_nalpha(MaxStateSize);
-    std::vector<double> P_malpha(MaxStateSize);
-    std::vector<double> Y1(MaxStateSize); unsigned int Y1_size;
-    std::vector<double> Y2(MaxStateSize); unsigned int Y2_size;
-    CoulombIntegrator I(lattice);
-    StateIntegrator SI(lattice);
-
-    if(debug)
-        *outstream << "Cor 4:    ";
-    double spacing = 1./double(core->NumStates() * excited->NumStates());
-    double count = 0.;
-    unsigned int i;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance();
-
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
-
-    ConstStateIterator it_alpha = excited->GetConstStateIterator();
-    while(!it_alpha.AtEnd())
-    {
-        const SingleParticleWavefunction& salpha = *(it_alpha.GetState());
-
-        ConstStateIterator it_n = core->GetConstStateIterator();
-        while(!it_n.AtEnd())
-        {
-            const SingleParticleWavefunction& sn = *(it_n.GetState());
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-
-            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-
-                if(C_nalpha)
-                {
-                    C_nalpha = C_nalpha * (sn.TwoJ() + 1) * (salpha.TwoJ() + 1);
-
-                    for(i=0; i<mmin(sn.size(), salpha.size()); i++)
-                    {
-                        density[i] = sn.f[i] * salpha.f[i] + sn.g[i] * salpha.g[i];
-                    }
-                    I.FastCoulombIntegrate(density, P_nalpha, k1, mmin(sn.size(), salpha.size()));
-
-                    double SMS_nalpha = 0.;
-                    if(NuclearInverseMass && (k1 == 1))
-                        SMS_nalpha = -SI.IsotopeShiftIntegral(salpha, sn);
-
-                    ConstStateIterator it_m = core->GetConstStateIterator();
-                    while(!it_m.AtEnd())
-                    {
-                        const SingleParticleWavefunction& sm = *(it_m.GetState());
-
-                        double C_am;
-                        if((sa.L() + sm.L() + k1)%2 == 0)
-                            C_am = constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
-                        else
-                            C_am = 0.;
-
-                        if(C_am && ((sa.L() + sn.L())%2 == (sm.L() + salpha.L())%2))
-                        {
-                            C_am = C_am * (sm.TwoJ() + 1);
-
-                            C_am = C_am/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
-
-                            k2 = absdiff(sm.L(), salpha.L());
-                            if(absdiff(sm.TwoJ(), salpha.TwoJ()) > 2 * k2)
-                                k2 += 2;
-
-                            k2max = (sm.TwoJ() + salpha.TwoJ())/2;
-
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_am = -C_am;
-
-                            while(k2 <= k2max)
-                            {
-                                double coeff
-                                    = C_am * C_nalpha * constants->Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
-                                    * constants->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
-                                    * constants->Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
-
-                                if(coeff)
-                                {
-                                    for(i=0; i<mmin(sm.size(), salpha.size()); i++)
-                                    {
-                                        density[i] = sm.f[i] * salpha.f[i] + sm.g[i] * salpha.g[i];
-                                    }
-                                    I.FastCoulombIntegrate(density, P_malpha, k2, mmin(sm.size(), salpha.size()));
-
-                                    double SMS_malpha = 0.;
-                                    if(NuclearInverseMass && (k2 == 1))
-                                        SMS_malpha = -SI.IsotopeShiftIntegral(salpha, sm);
-
-                                    // R1 = R_k1 (a alpha, m n)
-                                    Y1_size = sm.size();
-                                    for(i=0; i < Y1_size; i++)
-                                        Y1[i] = P_nalpha[i] * sm.f[i];
-
-                                    if(SMS_nalpha)
-                                    {
-                                        std::vector<double> P1(Y1_size);
-                                        SI.IsotopeShiftIntegral(sa.L(), sm, &P1);
-                                        for(i=0; i<Y1_size; i++)
-                                            Y1[i] = Y1[i] + NuclearInverseMass * SMS_nalpha * P1[i];
-                                    }
-
-                                    // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
-                                    Y2_size = sn.size();
-                                    for(i=0; i < Y2_size; i++)
-                                        Y2[i] = P_malpha[i] * sn.f[i];
-
-                                    if(SMS_malpha)
-                                    {
-                                        std::vector<double> P2(Y2_size);
-                                        SI.IsotopeShiftIntegral(sa.L(), sn, &P2);
-                                        for(i=0; i < Y2_size; i++)
-                                            Y2[i] = Y2[i] + NuclearInverseMass * SMS_malpha * P2[i];
-                                    }
-
-                                    sigma->AddToSigma(Y1, Y2, coeff, Y1_size, Y2_size);
-                                }
-                                k2 += 2;
-                            }
-                        }
-                        it_m.Next();
-                    } 
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_n.Next();
-        }
-        it_alpha.Next();
-    }
-}
-*/
 
 double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const
 {
@@ -848,8 +368,8 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                             {
                                 double coeff
                                     = C_am * C_nalpha * MathConstant::Instance()->Electron3j(sa.TwoJ(), sn.TwoJ(), k2)
-                                    * MathConstant::Instance()->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
-                                    * MathConstant::Instance()->Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
+                                        * MathConstant::Instance()->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
+                                        * MathConstant::Instance()->Wigner6j(sa.J(), sm.J(), k1, salpha.J(), sn.J(), k2);
 
                                 if(coeff)
                                 {   // R1 = R_k1 (a alpha, m n)
@@ -857,7 +377,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
                                     // R2 = R_k2 (m n, alpha b)
                                     double R2 = two_body->GetTwoElectronIntegral(k2, sm, sn, salpha, sb);
-                                    
+
                                     energy += R1 * R2 * coeff;
                                 }
                                 k2 += 2;
@@ -1052,10 +572,6 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
                             * two_body->GetTwoElectronIntegral(k, salpha, sb, sn, sd);
                 double R2 = two_body->GetTwoElectronIntegral(k, sa, salpha, sc, sn)
                             * two_body->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
-                if(R1*R2 == 0.)
-                    *errstream << "...  R^" << k << " ( " << sa.Name() << " " << sb.Name()
-                               << ", " << sc.Name() << " " << sd.Name() << ") :" << std::endl;
-
 
                 energy += (R1 + R2) * coeff;
             }
@@ -1118,11 +634,6 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                                    C_nalpha / coeff_ac;
                     if((k1 + k)%2)
                         coeff = -coeff;
-    // REMOVE:
-                    if((salpha.L() + sc.L() + k1)%2)
-                    {   *errstream << "TwoElectron2: messed up" << std::endl;
-                        coeff = 0;
-                    }
 
                     if(coeff)
                     {
@@ -1149,11 +660,6 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                                    C_nalpha / coeff_bd;
                     if((k1 + k)%2)
                         coeff = -coeff;
-    // REMOVE:
-                    if((salpha.L() + sd.L() + k1)%2)
-                    {   *errstream << "TwoElectron2: messed up mirror" << std::endl;
-                        coeff = 0;
-                    }
 
                     if(coeff)
                     {
@@ -1439,4 +945,369 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     if(debug)
         *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
+}
+
+BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body):
+    MBPTCalculator(orbitals), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
+{}
+
+void BruecknerSigmaCalculator::GetSecondOrderSigma(int kappa, SigmaPotential& sigma)
+{
+    if(DebugOptions.LogMBPT())
+        *outstream << "\nkappa = " << kappa << std::endl;
+
+    CalculateCorrelation1and3(kappa, sigma);
+    CalculateCorrelation2(kappa, sigma);
+    CalculateCorrelation4(kappa, sigma);
+}
+
+void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential& sigma)
+{
+    const bool debug = DebugOptions.LogMBPT();
+
+    int external_twoJ = 2*abs(kappa) - 1;
+    int external_L = (kappa > 0)? kappa: (-kappa-1);
+
+    if(debug)
+        *outstream << "Cor 1+3:  ";
+    double spacing = 1./double(core->size() * excited->size());
+    double count = 0.;
+
+    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance()->Instance();
+    unsigned int sigma_size = sigma.size();
+
+    unsigned int k1, k1max;
+
+    // Firstly, get the loop 24
+    auto it_n = core->begin();
+    while(it_n != core->end())
+    {
+        const Orbital& sn = *(it_n->second);
+
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
+        {
+            const Orbital& salpha = *(it_alpha->second);
+
+            if(debug)
+            {   count += spacing;
+                if(count >= 0.02)
+                {   *logstream << ".";
+                    count -= 0.02;
+                }
+            }
+
+            k1 = absdiff(sn.L(), salpha.L());
+            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
+                k1 += 2;
+
+            k1max = kmax(it_n->first, it_alpha->first);
+
+            while(k1 <= k1max)
+            {
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                hartreeY->SetParameters(k1, sn, salpha);
+
+                if(C_nalpha && !hartreeY->isZero())
+                {
+                    C_nalpha = C_nalpha * C_nalpha * it_n->first.MaxNumElectrons() * it_alpha->first.MaxNumElectrons()
+                                                / (2. * k1 + 1.);
+
+                    // Correlation 1 has excited state beta
+                    auto it_beta = excited->begin();
+                    while(it_beta != excited->end())
+                    {
+                        const Orbital& sbeta = *(it_beta->second);
+
+                        double coeff;
+                        if((external_L + sbeta.L() + k1)%2 == 0)
+                            coeff = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
+                        else
+                            coeff = 0.;
+
+                        if(coeff)
+                        {
+                            coeff = coeff * coeff * C_nalpha * it_beta->first.MaxNumElectrons();
+                            coeff = coeff/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
+
+                            // R1 = R_k1 (a n, beta alpha)
+                            // R2 = R_k1 (b n, beta alpha)
+                            SpinorFunction Ybeta = hartreeY->ApplyTo(sbeta, kappa);
+                            Ybeta.resize(sigma_size);
+
+                            sigma.AddToSigma(Ybeta, Ybeta, coeff);
+                        }
+
+                        it_beta++;
+                    }
+
+                    // Correlation 3 has core state m
+                    auto it_m = core->begin();
+                    while(it_m != core->end())
+                    {
+                        const Orbital& sm = *(it_m->second);
+
+                        double coeff;
+                        if((external_L + sm.L() + k1)%2 == 0)
+                            coeff =  constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
+                        else
+                            coeff = 0.;
+
+                        if(coeff)
+                        {
+                            coeff = coeff * coeff * C_nalpha * it_m->first.MaxNumElectrons();
+                            coeff = coeff/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
+
+                            // R1 = R_k1 (a alpha, m n)
+                            // R2 = R_k1 (b alpha, m n)
+                            SpinorFunction Ym = hartreeY->ApplyTo(sm, kappa, true);
+                            Ym.resize(sigma_size);
+
+                            sigma.AddToSigma(Ym, Ym, coeff);
+                        }
+                        it_m++;
+                    }
+                } // C_nalpha
+                k1 += 2;
+            }
+            it_alpha++;
+        }
+        it_n++;
+    }
+}
+
+void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& sigma)
+{
+    const bool debug = DebugOptions.LogMBPT();
+
+    int external_twoJ = 2*abs(kappa) - 1;
+    int external_L = (kappa > 0)? kappa: (-kappa-1);
+    double external_J = double(external_twoJ)/2.;
+
+    if(debug)
+        *outstream << "Cor 2:    ";
+    double spacing = 1./double(core->size() * excited->size());
+    double count = 0.;
+
+    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance();
+    unsigned int sigma_size = sigma.size();
+
+    unsigned int k1, k1max;
+    unsigned int k2, k2max;
+
+    pHartreeY hartreeY1(hartreeY->Clone());
+    pHartreeY hartreeY2(hartreeY->Clone());
+
+    auto it_n = core->begin();
+    while(it_n != core->end())
+    {
+        const Orbital& sn = *(it_n->second);
+
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
+        {
+            const Orbital& salpha = *(it_alpha->second);
+
+            if(debug)
+            {   count += spacing;
+                if(count >= 0.02)
+                {   *logstream << ".";
+                    count -= 0.02;
+                }
+            }
+
+            k1 = absdiff(sn.L(), salpha.L());
+            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
+                k1 += 2;
+            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
+
+            while(k1 <= k1max)
+            {
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                hartreeY1->SetParameters(k1, sn, salpha);
+
+                if(C_nalpha && !hartreeY1->isZero())
+                {
+                    C_nalpha = C_nalpha * it_n->first.MaxNumElectrons() * it_alpha->first.MaxNumElectrons();
+
+                    auto it_beta = excited->begin();
+                    while(it_beta != excited->end())
+                    {
+                        const Orbital& sbeta = *(it_beta->second);
+
+                        double C_abeta;
+                        if((external_L + sbeta.L() + k1)%2 == 0)
+                            C_abeta = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
+                        else
+                            C_abeta = 0.;
+
+                        if(C_abeta && (external_L + salpha.L() + sn.L() + sbeta.L())%2 == 0)
+                        {
+                            C_abeta = C_abeta * it_beta->first.MaxNumElectrons();
+                            C_abeta = C_abeta/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
+
+                            // R1 = R_k1 (a n, beta alpha)
+                            SpinorFunction Y1 = hartreeY1->ApplyTo(sbeta, kappa);
+                            Y1.resize(sigma_size);
+
+                            k2 = absdiff(sn.L(), sbeta.L());
+                            if(absdiff(sn.TwoJ(), sbeta.TwoJ()) > 2 * k2)
+                                k2 += 2;
+                            k2max = (sn.TwoJ() + sbeta.TwoJ())/2;
+
+                            // Sign
+                            if((k1 + k2)%2)
+                                C_abeta = -C_abeta;
+
+                            while(k2 <= k2max)
+                            {
+                                double coeff
+                                = C_abeta * C_nalpha * constants->Electron3j(external_twoJ, salpha.TwoJ(), k2)
+                                * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
+                                * constants->Wigner6j(external_J, sbeta.J(), k1, sn.J(), salpha.J(), k2);
+                                // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
+
+                                if(coeff)
+                                {
+                                    hartreeY2->SetParameters(k2, sn, sbeta);
+
+                                    // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
+                                    SpinorFunction Y2 = hartreeY2->ApplyTo(salpha, kappa);
+                                    if(Y2.size())
+                                    {
+                                        Y2.resize(sigma_size);
+                                        sigma.AddToSigma(Y1, Y2, coeff);
+                                    }
+                                }
+                                k2 += 2;
+                            }
+                        }
+                        it_beta++;
+                    }
+                } // C_nalpha
+                k1 += 2;
+            }
+            it_alpha++;
+        }
+        it_n++;
+    }
+}
+
+void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& sigma)
+{
+    const bool debug = DebugOptions.LogMBPT();
+
+    int external_twoJ = 2*abs(kappa) - 1;
+    int external_L = (kappa > 0)? kappa: (-kappa-1);
+    double external_J = double(external_twoJ)/2.;
+
+    if(debug)
+        *outstream << "Cor 4:    ";
+    double spacing = 1./double(core->size() * excited->size());
+    double count = 0.;
+
+    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
+    MathConstant* constants = MathConstant::Instance();
+    unsigned int sigma_size = sigma.size();
+
+    unsigned int k1, k1max;
+    unsigned int k2, k2max;
+
+    pHartreeY hartreeY1(hartreeY->Clone());
+    pHartreeY hartreeY2(hartreeY->Clone());
+
+    auto it_n = core->begin();
+    while(it_n != core->end())
+    {
+        const OrbitalInfo& info_n = it_n->first;
+        const Orbital& sn = *(it_n->second);
+
+        auto it_alpha = excited->begin();
+        while(it_alpha != excited->end())
+        {
+            const OrbitalInfo& info_alpha = it_alpha->first;
+            const Orbital& salpha = *(it_alpha->second);
+
+            if(debug)
+            {   count += spacing;
+                if(count >= 0.02)
+                {   *logstream << ".";
+                    count -= 0.02;
+                }
+            }
+
+            k1 = kmin(info_n, info_alpha);
+            k1max = kmax(info_n, info_alpha);
+
+            while(k1 <= k1max)
+            {
+                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
+                hartreeY1->SetParameters(k1, salpha, sn);
+
+                if(C_nalpha && !hartreeY1->isZero())
+                {
+                    C_nalpha = C_nalpha * info_n.MaxNumElectrons() * info_alpha.MaxNumElectrons();
+
+                    auto it_m = core->begin();
+                    while(it_m != core->end())
+                    {
+                        const OrbitalInfo& info_m = it_m->first;
+                        const Orbital& sm = *(it_m->second);
+
+                        double C_am;
+                        if((external_L + sm.L() + k1)%2 == 0)
+                            C_am = constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
+                        else
+                            C_am = 0.;
+
+                        if(C_am && (external_L + sn.L() + sm.L() + salpha.L())%2 == 0)
+                        {
+                            C_am = C_am * info_m.MaxNumElectrons();
+                            C_am = C_am/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
+
+                            // R1 = R_k1 (a alpha, m n)
+                            SpinorFunction Y1 = hartreeY1->ApplyTo(sm, kappa);
+                            Y1.resize(sigma_size);
+
+                            // Note: we can rely on HartreeY to check triangle and parity for (k2, n, b)
+                            k2 = kmin(info_m, info_alpha);
+                            k2max = kmax(info_m, info_alpha);
+
+                            // Sign
+                            if((k1 + k2)%2)
+                                C_am = -C_am;
+
+                            while(k2 <= k2max)
+                            {
+                                double coeff
+                                = C_am * C_nalpha * constants->Electron3j(external_twoJ, sn.TwoJ(), k2)
+                                    * constants->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
+                                    * constants->Wigner6j(external_J, sm.J(), k1, salpha.J(), sn.J(), k2);
+
+                                if(coeff)
+                                {
+                                    hartreeY2->SetParameters(k2, salpha, sm);
+
+                                    // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
+                                    SpinorFunction Y2 = hartreeY2->ApplyTo(sn, kappa);
+                                    if(Y2.size())
+                                    {
+                                        Y2.resize(sigma_size);
+                                        sigma.AddToSigma(Y1, Y2, coeff);
+                                    }
+                                }
+                                k2 += 2;
+                            }
+                        }
+                        it_m++;
+                    } 
+                } // C_nalpha
+                k1 += 2;
+            }
+            it_alpha++;
+        }
+        it_n++;
+    }
 }
