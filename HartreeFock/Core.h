@@ -40,6 +40,7 @@ public:
 
     /** Delete all currently stored states. */
     virtual void clear() override;
+    virtual iterator erase(const_iterator position) override;
 
     virtual int NumElectrons() const;
 

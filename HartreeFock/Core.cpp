@@ -54,6 +54,14 @@ void Core::clear()
     occupancy.clear();
 }
 
+auto Core::erase(const_iterator position) -> iterator
+{
+    iterator ret = OrbitalMap::erase(position);
+    occupancy.erase(position->first);
+
+    return ret;
+}
+
 double Core::GetOccupancy(OrbitalInfo info) const
 {
     OccupationMap::const_iterator it = occupancy.find(info);

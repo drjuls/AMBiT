@@ -37,6 +37,7 @@ public:
     virtual bool empty() const { return m_orbitals.empty(); }
     virtual iterator end() { return m_orbitals.end(); }
     virtual const_iterator end() const { return m_orbitals.end(); }
+    virtual iterator erase(const_iterator position) { return m_orbitals.erase(position); }
     virtual unsigned int size() const { return m_orbitals.size(); }
 
     /** Get pointer to discrete state.

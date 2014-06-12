@@ -86,8 +86,21 @@ void Atom::MakeMBPTIntegrals()
     pCoreValenceIntegralsMap mbpt_integrals_two(new CoreValenceIntegralsMap(orbitals, core_mbpt));
 
     // Use subtraction diagrams and extra box diagrams?
-    mbpt_integrals_one->IncludeCore(true, false);
-    mbpt_integrals_two->IncludeCore(true, false, false);
+    // First find out whether the core is our closed shell core, while we're at it, get maximum pqn.
+    int max_pqn_in_core = 0;
+    bool is_open_shell = false;
+    for(auto pair: *orbitals->core)
+    {
+        double occ = hf_core->GetOccupancy(pair.first);
+        if(fabs(occ - double(pair.first.MaxNumElectrons())) > 0.01)
+            is_open_shell = true;
+
+        max_pqn_in_core = mmax(max_pqn_in_core, pair.first.PQN());
+    }
+
+    bool use_box = !user_input.search("MBPT/--no-box-diagrams");
+    mbpt_integrals_one->IncludeCore(true, is_open_shell);
+    mbpt_integrals_two->IncludeCore(true, is_open_shell, use_box);
 
     // Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
     // Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.
@@ -101,15 +114,56 @@ void Atom::MakeMBPTIntegrals()
     //      N ~ 502 x^3      N ~ 1858 y^3,
     // and hopefully after max_pqn_2 and then max_pqn_3
     //      N~ x^2 and then N ~ x, respectively.
+    std::vector<pOrbitalMap> valence_subset(4, valence);
 
-    if(user_input.search("--check-sizes"))
+    if(two_body_mbpt || check_sizes)
+    {
+        unsigned int num_limits = user_input.vector_variable_size("MBPT/TwoElectronStorageLimits");
+        if(num_limits)
+        {
+            for(unsigned int i = 0; i < mmin(num_limits, 4); i++)
+            {
+                int max_pqn = user_input("MBPT/TwoElectronStorageLimits", 0, i);
+
+                if(max_pqn)
+                {   // Change orbital
+                    valence_subset[i].reset(new OrbitalMap(*valence));
+                    auto it = valence_subset[i]->begin();
+                    while(it != valence_subset[i]->end())
+                    {
+                        if(it->first.PQN() > max_pqn)
+                            it = valence_subset[i]->erase(it);
+                        else
+                            it++;
+                    }
+                }
+            }
+        }
+        else
+        {   // Default when not specified
+            int max_pqn = max_pqn_in_core + 2;
+            valence_subset[0].reset(new OrbitalMap(*valence));
+            auto it = valence_subset[0]->begin();
+            while(it != valence_subset[0]->end())
+            {
+                if(it->first.PQN() > max_pqn)
+                    it = valence_subset[0]->erase(it);
+                else
+                    it++;
+            }
+
+            valence_subset[1] = valence_subset[0];
+        }
+    }
+
+    if(check_sizes)
     {
         *outstream << "Num stored coulomb integrals for MBPT = " << core_mbpt->GetStorageSize();
 
         unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence, true);
         *outstream << "\nNum one-body mbpt integrals: " << size;
 
-        size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3], true);
         *outstream << "\nNum two-body mbpt integrals: " << size << std::endl;
     }
     else
@@ -122,7 +176,7 @@ void Atom::MakeMBPTIntegrals()
 
         if(two_body_mbpt)
         {
-            mbpt_integrals_two->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+            mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
             mbpt_integrals_two->Write(identifier + ".two.int");
         }
     }
