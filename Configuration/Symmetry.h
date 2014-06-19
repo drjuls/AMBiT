@@ -12,6 +12,11 @@ class Symmetry
         J = total angular momentum and P = parity.
     */
 public:
+    Symmetry(int kappa)
+    {   twoJ = 2*abs(kappa)-1;
+        int L = (kappa > 0)? kappa : -kappa-1;
+        P = (L%2 == 0)? Parity::even : Parity::odd;
+    }
     Symmetry(int two_j, Parity parity):
         twoJ(two_j), P(parity)
     {}

@@ -69,6 +69,11 @@ public:
     pLevelMap GetLevels() { return levels; }
 
 protected:
+    /** Get configurations based on single electron configurations with no CI.
+        PRE: MakeBasis() must have been run.
+     */
+    pLevelMap SingleElectronConfigurations(const Symmetry& sym);
+
     /** Attempt to read basis from file and generate HF operator.
         Return true if successful, false if file "identifier.basis" not found.
      */
@@ -129,7 +134,7 @@ protected:
     pHartreeY hartreeY;
 
     pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
-    pTwoElectronCoulombOperator twobody_electron; //!< Two-body Hamiltonian
+    pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
     std::set<Symmetry> symmetries;
     pLevelMap levels;
 

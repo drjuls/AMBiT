@@ -408,7 +408,15 @@ void Ambit::EnergyCalculations()
         atom.MakeMBPTIntegrals();
 
     // CI
-    std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
+    std::set<Symmetry> symmetries;
+    if(user_input.search("--no-ci"))
+    {
+        // Use all valence orbitals
+        for(auto& it: *atoms[0].GetBasis()->valence)
+            symmetries.insert(Symmetry(it.first.Kappa()));
+    }
+    else
+        std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
 
     if(user_input.search("--check-sizes"))
         atoms[0].CheckMatrixSizes();

@@ -206,7 +206,10 @@ void Atom::MakeIntegrals()
     {   // Normal integrals
         hf_electron.reset(new OneElectronIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(valence, valence);
-        two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+
+        // Don't need two body integrals if we're not doing CI
+        if(!user_input.search("--no-ci"))
+            two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
 
         // Add stored MBPT integrals
         if(one_body_mbpt)
@@ -245,16 +248,37 @@ void Atom::CheckMatrixSizes()
 
 pLevelMap Atom::CalculateEnergies()
 {
-    symmetries = ChooseSymmetries(user_input);
+    if(user_input.search("--no-ci"))
+    {
+        if(hf_electron == nullptr)
+            MakeIntegrals();
 
-    for(auto& sym: symmetries)
-        CalculateEnergies(sym);
+        // Use all symmetries from valence set
+        for(auto& it: *orbitals->valence)
+        {
+            symmetries.insert(Symmetry(it.first.Kappa()));
+        }
+
+        for(auto& sym: symmetries)
+        {
+            SingleElectronConfigurations(sym);
+            levels->Print(sym);
+        }
+    }
+    else
+    {
+        symmetries = ChooseSymmetries(user_input);
+
+        for(auto& sym: symmetries)
+            CalculateEnergies(sym);
+    }
 
     return levels;
 }
 
 pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 {
+    symmetries.insert(sym);
     ConfigGenerator gen(orbitals, user_input);
     pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
 
@@ -280,7 +304,14 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
             levels->Read(filename, angular_directory);
     }
 
-    if(levels->size(sym) < NumSolutions)
+    if(user_input.search("--no-ci"))
+    {
+        if(hf_electron == nullptr)
+            MakeIntegrals();
+
+        SingleElectronConfigurations(sym);
+    }
+    else if(levels->size(sym) < NumSolutions)
     {
         if(twobody_electron == nullptr)
             MakeIntegrals();
@@ -382,6 +413,33 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
     }
 
     levels->Print(sym, min_percent_displayed, DavidsonMaxEnergy);
+
+    return levels;
+}
+
+pLevelMap Atom::SingleElectronConfigurations(const Symmetry& sym)
+{
+    pAngularDataLibrary ang(new AngularDataLibrary(1, sym, sym.GetTwoJ()));
+
+    unsigned int id = 0;
+    double eigenvector = 1.;
+    for(auto& it: *orbitals->valence)
+    {
+        if(Symmetry(it.first.Kappa()) == sym)
+        {
+            // Make relativistic configuration
+            RelativisticConfiguration config;
+            config.insert(std::make_pair(it.first, 1));
+            config.GetProjections(ang);
+            ang->GenerateCSFs();
+
+            // Make "level"
+            pRelativisticConfigList configlist(new RelativisticConfigList(config));
+            double energy = hf_electron->GetMatrixElement(it.first, it.first);
+            pLevel level(new Level(energy, &eigenvector, configlist, 1));
+            levels->insert(std::make_pair(LevelID(sym, id), level));
+        }
+    }
 
     return levels;
 }
