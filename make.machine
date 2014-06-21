@@ -31,7 +31,7 @@ GTEST_LIBS_DIR    = $(SRCDIR)/gtest
 
 ifeq ($(MACHINE), default)
   CC  = gcc
-  CXX = g++
+  CXX = g++ -std=c++11 -w
   F77 = gfortran
 
   LINK      = g++

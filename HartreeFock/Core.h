@@ -3,7 +3,6 @@
 
 #include "OrbitalMap.h"
 #include "Atom/Debug.h"
-#include "SigmaPotential.h"
 #include "Configuration.h"
 
 typedef Configuration<OrbitalInfo, double> OccupationMap;

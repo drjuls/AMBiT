@@ -3,7 +3,7 @@
 
 #include "HartreeFock/SpinorOperator.h"
 #include "Basis/OrbitalManager.h"
-#include "ElectronInfo.h"
+#include "Configuration/ElectronInfo.h"
 
 /** OneElectronIntegrals takes a SpinorMatrixElement and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, ...),

@@ -1,0 +1,5 @@
+cxxobjects = EJOperator.o
+cobjects =
+fobjects =
+
+include $(SRCDIR)/make.instructions

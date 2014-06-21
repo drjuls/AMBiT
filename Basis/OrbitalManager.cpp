@@ -1,6 +1,5 @@
 #include "OrbitalManager.h"
 #include "Include.h"
-#include "IndexedIterator.h"
 
 OrbitalManager::OrbitalManager(pLattice lattice):
     lattice(lattice)

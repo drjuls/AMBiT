@@ -9,7 +9,7 @@
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
-#include "OneElectronIntegrals.h"
+#include "MBPT/OneElectronIntegrals.h"
 
 typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef boost::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;

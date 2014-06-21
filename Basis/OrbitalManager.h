@@ -3,6 +3,7 @@
 
 #include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Core.h"
+#include "Configuration/IndexedIterator.h"
 
 /** Classification of orbitals matches maps OrbitalManager. */
 enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };

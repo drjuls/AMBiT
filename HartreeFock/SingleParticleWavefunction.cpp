@@ -77,23 +77,6 @@ void SingleParticleWavefunction::SetPQN(int PQN)
     pqn = PQN;
 }
 
-double SingleParticleWavefunction::Overlap(const SingleParticleWavefunction &other, pLatticeConst lattice) const
-{
-    double total = 0.;
-    
-    if(kappa == other.kappa)
-    {
-        const double* dR = lattice->dR();
-
-        for(unsigned int i=0; i<mmin(size(), other.size()); i++)
-        {
-            total += (f[i] * other.f[i] + g[i] * other.g[i])*dR[i];
-        }
-    }
-
-    return total;
-}
-
 std::string SingleParticleWavefunction::Name() const
 {
     char buffer[20];

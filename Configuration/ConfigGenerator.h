@@ -60,14 +60,6 @@ protected:
       */
     pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
 
-    /** Store the leading_configs and rlist (RelativisticConfigList).
-        Filename is "identifier.twoJ.P.configs".
-     */
-    DEPRECATED void Write() const;
-
-    /** Read leading_configs and rlist. Return success. */
-    DEPRECATED bool Read();
-
 protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.

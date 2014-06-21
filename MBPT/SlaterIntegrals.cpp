@@ -1,5 +1,4 @@
 #include "Include.h"
-#include "OrbitalManager.h"
 
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"

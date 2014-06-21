@@ -5,7 +5,7 @@
 #     gmake test=1
 # 'gmake test' and 'gmake debug' will also work, but not with 'clean'.
 
-coremodules = Configuration MBPT Basis HartreeFock Universal
+coremodules = Basis Configuration ExternalField HartreeFock MBPT Universal
 modules = Atom $(coremodules)
 
 ifdef test

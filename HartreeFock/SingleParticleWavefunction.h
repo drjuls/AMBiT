@@ -57,8 +57,6 @@ public:
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
 
-    DEPRECATED double Overlap(const SingleParticleWavefunction& other, pLatticeConst lattice) const;
-
     /** Print state to file, optionally printing lattice. Return success. */
     bool Print(pLattice lattice = pLattice()) const;
     bool Print(const std::string& filename, pLattice lattice = pLattice()) const;

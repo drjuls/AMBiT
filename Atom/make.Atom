@@ -1,10 +1,9 @@
-cxxobjects = Atom.o Atom_Open.o Atom_RunMultiple.o \
-             OutStreams.o RateCalculator.o Transitions.o
+cxxobjects = Atom.o Atom_Open.o OutStreams.o
 cobjects = 
 fobjects =
 
 ifndef test
-  cxxobjects += ambit.o
+  cxxobjects += ambit.o ambit_recursive.o
 endif
 
 include $(SRCDIR)/make.instructions
