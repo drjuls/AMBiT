@@ -53,6 +53,10 @@ public:
     virtual pHartreeY GetHartreeY() { return hartreeY; }
     virtual pHartreeYConst GetHartreeY() const { return hartreeY; }
 
+    /** Get Physical constants. */
+    virtual pPhysicalConstant GetPhysicalConstant() { return physical_constant; }
+    virtual pPhysicalConstantConst GetPhysicalConstant() const { return physical_constant; }
+
 protected:
     /** Create open-shell hf operator and set open_core occupancies. Used by GenerateHFCore() and RecreateBasis().
         POST: undressed_hf is base HF with finite nuclear radius;

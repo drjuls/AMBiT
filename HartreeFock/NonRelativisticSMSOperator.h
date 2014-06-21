@@ -42,7 +42,7 @@ public:
     }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const override;
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const override;
 
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
      i.e. t | a > has kappa == kappa_b.

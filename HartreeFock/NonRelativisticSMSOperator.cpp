@@ -27,7 +27,7 @@ bool NonRelativisticSMSOperator::isZero() const
 }
 
 /** < b | t | a > for an operator t. */
-double NonRelativisticSMSOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const
+double NonRelativisticSMSOperator::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const
 {
     if(!integrator)
         throw "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found.";

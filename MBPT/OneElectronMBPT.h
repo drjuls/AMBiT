@@ -8,7 +8,7 @@ class OneElectronMBPT : public OneElectronIntegrals
 {
 public:
     OneElectronMBPT(pOrbitalManagerConst orbitals, pOneElectronIntegrals bare_one_body, pSlaterIntegrals bare_two_body);
-    OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorOperatorConst pOperator = nullptr);
+    OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator = nullptr);
 
     virtual ~OneElectronMBPT() {}
 

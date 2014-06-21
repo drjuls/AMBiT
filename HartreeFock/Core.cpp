@@ -1,7 +1,6 @@
 #include "Include.h"
 #include "Core.h"
 #include "Universal/MathConstant.h"
-#include "Universal/CoulombIntegrator.h"
 #include "Universal/Interpolator.h"
 #include "ConfigurationParser.h"
 

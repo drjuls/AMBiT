@@ -5,7 +5,7 @@
 #include "Basis/OrbitalManager.h"
 #include "ElectronInfo.h"
 
-/** OneElectronIntegrals takes a SpinorOperator and maps it to an electron operator for
+/** OneElectronIntegrals takes a SpinorMatrixElement and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, ...),
     adding the trivial angular dependence delta(kappa1, kappa2).delta(m1, m2).
     Radial integrals are stored using CalculateOneElectronIntegrals.
@@ -13,7 +13,7 @@
 class OneElectronIntegrals
 {
 public:
-    OneElectronIntegrals(pOrbitalManagerConst pOrbitals, pSpinorOperatorConst pOperator):
+    OneElectronIntegrals(pOrbitalManagerConst pOrbitals, pSpinorMatrixElementConst pOperator):
         orbitals(pOrbitals), op(pOperator)
     {
         num_orbitals = orbitals->size();
@@ -61,7 +61,7 @@ public:
     virtual void Write(const std::string& filename) const;
 
     /** Get the spinor operator. */
-    pSpinorOperatorConst GetOperator() const { return op; }
+    pSpinorMatrixElementConst GetOperator() const { return op; }
 
 protected:
     inline unsigned int GetKey(unsigned int i1, unsigned int i2) const
@@ -72,7 +72,7 @@ protected:
             return i2 * num_orbitals + i1;
     }
 
-    pSpinorOperatorConst op;
+    pSpinorMatrixElementConst op;
     pOrbitalManagerConst orbitals;
     unsigned int num_orbitals;
     std::map<unsigned int, double> integrals;

@@ -3,7 +3,7 @@
 
 #include "Orbital.h"
 #include "OpIntegrator.h"
-#include "Include.h"
+#include "Universal/SpinorMatrixElement.h"
 
 /** SpinorOperator is a base class for calculating radial matrix elements with an orbital basis.
     It follows the Decorator (Wrapper) pattern, so it is recursively extensive.
@@ -12,15 +12,15 @@
     SpinorOperator is itself a valid zero operator, < b | 0 | a > = 0,
     useful to wrap Decorators around when you want just the extra bit.
  */
-class SpinorOperator
+class SpinorOperator : public SpinorMatrixElement
 {
 public:
-    SpinorOperator(pOPIntegrator integration_strategy = pOPIntegrator()): integrator(integration_strategy), K(0) {}
+    SpinorOperator(pOPIntegrator integration_strategy = nullptr): SpinorMatrixElement(0, integration_strategy) {}
 
     /** < b | t | a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
      */
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const;
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
 
     /** Potential = t | a > for an operator t such that the resulting Potential has the same angular symmetry as a.
         i.e. t | a > has kappa == kappa_a.
@@ -35,17 +35,6 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const
     {   return SpinorFunction(kappa_b);
     }
-
-    /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */
-    virtual int GetMaxK() const { return K; }
-
-    virtual pOPIntegrator GetOPIntegrator() const
-    {   return integrator;
-    }
-
-protected:
-    pOPIntegrator integrator;
-    int K;
 };
 
 typedef boost::shared_ptr<SpinorOperator> pSpinorOperator;
@@ -59,7 +48,7 @@ typedef boost::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
 class SpinorOperatorDecorator : public SpinorOperator
 {
 public:
-    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = pOPIntegrator()): SpinorOperator(integration_strategy)
+    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy)
     {   component = wrapped;
         if(!integrator)
             integrator = component->GetOPIntegrator();
@@ -82,7 +71,7 @@ protected:
     pSpinorOperator component;
 };
 
-inline double SpinorOperator::GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const
+inline double SpinorOperator::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const
 {
     SpinorFunction ta = this->ApplyTo(a, b.Kappa());
     if(ta.size())

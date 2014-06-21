@@ -53,11 +53,11 @@ public:
     virtual HartreeYBase* Clone() const { return new HartreeYBase(integrator); }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a) const override
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override
     {   return GetMatrixElement(b, a, false);
     }
 
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const
     {   SpinorFunction ta = ApplyTo(a, b.Kappa(), reverse);
         if(ta.size())
         {   if(!integrator)
@@ -128,7 +128,7 @@ public:
     virtual HartreeY* Clone() const override;
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const override;
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const override;
 
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
         i.e. t | a > has kappa == kappa_b.
@@ -176,7 +176,7 @@ public:
     virtual int GetMaxK() const override { return mmax(K, component->GetMaxK()); }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const SpinorFunction& b, const SpinorFunction& a, bool reverse) const override
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const override
     {   return component->GetMatrixElement(b, a, reverse);
     }
 

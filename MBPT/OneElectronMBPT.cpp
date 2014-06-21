@@ -4,7 +4,7 @@ OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pOneElectronInte
     OneElectronMBPT(orbitals, pCoreMBPTCalculator(new CoreMBPTCalculator(orbitals, bare_one_body, bare_two_body)), bare_one_body->GetOperator())
 {}
 
-OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorOperatorConst pOperator):
+OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator):
     OneElectronIntegrals(orbitals, pOperator), core_PT(core_mbpt_calculator),
     include_core(true), include_core_subtraction(true), include_valence(false), include_valence_subtraction(false)
 {}

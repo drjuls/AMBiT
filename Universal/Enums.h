@@ -7,6 +7,8 @@ enum class Parity { even, odd };
 
 enum class ContinuumNormalisation { LandauNu, LandauEnergy, Cowan, Unitary };
 
+enum class TransitionGauge { Length, Velocity };
+
 inline Parity operator*(const Parity& first, const Parity& second)
 {
     if(first == second)
@@ -108,27 +110,16 @@ namespace MultipolarityType
     }
 }
 
-namespace TransitionGaugeType
+inline std::string Name(TransitionGauge from)
 {
-    enum Enum 
+    switch(from)
     {
-        Start,
-        Length = 0,
-        Velocity,
-        End
-    };
-
-    inline std::string Name(Enum from)
-    {
-        switch(from)
-        {
-            case Length:
-                return "Length";
-            case Velocity:
-                return "Velocity";
-            default:
-                return "";
-        }
+        case TransitionGauge::Length:
+            return "Length";
+        case TransitionGauge::Velocity:
+            return "Velocity";
+        default:
+            return "";
     }
 }
 
