@@ -23,4 +23,19 @@ protected:
     pPhysicalConstant constants;
 };
 
+class MJOperator : public SpinorMatrixElementDecorator
+{
+public:
+    MJOperator(pPhysicalConstant constants, int J, pOPIntegrator integration_strategy):
+        SpinorMatrixElementDecorator(J, pSpinorMatrixElement(new SpinorMatrixElement()), integration_strategy),
+        constants(constants)
+    {}
+
+    /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
+    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
+
+protected:
+    pPhysicalConstant constants;
+};
+
 #endif

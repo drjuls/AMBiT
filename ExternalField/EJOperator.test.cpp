@@ -95,3 +95,39 @@ TEST(EJOperatorTester, NaTransitions)
     EXPECT_NEAR(3.6516, fabs(E1.GetMatrixElement(s, p1)), 0.0003);
     EXPECT_NEAR(5.1632, fabs(E1.GetMatrixElement(s, p3)), 0.0005);
 }
+
+TEST(MJOperatorTester, LiTransitions)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // Li fine-structure - comparison with Walter Johnson book page 163
+    std::string user_input_string = std::string() +
+    "NuclearRadius = 3.7188\n" +
+    "NuclearThickness = 2.3\n" +
+    "Z = 3\n" +
+    "[HF]\n" +
+    "N = 2\n" +
+    "Configuration = '1s2'\n" +
+    "[Basis]\n" +
+    "--bspline-basis\n" +
+    "ValenceBasis = 2sp\n" +
+    "BSpline/Rmax = 50.0\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    pCore core = basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+    pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
+
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    MJOperator M1(constants, 1, integrator);
+
+    const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
+    const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
+
+    EXPECT_NEAR(fabs(M1.GetMatrixElement(p3, p1)), fabs(M1.GetMatrixElement(p1, p3)), 1.e-4);
+    EXPECT_NEAR(2./sqrt(3.), fabs(M1.GetMatrixElement(p3, p1)), 0.0003);
+}

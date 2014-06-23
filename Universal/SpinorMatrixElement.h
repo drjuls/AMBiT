@@ -2,7 +2,7 @@
 #define SPINOR_MATRIX_ELEMENT_H
 
 #include "Universal/SpinorFunction.h"
-#include "Configuration/ElectronInfo.h"
+#include "HartreeFock/Orbital.h"
 #include "Include.h"
 
 /** SpinorMatrixElement is a base class for calculating radial matrix elements with an orbital basis.
@@ -16,7 +16,10 @@ public:
     SpinorMatrixElement(): integrator(nullptr), K(0) {}
     SpinorMatrixElement(int K, pOPIntegrator integration_strategy): integrator(integration_strategy), K(K) {}
 
-    /** Reduced matrix element < b || t(K) || a > for our operator t(K). */
+    /** Reduced matrix element < b || t(K) || a > for our operator t(K).
+        Usually the operation t|a> makes sense for any SingleParticleWavefunction, but in order to have a
+        matrix element one of the wavefunctions must be bounded, and hence an "Orbital".
+     */
     virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const
     {   return 0.;
     }
