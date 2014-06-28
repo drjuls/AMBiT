@@ -24,15 +24,17 @@ bool NonRelConfiguration::RemoveSingleParticle(const NonRelInfo& info)
     auto r_it = m_config.find(info);
     if(r_it != m_config.end())
     {
-        if(r_it->second <= 1)
+        if(r_it->second <= -(4*info.L() + 2))
+            return false;
+        else if(r_it->second == 1)
             m_config.erase(r_it);
         else
-            r_it->second = r_it->second - 1;
-
-        return true;
+            r_it->second--;
     }
     else
-        return false;
+        m_config[info] = -1;
+
+    return true;
 }
 
 bool NonRelConfiguration::AddSingleParticle(const NonRelInfo& info)
@@ -40,12 +42,12 @@ bool NonRelConfiguration::AddSingleParticle(const NonRelInfo& info)
     iterator a_it = m_config.find(info);
     if(a_it != m_config.end())
     {
-        if(a_it->second >= 4*(a_it->first.L()) + 2) // maximum number of electrons
-        {   a_it->second = 4*(a_it->first.L()) + 2;
+        if(a_it->second >= 4*info.L() + 2) // maximum number of electrons
             return false;
-        }
+        else if(a_it->second == -1)
+            m_config.erase(a_it);
         else
-            a_it->second = a_it->second + 1;
+            a_it->second++;
     }
     else
         m_config[info] = 1;

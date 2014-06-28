@@ -8,11 +8,12 @@
 #include "SortedList.h"
 #include <set>
 
+/** Non-relativistic configuration does not know whether an orbital is above or below
+    the Fermi surface (hole or particle state) so the only requirement is that
+    abs(occupation) doesn't exceed allowed occupation 2.abs(kappa).
+ */
 class NonRelConfiguration: public Configuration<NonRelInfo, int>
 {
-    /** Configuration is a map between a set of orbitals and their (integer) occupancy.
-        It can be used for relativistic and non-relativistic states.
-     */
 public:
     NonRelConfiguration() {}
     NonRelConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
@@ -27,7 +28,9 @@ public:
     NonRelConfiguration& operator=(NonRelConfiguration&& other) { BaseConfiguration::operator=(other); return *this; }
 
 public:
+    /** Return success. */
     bool RemoveSingleParticle(const NonRelInfo& info);
+    /** Return success. */
     bool AddSingleParticle(const NonRelInfo& info);
 
     virtual std::string Name(bool aSpaceFirst = true) const;

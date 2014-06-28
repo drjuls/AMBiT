@@ -10,6 +10,8 @@
 #include "Symmetry.h"
 #include <set>
 
+typedef std::set<NonRelInfo> NonRelInfoSet;
+
 /** ConfigGenerator makes the set of projections for use in CI method.
     This includes a bunch of routines to create a set of
     non-relativistic configurations (eg: 3d2 4s, 4s2, ...),
@@ -21,12 +23,7 @@ class ConfigGenerator
 {
 public:
     ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput);
-    virtual ~ConfigGenerator();
-
-    /** Clear the non-relativistic and relativistic config lists and free memory.
-        Use Read() to restore.
-     */
-    virtual void Clear();
+    virtual ~ConfigGenerator() {}
 
     /** Get list of leading configurations. */
     pConfigList GetLeadingConfigs();
@@ -44,27 +41,17 @@ public:
     void GenerateProjections(pRelativisticConfigList rlist, int two_m) const;
 
 protected:
-    /** Generate all non-relativistic configurations possible by exciting num_excitations
-        electrons. Append the new configurations to the list, keeping it sorted and unique.
-        All new configurations must have the same parity as the first.
-     */
-    void GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL) const;
-
-    /** Call GenerateMultipleExcitations() with leading configurations as input. */
-    ConfigList GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* AllowedStateSet = NULL) const;
-
-    /** Divide electrons between partial waves to create all possible relativistic configurations
-        from the set of non-relativistic ones.
-        PRE: nrlist should be unique.
-        POST: rlist is sorted and unique.
-      */
-    pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
-
-protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
      */
-    void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* states_to_be_excited_to = NULL) const;
+    void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const;
+
+    /** Divide electrons between partial waves to create all possible relativistic configurations
+     from the set of non-relativistic ones.
+     PRE: nrlist should be unique.
+     POST: rlist is sorted and unique.
+     */
+    pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
 
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When config.AtEnd(), add it to rlist.

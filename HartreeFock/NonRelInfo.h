@@ -1,8 +1,8 @@
 #ifndef NON_REL_INFO_H
 #define NON_REL_INFO_H
 
-#include <set>
 #include "OrbitalInfo.h"
+#include "Universal/MathConstant.h"
 
 class NonRelInfo : public OrbitalInfo
 {
@@ -26,7 +26,7 @@ public:
     /** Get relativistic state info corresponding to kappa = L. */
     OrbitalInfo GetSecondRelativisticInfo() const;
 
-    virtual std::string Name() const;
+    virtual std::string Name() const override;
 };
 
 inline OrbitalInfo NonRelInfo::GetFirstRelativisticInfo() const
@@ -42,12 +42,14 @@ inline OrbitalInfo NonRelInfo::GetSecondRelativisticInfo() const
         return OrbitalInfo(pqn, -kappa-1);
 }
 
-
-class NonRelInfoSet : public std::set<NonRelInfo>
+inline std::string NonRelInfo::Name() const
 {
-public:
-    void AddConfigs(const char* basis_def);
-    void EraseConfigs(const char* basis_def);
-};
+    char buffer[20];
+    sprintf(buffer, "%d", pqn);
+    std::string ret(buffer);
+
+    ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));
+    return ret;
+}
 
 #endif

@@ -1,8 +1,6 @@
 #ifndef SINGLE_PARTICLE_WAVEFUNCTION_H
 #define SINGLE_PARTICLE_WAVEFUNCTION_H
 
-//#define USE_ALT_STATE_NOTATION
-
 #include "Universal/SpinorFunction.h"
 #include "Universal/Lattice.h"
 #include <boost/shared_ptr.hpp>

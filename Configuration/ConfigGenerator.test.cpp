@@ -3,6 +3,7 @@
 #include "Include.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "Basis/BasisGenerator.h"
 
 TEST(ConfigGeneratorTester, CountConfigurations)
 {
@@ -79,4 +80,74 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     EXPECT_EQ(projection_count, iterator_count);
     EXPECT_EQ(projection_count, relconfigs->projection_size());
+}
+
+TEST(ConfigGeneratorTester, HolesVsElectrons)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // CuII - old electron way
+    std::string user_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 29\n" +
+        "[HF]\n" +
+        "N = 28\n" +
+        "Configuration = '1s2 2s2 2p6: 3s2 3p6 3d10'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 4spd\n" +
+        "BSpline/Rmax = 50.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3s2 3p6 3d8'\n" +
+        "ElectronExcitations = 2\n" +
+        "NumSolutions = 1\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+    ConfigGenerator gen(orbitals, userInput);
+
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even), false);
+    ConfigList nonrelconfigs(*relconfigs);
+    unsigned int non_rel = nonrelconfigs.size();
+    unsigned int rel = relconfigs->size();
+
+    // CuII - using holes now
+    std::string holes_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 29\n" +
+        "[HF]\n" +
+        "N = 28\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 4spd\n" +
+        "FrozenCore = 2sp\n" +
+        "BSpline/Rmax = 50.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3d-2'\n" +
+        "ElectronExcitations = 2\n" +
+        "HoleExcitations = 2\n" +
+        "NumSolutions = 1\n";
+
+    std::stringstream holes_input_stream(holes_input_string);
+    MultirunOptions holesInput(holes_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator holes_basis_generator(lattice, holesInput);
+    holes_basis_generator.GenerateHFCore();
+    pOrbitalManagerConst holes_orbitals = holes_basis_generator.GenerateBasis();
+    ConfigGenerator holes_gen(holes_orbitals, holesInput);
+
+    pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even), false);
+    ConfigList holes_nonrelconfigs(*holes_relconfigs);
+
+    EXPECT_EQ(non_rel, holes_nonrelconfigs.size());
+    EXPECT_EQ(rel, holes_relconfigs->size());
 }

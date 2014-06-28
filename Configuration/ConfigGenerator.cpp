@@ -3,7 +3,7 @@
 #endif
 #include "Include.h"
 #include "ConfigGenerator.h"
-#include <sstream>
+#include "HartreeFock/ConfigurationParser.h"
 
 ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput):
     orbitals(orbitals), user_input(userInput)
@@ -25,16 +25,6 @@ ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions&
     }
 }
 
-ConfigGenerator::~ConfigGenerator(void)
-{
-    Clear();
-}
-
-void ConfigGenerator::Clear()
-{
-    leading_configs->clear();
-}
-
 pConfigList ConfigGenerator::GetLeadingConfigs()
 {   return leading_configs;
 }
@@ -45,9 +35,10 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections)
 {
-    bool allow_different_excitations = false;
-    unsigned int electron_excitations = 0;
+    int electron_excitations = 0;
+    int hole_excitations = 0;
     int num_electron_excitation_inputs = user_input.vector_variable_size("CI/ElectronExcitations");
+    int num_hole_excitation_inputs = user_input.vector_variable_size("CI/HoleExcitations");
 
     // Default if no input detected is 2 electron excitations.
     // If input is detected it can either be a number, which would set electron_excitations and use ValenceBasis to determine states to excite to,
@@ -55,34 +46,40 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     // allow X excitations to the states in Y
     if(num_electron_excitation_inputs < 1)
     {
+        num_electron_excitation_inputs = 1;
         electron_excitations = 2;
     }
-    else if(num_electron_excitation_inputs == 1 && ((int) user_input("CI/ElectronExcitations", 2)) >= 0)
+    else if(num_electron_excitation_inputs == 1 && user_input("CI/ElectronExcitations", 2) >= 0)
     {
-        electron_excitations = (int) user_input("CI/ElectronExcitations", 2);
+        electron_excitations = user_input("CI/ElectronExcitations", 2);
     }
     else if(num_electron_excitation_inputs%2 != 0)  // Input should come in pairs
     {
         *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
         exit(1);
     }
-    else
+
+    // Holes have default 0 excitations.
+    if(num_hole_excitation_inputs < 1)
     {
-        allow_different_excitations = true;
+        num_hole_excitation_inputs = 1;
+        hole_excitations = 0;
     }
-
-    // TODO: Generate non-relativistic configs from file.
-    // bool GenerateFromFile = false;
-    ConfigList nrlist;
-
-    int num_configs = user_input.vector_variable_size("CI/LeadingConfigurations");
-    if(num_configs < 1)
-    {   *errstream << "USAGE: Need CI/LeadingConfigurations (e.g. '3d7, 4s2 3d5')" << std::endl;
+    else if(num_hole_excitation_inputs == 1 && user_input("CI/HoleExcitations", 0) >= 0)
+    {
+        hole_excitations = user_input("CI/HoleExcitations", 0);
+    }
+    else if(num_hole_excitation_inputs%2 != 0)  // Input should come in pairs
+    {
+        *errstream << "USAGE: CI/HoleExcitations incorrectly specified." << std::endl;
         exit(1);
     }
 
-    Clear();
+    // Get leading configurations
+    leading_configs->clear();
     int numValenceElectrons = 0;
+
+    int num_configs = user_input.vector_variable_size("CI/LeadingConfigurations");
     for(int i = 0; i < num_configs; i++)
     {
         const std::string name = user_input("CI/LeadingConfigurations", "", i);
@@ -99,64 +96,91 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
         leading_configs->add(config);
     }
 
-    // Adds extra configurations not to be considered leading configurations.
-    if(user_input.vector_variable_size("CI/ExtraConfigurations") > 0)
-    {
-        int num_extra_configs = user_input.vector_variable_size("CI/ExtraConfigurations");
-        for(int i = 0; i < num_extra_configs; i++)
-        {
-            const std::string extraname = user_input("CI/ExtraConfigurations", "", i);
-            NonRelConfiguration extraconfig(extraname);
-
-            if(extraconfig.ElectronNumber() != numValenceElectrons)
-            {
-                *errstream << "USAGE: LeadingConfiguration " << extraname
-                           << " does not have correct number of valence electrons." << std::endl;
-                exit(1);
-            }
-            nrlist.add(extraconfig);
-        }
+    if(numValenceElectrons == 0)
+    {   // Add vacuum state: no holes or electrons
+        leading_configs->add(NonRelConfiguration());
     }
 
-//        if(GenerateFromFile)
-//        {   ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(generator);
-//            filegenerator->SetInputFile("PercentagesIn.txt");
-//            filegenerator->ReadConfigs(0.05);
-//        }
-    if(allow_different_excitations)
+    ConfigList nrlist;
+    nrlist.merge(*leading_configs);
+
+    // Total number of excitation steps
+    int total_num_excitations = mmax(electron_excitations, hole_excitations);
+
+    for(int excitation_step = 0; excitation_step < total_num_excitations; excitation_step++)
     {
-        unsigned int CI_num_excitations;
-        std::string CI_basis_string;
+        NonRelInfoSet valence_electrons;
+        NonRelInfoSet valence_holes;
 
-        NonRelInfoSet nrset;
-
-        for(int i = 0; i < num_electron_excitation_inputs; i += 2)
+        // Electron subset
+        if(excitation_step < electron_excitations)
         {
-            CI_num_excitations = atoi(user_input("CI/ElectronExcitations", "", i).c_str());
-            CI_basis_string = user_input("CI/ElectronExcitations", "", i+1);
+            for(const auto& pair: *orbitals->particle)
+                valence_electrons.insert(NonRelInfo(pair.first));
 
-//            if(!ParseBasisSize(CI_basis_string.c_str(), CI_electron_excitation_states))
-//            {
-//                *errstream << "USAGE: CI/ElectronExcitations = " << CI_basis_string << " incorrectly specified." << std::endl;
-//                exit(1);
-//            }
-
-            nrset.clear();
-            nrset.AddConfigs(CI_basis_string.c_str());
-
-            // Erase core set
-            pOrbitalMapConst core = orbitals->GetOrbitalMap(OrbitalClassification::core);
-            for(auto si = core->begin(); si != core->end(); si++)
+            if(num_electron_excitation_inputs > 1)
             {
-                nrset.erase(si->first);
-            }
+                std::string CI_basis_string = user_input("CI/ElectronExcitations", "", 2*excitation_step + 1);
+                std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
 
-            nrlist.merge(GenerateMultipleExcitationsFromLeadingConfigs(CI_num_excitations, &nrset));
+                auto valence_it = valence_electrons.begin();
+                while(valence_it != valence_electrons.end())
+                {
+                    int L = valence_it->L();
+
+                    if(L >= limits.size())
+                        valence_it = valence_electrons.erase(valence_it);
+                    else if(valence_it->PQN() > limits[L])
+                        valence_it = valence_electrons.erase(valence_it);
+                    else
+                        valence_it++;
+                }
+            }
         }
+
+        // Holes subset
+        if(excitation_step < hole_excitations)
+        {
+            for(const auto& pair: *orbitals->hole)
+                valence_holes.insert(NonRelInfo(pair.first));
+
+            if(num_hole_excitation_inputs > 1)
+            {
+                std::string CI_basis_string = user_input("CI/HoleExcitations", "", 2*excitation_step + 1);
+                std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
+
+                auto valence_it = valence_holes.begin();
+                while(valence_it != valence_holes.end())
+                {
+                    int L = valence_it->L();
+
+                    if(L >= limits.size())
+                        valence_it = valence_holes.erase(valence_it);
+                    else if(valence_it->PQN() > limits[L])
+                        valence_it = valence_holes.erase(valence_it);
+                    else
+                        valence_it++;
+                }
+            }
+        }
+
+        GenerateExcitations(nrlist, valence_electrons, valence_holes);
     }
-    else
+
+    // Add extra configurations not to be considered leading configurations.
+    int num_extra_configs = user_input.vector_variable_size("CI/ExtraConfigurations");
+    for(int i = 0; i < num_extra_configs; i++)
     {
-        nrlist.merge(GenerateMultipleExcitationsFromLeadingConfigs(electron_excitations, &NonRelSet));
+        const std::string extraname = user_input("CI/ExtraConfigurations", "", i);
+        NonRelConfiguration extraconfig(extraname);
+
+        if(extraconfig.ElectronNumber() != numValenceElectrons)
+        {
+            *errstream << "USAGE: ExtraConfiguration " << extraname
+            << " does not have correct number of valence electrons." << std::endl;
+            exit(1);
+        }
+        nrlist.add(extraconfig);
     }
 
     // Remove states of wrong parity
@@ -181,67 +205,100 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     return rlist;
 }
 
-void ConfigGenerator::GenerateMultipleExcitations(ConfigList& configlist, unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to) const
+void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const
 {
-    configlist.unique();
-
-    for(unsigned int i=0; i<num_excitations; i++)
-    {
-        GenerateExcitations(configlist, states_to_be_excited_to);
-        configlist.unique();
-    }
-}
-
-ConfigList ConfigGenerator::GenerateMultipleExcitationsFromLeadingConfigs(unsigned int num_excitations, const NonRelInfoSet* states_to_be_excited_to) const
-{
-    // Move leading configs to configlist
-    ConfigList nrlist;
-    for(auto& config: *leading_configs)
-        nrlist.add(config);
-
-    // Generate excitations
-    GenerateMultipleExcitations(nrlist, num_excitations, states_to_be_excited_to);
-
-    return nrlist;
-}
-
-void ConfigGenerator::GenerateExcitations(ConfigList& configlist, const NonRelInfoSet* AllowedStateSet) const
-{
-    const NonRelInfoSet* allowed_state_set = AllowedStateSet;
-    if(allowed_state_set == NULL)
-        allowed_state_set = &NonRelSet;
-
     ConfigList old_list(configlist);
+
     // Go through the set of initial configurations
-    ConfigList::const_iterator it = old_list.begin();
-    while(it != old_list.end())
-    {   
+    ConfigList::const_iterator config_it = old_list.begin();
+    while(config_it != old_list.end())
+    {
+        // Move electrons and holes:
         // For each single particle state in the configuration
-        NonRelConfiguration start(*it);
-
-        NonRelConfiguration::const_iterator m_it = start.begin();
-        while(m_it != start.end())
+        NonRelConfiguration::const_iterator particle_it = config_it->begin();
+        while(particle_it != config_it->end())
         {
-            NonRelConfiguration other(start);
-            other.RemoveSingleParticle(m_it->first);
-
-            // Get another single particle state to move to
-            std::set<NonRelInfo>::const_iterator nrit = allowed_state_set->begin();
-            while(nrit != allowed_state_set->end())
+            // Electron or hole?
+            if(particle_it->second > 0)
             {
-                // If the new state is not the same as the old one
-                if(*nrit != m_it->first)
+                // Get another single particle state to move to
+                for(const auto& electron: electron_valence)
                 {
-                    NonRelConfiguration new_config(other);
-                    if(new_config.AddSingleParticle(*nrit))
+                    if(electron != particle_it->first)
+                    {
+                        NonRelConfiguration new_config(*config_it);
+                        new_config.RemoveSingleParticle(particle_it->first);
+                        if(new_config.AddSingleParticle(electron))
+                            configlist.add(new_config);
+                    }
+                }
+            }
+            else
+            {   // Get another single particle state to move to
+                for(const auto& hole: hole_valence)
+                {
+                    if(hole != particle_it->first)
+                    {
+                        NonRelConfiguration new_config(*config_it);
+                        new_config.AddSingleParticle(particle_it->first);
+                        if(new_config.RemoveSingleParticle(hole))
+                            configlist.add(new_config);
+                    }
+                }
+            }
+
+            particle_it++;
+        }
+
+        // Pair creation
+        for(const auto& electron: electron_valence)
+        {
+            NonRelConfiguration config_with_extra_electron(*config_it);
+            if(config_with_extra_electron.AddSingleParticle(electron))
+            {
+                for(const auto& hole: hole_valence)
+                {
+                    NonRelConfiguration new_config(config_with_extra_electron);
+                    if(new_config.RemoveSingleParticle(hole))
                         configlist.add(new_config);
                 }
-                nrit++;
             }
-            m_it++;
         }
-        it++;
+
+        // Pair annihilation
+        particle_it = config_it->begin();
+        while(particle_it != config_it->end())
+        {
+            auto other_particle_it = particle_it;
+            other_particle_it++;
+
+            while(other_particle_it != config_it->end())
+            {
+                if((particle_it->second < 0) && (other_particle_it->second > 0))
+                {
+                    NonRelConfiguration new_config(*config_it);
+                    new_config.AddSingleParticle(particle_it->first);
+                    new_config.RemoveSingleParticle(other_particle_it->first);
+                    configlist.add(new_config);
+                }
+                else if((particle_it->second > 0) && (other_particle_it->second < 0))
+                {
+                    NonRelConfiguration new_config(*config_it);
+                    new_config.RemoveSingleParticle(particle_it->first);
+                    new_config.AddSingleParticle(other_particle_it->first);
+                    configlist.add(new_config);
+                }
+
+                other_particle_it++;
+            }
+
+            particle_it++;
+        }
+
+        config_it++;
     }
+
+    configlist.unique();
 }
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const ConfigList& nrlist) const
@@ -421,14 +478,23 @@ void ConfigGenerator::SplitNonRelInfo(const NonRelConfiguration& config, NonRelC
         OrbitalInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
 
         int num_electrons = current_orbital->second;
-        int start = mmin(0, abs(num_electrons-rinfo2.MaxNumElectrons()));
-        int end = mmin(num_electrons, rinfo1.MaxNumElectrons());
+        int num_particles = abs(num_electrons);
+        int start = mmax(0, num_particles - rinfo2.MaxNumElectrons());
+        int end = mmin(num_particles, rinfo1.MaxNumElectrons());
+
+        // Holes
+        if(num_electrons < 0)
+        {
+            std::swap(start, end);
+            start = -start;
+            end = -end;
+        }
 
         // Next orbital is the same for all loops
         current_orbital++;
         NonRelConfiguration::const_iterator next_orbital = current_orbital;
 
-        for(unsigned int i=start; i<=end; i++)
+        for(int i=start; i<=end; i++)
         {
             RelativisticConfiguration new_rconfig(relconfig);
 

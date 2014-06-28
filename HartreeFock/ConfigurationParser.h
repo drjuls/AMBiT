@@ -15,7 +15,7 @@ public:
 
     static OccupationMap ParseFractionalConfiguration(const std::string& configuration);
 
-    // Set num_states[L] to highest pqn
+    // Set num_states[L] to highest pqn. 0 indicates that the L wasn't specified in the string.
     static std::vector<int> ParseBasisSize(const std::string& basis);
 };
 
@@ -46,11 +46,16 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
             kappa = L;
 
             // Peek extra char: + or -
-            if(!isdigit(sstream.peek()))
+            char next_char = sstream.peek();
+            if(!isdigit(next_char))
             {
-                sstream.get(temp_char);
-                if(temp_char == '+')
+                if(next_char == '+')
+                {   sstream.get(temp_char);
                     kappa = -(L+1);
+                }
+                else if(next_char != '-')
+                {   sstream.get(temp_char);
+                }
             }
 
             // Get occupancy

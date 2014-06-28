@@ -120,9 +120,33 @@ void BasisGenerator::SetOrbitalMaps()
     }
     orbitals->core = closed_core;
 
-    // TODO: implement hole states.
+    // Hole and deep states.
+    // Easiest to start with all core states in deep and modify from there.
+    orbitals->deep = pOrbitalMap(new OrbitalMap(lattice));
     orbitals->hole = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->deep = orbitals->core;
+    *orbitals->deep = *orbitals->core;
+
+    std::string deep_states = user_input("Basis/FrozenCore", "");
+    if(deep_states.length())
+    {
+        OrbitalMap& deep = *orbitals->deep;
+        OrbitalMap& hole = *orbitals->hole;
+
+        std::vector<int> max_deep_pqns = ConfigurationParser::ParseBasisSize(deep_states);
+        auto it = deep.begin();
+        while(it != deep.end())
+        {
+            // Not deep
+            if(it->first.L() >= max_deep_pqns.size() ||
+               it->first.PQN() > max_deep_pqns[it->first.L()])
+            {
+                hole.AddState(it->second);
+                it = deep.erase(it);
+            }
+            else
+                it++;
+        }
+    }
 
     // Transfer from all to excited states
     std::string valence_states = user_input("Basis/ValenceBasis", "");
@@ -138,8 +162,12 @@ void BasisGenerator::SetOrbitalMaps()
             particle->AddState(orbital.second);
         }
     }
-    orbitals->valence = particle;
     orbitals->particle = particle;
+
+    // valence
+    orbitals->valence = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->valence->AddStates(*orbitals->particle);
+    orbitals->valence->AddStates(*orbitals->hole);
 
     // high (virtual) states.
     std::string virtual_states = user_input("MBPT/Basis", "");
@@ -164,7 +192,8 @@ void BasisGenerator::SetOrbitalMaps()
         orbitals->high = high;
     }
     else
-    {   orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
+    {   // empty high
+        orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
         orbitals->excited = orbitals->particle;
     }
 }

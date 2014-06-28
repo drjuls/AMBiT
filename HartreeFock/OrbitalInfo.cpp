@@ -44,15 +44,8 @@ std::string OrbitalInfo::Name() const
 
     ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));
 
-#ifdef USE_ALT_STATE_NOTATION
-    if(kappa > 0)
-        ret.append(1, '-');
-    else
-        ret.append(1, ' ');
-#else
     if(kappa < -1)
         ret.append(1, '+');
-#endif
 
     return ret;
 }

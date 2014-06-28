@@ -58,16 +58,16 @@ TEST(EJOperatorTester, NaTransitions)
 
     // Na - comparison with Walter Johnson book page 214
     std::string user_input_string = std::string() +
-    "NuclearRadius = 3.7188\n" +
-    "NuclearThickness = 2.3\n" +
-    "Z = 11\n" +
-    "[HF]\n" +
-    "N = 10\n" +
-    "Configuration = '1s2 2s2 2p6'\n" +
-    "[Basis]\n" +
-    "--bspline-basis\n" +
-    "ValenceBasis = 3sp\n" +
-    "BSpline/Rmax = 50.0\n";
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 11\n" +
+        "[HF]\n" +
+        "N = 10\n" +
+        "Configuration = '1s2 2s2 2p6'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 3sp\n" +
+        "BSpline/Rmax = 50.0\n";
 
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
@@ -102,16 +102,16 @@ TEST(MJOperatorTester, LiTransitions)
 
     // Li fine-structure - comparison with Walter Johnson book page 163
     std::string user_input_string = std::string() +
-    "NuclearRadius = 3.7188\n" +
-    "NuclearThickness = 2.3\n" +
-    "Z = 3\n" +
-    "[HF]\n" +
-    "N = 2\n" +
-    "Configuration = '1s2'\n" +
-    "[Basis]\n" +
-    "--bspline-basis\n" +
-    "ValenceBasis = 2sp\n" +
-    "BSpline/Rmax = 50.0\n";
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 3\n" +
+        "[HF]\n" +
+        "N = 2\n" +
+        "Configuration = '1s2'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 2sp\n" +
+        "BSpline/Rmax = 50.0\n";
 
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
