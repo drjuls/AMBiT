@@ -265,6 +265,9 @@ pHFOperator BasisGenerator::RecreateBasis(pOrbitalManager orbital_manager)
 
 pOrbitalManagerConst BasisGenerator::GenerateBasis()
 {
+    // Make sure hf is correct
+    hf->SetCore(open_core);
+
     // Generate excited states
     std::string all_states = user_input("Basis/BasisSize", "");
     if(all_states.empty())

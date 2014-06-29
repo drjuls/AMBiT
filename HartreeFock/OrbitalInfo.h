@@ -30,7 +30,7 @@ public:
     inline int L_Prime() const; //!< Return the value of L for the lower component of the wavefunction.
     inline Parity GetParity() const;
 
-    inline int MaxNumElectrons() const { return 2*abs(kappa); }
+    virtual int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
 protected:

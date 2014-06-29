@@ -197,7 +197,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
 
     nrlist.unique();
 
-    pRelativisticConfigList rlist = GenerateRelativisticConfigs(nrlist);
+    pRelativisticConfigList rlist(GenerateRelativisticConfigs(nrlist));
 
     if(generate_projections)
         GenerateProjections(rlist, sym.GetTwoJ());
@@ -320,30 +320,43 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m) const
 {
-    int particle_number = rlist->begin()->ElectronNumber();
     Parity parity = rlist->begin()->GetParity();
 
     std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
     if(user_input.search("AngularDataDirectory"))
         angular_directory = user_input("AngularDataDirectory", "");
 
-    pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, Symmetry(two_m, parity), two_m, angular_directory));
-
-    angular_library->Read();
+    // Map particle number to angular data library
+    std::map<int, pAngularDataLibrary> angular_libraries;
 
     auto it = rlist->begin();
     while(it != rlist->end())
     {
-        if(it->GetProjections(angular_library))
+        // Get correct library
+        auto lib_iterator = angular_libraries.find(it->ParticleNumber());
+        pAngularDataLibrary lib;
+
+        if(lib_iterator == angular_libraries.end())
+        {   lib.reset(new AngularDataLibrary(it->ParticleNumber(), Symmetry(two_m, parity), two_m, angular_directory));
+            lib->Read();
+            angular_libraries[it->ParticleNumber()] = lib;
+        }
+        else
+            lib = lib_iterator->second;
+
+        if(it->GetProjections(lib))
             it++;
         else
             it = rlist->erase(it);
     }
 
-    angular_library->GenerateCSFs();
+    for(auto lib_iterator: angular_libraries)
+    {
+        lib_iterator.second->GenerateCSFs();
 
-    // Write even if there are no CSFs for a given J since this is not so obvious
-    angular_library->Write();
+        // Write even if there are no CSFs for a given J since this is not so obvious
+        lib_iterator.second->Write();
+    }
 
     it = rlist->begin();
     while(it != rlist->end())

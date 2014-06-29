@@ -221,26 +221,38 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             sorted_p2.push_back(*it2++);
         }
         else if(e1 < e2)
-        {   permutations += *it1 - p1.front();
-            diff1.push_back(*it1++);
+        {
+            permutations += *it1 - p1.front();
+            if(e1.IsHole())
+                diff2.push_back(*it1++);
+            else
+                diff1.push_back(*it1++);
         }
         else
         {   permutations += *it2 - p2.front();
-            diff2.push_back(*it2++);
+            if(e2.IsHole())
+                diff1.push_back(*it2++);
+            else
+                diff2.push_back(*it2++);
         }
     }
     while(it1 != p1.end() && (diff1.size() <= max_diffs))
     {   permutations += *it1 - p1.front();
-        diff1.push_back(*it1++);
+        if((*it1)->IsHole())
+            diff2.push_back(*it1++);
+        else
+            diff1.push_back(*it1++);
     }
     while(it2 != p2.end() && (diff2.size() <= max_diffs))
     {   permutations += *it2 - p2.front();
-        diff2.push_back(*it2++);
+        if((*it2)->IsHole())
+            diff1.push_back(*it2++);
+        else
+            diff2.push_back(*it2++);
     }
 
     int num_diffs = diff1.size();
 
-    // TODO: Hole shifties
     if((diff1.size() > max_diffs) || (diff2.size() > max_diffs))
         return max_diffs+1;
 

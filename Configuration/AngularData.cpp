@@ -275,7 +275,7 @@ AngularDataLibrary::AngularDataLibrary(int particle_number, const Symmetry& sym,
         filename = lib_directory;
         if(filename[filename.length()-1] != '/')
             filename.append("/");
-        filename += itoa(particle_number) + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+        filename += itoa(abs(particle_number)) + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
     }
 }
 
@@ -300,7 +300,7 @@ AngularDataLibrary::KeyType AngularDataLibrary::GenerateKey(const RelativisticCo
 {
     KeyType key;
     for(auto& config_it: config)
-    {   key.push_back(std::make_pair(config_it.first.Kappa(), config_it.second));
+    {   key.push_back(std::make_pair(config_it.first.Kappa(), abs(config_it.second)));
     }
     return key;
 }
@@ -331,11 +331,12 @@ void AngularDataLibrary::Read()
         return;
 
     FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        return;
 
     int num_angular_data_objects = 0;
 
-    if(fp)
-        fread(&num_angular_data_objects, sizeof(int), 1, fp);
+    fread(&num_angular_data_objects, sizeof(int), 1, fp);
 
     int count = 0;
     int projection_array[particle_number];

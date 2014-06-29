@@ -26,6 +26,7 @@ public:
     /** Get relativistic state info corresponding to kappa = L. */
     OrbitalInfo GetSecondRelativisticInfo() const;
 
+    virtual int MaxNumElectrons() const override { return -4 * kappa - 2; } //!< Max occupancy of shell = 2(2L+1)
     virtual std::string Name() const override;
 };
 

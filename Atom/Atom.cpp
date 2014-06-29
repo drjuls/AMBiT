@@ -89,9 +89,7 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         orbitals = basis_generator.GenerateBasis();
 
         // Make closed HF operator
-        hf = basis_generator.GetHFOperator();
-        pCore closed_core(new Core(*orbitals->core));
-        hf->SetCore(closed_core);
+        hf = basis_generator.GetClosedHFOperator();
 
         // HartreeY operator
         hartreeY = basis_generator.GetHartreeY();

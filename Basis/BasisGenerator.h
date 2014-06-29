@@ -36,12 +36,18 @@ public:
     virtual pHFOperator RecreateBasis(pOrbitalManager orbital_manager);
 
     /** Get open-shell Hartree-Fock operator. */
-    virtual pHFOperatorConst GetHFOperator() const { return hf; }
+    virtual pHFOperatorConst GetOpenHFOperator() const { return hf; }
 
     /** Get open-shell Hartree-Fock operator.
         This can be converted to a closed-shell HF operator using hf->SetCore().
      */
-    virtual pHFOperator GetHFOperator() { return hf; }
+    virtual pHFOperator GetOpenHFOperator() { return hf; }
+
+    /** Return Hartree-Fock operator with core set to HF core. */
+    virtual pHFOperator GetClosedHFOperator()
+    {   hf->SetCore(pCore(new Core(*orbitals->core)));
+        return hf;
+    }
 
     /** Get open-shell core. */
     virtual pCoreConst GetHFCore() const { return open_core; }

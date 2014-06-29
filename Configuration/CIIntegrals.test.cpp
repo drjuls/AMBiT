@@ -19,7 +19,7 @@ TEST(CIIntegralsTester, StandardCoulombSlow)
     pCore core = generator.GenerateHFCore();
     pOrbitalMap valence = generator.GenerateBasis()->valence;
 
-    pHFOperatorConst hf = generator.GetHFOperator();
+    pHFOperatorConst hf = generator.GetOpenHFOperator();
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
 

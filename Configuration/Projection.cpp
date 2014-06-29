@@ -12,7 +12,10 @@ Projection::Projection(const RelativisticConfiguration& relconfig, const std::ve
     {
         const OrbitalInfo& orbital = relconfig_it.first;
         for(int i = 0; i < abs(relconfig_it.second); i++)
-            config.push_back(ElectronInfo(orbital.PQN(), orbital.Kappa(), TwoMs[count++], (relconfig_it.second < 0)));
+            if(relconfig_it.second > 0)
+                config.emplace_back(orbital.PQN(), orbital.Kappa(), TwoMs[count++]);
+            else
+                config.emplace_back(orbital.PQN(), orbital.Kappa(), -TwoMs[count++], true);
     }
 
     config.shrink_to_fit();

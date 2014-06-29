@@ -416,7 +416,7 @@ void Ambit::EnergyCalculations()
             symmetries.insert(Symmetry(it.first.Kappa()));
     }
     else
-        std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
+        symmetries = ChooseSymmetries(user_input);
 
     if(user_input.search("--check-sizes"))
         atoms[0].CheckMatrixSizes();
