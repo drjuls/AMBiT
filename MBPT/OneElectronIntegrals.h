@@ -45,15 +45,25 @@ public:
 
     inline double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
     {
-        if(e1.Kappa() == e2.Kappa() && e1.TwoM() == e2.TwoM())
+        if(e1.Kappa() == e2.Kappa())
         {
-            unsigned int i1 = orbitals->state_index.at(e1);
-            unsigned int i2 = orbitals->state_index.at(e2);
+            if(e1.IsHole() == e2.IsHole() && e1.TwoM() == e2.TwoM())
+            {
+                unsigned int i1 = orbitals->state_index.at(e1);
+                unsigned int i2 = orbitals->state_index.at(e2);
 
-            return integrals.at(GetKey(i1, i2));
+                return integrals.at(GetKey(i1, i2));
+            }
+            else if(e1.IsHole() != e2.IsHole() && e1.TwoM() == -e2.TwoM())
+            {
+                unsigned int i1 = orbitals->state_index.at(e1);
+                unsigned int i2 = orbitals->state_index.at(e2);
+
+                return integrals.at(GetKey(i1, i2));
+            }
         }
-        else
-            return 0.0;
+
+        return 0.0;
     }
 
     /** Read integrals, adding to existing keys or creating new ones. */

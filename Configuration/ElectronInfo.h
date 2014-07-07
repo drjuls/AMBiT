@@ -28,6 +28,7 @@ public:
     inline double M() const { return double(two_m)/2.; }
 
     inline bool IsHole() const { return is_hole; }
+    inline bool IsParticle() const { return !is_hole; }
     virtual std::string Name() const;
 
 protected:

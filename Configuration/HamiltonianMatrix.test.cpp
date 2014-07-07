@@ -89,7 +89,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
     EXPECT_NEAR(21870, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
 }
 
-TEST(HamiltonianMatrixTester, HolesVsElectrons)
+TEST(HamiltonianMatrixTester, HolesOnly)
 {
     DebugOptions.LogHFIterations(true);
     DebugOptions.OutputHFExcited(true);
@@ -105,20 +105,154 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     // CuII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 29\n" +
+        "[HF]\n" +
+        "N = 28\n" +
+        "Configuration = '1s2 2s2 2p6: 3s2 3p6 3d10'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 3spd\n" +
+        "BSpline/Rmax = 50.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3s2 3p6 3d8'\n" +
+        "ElectronExcitations = 2\n";
+
+        std::stringstream user_input_stream(user_input_string);
+        MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+        // Get core and excited basis
+        BasisGenerator basis_generator(lattice, userInput);
+        basis_generator.GenerateHFCore();
+        pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+        ConfigGenerator gen(orbitals, userInput);
+
+        // Generate integrals
+        pHFOperator hf = basis_generator.GetClosedHFOperator();
+        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+
+        pCoulombOperator coulomb(new CoulombOperator(lattice));
+        pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
+        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
+        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+
+        for(auto sym : symmetries)
+        {
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
+            HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
+            H.GenerateMatrix();
+            H.SolveMatrix(sym, 6, electron_levels);
+            g_factors.CalculateGFactors(*electron_levels, sym);
+            electron_levels->Print(sym);
+        }
+    }
+
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(false);
+
+    // CuII - using holes now
+    {   // Block for reusing names
+        std::string user_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 29\n" +
+        "[HF]\n" +
+        "N = 28\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 3spd\n" +
+        "FrozenCore = 2sp\n" +
+        "BSpline/Rmax = 50.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3d-2'\n" +
+        "ElectronExcitations = 0\n" +
+        "HoleExcitations = 2\n";
+
+        std::stringstream user_input_stream(user_input_string);
+        MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+        // Get core and excited basis
+        BasisGenerator basis_generator(lattice, userInput);
+        basis_generator.GenerateHFCore();
+        pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+        ConfigGenerator gen(orbitals, userInput);
+
+        // Generate integrals
+        pHFOperator hf = basis_generator.GetClosedHFOperator();
+        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+
+        pCoulombOperator coulomb(new CoulombOperator(lattice));
+        pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
+        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
+        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+
+        for(auto sym : symmetries)
+        {
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
+            HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
+            H.GenerateMatrix();
+            H.SolveMatrix(sym, 6, hole_levels);
+            g_factors.CalculateGFactors(*hole_levels, sym);
+            hole_levels->Print(sym);
+        }
+    }
+
+    ASSERT_EQ(electron_levels->size(), hole_levels->size());
+
+    LevelID base_level = LevelID(symmetries[0], 0);
+    double electron_base = (*electron_levels)[base_level]->GetEnergy();
+    double hole_base = (*hole_levels)[base_level]->GetEnergy();
+
+    for(auto& pair: *electron_levels)
+    {
+        if(pair.first != base_level)
+        {
+            auto hole_it = hole_levels->find(pair.first);
+            double e = pair.second->GetEnergy() - electron_base;
+            double h = hole_it->second->GetEnergy() - hole_base;
+
+            EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
+        }
+    }
+}
+
+TEST(HamiltonianMatrixTester, HolesVsElectrons)
+{
+    DebugOptions.LogHFIterations(false);
+    DebugOptions.OutputHFExcited(false);
+
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+    std::vector<Symmetry> symmetries;
+    symmetries.emplace_back(1, Parity::even);
+    symmetries.emplace_back(3, Parity::even);
+
+    pLevelMap electron_levels(new LevelMap());
+    pLevelMap hole_levels(new LevelMap());
+
+    // CuII - old electron way
+    {   // Block for reusing names
+        std::string user_input_string = std::string() +
             "NuclearRadius = 3.7188\n" +
             "NuclearThickness = 2.3\n" +
             "Z = 29\n" +
             "[HF]\n" +
             "N = 28\n" +
-        //"Configuration = '1s2 2s2 2p6: 3s2 3p6 3d10'\n" +
             "Configuration = '1s2 2s2 2p6 3s2 3p6: 3d10'\n" +
             "[Basis]\n" +
             "--bspline-basis\n" +
-            "ValenceBasis = 4spd\n" +
+            "ValenceBasis = 4s3pd\n" +
             "BSpline/Rmax = 50.0\n" +
             "[CI]\n" +
-            "LeadingConfigurations = '3d8'\n" +
-            "ElectronExcitations = 0\n";
+            "LeadingConfigurations = '3d9'\n" +
+            "ElectronExcitations = 1\n";
 
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
@@ -166,13 +300,13 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
             "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10'\n" +
             "[Basis]\n" +
             "--bspline-basis\n" +
-            "ValenceBasis = 4spd\n" +
+            "ValenceBasis = 4s3pd\n" +
             "FrozenCore = 3sp\n" +
             "BSpline/Rmax = 50.0\n" +
             "[CI]\n" +
-            "LeadingConfigurations = '3d-2'\n" +
-            "ElectronExcitations = 0\n" +
-            "HoleExcitations = 0\n";
+            "LeadingConfigurations = '3d-1'\n" +
+            "ElectronExcitations = 1\n" +
+            "HoleExcitations = 1\n";
 
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
@@ -198,9 +332,6 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
-            for(auto& c : *relconfigs)
-                *outstream << c.Name() << std::endl;
-
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             H.SolveMatrix(sym, 6, hole_levels);
@@ -209,5 +340,21 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         }
     }
 
-    EXPECT_EQ(6, hole_levels->size());
+    ASSERT_EQ(electron_levels->size(), hole_levels->size());
+
+    LevelID base_level = LevelID(symmetries[0], 0);
+    double electron_base = (*electron_levels)[base_level]->GetEnergy();
+    double hole_base = (*hole_levels)[base_level]->GetEnergy();
+
+    for(auto& pair: *electron_levels)
+    {
+        if(pair.first != base_level)
+        {
+            auto hole_it = hole_levels->find(pair.first);
+            double e = pair.second->GetEnergy() - electron_base;
+            double h = hole_it->second->GetEnergy() - hole_base;
+
+            EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
+        }
+    }
 }

@@ -16,8 +16,11 @@ public:
     LevelID(const Symmetry& sym, unsigned int level_id): m_twoJ(sym.GetTwoJ()), m_parity(sym.GetParity()), m_ID(level_id) {}
 
     bool operator<(const LevelID& other) const;
-    inline bool operator==(const LevelID& other)
+    inline bool operator==(const LevelID& other) const
     {   return ((m_twoJ == other.m_twoJ) && (m_parity == other.m_parity) && (m_ID == other.m_ID));
+    }
+    inline bool operator!=(const LevelID& other) const
+    {   return ((m_twoJ != other.m_twoJ) || (m_parity != other.m_parity) || (m_ID != other.m_ID));
     }
 
     double GetJ() const { return double(m_twoJ)/2.0; }

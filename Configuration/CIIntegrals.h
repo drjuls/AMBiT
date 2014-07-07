@@ -200,7 +200,7 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
 
         if(coeff)
         {
-            if(int(q - e1.M() - e2.M() + 1.)%2)
+            if(((two_q - e1.TwoM() - e2.TwoM())/2 + 1)%2)
                 coeff = - coeff;
 
             coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *

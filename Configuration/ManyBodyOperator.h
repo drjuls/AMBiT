@@ -28,8 +28,7 @@ class ManyBodyOperator
 {
 public:
     ManyBodyOperator(pElectronOperators... operators): pOperators(operators...)
-    {   static_assert(sizeof...(pElectronOperators) > 0, "ManyBodyOperator<> instantiated with too few operators (template arguments).");
-        static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too few operators (template arguments).");
+    {   static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
     }
 
     typedef std::vector<const ElectronInfo*> IndirectProjection;
@@ -130,7 +129,10 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             if(num_diffs == 0)
             {
                 for(auto& e: left)
-                    matrix_element += OneBodyMatrixElements(*e, *e);
+                {
+                    int sign = e->IsHole()? -1 : 1;
+                    matrix_element += OneBodyMatrixElements(*e, *e) * sign;
+                }
             }
             else if(abs(num_diffs) == 1)
             {
@@ -144,12 +146,14 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
                 auto end = boost::make_indirect_iterator(left.end());
                 while(i != end)
                 {
-                    matrix_element += OneBodyMatrixElements(*i, *i);
+                    int sign = i->IsHole()? -1 : 1;
+                    matrix_element += OneBodyMatrixElements(*i, *i) * sign;
 
                     auto j = i;
                     while(j != end)
                     {
-                        matrix_element += TwoBodyMatrixElements(*i, *j, *i, *j);
+                        int total_sign = sign * (j->IsHole()? -1 : 1);
+                        matrix_element += TwoBodyMatrixElements(*i, *j, *i, *j) * total_sign;
                         j++;
                     }
                     i++;
@@ -164,7 +168,8 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
                 i++;    // Skip first element
                 while(i != end)
                 {
-                    matrix_element += TwoBodyMatrixElements(*left.front(), *i, *right.front(), *i);
+                    int sign = i->IsHole()? -1 : 1;
+                    matrix_element += TwoBodyMatrixElements(*left.front(), *i, *right.front(), *i) * sign;
                     i++;
                 }
             }
@@ -209,7 +214,17 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
     auto it1 = p1.begin();
     auto it2 = p2.begin();
 
+    // Number of permutations required to get correct ordering
     int permutations = 0;
+
+    // Cumulative number of operators that are the same on both sides
+    int num_same = 0;
+
+    // Electrons and hole operators that have not yet been absorbed into a "difference"
+    int num_holes1 = 0;
+    int num_electrons1 = 0;
+    int num_holes2 = 0;
+    int num_electrons2 = 0;
 
     while(it1 != p1.end() && it2 != p2.end() && diff1.size() <= max_diffs && diff2.size() <= max_diffs)
     {
@@ -219,36 +234,136 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         if(e1 == e2)
         {   sorted_p1.push_back(*it1++);
             sorted_p2.push_back(*it2++);
+            num_same++;
         }
         else if(e1 < e2)
         {
-            permutations += *it1 - p1.front();
+            permutations += num_same;
             if(e1.IsHole())
+            {
                 diff2.push_back(*it1++);
+
+                if(num_electrons1)  // There is an electron to combine already on this side
+                {   permutations += num_electrons1;
+                    num_electrons1--;
+                }
+                else if(num_holes2) // Combine with a hole on the other side
+                {   num_holes2--;
+                }
+                else
+                    num_holes1++;
+            }
             else
+            {
                 diff1.push_back(*it1++);
+
+                if(num_holes1)  // There is a hole to combine already on this side
+                {   permutations += (num_holes1 - 1);
+                    num_holes1--;
+                }
+                else if(num_electrons2) // Combine with electron on the other side
+                {   num_electrons2--;
+                }
+                else
+                    num_electrons1++;
+            }
         }
         else
-        {   permutations += *it2 - p2.front();
+        {
+            permutations += num_same;
             if(e2.IsHole())
+            {
                 diff1.push_back(*it2++);
+
+                if(num_electrons2)  // There is an electron to combine already on this side
+                {   permutations += num_electrons2;
+                    num_electrons2--;
+                }
+                else if(num_holes1) // Combine with a hole on the other side
+                {   num_holes1--;
+                }
+                else
+                    num_holes2++;
+            }
             else
+            {
                 diff2.push_back(*it2++);
+
+                if(num_holes2)  // There is a hole to combine already on this side
+                {   permutations += (num_holes2 - 1);
+                    num_holes2--;
+                }
+                else if(num_electrons1) // Combine with electron on the other side
+                {   num_electrons1--;
+                }
+                else
+                    num_electrons2++;
+            }
         }
     }
     while(it1 != p1.end() && (diff1.size() <= max_diffs))
-    {   permutations += *it1 - p1.front();
+    {
+        permutations += num_same;
         if((*it1)->IsHole())
+        {
             diff2.push_back(*it1++);
+
+            if(num_electrons1)  // There is an electron to combine already on this side
+            {   permutations += num_electrons1;
+                num_electrons1--;
+            }
+            else if(num_holes2) // Combine with a hole on the other side
+            {   num_holes2--;
+            }
+            else
+                num_holes1++;
+        }
         else
+        {
             diff1.push_back(*it1++);
+
+            if(num_holes1)  // There is a hole to combine already on this side
+            {   permutations += (num_holes1 - 1);
+                num_holes1--;
+            }
+            else if(num_electrons2) // Combine with electron on the other side
+            {   num_electrons2--;
+            }
+            else
+                num_electrons1++;
+        }
     }
     while(it2 != p2.end() && (diff2.size() <= max_diffs))
-    {   permutations += *it2 - p2.front();
+    {
+        permutations += num_same;
         if((*it2)->IsHole())
+        {
             diff1.push_back(*it2++);
+
+            if(num_electrons2)  // There is an electron to combine already on this side
+            {   permutations += num_electrons2;
+                num_electrons2--;
+            }
+            else if(num_holes1) // Combine with a hole on the other side
+            {   num_holes1--;
+            }
+            else
+                num_holes2++;
+        }
         else
+        {
             diff2.push_back(*it2++);
+
+            if(num_holes2)  // There is a hole to combine already on this side
+            {   permutations += (num_holes2 - 1);
+                num_holes2--;
+            }
+            else if(num_electrons1) // Combine with electron on the other side
+            {   num_electrons1--;
+            }
+            else
+                num_electrons2++;
+        }
     }
 
     int num_diffs = diff1.size();
@@ -258,6 +373,18 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
 
     else if(diff1.empty() && diff2.empty())
         return 0;
+
+    // Additional sign changes for holes; add to permutations
+    it1 = diff1.begin();
+    it2 = diff2.begin();
+    while(it1 != diff1.end())
+    {
+        if((*it1)->IsHole() || (*it2)->IsHole())
+            permutations++;
+
+        it1++;
+        it2++;
+    }
 
     //Copy differences
     diff1.insert(diff1.end(), sorted_p1.begin(), sorted_p1.end());
