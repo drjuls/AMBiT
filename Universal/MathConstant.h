@@ -22,14 +22,14 @@ public:
         ( j1  j2  k )
         ( m1  m2  q )
      */
-    double Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2);
+    double Electron3j(int twoj1, int twoj2, int k, int twom1, int twom2);
 
     /** Calculate 3j symbol
         ( j1   j2   k )
         ( 1/2 -1/2  0 )
         where j1 and j2 are half integer and k is integer.
      */
-    double Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k);
+    double Electron3j(int twoj1, int twoj2, int k);
 
     /** Get number of stored Electron3j symbols. */
     unsigned int GetStorageSize() const;
@@ -60,7 +60,7 @@ protected:
 
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;
-    std::size_t HashElectron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2);
+    std::size_t HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2);
     
     /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
      log( n!/d! )

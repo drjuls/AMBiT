@@ -53,7 +53,11 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     {
         electron_excitations = user_input("CI/ElectronExcitations", 2);
     }
-    else if(num_electron_excitation_inputs%2 != 0)  // Input should come in pairs
+    else if(num_electron_excitation_inputs%2 == 0)  // Input should come in pairs
+    {
+        electron_excitations = num_electron_excitation_inputs/2;
+    }
+    else
     {
         *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
         exit(1);
@@ -69,7 +73,11 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
     {
         hole_excitations = user_input("CI/HoleExcitations", 0);
     }
-    else if(num_hole_excitation_inputs%2 != 0)  // Input should come in pairs
+    else if(num_hole_excitation_inputs%2 == 0)  // Input should come in pairs
+    {
+        hole_excitations = num_hole_excitation_inputs/2;
+    }
+    else
     {
         *errstream << "USAGE: CI/HoleExcitations incorrectly specified." << std::endl;
         exit(1);

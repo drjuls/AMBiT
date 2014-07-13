@@ -272,7 +272,7 @@ double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom)
     return total;
 }
 
-std::size_t MathConstant::HashElectron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
+std::size_t MathConstant::HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2)
 {
     std::size_t key = size_t(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
                     + size_t(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
@@ -282,13 +282,15 @@ std::size_t MathConstant::HashElectron3j(unsigned int twoj1, unsigned int twoj2,
     return key;
 }
 
-double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k, int twom1, int twom2)
+double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom2)
 {
     // Check for physical correctness:
     //  - triangle condition (j1, j2, k)
     //  - k >= abs(q)
-    if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k))
-       || (2*int(k) < abs(twom1+twom2)))
+    int twok = 2 * k;
+    int twoq = - twom1 - twom2;
+    if((twok > twoj1 + twoj2) || (abs(twoj1 - twoj2) > twok)
+       || (twok < abs(twoq)))
         return 0.;
 
     // Sort such that j1 >= j2, m1 >=0, and if (j1 == j2) then m1 >= m2.
@@ -297,17 +299,17 @@ double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned
 
     // Sort so that (j1 >= j2) for lookup
     if(twoj1 < twoj2)
-    {   unsigned int tempj;
-        tempj = twoj1; twoj1 = twoj2; twoj2 = tempj;
-        int tempm;
-        tempm = twom1; twom1 = twom2; twom2 = tempm;
+    {
+        std::swap(twoj1, twoj2);
+        std::swap(twom1, twom2);
+
         if(((twoj1 + twoj2)/2 + k)%2 == 1)
             sign = !sign;
     }
     // if(j1 == j2), then (m1 >= m2)
     else if((twoj1 == twoj2) && (twom1 < twom2))
-    {   int tempm;
-        tempm = twom1; twom1 = twom2; twom2 = tempm;
+    {
+        std::swap(twom1, twom2);
         if((1 + k)%2 == 1)
             sign = !sign;
     }
@@ -315,19 +317,17 @@ double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned
     // (m1 >= 0)
     if(twom1 < 0)
     {   twom1 = -twom1; twom2 = -twom2;
+        twoq = -twoq;
         if(((twoj1 + twoj2)/2 + k)%2 == 1)
             sign = !sign;
     }
 
     if(twoj1 > MaxStoredTwoJ)
-    {   double q = double(- twom1 - twom2)/2.;
+    {   double q = double(twoq)/2.;
         if(sign)
             return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
         else
-            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
-    }
-    else if((2*k > twoj1 + twoj2) || (abs(int(twoj1) - int(twoj2)) > 2*int(k)))
-    {   return 0.;
+            return -Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
     }
 
     size_t key = HashElectron3j(twoj1, twoj2, k, twom1, twom2);
@@ -350,7 +350,7 @@ double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned
     }
 }
 
-double MathConstant::Electron3j(unsigned int twoj1, unsigned int twoj2, unsigned int k)
+double MathConstant::Electron3j(int twoj1, int twoj2, int k)
 {
     // In this case
     //  ( j1   j2   k ) = (-1)^(j1 + j2 + k) (  j2    j1   k ) = ( j2   j1   k )

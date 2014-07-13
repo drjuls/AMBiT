@@ -512,4 +512,50 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(Le
     return total;
 }
 
+template<typename... pElectronOperators>
+double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& left, const Level& right) const
+{
+    double total = 0.;
+    const auto& configs_left = left.GetRelativisticConfigList();
+    const auto& configs_right = right.GetRelativisticConfigList();
+    const auto& eigenvector_left = left.GetEigenvector();
+    const auto& eigenvector_right = right.GetEigenvector();
+
+    auto proj_it = configs_left->projection_begin();
+    while(proj_it != configs_left->projection_end())
+    {
+        auto proj_jt = configs_right->projection_begin();
+        while(proj_jt != configs_right->projection_end())
+        {
+            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+
+            if(matrix_element)
+            {
+                // Summation over CSFs
+                double coeff = 0.;
+
+                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                {
+                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                    {
+                        coeff += (*coeff_i) * (*coeff_j)
+                                * eigenvector_left[coeff_i.index()]
+                                * eigenvector_right[coeff_j.index()];
+                    }
+                }
+
+                // If the projections are different, count twice
+//                if(proj_it != proj_jt)
+//                    coeff *= 2.;
+
+                total += coeff * matrix_element;
+            }
+            proj_jt++;
+        }
+        proj_it++;
+    }
+    
+    return total;
+}
+
 #endif
