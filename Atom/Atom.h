@@ -34,10 +34,16 @@ public:
     pCore GetOpenShellCore() { return hf_core; }
 
     /** Get the orbital basis. */
-    pOrbitalManagerConst GetBasis() { return orbitals; }
+    pOrbitalManagerConst GetBasis() const { return orbitals; }
 
-    /** Get the lattice */
+    /** Get the lattice. */
     pLattice GetLattice() { return lattice; }
+
+    /** Get physical constants.
+        PRE: MakeBasis() must have been run.
+     */
+    pPhysicalConstant GetPhysicalConstants() { return hf->GetPhysicalConstant(); }
+    pPhysicalConstantConst GetPhysicalConstants() const { return hf->GetPhysicalConstant(); }
 
 public:
     /** Generate integrals with MBPT, store and collate from all processors.
@@ -67,6 +73,7 @@ public:
     pLevelMap CalculateEnergies(const Symmetry& sym);
 
     pLevelMap GetLevels() { return levels; }
+    pLevelMapConst GetLevels() const { return levels; }
 
 protected:
     /** Get configurations based on single electron configurations with no CI.

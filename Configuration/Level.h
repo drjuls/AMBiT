@@ -12,10 +12,16 @@
 class LevelID
 {
 public:
+    LevelID(): m_twoJ(-1), m_parity(Parity::even), m_ID(0) {}
     LevelID(int two_J, Parity parity, unsigned int level_id): m_twoJ(two_J), m_parity(parity), m_ID(level_id) {}
     LevelID(const Symmetry& sym, unsigned int level_id): m_twoJ(sym.GetTwoJ()), m_parity(sym.GetParity()), m_ID(level_id) {}
+    LevelID(const std::string& name);
 
     bool operator<(const LevelID& other) const;
+    inline bool operator>(const LevelID& other) const
+    {   return (other < *this);
+    }
+
     inline bool operator==(const LevelID& other) const
     {   return ((m_twoJ == other.m_twoJ) && (m_parity == other.m_parity) && (m_ID == other.m_ID));
     }
@@ -28,6 +34,9 @@ public:
     Parity GetParity() const { return m_parity; }
     unsigned int GetID() const { return m_ID; }
     Symmetry GetSymmetry() const { return Symmetry(m_twoJ, m_parity); }
+
+    /** Name is twoJ, followed by parity (e/o), followed by id. */
+    std::string Name() const;
 
 protected:
     int m_twoJ;

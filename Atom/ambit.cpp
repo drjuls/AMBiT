@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
         else
         {
             ambit.EnergyCalculations();
+            ambit.TransitionCalculations();
         }
     /*
         else
@@ -363,15 +364,15 @@ void Ambit::EnergyCalculations()
 
     // Start with -r=0 if possible, otherwise just first one
     int zero_index = user_input.FindZeroParameterRun().second;
-    unsigned int start_run_index = run_indexes.size();
+    first_run_index = run_indexes.size();
     if(zero_index > 0)
     {   // Check whether it is in current runs
-        for(start_run_index = 0; start_run_index < run_indexes.size(); start_run_index++)
-            if(run_indexes[start_run_index] == zero_index)
+        for(first_run_index = 0; first_run_index < run_indexes.size(); first_run_index++)
+            if(run_indexes[first_run_index] == zero_index)
                 break;
     }
-    if(start_run_index >= run_indexes.size())   // -r=0 not found
-        start_run_index = 0;
+    if(first_run_index >= run_indexes.size())   // -r=0 not found
+        first_run_index = 0;
 
     // Log first build
     DebugOptions.LogFirstBuild(true);
@@ -379,9 +380,9 @@ void Ambit::EnergyCalculations()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    user_input.SetRun(run_indexes[start_run_index]);        // Just for the printing (each atom has its own user_input)
+    user_input.SetRun(run_indexes[first_run_index]);        // Just for the printing (each atom has its own user_input)
     user_input.PrintCurrentRunCondition(*outstream, "\n");
-    pCoreConst hf_open_core = atoms[start_run_index].MakeBasis();
+    pCoreConst hf_open_core = atoms[first_run_index].MakeBasis();
     *outstream << std::endl;
 
     // Don't output the others
@@ -390,7 +391,7 @@ void Ambit::EnergyCalculations()
     DebugOptions.OutputHFExcited(false);
 
     for(unsigned int index = 0; index < run_indexes.size(); index++)
-        if(index != start_run_index)
+        if(index != first_run_index)
             atoms[index].MakeBasis(hf_open_core);
 
     // Print basis only option
@@ -432,6 +433,58 @@ void Ambit::EnergyCalculations()
                 atoms[i].CalculateEnergies(sym);
             }
         }
+}
+
+void Ambit::TransitionCalculations()
+{
+    TransitionMap transitions(atoms[first_run_index]);
+
+    // Calculate default types
+    std::vector<std::pair<std::string, TransitionType>> default_types =
+           {{"E1", TransitionType(MultipolarityType::E, 1)},
+            {"M1", TransitionType(MultipolarityType::M, 1)},
+            {"E2", TransitionType(MultipolarityType::E, 2)},
+            {"M2", TransitionType(MultipolarityType::M, 2)},
+            {"E3", TransitionType(MultipolarityType::E, 3)},
+           };
+
+    for(const auto& type_pair: default_types)
+    {
+        std::string user_string = "Transitions/" + type_pair.first;
+        int num_transitions = user_input.vector_variable_size(user_string.c_str());
+        for(int i = 0; i < num_transitions; i++)
+        {
+            std::string transition = user_input(user_string.c_str(), "", i);
+            int pos = transition.find("->");
+            if(pos == std::string::npos)
+                *errstream << "TransitionCalculations: " << user_string << " = " << transition << " not properly formed." << std::endl;
+            else
+            {   LevelID left(transition.substr(0, pos));
+                LevelID right(transition.substr(pos+2));
+
+                transitions.CalculateTransition(left, right, type_pair.second);
+            }
+        }
+    }
+
+    // Calculate non-identified transitions
+    int num_transitions = user_input.vector_variable_size("Transitions/Transitions");
+    for(int i = 0; i < num_transitions; i++)
+    {
+        std::string transition = user_input("Transitions/Transitions", "", i);
+        int pos = transition.find("->");
+        if(pos == std::string::npos)
+            *errstream << "TransitionCalculations: " << transition << " not properly formed." << std::endl;
+        else
+        {   LevelID left(transition.substr(0, pos));
+            LevelID right(transition.substr(pos+2));
+
+            transitions.CalculateTransition(left, right);
+        }
+    }
+
+    if(transitions.size())
+        transitions.Print();
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

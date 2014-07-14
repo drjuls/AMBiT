@@ -7,6 +7,8 @@ enum class Parity { even, odd };
 
 enum class ContinuumNormalisation { LandauNu, LandauEnergy, Cowan, Unitary };
 
+enum class MultipolarityType { E, M };
+
 enum class TransitionGauge { Length, Velocity };
 
 inline Parity operator*(const Parity& first, const Parity& second)
@@ -38,6 +40,19 @@ inline std::string LowerName(Parity from)
             return "even";
         case Parity::odd:
             return "odd";
+        default:
+            return "";
+    }
+}
+
+inline std::string LetterName(Parity from)
+{
+    switch(from)
+    {
+        case Parity::even:
+            return "e";
+        case Parity::odd:
+            return "o";
         default:
             return "";
     }
@@ -86,27 +101,16 @@ namespace DisplayOutputType
     }
 }
 
-namespace MultipolarityType
+inline std::string Name(MultipolarityType from)
 {
-    enum Enum 
+    switch(from)
     {
-        Start,
-        E = 0,
-        M,
-        End
-    };
-
-    inline std::string Name(Enum from)
-    {
-        switch(from)
-        {
-            case E:
-                return "E";
-            case M:
-                return "M";
-            default:
-                return "";
-        }
+        case MultipolarityType::E:
+            return "E";
+        case MultipolarityType::M:
+            return "M";
+        default:
+            return "";
     }
 }
 

@@ -1,4 +1,4 @@
-cxxobjects = EJOperator.o
+cxxobjects = EJOperator.o TransitionIntegrals.o
 cobjects =
 fobjects =
 

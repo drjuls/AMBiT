@@ -1,412 +1,144 @@
-#include <string>
-#include <sstream>
+#include "Transitions.h"
+#include "ExternalField/EJOperator.h"
+#include "Include.h"
 
-#include "Atom/Transitions.h"
-
-TransitionType::TransitionType()
+TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType max):
+    atom(atom), preferred_gauge(gauge), max_type(max)
 {
-    first = MultipolarityType::E;
-    second = 1;
+    orbitals = atom.GetBasis();
+    levels = atom.GetLevels();
 }
 
-TransitionType::TransitionType(int aType, unsigned int aMultipole)
+double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right)
 {
-    if(aType == 0)
+    // Get minimum transition type
+    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
+    if(deltaJ == 0)
     {
-        first = MultipolarityType::E;
-    } 
-    else if(aType ==1)
+        if(left.GetTwoJ() == 0) // 0 -> 0 transition
+            return 0.;
+        deltaJ++;
+    }
+
+    TransitionType type;
+    type.second = deltaJ;
+
+    if((deltaJ%2 == 1 && left.GetParity() != right.GetParity())
+        || (deltaJ%2 == 0 && left.GetParity() == right.GetParity()))
     {
-        first = MultipolarityType::M;
+        type.first = MultipolarityType::E;
     }
     else
-    {
-        *errstream << "ERROR: Unknown multipole type: " << aType << std::endl;
-        exit(1);
-    }
-    
-    second = aMultipole;
+        type.first = MultipolarityType::M;
+
+    if(max_type < type)
+        return 0.;
+
+    return CalculateTransition(left, right, type);
 }
 
-TransitionType::TransitionType(MultipolarityType::Enum aType, unsigned int aMultipole)
+double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right, TransitionType type)
 {
-    first = aType;
-    second = aMultipole;
-}
-
-TransitionType::TransitionType(std::string astring)
-{
-    assert(StringSpecifiesTransitionType(astring));
-    
-    if(astring[0] == 'E' || astring[0] == 'e')
-    {
-        first = MultipolarityType::E;
-    }
-    if(astring[0] == 'M' || astring[0] == 'm')
-    {
-        first = MultipolarityType::M;
-    }
-    second = atoi(astring.substr(1).c_str());
-}
-
-bool TransitionType::ChangesParity()
-{
-    bool parity_change = false;
-
-    if(GetType() == MultipolarityType::M)
-    {
-        !parity_change;
-    }
-    if(GetMultipole()%2)
-    {
-        !parity_change;
-    }
-
-    return parity_change;
-}
-
-bool TransitionType::IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo)
-{
-    double DeltaJ = aSymFrom.GetJ() - aSymTo.GetJ();
-
-    if((aSymFrom.GetParity() == aSymTo.GetParity()) && !ChangesParity())
-    {
-        if((aSymFrom.GetJ() <= ((GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (GetMultipole() - aSymFrom.GetJ() - 1))
-        {
-            return false;
-        }
-        return true;    
-    }
-    else if((aSymFrom.GetParity() != aSymTo.GetParity()) && ChangesParity())
-    {
-        if((aSymFrom.GetJ() <= ((GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (GetMultipole() - aSymFrom.GetJ() - 1))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool TransitionType::StringSpecifiesTransitionType(std::string astring)
-{
-    if(astring.size() < 2)
-    {
-        return false;
-    }
-
-    if(astring[0] == 'E' || astring[0] == 'M' || astring[0] == 'e' || astring[0] == 'm')
-    {
-        if(atoi(astring.substr(1).c_str()) > 0)
-        {
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-bool TransitionType::operator<(TransitionType& other)
-{
-    if(GetType() == other.GetType())
-    {    return GetMultipole()< other.GetMultipole();
-    }
-    return (GetType() < other.GetType());
-}
-     /*
-static bool TransitionType::ExistsBetweenStates(Symmetry aSymFrom, Symmetry aSymTo, TransitionType aType)
-{
-    double DeltaJ = aSymFrom.GetJ() - aSymTo.GetJ();
-
-    if((aSymFrom.GetParity() == aSymTo.GetParity()) && !aType.ChangesParity())
-    {
-        if((aSymFrom.GetJ() <= ((aType.GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (aType.GetMultipole() - aSymFrom.GetJ() - 1))
-        {
-            return false;
-        }
-        return true;
-    }
-    else if((aSymFrom.GetParity() != aSymTo.GetParity()) && aType.ChangesParity())
-    {
-        if((aSymFrom.GetJ() <= ((aType.GetMultipole() - 1)/2)) && aSymTo.GetJ() <= (aType.GetMultipole() - aSymFrom.GetJ() - 1))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    return false;
-}           */
-
-std::string TransitionType::Name()
-{
-    std::string name = "";
-    std::stringstream ss;
-
-    ss << GetMultipole();
-
-    name += MultipolarityType::Name(GetType());
-    name += ss.str();
-
-    return name;
-}
-
-Transition::Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
-mSymmetryFrom(0, even), mSymmetryTo(0, even)
-{
-    mAtom = aAtom;
-    mTransitionType = aTransitionType;
-    mSymmetryFrom = aSymmetryFrom;
-    mSolutionIDFrom = aSolutionIDFrom;
-    mSymmetryTo = aSymmetryTo;
-    mSolutionIDTo = aSolutionIDTo;
-
-    // Add code to determine the leading configurations...
-    // mLeadingConfigurationFrom =
-    // mLeadingConfigurationTo =
-
-    Solve(aGauge);
-}
-
-Transition::Transition(Atom* aAtom, TransitionType aTransitionType, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
-mSymmetryFrom(0, even), mSymmetryTo(0, even)
-{
-    mAtom = aAtom;
-    mTransitionType = aTransitionType;
-    mSymmetryFrom = aSolutionIDFrom.GetSymmetry();
-    mSolutionIDFrom = aSolutionIDFrom.GetID();
-    mSymmetryTo = aSolutionIDTo.GetSymmetry();
-    mSolutionIDTo = aSolutionIDTo.GetID();
-
-    // Add code to determine the leading configurations...
-    // mLeadingConfigurationFrom =
-    // mLeadingConfigurationTo =
-
-    Solve(aGauge);
-}
-
-Transition::Transition(Atom* aAtom, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge) :
-mSymmetryFrom(0, even), mSymmetryTo(0, even)
-{
-    mAtom = aAtom;
-    mSymmetryFrom = aSolutionIDFrom.GetSymmetry();
-    mSolutionIDFrom = aSolutionIDFrom.GetID();
-    mSymmetryTo = aSolutionIDTo.GetSymmetry();
-    mSolutionIDTo = aSolutionIDTo.GetID();
-    
-    // Determine dominant transition type
-    double JFrom = mSymmetryFrom.GetJ();
-    double JTo = mSymmetryTo.GetJ();
-    double ChangeJ = fabs(JFrom - JTo);
-    
-    bool ParityChange = (mSymmetryFrom.GetParity() != mSymmetryTo.GetParity());
-    unsigned int multipole = ChangeJ;
-    if(multipole == 0)
-    {
-        multipole = 1;
-    }
-    
-    if(JTo == 0.0 && JFrom == 0.0)
-    {
-        *outstream << "Warning! Attempting to calculate transition from J = 0 to J = 0." << std::endl;
-    }
-    
-    MultipolarityType::Enum mType;
-    if((pow(-1.0, multipole) == 1.0 && !ParityChange) || (pow(-1.0, multipole) == -1.0 && ParityChange))
-    {
-        mType = MultipolarityType::E;
+    // Check it doesn't exist already
+    TransitionID id;
+    if(left < right)
+    {   std::get<0>(id) = left;
+        std::get<1>(id) = right;
     }
     else
-    {
-        mType = MultipolarityType::M;
+    {   std::get<0>(id) = right;
+        std::get<1>(id) = left;
     }
-    
-    mTransitionType = TransitionType(mType, multipole);
-    
-    // Add code to determine the leading configurations...
-    // mLeadingConfigurationFrom =
-    // mLeadingConfigurationTo =
-    
-    Solve(aGauge);
-}
+    std::get<2>(id) = type;
 
-void Transition::Solve(TransitionGaugeType::Enum aGauge)
-{
-    RateCalculator rcalc(GetAtom()->GetBasis());
-    SetTransitionRate(rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), aGauge));
-    //rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Length, TransitionCalculationMethod::ZenonasRudzikas);
-    
-    /*
-    if(GetTransitionType() == TransitionType(MultipolarityType::E, 1))
+    if(count(id))
+        return (*this)[id];
+
+    // Check transition is allowed
+    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
+    if((left.GetTwoJ() == 0 && right.GetTwoJ() == 0)
+        || (deltaJ > type.second))
+    {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
+                   << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
+        return 0.;
+    }
+
+    if((type.first == MultipolarityType::E && type.second%2 == 1)       // E1, E3, ...
+        || (type.first == MultipolarityType::M && type.second%2 == 0))  // M2, M4, ...
     {
-        rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Length, TransitionCalculationMethod::ZenonasRudzikas);
-        rcalc.CalculateMultipoleStrength(GetTransitionType().GetType(), GetTransitionType().GetMultipole(), GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo(), TransitionGaugeType::Velocity);
-        rcalc.CalculateDipoleStrength(GetAtom(), GetSymmetryFrom(), GetSolutionIDFrom(), GetSymmetryTo(), GetSolutionIDTo());
-    }*/
-}
-
-bool Transition::operator<(const Transition& other) const
-{
-    return (GetTransitionType() < other.GetTransitionType());
-}
-
-bool Transition::operator==(const Transition& other) const
-{
-    bool isEqual = (GetAtom() == other.GetAtom());
-    isEqual = isEqual && (GetTransitionType() == other.GetTransitionType());
-    isEqual = isEqual && (GetSymmetryFrom() == other.GetSymmetryFrom());
-    isEqual = isEqual && (GetSolutionIDFrom() == other.GetSolutionIDFrom());
-    isEqual = isEqual && (GetSymmetryTo() == other.GetSymmetryTo());
-    isEqual = isEqual && (GetSolutionIDTo() == other.GetSolutionIDTo());
-    
-    return isEqual;
-}
-
-/*
-TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, TransitionGaugeType::Enum aGauge)
-{
-    SymmetryEigenstatesMap::const_iterator from_it, to_it;
-    Symmetry CurrentSymmetryFrom(0, even), CurrentSymmetryTo(0, even);
-    int i, j;
-
-    CurrentSymmetryFrom = aAtom->GetSymmetryEigenstatesMap()->begin()->first;
-    CurrentSymmetryTo = CurrentSymmetryFrom;
-
-    for(from_it = aAtom->GetSymmetryEigenstatesMap()->begin(), i = 0; from_it != aAtom->GetSymmetryEigenstatesMap()->end(); from_it++, i++)
-    {
-        if(!(from_it->first == CurrentSymmetryFrom))
-        {
-            i = 0;
-            CurrentSymmetryFrom = from_it->first;
-        }
-        for(to_it = from_it, j = i, CurrentSymmetryTo = CurrentSymmetryFrom; to_it != aAtom->GetSymmetryEigenstatesMap()->end(); to_it++, j++)
-        {
-            if(!(to_it->first == CurrentSymmetryTo))
-            {
-                j = 0;
-                CurrentSymmetryTo = to_it->first;
-            }
-            if(aTransitionType.IsAllowedTransition(from_it->first, to_it->first))
-            {
-                insert(Transition(aAtom, aTransitionType, Symmetry(from_it->first), (unsigned int) i, Symmetry(to_it->first), (unsigned int) j, aGauge));
-            }
+        if(left.GetParity() == right.GetParity())
+        {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
+                       << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
+            return 0.;
         }
     }
-}
-
-TransitionSet::TransitionSet(Atom* aAtom, TransitionType aTransitionType, Configuration* aLeadingConfigurationFrom, Symmetry aSymmetryFrom, Configuration* aLeadingConfigurationTo, Symmetry aSymmetryTo ,TransitionGaugeType::Enum aGauge)
-{
-    if(!aTransitionType.IsAllowedTransition(aSymmetryFrom, aSymmetryTo))
-    {
-        *errstream << aTransitionType.Name() <<" transitions are not allowed by selection rules between " << aSymmetryFrom.GetString() << " and " << aSymmetryTo.GetString() << std::endl;
+    else if(left.GetParity() != right.GetParity())
+    {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
+                   << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
+        return 0.;
     }
+
+    // Get levels
+    pLevel left_level, right_level;
+    auto level_it = levels->find(left);
+    if(level_it == levels->end())
+    {   *errstream << "Transitions::AddTransition(): Level " << left.Name() << " not found." << std::endl;
+        return 0.;
+    }
+    left_level = level_it->second;
+
+    if(left != right)
+    {
+        level_it = levels->find(right);
+        if(level_it == levels->end())
+        {   *errstream << "Transitions::AddTransition(): Level " << right.Name() << " not found." << std::endl;
+            return 0.;
+        }
+        right_level = level_it->second;
+    }
+
+    // Get transition integrals
+    pTransitionIntegrals transition_integral = integrals[type];
+    if(transition_integral == nullptr)
+    {
+        // Create new TransitionIntegrals object and calculate integrals
+        pOPIntegrator integrator(new SimpsonsIntegrator(atom.GetLattice()));
+        pSpinorMatrixElementConst pOperator;
+        if(type.first == MultipolarityType::E)
+            pOperator.reset(new EJOperator(atom.GetPhysicalConstants(), type.second, integrator, preferred_gauge));
+        else
+            pOperator.reset(new MJOperator(atom.GetPhysicalConstants(), type.second, integrator));
+
+        transition_integral.reset(new TransitionIntegrals(orbitals, pOperator));
+
+        integrals[type] = transition_integral;
+        transition_integral->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+    }
+
+    ManyBodyOperator<pTransitionIntegrals> many_body_operator(transition_integral);
+
+    // Get matrix element
+    double value;
+    if(left != right)
+        value = many_body_operator.GetMatrixElement(*left_level, *right_level);
     else
+        value = many_body_operator.GetMatrixElement(*left_level);
+
+    // Convert to strength
+    value = value/MathConstant::Instance()->Electron3j(right.GetTwoJ(), left.GetTwoJ(), type.second, right.GetTwoJ(), -left.GetTwoJ());
+    value = value * value;
+
+    (*this)[id] = value;
+    return value;
+}
+
+void TransitionMap::Print() const
+{
+    *outstream << "\nTransition strengths (S):\n";
+    for(auto& pair: *this)
     {
-        int iterator;
-        Eigenstates* EigenstatesFrom = aAtom->GetEigenstates(aSymmetryFrom);
-        Eigenstates* EigenstatesTo = aAtom->GetEigenstates(aSymmetryTo);
-        std::map<int, Configuration> FromMap;
-        std::map<int, Configuration> ToMap;
-        int i, j;
-        double largest_percentage;
-        Configuration largest_configuration;
-        std::map<Configuration, double>::const_iterator it_largest_percentage, it;
-        RelativisticConfigList::const_iterator list_it;
-        std::map<Configuration, double> percentages;
-
-        for(i = 0; i < EigenstatesFrom->GetNumEigenvalues(); i++) {
-            list_it = EigenstatesFrom->GetConfigGenerator()->GetRelConfigs()->begin();
-
-            j = 0;
-            while(list_it != EigenstatesFrom->GetConfigGenerator()->GetRelConfigs()->end())
-            {
-                Configuration nrconfig(list_it->GetNonRelConfiguration());
-                if(percentages.find(nrconfig) == percentages.end())
-                    percentages[nrconfig] = 0.;
-
-                for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
-                {
-                    double coeff = EigenstatesFrom->GetEigenvectors()[i*EigenstatesFrom->GetEigenvectorLength() + j];
-                    coeff = coeff * coeff * 100;
-
-                    percentages[nrconfig] += coeff;
-                    j++;
-                }
-    
-                list_it++;
-            }
-
-            it_largest_percentage = percentages.begin();
-            largest_percentage = 0.0;
-    
-            it = percentages.begin();
-            while(it != percentages.end())
-            {
-                if(it->second > largest_percentage)
-                {   it_largest_percentage = it;
-                    largest_percentage = it->second;
-                }
-    
-            }
-
-            FromMap.insert(std::pair<int, Configuration>(i, it_largest_percentage->first));
-        }
-
-        for(i = 0; i < EigenstatesTo->GetNumEigenvalues(); i++) {
-            list_it = EigenstatesTo->GetConfigGenerator()->GetRelConfigs()->begin();
-    
-            j = 0;
-            while(list_it != EigenstatesTo->GetConfigGenerator()->GetRelConfigs()->end())
-            {
-                Configuration nrconfig(list_it->GetNonRelConfiguration());
-                if(percentages.find(nrconfig) == percentages.end())
-                    percentages[nrconfig] = 0.;
-
-                for(unsigned int Jstate = 0; Jstate < list_it->NumJStates(); Jstate++)
-                {
-                    double coeff = EigenstatesTo->GetEigenvectors()[i*EigenstatesTo->GetEigenvectorLength() + j];
-                    coeff = coeff * coeff * 100;
-
-                    percentages[nrconfig] += coeff;
-                    j++;
-                }
-    
-                list_it++;
-            }
-
-            it_largest_percentage = percentages.begin();
-            largest_percentage = 0.0;
-    
-            it = percentages.begin();
-            while(it != percentages.end())
-            {
-                if(it->second > largest_percentage)
-                {   it_largest_percentage = it;
-                    largest_percentage = it->second;
-                }
-    
-            }
-
-            ToMap.insert(std::pair<int, Configuration>(i, it_largest_percentage->first));
-        }
-        
-        std::map<int, Configuration>::iterator from_it, to_it;
-        bool found_transitions = false;
-        for(from_it = FromMap.begin(); from_it != FromMap.end(); from_it++)
-        {
-            if(*aLeadingConfigurationFrom == from_it->second)
-            {
-                for(to_it = ToMap.begin(); to_it != ToMap.end(); to_it++)
-                {
-                    if(*aLeadingConfigurationTo == to_it->second)
-                    {
-                        insert(Transition(aAtom, aTransitionType, aSymmetryFrom, (unsigned int) from_it->first, aSymmetryTo, (unsigned int) to_it->first, aGauge));
-                        found_transitions = true;
-                    }
-                }
-            }
-        }
+        const TransitionID& id = pair.first;
+        *outstream << "  " << std::get<0>(id).Name() << " -> " << std::get<1>(id).Name()
+                   << " (" << std::get<2>(id) << ") = " << pair.second << std::endl;
     }
 }
-*/

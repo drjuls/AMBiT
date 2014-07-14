@@ -1,7 +1,7 @@
 cxxobjects = ConfigurationParser.o Core.o CoulombOperator.o GreensMethodODE.o \
              HartreeFocker.o HartreeY.o HFOperator.o \
              LocalPotentialDecorator.o MassShiftDecorator.o NonRelativisticSMSOperator.o \
-             NonRelInfo.o NucleusDecorator.o OpIntegrator.o Orbital.o OrbitalInfo.o \
+             NucleusDecorator.o OpIntegrator.o Orbital.o OrbitalInfo.o \
              OrbitalMap.o ODESolver.o SpinorODE.o SingleParticleWavefunction.o \
              ThomasFermiDecorator.o
 cobjects = 

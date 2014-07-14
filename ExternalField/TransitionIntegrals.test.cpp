@@ -3,13 +3,8 @@
 #include "TransitionIntegrals.h"
 #include "EJOperator.h"
 #include "Configuration/HamiltonianMatrix.h"
-//#include "HartreeFock/Core.h"
-//#include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
 #include "Configuration/ConfigGenerator.h"
-//#include "Atom/MultirunOptions.h"
-//#include "MBPT/OneElectronIntegrals.h"
-//#include "MBPT/SlaterIntegrals.h"
 #include "Configuration/GFactor.h"
 
 TEST(TransitionIntegralTester, HeTransitions)
@@ -97,18 +92,18 @@ TEST(TransitionIntegralTester, HeTransitions)
     ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
 
     double matrix_element = E1_many_body.GetMatrixElement(*ground_state, *singlet_P);
-    double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, 2);
+    double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *ground_state);
-    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
+    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "2s2p 1P1 -> 1s2: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(0.5311, reduced_matrix_element * reduced_matrix_element, 0.05);
 
     matrix_element = E1_many_body.GetMatrixElement(*singlet_S, *singlet_P);
-    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, 2);
+    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "1s2s 1S0 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *singlet_S);
-    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, 2);
+    reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "2s2p 1P1 -> 1s2s 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(25.52, reduced_matrix_element * reduced_matrix_element, 2.5);
 

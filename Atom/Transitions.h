@@ -1,108 +1,128 @@
 #ifndef TRANSITIONS_H
 #define TRANSITIONS_H
 
-#include <set>
-
 #include "Atom/Atom.h"
-#include "Atom/RateCalculator.h"
-#include "Configuration/Eigenstates.h"
-#include "Configuration/Solution.h"
-#include "Configuration/Symmetry.h"
-#include "HartreeFock/OrbitalInfo.h"
+#include "ExternalField/TransitionIntegrals.h"
 #include "Universal/Enums.h"
+#include <ctype.h>
+#include <map>
 
-class Atom;
-class SolutionID;
+typedef std::pair<MultipolarityType, int> TransitionType;
 
-// Class storage for a transition type (E1, M1, E2 etc.) based on std::pair
-class TransitionType : public std::pair<MultipolarityType::Enum, unsigned int>
+inline bool operator<(const TransitionType& left, const TransitionType& right)
+{
+    if(left.second < right.second)
+        return true;
+    else if(left.second > right.second)
+        return false;
+
+    if(left.first != right.first)
+        return (left.first == MultipolarityType::E);
+    return false;
+}
+
+inline std::ostream& operator<<(std::ostream& outstream, const TransitionType& transition_type)
+{
+    outstream << Name(transition_type.first) << itoa(transition_type.second);
+    return outstream;
+}
+
+inline std::istream& operator>>(std::istream& instream, TransitionType& transition_type)
+{
+    char c;
+    do{
+        instream.get(c);
+    } while(std::isspace(c));
+
+    if(c == 'e' || c == 'E')
+        transition_type.first = MultipolarityType::E;
+    else if(c == 'm' || c == 'M')
+        transition_type.first = MultipolarityType::M;
+
+    instream >> transition_type.second;
+    return instream;
+}
+
+class TransitionTypeComparator
 {
 public:
-    TransitionType();
-    TransitionType(int aType, unsigned int aMultipole);
-    TransitionType(MultipolarityType::Enum aType, unsigned int aMultipole);
-    TransitionType(std::string astring);
-
-    bool ChangesParity();
-    static bool StringSpecifiesTransitionType(std::string astring);
-
-    virtual std::string Name();
-    bool IsAllowedTransition(Symmetry aSymFrom, Symmetry aSymTo);
-    //static bool ExistsBetweenStates(Symmetry aSymFrom, Symmetry aSymTo, TransitionType aType);
-
-    inline MultipolarityType::Enum GetType()
-    {   return first;
-    }
-    inline unsigned int GetMultipole()
-    {   return second;
-    }
-    
-    bool operator<(TransitionType& other);
-    inline bool operator==(TransitionType& other)
-    {    return ((GetType() == other.GetType()) && (GetMultipole() == other.GetMultipole()));
-    }
+    bool operator()(const TransitionType& left, const TransitionType& right) const { return (left < right); }
 };
 
+typedef std::tuple<LevelID, LevelID, TransitionType> TransitionID;
 
-class Transition
+class TransitionIDComparator
 {
 public:
-    Transition(Atom* aAtom, TransitionType aTransitionType, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
-    Transition(Atom* aAtom, SolutionID aSolutionIDFrom, SolutionID aSolutionIDTo, TransitionGaugeType::Enum aGauge = TransitionGaugeType::Length);
-    Transition(Atom* aAtom, TransitionType aTransitionType, Symmetry aSymmetryFrom, unsigned int aSolutionIDFrom, Symmetry aSymmetryTo, unsigned int aSolutionIDTo, TransitionGaugeType::Enum aGauge);
+    bool operator()(const TransitionID& first, const TransitionID& second) const;
+};
 
-    inline Atom* GetAtom() const
-    {   return mAtom;
-    }
-    inline TransitionType GetTransitionType() const
-    {   return mTransitionType;
-    }
-    inline double GetTransitionRate() const
-    {   return mTransitionRate;
-    }
-    inline Symmetry GetSymmetryFrom() const
-    {   return mSymmetryFrom;
-    }
-    inline Symmetry GetSymmetryTo() const
-    {   return mSymmetryTo;
-    }
-    inline unsigned int GetSolutionIDFrom() const
-    {   return mSolutionIDFrom;
-    }
-    inline unsigned int GetSolutionIDTo() const
-    {   return mSolutionIDTo;
-    }
+/** Transitions calculates transition strengths and stores them in a mapping
+    between TransitionID and Strength (S).
+ */
+class TransitionMap : protected std::map<TransitionID, double, TransitionIDComparator>
+{
+protected:
+    typedef std::map<TransitionID, double, TransitionIDComparator> Parent;
 
-    inline void SetTransitionRate(double aTransitionRate)
-    {   mTransitionRate = aTransitionRate;
-    }
+public:
+    TransitionMap(Atom& atom, TransitionGauge gauge = TransitionGauge::Length, TransitionType max = std::make_pair(MultipolarityType::E, 3));
 
-    bool operator<(const Transition& other) const;
-    bool operator==(const Transition& other) const;
+    typedef Parent::iterator iterator;
+    typedef Parent::const_iterator const_iterator;
+
+    using Parent::at;
+    using Parent::begin;
+    using Parent::clear;
+    using Parent::count;
+    using Parent::empty;
+    using Parent::end;
+    using Parent::find;
+    using Parent::insert;
+    using Parent::size;
+
+    /** Calculate transition strength for smallest TransitionType possible and add to map.
+        If smallest TransitionType < max_type, return zero.
+     */
+    double CalculateTransition(const LevelID& left, const LevelID& right);
+
+    /** Calculate transition strength if allowed by type and add to map. */
+    double CalculateTransition(const LevelID& left, const LevelID& right, TransitionType type);
+
+    void Print() const;
 
 protected:
-    Atom* mAtom;
+    Atom& atom;
+    pOrbitalManagerConst orbitals;
+    pLevelMapConst levels;
 
-    TransitionType mTransitionType;
+    TransitionGauge preferred_gauge;
+    TransitionType max_type;
 
-    Symmetry mSymmetryFrom;
-    unsigned int mSolutionIDFrom;
-    Symmetry mSymmetryTo;
-    unsigned int mSolutionIDTo;
-
-    double mTransitionRate;
-
-    void Solve(TransitionGaugeType::Enum aGauge);
+    std::map<TransitionType, pTransitionIntegrals> integrals;
 };
 
-class TransitionSet : public std::set<Transition>
+inline bool TransitionIDComparator::operator()(const TransitionID& first, const TransitionID& second) const
 {
-public:
-    TransitionSet() : std::set<Transition>()
-    {
-    }
-protected:
+    if(std::get<0>(first) < std::get<0>(second))
+        return true;
+    else if(std::get<0>(first) > std::get<0>(second))
+        return false;
 
-};
+    if(std::get<1>(first) < std::get<1>(second))
+        return true;
+    else if(std::get<1>(first) > std::get<1>(second))
+        return false;
+
+    if(std::get<2>(first).second < std::get<2>(second).second)
+        return true;
+    else if(std::get<2>(first).second > std::get<2>(second).second)
+        return false;
+
+    if(std::get<2>(first).first != std::get<2>(second).first)
+        return (std::get<2>(first).first == MultipolarityType::E);
+
+    return true;
+}
 
 #endif

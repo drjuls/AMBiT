@@ -3,6 +3,21 @@
 #include "Universal/MathConstant.h"
 #include "NonRelConfiguration.h"
 
+LevelID::LevelID(const std::string& name)
+{
+    std::stringstream ss(name);
+    ss >> m_twoJ;
+
+    char parity;
+    ss.get(parity);
+    if(parity == 'o')
+        m_parity = Parity::odd;
+    else
+        m_parity = Parity::even;
+
+    ss >> m_ID;
+}
+
 bool LevelID::operator<(const LevelID& other) const
 {
     if(m_twoJ != other.m_twoJ)
@@ -11,6 +26,15 @@ bool LevelID::operator<(const LevelID& other) const
         return m_parity < other.m_parity;
     else
         return m_ID < other.m_ID;
+}
+
+std::string LevelID::Name() const
+{
+    std::string ret = itoa(m_twoJ);
+    ret.append(LetterName(m_parity));
+    ret.append(itoa(m_ID));
+
+    return ret;
 }
 
 Level::Level(const double& energy, const double* csf_eigenvector, pRelativisticConfigListConst configlist, unsigned int numCSFs):

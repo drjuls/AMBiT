@@ -24,6 +24,7 @@ endif
 
 SRCDIR = $(shell pwd)
 INCLUDE = $(SRCDIR)
+ANGULAR_DATA_DIRECTORY=$(SRCDIR)/AngularData
 
 # Override these below, if necessary
 GTEST_INCLUDE_DIR = $(SRCDIR)
@@ -153,6 +154,8 @@ endif
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
 CFLAGS   += $(addprefix -I, $(INCLUDE))
 DEPFLAG  += $(addprefix -I, $(INCLUDE))
+
+CXXFLAGS += -DANGULAR_DATA_DIRECTORY=$(ANGULAR_DATA_DIRECTORY)
 
 RANLIB = ranlib
 AR = ar
