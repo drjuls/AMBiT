@@ -483,6 +483,36 @@ void Ambit::TransitionCalculations()
         }
     }
 
+    // Calculate all transitions of a certain type below a given energy
+    LevelMap& levels = *atoms[first_run_index].GetLevels();
+    for(const auto& type_pair : default_types)
+    {
+        std::string user_string = "Transitions/All" + type_pair.first + "Below";
+        double max_energy = user_input(user_string.c_str(), 0.0);
+        if(max_energy)
+        {
+            LevelMap::const_iterator left_it = levels.begin();
+            while(left_it != levels.end())
+            {
+                if(left_it->second->GetEnergy() < max_energy)
+                {
+                    LevelMap::const_iterator right_it = left_it;
+                    right_it++;
+                    while(right_it != levels.end())
+                    {
+                        if((right_it->second->GetEnergy() < max_energy)
+                           && transitions.TransitionExists(left_it->first, right_it->first, type_pair.second))
+                            transitions.CalculateTransition(left_it->first, right_it->first, type_pair.second);
+
+                        right_it++;
+                    }
+                }
+
+                left_it++;
+            }
+        }
+    }
+
     if(transitions.size())
         transitions.Print();
 }

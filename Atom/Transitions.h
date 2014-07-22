@@ -81,6 +81,9 @@ public:
     using Parent::insert;
     using Parent::size;
 
+    /** Check if transition exists or is excluded by symmetry considerations. */
+    bool TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const;
+
     /** Calculate transition strength for smallest TransitionType possible and add to map.
         If smallest TransitionType < max_type, return zero.
      */
@@ -114,15 +117,7 @@ inline bool TransitionIDComparator::operator()(const TransitionID& first, const 
     else if(std::get<1>(first) > std::get<1>(second))
         return false;
 
-    if(std::get<2>(first).second < std::get<2>(second).second)
-        return true;
-    else if(std::get<2>(first).second > std::get<2>(second).second)
-        return false;
-
-    if(std::get<2>(first).first != std::get<2>(second).first)
-        return (std::get<2>(first).first == MultipolarityType::E);
-
-    return true;
+    return (std::get<2>(first) < std::get<2>(second));
 }
 
 #endif

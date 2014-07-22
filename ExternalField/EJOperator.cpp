@@ -12,7 +12,7 @@ double EJOperator::GetMatrixElement(const Orbital& b, const SingleParticleWavefu
     double coeff = 0.0;
 
     // This is the reduced matrix element of the spherical tensor CJ
-    coeff = SphericalTensorReducedMatrixElement(K, b.Kappa(), a.Kappa());
+    coeff = MathConstant::Instance()->SphericalTensorReducedMatrixElement(K, b.Kappa(), a.Kappa());
 
     // Convert from reduced matrix element to full matrix element
     //coeff *= pow(-1.0, e1.J() - e1.M()) * MathConstant::Instance()->Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M());
@@ -102,7 +102,7 @@ double MJOperator::GetMatrixElement(const Orbital& b, const SingleParticleWavefu
     double matrix_element = 0.0;
     double coeff = 0.0;
 
-    coeff = SphericalTensorReducedMatrixElement(K, -b.Kappa(), a.Kappa());
+    coeff = MathConstant::Instance()->SphericalTensorReducedMatrixElement(K, -b.Kappa(), a.Kappa());
 
     // Don't bother computing the overlap if the angular part is zero
     if(coeff == 0)

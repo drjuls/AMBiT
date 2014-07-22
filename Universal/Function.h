@@ -57,7 +57,6 @@ double triangular_condition_even(double a, double b, double c);
 
 double AIntegralFunction(unsigned int J, double k, double r);
 double BIntegralFunction(unsigned int J, double k, double r);
-double SphericalTensorReducedMatrixElement(unsigned int rank, int kappa1, int kappa2);
 
 double sph_bessel(unsigned int v, double x);
 double sph_bessel_prime(unsigned int v, double x);

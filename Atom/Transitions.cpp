@@ -9,6 +9,31 @@ TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType m
     levels = atom.GetLevels();
 }
 
+bool TransitionMap::TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const
+{
+    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
+    if(((left.GetTwoJ() + right.GetTwoJ())/2 < type.second)
+       || (deltaJ > type.second))
+    {
+        return false;
+    }
+
+    if((type.first == MultipolarityType::E && type.second%2 == 1)       // E1, E3, ...
+       || (type.first == MultipolarityType::M && type.second%2 == 0))  // M2, M4, ...
+    {
+        if(left.GetParity() == right.GetParity())
+        {
+            return false;
+        }
+    }
+    else if(left.GetParity() != right.GetParity())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right)
 {
     // Get minimum transition type
@@ -51,28 +76,11 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
     }
     std::get<2>(id) = type;
 
-    if(count(id))
+    if(this->find(id) != this->end())
         return (*this)[id];
 
     // Check transition is allowed
-    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
-    if((left.GetTwoJ() == 0 && right.GetTwoJ() == 0)
-        || (deltaJ > type.second))
-    {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
-                   << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
-        return 0.;
-    }
-
-    if((type.first == MultipolarityType::E && type.second%2 == 1)       // E1, E3, ...
-        || (type.first == MultipolarityType::M && type.second%2 == 0))  // M2, M4, ...
-    {
-        if(left.GetParity() == right.GetParity())
-        {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
-                       << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
-            return 0.;
-        }
-    }
-    else if(left.GetParity() != right.GetParity())
+    if(!TransitionExists(left, right, type))
     {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
                    << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
         return 0.;
