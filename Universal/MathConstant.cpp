@@ -374,7 +374,7 @@ void MathConstant::Reset()
     Symbols3j.clear();
 }
 
-double MathConstant::SphericalTensorReducedMatrixElement(int rank, int kappa1, int kappa2)
+double MathConstant::SphericalTensorReducedMatrixElement(int kappa1, int kappa2, int rank)
 {
     int l1 = 0;
     int l2 = 0;

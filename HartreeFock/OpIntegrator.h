@@ -19,6 +19,9 @@ public:
     /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
     virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const;
 
+    /** < a | b > = Integral (f_a * f_b) dr */
+    virtual double GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const;
+
     /** < a | a > */
     virtual double GetNorm(const SpinorFunction& a) const;
 
@@ -47,6 +50,9 @@ public:
     /** < a | b > = Integral (f_a * f_b + g_a * g_b) dr */
     virtual double GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const override;
 
+    /** < a | b > = Integral (f_a * f_b) dr */
+    virtual double GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const override;
+
     /** < a | a > */
     virtual double GetNorm(const SpinorFunction& a) const override;
 
@@ -63,14 +69,17 @@ protected:
         double total = 0.;
         const double* dR = lattice->dR();
 
-        int i;
-        for(i = 1; i < size-1; i+=2)
+        int i = 0;
+        if(size > 5)
         {
-            total += 4. * integrand(i) * dR[i]
-                    + 2. * integrand(i+1) * dR[i+1];
+            for(i = 1; i < size-1; i+=2)
+            {
+                total += 4. * integrand(i) * dR[i]
+                        + 2. * integrand(i+1) * dR[i+1];
+            }
+            total = total/3.;
+            total += integrand(0) * dR[0];
         }
-        total = total/3.;
-        total += integrand(0) * dR[0];
 
         while(i < size)
         {   total += integrand(i) * dR[i];

@@ -7,6 +7,12 @@ double OPIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFuncti
     return Integrate(integrand);
 }
 
+double OPIntegrator::GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const
+{
+    RadialFunction integrand = a * b;
+    return Integrate(integrand);
+}
+
 double OPIntegrator::GetNorm(const SpinorFunction& a) const
 {
     RadialFunction integrand = a.GetDensity();
@@ -37,6 +43,13 @@ double SimpsonsIntegrator::GetInnerProduct(const SpinorFunction& a, const Spinor
 {
     int size = mmin(a.size(), b.size());
     return Integrate(size, [&](int i){ return (a.f[i] * b.f[i] + a.g[i] * b.g[i]); });
+}
+
+/** < a | b > = Integral (f_a * f_b) dr */
+double SimpsonsIntegrator::GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const
+{
+    int size = mmin(a.size(), b.size());
+    return Integrate(size, [&](int i){ return (a.f[i] * b.f[i]); });
 }
 
 /** < a | a > */

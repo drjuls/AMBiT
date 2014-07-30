@@ -3,6 +3,7 @@
 
 #include <map>
 #include <stdlib.h>
+#include <boost/math/special_functions.hpp>
 
 /** Class of mathematical constants, following the Singleton pattern. 
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
@@ -57,11 +58,31 @@ public:
     /** Defined by Johnson as
         <kappa_1 || C^k || kappa_2> = (-1)^{j_1 + 1/2} [j_1, j_2]^{1/2} \xi(l_1 + l_2 + k) ( j_1  j_2 k )
                                                                                            ( -1/2 1/2 0 )
+        Has symmetry property
+        <kappa_1 || C^k || kappa_2> = (-1)^{j_1 + j2 + 1} <kappa_2 || C^k || kappa_1>
      */
-    double SphericalTensorReducedMatrixElement(int rank, int kappa1, int kappa2);
+    double SphericalTensorReducedMatrixElement(int kappa1, int kappa2, int rank);
+
+    // Helper functions
 
     /** Return +1 if power is even, -1 if odd. */
     inline int minus_one_to_the_power(int power) const { return (abs(power)%2)? -1 : 1; }
+
+    /** Return true if triangular condition is satisfied, false otherwise. */
+    inline bool triangular_condition(int a, int b, int c) const { return (abs(a-b) <= c) && ((a+b) >= c); }
+
+    /** Return true if sum(a + b + c) is even. */
+    inline bool sum_is_even(int a, int b, int c) const { return (a + b + c)%2 == 0; }
+
+    /** Spherical bessel function j_v(x) */
+    inline double sph_bessel(unsigned int v, double x) const { return boost::math::sph_bessel(v, x); }
+
+    /** Derivative of spherical bessel function j_v'(x)
+            j_n'(z) = d/dz j_n(z) = (n/z) j_n(z) - j_{n+1}(z)
+     */
+    inline double sph_bessel_prime(unsigned int v, double x) const
+    {   return (double)v/x * boost::math::sph_bessel(v, x) - boost::math::sph_bessel(v + 1, x);
+    }
 
 protected:
     MathConstant();
