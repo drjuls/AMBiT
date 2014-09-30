@@ -61,7 +61,7 @@ unsigned int MathConstant::GetL(char spectroscopic_notation) const
     terms from the numerator and denominator in pairs so that we don't add and then subtract
     the same thing.
  */
-double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3)
+double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3) const
 {
     /*  The whole expression is of the form
           ( a! b! ... c! )^(1/2)            ^(j1-j2-m3+k) n! m!
@@ -163,7 +163,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     return total;
 }
 
-double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6)
+double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6) const
 {
     /* The entire process is very similar to that used in calculating the 3j symbol. */
     if((j1 < 0.) || (j2 < 0.) || (j3 < 0.) || (j4 < 0.) || (j5 < 0.) || (j6 < 0.))
@@ -258,7 +258,7 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
 /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
      log( n!/d! )
  */
-double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom)
+double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom) const
 {
     double total = 0.;
     if(num > denom)
@@ -272,7 +272,7 @@ double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom)
     return total;
 }
 
-std::size_t MathConstant::HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2)
+std::size_t MathConstant::HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2) const
 {
     std::size_t key = size_t(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
                     + size_t(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
@@ -372,4 +372,48 @@ unsigned int MathConstant::GetStorageSize() const
 void MathConstant::Reset()
 {
     Symbols3j.clear();
+}
+
+double MathConstant::SphericalTensorReducedMatrixElement(int kappa1, int kappa2, int rank)
+{
+    int l1 = 0;
+    int l2 = 0;
+    int two_j1 = 0;
+    int two_j2 = 0;
+
+    if(kappa1 < 0)
+    {
+        two_j1 = - 2 * kappa1 - 1;
+        l1 = -kappa1 - 1;
+    }
+    else
+    {
+        two_j1 = 2 * kappa1 - 1;
+        l1 = kappa1;
+    }
+
+    if(kappa2 < 0)
+    {
+        two_j2 = - 2 * kappa2 - 1;
+        l2 = -kappa2 - 1;
+    }
+    else
+    {
+        two_j2 = 2 * kappa2 - 1;
+        l2 = kappa2;
+    }
+
+    if((l1 + rank + l2)%2 != 0)
+    {
+        return 0.0;
+    }
+
+    double value = MathConstant::Instance()->Electron3j(two_j1, two_j2, rank);
+    if(value)
+    {
+        value *= minus_one_to_the_power(two_j1 + (two_j2+1)/2 + rank);
+        value *= sqrt((two_j1 + 1.0) * (two_j2 + 1.0));
+    }
+
+    return value;
 }

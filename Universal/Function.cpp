@@ -4,6 +4,7 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include "Function.h"
 #include "MathConstant.h"
+#include "Include.h"
 
 Polynomial::Polynomial(std::map<double,double> CoefficientsAndIndices)
 {
@@ -110,48 +111,6 @@ double BIntegralFunction(unsigned int J, double k, double r)
         return sph_bessel_small_limit(J, r);
     }
     return pow(r, J) * boost::math::sph_bessel(J, k * r) / pow(k, J - 1);    
-}
-
-double SphericalTensorReducedMatrixElement(unsigned int rank, int kappa1, int kappa2)
-{
-    if(kappa1 == 0.0 || kappa2 == 0.0)
-    {
-        return 0.0;
-    }
-    
-    unsigned int l1 = 0.0;
-    unsigned int l2 = 0.0;
-    double j1 = 0.0;
-    double j2 = 0.0;
-    
-    if(kappa1 < 0)
-    {
-        j1 = double(-kappa1) - 0.5;
-        l1 = -kappa1 - 1;
-    }
-    else
-    {
-        j1 = double(kappa1) - 0.5;
-        l1 = kappa1;
-    }
-    
-    if(kappa2 < 0)
-    {
-        j2 = double(-kappa2) - 0.5;
-        l2 = -kappa2 - 1;
-    }
-    else
-    {
-        j2 = double(kappa2) - 0.5;
-        l2 = kappa2;
-    }
-    
-    if((l1 + rank + l2)%2 != 0)
-    {
-        return 0.0;
-    }
-    
-    return pow(-1.0, j1 + 0.5) * pow(((2.0 * j1) + 1.0) * ((2.0 * j2) + 1.0), 0.5) * MathConstant::Instance()->Wigner3j(j1, j2, double(rank), -0.5, 0.5, 0.0);
 }
 
 double delta_function(double i, double j)
