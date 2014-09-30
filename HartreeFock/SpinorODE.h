@@ -72,8 +72,8 @@ protected:
     bool include_nonlocal;
 };
 
-typedef boost::shared_ptr<SpinorODE> pSpinorODE;
-typedef boost::shared_ptr<const SpinorODE> pSpinorODEConst;
+typedef std::shared_ptr<SpinorODE> pSpinorODE;
+typedef std::shared_ptr<const SpinorODE> pSpinorODEConst;
 
 /** SpinorODEDecorator is for adding extra terms to an existing SpinorODE.
     The Decorator pattern allows nesting of additional terms in any order.

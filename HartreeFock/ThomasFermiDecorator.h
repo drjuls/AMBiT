@@ -29,7 +29,7 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 };
 
-typedef boost::shared_ptr<ThomasFermiDecorator> pThomasFermiDecorator;
-typedef boost::shared_ptr<const ThomasFermiDecorator> pThomasFermiDecoratorConst;
+typedef std::shared_ptr<ThomasFermiDecorator> pThomasFermiDecorator;
+typedef std::shared_ptr<const ThomasFermiDecorator> pThomasFermiDecoratorConst;
 
 #endif

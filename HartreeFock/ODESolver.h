@@ -38,8 +38,8 @@ protected:
     pLattice lattice;
 };
 
-typedef boost::shared_ptr<OneDimensionalODE> pOneDimensionalODE;
-typedef boost::shared_ptr<const OneDimensionalODE> pOneDimensionalODEConst;
+typedef std::shared_ptr<OneDimensionalODE> pOneDimensionalODE;
+typedef std::shared_ptr<const OneDimensionalODE> pOneDimensionalODEConst;
 
 class ODESolver
 {
@@ -71,8 +71,8 @@ protected:
     pOPIntegrator integrator;
 };
 
-typedef boost::shared_ptr<ODESolver> pODESolver;
-typedef boost::shared_ptr<const ODESolver> pODESolverConst;
+typedef std::shared_ptr<ODESolver> pODESolver;
+typedef std::shared_ptr<const ODESolver> pODESolverConst;
 
 class AdamsSolver : public ODESolver
 {

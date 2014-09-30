@@ -61,8 +61,8 @@ public:
     friend std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
 };
 
-typedef boost::shared_ptr<ConfigList> pConfigList;
-typedef boost::shared_ptr<const ConfigList> pConfigListConst;
+typedef std::shared_ptr<ConfigList> pConfigList;
+typedef std::shared_ptr<const ConfigList> pConfigListConst;
 
 class ConfigurationPair : public std::pair<NonRelConfiguration, double>
 {

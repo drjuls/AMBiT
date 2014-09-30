@@ -131,7 +131,7 @@ protected:
     pOrbitalMapConst excited;
 };
 
-typedef boost::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
+typedef std::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
 
 class BruecknerSigmaCalculator : public MBPTCalculator
 {
@@ -167,6 +167,6 @@ protected:
     pOrbitalMapConst excited;
 };
 
-typedef boost::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
+typedef std::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
 
 #endif

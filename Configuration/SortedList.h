@@ -44,8 +44,8 @@ public:
     iterator end() { return m_list.end(); }
     const_iterator end() const { return m_list.end(); }
 
-    iterator erase(const_iterator position) { return m_list.erase(position); }
-    iterator erase(const_iterator first, const_iterator last) { return m_list.erase(first, last); }
+    iterator erase(iterator position) { return m_list.erase(position); }
+    iterator erase(iterator first, iterator last) { return m_list.erase(first, last); }
 
     /** PRE: size() > 0 */
     Value& front() { return m_list.front(); }

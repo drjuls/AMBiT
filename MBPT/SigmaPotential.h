@@ -60,6 +60,6 @@ protected:
     unsigned int matrix_size;
 };
 
-typedef boost::shared_ptr<SigmaPotential> pSigmaPotential;
+typedef std::shared_ptr<SigmaPotential> pSigmaPotential;
 
 #endif

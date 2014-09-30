@@ -38,8 +38,8 @@ protected:
     int K;
 };
 
-typedef boost::shared_ptr<SpinorMatrixElement> pSpinorMatrixElement;
-typedef boost::shared_ptr<const SpinorMatrixElement> pSpinorMatrixElementConst;
+typedef std::shared_ptr<SpinorMatrixElement> pSpinorMatrixElement;
+typedef std::shared_ptr<const SpinorMatrixElement> pSpinorMatrixElementConst;
 
 /** SpinorMatrixElementDecorator is for adding extra terms to an existing operator.
     The Decorator pattern allows nesting of additional terms in any order.

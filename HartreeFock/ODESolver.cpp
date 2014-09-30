@@ -1,4 +1,5 @@
 #include "ODESolver.h"
+#include "Include.h"
 
 AdamsSolver::AdamsSolver(pOPIntegrator integrator): ODESolver(integrator)
 {

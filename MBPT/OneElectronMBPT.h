@@ -34,6 +34,6 @@ protected:
     bool include_valence_subtraction;
 };
 
-typedef boost::shared_ptr<OneElectronMBPT> pOneElectronMBPT;
+typedef std::shared_ptr<OneElectronMBPT> pOneElectronMBPT;
 
 #endif

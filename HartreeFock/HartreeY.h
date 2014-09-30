@@ -86,8 +86,8 @@ protected:
     bool two_body_reverse_symmetry_exists;
 };
 
-typedef boost::shared_ptr<HartreeYBase> pHartreeY;
-typedef boost::shared_ptr<const HartreeYBase> pHartreeYConst;
+typedef std::shared_ptr<HartreeYBase> pHartreeY;
+typedef std::shared_ptr<const HartreeYBase> pHartreeYConst;
 
 /** HartreeY is the one-body operator defined by
     \f[

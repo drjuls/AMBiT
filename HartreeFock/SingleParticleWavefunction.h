@@ -3,7 +3,7 @@
 
 #include "Universal/SpinorFunction.h"
 #include "Universal/Lattice.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <string>
 #include <math.h>
 #include <stdlib.h>
@@ -65,8 +65,8 @@ protected:
     double energy;
 };
 
-typedef boost::shared_ptr<SingleParticleWavefunction> pSingleParticleWavefunction;
-typedef boost::shared_ptr<const SingleParticleWavefunction> pSingleParticleWavefunctionConst;
+typedef std::shared_ptr<SingleParticleWavefunction> pSingleParticleWavefunction;
+typedef std::shared_ptr<const SingleParticleWavefunction> pSingleParticleWavefunctionConst;
 
 typedef SingleParticleWavefunction ContinuumWave;
 typedef pSingleParticleWavefunction pContinuumWave;

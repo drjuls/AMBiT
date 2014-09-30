@@ -18,7 +18,7 @@ class SlaterIntegralsInterface
 {
 public:
     SlaterIntegralsInterface(pOrbitalManagerConst orbitals): orbitals(orbitals) {}
-    virtual ~SlaterIntegralsInterface() = default;
+    virtual ~SlaterIntegralsInterface() {}
 
     /** Calculate two-electron Slater integrals, \f$ R^k(12,34) \f$, and return number of integrals that will be stored.
         The first four arguments are the sets of orbitals to store for each limb of the Slater integral
@@ -57,8 +57,8 @@ protected:
     pOrbitalManagerConst orbitals;
 };
 
-typedef boost::shared_ptr<SlaterIntegralsInterface> pSlaterIntegrals;
-typedef boost::shared_ptr<const SlaterIntegralsInterface> pSlaterIntegralsConst;
+typedef std::shared_ptr<SlaterIntegralsInterface> pSlaterIntegrals;
+typedef std::shared_ptr<const SlaterIntegralsInterface> pSlaterIntegralsConst;
 
 /** Class to hold Slater integrals \f$ R^k(12,34) \f$.
     storage_id is used to store and retrieve integrals in files.

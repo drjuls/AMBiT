@@ -3,7 +3,7 @@
 
 #include "SingleParticleWavefunction.h"
 #include "OpIntegrator.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /** Orbital is really no different to SingleParticleWavefunction,
     however it is explicitly bounded and hence normalisable, integrable, etc.
@@ -54,8 +54,8 @@ public:
     using SingleParticleWavefunction::Write;
 };
 
-typedef boost::shared_ptr<Orbital> pOrbital;
-typedef boost::shared_ptr<const Orbital> pOrbitalConst;
+typedef std::shared_ptr<Orbital> pOrbital;
+typedef std::shared_ptr<const Orbital> pOrbitalConst;
 
 #endif
 

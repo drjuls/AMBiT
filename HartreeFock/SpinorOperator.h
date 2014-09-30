@@ -37,8 +37,8 @@ public:
     }
 };
 
-typedef boost::shared_ptr<SpinorOperator> pSpinorOperator;
-typedef boost::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
+typedef std::shared_ptr<SpinorOperator> pSpinorOperator;
+typedef std::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
 
 /** SpinorOperatorDecorator is for adding extra terms to an existing operator.
     The Decorator pattern allows nesting of additional terms in any order.

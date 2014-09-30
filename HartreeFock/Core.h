@@ -47,7 +47,7 @@ protected:
     OccupationMap occupancy;
 };
 
-typedef boost::shared_ptr<Core> pCore;
-typedef boost::shared_ptr<const Core> pCoreConst;
+typedef std::shared_ptr<Core> pCore;
+typedef std::shared_ptr<const Core> pCoreConst;
 
 #endif

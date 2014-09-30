@@ -73,8 +73,8 @@ protected:
     void WriteInfo(FILE* fp, const pOrbitalMap& orbitals) const;
 };
 
-typedef boost::shared_ptr<OrbitalManager> pOrbitalManager;
-typedef boost::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
+typedef std::shared_ptr<OrbitalManager> pOrbitalManager;
+typedef std::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
 
 /** Free function to read state indexes. */
 inline void ReadOrbitalIndexes(OrbitalIndex& state_index, FILE* fp)

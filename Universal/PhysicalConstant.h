@@ -1,6 +1,8 @@
 #ifndef PHYSICAL_CONSTANT_H
 #define PHYSICAL_CONSTANT_H
 
+#include <memory>
+
 /** Fundamental physical constants.
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
       c = 1/alpha ~ 137 depends on alpha.

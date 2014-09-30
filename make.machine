@@ -90,14 +90,14 @@ endif
 
 ifeq ($(MACHINE), katana)
   CC  = icc
-  CXX = mpiCC
+  CXX = icpc -std=c++11
   F77 = ifort
 
-  LINK      = mpiCC
+  LINK      = icpc
   LINKFLAGS = 
   LIBDIR    = 
   LIBOBJ    = 
-  LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core guide pthread
+  LIBS      = mkl_rt pthread m
 
   INCLUDE  +=
 
@@ -112,9 +112,9 @@ ifeq ($(MACHINE), katana)
     F77FLAGS  = -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -D_MPI # -D_SCALAPACK
+  CXXFLAGS += -wd1125 #-D_MPI # -D_SCALAPACK
 
-  CCDEP   = gcc
+  CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
 endif
 

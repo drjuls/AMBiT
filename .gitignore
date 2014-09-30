@@ -24,6 +24,7 @@ Test
 Debug
 ambit
 ambit_test
+Eigen
 
 # Auxillary documentation files
 Documentation/*

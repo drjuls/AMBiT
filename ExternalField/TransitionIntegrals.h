@@ -76,7 +76,7 @@ protected:
     std::map<unsigned int, double> integrals;
 };
 
-typedef boost::shared_ptr<TransitionIntegrals> pTransitionIntegrals;
-typedef boost::shared_ptr<const TransitionIntegrals> pTransitionIntegralsConst;
+typedef std::shared_ptr<TransitionIntegrals> pTransitionIntegrals;
+typedef std::shared_ptr<const TransitionIntegrals> pTransitionIntegralsConst;
 
 #endif

@@ -83,7 +83,7 @@ protected:
     std::map<unsigned int, double> integrals;
 };
 
-typedef boost::shared_ptr<const SzOperator> pSzOperatorConst;
+typedef std::shared_ptr<const SzOperator> pSzOperatorConst;
 
 /** GFactorCalculator uses the SzOperator to calculate Lande g-factors
     for all levels of a given symmetry in a LevelMap.

@@ -34,6 +34,7 @@ libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX
 $(exes): $(libnames)
 	$(LINK) $(LINKFLAGS) -o $@ $^ $(gtestobj) $(addprefix -L, $(LIBDIR)) \
                 $(LIBOBJ) $(addprefix -l, $(LIBS))
+	-@mkdir -p $(ANGULAR_DATA_DIRECTORY)
 
 .EXPORT_ALL_VARIABLES:
 

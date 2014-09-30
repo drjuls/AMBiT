@@ -14,7 +14,7 @@ class ExpLattice : public Lattice
 public:
     ExpLattice(const ExpLattice& other);
     ExpLattice(unsigned int numpoints, double r_min, double H);
-    virtual ~ExpLattice(void) {}
+    virtual ~ExpLattice() {}
 
     /** Equality does not check size of lattice. */
     virtual bool operator==(const ExpLattice& other) const;

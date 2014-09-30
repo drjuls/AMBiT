@@ -17,7 +17,7 @@ ContinuumBuilder::~ContinuumBuilder()
 
 void ContinuumBuilder::CopyLattice(pLatticeConst lat)
 {
-    boost::shared_ptr<const ExpLattice> explat = boost::dynamic_pointer_cast<const ExpLattice>(lat);
+    std::shared_ptr<const ExpLattice> explat = boost::dynamic_pointer_cast<const ExpLattice>(lat);
     if(explat != NULL)
         lattice = pLattice(new ExpLattice(*explat));
     else

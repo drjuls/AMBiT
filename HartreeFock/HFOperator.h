@@ -93,8 +93,8 @@ protected:
     int currentKappa;
 };
 
-typedef boost::shared_ptr<HFOperator> pHFOperator;
-typedef boost::shared_ptr<const HFOperator> pHFOperatorConst;
+typedef std::shared_ptr<HFOperator> pHFOperator;
+typedef std::shared_ptr<const HFOperator> pHFOperatorConst;
 
 class HFOperatorDecorator : public HFOperator
 {

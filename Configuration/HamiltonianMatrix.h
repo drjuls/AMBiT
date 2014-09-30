@@ -12,8 +12,8 @@
 #include "MBPT/OneElectronIntegrals.h"
 
 typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
-typedef boost::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
-typedef boost::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
+typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
+typedef std::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
 
 class HamiltonianMatrix
 {

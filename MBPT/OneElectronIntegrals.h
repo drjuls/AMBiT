@@ -88,7 +88,7 @@ protected:
     std::map<unsigned int, double> integrals;
 };
 
-typedef boost::shared_ptr<OneElectronIntegrals> pOneElectronIntegrals;
-typedef boost::shared_ptr<const OneElectronIntegrals> pOneElectronIntegralsConst;
+typedef std::shared_ptr<OneElectronIntegrals> pOneElectronIntegrals;
+typedef std::shared_ptr<const OneElectronIntegrals> pOneElectronIntegralsConst;
 
 #endif

@@ -28,7 +28,7 @@ protected:
     double nuclear_thickness;
 };
 
-typedef boost::shared_ptr<NucleusDecorator> pNucleusDecorator;
-typedef boost::shared_ptr<const NucleusDecorator> pNucleusDecoratorConst;
+typedef std::shared_ptr<NucleusDecorator> pNucleusDecorator;
+typedef std::shared_ptr<const NucleusDecorator> pNucleusDecoratorConst;
 
 #endif

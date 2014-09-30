@@ -65,7 +65,7 @@ protected:
 };
 
 typedef CoreValenceIntegrals<std::map<unsigned long long int, double>> CoreValenceIntegralsMap;
-typedef boost::shared_ptr<CoreValenceIntegralsMap> pCoreValenceIntegralsMap;
+typedef std::shared_ptr<CoreValenceIntegralsMap> pCoreValenceIntegralsMap;
 
 #include "CoreValenceIntegrals.cpp"
 

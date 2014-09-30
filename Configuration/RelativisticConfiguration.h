@@ -244,7 +244,7 @@ public:
     }
 };
 
-typedef boost::shared_ptr<RelativisticConfigList> pRelativisticConfigList;
-typedef boost::shared_ptr<const RelativisticConfigList> pRelativisticConfigListConst;
+typedef std::shared_ptr<RelativisticConfigList> pRelativisticConfigList;
+typedef std::shared_ptr<const RelativisticConfigList> pRelativisticConfigListConst;
 
 #endif

@@ -71,7 +71,7 @@ protected:
     pLattice lattice;
 };
 
-typedef boost::shared_ptr<OrbitalMap> pOrbitalMap;
-typedef boost::shared_ptr<const OrbitalMap> pOrbitalMapConst;
+typedef std::shared_ptr<OrbitalMap> pOrbitalMap;
+typedef std::shared_ptr<const OrbitalMap> pOrbitalMapConst;
 
 #endif

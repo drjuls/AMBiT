@@ -95,8 +95,8 @@ protected:
 //    TransitionSet* mTransitionSet;
 };
 
-typedef boost::shared_ptr<Level> pLevel;
-typedef boost::shared_ptr<const Level> pLevelConst;
+typedef std::shared_ptr<Level> pLevel;
+typedef std::shared_ptr<const Level> pLevelConst;
 
 /** Map LevelID to pLevel. For each level, M = J.
     As well as iterators over all levels, LevelMap provides a filter_iterator to select only
@@ -190,7 +190,7 @@ protected:
     void Print(const Symmetry& sym, double min_percentage, bool use_max_energy, double max_energy) const;
 };
 
-typedef boost::shared_ptr<LevelMap> pLevelMap;
-typedef boost::shared_ptr<const LevelMap> pLevelMapConst;
+typedef std::shared_ptr<LevelMap> pLevelMap;
+typedef std::shared_ptr<const LevelMap> pLevelMapConst;
 
 #endif

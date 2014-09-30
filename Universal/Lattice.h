@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/weak_ptr.hpp>
 
 class LatticeObserver;
@@ -25,7 +25,7 @@ public:
     Lattice(unsigned int numpoints, double r_min, double r_max);
     Lattice(const Lattice& other);
     Lattice(FILE* binary_infile);
-    virtual ~Lattice() = default;
+    virtual ~Lattice() {}
 
     /** Equality does not check size of lattice. */
     virtual bool operator==(const Lattice& other) const;
@@ -110,8 +110,8 @@ protected:
     std::list<LatticeObserver*> observers;
 };
 
-typedef boost::shared_ptr<Lattice> pLattice;
-typedef boost::shared_ptr<const Lattice> pLatticeConst;
+typedef std::shared_ptr<Lattice> pLattice;
+typedef std::shared_ptr<const Lattice> pLatticeConst;
 
 /** LatticeObserver is an abstract interface for any class that needs to observe changes in the size of a lattice.
     The lattice that is under observation is passed in the Alert() function, since in some cases the observer

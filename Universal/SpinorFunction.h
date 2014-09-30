@@ -3,7 +3,7 @@
 
 #include "Lattice.h"
 #include "Enums.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <stdio.h>
 #include <vector>
 
@@ -79,8 +79,8 @@ protected:
     int kappa;
 };
 
-typedef boost::shared_ptr<SpinorFunction> pSpinorFunction;
-typedef boost::shared_ptr<const SpinorFunction> pSpinorFunctionConst;
+typedef std::shared_ptr<SpinorFunction> pSpinorFunction;
+typedef std::shared_ptr<const SpinorFunction> pSpinorFunctionConst;
 
 inline int SpinorFunction::L() const
 {   if (kappa > 0)

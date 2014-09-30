@@ -61,7 +61,7 @@ protected:
     bool fwd_direction;
 };
 
-typedef boost::shared_ptr<CoulombOperator> pCoulombOperator;
-typedef boost::shared_ptr<const CoulombOperator> pCoulombOperatorConst;
+typedef std::shared_ptr<CoulombOperator> pCoulombOperator;
+typedef std::shared_ptr<const CoulombOperator> pCoulombOperatorConst;
 
 #endif

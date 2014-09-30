@@ -161,7 +161,7 @@ protected:
     pTwoElectronIntegralType integrals;
 };
 
-typedef boost::shared_ptr<TwoElectronCoulombOperator<pSlaterIntegrals>> pTwoElectronCoulombOperator;
+typedef std::shared_ptr<TwoElectronCoulombOperator<pSlaterIntegrals>> pTwoElectronCoulombOperator;
 
 template <class TwoElectronIntegralType>
 double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const

@@ -67,7 +67,7 @@ protected:
     double lambda;
 };
 
-typedef boost::shared_ptr<BruecknerDecorator> pBruecknerDecorator;
-typedef boost::shared_ptr<const BruecknerDecorator> pBruecknerDecoratorConst;
+typedef std::shared_ptr<BruecknerDecorator> pBruecknerDecorator;
+typedef std::shared_ptr<const BruecknerDecorator> pBruecknerDecoratorConst;
 
 #endif

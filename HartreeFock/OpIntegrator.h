@@ -3,7 +3,7 @@
 
 #include "Universal/Lattice.h"
 #include "Universal/SpinorFunction.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /** OPIntegrator provides an interface for integrating radial functions and spinor functions.
     A default implementation for spinor integration routines is provided, that defers the
@@ -34,7 +34,7 @@ protected:
     pLattice lattice;
 };
 
-typedef boost::shared_ptr<OPIntegrator> pOPIntegrator;
+typedef std::shared_ptr<OPIntegrator> pOPIntegrator;
 
 /** SimpsonsIntegrator overrides many functions in OPIntegrator for speed. */
 class SimpsonsIntegrator : public OPIntegrator

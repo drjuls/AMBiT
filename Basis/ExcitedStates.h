@@ -85,7 +85,7 @@ protected:
     SigmaAmount SecondOrderAmount;
 };
 
-typedef boost::shared_ptr<ExcitedStates> pExcitedStates;
-typedef boost::shared_ptr<const ExcitedStates> pExcitedStatesConst;
+typedef std::shared_ptr<ExcitedStates> pExcitedStates;
+typedef std::shared_ptr<const ExcitedStates> pExcitedStatesConst;
 
 #endif

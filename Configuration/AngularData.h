@@ -6,7 +6,7 @@
 #include "Symmetry.h"
 #include <list>
 #include <unordered_map>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
@@ -110,8 +110,8 @@ protected:
     } J_squared_operator;
 };
 
-typedef boost::shared_ptr<AngularData> pAngularData;
-typedef boost::shared_ptr<const AngularData> pAngularDataConst;
+typedef std::shared_ptr<AngularData> pAngularData;
+typedef std::shared_ptr<const AngularData> pAngularDataConst;
 
 /** Collection of AngularData elements, indexed by RelativisticConfiguration.
     The collection is stored on disk in the directory specified by lib_directory, with filename
@@ -150,6 +150,6 @@ protected:
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType> > library;
 };
 
-typedef boost::shared_ptr<AngularDataLibrary> pAngularDataLibrary;
+typedef std::shared_ptr<AngularDataLibrary> pAngularDataLibrary;
 
 #endif

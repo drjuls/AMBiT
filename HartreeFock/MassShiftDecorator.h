@@ -46,7 +46,7 @@ protected:
     double lambda;
 };
 
-typedef boost::shared_ptr<MassShiftDecorator> pMassShiftDecorator;
-typedef boost::shared_ptr<const MassShiftDecorator> pMassShiftDecoratorConst;
+typedef std::shared_ptr<MassShiftDecorator> pMassShiftDecorator;
+typedef std::shared_ptr<const MassShiftDecorator> pMassShiftDecoratorConst;
 
 #endif
