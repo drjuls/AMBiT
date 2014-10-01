@@ -6,6 +6,7 @@
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/MassShiftDecorator.h"
 #include "HartreeFock/NonRelativisticSMSOperator.h"
+#include "ExternalField/BreitHFDecorator.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
     hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
@@ -89,6 +90,13 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
         pHartreeY dressed(new NonRelativisticSMSOperator(hartreeY));
         hartreeY = dressed;
+    }
+
+    if(user_input.search("HF/--breit"))
+    {
+        pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
+        pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
+        hf = breit_hf;
     }
 }
 

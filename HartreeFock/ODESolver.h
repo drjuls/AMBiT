@@ -78,7 +78,7 @@ class AdamsSolver : public ODESolver
 {
 public:
     AdamsSolver(pOPIntegrator integrator);
-    virtual ~AdamsSolver();
+    virtual ~AdamsSolver() {}
 
 public:
     /** Get eigenstate of the operator by integrating from r=0 to rmax. */
@@ -104,7 +104,7 @@ public:
     
 protected:
     unsigned int order;
-    double* adams_coeff;
+    std::vector<double> adams_coeff;
 };
 
 #endif

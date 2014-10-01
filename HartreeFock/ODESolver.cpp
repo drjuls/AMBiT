@@ -4,17 +4,9 @@
 AdamsSolver::AdamsSolver(pOPIntegrator integrator): ODESolver(integrator)
 {
     order = 10;
-    const double adams_10[10]
-    = {2082753./7257600., 9449717./7257600., -11271304./7257600., 16002320./7257600., -17283646./7257600.,
-        13510082./7257600., -7394032./7257600., 2687864./7257600., -583435./7257600., 57281./7257600.};
-
-    adams_coeff = new double[10];
-    memcpy(adams_coeff, adams_10, 10*sizeof(double));
-}
-
-AdamsSolver::~AdamsSolver()
-{
-    delete[] adams_coeff;
+    adams_coeff
+        = {2082753./7257600., 9449717./7257600., -11271304./7257600., 16002320./7257600., -17283646./7257600.,
+           13510082./7257600., -7394032./7257600., 2687864./7257600., -583435./7257600., 57281./7257600.};
 }
 
 void AdamsSolver::IntegrateForwards(const OneDimensionalODE* op, RadialFunction* solution)

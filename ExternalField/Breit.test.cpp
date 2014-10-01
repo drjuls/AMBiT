@@ -178,7 +178,6 @@ TEST(BreitTester, IrSixteenPlus)
     hf_solver.SolveCore(core, breit_hf);
 
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(5, -1));
-    const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(5, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(5, -2));
 
     double energy = hf->GetMatrixElement(p3, p3) - hf->GetMatrixElement(s, s);
