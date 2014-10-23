@@ -55,6 +55,12 @@ public:
      */
     inline std::vector<double> GetMatrixElement(LevelMap::const_symmetry_iterator begin, LevelMap::const_symmetry_iterator end) const;
 
+    /** Equivalent to calculating GetMatrixElement(left, right) for each level in their respective ranges [begin, end).
+        Return array of matrix elements indexed by left_index * (num_right) + right_index.
+     */
+    inline std::vector<double> GetMatrixElement(LevelMap::const_symmetry_iterator begin_left, LevelMap::const_symmetry_iterator end_left,
+                                                LevelMap::const_symmetry_iterator begin_right, LevelMap::const_symmetry_iterator end_right) const;
+
 protected:
     std::tuple<pElectronOperators...> pOperators;
 
@@ -191,12 +197,12 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 template<typename... pElectronOperators>
 void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
 {
-    indirect_proj.clear();
-    indirect_proj.reserve(proj.size());
+    if(indirect_proj.size() != proj.size())
+        indirect_proj.resize(proj.size());
 
-    std::copy(boost::make_counting_iterator(proj.data()),
-              boost::make_counting_iterator(proj.data_end()),
-              std::back_inserter(indirect_proj));
+    auto indirect_it = indirect_proj.begin();
+    for(auto& e: proj)
+        *indirect_it++ = &e;
 }
 
 template<typename... pElectronOperators>
@@ -205,11 +211,11 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
 {
     // NB: These are static for speed: to prevent memory (de)allocation
     static IndirectProjection diff1, diff2;
-    diff1.clear(); diff1.reserve(p1.size() + max_diffs);
-    diff2.clear(); diff2.reserve(p2.size() + max_diffs);
+    diff1.clear();
+    diff2.clear();
     static IndirectProjection sorted_p1, sorted_p2;
-    sorted_p1.clear(); sorted_p1.reserve(p1.size());
-    sorted_p2.clear(); sorted_p2.reserve(p2.size());
+    sorted_p1.clear();
+    sorted_p2.clear();
 
     auto it1 = p1.begin();
     auto it2 = p2.begin();
@@ -226,7 +232,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
     int num_holes2 = 0;
     int num_electrons2 = 0;
 
-    while(it1 != p1.end() && it2 != p2.end() && diff1.size() <= max_diffs && diff2.size() <= max_diffs)
+    while(diff1.size() <= max_diffs && diff2.size() <= max_diffs && it1 != p1.end() && it2 != p2.end())
     {
         const ElectronInfo& e1(**it1);
         const ElectronInfo& e2(**it2);
@@ -544,11 +550,77 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
                     }
                 }
 
-                // If the projections are different, count twice
-//                if(proj_it != proj_jt)
-//                    coeff *= 2.;
-
                 total += coeff * matrix_element;
+            }
+            proj_jt++;
+        }
+        proj_it++;
+    }
+    
+    return total;
+}
+
+template<typename... pElectronOperators>
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(LevelMap::const_symmetry_iterator begin_left, LevelMap::const_symmetry_iterator end_left,
+                                                                              LevelMap::const_symmetry_iterator begin_right, LevelMap::const_symmetry_iterator end_right) const
+{
+    std::vector<const double*> left_eigenvector;
+    std::vector<const double*> right_eigenvector;
+    
+    for(auto it = begin_left; it != end_left; it++)
+        left_eigenvector.push_back(it->second->GetEigenvector());
+
+    for(auto it = begin_right; it != end_right; it++)
+        right_eigenvector.push_back(it->second->GetEigenvector());
+
+    unsigned int return_size = left_eigenvector.size() * right_eigenvector.size();
+    if(return_size == 0)
+        return std::vector<double>();
+    
+    pRelativisticConfigListConst configs_left = begin_left->second->GetRelativisticConfigList();
+    pRelativisticConfigListConst configs_right = begin_right->second->GetRelativisticConfigList();
+    std::vector<double> total(return_size, 0.);
+    std::vector<double> coeff(return_size, 0.);
+    
+    unsigned int solution = 0;
+    
+    // Iterate over projections
+    auto proj_it = configs_left->projection_begin();
+    while(proj_it != configs_left->projection_end())
+    {
+        auto proj_jt = configs_right->projection_begin();
+        while(proj_jt != configs_right->projection_end())
+        {
+            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+            
+            // coefficients
+            if(matrix_element)
+            {
+                // Summation over CSFs
+                for(double& e: coeff)
+                    e = 0.;
+                
+                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                {
+                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                    {
+                        solution = 0;   // Note: solution = left_index * right_eigenvector.size() + right_index
+                        for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                        {
+                            for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
+                            {
+                                coeff[solution] += (*coeff_i) * (*coeff_j)
+                                    * left_eigenvector[left_index][coeff_i.index()]
+                                    * right_eigenvector[right_index][coeff_j.index()];
+
+                                solution++;
+                            }
+                        }
+                    }
+                }
+
+                for(solution = 0; solution < return_size; solution++)
+                    total[solution] += coeff[solution] * matrix_element;
             }
             proj_jt++;
         }

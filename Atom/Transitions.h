@@ -85,14 +85,21 @@ public:
     bool TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const;
 
     /** Calculate transition strength for smallest TransitionType possible and add to map.
-        If smallest TransitionType < max_type, return zero.
+        If smallest TransitionType > max_type, return zero.
      */
     double CalculateTransition(const LevelID& left, const LevelID& right);
 
-    /** Calculate transition strength if allowed by type and add to map. */
+    /** Calculate transition strength if allowed by type and add to map.
+        While we're at it, calculate all transitions with same symmetry, since this hardly costs any more.
+        Print transition that was requested.
+     */
     double CalculateTransition(const LevelID& left, const LevelID& right, TransitionType type);
 
     void Print() const;
+
+protected:
+    /** TransitionID with left <= right. */
+    TransitionID make_transitionID(const LevelID& left, const LevelID& right, TransitionType type) const;
 
 protected:
     Atom& atom;

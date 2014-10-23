@@ -1,4 +1,4 @@
-cxxobjects = EJOperator.o TransitionIntegrals.o
+cxxobjects = EJOperator.o TransitionIntegrals.o BreitHFDecorator.o BreitZero.o
 cobjects =
 fobjects =
 

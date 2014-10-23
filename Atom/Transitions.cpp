@@ -9,6 +9,22 @@ TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType m
     levels = atom.GetLevels();
 }
 
+TransitionID TransitionMap::make_transitionID(const LevelID& left, const LevelID& right, TransitionType type) const
+{
+    TransitionID id;
+    if(left < right)
+    {   std::get<0>(id) = left;
+        std::get<1>(id) = right;
+    }
+    else
+    {   std::get<0>(id) = right;
+        std::get<1>(id) = left;
+    }
+    std::get<2>(id) = type;
+
+    return id;
+}
+
 bool TransitionMap::TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const
 {
     int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
@@ -65,16 +81,7 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
 double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right, TransitionType type)
 {
     // Check it doesn't exist already
-    TransitionID id;
-    if(left < right)
-    {   std::get<0>(id) = left;
-        std::get<1>(id) = right;
-    }
-    else
-    {   std::get<0>(id) = right;
-        std::get<1>(id) = left;
-    }
-    std::get<2>(id) = type;
+    TransitionID id = make_transitionID(left, right, type);
 
     if(this->find(id) != this->end())
         return (*this)[id];
@@ -125,18 +132,33 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
 
     ManyBodyOperator<pTransitionIntegrals> many_body_operator(transition_integral);
 
-    // Get matrix element
-    double value;
-    if(left != right)
-        value = many_body_operator.GetMatrixElement(*left_level, *right_level);
-    else
-        value = many_body_operator.GetMatrixElement(*left_level);
+    // Get matrix elements for all transitions with same symmetry
+    std::vector<double> values;
+    Symmetry leftsym = left.GetSymmetry();
+    Symmetry rightsym = right.GetSymmetry();
+    values = many_body_operator.GetMatrixElement(levels->begin(leftsym), levels->end(leftsym), levels->begin(rightsym), levels->end(rightsym));
 
-    // Convert to strength
-    value = value/MathConstant::Instance()->Electron3j(right.GetTwoJ(), left.GetTwoJ(), type.second, right.GetTwoJ(), -left.GetTwoJ());
-    value = value * value;
+    // Convert to strength and add to TransitionMap
+    double angular_projection_factor = 1./MathConstant::Instance()->Electron3j(right.GetTwoJ(), left.GetTwoJ(), type.second, right.GetTwoJ(), -left.GetTwoJ());
 
-    (*this)[id] = value;
+    auto value_iterator = values.begin();
+    for(auto left_it = levels->begin(leftsym); left_it != levels->end(leftsym); left_it++)
+    {
+        for(auto right_it = levels->begin(rightsym); right_it != levels->end(rightsym); right_it++)
+        {
+            double value = (*value_iterator) * angular_projection_factor;
+            value = value * value;
+
+            TransitionID current_id = make_transitionID(left_it->first, right_it->first, type);
+            (*this)[current_id] = value;
+            value_iterator++;
+        }
+    }
+
+    // Get transition specifically requested, print and return
+    double value = (*this)[id];
+    *outstream << "  " << left.Name() << " -> " << right.Name() << ": S(" << type << ") = " << value << std::endl;
+
     return value;
 }
 
