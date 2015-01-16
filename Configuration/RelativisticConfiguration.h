@@ -118,13 +118,16 @@ protected:
 };
 
 class MostCSFsFirstComparator;
+class FewestProjectionsFirstComparator;
 
 /** RelativisticConfigList extends SortedList to give projection, CSF information over the whole list.
     In particular a projection iterator just like RelativisticConfig::const_projection_iterator is
     provided which iterates over all projections in all configurations in the list, and from which CSF
     coefficients can be accessed.
+    To facilitate multithreading over individual RelativisticConfigurations, a "random access"
+    operator[] is provided that returns the RelativisticConfiguration and the CSF offset.
  */
-class RelativisticConfigList: public SortedList<RelativisticConfiguration, MostCSFsFirstComparator>
+class RelativisticConfigList: public SortedList<RelativisticConfiguration, FewestProjectionsFirstComparator>
 {
 public:
     RelativisticConfigList() {}
@@ -146,6 +149,12 @@ public:
 
     /** Return total number of CSFs stored in entire list. */
     unsigned int NumCSFs() const;
+
+    /** Get the ith RelativisticConfiguration, and the CSF offset.
+        PRE: i < size().
+     */
+    std::pair<RelativisticConfiguration&, int> operator[](unsigned int i);
+    std::pair<const RelativisticConfiguration&, int> operator[](unsigned int i) const;
 
 public:
     typedef RelativisticConfiguration::const_CSF_iterator const_CSF_iterator;
@@ -238,6 +247,20 @@ public:
         if(first.NumCSFs() > second.NumCSFs())
             return true;
         else if(first.NumCSFs() < second.NumCSFs())
+            return false;
+        else
+            return(first < second);
+    }
+};
+
+class FewestProjectionsFirstComparator
+{
+public:
+    bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        if(first.projection_size() < second.projection_size())
+            return true;
+        else if(first.projection_size() > second.projection_size())
             return false;
         else
             return(first < second);
