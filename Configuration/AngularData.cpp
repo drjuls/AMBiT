@@ -1,7 +1,7 @@
 #include "AngularData.h"
 #include "Include.h"
 #include "RelativisticConfiguration.h"
-#include "Universal/Eigensolver.h"
+#include "Eigen/Eigen"
 #include "ManyBodyOperator.h"
 #include <numeric>
 #include <dirent.h>
@@ -159,7 +159,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
 
     // Generate the matrix
     unsigned int i, j;
-    double* M = new double[N*N];
+    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(N, N);
 
     // Make list of Projections.
     std::list< Projection > real_Projection_list;
@@ -179,7 +179,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         while(j_it != real_Projection_list.end())
         {
             double matrix_element = J_squared.GetMatrixElement(*i_it, *j_it);
-            M[i*N + j] = M[j*N + i] = matrix_element;
+            M(i, j) = M(j, i) = matrix_element;
             j_it++; j++;
         }
 
@@ -187,11 +187,9 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     }
 
     // Solve the matrix
-    double* V = new double[N];  // eigenvalues
-    memset(V, 0, N * sizeof(double));
-
-    Eigensolver E;
-    E.SolveSmallSymmetric(M, V, N);
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
+    const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
+    const Eigen::VectorXd& V = es.eigenvalues();
 
     // Count number of good eigenvalues
     double JSquared = double(two_j * (two_j + 2.)) / 4.;
@@ -222,15 +220,12 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
             if(fabs(V[i] - JSquared) < 1.e-6)
             {
                 for(j = 0; j < N; j++)
-                    CSFs[j * num_CSFs + count] = M[i*N + j];
+                    CSFs[j * num_CSFs + count] = eigenvectors(j, i);
 
                 count++;
             }
         }
     }
-
-    delete[] M;
-    delete[] V;
 
     return num_CSFs;
 }

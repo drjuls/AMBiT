@@ -5,9 +5,9 @@
 #include "HartreeFock/SingleParticleWavefunction.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
-//#include "ConfigFileGenerator.h"
 #include "GFactor.h"
 
+// Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 2000
 
 // Include this define for the box diagrams of "wrong" parity.
@@ -18,7 +18,7 @@
 //#define SIGMA3_AND
 
 HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs):
-    H_two_body(nullptr), configs(relconfigs), M(nullptr) //, include_sigma3(false)
+    H_two_body(nullptr), configs(relconfigs) //, include_sigma3(false)
 {
     // Set up Hamiltonian operator
     H_two_body = pTwoBodyHamiltonianOperator(new TwoBodyHamiltonianOperator(hf, coulomb));
@@ -31,64 +31,62 @@ HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulo
 }
 
 HamiltonianMatrix::~HamiltonianMatrix()
-{
-    if(M)
-        delete M;
-}
+{}
 
 void HamiltonianMatrix::GenerateMatrix()
 {
-    if(M == nullptr)
-    {   if(N <= SMALL_MATRIX_LIM)
-            M = new SmallMatrix(N);
-        else
-            M = new SymMatrix(N);
-    }
-    else
-        M->Clear();
+    chunks.clear();
 
-    M->WriteMode(true);
-
-    // Loop through projections
-    auto proj_it = configs->projection_begin();
-    while(proj_it != configs->projection_end())
+    if(N <= SMALL_MATRIX_LIM)
     {
-        auto proj_jt = proj_it;
+        chunks.push_back(MatrixChunk(0, N, N));
 
-        while(proj_jt != configs->projection_end())
+        Eigen::MatrixXd& M = chunks.begin()->chunk;
+
+        // Loop through projections
+        auto proj_it = configs->projection_begin();
+        while(proj_it != configs->projection_end())
         {
-            double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+            auto proj_jt = proj_it;
 
-            if(fabs(operatorH) > 1.e-15)
+            while(proj_jt != configs->projection_end())
             {
-                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                if(fabs(operatorH) > 1.e-15)
                 {
-                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                    if(proj_it == proj_jt)
-                        start_j = coeff_i;
-
-                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                    for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                     {
-                        // See notes for an explanation
-                        int i = coeff_i.index();
-                        int j = coeff_j.index();
+                        RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
 
-                        if(i < j)
-                            M->At(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                        else if(i > j)
-                            M->At(j, i) += operatorH * (*coeff_i) * (*coeff_j);
-                        else if(proj_it == proj_jt)
-                            M->At(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                        else
-                            M->At(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                        if(proj_it == proj_jt)
+                            start_j = coeff_i;
+
+                        for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                        {
+                            // See notes for an explanation
+                            int i = coeff_i.index();
+                            int j = coeff_j.index();
+
+                            if(i < j)
+                                M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                            else if(i > j)
+                                M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                            else if(proj_it == proj_jt)
+                                M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                            else
+                                M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                        }
                     }
                 }
+                proj_jt++;
             }
-            proj_jt++;
+            proj_it++;
         }
-        proj_it++;
     }
+
+    for(auto& matrix_section: chunks)
+        matrix_section.Symmetrize();
 }
 
 void HamiltonianMatrix::WriteToFile(const std::string& filename)
@@ -96,34 +94,22 @@ void HamiltonianMatrix::WriteToFile(const std::string& filename)
     return;
 }
 
-void HamiltonianMatrix::PollMatrix()
+double HamiltonianMatrix::PollMatrix(double epsilon) const
 {
-    M->WriteMode(false);
-
-    unsigned int i, j, count;
+    unsigned int i, j, count = 0;
     double value;
-    unsigned int range[10];
-    for(i=0; i<10; i++)
-        range[i] = 0;
 
-    for(i=0; i<N; i++)
-        for(j=0; j<N; j++)
-        {
-            value = fabs(M->At(i, j));
-            if(value >= 1.)
-                range[9]++;
-            else
-            {   count = 0;
-                while(value > 1.e-16)
-                {   value = value/100.;
+    // Iterate over chunks
+    for(const auto& it: chunks)
+    {
+        for(i = 0; i < it.num_rows; i++)
+            for(j = i; j < N - it.start_row; j++)
+                if(fabs(it.chunk(i, j)) > epsilon)
                     count++;
-                }
-                range[count]++;
-            }
-        }
+    }
 
-    for(i=0; i<10; i++)
-        *outstream << i << " " << range[i] << " " << double(range[i])/double(N*N)*100. << std::endl;
+    value = double(count)/double(N * (N+1)/2);
+    return value;
 }
 
 void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels)
@@ -133,26 +119,73 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
         return;
     }
 
-    M->WriteMode(false);
+    unsigned int NumSolutions = mmin(num_solutions, N);
 
     *outstream << "; Finding solutions..." << std::endl;
 
-    unsigned int NumSolutions = mmin(num_solutions, N);
-    
-    double* V = new double[NumSolutions * N];
-    double* E = new double[NumSolutions];
-
-    Eigensolver solver;
-    solver.SolveLargeSymmetric(M, E, V, N, NumSolutions);
-
-    for(unsigned int i = 0; i < NumSolutions; i++)
+    if(N <= SMALL_MATRIX_LIM)
     {
-        pLevel level(new Level(E[i], (V + N * i), configs, N));
-        (*levels)[LevelID(sym, i)] = level;
-    }
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
+        const Eigen::VectorXd& E = es.eigenvalues();
+        const Eigen::MatrixXd& V = es.eigenvectors();
 
-    delete[] E;
-    delete[] V;
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            pLevel level(new Level(E(i), V.col(i).data(), configs, N));
+            (*levels)[LevelID(sym, i)] = level;
+        }
+    }
+    else
+    {   // Using Davidson method
+        double* V = new double[NumSolutions * N];
+        double* E = new double[NumSolutions];
+
+        Eigensolver solver;
+        solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            pLevel level(new Level(E[i], (V + N * i), configs, N));
+            (*levels)[LevelID(sym, i)] = level;
+        }
+
+        delete[] E;
+        delete[] V;
+    }
+}
+
+void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
+{
+    Eigen::Map<Eigen::MatrixXd> b_mapped(b, N, m);
+    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m);
+
+    // Multiply each chunk
+    for(const auto& matrix_section: chunks)
+    {
+        unsigned int start = matrix_section.start_row;
+
+        // Upper triangular part
+        c_mapped.block(start, 0, matrix_section.num_rows, m).noalias()
+            = matrix_section.chunk * b_mapped.block(start, 0, N-start, m);
+
+        // Lower triangular part
+        unsigned int lower_start = start + matrix_section.num_rows;
+        c_mapped.block(lower_start, 0, N - lower_start, m).noalias()
+            = matrix_section.chunk.block(0, matrix_section.num_rows, matrix_section.num_rows, N - lower_start).transpose()
+                * b_mapped.block(start, 0, matrix_section.num_rows, m);
+    }
+}
+
+void HamiltonianMatrix::GetDiagonal(double* diag) const
+{
+    // Get diagonal from each chunk
+    Eigen::Map<Eigen::VectorXd> diag_mapped(diag, N, 1);
+
+    for(const auto& matrix_section: chunks)
+    {
+        diag_mapped.segment(matrix_section.start_row, matrix_section.num_rows).noalias()
+            = matrix_section.chunk.diagonal();
+    }
 }
 
 //double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const

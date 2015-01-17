@@ -5,7 +5,7 @@
 #include "Universal/SpinorFunction.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/Eigensolver.h"
+#include "Eigen/Eigen"
 #include "Atom/MultirunOptions.h"
 
 enum SplineType {NotreDame, Reno, Vanderbilt};
@@ -50,7 +50,6 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 
     double dr0;
 
-    Eigensolver E;
     const double alpha = physical_constant->GetAlpha();
     const double alphasquared = physical_constant->GetAlphaSquared();
     pOPIntegrator integrator = hf->GetOPIntegrator();
@@ -204,14 +203,10 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         // To make integrals b(i,j) = <Bi|Bj> and A(i,j) = <Bi|H|Bj>
 
         unsigned int n2 = B_lattice.size();      // size of the matrices A and b
-        double* b = new double[n2*n2];
-        double* A = new double[n2*n2];
-        double* eigenvalues = new double[n2];
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n2, n2);
+        Eigen::MatrixXd b = Eigen::MatrixXd::Zero(n2, n2);
 
         unsigned int j;
-        memset(b, 0, n2*n2*sizeof(double));
-        memset(A, 0, n2*n2*sizeof(double));
-        memset(eigenvalues, 0, n2*sizeof(double));
 
         /* jcb: I removed the Gaussian integration that was previously being used to calculate <Bi|Bj>
                 as well as the direct part of the potential. I think using the normal lattice is good enough.
@@ -230,8 +225,8 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
             for(i=j; i<n2; i++)
             {
                 BSpline& Bi = *B_lattice[i];
-                A[i * n2 + j] = A[j * n2 + i] = integrator->GetInnerProduct(Bi, hf_applied_to_Bj);
-                b[i * n2 + j] = b[j * n2 + i] = integrator->GetInnerProduct(Bi, Bj);
+                A(i, j) = A(j, i) = integrator->GetInnerProduct(Bi, hf_applied_to_Bj);
+                b(i, j) = b(j, i) = integrator->GetInnerProduct(Bi, Bj);
             }
         }
 
@@ -241,104 +236,94 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
             // Account for boundary conditions on splines.
             // At r = 0, this is effectively a delta function to push spurious states to high energy.
             if(kappa < 0)
-                A[0] += 1./alpha;
+                A(0, 0) += 1./alpha;
             else
-                A[0] += 2./alphasquared;
-            A[0*n2 + n] += 0.5;
-            A[n*n2 + 0] += -0.5;
+                A(0, 0) += 2./alphasquared;
+            A(0, n) += 0.5;
+            A(n, 0) += -0.5;
 
             // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A[(n-1)*n2 + (n-1)] += 0.5/alpha;
-            A[(n-1)*n2 + (n2-1)] += -0.5;
-            A[(n2-1)*n2 + (n-1)] += 0.5;
-            A[(n2-1)*n2 + (n2-1)] += -0.5*alpha;
+            A((n-1), (n-1)) += 0.5/alpha;
+            A((n-1), (n2-1)) += -0.5;
+            A((n2-1), (n-1)) += 0.5;
+            A((n2-1), (n2-1)) += -0.5*alpha;
         }
         else if(spline_type == Vanderbilt)
         {
             // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A[(n-1)*n2 + (n-1)] += 0.5/alpha;
-            A[(n-1)*n2 + (n2-1)] += -0.5;
-            A[(n2-1)*n2 + (n-1)] += 0.5;
-            A[(n2-1)*n2 + (n2-1)] += -0.5*alpha;
+            A((n-1), (n-1)) += 0.5/alpha;
+            A((n-1), (n2-1)) += -0.5;
+            A((n2-1), (n-1)) += 0.5;
+            A((n2-1), (n2-1)) += -0.5*alpha;
         }
 
         // Solve A*p[i] = energy*B*p[i]
-        if(E.SolveMatrixEquation(A, b, eigenvalues, n2))
+        Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd> es(A,b);
+        const Eigen::VectorXd& eigenvalues = es.eigenvalues();
+        const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
+
+        if(debug)
+            *outstream << "kappa = " << kappa << std::endl;
+
+        bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
+
+        // Interpolate from B-splines to HF lattice and store
+        unsigned int pqn = l + 1;
+        i = n2/2;
+        pOrbitalConst s;
+
+        while((pqn <= max_pqn[l]) && (i < n2))
         {
-            if(debug)
-                *outstream << "kappa = " << kappa << std::endl;
+            // Check whether it is in the core
+            s = open_core->GetState(OrbitalInfo(pqn, kappa));
+            if(s)
+            {   if(debug)
+                {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
+                    *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
+                               << "  deltaE: " << diff << std::endl;
+                }
 
-            bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
+                if(!orbitals->core->GetState(OrbitalInfo(pqn, kappa)))
+                {   pOrbital s_copy(new Orbital(s));
+                    *s_copy = *s;
+                    excited->AddState(s_copy);
+                }
 
-            // Interpolate from B-splines to HF lattice and store
-            unsigned int pqn = l + 1;
-            i = n2/2;
-            pOrbitalConst s;
+                pqn++;
+            }
+            else
+            {   // Construct the orbital by summing splines with coefficients
+                pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
+                ds->resize(lattice_size);
 
-            while((pqn <= max_pqn[l]) && (i < n2))
-            {
-                // Check whether it is in the core
-                s = open_core->GetState(OrbitalInfo(pqn, kappa));
-                if(s)
+                for(j=0; j<n2; j++)
+                {
+                    (*ds) += (*B_lattice[j]) * eigenvectors(j, i);
+                }
+
+                // Remove spurious states
+                if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
                 {   if(debug)
-                    {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                        *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
-                                   << "  deltaE: " << diff << std::endl;
-                    }
+                        *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
+                                   << "  norm = " << ds->Norm(integrator) << std::endl;
+                }
+                else
+                {   if(reorth)
+                        Orthogonalise(ds);
+                    excited->AddState(ds);
 
-                    if(!orbitals->core->GetState(OrbitalInfo(pqn, kappa)))
-                    {   pOrbital s_copy(new Orbital(s));
-                        *s_copy = *s;
-                        excited->AddState(s_copy);
+                    if(debug)
+                    {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                   << " norm: " << ds->Norm(integrator) - 1. << std::endl;
                     }
 
                     pqn++;
                 }
-                else
-                {   // Construct the orbital by summing splines with coefficients
-                    pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
-                    ds->resize(lattice_size);
-
-                    double* coeff = &A[i*n2];
-
-                    for(j=0; j<n2; j++)
-                    {
-                        (*ds) += (*B_lattice[j]) * (*coeff);
-                        coeff++;
-                    }
-
-                    // Remove spurious states
-                    if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
-                    {   if(debug)
-                            *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
-                                       << "  norm = " << ds->Norm(integrator) << std::endl;
-                    }
-                    else
-                    {   if(reorth)
-                            Orthogonalise(ds);
-                        excited->AddState(ds);
-
-                        if(debug)
-                        {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                       << " norm: " << ds->Norm(integrator) - 1. << std::endl;
-                        }
-
-                        pqn++;
-                    }
-                }
-                i++;
             }
+            i++;
         }
-        else
-        {   *errstream << "BSplineBasis: SolveMatrixEquation failed" << std::endl;
-            exit(1);
-        }
-        
-        delete[] eigenvalues;
-        delete[] A;
-        delete[] b;
-        }   // kappa loop
-    }
+    }   // kappa loop
+    }   // l loop
 
     return excited;
 }

@@ -10,31 +10,27 @@
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
 #include "MBPT/OneElectronIntegrals.h"
+#include "Eigen/Eigen"
 
 typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef std::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
 
-class HamiltonianMatrix
+class HamiltonianMatrix : public Matrix
 {
 public:
     HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs);
     virtual ~HamiltonianMatrix();
 
+    /** Generate Hamiltonian matrix. */
     virtual void GenerateMatrix();
     virtual void WriteToFile(const std::string& filename);
-    virtual void PollMatrix();
 
-    /** Solve the matrix that has been generated.
-        If gFactors are required, set boolean to true.
-        min_percentage is the threshold whereby leading configurations are printed
-     */
+    /** Return proportion of elements that have magnitude greater than epsilon. */
+    virtual double PollMatrix(double epsilon = 1.e-15) const;
+
+    /** Solve the matrix that has been generated. */
     virtual void SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels);
-
-    Matrix* GetMatrix()
-    {
-        return M;
-    }
 
 public:
 //    /** Include Sigma3 in the leading configurations. */
@@ -65,12 +61,37 @@ public:
 //    inline double Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
 //                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
 
+public:
+    virtual void MatrixMultiply(int m, double* b, double* c) const;
+    virtual void GetDiagonal(double* diag) const;
+
 protected:
     pRelativisticConfigListConst configs;
     pTwoBodyHamiltonianOperator H_two_body;
 
-    Matrix* M;      // Hamiltonian Matrix
-    unsigned int N; // Matrix M dimension = N x N
+protected:
+    class MatrixChunk
+    {
+    public:
+        MatrixChunk(unsigned int start, unsigned int size, unsigned int N):
+            start_row(start), num_rows(size)
+        {   chunk = Eigen::MatrixXd::Zero(num_rows, N-start_row);
+        }
+
+        unsigned int start_row;
+        unsigned int num_rows;
+        Eigen::MatrixXd chunk;
+
+        /** Make lower triangle part of the matrix chunk match the upper. */
+        void Symmetrize()
+        {
+            for(unsigned int i = 1; i < num_rows; i++)
+                for(unsigned int j = 0; j < i; j++)
+                    chunk(i, j) = chunk(j, i);
+        }
+    };
+
+    std::list<MatrixChunk> chunks;
 };
 
 #endif

@@ -108,25 +108,6 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     static int *intwork;
     static double crite, critc, critr, ortho;
 
-    SmallMatrix* sm = dynamic_cast<SmallMatrix*>(matrix);
-    
-    if(sm && (N <= SMALL_LIM))
-    {
-        double* M = sm->GetMatrix();
-        double* E = new double[N];
-
-        SolveSmallSymmetric(M, E, N);
-
-        unsigned int i;
-        for(i = 0; i < num_solutions; i++)
-            eigenvalues[i] = E[i];
-        for(i = 0; i < num_solutions*N; i++)
-            eigenvectors[i] = M[i];
-
-        delete[] E;
-        return;
-    }
-
     int i, j;
 
     aa = matrix;
