@@ -8,7 +8,7 @@
 #include "GFactor.h"
 
 // Don't bother with davidson method if smaller than this limit
-#define SMALL_MATRIX_LIM 2000
+#define SMALL_MATRIX_LIM 1000
 
 // Include this define for the box diagrams of "wrong" parity.
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
@@ -37,53 +37,114 @@ void HamiltonianMatrix::GenerateMatrix()
 {
     chunks.clear();
 
+    unsigned int configs_per_chunk = 4;
+
     if(N <= SMALL_MATRIX_LIM)
     {
-        chunks.push_back(MatrixChunk(0, N, N));
-
-        Eigen::MatrixXd& M = chunks.begin()->chunk;
-
-        // Loop through projections
-        auto proj_it = configs->projection_begin();
-        while(proj_it != configs->projection_end())
-        {
-            auto proj_jt = proj_it;
-
-            while(proj_jt != configs->projection_end())
-            {
-                double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
-                if(fabs(operatorH) > 1.e-15)
-                {
-                    for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                    {
-                        RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                        if(proj_it == proj_jt)
-                            start_j = coeff_i;
-
-                        for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                        {
-                            // See notes for an explanation
-                            int i = coeff_i.index();
-                            int j = coeff_j.index();
-
-                            if(i < j)
-                                M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                            else if(i > j)
-                                M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
-                            else if(proj_it == proj_jt)
-                                M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                            else
-                                M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
-                        }
-                    }
-                }
-                proj_jt++;
-            }
-            proj_it++;
-        }
+        configs_per_chunk = configs->size();
     }
+
+    // Total number of chunks = ceiling(number of configs/configs_per_chunk)
+    unsigned int num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
+
+    // Divide up chunks
+    auto config_it = configs->begin();
+    unsigned int config_index = 0;
+    unsigned int csf_start = 0;
+    for(unsigned int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
+    {
+        // Get chunk num_rows and number of configs
+        unsigned int current_num_rows = 0;
+        unsigned int current_num_configs = 0;
+        while(config_it != configs->end() && current_num_configs < configs_per_chunk)
+        {
+            current_num_rows += config_it->NumCSFs();
+            current_num_configs++;
+            config_it++;
+        }
+
+        if(current_num_rows == 0)
+            break;
+
+        // Make chunk
+        chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, N);
+
+        config_index += current_num_configs;
+        csf_start += current_num_rows;
+    }
+
+    // Loop through my chunks
+    for(auto& current_chunk: chunks)
+    {
+        Eigen::MatrixXd& M = current_chunk.chunk;
+
+        // Loop through configs for this chunk
+        auto current_config_pair = (*configs)[current_chunk.config_indices.first];
+        config_it = current_config_pair.first;
+        int csf_offset_i = current_config_pair.second;
+
+        for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
+        {
+            // Loop through projections
+            auto proj_it = config_it->projection_begin();
+            while(proj_it != config_it->projection_end())
+            {
+                // Loop through the rest of the configs
+                auto config_jt = config_it;
+                int csf_offset_j = csf_offset_i;
+                while(config_jt != configs->end())
+                {
+                    RelativisticConfiguration::const_projection_iterator proj_jt;
+                    if(config_jt == config_it)
+                        proj_jt = proj_it;
+                    else
+                        proj_jt = config_jt->projection_begin();
+
+                    while(proj_jt != config_jt->projection_end())
+                    {
+                        double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                        if(fabs(operatorH) > 1.e-15)
+                        {
+                            for(auto coeff_i = proj_it.CSF_begin(csf_offset_i); coeff_i != proj_it.CSF_end(csf_offset_i); coeff_i++)
+                            {
+                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin(csf_offset_j);
+
+                                if(proj_it == proj_jt)
+                                    start_j = coeff_i;
+
+                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(csf_offset_j); coeff_j++)
+                                {
+                                    // See notes for an explanation
+                                    int i = coeff_i.index() - current_chunk.start_row;
+                                    int j = coeff_j.index() - current_chunk.start_row;
+
+                                    if(i < j)
+                                        M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else if(i > j)
+                                        M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else if(proj_it == proj_jt)
+                                        M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else
+                                        M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                }
+                            }
+                        }
+
+                        proj_jt++;
+                    }
+
+                    csf_offset_j += config_jt->NumCSFs();
+                    config_jt++;
+                }
+
+                proj_it++;
+            }
+        
+            csf_offset_i += config_it->NumCSFs();
+            config_it++;
+        } // Configs in chunk
+    } // Chunks
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
@@ -103,7 +164,7 @@ double HamiltonianMatrix::PollMatrix(double epsilon) const
     for(const auto& it: chunks)
     {
         for(i = 0; i < it.num_rows; i++)
-            for(j = i; j < N - it.start_row; j++)
+            for(j = i; j < it.chunk.cols(); j++)
                 if(fabs(it.chunk(i, j)) > epsilon)
                     count++;
     }
@@ -158,6 +219,7 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     Eigen::Map<Eigen::MatrixXd> b_mapped(b, N, m);
     Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m);
+    c_mapped = Eigen::MatrixXd::Zero(N, m);
 
     // Multiply each chunk
     for(const auto& matrix_section: chunks)
@@ -165,14 +227,15 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
         unsigned int start = matrix_section.start_row;
 
         // Upper triangular part
-        c_mapped.block(start, 0, matrix_section.num_rows, m).noalias()
-            = matrix_section.chunk * b_mapped.block(start, 0, N-start, m);
+        c_mapped.middleRows(start, matrix_section.num_rows).noalias()
+            += matrix_section.chunk * b_mapped.bottomRows(N-start);
 
         // Lower triangular part
         unsigned int lower_start = start + matrix_section.num_rows;
-        c_mapped.block(lower_start, 0, N - lower_start, m).noalias()
-            = matrix_section.chunk.block(0, matrix_section.num_rows, matrix_section.num_rows, N - lower_start).transpose()
-                * b_mapped.block(start, 0, matrix_section.num_rows, m);
+        if(lower_start < N)
+        {   c_mapped.bottomRows(N - lower_start).noalias()
+                += matrix_section.chunk.rightCols(N - lower_start).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        }
     }
 }
 
@@ -180,6 +243,7 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
 {
     // Get diagonal from each chunk
     Eigen::Map<Eigen::VectorXd> diag_mapped(diag, N, 1);
+    diag_mapped.noalias() = Eigen::VectorXd::Zero(N);
 
     for(const auto& matrix_section: chunks)
     {

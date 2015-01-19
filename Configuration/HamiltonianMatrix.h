@@ -70,14 +70,23 @@ protected:
     pTwoBodyHamiltonianOperator H_two_body;
 
 protected:
+    /** MatrixChunk is a rectangular section of the HamiltonianMatrix.
+        The top left corner of the section is on the diagonal at (start_row, start_row).
+        The number of rows is num_rows, and the section goes to column N (the right edge of the Hamiltonian matrix).
+        The rows correspond to a number of RelativisticConfigurations in configs, as distributed by GenerateMatrix().
+        RelativisticConfigurations included are [config_indices.first, config_indices.second).
+     */
     class MatrixChunk
     {
     public:
-        MatrixChunk(unsigned int start, unsigned int size, unsigned int N):
-            start_row(start), num_rows(size)
-        {   chunk = Eigen::MatrixXd::Zero(num_rows, N-start_row);
+        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int N):
+            start_row(row_start), num_rows(num_rows)
+        {   config_indices.first = config_index_start;
+            config_indices.second = config_index_end;
+            chunk = Eigen::MatrixXd::Zero(num_rows, N-start_row);
         }
 
+        std::pair<unsigned int, unsigned int> config_indices;
         unsigned int start_row;
         unsigned int num_rows;
         Eigen::MatrixXd chunk;

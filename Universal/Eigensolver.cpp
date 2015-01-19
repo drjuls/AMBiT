@@ -34,17 +34,7 @@ extern int dvdson_(int (*op)(int*, int*, double*, double*),
  */
 int op(int *n, int *m, double* b, double* c)
 {
-#ifdef WIN32
-    *logstream << ".";
-#endif
-
-    double* cp = &c[0];
-    const double* cend = c + (*n)*(*m);
-    while(cp < cend)
-        *cp++ = 0.;
-
     aa->MatrixMultiply(*m, b, c);
-
     return 0;
 }
 

@@ -119,28 +119,28 @@ unsigned int RelativisticConfigList::NumCSFs() const
     return total;
 }
 
-std::pair<RelativisticConfiguration&, int> RelativisticConfigList::operator[](unsigned int i)
+std::pair<RelativisticConfigList::iterator, int> RelativisticConfigList::operator[](unsigned int i)
 {
     iterator it = begin();
     int csf = 0;
     for(unsigned int j = 0; j < i; j++)
-    {   it++;
-        csf += it->NumCSFs();
+    {   csf += it->NumCSFs();
+        it++;
     }
 
-    return std::pair<RelativisticConfiguration&, int>(*it, csf);
+    return std::pair<iterator, int>(it, csf);
 }
 
-std::pair<const RelativisticConfiguration&, int> RelativisticConfigList::operator[](unsigned int i) const
+std::pair<RelativisticConfigList::const_iterator, int> RelativisticConfigList::operator[](unsigned int i) const
 {
     const_iterator it = begin();
     int csf = 0;
     for(unsigned int j = 0; j < i; j++)
-    {   it++;
-        csf += it->NumCSFs();
+    {   csf += it->NumCSFs();
+        it++;
     }
     
-    return std::pair<const RelativisticConfiguration&, int>(*it, csf);
+    return std::pair<const_iterator, int>(it, csf);
 }
 
 RelativisticConfigList::const_projection_iterator RelativisticConfigList::projection_begin() const

@@ -125,7 +125,7 @@ class FewestProjectionsFirstComparator;
     provided which iterates over all projections in all configurations in the list, and from which CSF
     coefficients can be accessed.
     To facilitate multithreading over individual RelativisticConfigurations, a "random access"
-    operator[] is provided that returns the RelativisticConfiguration and the CSF offset.
+    operator[] is provided that returns the RelativisticConfiguration iterator and the CSF offset.
  */
 class RelativisticConfigList: public SortedList<RelativisticConfiguration, FewestProjectionsFirstComparator>
 {
@@ -153,8 +153,8 @@ public:
     /** Get the ith RelativisticConfiguration, and the CSF offset.
         PRE: i < size().
      */
-    std::pair<RelativisticConfiguration&, int> operator[](unsigned int i);
-    std::pair<const RelativisticConfiguration&, int> operator[](unsigned int i) const;
+    std::pair<iterator, int> operator[](unsigned int i);
+    std::pair<const_iterator, int> operator[](unsigned int i) const;
 
 public:
     typedef RelativisticConfiguration::const_CSF_iterator const_CSF_iterator;
