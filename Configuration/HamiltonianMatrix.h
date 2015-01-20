@@ -24,13 +24,18 @@ public:
 
     /** Generate Hamiltonian matrix. */
     virtual void GenerateMatrix();
-    virtual void WriteToFile(const std::string& filename);
-
-    /** Return proportion of elements that have magnitude greater than epsilon. */
-    virtual double PollMatrix(double epsilon = 1.e-15) const;
 
     /** Solve the matrix that has been generated. */
     virtual void SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels);
+
+    /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
+    friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
+
+    /** Write binary file. */
+    virtual void Write(const std::string& filename) const;
+
+    /** Return proportion of elements that have magnitude greater than epsilon. */
+    virtual double PollMatrix(double epsilon = 1.e-15) const;
 
 public:
 //    /** Include Sigma3 in the leading configurations. */

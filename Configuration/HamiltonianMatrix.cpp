@@ -8,7 +8,7 @@
 #include "GFactor.h"
 
 // Don't bother with davidson method if smaller than this limit
-#define SMALL_MATRIX_LIM 1000
+#define SMALL_MATRIX_LIM 1
 
 // Include this define for the box diagrams of "wrong" parity.
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
@@ -150,7 +150,68 @@ void HamiltonianMatrix::GenerateMatrix()
         matrix_section.Symmetrize();
 }
 
-void HamiltonianMatrix::WriteToFile(const std::string& filename)
+void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels)
+{
+    if(N == 0)
+    {   *outstream << "\nNo solutions" << std::endl;
+        return;
+    }
+    
+    unsigned int NumSolutions = mmin(num_solutions, N);
+    
+    *outstream << "; Finding solutions..." << std::endl;
+    
+    if(N <= SMALL_MATRIX_LIM)
+    {
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
+        const Eigen::VectorXd& E = es.eigenvalues();
+        const Eigen::MatrixXd& V = es.eigenvectors();
+        
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            pLevel level(new Level(E(i), V.col(i).data(), configs, N));
+            (*levels)[LevelID(sym, i)] = level;
+        }
+    }
+    else
+    {   // Using Davidson method
+        double* V = new double[NumSolutions * N];
+        double* E = new double[NumSolutions];
+        
+        Eigensolver solver;
+        solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+        
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            pLevel level(new Level(E[i], (V + N * i), configs, N));
+            (*levels)[LevelID(sym, i)] = level;
+        }
+        
+        delete[] E;
+        delete[] V;
+    }
+}
+
+std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
+{
+    for(auto& matrix_section: matrix.chunks)
+    {
+        // Each row separately
+        for(unsigned int row = 0; row < matrix_section.num_rows; row++)
+        {
+            // Leading zeros
+            stream << Eigen::VectorXd::Zero(matrix_section.start_row + row).transpose() << " ";
+
+            // Upper triangular matrix part of row
+            stream << matrix_section.chunk.block(row, row, 1, matrix_section.chunk.cols() - row) << "\n";
+        }
+    }
+    stream.flush();
+
+    return stream;
+}
+
+void HamiltonianMatrix::Write(const std::string& filename) const
 {
     return;
 }
@@ -171,48 +232,6 @@ double HamiltonianMatrix::PollMatrix(double epsilon) const
 
     value = double(count)/double(N * (N+1)/2);
     return value;
-}
-
-void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels)
-{
-    if(N == 0)
-    {   *outstream << "\nNo solutions" << std::endl;
-        return;
-    }
-
-    unsigned int NumSolutions = mmin(num_solutions, N);
-
-    *outstream << "; Finding solutions..." << std::endl;
-
-    if(N <= SMALL_MATRIX_LIM)
-    {
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
-        const Eigen::VectorXd& E = es.eigenvalues();
-        const Eigen::MatrixXd& V = es.eigenvectors();
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
-        {
-            pLevel level(new Level(E(i), V.col(i).data(), configs, N));
-            (*levels)[LevelID(sym, i)] = level;
-        }
-    }
-    else
-    {   // Using Davidson method
-        double* V = new double[NumSolutions * N];
-        double* E = new double[NumSolutions];
-
-        Eigensolver solver;
-        solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
-        {
-            pLevel level(new Level(E[i], (V + N * i), configs, N));
-            (*levels)[LevelID(sym, i)] = level;
-        }
-
-        delete[] E;
-        delete[] V;
-    }
 }
 
 void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
