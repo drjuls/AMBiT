@@ -109,6 +109,11 @@ public:
     void Read(FILE* fp);        //!< Read configuration only (angular data can be recovered from library)
     void Write(FILE* fp) const; //!< Write configuration only (not projections or angular data)
 
+    /** Print Configuration::Name() to outstream with projections and, optionally, CSFs.
+        Note that Configuration::operator<< prints only Name().
+     */
+    void Print(bool include_CSFs = false) const;
+
 protected:
     /** Pointer to angular data (CSFs) for this RelativisticConfiguration. */
     pAngularData angular_data;

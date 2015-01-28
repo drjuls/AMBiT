@@ -108,6 +108,35 @@ void RelativisticConfiguration::Read(FILE* fp)
     }
 }
 
+void RelativisticConfiguration::Print(bool include_CSFs) const
+{
+    bool print_CSFs = include_CSFs && angular_data;
+
+    *outstream << Name();
+    if(print_CSFs)
+        *outstream << " (J = " << angular_data->GetTwoJ()/2. << ", M = " << angular_data->GetTwoM()/2. << ")";
+    *outstream << ":\n";
+    
+    for(const auto& proj: projections)
+    {
+        *outstream << proj.Name() << " ";
+    }
+    *outstream << std::endl;
+
+    if(print_CSFs)
+    {
+        const double* data = angular_data->GetCSFs();
+        int num_CSFs = angular_data->NumCSFs();
+        unsigned int num_projections = angular_data->projection_size();
+    
+        for(int i = 0; i < num_CSFs; i++)
+        {   for(int j = 0; j < num_projections; j++)
+                *outstream << data[j * num_CSFs + i] << " ";
+            *outstream << std::endl;
+        }
+    }
+}
+
 unsigned int RelativisticConfigList::NumCSFs() const
 {
     unsigned int total = 0;

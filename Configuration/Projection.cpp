@@ -67,8 +67,11 @@ int Projection::GetTwoM() const
 std::string Projection::Name() const
 {
     std::string name = "{";
-    for(auto& electron: config)
-        name.append(" " + electron.Name());
+    if(config.size())
+        for(auto& electron: config)
+            name.append(" " + electron.Name());
+    else    // Vacuum
+        name.append("0");
     name.append("}");
 
     return name;

@@ -102,7 +102,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     pLevelMap electron_levels(new LevelMap());
     pLevelMap hole_levels(new LevelMap());
 
-    // CuII - old electron way
+    // CuIV - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
         "NuclearRadius = 3.7188\n" +
@@ -154,7 +154,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
 
-    // CuII - using holes now
+    // CuIV - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
         "NuclearRadius = 3.7188\n" +
@@ -238,7 +238,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     pLevelMap electron_levels(new LevelMap());
     pLevelMap hole_levels(new LevelMap());
 
-    // CuII - old electron way
+    // CuIII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
             "NuclearRadius = 3.7188\n" +
@@ -279,6 +279,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
+            *outstream << std::endl;
+            for(const auto& rconfig: *relconfigs)
+                rconfig.Print(true);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             H.SolveMatrix(sym, 6, electron_levels);
@@ -290,7 +293,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
 
-    // CuII - using holes now
+    // CuIII - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
             "NuclearRadius = 3.7188\n" +
@@ -333,6 +336,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
+            *outstream << std::endl;
+            for(const auto& rconfig: *relconfigs)
+                rconfig.Print(true);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             H.SolveMatrix(sym, 6, hole_levels);

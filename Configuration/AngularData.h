@@ -82,7 +82,13 @@ protected:
         double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
         {
             if(e1 == e2)
-                return e1.J() * (e1.J() + 1);
+            {
+                double value = e1.J() * (e1.J() + 1);
+                if(e1.IsHole())
+                    return -value;
+                else
+                    return value;
+            }
             else
                 return 0.0;
         }
@@ -122,11 +128,11 @@ typedef std::shared_ptr<const AngularData> pAngularDataConst;
 class AngularDataLibrary
 {
 public:
-    /** Initialise with number of particles (electrons+holes), symmetry, and directory of stored libraries.
+    /** Initialise with number of electrons, symmetry, and directory of stored libraries.
         If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
         If lib_directory does not exist already, then this is an error so that the user can check the path specification.
      */
-    AngularDataLibrary(int particle_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
+    AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
     ~AngularDataLibrary() {}
 
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
@@ -143,7 +149,7 @@ public:
 protected:
     typedef AngularData::ConfigKeyType KeyType;
 
-    int particle_number, two_m, two_j;
+    int electron_number, two_m, two_j;
     KeyType GenerateKey(const RelativisticConfiguration& config) const;
 
     std::string filename;

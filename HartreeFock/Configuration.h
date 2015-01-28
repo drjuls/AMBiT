@@ -212,6 +212,9 @@ std::string Configuration<OrbitalType, OccupancyType>::Name() const
     {   buffer << it->first.Name() << it->second;
         it++;
     }
+    else // Vacuum
+        buffer << "0";
+
     while(it != m_config.end())
     {   buffer << " " << it->first.Name() << it->second;
         it++;
