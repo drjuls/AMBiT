@@ -51,7 +51,9 @@ public:
     int NumCSFs() const { return num_CSFs; }
     const double* GetCSFs() const { return CSFs; }
 
-    /** Generate CSFs by diagonalising projections over J^2. */
+    /** Generate CSFs by diagonalising projections over J^2.
+        Return number of CSFs generated with correct two_j.
+     */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
     int GenerateCSFs(const ConfigKeyType& key, int two_j);
 
