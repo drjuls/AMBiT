@@ -27,6 +27,8 @@ bool ElectronInfo::operator<(const ElectronInfo& other) const
     // And sort on m such that AngularData generates projections sorted correctly
     // (so they don't need to be resorted).
     // Sorted Projections are required for GetProjectionDifferences()
+    else if(is_hole)
+        return (this->two_m < other.two_m);
     else
         return (this->two_m > other.two_m);
 }

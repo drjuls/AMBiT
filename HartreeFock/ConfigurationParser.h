@@ -35,6 +35,10 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
         while(sstream.good() && isspace(sstream.peek()))
             sstream.get();
 
+        // Special case: 0 = vacuum.
+        if(sstream.good() && sstream.peek() == '0')
+            return ret;
+
         while(sstream.good())
         {
             // Get pqn

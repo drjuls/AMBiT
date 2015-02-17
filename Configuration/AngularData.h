@@ -51,7 +51,9 @@ public:
     int NumCSFs() const { return num_CSFs; }
     const double* GetCSFs() const { return CSFs; }
 
-    /** Generate CSFs by diagonalising projections over J^2. */
+    /** Generate CSFs by diagonalising projections over J^2.
+        Return number of CSFs generated with correct two_j.
+     */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
     int GenerateCSFs(const ConfigKeyType& key, int two_j);
 
@@ -82,7 +84,14 @@ protected:
         double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
         {
             if(e1 == e2)
-                return e1.J() * (e1.J() + 1);
+            {
+                double value = e1.J() * (e1.J() + 1);
+                // Even the one-body part of J^2 is not a real one body operator
+                if(e1.IsHole())
+                    return -value;
+                else
+                    return value;
+            }
             else
                 return 0.0;
         }
@@ -122,11 +131,11 @@ typedef std::shared_ptr<const AngularData> pAngularDataConst;
 class AngularDataLibrary
 {
 public:
-    /** Initialise with number of particles (electrons+holes), symmetry, and directory of stored libraries.
+    /** Initialise with number of electrons, symmetry, and directory of stored libraries.
         If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
         If lib_directory does not exist already, then this is an error so that the user can check the path specification.
      */
-    AngularDataLibrary(int particle_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
+    AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
     ~AngularDataLibrary() {}
 
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
@@ -143,7 +152,7 @@ public:
 protected:
     typedef AngularData::ConfigKeyType KeyType;
 
-    int particle_number, two_m, two_j;
+    int electron_number, two_m, two_j;
     KeyType GenerateKey(const RelativisticConfiguration& config) const;
 
     std::string filename;

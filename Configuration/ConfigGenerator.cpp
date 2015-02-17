@@ -341,13 +341,13 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two
     while(it != rlist->end())
     {
         // Get correct library
-        auto lib_iterator = angular_libraries.find(it->ParticleNumber());
+        auto lib_iterator = angular_libraries.find(it->ElectronNumber());
         pAngularDataLibrary lib;
 
         if(lib_iterator == angular_libraries.end())
-        {   lib.reset(new AngularDataLibrary(it->ParticleNumber(), Symmetry(two_m, parity), two_m, angular_directory));
+        {   lib.reset(new AngularDataLibrary(it->ElectronNumber(), Symmetry(two_m, parity), two_m, angular_directory));
             lib->Read();
-            angular_libraries[it->ParticleNumber()] = lib;
+            angular_libraries[it->ElectronNumber()] = lib;
         }
         else
             lib = lib_iterator->second;

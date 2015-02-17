@@ -17,11 +17,7 @@ NuclearThickness = 2.3
 
 // Defines the charge of the nucleus
 Z = 20
-//ZIterations = 1 // For NumValenceElectrons = 1, this runs the single electron code for a series of atoms with increasing charge
 AlphaSquaredVariation = '-0.1, 0.0, 0.1' // Performs multiple runs of the calculation with each specified alpha squared value
-
-// Defines the number of valence electrons the calculation should use, if set equal to 1, configuration interaction is ignored
-NumValenceElectrons = 2
 
 // Lattice properties
 [Lattice]
@@ -34,14 +30,15 @@ EndPoint = 50. // The end value of the lattice
 // Defines the number of electrons used in the Hartree-Fock calculation
 N = 20
 // Determines the configuration of the electrons used in the Hartree-Fock calculation,
-// use a colon (:) to separate the states inside the core and those that are to be considered
-// excited states
+// use a colon (:) to define the Fermi level, separating the states inside the core
+// from those that are to be considered valence or excited states
 Configuration = '1s2 2s2 2p6 3s2 3p6: 4s2'
 
 // Basis properties
 [Basis]
 --bspline-basis      // Use the B-Spline basis
 ValenceBasis = 6spdf // Choose the states to be generated
+FrozenCore = 3s2p     // Choose the frozen core, at which holes will not be included in the CI model space
 BSpline/Rmax = 45.0  // When the B-Spline basis is used, this can be set to specify the maximal size of the box
 
 // Configuration interaction properties
@@ -50,9 +47,10 @@ BSpline/Rmax = 45.0  // When the B-Spline basis is used, this can be set to spec
 LeadingConfigurations = '4s2, 4s1 4p1' // Sets the configurations that excited states are allowed to be generated from
 ExtraConfigurations   = '4p2' // Sets the configurations that should be included in calculations, but no excited states should be generated from
 ElectronExcitations = 2 // Specifies the number of electron excitation, either as an integer or a string with the following format 'number of excitations, basis string'
+HoleExcitations = 1 // Specifies the number of hole excitations (similar to ElectronExcitations).
 EvenParityTwoJ = '0' // Defines twice the angular momentum which even partiy solutions should have
 OddParityTwoJ =  '0, 2' // Defines twice the angular momentum which odd partiy solutions should have
-NumSolutions = 2 // The maximal number of displayed solutions for each parity and angular momentum
+NumSolutions = 3 // The maximal number of displayed solutions for each parity and angular momentum
 
 // CI output properties
 [./Output]

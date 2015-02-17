@@ -56,8 +56,17 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     // At each step populate all possible projections with M-1.
     // Stop when desired M is reached.
 
-    // Create set of boxes, one for each orbital, each with a list of projections to be filled.
     int projection_size = config.ParticleNumber();
+
+    // Skip if vacuum
+    if(projection_size == 0)
+    {
+        projections.clear();
+        projections.push_back(std::vector<int>());
+        return 1;
+    }
+
+    // Create set of boxes, one for each orbital, each with a list of projections to be filled.
     std::vector<int> box_number(projection_size);
     std::vector<int> min_projection(projection_size);
     std::vector<int> max_projection(projection_size);
@@ -254,8 +263,8 @@ int AngularData::GenerateCSFs(const AngularData::ConfigKeyType& key, int two_j)
     return GenerateCSFs(rconfig, two_j);
 }
 
-AngularDataLibrary::AngularDataLibrary(int particle_number, const Symmetry& sym, int two_m, std::string lib_directory):
-    particle_number(particle_number), two_m(two_m), two_j(sym.GetTwoJ())
+AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory):
+    electron_number(electron_number), two_m(two_m), two_j(sym.GetTwoJ())
 {
     if(lib_directory == "")
         filename.clear();
@@ -270,7 +279,9 @@ AngularDataLibrary::AngularDataLibrary(int particle_number, const Symmetry& sym,
         filename = lib_directory;
         if(filename[filename.length()-1] != '/')
             filename.append("/");
-        filename += itoa(abs(particle_number)) + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+
+        std::string holelike = (electron_number<0)?"h":"";
+        filename += itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
     }
 }
 
@@ -295,7 +306,7 @@ AngularDataLibrary::KeyType AngularDataLibrary::GenerateKey(const RelativisticCo
 {
     KeyType key;
     for(auto& config_it: config)
-    {   key.push_back(std::make_pair(config_it.first.Kappa(), abs(config_it.second)));
+    {   key.push_back(std::make_pair(config_it.first.Kappa(), config_it.second));
     }
     return key;
 }
@@ -334,7 +345,6 @@ void AngularDataLibrary::Read()
     fread(&num_angular_data_objects, sizeof(int), 1, fp);
 
     int count = 0;
-    int projection_array[particle_number];
 
     while(count < num_angular_data_objects)
     {
@@ -359,6 +369,10 @@ void AngularDataLibrary::Read()
         // Projections
         int num_projections = 0;
         fread(&num_projections, sizeof(int), 1, fp);
+
+        int particle_number = 0;
+        fread(&particle_number, sizeof(int), 1, fp);
+        int projection_array[particle_number];
 
         for(int i = 0; i < num_projections; i++)
         {
@@ -410,6 +424,11 @@ void AngularDataLibrary::Write() const
         // Projections
         int num_projections = pair.second->projections.size();
         fwrite(&num_projections, sizeof(int), 1, fp);
+
+        int particle_number = 0;
+        if(num_projections)
+            particle_number = pair.second->projections.front().size();
+        fwrite(&particle_number, sizeof(int), 1, fp);
 
         for(const auto& projection: pair.second->projections)
         {

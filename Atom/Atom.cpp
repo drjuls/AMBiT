@@ -54,13 +54,6 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
             exit(1);
         }
 
-        // Check for numValenceElectrons
-        num_valence_electrons = user_input("NumValenceElectrons", 0);
-        if(num_valence_electrons <= 0)
-        {   *errstream << "USAGE: must have NumValenceElectrons set." << std::endl;
-            exit(1);
-        }
-
         if(user_input.search("HF/--read-grasp0"))
         {   // Read lattice and core and basis orbitals
     //        ReadGraspMCDF("MCDF.DAT");

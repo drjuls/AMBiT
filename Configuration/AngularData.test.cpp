@@ -118,6 +118,48 @@ TEST(AngularDataTester, CountCSFs)
     EXPECT_EQ(proj_count_0, csf_count);
 }
 
+TEST(AngularDataTester, HoleCSFs)
+{
+    // Create some electron only and electron-hole configurations and check that the
+    // number of CSFs generated are equal.
+
+    // i = Number of holes in 3d*
+    for(int i = 0; i <= 2; i++)
+    {
+        RelativisticConfiguration rconfig_electron;
+        RelativisticConfiguration rconfig_hole;
+
+        // Electrons:
+        // 3d8 4s1 = 3d(2+i) 3d*(6-i) 4s1
+        if(6-i)
+            rconfig_electron.insert(std::make_pair(OrbitalInfo(3, -3), 6-i));
+        if(2+i)
+            rconfig_electron.insert(std::make_pair(OrbitalInfo(3, 2), 2+i));
+        rconfig_electron.insert(std::make_pair(OrbitalInfo(4, -1), 1));
+
+        // Holes:
+        // 3d-2 4s1 = 3d(-2+i) 3d*(-i) 4s1
+        if(i)
+            rconfig_hole.insert(std::make_pair(OrbitalInfo(3, -3), -i));
+        if(i-2)
+            rconfig_hole.insert(std::make_pair(OrbitalInfo(3, 2), i-2));
+        rconfig_hole.insert(std::make_pair(OrbitalInfo(4, -1), 1));
+
+        for(int TwoJ = 1; TwoJ <= 5; TwoJ += 2)
+        {
+            AngularData ang_electron(rconfig_electron, TwoJ);
+            AngularData ang_hole(rconfig_hole, TwoJ);
+
+            EXPECT_EQ(ang_electron.projection_size(), ang_hole.projection_size());
+
+            int csf_count_electron = ang_electron.GenerateCSFs(rconfig_electron, TwoJ);
+            int csf_count_hole = ang_hole.GenerateCSFs(rconfig_hole, TwoJ);
+
+            EXPECT_EQ(csf_count_electron, csf_count_hole);
+        }
+    }
+}
+
 TEST(AngularDataTester, Iterators)
 {
     // Create some RelativisticConfigurations and check the projections correspond to those expected.
