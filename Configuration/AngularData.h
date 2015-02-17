@@ -86,6 +86,7 @@ protected:
             if(e1 == e2)
             {
                 double value = e1.J() * (e1.J() + 1);
+                // Even the one-body part of J^2 is not a real one body operator
                 if(e1.IsHole())
                     return -value;
                 else

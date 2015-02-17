@@ -279,14 +279,10 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
-            *outstream << std::endl;
-            for(const auto& rconfig: *relconfigs)
-                rconfig.Print(true);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             H.SolveMatrix(sym, 6, electron_levels);
             g_factors.CalculateGFactors(*electron_levels, sym);
-            electron_levels->Print(sym);
         }
     }
 
@@ -336,14 +332,10 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
-            *outstream << std::endl;
-            for(const auto& rconfig: *relconfigs)
-                rconfig.Print(true);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             H.SolveMatrix(sym, 6, hole_levels);
             g_factors.CalculateGFactors(*hole_levels, sym);
-            hole_levels->Print(sym);
         }
     }
 

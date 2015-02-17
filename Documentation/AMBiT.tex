@@ -9,6 +9,7 @@
 \include{phys_jdf}
 
 \newcommand{\option}[1]{\paragraph{\texttt{#1}}}
+\newcommand{\code}[1]{\texttt{#1}}
 \marginsize{30mm}{25mm}{20mm}{20mm}
 
 \begin{document}
@@ -125,11 +126,11 @@ then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
 
 \option{Z} \textbf{[compulsory]} nuclear charge.
 
-\option{ZIterations} This is used when NumValenceElectrons = 1. It specifies the number of times to increment Z and recalculate the energy levels before terminating.
+\option{[deprecated] ZIterations} This is used when NumValenceElectrons = 1. It specifies the number of times to increment Z and recalculate the energy levels before terminating.
 
 \option{ID} a name for the run, used for filenames when saving various stages of the calculation. If not present identity is taken from the prefix of the ``*.input'' file. If this cannot be found (for example if the input file name does not have this suffix) then a fatal error is issued.
 
-\option{NumValenceElectrons} \textbf{[compulsory]} AMBiT knows what kind of calculation to do from the number of valence electrons. \texttt{NumValenceElectrons = 1} is used for HF+MBPT calculations; otherwise \textbf{NumValenceElectrons} tells AMBiT how many valence electrons will be included in the CI calculation.
+\option{[deprecated] NumValenceElectrons} \textbf{[compulsory]} AMBiT knows what kind of calculation to do from the number of valence electrons. \texttt{NumValenceElectrons = 1} is used for HF+MBPT calculations; otherwise \textbf{NumValenceElectrons} tells AMBiT how many valence electrons will be included in the CI calculation.
 
 \option{NuclearRadius} nuclear radius in fermi. The nucleus is specified as a fermi surface with a radius and thickness parameter.
 
@@ -149,7 +150,7 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 \subsection*{[HF]: Relativistic Hartree-Fock options for building core.}
 \option{N} \textbf{[compulsory]} number of electrons included in HF procedure. In recursive building mode, this instead specifies the number of electrons the initial atom should have.
 \option{Charge} can be used instead of HF/N: Charge = Z - N.
-\option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6 3d4'}.
+\option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6: 3d4'}. A colon may be used to indicate the Fermi level, or omitted in which case the Fermi level is assumed to lie just after all orbitals. The Fermi level is used to define the CI model space (and the MBPT electron space).
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
 
 %Basis
@@ -157,6 +158,8 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 One of the basis options must be specified.
 \option{ValenceBasis} \textbf{[compulsory]} set of orbitals to include in CI (if \mbox{\texttt{NumValenceElectrons}$>1$}) or HF/MBPT. This is specified by the largest principal quantum number followed by angular momenta. For example:
 \texttt{6spd5f} = 1s -- 6s, 2p -- 6p, 3d -- 6d, 4f -- 5f.
+
+\option{FrozenCore} set of orbitals that form the frozen core, which is always occupied in the CI model space. No holes are allowed at this level or below, they only exist above the frozen core and below the fermi level (which is set in HF/Configuration).
 
 \option{-{}-bspline-basis} construct basis from B-splines~\cite{johnson88pra}.
 \option{BSpline/N} [40] number of splines.
@@ -189,9 +192,10 @@ One of the basis options must be specified.
 
 %CI
 \subsection*{[CI]: Configuration interaction and energy level options.}
-\option{LeadingConfigurations} lists all leading configurations from which to excite electrons when forming the Hamiltonian, e.g.~\texttt{CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'} lists three leading configurations each with seven valence electrons. The number of valence electrons should be equal to \texttt{NumValenceElectrons}.
+\option{LeadingConfigurations} lists all leading configurations from which to excite electrons when forming the Hamiltonian, e.g.~\texttt{CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'} lists three leading configurations each with seven valence electrons. The number of valence electrons or holes should be equal for all leading configurations. Hole cases may be specified with negative occupations, e.g.~\code{'3d-2'} would specify two holes in the otherwise filled $3d$ shell.
 
 \option{ElectronExcitations} [2] number of electrons to excite from leading configurations. e.g. default 2 corresponds to SD-CI.
+\option{HoleExcitations} [0] number of holes to excite from leading configurations.
 
 \option{EvenParityTwoJ} list of angular momenta of even parity to create Hamiltonians and serve. e.g.~\texttt{CI/EvenParityTwoJ = '0, 2, 4, 6, 8, 10, 12'} does all even parity levels from J = 0 to 6.
 
