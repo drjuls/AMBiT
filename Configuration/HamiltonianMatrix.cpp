@@ -51,7 +51,7 @@ void HamiltonianMatrix::GenerateMatrix()
     auto config_it = configs->begin();
     unsigned int config_index = 0;
     unsigned int csf_start = 0;
-    for(unsigned int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
+    for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
     {
         // Get chunk num_rows and number of configs
         unsigned int current_num_rows = 0;
@@ -67,7 +67,8 @@ void HamiltonianMatrix::GenerateMatrix()
             break;
 
         // Make chunk
-        chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, N);
+        if(chunk_index%NumProcessors == ProcessorRank)
+            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, N);
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
@@ -79,12 +80,15 @@ void HamiltonianMatrix::GenerateMatrix()
         Eigen::MatrixXd& M = current_chunk.chunk;
 
         // Loop through configs for this chunk
-        auto current_config_pair = (*configs)[current_chunk.config_indices.first];
-        config_it = current_config_pair.first;
-        int csf_offset_i = current_config_pair.second;
-
+#ifdef AMBIT_USE_OPENMP
+        #pragma omp parallel for private(config_it)
+#endif
         for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
+            auto current_config_pair = (*configs)[config_index];
+            config_it = current_config_pair.first;
+            int csf_offset_i = current_config_pair.second;
+
             // Loop through projections
             auto proj_it = config_it->projection_begin();
             while(proj_it != config_it->projection_end())
@@ -140,9 +144,6 @@ void HamiltonianMatrix::GenerateMatrix()
 
                 proj_it++;
             }
-        
-            csf_offset_i += config_it->NumCSFs();
-            config_it++;
         } // Configs in chunk
     } // Chunks
 
@@ -179,8 +180,12 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
         double* E = new double[NumSolutions];
         
         Eigensolver solver;
-        solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
-        
+        #ifdef _MPI
+            solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #else
+            solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #endif
+
         for(unsigned int i = 0; i < NumSolutions; i++)
         {
             pLevel level(new Level(E[i], (V + N * i), configs, N));
