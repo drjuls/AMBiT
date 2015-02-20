@@ -32,8 +32,8 @@
 #endif
 
 // MPI details (if not used, we can have NumProcessors == 1)
-unsigned int NumProcessors;
-unsigned int ProcessorRank;
+int NumProcessors;
+int ProcessorRank;
 
 // The debug options for the whole program.
 Debug DebugOptions;
@@ -43,10 +43,9 @@ void PrintHelp(const std::string& ApplicationName);
 int main(int argc, char* argv[])
 {
     #ifdef _MPI
-        MPI::Init(argc, argv);
-        MPI::Intracomm& comm_world = MPI::COMM_WORLD; // Alias
-        NumProcessors = comm_world.Get_size();
-        ProcessorRank = comm_world.Get_rank();
+        MPI_Init(&argc, &argv);
+        MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+        MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
     #else
         NumProcessors = 1;
         ProcessorRank = 0;
@@ -56,5 +55,13 @@ int main(int argc, char* argv[])
     outstream = logstream;
 
     testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int ret = RUN_ALL_TESTS();
+
+    OutStreams::FinaliseStreams();
+
+    #ifdef _MPI
+        MPI_Finalize();
+    #endif
+
+    return ret;
 }

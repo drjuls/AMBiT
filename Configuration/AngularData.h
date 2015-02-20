@@ -28,7 +28,6 @@ public:
     AngularData(const RelativisticConfiguration& config, int two_m, int two_j); //!< Generate projections and CSFs.
     ~AngularData();
 
-    typedef std::vector< std::pair<int, int> > ConfigKeyType;   // pair(kappa, number of particles) for all orbitals in RelativisticConfiguration
     typedef std::list< std::vector<int> >::const_iterator const_projection_iterator;
     typedef const double* const_CSF_iterator;
 
@@ -55,7 +54,6 @@ public:
         Return number of CSFs generated with correct two_j.
      */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
-    int GenerateCSFs(const ConfigKeyType& key, int two_j);
 
 protected:
     int GenerateProjections(const RelativisticConfiguration& config, int two_m);
@@ -124,7 +122,7 @@ typedef std::shared_ptr<const AngularData> pAngularDataConst;
 
 /** Collection of AngularData elements, indexed by RelativisticConfiguration.
     The collection is stored on disk in the directory specified by lib_directory, with filename
-        <particle_number>.<two_j>.<parity>.two_m.angular
+        <particle_number>.<two_j>.<parity>.<two_m>.angular
     As usually specified in the Makefile, the directory is
         AMBiT/AngularData/
  */
@@ -144,19 +142,44 @@ public:
      */
     pAngularData operator[](const RelativisticConfiguration& config);
 
+    /** Generate CSFs for all  objects in library that don't have them. Distributes work using MPI. */
     void GenerateCSFs();
 
     void Read();
     void Write() const;
 
-protected:
-    typedef AngularData::ConfigKeyType KeyType;
+    /** Print keys, projection_sizes and numCSFs to outstream. */
+    void PrintKeys() const;
 
+protected:
     int electron_number, two_m, two_j;
-    KeyType GenerateKey(const RelativisticConfiguration& config) const;
+
+    typedef std::vector<std::pair<int, int>> KeyType; // pair(kappa, number of particles) for all orbitals in RelativisticConfiguration
+
+    /** Convert RelativisticConfiguration to KeyType. */
+    static KeyType GenerateKey(const RelativisticConfiguration& config);
+
+    /** Convert KeyType to a RelativisticConfiguration. */
+    static RelativisticConfiguration GenerateRelConfig(const KeyType& key);
 
     std::string filename;
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType> > library;
+
+protected:
+    class ProjectionSizeFirstComparator
+    {
+    public:
+        bool operator()(const std::pair<KeyType, pAngularDataConst>& a, const std::pair<KeyType, pAngularDataConst>& b) const
+        {
+            if(a.second->projection_size() > b.second->projection_size())
+                return true;
+            else if(a.second->projection_size() < b.second->projection_size())
+                return false;
+
+            // Arbitrary (but predictible) ordering
+            return a < b;
+        }
+    };
 };
 
 typedef std::shared_ptr<AngularDataLibrary> pAngularDataLibrary;

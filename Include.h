@@ -61,8 +61,8 @@ extern std::ostream* errstream;
 extern Debug DebugOptions;
 
 /** MPI */
-extern unsigned int NumProcessors;
-extern unsigned int ProcessorRank;
+extern int NumProcessors;
+extern int ProcessorRank;
 
 extern std::string itoa(int value, unsigned int base = 10);
 

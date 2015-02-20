@@ -27,8 +27,8 @@
 #endif
 
 // MPI details (if not used, we can have NumProcessors == 1)
-unsigned int NumProcessors;
-unsigned int ProcessorRank;
+int NumProcessors;
+int ProcessorRank;
 
 // The debug options for the whole program.
 Debug DebugOptions;
@@ -36,10 +36,9 @@ Debug DebugOptions;
 int main(int argc, char* argv[])
 {
     #ifdef _MPI
-        MPI::Init(argc, argv);
-        MPI::Intracomm& comm_world = MPI::COMM_WORLD; // Alias
-        NumProcessors = comm_world.Get_size();
-        ProcessorRank = comm_world.Get_rank();
+        MPI_Init(&argc, &argv);
+        MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+        MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
     #else
         NumProcessors = 1;
         ProcessorRank = 0;
@@ -282,20 +281,19 @@ int main(int argc, char* argv[])
     }
 
     #ifdef _MPI
-        comm_world.Barrier();
+        MPI_Barrier(MPI_COMM_WORLD);
         #ifdef _SCALAPACK
             // Continue should be non-zero, otherwise MPI_Finalise is called.
             int cont = 1;
             blacs_exit_(&cont);
         #endif
 
-        MPI::Finalize();
+        MPI_Finalize();
     #endif
 
     *outstream << "\nFinished" << std::endl;
     OutStreams::FinaliseStreams();
 
-    PAUSE
     return 0;
 }
 

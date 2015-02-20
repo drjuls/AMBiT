@@ -318,11 +318,11 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
         HamiltonianMatrix* H;
 
-        #ifdef _MPI
-            H = new MPIHamiltonianMatrix(*integrals, gen);
-        #else
+//        #ifdef _MPI
+//            H = new MPIHamiltonianMatrix(*integrals, gen);
+//        #else
             H = new HamiltonianMatrix(hf_electron, twobody_electron, configs);
-        #endif
+//        #endif
 
 //        if(sigma3)
 //            H->IncludeSigma3(sigma3);
@@ -332,10 +332,10 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
         if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
         {
-            #ifdef _MPI
-                std::string filename = identifier + "." + it->first.GetString() + ".matrix";
-                dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
-            #else
+//            #ifdef _MPI
+//                std::string filename = identifier + "." + it->first.GetString() + ".matrix";
+//                dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
+//            #else
                 RelativisticConfigList::iterator rel_it = configs->begin();
                 while(rel_it != configs->end())
                 {
@@ -349,7 +349,7 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
                 *outstream << std::setprecision(12);
                 *outstream << "Matrix Before:\n" << H << std::endl;
-            #endif
+//            #endif
         }
 
         #ifdef _SCALAPACK
