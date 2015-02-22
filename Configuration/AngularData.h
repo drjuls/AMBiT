@@ -142,7 +142,7 @@ public:
         If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
         If lib_directory does not exist already, then this is an error so that the user can check the path specification.
      */
-    AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory = "");
+    AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, const std::string& lib_directory = "");
     ~AngularDataLibrary() {}
 
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
@@ -161,7 +161,8 @@ public:
     void PrintKeys() const;
 
 protected:
-    int electron_number, two_m, two_j;
+    Symmetry sym;
+    int electron_number, two_m;
 
     typedef std::vector<std::pair<int, int>> KeyType; // pair(kappa, number of particles) for all orbitals in RelativisticConfiguration
 
@@ -171,8 +172,12 @@ protected:
     /** Convert KeyType to a RelativisticConfiguration. */
     static RelativisticConfiguration GenerateRelConfig(const KeyType& key);
 
+    std::string lib_directory;
     std::string filename;
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType> > library;
+
+    /** Pointer to the AngularDataLibrary with same symmetry but two_m increased by one. */
+    std::shared_ptr<AngularDataLibrary> parent;
 
 protected:
     class ProjectionSizeFirstComparator

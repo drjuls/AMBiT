@@ -366,8 +366,8 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
     have_CSFs = true;
 }
 
-AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory):
-    electron_number(electron_number), two_m(two_m), two_j(sym.GetTwoJ())
+AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, const std::string& lib_directory):
+    electron_number(electron_number), sym(sym), two_m(two_m), lib_directory(lib_directory), parent(nullptr)
 {
     if(lib_directory == "")
         filename.clear();
@@ -438,73 +438,112 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 
 void AngularDataLibrary::GenerateCSFs()
 {
-#ifndef _MPI
-    for(auto& pair: library)
-    {   auto& pAng = pair.second;
-        if(pAng->CSFs_calculated() == false)
+    // Generate from ladder operators if M < J
+    if(two_m < sym.GetTwoJ())
+    {
+        int parent_twom = two_m + 2;
+        if(parent == nullptr)
+        {   parent = pAngularDataLibrary(new AngularDataLibrary(electron_number, sym, parent_twom, lib_directory));
+            parent->Read();
+        }
+
+        // Make sure parent has all necessary keys
+        for(auto& pair: library)
         {
-            pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
+            if(pair.second->CSFs_calculated() == false)
+            {
+                auto it = parent->library.find(pair.first);
+                if(it == parent->library.end())
+                {
+                    pAngularData ang(new AngularData(GenerateRelConfig(pair.first), parent_twom));
+                    parent->library[pair.first] = ang;
+                }
+            }
+        }
+
+        // Generate parent CSFs (recursive)
+        parent->GenerateCSFs();
+
+        // Use ladder operators
+        for(auto& pair: library)
+        {
+            if(pair.second->CSFs_calculated() == false)
+            {
+                pAngularDataConst parent_angular_data = parent->library[pair.first];
+                pair.second->LadderLowering(GenerateRelConfig(pair.first), *parent_angular_data);
+            }
         }
     }
-#else
-    // Distribute AngularData objects with lots of projections (large matrix) using MPI
-    const unsigned int SHARING_SIZE_LIM = 200;
-
-    std::set<std::pair<KeyType, pAngularData>, ProjectionSizeFirstComparator> big_library;
-
-    for(auto& pair: library)
+    else
     {
-        auto& pAng = pair.second;
-        if(pAng->CSFs_calculated() == false)
+    #ifndef _MPI
+        for(auto& pair: library)
+        {   auto& pAng = pair.second;
+            if(pAng->CSFs_calculated() == false)
+            {
+                pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
+            }
+        }
+    #else
+        // Distribute AngularData objects with lots of projections (large matrix) using MPI
+        const unsigned int SHARING_SIZE_LIM = 200;
+
+        std::set<std::pair<KeyType, pAngularData>, ProjectionSizeFirstComparator> big_library;
+
+        for(auto& pair: library)
         {
-            if(pAng->projection_size() < SHARING_SIZE_LIM)
+            auto& pAng = pair.second;
+            if(pAng->CSFs_calculated() == false)
+            {
+                if(pAng->projection_size() < SHARING_SIZE_LIM)
+                    pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
+                else
+                    big_library.insert(pair);
+            }
+        }
+
+        // Find big CSFs
+        int root = 0;
+        for(auto& pair: big_library)
+        {
+            auto& pAng = pair.second;
+            if(root == ProcessorRank)
                 pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
-            else
-                big_library.insert(pair);
+
+            root++;
+            if(root >= NumProcessors)
+                root = 0;
         }
-    }
-    
-    // Find big CSFs
-    int root = 0;
-    for(auto& pair: big_library)
-    {
-        auto& pAng = pair.second;
-        if(root == ProcessorRank)
-            pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
 
-        root++;
-        if(root >= NumProcessors)
-            root = 0;
-    }
-    
-    // Share CSFs with all processors
-    root = 0;
-    int ierr = 0;
-    for(auto& pair: big_library)
-    {
-        auto& pAng = pair.second;
-        ierr = MPI_Barrier(MPI_COMM_WORLD);
-        ierr = MPI_Bcast(&(pAng->num_CSFs), 1, MPI_INT, root, MPI_COMM_WORLD);
-
-        int buffer_size = pAng->num_CSFs * pAng->projection_size();
-
-        // Allocate space
-        if(root != ProcessorRank)
+        // Share CSFs with all processors
+        root = 0;
+        int ierr = 0;
+        for(auto& pair: big_library)
         {
-            if(pAng->CSFs)
-                delete[] pAng->CSFs;
+            auto& pAng = pair.second;
+            ierr = MPI_Barrier(MPI_COMM_WORLD);
+            ierr = MPI_Bcast(&(pAng->num_CSFs), 1, MPI_INT, root, MPI_COMM_WORLD);
 
-            pAng->CSFs = new double[buffer_size];
+            int buffer_size = pAng->num_CSFs * pAng->projection_size();
+
+            // Allocate space
+            if(root != ProcessorRank)
+            {
+                if(pAng->CSFs)
+                    delete[] pAng->CSFs;
+
+                pAng->CSFs = new double[buffer_size];
+            }
+
+            ierr = MPI_Bcast(pAng->CSFs, buffer_size, MPI_DOUBLE, root, MPI_COMM_WORLD);
+            pAng->have_CSFs = true;
+
+            root++;
+            if(root >= NumProcessors)
+                root = 0;
         }
-
-        ierr = MPI_Bcast(pAng->CSFs, buffer_size, MPI_DOUBLE, root, MPI_COMM_WORLD);
-        pAng->have_CSFs = true;
-
-        root++;
-        if(root >= NumProcessors)
-            root = 0;
+    #endif
     }
-#endif
 }
 
 /** Structure of *.angular files:
@@ -551,7 +590,7 @@ void AngularDataLibrary::Read()
         }
 
         pAngularData ang(new AngularData(two_m));
-        ang->two_j = two_j;
+        ang->two_j = sym.GetTwoJ();
 
         // Projections
         int num_projections = 0;
@@ -629,6 +668,10 @@ void AngularDataLibrary::Write() const
     }
 
     fclose(fp);
+
+    // Write parent (recursive)
+    if(parent)
+        parent->Write();
 }
 
 void AngularDataLibrary::PrintKeys() const

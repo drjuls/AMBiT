@@ -326,7 +326,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
     return rlist;
 }
 
-void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m) const
+void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const
 {
     Parity parity = rlist->begin()->GetParity();
 
@@ -345,7 +345,7 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two
         pAngularDataLibrary lib;
 
         if(lib_iterator == angular_libraries.end())
-        {   lib.reset(new AngularDataLibrary(it->ElectronNumber(), Symmetry(two_m, parity), two_m, angular_directory));
+        {   lib.reset(new AngularDataLibrary(it->ElectronNumber(), Symmetry(two_j, parity), two_m, angular_directory));
             lib->Read();
             angular_libraries[it->ElectronNumber()] = lib;
         }

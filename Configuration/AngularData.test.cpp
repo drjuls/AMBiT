@@ -201,7 +201,7 @@ TEST(AngularDataTester, LadderOperator)
 {
     // Create some RelativisticConfigurations and check the projections correspond to those expected.
     RelativisticConfiguration rconfig;
-    
+
     //4s-1 4d4
     rconfig.insert(std::make_pair(OrbitalInfo(4, -1), -1));
     rconfig.insert(std::make_pair(OrbitalInfo(4, -3), 2));
@@ -235,4 +235,30 @@ TEST(AngularDataTester, LadderOperator)
             twoM = twoM - 2;
         }
     }
+
+    // Verify AngularDataLibrary recursion
+    int parent_twoJ = 7;
+    pAngularData parent(new AngularData(rconfig, parent_twoJ, parent_twoJ));
+    int twoM = parent_twoJ - 2;
+
+    while(twoM >= 3)
+    {
+        pAngularData child(new AngularData(rconfig, twoM));
+        child->LadderLowering(rconfig, *parent);
+        
+        parent = child;
+        twoM = twoM - 2;
+    }
+
+    AngularDataLibrary lib(5, Symmetry(7, Parity::even), 3);
+    pAngularData from_lib = lib[rconfig];
+    lib.GenerateCSFs();
+
+    // Compare CSFs
+    ASSERT_EQ(from_lib->NumCSFs(), parent->NumCSFs());
+    ASSERT_EQ(from_lib->projection_size(), parent->projection_size());
+    const double* CSFs1 = from_lib->GetCSFs();
+    const double* CSFs2 = parent->GetCSFs();
+    for(int i = 0; i < from_lib->projection_size() * from_lib->NumCSFs(); i++)
+        EXPECT_NEAR(CSFs1[i], CSFs2[i], 1.e-9);
 }

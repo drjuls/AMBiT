@@ -36,9 +36,17 @@ public:
 
     /** Make all projections of the rlist that have a projection M = two_m/2.
         Remove configurations that cannot have this projection.
+        Generate CSFs with angular momentum two_j/2.
         PRE: rlist should be unique.
      */
-    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const;
+    void GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const;
+
+    /** Generate configuration state functions (CSFs) with J = M = two_m/2.
+        Equivalent to GenerateProjections(rlist, two_m, two_m).
+     */
+    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const
+    {   GenerateProjections(rlist, two_m, two_m);
+    }
 
 protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
