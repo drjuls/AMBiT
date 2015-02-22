@@ -26,6 +26,8 @@ protected:
 public:
     AngularData(const RelativisticConfiguration& config, int two_m);    //!< Generate projections but not CSFs.
     AngularData(const RelativisticConfiguration& config, int two_m, int two_j); //!< Generate projections and CSFs.
+    AngularData(const AngularData& other);
+    AngularData(AngularData&& other);
     ~AngularData();
 
     typedef std::list< std::vector<int> >::const_iterator const_projection_iterator;
@@ -52,8 +54,15 @@ public:
 
     /** Generate CSFs by diagonalising projections over J^2.
         Return number of CSFs generated with correct two_j.
+        PRE: projections have been formed
      */
     int GenerateCSFs(const RelativisticConfiguration& config, int two_j);
+
+    /** Generate CSFs by applying J- to parent AngularData.
+        The RelativisticConfiguration will be equivalent for both parent and child.
+        PRE: projections have been formed
+     */
+    void LadderLowering(const RelativisticConfiguration& config, const AngularData& parent);
 
 protected:
     int GenerateProjections(const RelativisticConfiguration& config, int two_m);
@@ -64,7 +73,7 @@ protected:
     int two_m;
 
     /** CSF coefficients for a given J. Usually one requires all coefficients for a given projection,
-        so the projection comes first: CSFs[proj * N + csf] where N is NumCSFs().
+        so the projection comes first: CSFs[proj * num_CSFs + csf].
      */
     bool have_CSFs;
     double* CSFs;

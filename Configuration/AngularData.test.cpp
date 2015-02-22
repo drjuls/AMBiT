@@ -196,3 +196,43 @@ TEST(AngularDataTester, Iterators)
     for(int i = 0; i < norm.size(); i++)
         EXPECT_NEAR(1., norm[i], 1.e-6);
 }
+
+TEST(AngularDataTester, LadderOperator)
+{
+    // Create some RelativisticConfigurations and check the projections correspond to those expected.
+    RelativisticConfiguration rconfig;
+    
+    //4s-1 4d4
+    rconfig.insert(std::make_pair(OrbitalInfo(4, -1), -1));
+    rconfig.insert(std::make_pair(OrbitalInfo(4, -3), 2));
+    rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
+
+    for(int parent_twoJ = 1; parent_twoJ <= 13; parent_twoJ += 2)
+    {
+        pAngularData parent(new AngularData(rconfig, parent_twoJ, parent_twoJ));
+        int twoM = parent_twoJ - 2;
+
+        while(twoM >= -parent_twoJ)
+        {
+            pAngularData child(new AngularData(rconfig, twoM));
+            child->LadderLowering(rconfig, *parent);
+
+            // Check normalisation
+            const double* CSFs = child->GetCSFs();
+            int num_csfs = child->NumCSFs();
+            for(int csf_count = 0; csf_count < num_csfs; csf_count++)
+            {
+                double norm = 0.;
+                for(int i = 0; i < child->projection_size(); i++)
+                {
+                    norm += CSFs[i * num_csfs + csf_count] * CSFs[i * num_csfs + csf_count];
+                }
+
+                EXPECT_NEAR(1.0, norm, 1.e-9);
+            }
+
+            parent = child;
+            twoM = twoM - 2;
+        }
+    }
+}

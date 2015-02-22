@@ -26,6 +26,27 @@ AngularData::AngularData(const RelativisticConfiguration& config, int two_m, int
     GenerateCSFs(config, two_j);
 }
 
+AngularData::AngularData(const AngularData& other):
+    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections)
+{
+    if(have_CSFs)
+    {
+        CSFs = new double[projection_size() * num_CSFs];
+        memcpy(CSFs, other.CSFs, projection_size() * num_CSFs * sizeof(double));
+    }
+}
+
+AngularData::AngularData(AngularData&& other):
+    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections)
+{
+    if(have_CSFs)
+    {
+        CSFs = other.CSFs;
+        other.have_CSFs = false;
+        other.CSFs = nullptr;
+    }
+}
+
 AngularData::~AngularData()
 {
     if(CSFs)
@@ -59,10 +80,10 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     // At each step populate all possible projections with M-1.
     // Stop when desired M is reached.
 
-    int projection_size = config.ParticleNumber();
+    int particle_number = config.ParticleNumber();
 
     // Skip if vacuum
-    if(projection_size == 0)
+    if(particle_number == 0)
     {
         projections.clear();
         projections.push_back(std::vector<int>());
@@ -70,9 +91,9 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     }
 
     // Create set of boxes, one for each orbital, each with a list of projections to be filled.
-    std::vector<int> box_number(projection_size);
-    std::vector<int> min_projection(projection_size);
-    std::vector<int> max_projection(projection_size);
+    std::vector<int> box_number(particle_number);
+    std::vector<int> min_projection(particle_number);
+    std::vector<int> max_projection(particle_number);
 
     int box_count = config.size();
     std::vector< std::pair<int, int> > box_particle_bounds(box_count);
@@ -118,13 +139,13 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
             {
                 int i = box_particle_bounds[box_i].first;
 
-                for(int j = i; j < projection_size; j++)
+                for(int j = i; j < particle_number; j++)
                 {
-                    std::vector<int> new_proj(existing_proj);
-                    if(j == projection_size-1 ||            // Last particle or
+                    if(j == particle_number-1 ||            // Last particle or
                        box_number[j] != box_number[j+1] ||  // next particle is in a different orbital or
-                       new_proj[j] - new_proj[j+1] > 2)     // there is room to apply J^-
+                       existing_proj[j] - existing_proj[j+1] > 2)   // there is room to apply J^-
                     {
+                        std::vector<int> new_proj(existing_proj);
                         new_proj[j] -= 2;
                         if(new_proj[j] >= min_projection[j])
                         {
@@ -240,6 +261,109 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     }
 
     return num_CSFs;
+}
+
+void AngularData::LadderLowering(const RelativisticConfiguration& config, const AngularData& parent)
+{
+    unsigned int N = projections.size();
+    this->two_j = parent.two_j;
+
+    // Clear existing
+    if(CSFs)
+    {   delete[] CSFs;
+        CSFs = nullptr;
+        have_CSFs = false;
+    }
+
+    if(N == 0 || two_j < abs(two_m))
+        return;
+
+    // Create new CSFs and initialise to zero
+    num_CSFs = parent.num_CSFs;
+    CSFs = new double[N * num_CSFs];
+    memset(CSFs, 0, sizeof(double) * N * num_CSFs);
+
+    // Create mapping from projections to CSF index
+    std::map<std::vector<int>, int> projection_positions;
+    int index = 0;
+    for(auto proj_it = projections.begin(); proj_it != projections.end(); proj_it++)
+    {   projection_positions[*proj_it] = index;
+        index++;
+    }
+
+    int particle_number = config.ParticleNumber();
+    
+    // Create set of boxes, one for each orbital, each with a list of projections to be filled.
+    std::vector<int> box_number(particle_number);
+    std::vector<int> min_projection(particle_number);
+    std::vector<int> max_projection(particle_number);
+    std::vector<int> box_twoj(particle_number);
+    std::vector<bool> box_ishole(particle_number);
+
+    int count = 0;
+    int box = 0;
+    for(auto config_it = config.begin(); config_it != config.end(); config_it++)
+    {
+        int current_two_m = config_it->first.TwoJ();
+        int num_particles = abs(config_it->second);
+        
+        for(int i = 0; i < num_particles; i++)
+        {
+            max_projection[count + i] = current_two_m;
+            min_projection[count + num_particles-1 - i] = -current_two_m;
+            box_number[count + i] = box;
+            box_twoj[count + i] = config_it->first.TwoJ();
+            box_ishole[count + i] = (config_it->second < 0);
+            current_two_m -= 2;
+        }
+        
+        count += num_particles;
+        box++;
+    }
+
+    // For each projection in parent, apply J- for all orbitals, find corresponding projection,
+    // and update CSFs
+    int parent_index = 0;
+    for(auto& parent_proj: parent.projections)
+    {
+        for(int i = 0; i < particle_number; i++)
+        {
+            int parent_twom = parent_proj[i];
+
+            if(parent_twom > min_projection[i] &&
+               (i == particle_number-1 ||               // Last particle or
+                box_number[i] != box_number[i+1] ||     // next particle is in a different orbital or
+                parent_proj[i] - parent_proj[i+1] > 2)) // there is room to apply J^-
+            {
+                std::vector<int> new_proj(parent_proj);
+                new_proj[i] -= 2;
+                auto it = projection_positions.find(new_proj);
+                if(it != projection_positions.end())
+                {
+                    int child_index = it->second;
+                    double prefactor = sqrt((box_twoj[i] + parent_twom) * (box_twoj[i] - parent_twom + 2))/2.;
+                    if(box_ishole[i])
+                        prefactor = -prefactor;
+
+                    for(int j = 0; j < num_CSFs; j++)
+                    {
+                        CSFs[child_index * num_CSFs + j] += prefactor * parent.CSFs[parent_index * num_CSFs + j];
+                    }
+                }
+                else
+                    *errstream << "AngularData::LadderLowering(): failed to find child projection." << std::endl;
+            }
+        }
+
+        parent_index++;
+    }
+
+    // Renormalise CSFs
+    double prefactor = 2./sqrt((two_j + two_m + 2) * (two_j - two_m));
+    for(int i = 0; i < num_CSFs * N; i++)
+        CSFs[i] *= prefactor;
+
+    have_CSFs = true;
 }
 
 AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, std::string lib_directory):
