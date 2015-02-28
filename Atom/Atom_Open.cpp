@@ -397,14 +397,13 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
     {   min_percent_displayed = 101.;
     }
 
-    bool TruncateDisplayAtMaxEnergy = user_input.search("CI/Output/MaxDisplayedEnergy");
-    double DavidsonMaxEnergy = 0.;
-    if(TruncateDisplayAtMaxEnergy)
-    {
-        DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
+    if(user_input.search("CI/Output/MaxDisplayedEnergy"))
+    {   // Truncate display at max energy
+        double DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
+        levels->Print(sym, min_percent_displayed, DavidsonMaxEnergy);
     }
-
-    levels->Print(sym, min_percent_displayed, DavidsonMaxEnergy);
+    else
+        levels->Print(sym, min_percent_displayed);
 
     return levels;
 }

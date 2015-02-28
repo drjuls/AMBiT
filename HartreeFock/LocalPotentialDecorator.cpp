@@ -65,8 +65,8 @@ SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
     return ta;
 }
 
-LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    LocalPotentialDecorator(wrapped_hf, integration_strategy)
+LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pOPIntegrator integration_strategy):
+    LocalPotentialDecorator(wrapped_hf, integration_strategy), Xalpha(x_alpha)
 {}
 
 void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
@@ -97,7 +97,8 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
 
     // Get local exchange approximation
     directPotential.resize(density.size());
-    double C = 0.635348143228;
+    double C = 0.635348143228;  // (81/32\pi^2)^(1/3)
+    C *= Xalpha;
     for(i = 0; i < density.size(); i++)
     {
         directPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);

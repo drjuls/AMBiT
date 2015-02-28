@@ -496,7 +496,7 @@ void AngularDataLibrary::GenerateCSFs()
             if(pAng->CSFs_calculated() == false)
             {
                 if(pAng->projection_size() < SHARING_SIZE_LIM)
-                    pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
+                    pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
                 else
                     big_library.insert(pair);
             }
@@ -508,7 +508,7 @@ void AngularDataLibrary::GenerateCSFs()
         {
             auto& pAng = pair.second;
             if(root == ProcessorRank)
-                pAng->GenerateCSFs(GenerateRelConfig(pair.first), two_j);
+                pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
 
             root++;
             if(root >= NumProcessors)

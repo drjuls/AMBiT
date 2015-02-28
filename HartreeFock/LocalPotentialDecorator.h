@@ -23,14 +23,27 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 };
 
-/** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations. */
+/** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations.
+    The exchange potential is given by
+        \f[ x_{\alpha} \left( \frac{81}{32 \pi^2} \frac{\rho(r)}{r^2} \right)^{1/3} \f]
+    where \f$\rho(r)\f$ is the density of electrons. The prefactor
+    \f$x_\alpha = 1\f$ corresponds to the Dirac-Slater potential, while
+    \f$x_\alpha = 2/3\f$ gives the Kohn-Sham potential.
+    Remember to turn off the exchange potential using wrapped_hf->Include
+ */
 class LocalExchangeApproximation : public LocalPotentialDecorator
 {
 public:
-    LocalExchangeApproximation(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pOPIntegrator integration_strategy = pOPIntegrator());
+
+    void SetXalpha(double x_alpha) { Xalpha = x_alpha; }
+    double GetXalpha() const { return Xalpha; }
 
     virtual void SetCore(pCoreConst hf_core) override;
     virtual void Alert() override;
+
+protected:
+    double Xalpha;
 };
 
 #endif
