@@ -2,10 +2,10 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "Atom/MultirunOptions.h"
-#include "Core.h"
-#include "ODESolver.h"
+#include "HartreeFock/Core.h"
+#include "HartreeFock/ODESolver.h"
 #include "Universal/PhysicalConstant.h"
-#include "HartreeFocker.h"
+#include "HartreeFock/HartreeFocker.h"
 #include "Basis/BasisGenerator.h"
 #include "Universal/MathConstant.h"
 

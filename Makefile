@@ -32,7 +32,7 @@ corelibnames = $(foreach module, $(coremodules), $(module)/$(BUILD)/$(module)$(L
 libnames = $(foreach module, $(modules), $(module)/$(BUILD)/$(module)$(LIBSUFFIX))
 
 $(exes): $(libnames)
-	$(LINK) $(LINKFLAGS) -o $@ $^ $(gtestobj) $(addprefix -L, $(LIBDIR)) \
+	$(LINK) $(LINKFLAGS) -o $@ $(gtestobj) $^ $(addprefix -L, $(LIBDIR)) \
                 $(LIBOBJ) $(addprefix -l, $(LIBS))
 	-@mkdir -p $(ANGULAR_DATA_DIRECTORY)
 

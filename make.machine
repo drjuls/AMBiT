@@ -18,8 +18,8 @@ endif
 ifeq ($(findstring katana, $(HOSTNAME)), katana)
   MACHINE = katana
 endif
-ifeq ($(HOSTNAME), newt.phys.unsw.edu.au)
-  MACHINE = newt
+ifeq ($(HOSTNAME), jcb1pc)
+  MACHINE = jcb1pc
 endif
 
 SRCDIR = $(shell pwd)
@@ -32,7 +32,7 @@ GTEST_LIBS_DIR    = $(SRCDIR)/gtest
 
 ifeq ($(MACHINE), default)
   CC  = gcc
-  CXX = g++ -std=c++11 -Wno-deprecated-register
+  CXX = g++ -std=c++11 -Wno-deprecated-register -Wno-unused-result
   F77 = gfortran
 
   LINK      = g++
@@ -53,7 +53,7 @@ ifeq ($(MACHINE), default)
     F77FLAGS  = -O2
   endif
 
-  CCDEP   = gcc
+  CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
 endif
 
@@ -118,15 +118,15 @@ ifeq ($(MACHINE), katana)
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), newt)
-  CC  = gcc34
-  CXX = g++34
-  F77 = gcc34
+ifeq ($(MACHINE), jcb1pc)
+  CC  = gcc
+  CXX = mpiCC -std=c++11 -Wno-unused-result
+  F77 = gfortran
 
-  LINK      = g++34
+  LINK      = mpiCC
   LINKFLAGS =
   LIBDIR    = /usr/local/lib
-  LIBS      = blas lapack g2c
+  LIBS      = blas lapack
 
   INCLUDE  += /usr/local/include
 
@@ -141,14 +141,16 @@ ifeq ($(MACHINE), newt)
     F77FLAGS  = -O2
   endif
 
-  CCDEP   = gcc34
+  CXXFLAGS += -D_MPI
+
+  CCDEP   = mpiCC -std=c++11
   DEPFLAG = -MM
 endif
 
 ifdef test
   INCLUDE += $(GTEST_INCLUDE_DIR)
   LIBDIR  += $(GTEST_LIBS_DIR)
-  LIBS    += gtest
+  LIBS    += gtest pthread
 endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))
