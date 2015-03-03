@@ -30,7 +30,7 @@ public:
     AngularData(AngularData&& other);
     ~AngularData();
 
-    typedef std::list< std::vector<int> >::const_iterator const_projection_iterator;
+    typedef std::vector<std::vector<int>>::const_iterator const_projection_iterator;
     typedef const double* const_CSF_iterator;
 
     /** Bidirectional list iterator over list of "projections", i.e. list of std::vector<int> */
@@ -69,7 +69,7 @@ protected:
     static bool ProjectionCompare(const std::vector<int>& first, const std::vector<int>& second);
 
     /** List of "projections": in this context, vectors of two_Ms. */
-    std::list< std::vector<int> > projections;
+    std::vector<std::vector<int>> projections;
     int two_m;
 
     /** CSF coefficients for a given J. Usually one requires all coefficients for a given projection,

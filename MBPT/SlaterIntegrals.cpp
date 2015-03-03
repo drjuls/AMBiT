@@ -8,6 +8,7 @@ SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool tw
     SlaterIntegralsInterface(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
+    SetUpMap();
 }
 
 template <class MapType>
@@ -15,6 +16,7 @@ SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartre
 SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
+    SetUpMap();
 }
 
 template <class MapType>
@@ -22,6 +24,7 @@ SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartre
     SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(hartreeY_op->ReverseSymmetryExists())
 {
     NumStates = orbitals->size();
+    SetUpMap();
 }
 
 template <class MapType>

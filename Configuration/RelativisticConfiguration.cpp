@@ -36,6 +36,8 @@ bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data)
     if(angular_data == nullptr)
         return false;
 
+    projections.clear();
+    projections.reserve(angular_data->projection_size());
     auto it = angular_data->projection_begin();
     while(it != angular_data->projection_end())
     {   projections.emplace_back(*this, *it);

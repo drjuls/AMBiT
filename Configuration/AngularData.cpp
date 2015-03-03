@@ -166,11 +166,17 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
 
     // Sort and merge projections lists
     projections.clear();
+    int reserve_size = 0;
     for(auto& list: boxes)
-    {   list.sort(ProjectionCompare);
-        projections.merge(list, ProjectionCompare);
+        reserve_size += list.size();
+    projections.reserve(reserve_size);
+    
+    for(auto& list: boxes)
+    {   projections.insert(projections.end(), list.begin(), list.end());
     }
-    projections.unique();
+    std::sort(projections.begin(), projections.end(), ProjectionCompare);
+    std::unique(projections.begin(), projections.end());
+    projections.shrink_to_fit();
 
     return projections.size();
 }
@@ -194,8 +200,9 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     unsigned int i, j;
     Eigen::MatrixXd M = Eigen::MatrixXd::Zero(N, N);
 
-    // Make list of Projections.
-    std::list< Projection > real_Projection_list;
+    // Make vector of Projections.
+    std::vector<Projection> real_Projection_list;
+    real_Projection_list.reserve(projections.size());
     for(const auto& p: projections)
         real_Projection_list.push_back(Projection(config, p));
 
