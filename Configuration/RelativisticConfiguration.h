@@ -155,6 +155,57 @@ public:
     /** Return total number of CSFs stored in entire list. */
     unsigned int NumCSFs() const;
 
+public:
+    /** Iterator over RelativisticConfigurations in list. Templating just for const/non-const iterators. */
+    template <class Base>
+    class relconfiglist_iterator : public boost::iterator_adaptor<
+        relconfiglist_iterator<Base>,
+        Base,
+        boost::use_default,
+        boost::bidirectional_traversal_tag>
+    {
+    private:
+        struct enabler {};
+
+    public:
+        relconfiglist_iterator(): relconfiglist_iterator::iterator_adaptor_(), m_csf_index(0) {}
+
+        explicit relconfiglist_iterator(Base p, int start_index = 0):
+            relconfiglist_iterator::iterator_adaptor_(p), m_csf_index(start_index) {}
+
+        template <class OtherBase>
+        relconfiglist_iterator(relconfiglist_iterator<OtherBase> const& other,
+                         typename boost::enable_if<boost::is_convertible<OtherBase,Base>, enabler>::type = enabler()):
+        relconfiglist_iterator::iterator_adaptor_(other.base()), m_csf_index(other.m_csf_index) {}
+
+        int csf_index() const { return m_csf_index; }
+
+    private:
+        friend class boost::iterator_core_access;
+        int m_csf_index;
+
+        void increment()
+        {   m_csf_index += this->base_reference()->NumCSFs();
+            this->base_reference()++;
+        }
+
+        void decrement()
+        {   this->base_reference()--;
+            m_csf_index += this->base_reference()->NumCSFs();
+        }
+    };
+
+    typedef relconfiglist_iterator<BaseSortedList::const_iterator> const_iterator;
+    typedef relconfiglist_iterator<BaseSortedList::iterator> iterator;
+
+    iterator begin() { return iterator(BaseSortedList::begin(), 0); }
+    const_iterator begin() const { return const_iterator(BaseSortedList::begin(), 0); }
+
+    iterator end() { return iterator(BaseSortedList::end()); }
+    const_iterator end() const { return const_iterator(BaseSortedList::end()); }
+
+    iterator erase(iterator position) { return iterator(m_list.erase(position.base())); }
+
     /** Get the ith RelativisticConfiguration, and the CSF offset.
         PRE: i < size().
      */
@@ -168,8 +219,7 @@ public:
     class const_projection_iterator : public boost::iterator_facade<
         const_projection_iterator,
         const Projection,
-        boost::forward_traversal_tag
-    >
+        boost::forward_traversal_tag>
     {
     public:
         const_projection_iterator():

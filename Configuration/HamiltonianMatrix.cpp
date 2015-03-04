@@ -89,60 +89,61 @@ void HamiltonianMatrix::GenerateMatrix()
             config_it = current_config_pair.first;
             int csf_offset_i = current_config_pair.second;
 
-            // Loop through projections
-            auto proj_it = config_it->projection_begin();
-            while(proj_it != config_it->projection_end())
+            // Loop through the rest of the configs
+            auto config_jt = config_it;
+            int csf_offset_j = csf_offset_i;
+            while(config_jt != configs->end())
             {
-                // Loop through the rest of the configs
-                auto config_jt = config_it;
-                int csf_offset_j = csf_offset_i;
-                while(config_jt != configs->end())
+                // Check that the number of differences is small enough
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= 2)
                 {
-                    RelativisticConfiguration::const_projection_iterator proj_jt;
-                    if(config_jt == config_it)
-                        proj_jt = proj_it;
-                    else
-                        proj_jt = config_jt->projection_begin();
-
-                    while(proj_jt != config_jt->projection_end())
+                    // Loop through projections
+                    auto proj_it = config_it->projection_begin();
+                    while(proj_it != config_it->projection_end())
                     {
-                        double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+                        RelativisticConfiguration::const_projection_iterator proj_jt;
+                        if(config_jt == config_it)
+                            proj_jt = proj_it;
+                        else
+                            proj_jt = config_jt->projection_begin();
 
-                        if(fabs(operatorH) > 1.e-15)
+                        while(proj_jt != config_jt->projection_end())
                         {
-                            for(auto coeff_i = proj_it.CSF_begin(csf_offset_i); coeff_i != proj_it.CSF_end(csf_offset_i); coeff_i++)
+                            double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                            if(fabs(operatorH) > 1.e-15)
                             {
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin(csf_offset_j);
-
-                                if(proj_it == proj_jt)
-                                    start_j = coeff_i;
-
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(csf_offset_j); coeff_j++)
+                                for(auto coeff_i = proj_it.CSF_begin(csf_offset_i); coeff_i != proj_it.CSF_end(csf_offset_i); coeff_i++)
                                 {
-                                    // See notes for an explanation
-                                    int i = coeff_i.index() - current_chunk.start_row;
-                                    int j = coeff_j.index() - current_chunk.start_row;
+                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin(csf_offset_j);
 
-                                    if(i < j)
-                                        M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(i > j)
-                                        M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(proj_it == proj_jt)
-                                        M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else
-                                        M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                    if(proj_it == proj_jt)
+                                        start_j = coeff_i;
+
+                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(csf_offset_j); coeff_j++)
+                                    {
+                                        // See notes for an explanation
+                                        int i = coeff_i.index() - current_chunk.start_row;
+                                        int j = coeff_j.index() - current_chunk.start_row;
+
+                                        if(i < j)
+                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                        else if(i > j)
+                                            M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                                        else if(proj_it == proj_jt)
+                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                        else
+                                            M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                    }
                                 }
                             }
+                            proj_jt++;
                         }
-
-                        proj_jt++;
+                        proj_it++;
                     }
-
-                    csf_offset_j += config_jt->NumCSFs();
-                    config_jt++;
                 }
-
-                proj_it++;
+                csf_offset_j += config_jt->NumCSFs();
+                config_jt++;
             }
         } // Configs in chunk
     } // Chunks
