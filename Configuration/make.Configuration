@@ -1,6 +1,7 @@
 cxxobjects = AngularData.o ConfigGenerator.o ElectronInfo.o \
              HamiltonianMatrix.o Level.o NonRelConfiguration.o \
-             Projection.o RelativisticConfiguration.o Symmetry.o
+             Projection.o RelativisticConfiguration.o \
+             RelativisticConfigList.o Symmetry.o
 cobjects =
 fobjects =
 

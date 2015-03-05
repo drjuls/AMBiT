@@ -4,7 +4,7 @@
 #include "Atom/MultirunOptions.h"
 #include "Basis/OrbitalManager.h"
 #include "NonRelConfiguration.h"
-#include "RelativisticConfiguration.h"
+#include "RelativisticConfigList.h"
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Symmetry.h"

@@ -4,7 +4,7 @@
 #include "HartreeFock/Configuration.h"
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/NonRelInfo.h"
-#include "RelativisticConfiguration.h"
+#include "RelativisticConfigList.h"
 #include "SortedList.h"
 #include <set>
 
