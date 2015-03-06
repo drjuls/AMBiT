@@ -52,10 +52,14 @@ public:
     {
     public:
         const_projection_iterator():
-            const_projection_iterator::iterator_adaptor_(), current_CSFs_start(0)
+            const_projection_iterator::iterator_adaptor_(), current_CSFs_start(nullptr), index_offset(0)
         {}
 
-        explicit const_projection_iterator(ProjectionList::const_iterator p, pAngularDataConst angular_data = nullptr, int offset = 0):
+        const_projection_iterator(ProjectionList::const_iterator p):
+            const_projection_iterator::iterator_adaptor_(p), current_CSFs_start(nullptr), index_offset(0)
+        {}
+
+        const_projection_iterator(ProjectionList::const_iterator p, const pAngularDataConst& angular_data, int offset = 0):
             const_projection_iterator::iterator_adaptor_(p), current_CSFs_start(angular_data->GetCSFs()), num_CSFs(angular_data->NumCSFs()), index_offset(offset)
         {}
 

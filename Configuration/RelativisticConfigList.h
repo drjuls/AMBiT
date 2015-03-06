@@ -79,7 +79,7 @@ public: // Functions for iterator and const_iterator
         RelativisticConfiguration::const_projection_iterator projection_end() const
         {
             const Base& base = this->base_reference();
-            return RelativisticConfiguration::const_projection_iterator(base->projections.end(), base->angular_data, m_csf_index);
+            return RelativisticConfiguration::const_projection_iterator(base->projections.end());
         }
 
         /** Number of projections in the current RelativisticConfiguration. */
@@ -106,7 +106,7 @@ public: // Functions for iterator and const_iterator
 
         void decrement()
         {   this->base_reference()--;
-            m_csf_index += this->base_reference()->NumCSFs();
+            m_csf_index -= this->base_reference()->NumCSFs();
         }
     };
 
