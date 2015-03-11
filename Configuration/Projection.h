@@ -71,6 +71,6 @@ protected:
     std::vector<ElectronInfo> config;
 };
 
-typedef std::list<Projection> ProjectionList;
+typedef std::vector<Projection> ProjectionList;
 
 #endif

@@ -5,6 +5,8 @@
 #include "HartreeFock/HartreeY.h"
 #include <map>
 #include <unordered_map>
+#include <sparsehash/dense_hash_map>
+#include <sparsehash/sparse_hash_map>
 
 /** Class to hold Slater integrals \f$ R^k(12,34) \f$.
     storage_id is used to store and retrieve integrals in files.
@@ -129,6 +131,15 @@ protected:
         i2 = temp;
     }
 
+    template<typename U = MapType>
+    typename boost::enable_if_c<std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
+    {   TwoElectronIntegrals.set_empty_key(NULL);
+    }
+
+    template<typename U = MapType>
+    typename boost::enable_if_c<!std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
+    {}
+
 protected:
     pHartreeY hartreeY_operator;
     bool two_body_reverse_symmetry;
@@ -139,12 +150,8 @@ protected:
 };
 
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
-typedef SlaterIntegrals<std::unordered_map<unsigned long long int, double>> SlaterIntegralsHash;
-
-#if USE_GOOGLE_SPARSEHASH
-    #include <google/sparse_hash_map>
-    typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
-#endif
+typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
+typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
 
 #include "SlaterIntegrals.cpp"
 

@@ -181,8 +181,8 @@ TEST(AngularDataTester, Iterators)
     ASSERT_LE(1, rconfig.NumCSFs());    // Make sure we're testing something
 
     std::vector<double> norm(rconfig.NumCSFs());
-    auto it = rconfig.projection_begin();
-    while(it != rconfig.projection_end())
+    auto it = rconfig.projection_begin(0);
+    while(it != rconfig.projection_end(0))
     {
         auto csf_it = it.CSF_begin();
         int i = 0;

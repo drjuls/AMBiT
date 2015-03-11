@@ -2,7 +2,7 @@
 #define LEVEL_H
 
 #include "Symmetry.h"
-#include "RelativisticConfiguration.h"
+#include "RelativisticConfigList.h"
 #include "Universal/Enums.h"
 #include <boost/iterator/filter_iterator.hpp>
 
