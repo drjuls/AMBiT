@@ -283,7 +283,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                                << "  deltaE: " << diff << std::endl;
                 }
 
-                if(!orbitals->core->GetState(OrbitalInfo(pqn, kappa)))
+                if(!closed_core->GetOccupancy(OrbitalInfo(pqn,kappa)))
                 {   pOrbital s_copy(new Orbital(s));
                     *s_copy = *s;
                     excited->AddState(s_copy);

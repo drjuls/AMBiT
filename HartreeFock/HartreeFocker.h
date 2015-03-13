@@ -40,14 +40,14 @@ public:
         so the final orbital is not an eigenvalue of the hf operator.
         Return change in energy.
      */
-    double IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunction exchange = pSpinorFunction());
+    double IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange = pSpinorFunction());
 
     /** Find energy eigenvalue for orbital using tail matching method.
         Unlike the Greens method used in IterateOrbital(), this method doesn't require a
         source term (exchange term), so it can solve without exchange or with a local exchange approximation.
         Return number of loops.
      */
-    unsigned int IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf);
+    unsigned int IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange = pSpinorFunction());
 
     unsigned int IntegrateContinuum(pContinuumWave s, pHFOperator hf, pSpinorFunction exchange, double& final_amplitude, double& final_phase);
 

@@ -46,7 +46,7 @@ TEST(MultirunOptionsTester, SearchTest)
     MultirunOptions opt(inputFileName.c_str(), "//", "\n", ",");
 
     // Check search works
-    EXPECT_EQ(true, opt.search("Basis/--bspline-basis"));
+    EXPECT_EQ(true, opt.search("-c"));
     EXPECT_EQ(false, opt.search("--simply-false"));
 }
 

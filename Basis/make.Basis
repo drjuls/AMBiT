@@ -1,5 +1,5 @@
 cxxobjects = BasisGenerator.o BSplineBasis.o BSplineGrid.o \
-             OrbitalManager.o
+             HartreeFockBasis.o OrbitalManager.o
 cobjects = 
 fobjects = Spline.o
 

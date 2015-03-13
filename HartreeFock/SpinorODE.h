@@ -24,7 +24,7 @@ public:
     pLattice GetLattice() { return lattice; }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) = 0;
+    virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) = 0;
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const SingleParticleWavefunction& approximation) = 0;
@@ -33,7 +33,10 @@ public:
     virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const = 0;
 
     /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
-    virtual void IncludeExchangeInODE(bool include_exchange = true);
+    virtual void IncludeExchange(bool include_exchange);
+
+    /** Interrogate whether to include nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
+    virtual bool IncludeExchange() const;
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array;
@@ -89,7 +92,7 @@ public:
     virtual void Alert() override {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL)
+    virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL)
     {   return wrapped->SetODEParameters(kappa, energy, exchange);
     }
 
@@ -104,9 +107,9 @@ public:
     }
 
     /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
-    virtual void IncludeExchangeInODE(bool include_exchange = true)
+    virtual void IncludeExchange(bool include_exchange) override
     {   include_nonlocal = include_exchange;
-        return wrapped->IncludeExchangeInODE(include_exchange);
+        wrapped->IncludeExchange(include_exchange);
     }
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).

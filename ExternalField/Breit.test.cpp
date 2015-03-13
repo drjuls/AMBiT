@@ -80,7 +80,7 @@ TEST(BreitTester, LiLikeNe)
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 }
 
-TEST(BreitTester, Hg)
+TEST(BreitTester, HgSlow)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     DebugOptions.LogHFIterations(true);
@@ -134,7 +134,7 @@ TEST(BreitTester, Hg)
     EXPECT_NEAR(0.001547, matrix_element, 0.001);
 }
 
-TEST(BreitTester, IrSixteenPlus)
+TEST(BreitTester, IrSixteenPlusSlow)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 20.));
     DebugOptions.LogHFIterations(true);

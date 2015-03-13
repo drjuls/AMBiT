@@ -37,7 +37,7 @@ public:
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override;
+    virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) override;
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
@@ -123,7 +123,7 @@ public:
     virtual void Alert() override {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(int kappa, double energy, SpinorFunction* exchange = NULL) override
+    virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) override
     {   wrapped->SetODEParameters(kappa, energy, exchange);
         currentEnergy = energy;
         currentKappa = kappa;
@@ -139,6 +139,12 @@ public:
     /** Get exchange (nonlocal) potential. */
     virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override
     {   return wrapped->GetExchange(approximation);
+    }
+
+    /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
+    virtual void IncludeExchange(bool include_exchange) override
+    {   include_nonlocal = include_exchange;
+        wrapped->IncludeExchange(include_exchange);
     }
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).

@@ -33,12 +33,16 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     // Get orbitals and occupancies
     std::string open_shell_string;
+    std::string closed_shell_string;
     size_t colon_pos = config.find(':');
     if(colon_pos == std::string::npos)
-        open_shell_string = config;
+    {   open_shell_string = config;
+        closed_shell_string = config;
+    }
     else
     {   open_shell_string = config;
         open_shell_string.erase(colon_pos, 1);
+        closed_shell_string = config.substr(0,colon_pos);
     }
 
     OccupationMap open_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(open_shell_string);
@@ -98,31 +102,33 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
         hf = breit_hf;
     }
+
+    if(user_input.search("HF/--local-exchange"))
+    {
+        double xalpha = user_input("HF/Xalpha", 1.0);
+        pHFOperator localexch(new LocalExchangeApproximation(hf, xalpha));
+        hf = localexch;
+        hf->IncludeExchange(false);
+    }
+
+    // Set closed core occupancies
+    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
+    
+    // Make closed shell core. Ensure that all shells are completely filled.
+    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
+        it->second = 2. * abs(it->first.Kappa());
+    
+    // Create closed core with empty pointers for all occupied orbitals
+    closed_core = pCore(new Core(lattice));
+    closed_core->SetOccupancies(closed_shell_occupations);
+    
 }
 
 void BasisGenerator::SetOrbitalMaps()
 {
-    // Get closed-shell core orbitals and occupancies
-    std::string config(user_input("HF/Configuration", ""));
-    std::string closed_shell_string;
-    size_t colon_pos = config.find(':');
-    if(colon_pos == std::string::npos)
-        closed_shell_string = config;
-    else
-        closed_shell_string = config.substr(0, colon_pos);
-    OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
-
-    // Make closed shell core. Ensure that all shells are completely filled.
-    for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
-        it->second = 2. * abs(it->first.Kappa());
-
-    // Create closed core with empty pointers for all occupied orbitals
-    pCore closed_core = pCore(new Core(lattice));
-    closed_core->SetOccupancies(closed_shell_occupations);
-
     // Transfer from all to closed core
     OrbitalMap& all = *orbitals->all;
-    for(auto core_occupation: closed_shell_occupations)
+    for(auto core_occupation: closed_core->GetOccupancies())
     {
         closed_core->AddState(all.GetState(core_occupation.first));
     }
@@ -287,11 +293,13 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
 
     pOrbitalMap excited;
 
-    if(user_input.search("Basis/--bspline-basis"))
-    {   excited = GenerateBSplines(max_pqn_per_l);
+    if(user_input.search("Basis/--hf-basis"))
+    {   excited = GenerateHFExcited(max_pqn_per_l);
     }
-    else
-        excited = pOrbitalMap(new OrbitalMap(lattice));   // Just to stop seg-faults
+    else // default "Basis/--bspline-basis"
+    {   user_input.search("Basis/--bspline-basis"); // Just to clear UFO from user_input.
+        excited = GenerateBSplines(max_pqn_per_l);
+    }
 
     // Place all orbitals in orbitals->all.
     // Finally create orbitals->all and the state index

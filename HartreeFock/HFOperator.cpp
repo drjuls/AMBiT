@@ -87,7 +87,7 @@ void HFOperator::Alert()
         currentExchangePotential.resize(directPotential.size());
 }
 
-void HFOperator::SetODEParameters(int kappa, double energy, SpinorFunction* exchange)
+void HFOperator::SetODEParameters(int kappa, double energy, const SpinorFunction* exchange)
 {
     currentKappa = kappa;
     currentEnergy = energy;
@@ -287,7 +287,9 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
     const double* R = lattice->R();
     
     double kappa = a.Kappa();
-    SpinorFunction exchangePotential = CalculateExchange(a);
+    SpinorFunction exchangePotential(a.Kappa());
+    if(include_nonlocal)
+        exchangePotential = CalculateExchange(a);
     exchangePotential.resize(ta.size());
 
     std::vector<double> d2fdr2(a.size());

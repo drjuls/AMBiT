@@ -81,6 +81,9 @@ protected:
     /** When generating excited states, assume that states below Fermi level in "orbitals" are good to go. */
     virtual pOrbitalMap GenerateBSplines(const std::vector<int>& max_pqn);
 
+    /** When generating excited states, assume that states below Fermi level in "orbitals" are good to go. */
+    virtual pOrbitalMap GenerateHFExcited(const std::vector<int>& max_pqn);
+
     /** Orthogonalise to all states that have the same kappa and principal quantum number
         less than current (both in core and in excited states).
         PRE: all states with smaller pqn must already be orthogonal
@@ -98,6 +101,7 @@ protected:
     pPhysicalConstant physical_constant;
 
     pCore open_core;
+    pCore closed_core;
     pOrbitalManager orbitals;
 
     pHFOperator hf;     //!< Open-shell hf operator

@@ -121,6 +121,7 @@ then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
 
 \option{-{}-interactive} Enable interactive mode at the end of a singular run. This will cause AMBiT to wait for input after completing all calculations so that the results can be further manipulated within the program.
 \option{-{}-recursive-build} Sets AMBiT to run in recursive mode to build all atoms with a given charge, iterating from a starting value of N and progressively adding electrons in the next lowest orbital until a final N is reached.
+\option{-{}-write-hamiltonian} Write Hamiltonian matrices to binary file (that can be read into Mathematica using AMBiT.m). Filename is \code{ID.<twoJ>.<Parity>.matrix}.
 
 \subsection{Parameters}
 
@@ -151,6 +152,7 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 \option{N} \textbf{[compulsory]} number of electrons included in HF procedure. In recursive building mode, this instead specifies the number of electrons the initial atom should have.
 \option{Charge} can be used instead of HF/N: Charge = Z - N.
 \option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6: 3d4'}. A colon may be used to indicate the Fermi level, or omitted in which case the Fermi level is assumed to lie just after all orbitals. The Fermi level is used to define the CI model space (and the MBPT electron space).
+\option{-{}-local-exchange} Use local exchange approximation $x_\alpha \left(\frac{81}{32\pi^2} \frac{\rho(r)}{r^2}\right)^{1/3}$, where $\rho(r)$ is the electron density. The value $x_\alpha$ can be set using \code{HF/Xalpha} [default = 1.0].
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
 
 %Basis

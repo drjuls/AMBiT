@@ -3,9 +3,14 @@
 SpinorODE::SpinorODE(pLattice lattice): LatticeObserver(lattice), include_nonlocal(true)
 {}
 
-void SpinorODE::IncludeExchangeInODE(bool include_exchange)
+void SpinorODE::IncludeExchange(bool include_exchange)
 {
     include_nonlocal = include_exchange;
+}
+
+bool SpinorODE::IncludeExchange() const
+{
+    return include_nonlocal;
 }
 
 void SpinorODE::GetDerivative(SingleParticleWavefunction& fg)

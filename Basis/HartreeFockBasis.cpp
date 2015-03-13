@@ -1,100 +1,67 @@
 #include "Include.h"
-#include "HartreeFockBasis.h"
+#include "BasisGenerator.h"
+#include "HartreeFock/HartreeFocker.h"
 
-void HartreeFockBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l)
+pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
 {
-    if(!num_states_per_l.size())
-        return;
+    pOrbitalMap excited(new OrbitalMap(lattice));
+    
+    if(!max_pqn.size())
+        return excited;
+    
+    bool debug = DebugOptions.OutputHFExcited();
 
-    Clear();
+    // Create Hartree-Fock solver; define integrators.
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    HartreeFocker HF_Solver(ode_solver);
 
-    for(unsigned int k=0; k<num_states_per_l.size(); k++)
+    for(int l = 0; l < max_pqn.size(); l++)
     {
-        if(num_states_per_l[k])
+        if(!max_pqn[l])
+            continue;
+        
+        for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
         {
-            for(int kappa = - int(k) - 1; kappa <= int(k); kappa += 2*int(k) + 1)
+            if(kappa == 0)
+                break;
+
+            unsigned int pqn = l + 1;
+            double nu = 0.;
+
+            while(pqn <= max_pqn[l])
             {
-                if(kappa == 0)
-                    break;
-
-                unsigned int count = 0; // Number of states calculated so far
-                unsigned int pqn = k + 1;
-
                 // Get first state by HF iteration
-                pOrbitalConst s;
-                pOrbitalConst previous_state;
-                while(count == 0)
-                {
-                    s.reset();
+                pOrbitalConst s = open_core->GetState(OrbitalInfo(pqn, kappa));
+                if(s)
+                {   if(!closed_core->GetOccupancy(OrbitalInfo(pqn,kappa)))
+                    {
+                        pOrbital s_copy(new Orbital(s));
+                        nu = s->Nu();
+                        *s_copy = *s;
+                        excited->AddState(s_copy);
 
-                    // If state is not in the open shell part, check whether it is in the core
-                    if(!core->IsOpenShellState(OrbitalInfo(pqn, kappa)))
-                        s = core->GetState(OrbitalInfo(pqn, kappa));
-
-                    if(s == NULL)
-                    {   // Check if state already exists
-                        s = GetState(OrbitalInfo(pqn, kappa));
-                        if(s == NULL)
-                        {   pOrbital ds = pOrbital(new Orbital(kappa, pqn));
-                            unsigned int loop = core->CalculateExcitedState(ds);
-                            if(loop)  // tells us whether ds is pre-existing OpenShellState
-                                Orthogonalise(ds);
-
-                            AddState(ds);
-                            previous_state = ds;
-                        }
-                        else
-                        {   pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
-                            unsigned int loop = core->UpdateExcitedState(ds);
-                            if(loop)
-                                Orthogonalise(ds);
-                            previous_state = ds;
-                        }
-                        count++;
+                        if(debug)
+                            *outstream << "  " << s_copy->Name() << " en:   " << s_copy->Energy() << "  size:  " << s_copy->size() << std::endl;
                     }
-                    pqn++;
                 }
-
-                // Get higher states by multiplication by R
-                while(count < num_states_per_l[k])
+                else
                 {
-                    pOrbital ds = GetState(OrbitalInfo(pqn, kappa));
-                    if(ds == NULL)
-                    {   ds = pOrbital(new Orbital(kappa, pqn));
-                        ds->SetNu(previous_state->Nu() + 1.);
-                        AddState(ds);
-                    }
+                    pOrbital ds = pOrbital(new Orbital(kappa, pqn));
+                    if(nu)
+                        ds->SetNu(nu + 1.);
+                    HF_Solver.CalculateExcitedState(ds, hf);
+                    nu = ds->Nu();
+                    excited->AddState(ds);
 
-                    unsigned int loop = core->CalculateExcitedState(ds);
-                    if(loop)  // tells us whether ds is pre-existing OpenShellState
-                        Orthogonalise(ds);
-
-                    if(DebugOptions.OutputHFExcited())
+                    if(debug)
                         *outstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->size() << std::endl;
-
-                    previous_state = ds;
-                    count++;
-                    pqn++;
                 }
+
+                pqn++;
             }
         }
     }
 
-    if(DebugOptions.OutputHFExcited())
-        *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;
-}
-
-/** Update all of the excited states because the core has changed. */
-void HartreeFockBasis::Update()
-{
-    ClearSigmas();
-
-    StateIterator it = GetStateIterator();
-    it.First();
-    while(!it.AtEnd())
-    {
-        pOrbital ds = it.GetState();
-        core->UpdateExcitedState(ds);
-        it.Next();
-    }
+    return excited;
 }
