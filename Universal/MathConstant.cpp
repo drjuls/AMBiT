@@ -12,7 +12,7 @@ MathConstant* MathConstant::Instance()
 MathConstant::MathConstant()
 {
     const char temp[] = "spdfghiklmnoqrtuv";
-    SpectroscopicNotation = new char[std::strlen(temp)];
+    SpectroscopicNotation = new char[std::strlen(temp)+1];
     std::strcpy(SpectroscopicNotation, temp);
 
     // Maximum largest stored twoJ for Electron3J.
@@ -159,7 +159,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
         total = total + pow(-1., L) * exp(term);
     }
     total = exp(outer) * total;
-    
+
     return total;
 }
 
@@ -354,7 +354,7 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k)
 {
     // In this case
     //  ( j1   j2   k ) = (-1)^(j1 + j2 + k) (  j2    j1   k ) = ( j2   j1   k )
-    //  ( 1/2 -1/2  0 )                      ( -1/2  1/2   0 )   ( 1/2 -1/2  0 ) 
+    //  ( 1/2 -1/2  0 )                      ( -1/2  1/2   0 )   ( 1/2 -1/2  0 )
     // So we don't need to worry about sign.
     // Therefore we can cut out some tests by asserting j1 >= j2
 

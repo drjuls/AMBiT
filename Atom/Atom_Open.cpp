@@ -316,19 +316,19 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
         if(twobody_electron == nullptr)
             MakeIntegrals();
 
-        HamiltonianMatrix* H;
-
-//        #ifdef _MPI
-//            H = new MPIHamiltonianMatrix(*integrals, gen);
-//        #else
-            H = new HamiltonianMatrix(hf_electron, twobody_electron, configs);
-//        #endif
+        HamiltonianMatrix H(hf_electron, twobody_electron, configs);
 
 //        if(sigma3)
 //            H->IncludeSigma3(sigma3);
 
-        H->GenerateMatrix();
+        H.GenerateMatrix();
         //H->PollMatrix();
+
+        if(user_input.search("--write-hamiltonian"))
+        {
+            std::string hamiltonian_filename = identifier + "." + sym.GetString() + ".matrix";
+            H.Write(hamiltonian_filename);
+        }
 
         if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
         {
@@ -357,7 +357,7 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
             MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
             MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
         #else
-            H->SolveMatrix(sym, NumSolutions, levels);
+            H.SolveMatrix(sym, NumSolutions, levels);
         #endif
 
         if(sym.GetTwoJ() != 0)
@@ -365,8 +365,6 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
             GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
             g_factors.CalculateGFactors(*levels, sym);
         }
-
-        delete H;
 
 //            ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
 //            if(filegenerator)
