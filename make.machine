@@ -99,7 +99,7 @@ ifeq ($(MACHINE), katana)
   LIBOBJ    = 
   LIBS      = mkl_rt pthread m
 
-  INCLUDE  +=
+  INCLUDE  += /share/apps/sparsehash/2.0.2/include
 
   ifdef debug
     BUILD     = Debug
