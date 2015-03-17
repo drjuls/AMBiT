@@ -11,7 +11,7 @@ ValenceCalculator::ValenceCalculator(pLattice lattice, pCoreConst atom_core, pEx
     MBPTCalculator(lattice, atom_core, excited_states)
 {}
 
-double ValenceCalculator::GetOneElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2)
+double ValenceCalculator::GetOneElectronValence(pOrbitalConst s1, pOrbitalConst s2)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -21,7 +21,7 @@ double ValenceCalculator::GetOneElectronValence(pSingleParticleWavefunctionConst
     return CalculateOneElectronValence1(*s1, *s2);
 }
 
-double ValenceCalculator::GetTwoElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronValence(pOrbitalConst s1, pOrbitalConst s2, pOrbitalConst s3, pOrbitalConst s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
@@ -32,14 +32,14 @@ double ValenceCalculator::GetTwoElectronValence(pSingleParticleWavefunctionConst
     return term;
 }
 
-double ValenceCalculator::GetTwoElectronBoxValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k)
+double ValenceCalculator::GetTwoElectronBoxValence(pOrbitalConst s1, pOrbitalConst s2, pOrbitalConst s3, pOrbitalConst s4, unsigned int k)
 {
     MaxStateSize = core->GetConstHFPotential().size();
 
     return CalculateTwoElectronValence1(*s1, *s2, *s3, *s4, k);
 }
 
-double ValenceCalculator::CalculateOneElectronValence1(const SingleParticleWavefunction& si, const SingleParticleWavefunction& sf) const
+double ValenceCalculator::CalculateOneElectronValence1(const Orbital& si, const Orbital& sf) const
 {
     const bool debug = DebugOptions.LogMBPT();
     StateIntegrator SI(lattice);
@@ -69,7 +69,7 @@ double ValenceCalculator::CalculateOneElectronValence1(const SingleParticleWavef
     return energy;
 }
 
-double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const
+double ValenceCalculator::CalculateTwoElectronValence1(const Orbital& sa, const Orbital& sb, const Orbital& sc, const Orbital& sd, unsigned int k) const
 {
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();
@@ -202,7 +202,7 @@ double ValenceCalculator::CalculateTwoElectronValence1(const SingleParticleWavef
     return energy;
 }
 
-double ValenceCalculator::CalculateTwoElectronValence2(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const
+double ValenceCalculator::CalculateTwoElectronValence2(const Orbital& sa, const Orbital& sb, const Orbital& sc, const Orbital& sd, unsigned int k) const
 {
     const bool debug = DebugOptions.LogMBPT();
     const double NuclearInverseMass = core->GetNuclearInverseMass();

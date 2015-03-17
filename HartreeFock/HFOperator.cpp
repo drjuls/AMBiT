@@ -100,14 +100,14 @@ void HFOperator::SetODEParameters(int kappa, double energy, const SpinorFunction
     }
 }
 
-void HFOperator::SetODEParameters(const SingleParticleWavefunction& approximation)
+void HFOperator::SetODEParameters(const Orbital& approximation)
 {
     currentExchangePotential = CalculateExchange(approximation);
     currentEnergy = approximation.Energy();
     currentKappa = approximation.Kappa();
 }
 
-SpinorFunction HFOperator::GetExchange(pSingleParticleWavefunctionConst approximation) const
+SpinorFunction HFOperator::GetExchange(pOrbitalConst approximation) const
 {
     if(approximation == NULL)
         return currentExchangePotential;

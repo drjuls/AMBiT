@@ -15,6 +15,7 @@ public:
     void EnergyCalculations();
     void Recursive();
     void TransitionCalculations();
+    void Recombination();
 
     static void PrintHelp(const std::string& ApplicationName);
 

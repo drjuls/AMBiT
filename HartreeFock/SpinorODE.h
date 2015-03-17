@@ -27,10 +27,10 @@ public:
     virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) = 0;
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) = 0;
+    virtual void SetODEParameters(const Orbital& approximation) = 0;
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const = 0;
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const = 0;
 
     /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
     virtual void IncludeExchange(bool include_exchange);
@@ -69,7 +69,7 @@ public:
     /** Get df/dr and dg/dr given (f, g).
         POST: This function can call SetODEParameters(), changing exchange and include_exchange.
      */
-    virtual void GetDerivative(SingleParticleWavefunction& fg);
+    virtual void GetDerivative(Orbital& fg);
     
 protected:
     bool include_nonlocal;
@@ -97,12 +97,12 @@ public:
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation)
+    virtual void SetODEParameters(const Orbital& approximation)
     {   return wrapped->SetODEParameters(approximation);
     }
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const
     {   return wrapped->GetExchange(approximation);
     }
 

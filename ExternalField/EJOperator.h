@@ -16,7 +16,7 @@ public:
     virtual void SetGauge(TransitionGauge gauge_type) { gauge = gauge_type; }
 
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
 
 protected:
     TransitionGauge gauge;
@@ -32,7 +32,7 @@ public:
     {}
 
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
 
 protected:
     pPhysicalConstant constants;

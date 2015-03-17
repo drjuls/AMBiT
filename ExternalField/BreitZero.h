@@ -25,7 +25,7 @@ public:
     }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override;
 
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override;
 

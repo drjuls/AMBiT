@@ -72,14 +72,14 @@ void BruecknerDecorator::Alert()
 }
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
-void BruecknerDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
+void BruecknerDecorator::SetODEParameters(const Orbital& approximation)
 {
     HFOperatorDecorator::SetODEParameters(approximation);
     currentExchangePotential = CalculateExtraNonlocal(approximation, true);
 }
 
 /** Get exchange (nonlocal) potential. */
-SpinorFunction BruecknerDecorator::GetExchange(pSingleParticleWavefunctionConst approximation) const
+SpinorFunction BruecknerDecorator::GetExchange(pOrbitalConst approximation) const
 {
     SpinorFunction ret = wrapped->GetExchange(approximation);
 

@@ -53,8 +53,8 @@ protected:
         "sign" provides an additional phase which doesn't affect the results but is multiplied
         by the angular factor when printing debug info.
      */
-    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, pSingleParticleWavefunctionConst cs, int sign = 1) const;
-    double SubtractionDiagram(pContinuumWaveConst sa, pSingleParticleWavefunctionConst sb, pSingleParticleWavefunctionConst sc, pSingleParticleWavefunctionConst sd, unsigned int k) const;
+    double CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, pOrbitalConst cs, int sign = 1) const;
+    double SubtractionDiagram(pContinuumWaveConst sa, pOrbitalConst sb, pOrbitalConst sc, pOrbitalConst sd, unsigned int k) const;
     
     double GetEJMatrixElement(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);
     std::complex<double> GetEJMatrixElementZenonas(unsigned int J, const ElectronInfo& e1, const ElectronInfo& e2, TransitionGaugeType::Enum aGaugeType = TransitionGaugeType::Length);

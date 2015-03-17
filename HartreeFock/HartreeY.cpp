@@ -59,7 +59,7 @@ void HartreeY::Alert()
     }
 }
 
-double HartreeY::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const
+double HartreeY::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     if(!isZero() &&
        ((K + a.L() + b.L())%2 == 0) &&

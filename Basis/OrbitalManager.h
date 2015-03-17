@@ -58,6 +58,7 @@ public:
     /** Get total number of orbitals stored (for making keys). */
     unsigned int size() const { return all->size(); }
 
+    pOrbitalMap GetOrbitalMap(OrbitalClassification type);
     pOrbitalMapConst GetOrbitalMap(OrbitalClassification type) const;
 
     /** Initialise state_index and reverse_state_index. */

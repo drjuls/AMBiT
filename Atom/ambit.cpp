@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
         {
             ambit.EnergyCalculations();
             ambit.TransitionCalculations();
+            ambit.Recombination();
         }
     /*
         else
@@ -513,6 +514,62 @@ void Ambit::TransitionCalculations()
 
     if(transitions.size())
         transitions.Print();
+}
+
+void Ambit::Recombination()
+{
+    std::string target_file = user_input("DR/Target/Filename", "");
+    if(target_file.length() == 0)
+        return;
+
+    int target_two_j = user_input("DR/Target/TwoJ", -1);
+    if(target_two_j < 0)
+    {   *errstream << "DR/Target/TwoJ must be set in input file." << std::endl;
+        exit(1);
+    }
+
+    std::string parity_string = user_input("DR/Target/Parity", "");
+    Parity target_parity;
+    if(parity_string == "even")
+        target_parity = Parity::even;
+    else if (parity_string == "odd")
+        target_parity = Parity::odd;
+    else
+    {   *errstream << "DR/Target/Parity must be set in input file to either \"even\" or \"odd\"." << std::endl;
+        exit(1);
+    }
+
+    // Get target atom
+    MultirunOptions target_input(target_file.c_str(), "//", "\n", ",");
+    std::string target_id = target_input("ID", "");
+    if(target_id == "")
+    {   if(target_file.find(".input") != std::string::npos)
+           target_id = target_file.substr(0, target_file.find(".input"));
+       else
+       {   *errstream << "No ID could be found." << std::endl;
+           exit(1);
+       }
+    }
+
+    Ambit target_calculator(target_input, target_id);
+    target_calculator.EnergyCalculations();
+
+    Atom& target_atom = target_calculator.atoms[target_calculator.first_run_index];
+
+    // Get target level
+    const auto& target_it = target_atom.GetLevels()->begin(Symmetry(target_two_j, target_parity));
+    if(target_it == target_atom.GetLevels()->end(Symmetry(target_two_j, target_parity)))
+    {   *errstream << "Recombination: Cannot find target level." << std::endl;
+        exit(1);
+    }
+
+    std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
+    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
+    // Get current levels
+    for(const auto& sym: symmetries)
+    {
+        atoms[first_run_index].Autoionization(std::make_pair(target_it->first, target_it->second), sym, ionization_energy);
+    }
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

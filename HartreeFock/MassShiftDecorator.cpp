@@ -16,14 +16,14 @@ void MassShiftDecorator::Alert()
 }
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
-void MassShiftDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
+void MassShiftDecorator::SetODEParameters(const Orbital& approximation)
 {
     HFOperatorDecorator::SetODEParameters(approximation);
     currentExchangePotential = CalculateExtraExchange(approximation);
 }
 
 /** Get exchange (nonlocal) potential. */
-SpinorFunction MassShiftDecorator::GetExchange(pSingleParticleWavefunctionConst approximation) const
+SpinorFunction MassShiftDecorator::GetExchange(pOrbitalConst approximation) const
 {
     SpinorFunction ret = wrapped->GetExchange(approximation);
 

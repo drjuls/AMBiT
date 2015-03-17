@@ -13,7 +13,7 @@ bool SpinorODE::IncludeExchange() const
     return include_nonlocal;
 }
 
-void SpinorODE::GetDerivative(SingleParticleWavefunction& fg)
+void SpinorODE::GetDerivative(Orbital& fg)
 {
     SetODEParameters(fg);
 

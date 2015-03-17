@@ -19,14 +19,14 @@ public:
     {}
 
     /** Returns one-electron valence-valence diagrams. */
-    double GetOneElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2);
+    double GetOneElectronValence(pOrbitalConst s1, pOrbitalConst s2);
 
     /** Returns two-electron valence-valence diagrams. Only calculates in Brillouin-Wigner PT. */
-    double GetTwoElectronValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k);
+    double GetTwoElectronValence(pOrbitalConst s1, pOrbitalConst s2, pOrbitalConst s3, pOrbitalConst s4, unsigned int k);
 
     /** Returns two-electron "box" valence-valence diagrams, which can have wrong parity.
         Only calculates in Brillouin-Wigner PT. */
-    double GetTwoElectronBoxValence(pSingleParticleWavefunctionConst s1, pSingleParticleWavefunctionConst s2, pSingleParticleWavefunctionConst s3, pSingleParticleWavefunctionConst s4, unsigned int k);
+    double GetTwoElectronBoxValence(pOrbitalConst s1, pOrbitalConst s2, pOrbitalConst s3, pOrbitalConst s4, unsigned int k);
 
 protected:
     /** Calculate one-electron valence-valence diagram of second order.
@@ -38,7 +38,7 @@ protected:
 
          PRE: si.kappa == sf.kappa
      */
-    double CalculateOneElectronValence1(const SingleParticleWavefunction& si, const SingleParticleWavefunction& sf) const;
+    double CalculateOneElectronValence1(const Orbital& si, const Orbital& sf) const;
     
     /** Calculate two-electron valence-valence diagrams of second order.
                                            x
@@ -53,8 +53,8 @@ protected:
                               There are four diagrams, with the excited state
                               being connected to each of the four valence lines.
      */
-    double CalculateTwoElectronValence1(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const;
-    double CalculateTwoElectronValence2(const SingleParticleWavefunction& sa, const SingleParticleWavefunction& sb, const SingleParticleWavefunction& sc, const SingleParticleWavefunction& sd, unsigned int k) const;
+    double CalculateTwoElectronValence1(const Orbital& sa, const Orbital& sb, const Orbital& sc, const Orbital& sd, unsigned int k) const;
+    double CalculateTwoElectronValence2(const Orbital& sa, const Orbital& sb, const Orbital& sc, const Orbital& sd, unsigned int k) const;
 
 protected:
     unsigned int MaxStateSize;

@@ -283,7 +283,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
 }
 
 template <class MapType>
-auto SlaterIntegrals<MapType>::ReverseKey(unsigned long long int num_states, unsigned long long int key) -> ExpandedKeyType
+auto SlaterIntegrals<MapType>::ReverseKey(KeyType num_states, KeyType key) -> ExpandedKeyType
 {
     KeyType running_power = num_states * num_states * num_states * num_states;
     KeyType remainder = key;

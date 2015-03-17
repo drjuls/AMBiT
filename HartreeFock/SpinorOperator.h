@@ -20,7 +20,7 @@ public:
     /** < b | t | a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
      */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
 
     /** Potential = t | a > for an operator t such that the resulting Potential has the same angular symmetry as a.
         i.e. t | a > has kappa == kappa_a.
@@ -71,7 +71,7 @@ protected:
     pSpinorOperator component;
 };
 
-inline double SpinorOperator::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const
+inline double SpinorOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
 {
     SpinorFunction ta = this->ApplyTo(a, b.Kappa());
     if(ta.size())
