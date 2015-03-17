@@ -75,6 +75,8 @@ protected:
     pTwoBodyHamiltonianOperator H_two_body;
 
 protected:
+    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrix;
+
     /** MatrixChunk is a rectangular section of the HamiltonianMatrix.
         The top left corner of the section is on the diagonal at (start_row, start_row).
         The number of rows is num_rows, and the section goes to column N (the right edge of the Hamiltonian matrix).
@@ -88,13 +90,13 @@ protected:
             start_row(row_start), num_rows(num_rows)
         {   config_indices.first = config_index_start;
             config_indices.second = config_index_end;
-            chunk = Eigen::MatrixXd::Zero(num_rows, N-start_row);
+            chunk = RowMajorMatrix::Zero(num_rows, N-start_row);
         }
 
         std::pair<unsigned int, unsigned int> config_indices;
         unsigned int start_row;
         unsigned int num_rows;
-        Eigen::MatrixXd chunk;
+        RowMajorMatrix chunk;
 
         /** Make lower triangle part of the matrix chunk match the upper. */
         void Symmetrize()
@@ -105,7 +107,8 @@ protected:
         }
     };
 
-    std::list<MatrixChunk> chunks;
+    std::vector<MatrixChunk> chunks;
+    unsigned int most_chunk_rows;
 };
 
 #endif

@@ -2,7 +2,7 @@
 #include "CIIntegrals.h"
 //#include "MBPT/CoreMBPTCalculator.h"
 #include "Universal/PhysicalConstant.h"
-#include "MathConstant.h"
+#include "Universal/MathConstant.h"
 
 inline void swap(unsigned int& i1, unsigned int& i2)
 {   unsigned int temp = i1;

@@ -6,6 +6,9 @@
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
 #include "GFactor.h"
+#ifdef _MPI
+#include <mpi.h>
+#endif
 
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 1
@@ -18,7 +21,7 @@
 //#define SIGMA3_AND
 
 HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs):
-    H_two_body(nullptr), configs(relconfigs) //, include_sigma3(false)
+    H_two_body(nullptr), configs(relconfigs), most_chunk_rows(0) //, include_sigma3(false)
 {
     // Set up Hamiltonian operator
     H_two_body = pTwoBodyHamiltonianOperator(new TwoBodyHamiltonianOperator(hf, coulomb));
@@ -72,12 +75,13 @@ void HamiltonianMatrix::GenerateMatrix()
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
+        most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
     }
 
     // Loop through my chunks
     for(auto& current_chunk: chunks)
     {
-        Eigen::MatrixXd& M = current_chunk.chunk;
+        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
 
         // Loop through configs for this chunk
 #ifdef AMBIT_USE_OPENMP
@@ -154,17 +158,17 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
     {   *outstream << "\nNo solutions" << std::endl;
         return;
     }
-    
+
     unsigned int NumSolutions = mmin(num_solutions, N);
-    
+
     *outstream << "; Finding solutions..." << std::endl;
-    
+
     if(N <= SMALL_MATRIX_LIM)
     {
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
         const Eigen::VectorXd& E = es.eigenvalues();
         const Eigen::MatrixXd& V = es.eigenvectors();
-        
+
         for(unsigned int i = 0; i < NumSolutions; i++)
         {
             pLevel level(new Level(E(i), V.col(i).data(), configs, N));
@@ -175,7 +179,7 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
     {   // Using Davidson method
         double* V = new double[NumSolutions * N];
         double* E = new double[NumSolutions];
-        
+
         Eigensolver solver;
         #ifdef _MPI
             solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
@@ -188,7 +192,7 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
             pLevel level(new Level(E[i], (V + N * i), configs, N));
             (*levels)[LevelID(sym, i)] = level;
         }
-        
+
         delete[] E;
         delete[] V;
     }
@@ -215,7 +219,87 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
 
 void HamiltonianMatrix::Write(const std::string& filename) const
 {
-    return;
+    FILE* fp;
+
+    auto chunk_it = chunks.begin();
+
+    // Send rows to root node, which writes them sequentially.
+    if(ProcessorRank == 0)
+    {
+        // Write size of matrix.
+        fp = fopen(filename.c_str(), "wb");
+        fwrite(&N, sizeof(unsigned int), 1, fp);
+        const double* pbuf;
+
+    #ifdef _MPI
+        double buf[N * most_chunk_rows];
+    #endif
+
+        unsigned int row = 0;
+        while(row < N)
+        {
+            int num_rows = 0;
+
+            // My chunk!
+            if(row == chunk_it->start_row)
+            {
+                pbuf = chunk_it->chunk.data();
+                num_rows = chunk_it->num_rows;
+                chunk_it++;
+            }
+        #ifdef _MPI
+            else
+            {   // Broadcast row number
+                MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+                // Receive chunk
+                MPI_Status status;
+                MPI_Recv(&buf, N*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
+
+                // Get number of rows in chunk
+                MPI_Get_count(&status, MPI_DOUBLE, &num_rows);
+                if(num_rows%(N-row))
+                    *errstream << "HamiltonianMatrix::Write: received chunk size not a multiple of (N - row)." << std::endl;
+                num_rows = num_rows/(N-row);
+
+                pbuf = buf;
+            }
+        #endif
+
+            for(int i = 0; i < num_rows; i++)
+            {
+                fwrite(pbuf, sizeof(double), N - row - i, fp);
+                pbuf += (N - row + 1);  // Move one more column and one more row along
+            }
+
+            row += num_rows;
+        }
+
+    #ifdef _MPI
+        // Send finished signal
+        MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    #endif
+
+        fclose(fp);
+    }
+    else
+    {
+    #ifdef _MPI
+        int row = 0;
+        while(row < N)
+        {
+            // Received row number
+            MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // If it is our row, send chunk
+            if(chunk_it != chunks.end() && row == chunk_it->start_row)
+            {
+                MPI_Send(chunk_it->chunk.data(), (N - row) * chunk_it->num_rows, MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
+                chunk_it++;
+            }
+        }
+    #endif
+    }
 }
 
 double HamiltonianMatrix::PollMatrix(double epsilon) const
@@ -325,7 +409,7 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
 //            for(unsigned int j=i+1; j<first.size(); j++)
 //            {
 //                if((i != diff[0]) && (j != diff[0]))
-//                {   
+//                {
 //                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
 //                }
 //            }
@@ -373,7 +457,7 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
 //        return 0.;
 //
 //    double value = 0.;
-//    
+//
 //    // The sign changes for odd permutations
 //    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
 //            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
