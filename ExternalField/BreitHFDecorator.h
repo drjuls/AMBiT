@@ -19,17 +19,17 @@ public:
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
+    virtual void SetODEParameters(const Orbital& approximation) override;
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation) const override;
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation) const override;
 
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
 public:
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 protected:

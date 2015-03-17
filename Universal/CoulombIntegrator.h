@@ -2,7 +2,7 @@
 #define COULOMB_INTEGRATOR_H
 
 #include "Integrator.h"
-#include "HartreeFock/SingleParticleWavefunction.h"
+#include "HartreeFock/Orbital.h"
 
 class CoulombIntegrator : public Integrator
 {

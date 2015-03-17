@@ -20,7 +20,7 @@ public:
     virtual RadialFunction GetDirectPotential() const override;
     virtual void Alert() override;
 
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override;
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const override;
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;

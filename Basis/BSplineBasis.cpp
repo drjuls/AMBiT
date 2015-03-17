@@ -304,7 +304,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                 // Remove spurious states
                 if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
                 {   if(debug)
-                        *outstream << "  SingleParticleWavefunction removed: energy = " << ds->Energy()
+                        *outstream << "  Orbital removed: energy = " << ds->Energy()
                                    << "  norm = " << ds->Norm(integrator) << std::endl;
                 }
                 else

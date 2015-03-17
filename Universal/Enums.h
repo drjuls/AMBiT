@@ -11,6 +11,14 @@ enum class MultipolarityType { E, M };
 
 enum class TransitionGauge { Length, Velocity };
 
+inline int Sign(const Parity& p)
+{
+    if(p == Parity::even)
+        return 1;
+    else
+        return -1;
+}
+
 inline Parity operator*(const Parity& first, const Parity& second)
 {
     if(first == second)

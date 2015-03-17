@@ -40,10 +40,10 @@ public:
     virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) override;
     
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override;
+    virtual void SetODEParameters(const Orbital& approximation) override;
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override;
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const override;
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
         PRE: w should be an allocated 2 dimensional array;
@@ -130,14 +130,14 @@ public:
     }
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const SingleParticleWavefunction& approximation) override
+    virtual void SetODEParameters(const Orbital& approximation) override
     {   wrapped->SetODEParameters(approximation);
         currentEnergy = approximation.Energy();
         currentKappa = approximation.Kappa();
     }
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pSingleParticleWavefunctionConst approximation = pSingleParticleWavefunctionConst()) const override
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const override
     {   return wrapped->GetExchange(approximation);
     }
 

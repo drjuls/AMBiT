@@ -123,7 +123,7 @@ protected:
     virtual KeyType GetKey(unsigned int k, unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const;
     virtual KeyType GetKey(ExpandedKeyType expanded_key) const;
 
-    ExpandedKeyType ReverseKey(unsigned long long int num_states, unsigned long long int key);
+    ExpandedKeyType ReverseKey(KeyType num_states, KeyType key);
 
     inline void swap(unsigned int& i1, unsigned int& i2) const
     {   unsigned int temp = i1;
@@ -133,7 +133,7 @@ protected:
 
     template<typename U = MapType>
     typename boost::enable_if_c<std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
-    {   TwoElectronIntegrals.set_empty_key(NULL);
+    {   TwoElectronIntegrals.set_empty_key(-1LL);
     }
 
     template<typename U = MapType>
@@ -149,9 +149,9 @@ protected:
     MapType TwoElectronIntegrals;
 };
 
-typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
-typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
-typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
+typedef SlaterIntegrals<std::map<long long int, double>> SlaterIntegralsMap;
+typedef SlaterIntegrals<google::dense_hash_map<long long int, double>> SlaterIntegralsDenseHash;
+typedef SlaterIntegrals<google::sparse_hash_map<long long int, double>> SlaterIntegralsSparseHash;
 
 #include "SlaterIntegrals.cpp"
 

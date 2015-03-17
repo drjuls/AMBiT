@@ -75,6 +75,10 @@ public:
     pLevelMap GetLevels() { return levels; }
     pLevelMapConst GetLevels() const { return levels; }
 
+public:
+    /** Load target atom, create continuum wave, calculate autoionization rate. */
+    void Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym, double ionization_energy);
+
 protected:
     /** Get configurations based on single electron configurations with no CI.
         PRE: MakeBasis() must have been run.
@@ -105,12 +109,6 @@ public:
         If num_processors = 0, it will assume "NumProcessors" (i.e. all processors).
      */
     void CollateIntegralsMBPT(unsigned int num_processors = 0);
-
-public:
-    bool RestoreAllEigenstates();
-
-    OrbitalMap::iterator GetIteratorToNextOrbitalToFill();
-    std::string GetNextConfigString();
 
 public:
     void GenerateCowanInputFile();

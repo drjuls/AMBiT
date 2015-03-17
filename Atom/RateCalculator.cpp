@@ -816,7 +816,7 @@ double RateCalculator::CalculateAugerRate(Atom* A, Symmetry sym1, unsigned int s
         // Calculate continuum state
         pContinuumWave cs(new ContinuumWave(cs_kappa, 0, cs_energy));
         if(debug)
-            *logstream << "Continuum SingleParticleWavefunction: " << cs->Name() << std::endl;
+            *logstream << "Continuum Orbital: " << cs->Name() << std::endl;
 
         unsigned int loops = cs_builder.CalculateContinuumWave(cs, core->GetLattice());
         //unsigned int loops = cs_builder.ReadContinuumWave(cs, core->GetLattice(), "fort.64", "fort.65");
@@ -1042,7 +1042,7 @@ double RateCalculator::GetProjectionH(const Projection& first, const Projection&
 /** Get the Coulomb matrix element < e1, e2 | 1/r | e3, e4 >.
     e1 is the continuum state.
  */
-double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, pSingleParticleWavefunctionConst cs, int sign) const
+double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4, pOrbitalConst cs, int sign) const
 {
     // Get two-body matrix element
     if((e1.L() + e2.L() + e3.L() + e4.L())%2)
@@ -1066,10 +1066,10 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
     double total = 0.;
 
     // Prepare radial matrix element
-    pSingleParticleWavefunctionConst s_1;
-    pSingleParticleWavefunctionConst s_2 = excited->GetState(e2);
-    pSingleParticleWavefunctionConst s_3 = excited->GetState(e3);
-    pSingleParticleWavefunctionConst s_4 = excited->GetState(e4);
+    pOrbitalConst s_1;
+    pOrbitalConst s_2 = excited->GetState(e2);
+    pOrbitalConst s_3 = excited->GetState(e3);
+    pOrbitalConst s_4 = excited->GetState(e4);
     
     if(!s_2 || !s_3 || !s_4)
     {   *errstream << "RateCalculator::CoulombMatrixElement couldn't find state." << std::endl;
@@ -1092,11 +1092,11 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
     density.resize(excited->GetCore()->GetHFPotential().size());
 
     // Orthogonalise continuum wave
-    pSingleParticleWavefunction cs_orth;
+    pOrbital cs_orth;
 
     if(cs->Kappa() == s_3->Kappa())
     {
-        cs_orth = pSingleParticleWavefunction(new ContinuumWave(*cs));
+        cs_orth = pOrbital(new ContinuumWave(*cs));
         double S = cs_orth->Overlap(*s_3, excited->GetLattice());
 
         for(unsigned int i=0; i<mmin(cs_orth->size(), s_3->size()); i++)
@@ -1189,7 +1189,7 @@ double RateCalculator::CoulombMatrixElement(const ElectronInfo& e1, const Electr
 
 /** Get the subtraction diagram.
  */
-double RateCalculator::SubtractionDiagram(pContinuumWaveConst cs, pSingleParticleWavefunctionConst sb, pSingleParticleWavefunctionConst sc, pSingleParticleWavefunctionConst sd, unsigned int k) const
+double RateCalculator::SubtractionDiagram(pContinuumWaveConst cs, pOrbitalConst sb, pOrbitalConst sc, pOrbitalConst sd, unsigned int k) const
 {
     bool debug = DebugOptions.LogAugerRate();
     double total = 0.;
@@ -1226,7 +1226,7 @@ double RateCalculator::SubtractionDiagram(pContinuumWaveConst cs, pSingleParticl
     ConstStateIterator it = excited->GetConstStateIterator();
 
     while(!it.AtEnd())
-    {   pSingleParticleWavefunctionConst sa = it.GetState();
+    {   pOrbitalConst sa = it.GetState();
 
         if(cs->Kappa() == sa->Kappa())
         {

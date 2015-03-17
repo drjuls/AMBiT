@@ -57,7 +57,7 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
     }
     else if(!core->empty())
     {
-        pSingleParticleWavefunction s = core->begin()->second;
+        pOrbital s = core->begin()->second;
         s->SetNu(1./Z);
     }
     else
@@ -638,7 +638,7 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
                 return 0;
             }
 
-            lattice->resize(lattice->MaxRealDistance() * 2.);
+            lattice->resize_to_r(lattice->MaxRealDistance() * 2.);
             s->Clear();
             s->resize(lattice->size());
             old_phase = 0.0;

@@ -715,7 +715,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is 
 # run.
 
-EXCLUDE                = ./Universal/Eigen \
+EXCLUDE                = ./Eigen \
                          ./Documentation \
                          ./AMBiT.xcodeproj \
                          ./AMBiT.xcworkspace \

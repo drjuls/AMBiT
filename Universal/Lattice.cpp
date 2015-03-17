@@ -32,6 +32,8 @@ Lattice::Lattice(FILE* binary_infile)
 
     fread(r.data(), sizeof(double), num_points, binary_infile);
     fread(dr.data(), sizeof(double), num_points, binary_infile);
+
+    original_size = num_points;
 }
 
 unsigned int Lattice::resize(unsigned int new_size)

@@ -61,7 +61,7 @@ bool BreitZero::isZero() const
 {   return (!pot_Q_Kplus.size() && !pot_V_K.size() && component->isZero());
 }
 
-double BreitZero::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a, bool reverse) const
+double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     double value = component->GetMatrixElement(b, a, reverse);
     if(K == 0 || isZero())

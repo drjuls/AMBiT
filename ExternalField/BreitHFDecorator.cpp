@@ -7,14 +7,14 @@ void BreitHFDecorator::Alert()
 }
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
-void BreitHFDecorator::SetODEParameters(const SingleParticleWavefunction& approximation)
+void BreitHFDecorator::SetODEParameters(const Orbital& approximation)
 {
     HFOperatorDecorator::SetODEParameters(approximation);
     currentExchangePotential = CalculateExtraExchange(approximation);
 }
 
 /** Get exchange (nonlocal) potential. */
-SpinorFunction BreitHFDecorator::GetExchange(pSingleParticleWavefunctionConst approximation) const
+SpinorFunction BreitHFDecorator::GetExchange(pOrbitalConst approximation) const
 {
     SpinorFunction ret = wrapped->GetExchange(approximation);
 
@@ -57,7 +57,7 @@ void BreitHFDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFun
     }
 }
 
-double BreitHFDecorator::GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const
+double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double value = wrapped->GetMatrixElement(b, a);
     if(a.Kappa() != b.Kappa())

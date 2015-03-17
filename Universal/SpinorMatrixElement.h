@@ -17,10 +17,10 @@ public:
     SpinorMatrixElement(int K, pOPIntegrator integration_strategy): integrator(integration_strategy), K(K) {}
 
     /** Reduced matrix element < b || t(K) || a > for our operator t(K).
-        Usually the operation t|a> makes sense for any SingleParticleWavefunction, but in order to have a
+        Usually the operation t|a> makes sense for any Orbital, but in order to have a
         matrix element one of the wavefunctions must be bounded, and hence an "Orbital".
      */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const
     {   return 0.;
     }
 
@@ -55,7 +55,7 @@ public:
     }
 
     /** Reduced matrix element < b || t(K) || a > for our operator t(K). */
-    virtual double GetMatrixElement(const Orbital& b, const SingleParticleWavefunction& a) const override
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override
     {   return component->GetMatrixElement(b, a);
     }
 

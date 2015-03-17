@@ -37,12 +37,18 @@ public:
     /** Rearrange p1 and p2 so that differences are at the beginning (up to max differences).
         abs(return value) is number of differences found
         sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
+        If skipped_p1_electron != nullptr, assume p1 is one electron smaller than p2;
+            the first element of p1 is the skipped electron which we can assume is not present in p2.
      */
     template<int max_diffs>
-    inline int GetProjectionDifferences(IndirectProjection& p1, IndirectProjection& p2) const;
+    inline int GetProjectionDifferences(IndirectProjection& p1, IndirectProjection& p2, const ElectronInfo* skipped_p1_electron = nullptr) const;
 
-    /** Matrix element between two projections (abstract function). */
-    inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right) const;
+    /** Matrix element between two projections.
+        If eplsion != nullptr, we want
+            < {epsilon, proj_left} | O | proj_right >
+        where proj_left is one electron smaller than proj_right.
+     */
+    inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon = nullptr) const;
 
     /** Returns <left | O | right> */
     inline double GetMatrixElement(const Level& left, const Level& right) const;
@@ -112,7 +118,7 @@ protected:
 
 /** ManyBodyOperator: one body operator specialization. */
 template <typename... pElectronOperators>
-double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right) const
+double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon) const
 {
     int num_diffs = 0;
 
@@ -124,7 +130,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
     if(&proj_left != &proj_right)
     {
         make_indirect_projection(proj_right, right);
-        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(left, right);
+        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(left, right, epsilon);
     }
 
     double matrix_element = 0.0;
@@ -207,7 +213,7 @@ void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Pro
 
 template<typename... pElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2) const
+int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2, const ElectronInfo* skipped_p1_electron) const
 {
     // NB: These are static for speed: to prevent memory (de)allocation
     static IndirectProjection diff1, diff2;
@@ -231,6 +237,13 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
     int num_electrons1 = 0;
     int num_holes2 = 0;
     int num_electrons2 = 0;
+
+    if(skipped_p1_electron != nullptr)
+    {
+        // Assume first element of p1 was a skipped electron (not hole)
+        diff1.push_back(skipped_p1_electron);
+        num_electrons1++;
+    }
 
     while(diff1.size() <= max_diffs && diff2.size() <= max_diffs && it1 != p1.end() && it2 != p2.end())
     {

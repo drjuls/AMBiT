@@ -1,6 +1,3 @@
-#ifdef _MPI
-#include <mpi.h>
-#endif
 #include "Include.h"
 #include "ConfigGenerator.h"
 #include "HartreeFock/ConfigurationParser.h"
@@ -322,50 +319,42 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(const Confi
         it++;
     }
 
+    rlist->sort(FewestProjectionsFirstComparator());
     rlist->unique();
     return rlist;
 }
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const
 {
-    Parity parity = rlist->begin()->GetParity();
+    if(rlist->size() == 0)
+        return;
+
+    Parity parity = rlist->front().GetParity();
+    int electron_number = rlist->front().ElectronNumber();
 
     std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
     if(user_input.search("AngularDataDirectory"))
         angular_directory = user_input("AngularDataDirectory", "");
 
-    // Map particle number to angular data library
-    std::map<int, pAngularDataLibrary> angular_libraries;
+    // Get correct library
+    pAngularDataLibrary angular_library(new AngularDataLibrary(electron_number, Symmetry(two_j, parity), two_m, angular_directory));
+    angular_library->Read();
 
     auto it = rlist->begin();
     while(it != rlist->end())
     {
-        // Get correct library
-        auto lib_iterator = angular_libraries.find(it->ElectronNumber());
-        pAngularDataLibrary lib;
-
-        if(lib_iterator == angular_libraries.end())
-        {   lib.reset(new AngularDataLibrary(it->ElectronNumber(), Symmetry(two_j, parity), two_m, angular_directory));
-            lib->Read();
-            angular_libraries[it->ElectronNumber()] = lib;
-        }
-        else
-            lib = lib_iterator->second;
-
-        if(it->GetProjections(lib))
+        if(it->GetProjections(angular_library))
             it++;
         else
             it = rlist->erase(it);
     }
 
-    for(auto lib_iterator: angular_libraries)
-    {
-        lib_iterator.second->GenerateCSFs();
+    angular_library->GenerateCSFs();
 
-        // Write even if there are no CSFs for a given J since this is not so obvious
-        lib_iterator.second->Write();
-    }
+    // Write even if there are no CSFs for a given J since this is not so obvious
+    angular_library->Write();
 
+    // Remove from list if there are no CSFs for a particular RelativisticConfiguration.
     it = rlist->begin();
     while(it != rlist->end())
     {
@@ -482,7 +471,7 @@ void ConfigGenerator::GenerateProjections(int two_m)
 void ConfigGenerator::SplitNonRelInfo(const NonRelConfiguration& config, NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const
 {
     if(current_orbital == config.end())
-    {   rlist->add(relconfig);
+    {   rlist->push_back(relconfig);
         return;
     }
 

@@ -4,21 +4,37 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
+Orbital::Orbital(const OrbitalInfo& info):
+    SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
+{}
+
+Orbital::Orbital(int kappa, int pqn, double energy, unsigned int size):
+    SpinorFunction(kappa, size), pqn(pqn), energy(energy)
+{}
+
+Orbital::Orbital(const Orbital& other):
+    SpinorFunction(other), pqn(other.pqn), energy(other.energy)
+{}
+
+Orbital::Orbital(Orbital&& other):
+    SpinorFunction(other), pqn(other.pqn), energy(other.energy)
+{}
+
 const Orbital& Orbital::operator=(const Orbital& other)
 {
-    SingleParticleWavefunction::operator=(other);
+    SpinorFunction::operator=(other);
     return *this;
 }
 
 Orbital& Orbital::operator=(Orbital&& other)
 {
-    SingleParticleWavefunction::operator=(other);
+    SpinorFunction::operator=(other);
     return *this;
 }
 
 const Orbital& Orbital::operator*=(double scale_factor)
 {
-    SingleParticleWavefunction::operator*=(scale_factor);
+    SpinorFunction::operator*=(scale_factor);
     return *this;
 }
 
@@ -31,13 +47,13 @@ Orbital Orbital::operator*(double scale_factor) const
 
 const Orbital& Orbital::operator+=(const Orbital& other)
 {
-    SingleParticleWavefunction::operator+=(other);
+    SpinorFunction::operator+=(other);
     return *this;
 }
 
 const Orbital& Orbital::operator-=(const Orbital& other)
 {
-    SingleParticleWavefunction::operator-=(other);
+    SpinorFunction::operator-=(other);
     return *this;
 }
 
@@ -57,7 +73,7 @@ Orbital Orbital::operator-(const Orbital& other) const
 
 const Orbital& Orbital::operator*=(const RadialFunction& chi)
 {
-    SingleParticleWavefunction::operator*=(chi);
+    SpinorFunction::operator*=(chi);
     return *this;
 }
 
@@ -68,9 +84,109 @@ Orbital Orbital::operator*(const RadialFunction& chi) const
     return ret;
 }
 
+double Orbital::Energy() const
+{
+    return energy;
+}
+
+/** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
+double Orbital::Nu() const
+{
+    double nu;
+    if(std::fabs(energy) < 1.e-10)
+        nu = nan("energy is zero");
+    else
+    {   nu = std::sqrt(std::fabs(-0.5/energy));
+        if(energy > 0.)
+            nu = -nu;
+    }
+    
+    return nu;
+}
+
+int Orbital::PQN() const
+{
+    return pqn;
+}
+
+void Orbital::SetEnergy(double Energy)
+{
+    energy = Energy;
+}
+
+void Orbital::SetNu(double Nu)
+{
+    if(fabs(Nu) > 1.e-5)
+        energy = -0.5/(Nu * Nu);
+    else
+        energy = -1.e10;
+    
+    if(Nu < 0)
+        energy = -energy;
+}
+
+void Orbital::SetPQN(int PQN)
+{
+    pqn = PQN;
+}
+
 std::string Orbital::Name() const
 {
     return OrbitalInfo(this).Name();
+}
+
+void Orbital::Write(FILE* fp) const
+{
+    // As well as the SpinorFunction vectors, we need to output some other things
+    fwrite(&pqn, sizeof(int), 1, fp);
+    fwrite(&energy, sizeof(double), 1, fp);
+    
+    SpinorFunction::Write(fp);
+}
+
+void Orbital::Read(FILE* fp)
+{
+    fread(&pqn, sizeof(int), 1, fp);
+    fread(&energy, sizeof(double), 1, fp);
+    
+    SpinorFunction::Read(fp);
+}
+
+bool Orbital::Print(pLattice lattice) const
+{
+    return Print(Name() + "_orbital.txt", lattice);
+}
+
+bool Orbital::Print(const std::string& filename, pLattice lattice) const
+{
+    FILE* fp = fopen(filename.c_str(), "wt");
+    
+    if(fp)
+    {   bool success = Print(fp, lattice);
+        fclose(fp);
+        return success;
+    }
+    else
+        return false;
+}
+
+bool Orbital::Print(FILE* fp, pLattice lattice) const
+{
+    unsigned int i;
+    if(lattice)
+        for(i = 0; i < size(); i++)
+        {
+            fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
+                    f[i], g[i], dfdr[i], dgdr[i]);
+        }
+    else
+        for(i = 0; i < size(); i++)
+        {
+            fprintf(fp, "%d %12.6e %12.6e %12.6e %12.6e\n", i,
+                    f[i], g[i], dfdr[i], dgdr[i]);
+        }
+    
+    return true;
 }
 
 bool Orbital::CheckSize(pLattice lattice, double tolerance)

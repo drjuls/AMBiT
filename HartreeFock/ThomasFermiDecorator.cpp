@@ -70,7 +70,7 @@ void ThomasFermiDecorator::Alert()
     }
 }
 
-SpinorFunction ThomasFermiDecorator::GetExchange(pSingleParticleWavefunctionConst approximation) const
+SpinorFunction ThomasFermiDecorator::GetExchange(pOrbitalConst approximation) const
 {
     int kappa = -1;
     if(approximation)

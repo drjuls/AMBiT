@@ -64,21 +64,22 @@ unsigned int RelativisticConfigList::projection_size() const
 
 void RelativisticConfigList::Read(FILE* fp)
 {
-    clear();
+    m_list.clear();
     unsigned int num_configs;
     fread(&num_configs, sizeof(unsigned int), 1, fp);
+    m_list.reserve(num_configs);
 
     for(unsigned int i = 0; i < num_configs; i++)
     {
         RelativisticConfiguration config;
         config.Read(fp);
-        add(config);
+        m_list.push_back(config);
     }
 }
 
 void RelativisticConfigList::Write(FILE* fp) const
 {
-    unsigned int num_configs = size();
+    unsigned int num_configs = m_list.size();
     fwrite(&num_configs, sizeof(unsigned int), 1, fp);
 
     for(const auto& relconfig: *this)

@@ -431,10 +431,10 @@ double CIIntegrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1
 //             (double(k) > s2.J() + s4.J()))
 //            return 0.;
 //
-//        pSingleParticleWavefunctionConst s_1 = states->GetState(reverse_state_index.find(i1)->second);
-//        pSingleParticleWavefunctionConst s_2 = states->GetState(reverse_state_index.find(i2)->second);
-//        pSingleParticleWavefunctionConst s_3 = states->GetState(reverse_state_index.find(i3)->second);
-//        pSingleParticleWavefunctionConst s_4 = states->GetState(reverse_state_index.find(i4)->second);
+//        pOrbitalConst s_1 = states->GetState(reverse_state_index.find(i1)->second);
+//        pOrbitalConst s_2 = states->GetState(reverse_state_index.find(i2)->second);
+//        pOrbitalConst s_3 = states->GetState(reverse_state_index.find(i3)->second);
+//        pOrbitalConst s_4 = states->GetState(reverse_state_index.find(i4)->second);
 //
 //        hartreeY_operator->SetParameters(k, *s_2, *s_4);
 //        radial = hartreeY_operator->GetMatrixElement(*s_1, *s_3, false);
