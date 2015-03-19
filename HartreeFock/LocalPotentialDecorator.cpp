@@ -72,6 +72,7 @@ LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, d
 void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
 {
     HFOperatorDecorator::SetCore(hf_core);
+    double min_charge = !charge;
     const double* R = lattice->R();
     
     // Get electron density function
@@ -96,21 +97,27 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
     unsigned int i = 0;
 
     // Get local exchange approximation
-    directPotential.resize(density.size());
-    double C = 0.635348143228;  // (81/32\pi^2)^(1/3)
-    C *= Xalpha;
+    directPotential.resize(lattice->size());
+    double C = Xalpha * 0.635348143228;  // (81/32\pi^2)^(1/3)
+
     for(i = 0; i < density.size(); i++)
     {
         directPotential.f[i] = C * pow((density.f[i]/(R[i]*R[i])), 1./3.);
         directPotential.dfdr[i] = C/3. * pow((density.f[i]/(R[i]*R[i])), -2./3.) * (density.dfdr[i] - 2.*density.f[i]/R[i])/(R[i]*R[i]);
 
-        if(directPotential.f[i] > (Z - charge)/R[i] - y.f[i])
+        if(directPotential.f[i] + Z/R[i] - y.f[i] < min_charge/R[i])
             break;
     }
 
     while(i < density.size())
-    {   directPotential.f[i] = (Z - charge)/R[i] - y.f[i];
-        directPotential.dfdr[i] = -(Z - charge)/(R[i]*R[i]) - y.dfdr[i];
+    {   directPotential.f[i] = (-Z + charge + min_charge)/R[i] + y.f[i];
+        directPotential.dfdr[i] = -(-Z + charge + min_charge)/(R[i]*R[i]) + y.dfdr[i];
+        i++;
+    }
+
+    while(i < lattice->size())
+    {   directPotential.f[i] = min_charge/R[i];
+        directPotential.dfdr[i] = - min_charge/(R[i]*R[i]);
         i++;
     }
 }

@@ -24,11 +24,12 @@ public:
 };
 
 /** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations.
+    The Latter correction (Zeff -> 1 for neutral atoms) is enforced [Phys. Rev. 99, 510 (1955)].
     The exchange potential is given by
         \f[ x_{\alpha} \left( \frac{81}{32 \pi^2} \frac{\rho(r)}{r^2} \right)^{1/3} \f]
     where \f$\rho(r)\f$ is the density of electrons. The prefactor
-    \f$x_\alpha = 1\f$ corresponds to the Dirac-Slater potential, while
-    \f$x_\alpha = 2/3\f$ gives the Kohn-Sham potential.
+        \f$x_\alpha = 1\f$ corresponds to the Dirac-Slater potential, while
+        \f$x_\alpha = 2/3\f$ gives the Kohn-Sham potential.
     Remember to turn off the exchange potential using wrapped_hf->Include
  */
 class LocalExchangeApproximation : public LocalPotentialDecorator

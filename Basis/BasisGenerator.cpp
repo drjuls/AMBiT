@@ -109,6 +109,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         pHFOperator localexch(new LocalExchangeApproximation(hf, xalpha));
         hf = localexch;
         hf->IncludeExchange(false);
+        undressed_hf = hf;
     }
 
     // Set closed core occupancies
