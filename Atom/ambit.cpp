@@ -564,11 +564,10 @@ void Ambit::Recombination()
     }
 
     std::set<Symmetry> symmetries = ChooseSymmetries(user_input);
-    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     // Get current levels
     for(const auto& sym: symmetries)
     {
-        atoms[first_run_index].Autoionization(std::make_pair(target_it->first, target_it->second), sym, ionization_energy);
+        atoms[first_run_index].Autoionization(*target_it, sym);
     }
 }
 

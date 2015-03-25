@@ -77,7 +77,7 @@ public:
 
 public:
     /** Load target atom, create continuum wave, calculate autoionization rate. */
-    void Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym, double ionization_energy);
+    void Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym);
 
 protected:
     /** Get configurations based on single electron configurations with no CI.

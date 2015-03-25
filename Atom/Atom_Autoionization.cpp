@@ -3,10 +3,11 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "Configuration/ManyBodyOperator.h"
 
-void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym, double ionization_energy)
+void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym)
 {
-//    double ionization_energy = -6.8010831;
-    std::vector<double> total(levels->size(sym), 0.0);
+    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
+    double energy_limit = user_input("DR/EnergyLimit", 0.0);
+
     auto math = MathConstant::Instance();
 
     ConfigGenerator gen(orbitals, user_input);
@@ -25,33 +26,39 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
         target_map->AddState(valence->GetState(info));
     }
 
+    *outstream << "\nAutoionization for J = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << std::endl;
+
     // Target information
     int target_twoJ = target.first.GetTwoJ();
     const double* target_eigenvector = target.second->GetEigenvector();
 
-    // Get continuum wave (eps)
-    Parity eps_parity = sym.GetParity() * target.first.GetParity();
-    for(int eps_twoJ = abs(sym.GetTwoJ() - target.first.GetTwoJ()); eps_twoJ <= sym.GetTwoJ() + target.first.GetTwoJ(); eps_twoJ += 2)
+    int level_index = 0;
+    for(auto level_it = levels->begin(sym); level_it != levels->end(sym); level_it++)
     {
-        // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
-        int eps_kappa = (eps_twoJ + 1)/2;
-        eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
-
-        std::vector<double> partial(levels->size(sym), 0.0);
+        const auto& compound_configs = level_it->second->GetRelativisticConfigList();
+        const auto& compound_eigenvector = level_it->second->GetEigenvector();
         
-        int level_index = 0;
-        for(auto level_it = levels->begin(sym); level_it != levels->end(sym); level_it++)
+        // Build continuum
+        double eps_energy = level_it->second->GetEnergy() - ionization_energy;
+        if(eps_energy <= 0.)
         {
-            const auto& compound_configs = level_it->second->GetRelativisticConfigList();
-            const auto& compound_eigenvector = level_it->second->GetEigenvector();
+            level_index++;
+            continue;
+        }
+        else if(energy_limit && (eps_energy > energy_limit))
+            break;
 
-            // Build continuum
-            double eps_energy = level_it->second->GetEnergy() - ionization_energy;
-            if(eps_energy <= 0.)
-            {
-                level_index++;
-                continue;
-            }
+        double rate = 0.0;
+
+        // Get continuum wave (eps)
+        Parity eps_parity = sym.GetParity() * target.first.GetParity();
+        for(int eps_twoJ = abs(sym.GetTwoJ() - target.first.GetTwoJ()); eps_twoJ <= sym.GetTwoJ() + target.first.GetTwoJ(); eps_twoJ += 2)
+        {
+            double partial = 0.0;
+
+            // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
+            int eps_kappa = (eps_twoJ + 1)/2;
+            eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
 
             pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
             HartreeFocker HF_Solver(ode_solver);
@@ -118,28 +125,20 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
                                 }
                             }
                             
-                            partial[level_index] += coupling * coeff * matrix_element;
+                            partial += coupling * coeff * matrix_element;
                         }
                         proj_jt++;
                     }
                     proj_it++;
                 }
             }
-            level_index++;
+
+            rate += 2. * math->Pi() * partial * partial;
         }
 
-        for(int i = 0; i < total.size(); i++)
-            total[i] += 2. * math->Pi() * partial[i] * partial[i];
-    }
+        *outstream << level_index << " (E = " << std::setprecision(4) << eps_energy*math->HartreeEnergyIneV() << " eV): "
+                   <<  rate << "\t = " << rate * 0.413e8 << " /nsec" << std::endl;
 
-    *outstream << "\nAutoionization for J = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << std::endl;
-    
-    auto level_it = levels->begin(sym);
-    for(int i = 0; i < total.size(); i++)
-    {
-        double eps_energy = (level_it->second->GetEnergy() - ionization_energy) * math->HartreeEnergyIneV();
-        if(eps_energy > 0)
-            *outstream << i << " (E = " << std::setprecision(4) << eps_energy << " eV): " <<  total[i] << "\t = " << total[i] * 0.413e8 << " /nsec" << std::endl;
-        level_it++;
+        level_index++;
     }
 }

@@ -650,16 +650,17 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
         if(!start_sine)
         {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
 
-            // Probably get worried if we've had, say, fifty complete oscillations and still no good.
+            // Probably get a bit worried if we've had, say, fifty complete oscillations and still no good.
             // k ~ sqrt(2(energy + V(r))) => 50 oscillations = 50 * 2 Pi/k
+            // Generate a warning and expand the lattice.
             double Vmin = hf->GetDirectPotential().f[lattice->size()-1];
             double kmin = sqrt(2. * (s->Energy() + Vmin));
             double Rmax = 100. * pi/kmin;
 
             if(lattice->MaxRealDistance() > mmax(Rmax, 1000))
-            {   *errstream << "ContinuumBuilder::CalculateContinuumWave:\n"
-                           << "    start_sine not reached; Rmax = " << hf->GetLattice()->MaxRealDistance() << std::endl;
-                return 0;
+            {   *errstream << "HartreeFocker::CalculateContinuumWave:\n"
+                           << "    start_sine not reached; Rmax = " << hf->GetLattice()->MaxRealDistance()
+                           << "\n    ...expanding lattice and continuing." << std::endl;
             }
 
             lattice->resize_to_r(lattice->MaxRealDistance() * 2.);
@@ -763,7 +764,7 @@ unsigned int HartreeFocker::IntegrateContinuum(pContinuumWave s, pHFOperator hf,
     double peak_phase = 0.;
 
     // Find sine
-    ContinuumPhaseODE phase_ode(hf->GetLattice(), hf->GetDirectPotential(), kappa, energy);
+    ContinuumPhaseODE phase_ode(hf->GetLattice(), hf_direct, kappa, energy);
     odesolver->IntegrateForwards(&phase_ode, &S);
 
     Interpolator I(hf->GetLattice());

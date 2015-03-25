@@ -381,10 +381,13 @@ AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym,
 
     else
     {   // Check library directory exists
-        if(!opendir(lib_directory.c_str()))
-        {   *errstream << "AngularDataLibarary: unknown directory path " << lib_directory << std::endl;
+        DIR* dir = opendir(lib_directory.c_str());
+        if(!dir)
+        {   *errstream << "AngularDataLibarary::AngularDataLibarary(): unknown directory path " << lib_directory << std::endl;
             exit(1);
         }
+        else
+            closedir(dir);
 
         filename = lib_directory;
         if(filename[filename.length()-1] != '/')
@@ -636,7 +639,8 @@ void AngularDataLibrary::Write() const
     FILE* fp = fopen(filename.c_str(), "wb");
 
     if(!fp)
-    {   *errstream << "AngularData::Couldn't open file " << filename << " for writing." << std::endl;
+    {   *errstream << "AngularDataLibrary::Couldn't open file " << filename << " for writing." << std::endl;
+        return;
     }
 
     int num_angular_data_objects = library.size();
