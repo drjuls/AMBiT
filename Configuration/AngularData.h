@@ -174,6 +174,7 @@ protected:
 
     std::string lib_directory;
     std::string filename;
+    bool write_needed;
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType> > library;
 
     /** Pointer to the AngularDataLibrary with same symmetry but two_m increased by one. */

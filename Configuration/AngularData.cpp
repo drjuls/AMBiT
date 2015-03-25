@@ -374,7 +374,7 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
 }
 
 AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, const std::string& lib_directory):
-    electron_number(electron_number), sym(sym), two_m(two_m), lib_directory(lib_directory), parent(nullptr)
+    electron_number(electron_number), sym(sym), two_m(two_m), lib_directory(lib_directory), parent(nullptr), write_needed(false)
 {
     if(lib_directory == "")
         filename.clear();
@@ -481,6 +481,7 @@ void AngularDataLibrary::GenerateCSFs()
             {
                 pAngularDataConst parent_angular_data = parent->library[pair.first];
                 pair.second->LadderLowering(GenerateRelConfig(pair.first), *parent_angular_data);
+                write_needed = true;
             }
         }
     }
@@ -492,6 +493,7 @@ void AngularDataLibrary::GenerateCSFs()
             if(pAng->CSFs_calculated() == false)
             {
                 pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
+                write_needed = true;
             }
         }
     #else
@@ -509,6 +511,8 @@ void AngularDataLibrary::GenerateCSFs()
                     pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
                 else
                     big_library.insert(pair);
+
+                write_needed = true;
             }
         }
 
@@ -633,7 +637,7 @@ void AngularDataLibrary::Read()
 
 void AngularDataLibrary::Write() const
 {
-    if(filename.empty() || ProcessorRank != 0)
+    if(filename.empty() || ProcessorRank != 0 || !write_needed)
         return;
 
     FILE* fp = fopen(filename.c_str(), "wb");
