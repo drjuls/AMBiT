@@ -15,7 +15,7 @@ MathConstant::MathConstant()
     SpectroscopicNotation = new char[std::strlen(temp)+1];
     std::strcpy(SpectroscopicNotation, temp);
 
-    // Maximum largest stored twoJ for Electron3J.
+    // Maximum largest stored twoJ for Wigner3J.
     // Set by consideration of key.
     MaxStoredTwoJ = 40;
     MSize = 2 * MaxStoredTwoJ + 1;
@@ -272,13 +272,13 @@ double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom) 
     return total;
 }
 
-std::size_t MathConstant::HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2) const
+int MathConstant::HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const
 {
-    std::size_t key = size_t(twoj1) * MSize * MSize * (MaxStoredTwoJ + 1) * MaxStoredTwoJ
-                    + size_t(twoj2) * MSize * MSize * (MaxStoredTwoJ + 1)
-                    + size_t(k)     * MSize * MSize
-                    + twom1  * MSize
-                    + twom2;
+    int key = twoj1 * MSize * MSize * 2 *(MaxStoredTwoJ + 1) * (MaxStoredTwoJ + 1)
+            + twoj2 * MSize * MSize * 2 *(MaxStoredTwoJ + 1)
+            + twoj3 * MSize * MSize     // twoj3 can be as large as 2 * MaxStoredTwoJ (when k = j1 + j2)
+            + twom1 * MSize             // m1 >= 0 && m1 > m2
+            + twom2 + MaxStoredTwoJ;
     return key;
 }
 
@@ -290,11 +290,12 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     int twok = 2 * k;
     int twoq = - twom1 - twom2;
     if((twok > twoj1 + twoj2) || (abs(twoj1 - twoj2) > twok)
-       || (twok < abs(twoq)))
+       || (twok < abs(twoq)) || (twoj1 < abs(twom1)) || (twoj2 < abs(twom2)))
         return 0.;
 
     // Sort such that j1 >= j2, m1 >=0, and if (j1 == j2) then m1 >= m2.
     // Keep track of sign changes using boolean (false -> take negative)
+    bool sign_swap = ((twoj1 + twoj2)/2 + k)%2 == 1;
     bool sign = true;
 
     // Sort so that (j1 >= j2) for lookup
@@ -302,24 +303,21 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     {
         std::swap(twoj1, twoj2);
         std::swap(twom1, twom2);
-
-        if(((twoj1 + twoj2)/2 + k)%2 == 1)
-            sign = !sign;
-    }
-    // if(j1 == j2), then (m1 >= m2)
-    else if((twoj1 == twoj2) && (twom1 < twom2))
-    {
-        std::swap(twom1, twom2);
-        if((1 + k)%2 == 1)
-            sign = !sign;
+        if(sign_swap) sign = !sign;
     }
 
     // (m1 >= 0)
     if(twom1 < 0)
     {   twom1 = -twom1; twom2 = -twom2;
         twoq = -twoq;
-        if(((twoj1 + twoj2)/2 + k)%2 == 1)
-            sign = !sign;
+        if(sign_swap) sign = !sign;
+    }
+
+    // if(j1 == j2), then (m1 >= m2)
+    if((twoj1 == twoj2) && (twom1 < twom2))
+    {
+        std::swap(twom1, twom2);
+        if(sign_swap) sign = !sign;
     }
 
     if(twoj1 > MaxStoredTwoJ)
@@ -330,7 +328,7 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
             return -Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
     }
 
-    size_t key = HashElectron3j(twoj1, twoj2, k, twom1, twom2);
+    size_t key = HashWigner3j(twoj1, twoj2, twok, twom1, twom2);
     std::map<int, double>::const_iterator it = Symbols3j.find(key);
 
     if(it != Symbols3j.end())
@@ -362,6 +360,114 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k)
         return Electron3j(twoj1, twoj2, k, 1, -1);
     else
         return Electron3j(twoj2, twoj1, k, 1, -1);
+}
+
+double MathConstant::Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2)
+{
+    int twom3 = -twom1 -twom2;
+
+    // Check if it has the form of Electron3j (two half-integer, one integer)
+    if(twoj1%2 && twoj2%2 && !twoj3%2)
+        return Electron3j(twoj1, twoj2, twoj3/2, twom1, twom2);
+    else if(twoj1%2 && !twoj2%2 && twoj3%2)
+        return Electron3j(twoj3, twoj1, twoj2/2, twom3, twom1);
+    else if(!twoj1%2 && twoj2%2 && twoj3%2)
+        return Electron3j(twoj2, twoj3, twoj1/2, twom2, twom3);
+
+    // Otherwise must be all integer
+    // Check for physical correctness:
+    //  - triangle condition (j1, j2, k)
+    //  - k >= abs(q)
+    if((twoj3 > twoj1 + twoj2) || (abs(twoj1 - twoj2) > twoj3)
+       || (twoj1 < abs(twom1)) || (twoj2 < abs(twom2)) || (twoj3 < abs(twom3)))
+        return 0.;
+
+    // Arrange so that j1 >= j2 >= j3, m1 >= 0 and m1 > m2 > m3 where possible
+    // Keep track of sign changes using boolean (false -> take negative)
+    bool sign_swap = ((twoj1 + twoj2 + twoj2)/2)%2 == 1;
+    bool sign = true;
+
+    // Make sure j1 is the largest
+    if(twoj2 > twoj1 && twoj2 >= twoj3)
+    {
+        std::swap(twoj1, twoj2);
+        std::swap(twom1, twom2);
+        if(sign_swap) sign = !sign;
+    }
+    else if(twoj3 > twoj1 && twoj3 > twoj2)
+    {
+        std::swap(twoj1, twoj3);
+        std::swap(twom1, twom3);
+        if(sign_swap) sign = !sign;
+    }
+
+    // Sort so that (j2 >= j3)
+    if(twoj2 < twoj3)
+    {
+        std::swap(twoj2, twoj3);
+        std::swap(twom2, twom3);
+        if(sign_swap) sign = !sign;
+    }
+
+    if(twoj1 > MaxStoredTwoJ)
+    {
+        if(sign)
+            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+        else
+            return -Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+    }
+
+    // (m1 >= 0)
+    if(twom1 < 0)
+    {   twom1 = -twom1; twom2 = -twom2; twom3 = -twom3;
+        if(sign_swap) sign = !sign;
+    }
+
+    // if(j1 == j2 == j3), then (m1 >= m2  && m1 >= m3)
+    if(twoj1 == twoj3)
+    {
+        if(twom2 > twom1 && twom2 >= twom3)
+        {
+            std::swap(twom1, twom2);
+            if(sign_swap) sign = !sign;
+        }
+        else if(twom3 > twom1 && twom3 > twom2)
+        {
+            std::swap(twom1, twom3);
+            if(sign_swap) sign = !sign;
+        }
+    }
+    // if(j1 == j2), then (m1 >= m2)
+    else if((twoj1 == twoj2) && (twom1 < twom2))
+    {
+        std::swap(twom1, twom2);
+        if(sign_swap) sign = !sign;
+    }
+
+    // if(j2 == j3), then (m2 >= m3)
+    if((twoj2 == twoj3) && twom2 < twom3)
+    {
+        std::swap(twom2, twom3);
+        if(sign_swap) sign = !sign;
+    }
+
+    size_t key = HashWigner3j(twoj1, twoj2, twoj3, twom1, twom2);
+    std::map<int, double>::const_iterator it = Symbols3j.find(key);
+
+    if(it != Symbols3j.end())
+    {   if(sign)
+            return it->second;
+        else
+            return -it->second;
+    }
+    else
+    {   double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+        Symbols3j[key] = value;
+        if(sign)
+            return value;
+        else
+            return -value;
+    }
 }
 
 unsigned int MathConstant::GetStorageSize() const

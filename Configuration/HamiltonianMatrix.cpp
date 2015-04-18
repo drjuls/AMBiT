@@ -11,7 +11,7 @@
 #endif
 
 // Don't bother with davidson method if smaller than this limit
-#define SMALL_MATRIX_LIM 1
+#define SMALL_MATRIX_LIM 200
 
 // Include this define for the box diagrams of "wrong" parity.
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
@@ -163,7 +163,7 @@ void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_soluti
 
     *outstream << "; Finding solutions..." << std::endl;
 
-    if(N <= SMALL_MATRIX_LIM)
+    if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
     {
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
         const Eigen::VectorXd& E = es.eigenvalues();

@@ -7,6 +7,9 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 #include <boost/utility/enable_if.hpp>
+#ifdef _MPI
+#include <mpi.h>
+#endif
 
 class ZeroOperator
 {
@@ -113,6 +116,10 @@ protected:
     inline double ThreeBodyMatrixElements(typename boost::enable_if_c< S <= 2, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& lc, const ElectronInfo& ra, const ElectronInfo& rb, const ElectronInfo& rc) const
     {   return 0.;
+    }
+
+    bool IsMyJob(int index) const
+    {   return index%NumProcessors == ProcessorRank;
     }
 };
 
@@ -426,61 +433,72 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
     const auto& eigenvector = level.GetEigenvector();
 
     auto config_it = configs->begin();
+    int config_index = 0;
     while(config_it != configs->end())
     {
-        auto config_jt = config_it;
-        while(config_jt != configs->end())
+        if(IsMyJob(config_index))
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = config_it;
+            while(config_jt != configs->end())
             {
-                // Iterate over projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-                    RelativisticConfiguration::const_projection_iterator proj_jt;
-                    if(config_it == config_jt)
-                        proj_jt = proj_it;
-                    else
-                        proj_jt = config_jt.projection_begin();
-
-                    while(proj_jt != config_jt.projection_end())
+                    // Iterate over projections
+                    auto proj_it = config_it.projection_begin();
+                    while(proj_it != config_it.projection_end())
                     {
-                        double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+                        RelativisticConfiguration::const_projection_iterator proj_jt;
+                        if(config_it == config_jt)
+                            proj_jt = proj_it;
+                        else
+                            proj_jt = config_jt.projection_begin();
 
-                        if(matrix_element)
+                        while(proj_jt != config_jt.projection_end())
                         {
-                            // Summation over CSFs
-                            double coeff = 0.;
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
 
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            if(matrix_element)
                             {
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+                                // Summation over CSFs
+                                double coeff = 0.;
 
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                                 {
-                                    coeff += (*coeff_i) * (*coeff_j)
-                                            * eigenvector[coeff_i.index()]
-                                            * eigenvector[coeff_j.index()];
+                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    {
+                                        coeff += (*coeff_i) * (*coeff_j)
+                                                * eigenvector[coeff_i.index()]
+                                                * eigenvector[coeff_j.index()];
+                                    }
                                 }
+
+                                // If the projections are different, count twice
+                                if(proj_it != proj_jt)
+                                    coeff *= 2.;
+
+                                total += coeff * matrix_element;
                             }
-
-                            // If the projections are different, count twice
-                            if(proj_it != proj_jt)
-                                coeff *= 2.;
-
-                            total += coeff * matrix_element;
+                            proj_jt++;
                         }
-                        proj_jt++;
+                        proj_it++;
                     }
-                    proj_it++;
                 }
+                config_jt++;
             }
-            config_jt++;
         }
         config_it++;
+        config_index++;
     }
 
+#ifdef _MPI
+    double reduced_total = 0.;
+    MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    return reduced_total;
+#else
     return total;
+#endif
 }
 
 template<typename... pElectronOperators>
@@ -501,68 +519,79 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(Le
     unsigned int solution = 0;
 
     auto config_it = configs->begin();
+    int config_index = 0;
     while(config_it != configs->end())
     {
-        auto config_jt = config_it;
-        while(config_jt != configs->end())
+        if(IsMyJob(config_index))
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = config_it;
+            while(config_jt != configs->end())
             {
-                // Iterate over projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-                    RelativisticConfiguration::const_projection_iterator proj_jt;
-                    if(config_it == config_jt)
-                        proj_jt = proj_it;
-                    else
-                        proj_jt = config_jt.projection_begin();
-
-                    while(proj_jt != config_jt.projection_end())
+                    // Iterate over projections
+                    auto proj_it = config_it.projection_begin();
+                    while(proj_it != config_it.projection_end())
                     {
-                        double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+                        RelativisticConfiguration::const_projection_iterator proj_jt;
+                        if(config_it == config_jt)
+                            proj_jt = proj_it;
+                        else
+                            proj_jt = config_jt.projection_begin();
 
-                        // coefficients
-                        if(matrix_element)
+                        while(proj_jt != config_jt.projection_end())
                         {
-                            // Summation over CSFs
-                            std::fill(coeff.begin(), coeff.end(), 0.0);
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
 
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            // coefficients
+                            if(matrix_element)
                             {
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+                                // Summation over CSFs
+                                std::fill(coeff.begin(), coeff.end(), 0.0);
 
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                                 {
-                                    for(solution = 0; solution < coeff.size(); solution++)
+                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                                     {
-                                        coeff[solution] += (*coeff_i) * (*coeff_j)
-                                                            * eigenvector[solution][coeff_i.index()]
-                                                            * eigenvector[solution][coeff_j.index()];
+                                        for(solution = 0; solution < coeff.size(); solution++)
+                                        {
+                                            coeff[solution] += (*coeff_i) * (*coeff_j)
+                                                                * eigenvector[solution][coeff_i.index()]
+                                                                * eigenvector[solution][coeff_j.index()];
+                                        }
                                     }
                                 }
-                            }
 
-                            // If the projections are different, count twice
-                            if(proj_it != proj_jt)
-                            {   for(double& element: coeff)
-                                    element *= 2.;
+                                // If the projections are different, count twice
+                                if(proj_it != proj_jt)
+                                {   for(double& element: coeff)
+                                        element *= 2.;
+                                }
+
+                                for(solution = 0; solution < coeff.size(); solution++)
+                                    total[solution] += coeff[solution] * matrix_element;
                             }
-                            
-                            for(solution = 0; solution < coeff.size(); solution++)
-                                total[solution] += coeff[solution] * matrix_element;
+                            proj_jt++;
                         }
-                        proj_jt++;
+                        proj_it++;
                     }
-                    proj_it++;
                 }
+                config_jt++;
             }
-            config_jt++;
         }
         config_it++;
+        config_index++;
     }
 
+#ifdef _MPI
+    std::vector<double> reduced_total(total.size(), 0.);
+    MPI_Allreduce(total.data(), reduced_total.data(), total.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    return reduced_total;
+#else
     return total;
+#endif
 }
 
 template<typename... pElectronOperators>
@@ -575,50 +604,62 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
     const auto& eigenvector_right = right.GetEigenvector();
 
     auto config_it = configs_left->begin();
+    int config_index = 0;
     while(config_it != configs_left->end())
     {
-        auto config_jt = configs_right->begin();
-        while(config_jt != configs_right->end())
+        if(IsMyJob(config_index))
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = configs_right->begin();
+            while(config_jt != configs_right->end())
             {
-                // Iterate over projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-                    auto proj_jt = config_jt.projection_begin();
-                    while(proj_jt != config_jt.projection_end())
+                    // Iterate over projections
+                    auto proj_it = config_it.projection_begin();
+                    while(proj_it != config_it.projection_end())
                     {
-                        double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-
-                        if(matrix_element)
+                        auto proj_jt = config_jt.projection_begin();
+                        while(proj_jt != config_jt.projection_end())
                         {
-                            // Summation over CSFs
-                            double coeff = 0.;
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
 
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            if(matrix_element)
                             {
-                                for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                {
-                                    coeff += (*coeff_i) * (*coeff_j)
-                                            * eigenvector_left[coeff_i.index()]
-                                            * eigenvector_right[coeff_j.index()];
-                                }
-                            }
+                                // Summation over CSFs
+                                double coeff = 0.;
 
-                            total += coeff * matrix_element;
+                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                                {
+                                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    {
+                                        coeff += (*coeff_i) * (*coeff_j)
+                                                * eigenvector_left[coeff_i.index()]
+                                                * eigenvector_right[coeff_j.index()];
+                                    }
+                                }
+
+                                total += coeff * matrix_element;
+                            }
+                            proj_jt++;
                         }
-                        proj_jt++;
+                        proj_it++;
                     }
-                    proj_it++;
                 }
+                config_jt++;
             }
-            config_jt++;
         }
+
         config_it++;
+        config_index++;
     }
 
+#ifdef _MPI
+    double reduced_total = 0.;
+    MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    return reduced_total;
+#else
     return total;
+#endif
 }
 
 template<typename... pElectronOperators>
@@ -627,7 +668,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(Le
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
-    
+
     for(auto it = begin_left; it != end_left; it++)
         left_eigenvector.push_back(it->second->GetEigenvector());
 
@@ -637,70 +678,81 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(Le
     unsigned int return_size = left_eigenvector.size() * right_eigenvector.size();
     if(return_size == 0)
         return std::vector<double>();
-    
+
     pRelativisticConfigListConst configs_left = begin_left->second->GetRelativisticConfigList();
     pRelativisticConfigListConst configs_right = begin_right->second->GetRelativisticConfigList();
     std::vector<double> total(return_size, 0.);
     std::vector<double> coeff(return_size, 0.);
-    
+
     unsigned int solution = 0;
-    
+
     auto config_it = configs_left->begin();
+    int config_index = 0;
     while(config_it != configs_left->end())
     {
-        auto config_jt = configs_right->begin();
-        while(config_jt != configs_right->end())
+        if(IsMyJob(config_index))
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = configs_right->begin();
+            while(config_jt != configs_right->end())
             {
-                // Iterate over projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-                    auto proj_jt = config_jt.projection_begin();
-                    while(proj_jt != config_jt.projection_end())
+                    // Iterate over projections
+                    auto proj_it = config_it.projection_begin();
+                    while(proj_it != config_it.projection_end())
                     {
-                        double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-                        
-                        // coefficients
-                        if(matrix_element)
+                        auto proj_jt = config_jt.projection_begin();
+                        while(proj_jt != config_jt.projection_end())
                         {
-                            // Summation over CSFs
-                            std::fill(coeff.begin(), coeff.end(), 0.0);
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
 
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            // coefficients
+                            if(matrix_element)
                             {
-                                for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                {
-                                    solution = 0;   // Note: solution = left_index * right_eigenvector.size() + right_index
-                                    for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
-                                    {
-                                        for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
-                                        {
-                                            coeff[solution] += (*coeff_i) * (*coeff_j)
-                                                * left_eigenvector[left_index][coeff_i.index()]
-                                                * right_eigenvector[right_index][coeff_j.index()];
+                                // Summation over CSFs
+                                std::fill(coeff.begin(), coeff.end(), 0.0);
 
-                                            solution++;
+                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                                {
+                                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    {
+                                        solution = 0;   // Note: solution = left_index * right_eigenvector.size() + right_index
+                                        for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                                        {
+                                            for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
+                                            {
+                                                coeff[solution] += (*coeff_i) * (*coeff_j)
+                                                    * left_eigenvector[left_index][coeff_i.index()]
+                                                    * right_eigenvector[right_index][coeff_j.index()];
+
+                                                solution++;
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            for(solution = 0; solution < return_size; solution++)
-                                total[solution] += coeff[solution] * matrix_element;
+                                for(solution = 0; solution < return_size; solution++)
+                                    total[solution] += coeff[solution] * matrix_element;
+                            }
+                            proj_jt++;
                         }
-                        proj_jt++;
+                        proj_it++;
                     }
-                    proj_it++;
                 }
+                config_jt++;
             }
-            config_jt++;
         }
         config_it++;
+        config_index++;
     }
 
+#ifdef _MPI
+    std::vector<double> reduced_total(return_size, 0.);
+    MPI_Allreduce(total.data(), reduced_total.data(), return_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    return reduced_total;
+#else
     return total;
+#endif
 }
 
 #endif

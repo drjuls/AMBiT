@@ -34,9 +34,13 @@ public:
     unsigned int GetL(char spectroscopic_notation) const;
 
     // Functions
-
     double Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3) const;
     double Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6) const;
+
+    /** Calculate/store/retrieve 3j symbol.
+        Assumes m3 = - m1 - m2.
+     */
+    double Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2);
     
     /** Calculate 3j symbol where j1, j2 are half integer and k is integer.
         Assumes q (projection of k) = - m1 - m2.
@@ -64,6 +68,7 @@ public:
     double SphericalTensorReducedMatrixElement(int kappa1, int kappa2, int rank);
 
     // Helper functions
+    inline int is_half_integer(int twoj) const { return twoj%2 == 1; }
 
     /** Return +1 if power is even, -1 if odd. */
     inline int minus_one_to_the_power(int power) const { return (abs(power)%2)? -1 : 1; }
@@ -71,7 +76,7 @@ public:
     /** Return true if triangular condition is satisfied, false otherwise. */
     inline bool triangular_condition(int a, int b, int c) const { return (abs(a-b) <= c) && ((a+b) >= c); }
 
-    /** Return true if sum(a + b + c) is even. */
+    /** Return true if (a + b + c) is even. */
     inline bool sum_is_even(int a, int b, int c) const { return (a + b + c)%2 == 0; }
 
     /** Spherical bessel function j_v(x) */
@@ -94,7 +99,7 @@ protected:
 
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;
-    std::size_t HashElectron3j(int twoj1, int twoj2, int k, int twom1, int twom2) const;
+    int HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const;
     
     /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
      log( n!/d! )

@@ -2,6 +2,9 @@
 #include "Include.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "Configuration/ManyBodyOperator.h"
+#ifdef _MPI
+#include <mpi.h>
+#endif
 
 void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym)
 {
@@ -37,7 +40,7 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
     {
         const auto& compound_configs = level_it->second->GetRelativisticConfigList();
         const auto& compound_eigenvector = level_it->second->GetEigenvector();
-        
+
         // Build continuum
         double eps_energy = level_it->second->GetEnergy() - ionization_energy;
         if(eps_energy <= 0.)
@@ -98,39 +101,52 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
                 gen.GenerateProjections(target_configs, target_twoM, target.first.GetTwoJ());
 
                 // Coupling constant for |(eps_jlm; target_jlm) JJ >
-                // Warning: Only works when target is half-integer!
-                double coupling = math->Electron3j(eps_twoJ, target_twoJ, sym.GetTwoJ()/2, eps_twoM, target_twoM);
+                double coupling = math->Wigner3j(eps_twoJ, target_twoJ, sym.GetTwoJ(), eps_twoM, target_twoM);
                 coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_twoJ + eps_twoM + target_twoM)/2);
 
-                auto proj_it = target_configs->projection_begin();
-                while(proj_it != target_configs->projection_end())
+                // Iterate over (generally larger) compound states first, for better multiporocessor load balance
+                double local_partial_j = 0.;
+                auto proj_jt = compound_configs->projection_begin();
+                int proj_index = 0;
+                while(proj_jt != compound_configs->projection_end())
                 {
-                    auto proj_jt = compound_configs->projection_begin();
-                    while(proj_jt != compound_configs->projection_end())
+                    if(proj_index%NumProcessors == ProcessorRank)
                     {
-                        double matrix_element = H.GetMatrixElement(*proj_it, *proj_jt, &eps_info);
-                        
-                        if(matrix_element)
+                        auto proj_it = target_configs->projection_begin();
+                        while(proj_it != target_configs->projection_end())
                         {
-                            // Summation over CSFs
-                            double coeff = 0.;
-                            
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            double matrix_element = H.GetMatrixElement(*proj_it, *proj_jt, &eps_info);
+
+                            if(matrix_element)
                             {
-                                for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                // Summation over CSFs
+                                double coeff = 0.;
+
+                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                                 {
-                                    coeff += (*coeff_i) * (*coeff_j)
-                                    * target_eigenvector[coeff_i.index()]
-                                    * compound_eigenvector[coeff_j.index()];
+                                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    {
+                                        coeff += (*coeff_i) * (*coeff_j)
+                                                * target_eigenvector[coeff_i.index()]
+                                                * compound_eigenvector[coeff_j.index()];
+                                    }
                                 }
+
+                                local_partial_j += coupling * coeff * matrix_element;
                             }
-                            
-                            partial += coupling * coeff * matrix_element;
+                            proj_it++;
                         }
-                        proj_jt++;
                     }
-                    proj_it++;
+                    proj_jt++;
+                    proj_index++;
                 }
+                #ifdef _MPI
+                    double reduced_partial_j;
+                    MPI_Allreduce(&local_partial_j, &reduced_partial_j, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    partial += reduced_partial_j;
+                #else
+                    partial += local_partial_j;
+                #endif
             }
 
             rate += 2. * math->Pi() * partial * partial;
