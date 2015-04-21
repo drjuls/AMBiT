@@ -3,7 +3,20 @@
 
 BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(1.)
-{}
+{
+    IncludeLower();
+}
+
+BruecknerDecorator* BruecknerDecorator::Clone() const
+{
+    pHFOperator wrapped_clone(wrapped->Clone());
+    BruecknerDecorator* ret = new BruecknerDecorator(wrapped_clone, integrator);
+    ret->sigmas = sigmas;
+    ret->use_fg = use_fg;
+    ret->use_gg = use_gg;
+    ret->lambda = lambda;
+    return ret;
+}
 
 void BruecknerDecorator::CalculateSigma(int kappa, pBruecknerSigmaCalculator brueckner_calculator)
 {

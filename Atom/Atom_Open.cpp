@@ -91,7 +91,7 @@ void Atom::MakeMBPTIntegrals()
     bool is_open_shell = false;
     for(auto pair: *orbitals->core)
     {
-        double occ = hf_core->GetOccupancy(pair.first);
+        double occ = open_core->GetOccupancy(pair.first);
         if(fabs(occ - double(pair.first.MaxNumElectrons())) > 0.01)
             is_open_shell = true;
 

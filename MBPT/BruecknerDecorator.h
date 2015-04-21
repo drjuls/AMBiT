@@ -15,7 +15,6 @@ class BruecknerDecorator : public HFOperatorDecorator
 {
 public:
     BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = nullptr);
-
     void IncludeLower(bool include_fg = false, bool include_gg = false)
     {   use_fg = include_fg;
         use_gg = include_gg;
@@ -43,6 +42,7 @@ public:
     void Write(const std::string& identifier) const;
 
 public:
+    virtual BruecknerDecorator* Clone() const override;
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

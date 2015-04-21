@@ -15,6 +15,12 @@ public:
     BreitHFDecorator(pHFOperator wrapped_hf, pHartreeY breit_operator):
         HFOperatorDecorator(wrapped_hf), breit_operator(breit_operator)
     {}
+    BreitHFDecorator(const BreitHFDecorator& other):
+        HFOperatorDecorator(wrapped), breit_operator(other.breit_operator)
+    {}
+
+    /** Note that the clone will share the breit_operator object. */
+    virtual BreitHFDecorator* Clone() const override;
 
     virtual void Alert() override;
 

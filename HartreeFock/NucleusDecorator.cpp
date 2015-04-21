@@ -5,6 +5,14 @@ NucleusDecorator::NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integra
     LocalPotentialDecorator(wrapped_hf, integration_strategy), nuclear_radius(0.0), nuclear_thickness(0.0)
 {}
 
+NucleusDecorator* NucleusDecorator::Clone() const
+{
+    pHFOperator wrapped_clone(wrapped->Clone());
+    NucleusDecorator* ret = new NucleusDecorator(wrapped_clone, integrator);
+    ret->SetFermiParameters(nuclear_radius, nuclear_thickness);
+    return ret;
+}
+
 void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
 {
     nuclear_radius = radius_fm;

@@ -38,7 +38,7 @@ public:
     /** Deep copy of the HartreeY object, including wrapped objects. */
     virtual NonRelativisticSMSOperator* Clone() const override
     {   pHartreeY wrapped_clone(component->Clone());
-        return new NonRelativisticSMSOperator(wrapped_clone);
+        return new NonRelativisticSMSOperator(wrapped_clone, integrator);
     }
 
     /** < b | t | a > for an operator t. */

@@ -37,6 +37,10 @@ class LocalExchangeApproximation : public LocalPotentialDecorator
 public:
     LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pOPIntegrator integration_strategy = pOPIntegrator());
 
+    virtual LocalExchangeApproximation* Clone() const override
+    {   pHFOperator wrapped_clone(wrapped->Clone());
+        return new LocalExchangeApproximation(wrapped_clone, Xalpha, integrator);
+    }
     void SetXalpha(double x_alpha) { Xalpha = x_alpha; }
     double GetXalpha() const { return Xalpha; }
 

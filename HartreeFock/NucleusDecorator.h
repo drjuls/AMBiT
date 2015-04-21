@@ -15,6 +15,8 @@ class NucleusDecorator: public LocalPotentialDecorator
 public:
     NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
+    virtual NucleusDecorator* Clone() const override;
+
     /** Set parameters of proton distribution (in Fermi). */
     virtual void SetFermiParameters(double radius, double thickness = 2.3);
     virtual double GetNuclearRadius() const    { return nuclear_radius;    }    //!< Radius of nucleus in Fermi.

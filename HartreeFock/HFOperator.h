@@ -23,6 +23,11 @@ public:
     HFOperator(const HFOperator& other);
     virtual ~HFOperator();
 
+protected:
+    /** Protected version, for use by Decorators, does not run SetCore(). */
+    HFOperator(double Z, const HFOperator& other);
+
+public:
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
     virtual void SetCore(pCoreConst hf_core);
     virtual pCoreConst GetCore() const;
@@ -33,6 +38,14 @@ public:
 
     virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
 
+    /** Deep copy of the HFOperator object, particularly including wrapped objects.
+        The caller must take responsibility for deallocating the clone. A typical idiom would be
+        to wrap the pointer immediately with a shared pointer, e.g.:
+            pHFOperator cloned(old_HFOperator.Clone())
+     */
+    virtual HFOperator* Clone() const { return new HFOperator(*this); }
+
+public:
     /** Extend/reduce direct potential to match lattice size. */
     virtual void Alert() override;
 
@@ -101,9 +114,11 @@ class HFOperatorDecorator : public HFOperator
 public:
     /** If integration_strategy is null, take from decorated_object. */
     HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
-        HFOperator(*decorated_object), wrapped(decorated_object)
+        HFOperator(decorated_object->GetZ(), *decorated_object), wrapped(decorated_object)
     {   if(integration_strategy != nullptr)
             integrator = integration_strategy;
+        core = decorated_object->GetCore();
+        charge = Z - double(core->NumElectrons());
     }
     virtual ~HFOperatorDecorator() {}
 
@@ -111,10 +126,17 @@ public:
     virtual void SetCore(pCoreConst hf_core) override
     {   wrapped->SetCore(hf_core);
         core = hf_core;
+        charge = Z - double(core->NumElectrons());
     }
 
     virtual RadialFunction GetDirectPotential() const override
     {   return wrapped->GetDirectPotential();
+    }
+
+    /** Deep copy of the HartreeY object, including wrapped objects. */
+    virtual HFOperatorDecorator* Clone() const override
+    {   pHFOperator wrapped_clone(wrapped->Clone());
+        return new HFOperatorDecorator(wrapped_clone, integrator);
     }
 
     /** Extend/reduce direct potential to match lattice size.
@@ -148,22 +170,22 @@ public:
     }
 
     /** Get df/dr = w[0] and dg/dr = w[1] given point r, (f, g).
-     PRE: w should be an allocated 2 dimensional array.
+        PRE: w should be an allocated 2 dimensional array.
      */
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override
     {   wrapped->GetODEFunction(latticepoint, fg, w);
     }
 
     /** Get numerical coefficients of the ODE at the point r, (f,g).
-     PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
+        PRE: w_f, w_g, and w_const should be allocated 2 dimensional arrays.
      */
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override
     {   wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
     }
 
     /** Get Jacobian (dw[i]/df and dw[i]/dg), and dw[i]/dr at a point r, (f, g).
-     PRE: jacobian should be an allocated 2x2 matrix,
-     dwdr should be an allocated 2 dimensional array.
+        PRE: jacobian should be an allocated 2x2 matrix,
+        dwdr should be an allocated 2 dimensional array.
      */
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override
     {   wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
@@ -175,7 +197,7 @@ public:
     }
 
     /** Get approximation to eigenfunction for last numpoints far from the origin.
-     This routine can change the size of the orbital.
+        This routine can change the size of the orbital.
      */
     virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const override
     {   wrapped->EstimateOrbitalNearInfinity(numpoints, s);

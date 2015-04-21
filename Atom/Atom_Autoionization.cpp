@@ -66,7 +66,7 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
             pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
             HartreeFocker HF_Solver(ode_solver);
             pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy));
-            HF_Solver.CalculateContinuumWave(eps, hf);
+            HF_Solver.CalculateContinuumWave(eps, hf_open);
 
             // Create two-body integrals
             pOrbitalMap continuum_map(new OrbitalMap(lattice));

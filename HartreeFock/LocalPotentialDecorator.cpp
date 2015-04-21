@@ -74,10 +74,10 @@ void LocalExchangeApproximation::SetCore(pCoreConst hf_core)
     HFOperatorDecorator::SetCore(hf_core);
     double min_charge = !charge;
     const double* R = lattice->R();
-    
+
     // Get electron density function
     RadialFunction density;
-    
+
     auto cs = core->begin();
     while(cs != core->end())
     {

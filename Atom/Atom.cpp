@@ -76,7 +76,8 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 
         // Relativistic Hartree-Fock
         BasisGenerator basis_generator(lattice, user_input);
-        hf_core = basis_generator.GenerateHFCore(hf_open_core_start);
+        open_core = basis_generator.GenerateHFCore(hf_open_core_start);
+        hf_open = basis_generator.GetOpenHFOperator();
 
         // Create Basis
         orbitals = basis_generator.GenerateBasis();
@@ -94,7 +95,7 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         }
     }
 
-    return hf_core;
+    return open_core;
 }
 
 bool Atom::ReadBasis()
@@ -112,13 +113,12 @@ bool Atom::ReadBasis()
 
     // Generate HF operator
     BasisGenerator basis_generator(lattice, user_input);
-    hf = basis_generator.RecreateBasis(modifiable_orbitals);
+    hf_open = basis_generator.RecreateBasis(modifiable_orbitals);
 
     orbitals = modifiable_orbitals;
-    pCore closed_core(new Core(*orbitals->core));
-    hf->SetCore(closed_core);
+    hf = basis_generator.GetClosedHFOperator();
 
-    hf_core = basis_generator.GetHFCore();
+    open_core = basis_generator.GetHFCore();
 
     // HartreeY operator
     hartreeY = basis_generator.GetHartreeY();

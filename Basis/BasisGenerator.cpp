@@ -107,6 +107,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     {
         double xalpha = user_input("HF/Xalpha", 1.0);
         pHFOperator localexch(new LocalExchangeApproximation(hf, xalpha));
+        localexch->SetCore(open_core);
         hf = localexch;
         hf->IncludeExchange(false);
         undressed_hf = hf;

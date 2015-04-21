@@ -43,10 +43,11 @@ public:
      */
     virtual pHFOperator GetOpenHFOperator() { return hf; }
 
-    /** Return Hartree-Fock operator with core set to HF core. */
+    /** Return clone of Hartree-Fock operator with closed-shell core. */
     virtual pHFOperator GetClosedHFOperator()
-    {   hf->SetCore(pCore(new Core(*orbitals->core)));
-        return hf;
+    {   pHFOperator ret(hf->Clone());
+        ret->SetCore(closed_core);
+        return ret;
     }
 
     /** Get open-shell core. */

@@ -31,7 +31,7 @@ public:
     pCore MakeBasis(pCoreConst hf_open_core_start = nullptr);
 
     /** Get the open-shell core orbitals. */
-    pCore GetOpenShellCore() { return hf_core; }
+    pCore GetOpenShellCore() { return open_core; }
 
     /** Get the orbital basis. */
     pOrbitalManagerConst GetBasis() const { return orbitals; }
@@ -133,8 +133,9 @@ protected:
     unsigned int num_valence_electrons;
 
     pLattice lattice;
-    pCore hf_core;                  //!< Open-shell HF core
+    pCore open_core;                //!< Open-shell HF core
     pHFOperator hf;                 //!< Closed-shell HF operator
+    pHFOperator hf_open;            //!< Open-shell HF operator
     pOrbitalManagerConst orbitals;
     pHartreeY hartreeY;
 

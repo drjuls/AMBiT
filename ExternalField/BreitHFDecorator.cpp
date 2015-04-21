@@ -1,5 +1,11 @@
 #include "BreitHFDecorator.h"
 
+BreitHFDecorator* BreitHFDecorator::Clone() const
+{
+    pHFOperator wrapped_clone(wrapped->Clone());
+    return new BreitHFDecorator(wrapped_clone, breit_operator);
+}
+
 void BreitHFDecorator::Alert()
 {
     if(currentExchangePotential.size() > lattice->size())

@@ -24,6 +24,7 @@ public:
     double GetInverseMass() const { return lambda; }
 
 public:
+    virtual MassShiftDecorator* Clone() const override;
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
