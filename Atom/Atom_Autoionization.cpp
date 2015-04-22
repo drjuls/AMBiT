@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "Configuration/ManyBodyOperator.h"
+#include "HartreeFock/ConfigurationParser.h"
 #ifdef _MPI
 #include <mpi.h>
 #endif
@@ -30,6 +31,23 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
     }
 
     *outstream << "\nAutoionization for J = " << sym.GetJ() << ", P = " << LowerName(sym.GetParity()) << std::endl;
+
+    // Create operator for construction of continuum field
+    pHFOperator hf_continuum;
+    std::string config = user_input("DR/ContinuumFieldConfiguration", "");
+    if(config == "")
+        hf_continuum = hf_open;
+    else
+    {   hf_continuum.reset(hf_open->Clone());
+        pCore continuum_core(new Core(lattice, config));
+        for(auto& orbital: *continuum_core)
+        {
+            pOrbital basis_state = orbitals->all->GetState(orbital.first);
+            continuum_core->AddState(basis_state);
+        }
+        
+        hf_continuum->SetCore(continuum_core);
+    }
 
     // Target information
     int target_twoJ = target.first.GetTwoJ();
@@ -66,7 +84,7 @@ void Atom::Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry
             pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
             HartreeFocker HF_Solver(ode_solver);
             pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy));
-            HF_Solver.CalculateContinuumWave(eps, hf_open);
+            HF_Solver.CalculateContinuumWave(eps, hf_continuum);
 
             // Create two-body integrals
             pOrbitalMap continuum_map(new OrbitalMap(lattice));
