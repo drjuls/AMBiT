@@ -82,6 +82,131 @@ std::string NonRelConfiguration::ShortName() const
     return name;
 }
 
+pRelativisticConfigList NonRelConfiguration::GenerateRelativisticConfigs()
+{
+    relconfiglist.reset(new RelativisticConfigList());
+    RelativisticConfiguration rconfig;
+    SplitNonRelInfo(begin(), rconfig);
+
+    return relconfiglist;
+}
+
+void NonRelConfiguration::SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig)
+{
+    if(current_orbital == end())
+    {   relconfiglist->push_back(relconfig);
+        return;
+    }
+
+    const NonRelInfo& nrinfo(current_orbital->first);
+
+    if(nrinfo.L() == 0)
+    {   relconfig.insert(std::make_pair(current_orbital->first.GetFirstRelativisticInfo(), current_orbital->second));
+        current_orbital++;
+        SplitNonRelInfo(current_orbital, relconfig);
+    }
+    else
+    {   // rinfo1 has kappa = -(L+1). rinfo2 has kappa = L.
+        OrbitalInfo rinfo1 = nrinfo.GetFirstRelativisticInfo();
+        OrbitalInfo rinfo2 = nrinfo.GetSecondRelativisticInfo();
+
+        int num_electrons = current_orbital->second;
+        int num_particles = abs(num_electrons);
+        int start = mmax(0, num_particles - rinfo2.MaxNumElectrons());
+        int end = mmin(num_particles, rinfo1.MaxNumElectrons());
+
+        // Holes
+        if(num_electrons < 0)
+        {
+            std::swap(start, end);
+            start = -start;
+            end = -end;
+        }
+
+        // Next orbital is the same for all loops
+        current_orbital++;
+        NonRelConfiguration::const_iterator next_orbital = current_orbital;
+
+        for(int i=start; i<=end; i++)
+        {
+            RelativisticConfiguration new_rconfig(relconfig);
+
+            if(i)
+                new_rconfig.insert(std::make_pair(rinfo1, i));
+            if(num_electrons - i)
+                new_rconfig.insert(std::make_pair(rinfo2, num_electrons-i));
+
+            SplitNonRelInfo(next_orbital, new_rconfig);
+        }
+    }
+}
+
+double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body)
+{
+    double energy = 0.;
+    int num_levels = 0;
+
+    if(relconfiglist == nullptr)
+        GenerateRelativisticConfigs();
+
+    MathConstant* math = MathConstant::Instance();
+
+    for(const auto& rconfig: *relconfiglist)
+    {
+        int rconfig_num_levels = rconfig.GetNumberOfLevels();
+        double rconfig_energy = 0.;
+
+        auto it_a = rconfig.begin();
+        while(it_a != rconfig.end())
+        {
+            pOrbitalConst orbital_a = orbitals->GetState(it_a->first);
+            // one body: n_a E_a
+            rconfig_energy += it_a->second * one_body->GetMatrixElement(*orbital_a, *orbital_a);
+
+            auto it_b = it_a;
+            while(it_b != rconfig.end())
+            {
+                double weight = it_a->second;
+                if(it_a == it_b)
+                    weight *= (it_b->second - 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
+                else
+                    weight *= it_b->second;
+
+                if(weight)
+                {
+                    pOrbitalConst orbital_b = orbitals->GetState(it_b->first);
+
+                    // R^0_abab
+                    two_body->SetParameters(0, orbital_b, orbital_b);
+                    double U_ab = two_body->GetMatrixElement(*orbital_a, *orbital_a);
+
+                    // Sum_l R^k_abba (j_a  j_b k)^2 \xi(l_a + l_b + k)
+                    //                (1/2 -1/2 0)
+                    int k = two_body->SetOrbitals(orbital_b, orbital_a);
+                    while(k != -1)
+                    {
+                        if(math->sum_is_even(orbital_a->L(), orbital_b->L(), k))
+                        {
+                            double threej = math->Electron3j(orbital_a->TwoJ(), orbital_b->TwoJ(), k);
+                            U_ab -= threej * threej * two_body->GetMatrixElement(*orbital_a, *orbital_b);
+                        }
+                        k = two_body->NextK();
+                    }
+
+                    rconfig_energy += weight * U_ab;
+                }
+                it_b++;
+            }
+            it_a++;
+        }
+
+        energy += rconfig_num_levels * rconfig_energy;
+        num_levels += rconfig_num_levels;
+    }
+
+    return energy/num_levels;
+}
+
 ConfigList::ConfigList(const RelativisticConfigList& rlist)
 {
     // Generate non-relativistic configurations
@@ -100,20 +225,4 @@ std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
     {   stream << config.Name() << ",";
     }
     return stream;
-}
-
-ConfigurationPair::ConfigurationPair(const NonRelConfiguration& aConfiguration, const double& aDouble)
-{
-    first = aConfiguration;
-    second = aDouble;
-
-}
-
-void ConfigurationSet::Print()
-{
-    ConfigurationSet::iterator cs_it;
-    for(cs_it = begin(); cs_it != end(); cs_it++)
-    {
-        *outstream << std::setw(20) << cs_it->first.Name() << "  " << std::setprecision(2) << cs_it->second << "%" << std::endl;
-    }
 }

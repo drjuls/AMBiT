@@ -14,7 +14,7 @@ class RadialFunction;
             (ig(r) Omega_{-kappa m})
     where Omega_{kappa m} contains the angular and spin variables.
  */
-class SpinorFunction
+class SpinorFunction : public std::enable_shared_from_this<SpinorFunction>
 {
 public:
     SpinorFunction(int kappa, unsigned int size = 0);

@@ -16,7 +16,7 @@ unsigned int TransitionIntegrals::CalculateOneElectronIntegrals(pOrbitalMapConst
         auto it_2 = orbital_map_2->begin();
         while(it_2 != orbital_map_2->end())
         {
-            if(abs(it_1->first.TwoJ() - it_2->first.TwoJ()) <= 2 * op->GetMaxK())
+            if(abs(it_1->first.TwoJ() - it_2->first.TwoJ()) <= 2 * op->GetK())
             {
                 i2 = orbitals->state_index.at(it_2->first);
                 s2 = it_2->second;

@@ -10,11 +10,10 @@
     SpinorMatrixElement is itself a valid zero operator, < b | 0 | a > = 0,
     useful to wrap Decorators around when you want just the extra bit.
  */
-class SpinorMatrixElement
+class SpinorMatrixElement : public std::enable_shared_from_this<SpinorMatrixElement>
 {
 public:
-    SpinorMatrixElement(): integrator(nullptr), K(0) {}
-    SpinorMatrixElement(int K, pOPIntegrator integration_strategy): integrator(integration_strategy), K(K) {}
+    SpinorMatrixElement(int K = 0, pOPIntegrator integration_strategy = nullptr): integrator(integration_strategy), K(K) {}
 
     /** Reduced matrix element < b || t(K) || a > for our operator t(K).
         Usually the operation t|a> makes sense for any Orbital, but in order to have a
@@ -24,8 +23,8 @@ public:
     {   return 0.;
     }
 
-    /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */
-    virtual int GetMaxK() const
+    /** Get multipolarity K for this operator and all wrapped (added) operators. */
+    virtual int GetK() const
     {   return K;
     }
 
@@ -58,9 +57,6 @@ public:
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override
     {   return component->GetMatrixElement(b, a);
     }
-
-    /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */
-    virtual int GetMaxK() const override { return mmax(K, component->GetMaxK()); }
 
 protected:
     pSpinorMatrixElement component;

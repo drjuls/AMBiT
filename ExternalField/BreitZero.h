@@ -13,10 +13,11 @@ public:
     {   two_body_reverse_symmetry_exists = false;
     }
 
-    virtual bool SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d) override;
-
-    /** Should be overwritten to take boolean AND of all wrapped objects. */
     virtual bool isZero() const override;
+
+    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+    virtual int NextK() override;
+    virtual int GetMaxK() const override;
 
     /** Deep copy of the HartreeY object, including wrapped objects. */
     virtual HartreeYDecorator* Clone() const override
@@ -30,6 +31,8 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override;
 
 protected:
+    virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+
     /** P_{ik}(r) for current value of K. */
     SpinorFunction P(const SpinorFunction& k, int kappa_i) const;
     RadialFunction P(const SpinorFunction& i, const SpinorFunction& k) const;

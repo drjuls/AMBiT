@@ -120,9 +120,9 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
         pOPIntegrator integrator(new SimpsonsIntegrator(atom.GetLattice()));
         pSpinorMatrixElementConst pOperator;
         if(type.first == MultipolarityType::E)
-            pOperator.reset(new EJOperator(atom.GetPhysicalConstants(), type.second, integrator, preferred_gauge));
+            pOperator = std::make_shared<EJOperator>(atom.GetPhysicalConstants(), type.second, integrator, preferred_gauge);
         else
-            pOperator.reset(new MJOperator(atom.GetPhysicalConstants(), type.second, integrator));
+            pOperator = std::make_shared<MJOperator>(atom.GetPhysicalConstants(), type.second, integrator);
 
         transition_integral.reset(new TransitionIntegrals(orbitals, pOperator));
 

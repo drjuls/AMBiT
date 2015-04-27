@@ -5,12 +5,11 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Enums.h"
 
-class EJOperator : public SpinorMatrixElementDecorator
+class EJOperator : public SpinorMatrixElement
 {
 public:
     EJOperator(pPhysicalConstant constants, int J, pOPIntegrator integration_strategy, TransitionGauge gauge = TransitionGauge::Length):
-        SpinorMatrixElementDecorator(J, pSpinorMatrixElement(new SpinorMatrixElement()), integration_strategy),
-        constants(constants), gauge(gauge)
+        SpinorMatrixElement(J, integration_strategy), constants(constants), gauge(gauge)
     {}
 
     virtual void SetGauge(TransitionGauge gauge_type) { gauge = gauge_type; }
@@ -23,12 +22,11 @@ protected:
     pPhysicalConstant constants;
 };
 
-class MJOperator : public SpinorMatrixElementDecorator
+class MJOperator : public SpinorMatrixElement
 {
 public:
     MJOperator(pPhysicalConstant constants, int J, pOPIntegrator integration_strategy):
-        SpinorMatrixElementDecorator(J, pSpinorMatrixElement(new SpinorMatrixElement()), integration_strategy),
-        constants(constants)
+        SpinorMatrixElement(J, integration_strategy), constants(constants)
     {}
 
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */

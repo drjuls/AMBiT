@@ -27,13 +27,11 @@ public:
         two_body_reverse_symmetry_exists = false;
     }
 
+    virtual bool isZero() const override;
+
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
     double GetInverseMass() const { return lambda; }
-
-    virtual bool SetParameters(int K, const SpinorFunction& c, const SpinorFunction& d) override;
-
-    virtual bool isZero() const override;
 
     /** Deep copy of the HartreeY object, including wrapped objects. */
     virtual NonRelativisticSMSOperator* Clone() const override
@@ -50,6 +48,8 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override;
 
 protected:
+    virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+
     /** Returns \f$ \hat p f_a \f$. */
     SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const;
 

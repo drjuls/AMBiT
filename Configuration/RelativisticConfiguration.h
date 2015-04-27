@@ -42,6 +42,11 @@ public:
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;
 
+    /** Calculate number of levels (of all J and M) corresponding to this configuration:
+        \f[ \prod_a \frac{g_a!}{n_a!(g_a - n_a)!} \f]
+     */
+    int GetNumberOfLevels() const;
+
 public:
     /** Iterator over projections and CSFs. */
     class const_projection_iterator : public boost::iterator_adaptor<

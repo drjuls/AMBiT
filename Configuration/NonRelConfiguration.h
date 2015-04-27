@@ -5,6 +5,9 @@
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "RelativisticConfigList.h"
+#include "HartreeFock/OrbitalMap.h"
+#include "HartreeFock/HFOperator.h"
+#include "HartreeFock/HartreeY.h"
 #include "SortedList.h"
 #include <set>
 
@@ -35,6 +38,23 @@ public:
 
     virtual std::string Name(bool aSpaceFirst = true) const;
     virtual std::string ShortName() const;
+
+    /** Generate RelativisticConfigurations by distributing electrons among relativistic orbitals.
+        Returns public member relconfiglist.
+     */
+    pRelativisticConfigList GenerateRelativisticConfigs();
+
+    /** Calculate configuration average energy using relconfiglist. */
+    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body);
+
+public:
+    pRelativisticConfigList relconfiglist;
+
+protected:
+    /** Split the current NonRelInfo of config. Recursively split the rest.
+        When at end(), add it to relconfiglist.
+     */
+    void SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig);
 };
 
 class ConfigList : public SortedList<NonRelConfiguration>
@@ -63,28 +83,5 @@ public:
 
 typedef std::shared_ptr<ConfigList> pConfigList;
 typedef std::shared_ptr<const ConfigList> pConfigListConst;
-
-class ConfigurationPair : public std::pair<NonRelConfiguration, double>
-{
-public:
-    ConfigurationPair(const NonRelConfiguration& aConfiguration, const double& aDouble);
-};
-
-class ConfigurationPairCompare 
-{
-public:
-    bool operator() (const ConfigurationPair& lhs, const ConfigurationPair& rhs) const
-    {   return lhs.second > rhs.second;
-    }
-};
-
-// Stores a set of configurations and their composition numbers sorted by descending order
-class ConfigurationSet : public std::set<ConfigurationPair, ConfigurationPairCompare>
-{
-public:
-    ConfigurationSet::iterator GetLargestConfigurationPair() { return begin(); }
-    NonRelConfiguration GetLargestConfiguration() { return begin()->first; }
-    void Print();
-};
 
 #endif

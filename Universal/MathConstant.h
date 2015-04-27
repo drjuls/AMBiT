@@ -89,6 +89,9 @@ public:
     {   return (double)v/x * boost::math::sph_bessel(v, x) - boost::math::sph_bessel(v + 1, x);
     }
 
+    /** Return number of combinations of k elements in n slots. */
+    unsigned int nChoosek(unsigned int n, unsigned int k) const;
+
 protected:
     MathConstant();
     ~MathConstant();

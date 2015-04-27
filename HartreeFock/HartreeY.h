@@ -29,13 +29,17 @@
 class HartreeYBase : public SpinorOperator
 {
 public:
-    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy), two_body_reverse_symmetry_exists(true) {}
+    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(-1, integration_strategy), two_body_reverse_symmetry_exists(true) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
+        PRE: new_c and new_d must point to valid objects.
         Return false if resulting HartreeY function is zero (i.e. isZero() returns true).
      */
-    virtual bool SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d) { return false; }
+    virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
+    {   K = new_K;
+        return false;
+    }
 
     /** Check whether the potential Y^k_{cd} is zero. (e.g. angular momentum conditions not satisfied). */
     virtual bool isZero() const { return true; }
@@ -44,6 +48,33 @@ public:
         i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
      */
     virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
+
+    /** Call SetParameters(k, c, d) with k set to its smallest value with non-zero potential.
+        PRE: new_c and new_d must point to valid objects.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) { return -1; }
+
+    /** Call SetParameters(k, c, d) with previously set orbitals.
+        Return false if resulting HartreeY function is zero (i.e. isZero() returns true).
+     */
+    virtual bool SetK(int new_K)
+    {   K = new_K;
+        return false;
+    }
+
+    /** Using previously set orbitals, set k to its smallest value with non-zero potential.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int SetMinK() { return -1; }
+
+    /** Increment k to next value with non-zero potential using current orbitals.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int NextK() { return false; }
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMaxK() const { return -1; }
 
     /** Deep copy of the HartreeY object, particularly including wrapped objects.
         The caller must take responsibility for deallocating the clone. A typical idiom would be
@@ -84,6 +115,8 @@ public:
 
 protected:
     bool two_body_reverse_symmetry_exists;
+    pSpinorFunctionConst c;
+    pSpinorFunctionConst d;
 };
 
 typedef std::shared_ptr<HartreeYBase> pHartreeY;
@@ -115,12 +148,39 @@ public:
     virtual void Alert() override;
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
+        PRE: new_c and new_d must point to valid objects.
         Return false if resulting HartreeY function is zero (i.e. isZero() returns true).
      */
-    virtual bool SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d) override;
+    virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
 
     /** Check whether the potential Y^k_{cd} is zero. (e.g. angular momentum conditions not satisfied). */
     virtual bool isZero() const override { return (potential.size() == 0); }
+
+    /** Call SetParameters(k, c, d) with k set to its smallest value with non-zero potential.
+        PRE: new_c and new_d must point to valid objects.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+
+    /** Call SetParameters(k, c, d) with previously set orbitals.
+        Return false if resulting HartreeY function is zero (i.e. isZero() returns true).
+     */
+    virtual bool SetK(int new_K) override
+    {   return SetParameters(new_K, c, d);
+    }
+
+    /** Using previously set orbitals, set k to its smallest value with non-zero potential.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int SetMinK() override { return SetOrbitals(c, d); }
+
+    /** Increment k to next value with non-zero potential using current orbitals.
+        Return resulting k, or -1 if there is no such k.
+     */
+    virtual int NextK() override;
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMaxK() const override;
 
     /** Deep copy of this HartreeY object.
         NB: uses the same integrator and coulomb operator.
@@ -150,8 +210,10 @@ public:
             integrator = component->GetOPIntegrator();
     }
 
-    virtual bool SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d) override
-    {   return component->SetParameters(new_K, c, d);
+    virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override
+    {   bool comp_ret = component->SetParameters(new_K, new_c, new_d);
+        bool ret = SetLocalParameters(new_K, new_c, new_d);
+        return comp_ret || ret;
     }
 
     /** Should be overwritten to take boolean AND of all wrapped objects. */
@@ -166,14 +228,38 @@ public:
     {   return two_body_reverse_symmetry_exists && component->ReverseSymmetryExists();
     }
 
+    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override
+    {   int new_K = component->SetOrbitals(new_c, new_d);
+        SetLocalParameters(new_K, new_c, new_d);
+        return K;
+    }
+
+    virtual bool SetK(int new_K) override
+    {   bool ret = SetLocalParameters(K, c, d);
+        return component->SetK(new_K) || ret;
+    }
+
+    virtual int SetMinK() override { return SetOrbitals(c, d); }
+
+    virtual int NextK() override
+    {   int ret = component->NextK();
+        if(ret != -1)
+            SetLocalParameters(component->GetK(), c, d);
+        else
+            K = -1;
+
+        return ret;
+    }
+
+    virtual int GetMaxK() const override
+    {   return component->GetMaxK();
+    }
+    
     /** Deep copy of the HartreeY object, including wrapped objects. */
     virtual HartreeYDecorator* Clone() const override
     {   pHartreeY wrapped_clone(component->Clone());
         return new HartreeYDecorator(wrapped_clone);
     }
-
-    /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */
-    virtual int GetMaxK() const override { return mmax(K, component->GetMaxK()); }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override
@@ -185,6 +271,12 @@ public:
     }
 
 protected:
+    /** SetParameters for this object only. */
+    virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
+    {   K = new_K; c = new_c; d = new_d;
+        return false;
+    }
+
     pHartreeY component;
 };
 

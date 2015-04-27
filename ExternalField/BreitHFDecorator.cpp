@@ -76,6 +76,8 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
     if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
         current_in_core = NULL;
 
+    pSpinorFunctionConst p_a(a.shared_from_this());
+
     // Sum over all core states
     auto cs = core->begin();
     while(cs != core->end())
@@ -125,7 +127,7 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
                 coefficient = coefficient * ex;
             }
 
-            breit_operator->SetParameters(k, *core_orbital, a);
+            breit_operator->SetParameters(k, core_orbital, p_a);
             value += breit_operator->GetMatrixElement(b, *core_orbital) * coefficient;
         }
 
@@ -154,6 +156,8 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
     if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
         current_in_core = NULL;
+
+    pSpinorFunctionConst p_s(s.shared_from_this());
 
     // Sum over all core states
     auto cs = core->begin();
@@ -204,7 +208,7 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
                 coefficient = coefficient * ex;
             }
 
-            breit_operator->SetParameters(k, *core_orbital, s);
+            breit_operator->SetParameters(k, core_orbital, p_s);
             exchange += breit_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
         }
 

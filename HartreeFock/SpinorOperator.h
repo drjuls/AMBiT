@@ -15,7 +15,8 @@
 class SpinorOperator : public SpinorMatrixElement
 {
 public:
-    SpinorOperator(pOPIntegrator integration_strategy = nullptr): SpinorMatrixElement(0, integration_strategy) {}
+    SpinorOperator(int K = 0, pOPIntegrator integration_strategy = nullptr): SpinorMatrixElement(K, integration_strategy) {}
+    SpinorOperator(pOPIntegrator integration_strategy): SpinorOperator(0, integration_strategy) {}
 
     /** < b | t | a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
@@ -48,7 +49,8 @@ typedef std::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
 class SpinorOperatorDecorator : public SpinorOperator
 {
 public:
-    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = nullptr): SpinorOperator(integration_strategy)
+    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = nullptr):
+        SpinorOperator(wrapped->GetK(), integration_strategy)
     {   component = wrapped;
         if(!integrator)
             integrator = component->GetOPIntegrator();
@@ -63,9 +65,6 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override
     {   return component->ApplyTo(a, kappa_b);
     }
-
-    /** Get maximum multipolarity K for this operator and all wrapped (added) operators. */
-    virtual int GetMaxK() const override { return mmax(K, component->GetMaxK()); }
 
 protected:
     pSpinorOperator component;

@@ -983,7 +983,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
     auto it_n = core->begin();
     while(it_n != core->end())
     {
-        const Orbital& sn = *(it_n->second);
+        const Orbital& sn = *it_n->second;
 
         auto it_alpha = excited->begin();
         while(it_alpha != excited->end())
@@ -1007,7 +1007,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
             while(k1 <= k1max)
             {
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY->SetParameters(k1, sn, salpha);
+                hartreeY->SetParameters(k1, it_n->second, it_alpha->second);
 
                 if(C_nalpha && !hartreeY->isZero())
                 {
@@ -1126,7 +1126,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
             while(k1 <= k1max)
             {
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, sn, salpha);
+                hartreeY1->SetParameters(k1, it_n->second, it_alpha->second);
 
                 if(C_nalpha && !hartreeY1->isZero())
                 {
@@ -1171,7 +1171,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
 
                                 if(coeff)
                                 {
-                                    hartreeY2->SetParameters(k2, sn, sbeta);
+                                    hartreeY2->SetParameters(k2, it_n->second, it_beta->second);
 
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
                                     SpinorFunction Y2 = hartreeY2->ApplyTo(salpha, kappa);
@@ -1244,7 +1244,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
             while(k1 <= k1max)
             {
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, salpha, sn);
+                hartreeY1->SetParameters(k1, it_alpha->second, it_n->second);
 
                 if(C_nalpha && !hartreeY1->isZero())
                 {
@@ -1288,7 +1288,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
 
                                 if(coeff)
                                 {
-                                    hartreeY2->SetParameters(k2, salpha, sm);
+                                    hartreeY2->SetParameters(k2, it_alpha->second, it_m->second);
 
                                     // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
                                     SpinorFunction Y2 = hartreeY2->ApplyTo(sn, kappa);

@@ -6,15 +6,17 @@ HartreeY::HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb)
     two_body_reverse_symmetry_exists = true;
 }
 
-bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunction& d)
+bool HartreeY::SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
 {
-    this->K = K;
+    K = new_K;
+    c = new_c;
+    d = new_d;
 
-    if(((K + c.L() + d.L())%2 == 0) &&
-       (abs(c.TwoJ() - d.TwoJ()) <= 2 * K) &&
-       (2 * K <= c.TwoJ() + d.TwoJ()))
+    if(((K + c->L() + d->L())%2 == 0) &&
+       (abs(c->TwoJ() - d->TwoJ()) <= 2 * K) &&
+       (2 * K <= c->TwoJ() + d->TwoJ()))
     {
-        RadialFunction density = c.GetDensity(d);
+        RadialFunction density = c->GetDensity(*d);
         density.resize(integrator->GetLattice()->size());
 
         coulomb->GetPotential(K, density, potential);
@@ -26,10 +28,53 @@ bool HartreeY::SetParameters(int K, const SpinorFunction& c, const SpinorFunctio
     }
 }
 
+int HartreeY::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
+{
+    c = new_c;
+    d = new_d;
+    K = abs(c->TwoJ() - d->TwoJ())/2;
+    if((K + c->L() + d->L())%2 == 1)
+        K++;
+
+    if(SetParameters(K, c, d))
+        return K;
+    else
+        return -1;
+}
+
+int HartreeY::NextK()
+{
+    if(K != -1 && c && d)
+    {   K += 2;
+        if(SetParameters(K, c, d))
+            return K;
+    }
+
+    K = -1;
+    return false;
+}
+
+int HartreeY::GetMaxK() const
+{
+    int maxK = -1;
+    if(c && d)
+    {
+        maxK = (c->TwoJ() + d->TwoJ())/2;
+        if((maxK + c->L() + d->L())%2 == 1)
+            maxK--;
+        if(maxK < abs(c->TwoJ() - d->TwoJ())/2)
+            maxK = -1;
+    }
+
+    return maxK;
+}
+
 HartreeY* HartreeY::Clone() const
 {
     HartreeY* copy = new HartreeY(integrator, coulomb);
     copy->K = K;
+    copy->c = c;
+    copy->d = d;
     copy->potential = potential;
 
     return copy;

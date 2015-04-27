@@ -523,3 +523,20 @@ double MathConstant::SphericalTensorReducedMatrixElement(int kappa1, int kappa2,
 
     return value;
 }
+
+unsigned int MathConstant::nChoosek(unsigned int n, unsigned int k) const
+{
+    if(k > n)
+        return 0;
+    if(k * 2 > n)
+        k = n-k;
+    if(k == 0)
+        return 1;
+
+    unsigned int result = n;
+    for(int i = 2; i <= k; ++i )
+    {   result *= (n-i+1);
+        result /= i;
+    }
+    return result;
+}

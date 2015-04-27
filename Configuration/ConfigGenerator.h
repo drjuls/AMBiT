@@ -55,22 +55,11 @@ protected:
     void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const;
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
-     from the set of non-relativistic ones.
-     PRE: nrlist should be unique.
-     POST: rlist is sorted and unique.
+        from the set of non-relativistic ones.
+        PRE: nrlist should be unique.
+        POST: rlist is sorted and unique.
      */
-    pRelativisticConfigList GenerateRelativisticConfigs(const ConfigList& nrlist) const;
-
-    /** Split the current NonRelInfo of config. Recursively split the rest.
-        When config.AtEnd(), add it to rlist.
-      */
-    void SplitNonRelInfo(const NonRelConfiguration& config, NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig, pRelativisticConfigList& rlist) const;
-
-    /** Restore nrlist from rlist.
-        Usually we no longer want the nrlist after a read, but if it is wanted,
-        nrlist is generated from rlist on the fly.
-     */
-    void RestoreNonRelConfigs();
+    pRelativisticConfigList GenerateRelativisticConfigs(ConfigList& nrlist) const;
 
 protected:
     // Inputs

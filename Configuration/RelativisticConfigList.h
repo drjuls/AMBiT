@@ -6,7 +6,7 @@
 class MostCSFsFirstComparator;
 class FewestProjectionsFirstComparator;
 
-/** RelativisticConfigList extends SortedList to give projection, CSF information over the whole list.
+/** RelativisticConfigList includes projection and CSF information over the whole list.
     There are two types of iterators provided:
     (const_)iterator: an iterator over the RelativisticConfigurations that has member functions
             projection_begin() and projection_end() that give a
@@ -162,6 +162,9 @@ public: // Define iterators
     };
 
 public:
+    void append(const RelativisticConfigList& other)                    //!< Add all elements of other list to end of this list
+    {   m_list.insert(m_list.end(), other.m_list.begin(), other.m_list.end()); }
+
     iterator begin() { return iterator(m_list.begin(), 0); }
     const_iterator begin() const { return const_iterator(m_list.begin(), 0); }
 
@@ -195,7 +198,7 @@ public:
 
     void push_back(const RelativisticConfiguration& val) { m_list.push_back(val); }
     void push_back(RelativisticConfiguration&& val) { m_list.push_back(val); }
-    
+
     unsigned int size() const { return m_list.size(); }
 
     template<class Comparator = FewestProjectionsFirstComparator>

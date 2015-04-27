@@ -1,23 +1,22 @@
 #include "NonRelativisticSMSOperator.h"
 #include "Universal/Interpolator.h"
 
-bool NonRelativisticSMSOperator::SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d)
+bool NonRelativisticSMSOperator::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
 {
-    bool ret = HartreeYDecorator::SetParameters(new_K, c, d);
+    K = new_K;
+    c = new_c;
+    d = new_d;
 
-    if(new_K == 1)
+    if(K == 1)
     {
-        if(!integrator)
-            throw "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found.";
-
-        SpinorFunction td = ApplyOperator(d, c.Kappa());
-        p_cd = integrator->GetInnerProduct(td, c);
+        SpinorFunction td = ApplyOperator(*new_d, new_c->Kappa());
+        p_cd = integrator->GetInnerProduct(td, *new_c);
     }
     else
     {   p_cd = 0.0;
     }
 
-    return (p_cd != 0.0) || ret;
+    return (p_cd != 0.0);
 }
 
 bool NonRelativisticSMSOperator::isZero() const
@@ -49,6 +48,9 @@ SpinorFunction NonRelativisticSMSOperator::ApplyTo(const SpinorFunction& a, int 
 
 SpinorFunction NonRelativisticSMSOperator::ApplyOperator(const SpinorFunction& a, int kappa_b) const
 {
+    if(!integrator)
+        throw "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found.";
+
     int l_b = kappa_b;
     if(kappa_b < 0)
         l_b = - kappa_b - 1;

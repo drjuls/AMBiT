@@ -71,7 +71,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
             {
                 // Get Pot31
                 if(!check_size_only)
-                {   hartreeY_operator->SetParameters(k, *s3, *s1);
+                {   hartreeY_operator->SetParameters(k, s3, s1);
                     if(hartreeY_operator->isZero())
                         break;
                 }

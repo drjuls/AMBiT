@@ -277,7 +277,7 @@ void CIIntegrals::UpdateTwoElectronIntegrals()
             while(k <= kmax)
             {
                 // Get Pot24
-                hartreeY_operator->SetParameters(k, *s_2, *s_4);
+                hartreeY_operator->SetParameters(k, s_2, s_4);
 
                 // s1 is the smallest
                 it_1 = states->begin(); i1 = 0;

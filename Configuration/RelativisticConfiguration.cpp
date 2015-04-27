@@ -68,6 +68,17 @@ int RelativisticConfiguration::GetTwiceMaxProjection() const
     return maximum_two_m;
 }
 
+int RelativisticConfiguration::GetNumberOfLevels() const
+{
+    int result = 1;
+    MathConstant* math = MathConstant::Instance();
+    for(const auto& pair: *this)
+    {
+        result *= math->nChoosek(pair.first.MaxNumElectrons(), pair.second);
+    }
+    return result;
+}
+
 void RelativisticConfiguration::Write(FILE* fp) const
 {
     // Write config

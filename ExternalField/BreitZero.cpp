@@ -2,32 +2,89 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
-bool BreitZero::SetParameters(int new_K, const SpinorFunction& c, const SpinorFunction& d)
+int BreitZero::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
 {
-    bool component_is_zero = component->SetParameters(new_K, c, d);
+    c = new_c;
+    d = new_d;
+
+    K = abs(c->TwoJ() - d->TwoJ());
+    if(K == 0)
+    {
+        if(component->SetParameters(0, c, d))
+        {   return K;
+        }
+        else
+            K = 1;
+    }
+
+    int maxK = GetMaxK();
+    while(K <= maxK)
+    {
+        bool non_zero = SetLocalParameters(K, c, d);
+        bool component_non_zero = component->SetParameters(K, c, d);
+
+        if(non_zero || component_non_zero)
+            return K;
+
+        K++;
+    }
+
+    return -1;
+}
+
+int BreitZero::NextK()
+{
+    bool ret = false;
+    if(K != -1 && c && d)
+    {
+        while(ret == false && K < GetMaxK())
+        {   K++;
+            ret = SetK(K);
+        }
+    }
+
+    if(ret == false)
+        K = -1;
+
+    return K;
+}
+
+int BreitZero::GetMaxK() const
+{
+    if(c && d)
+        return (c->TwoJ() + d->TwoJ())/2;
+    else
+        return -1;
+}
+
+bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
+{
+    K = new_K;
+    c = new_c;
+    d = new_d;
+
     MathConstant& math = *MathConstant::Instance();
 
-    K = new_K;
     pot_P_Kplus.Clear();
     pot_P_Kminus.Clear();
     pot_Q_Kplus.Clear();
     pot_Q_Kminus.Clear();
     pot_V_K.Clear();
 
-    if(K == 0 || !math.triangular_condition(c.TwoJ(), d.TwoJ(), 2*new_K))
+    if(K == 0 || !math.triangular_condition(c->TwoJ(), d->TwoJ(), 2*K))
     {
-        return component_is_zero;
+        return false;
     }
 
     // M_K(ijkl) and O_K(ijkl)
-    double coeff_plus = math.SphericalTensorReducedMatrixElement(c.Kappa(), d.Kappa(), K);
+    double coeff_plus = math.SphericalTensorReducedMatrixElement(c->Kappa(), d->Kappa(), K);
     if(coeff_plus)
     {
-        RadialFunction Qcd = Q(c, d);
+        RadialFunction Qcd = Q(*c, *d);
         coulomb->GetPotential(K+1, Qcd, pot_Q_Kplus);
         pot_Q_Kplus *= coeff_plus;
 
-        RadialFunction Pcd = P(c, d);
+        RadialFunction Pcd = P(*c, *d);
         coulomb->GetPotential(K-1, Pcd, pot_P_Kminus);
         pot_P_Kminus *= coeff_plus;
 
@@ -39,22 +96,22 @@ bool BreitZero::SetParameters(int new_K, const SpinorFunction& c, const SpinorFu
     }
 
     // N_K(ijkl)
-    double coeff_minus = math.SphericalTensorReducedMatrixElement(-c.Kappa(), d.Kappa(), K);
+    double coeff_minus = math.SphericalTensorReducedMatrixElement(-c->Kappa(), d->Kappa(), K);
     if(coeff_minus)
     {
-        RadialFunction Vcd(mmin(c.size(), d.size()));
+        RadialFunction Vcd(mmin(c->size(), d->size()));
         for(unsigned int i = 0; i < Vcd.size(); i++)
         {
-            Vcd.f[i] = c.f[i] * d.g[i] + c.g[i] * d.f[i];
-            Vcd.dfdr[i] = c.f[i] * d.dgdr[i] + c.dfdr[i] * d.g[i] + c.g[i] * d.dfdr[i] + c.dgdr[i] * d.f[i];
+            Vcd.f[i] = c->f[i] * d->g[i] + c->g[i] * d->f[i];
+            Vcd.dfdr[i] = c->f[i] * d->dgdr[i] + c->dfdr[i] * d->g[i] + c->g[i] * d->dfdr[i] + c->dgdr[i] * d->f[i];
         }
 
         coulomb->GetPotential(K, Vcd, pot_V_K);
-        pot_V_K *= coeff_minus * (c.Kappa() + d.Kappa());
+        pot_V_K *= coeff_minus * (c->Kappa() + d->Kappa());
     }
 
-    jc_plus_jd_even = (((c.TwoJ() + d.TwoJ())/2)%2 == 0);
-    return (pot_Q_Kplus.size() || pot_V_K.size() || !component_is_zero);
+    jc_plus_jd_even = (((c->TwoJ() + d->TwoJ())/2)%2 == 0);
+    return (pot_Q_Kplus.size() || pot_V_K.size());
 }
 
 bool BreitZero::isZero() const

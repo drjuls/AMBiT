@@ -39,44 +39,44 @@ TEST(BreitTester, LiLikeNe)
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
-    const Orbital& s_core = *orbitals->core->GetState(OrbitalInfo(1, -1));
-    const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(2, -1));
-    const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
-    const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
+    pOrbitalConst s_core = orbitals->core->GetState(OrbitalInfo(1, -1));
+    pOrbitalConst s = orbitals->valence->GetState(OrbitalInfo(2, -1));
+    pOrbitalConst p1 = orbitals->valence->GetState(OrbitalInfo(2, 1));
+    pOrbitalConst p3 = orbitals->valence->GetState(OrbitalInfo(2, -2));
 
     pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
     pHFOperator hf = basis_generator.GetClosedHFOperator();
     pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
 
     // Check values against Johnson
-    double matrix_element = breit_hf->GetMatrixElement(s, s);
-    matrix_element -= hf->GetMatrixElement(s, s);
+    double matrix_element = breit_hf->GetMatrixElement(*s, *s);
+    matrix_element -= hf->GetMatrixElement(*s, *s);
     EXPECT_NEAR(0.00090, matrix_element, 1.e-5);
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitZero for N term
     breit->SetParameters(1, s_core, s);
-    double value = integrator->GetInnerProduct(s, breit->ApplyTo(s_core, s.Kappa()))/2.0;
+    double value = integrator->GetInnerProduct(*s, breit->ApplyTo(*s_core, s->Kappa()))/2.0;
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 
     // Check p-wave against Johnson
-    matrix_element = breit_hf->GetMatrixElement(p1, p1);
-    matrix_element -= hf->GetMatrixElement(p1, p1);
+    matrix_element = breit_hf->GetMatrixElement(*p1, *p1);
+    matrix_element -= hf->GetMatrixElement(*p1, *p1);
     EXPECT_NEAR(0.00160, matrix_element, 1.e-4);
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitZero for M and O terms
     breit->SetParameters(1, s_core, p1);
-    matrix_element = breit->GetMatrixElement(p1, s_core)/2.0;
-    value = integrator->GetInnerProduct(p1, breit->ApplyTo(s_core, p1.Kappa()))/2.0;
+    matrix_element = breit->GetMatrixElement(*p1, *s_core)/2.0;
+    value = integrator->GetInnerProduct(*p1, breit->ApplyTo(*s_core, p1->Kappa()))/2.0;
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 
     // Check p_3/2-wave against Johnson
-    matrix_element = breit_hf->GetMatrixElement(p3, p3);
-    matrix_element -= hf->GetMatrixElement(p3, p3);
+    matrix_element = breit_hf->GetMatrixElement(*p3, *p3);
+    matrix_element -= hf->GetMatrixElement(*p3, *p3);
     EXPECT_NEAR(0.00074, matrix_element, 1.e-5);
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitHFDecorator
-    matrix_element = breit_hf->GetMatrixElement(p3, p3);
-    value = integrator->GetInnerProduct(p3, breit_hf->ApplyTo(p3));
+    matrix_element = breit_hf->GetMatrixElement(*p3, *p3);
+    value = integrator->GetInnerProduct(*p3, breit_hf->ApplyTo(*p3));
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 }
 

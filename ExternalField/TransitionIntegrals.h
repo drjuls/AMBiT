@@ -32,7 +32,7 @@ public:
 
     inline double GetMatrixElement(const OrbitalInfo& e1, const OrbitalInfo& e2) const
     {
-        if(abs(e1.TwoJ() - e2.TwoJ()) < 2 * op->GetMaxK())
+        if(abs(e1.TwoJ() - e2.TwoJ()) < 2 * op->GetK())
         {
             unsigned int i1 = orbitals->state_index.at(e1);
             unsigned int i2 = orbitals->state_index.at(e2);
@@ -45,7 +45,7 @@ public:
 
     inline double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2) const
     {
-        double matrix_element = MathConstant::Instance()->Electron3j(e2.TwoJ(), e1.TwoJ(), op->GetMaxK(), e2.TwoM(), -e1.TwoM());
+        double matrix_element = MathConstant::Instance()->Electron3j(e2.TwoJ(), e1.TwoJ(), op->GetK(), e2.TwoM(), -e1.TwoM());
 
         if(matrix_element)
         {
