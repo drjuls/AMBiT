@@ -29,6 +29,12 @@ public:
     pConfigList GetLeadingConfigs();
     pConfigListConst GetLeadingConfigs() const;
 
+    /** Generate non-relativistic configs based on the input file.
+        This may include limiting the non-relativistic configurations based on configuration average energies,
+        provided one_body and two_body operators are provided.
+     */
+    pConfigList GenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+
     /** Generate non-relativistic and then relativistic configurations based on the input file.
         If(generate_projections == true), returned list includes projections and CSFs with J = M.
      */
@@ -48,18 +54,26 @@ public:
     {   GenerateProjections(rlist, two_m, two_m);
     }
 
+    /** For each non-relativistic configuration in nrlist, generate relconfiglist
+        with projections and CSFs with correct symmetry.
+        Remove all relativistic configs that do not have a CSF with the correct symmetry.
+        For non-relativistic configurations that have no CSFs satisfying the symmetry,
+        relconfiglist is nullptr.
+     */
+    void GenerateProjections(pConfigList nrlist, const Symmetry& sym, int two_m) const;
+
 protected:
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
      */
-    void GenerateExcitations(ConfigList& configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const;
+    void GenerateExcitations(pConfigList configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const;
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
         PRE: nrlist should be unique.
         POST: rlist is sorted and unique.
      */
-    pRelativisticConfigList GenerateRelativisticConfigs(ConfigList& nrlist) const;
+    pRelativisticConfigList GenerateRelativisticConfigs(pConfigList nrlist) const;
 
 protected:
     // Inputs

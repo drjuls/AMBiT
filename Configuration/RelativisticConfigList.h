@@ -204,7 +204,8 @@ public:
     template<class Comparator = FewestProjectionsFirstComparator>
         void sort(Comparator comp);
 
-    void unique() { std::unique(m_list.begin(), m_list.end()); }
+    /** Remove consecutive duplicates. Sort the list first to get real uniqueness. */
+    void unique();
 
 public:
     unsigned int NumCSFs() const;   //!< Total number of CSFs stored in entire list

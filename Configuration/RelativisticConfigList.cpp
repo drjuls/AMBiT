@@ -62,6 +62,11 @@ unsigned int RelativisticConfigList::projection_size() const
     return total;
 }
 
+void RelativisticConfigList::unique()
+{
+    m_list.erase(std::unique(m_list.begin(), m_list.end()), m_list.end());
+}
+
 void RelativisticConfigList::Read(FILE* fp)
 {
     m_list.clear();

@@ -207,6 +207,32 @@ double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst
     return energy/num_levels;
 }
 
+int NonRelConfiguration::GetTwiceMaxProjection() const
+{
+    int maximum_two_m = 0;
+
+    // For each orbital, first fill largest values of M.
+    // If odd number of electrons, last goes with spin up in last container.
+    for(auto& it: m_config)
+    {
+        int N = abs(it.second);
+        int L = it.first.L();
+        if(N%2 == 0)
+        {   // Two spins for each M cancel
+            // max M = 2L + 2(L-1) + ...
+            //       = 2[ nL - n(n-1)/2 ] where n = N/2
+            maximum_two_m += N * (2 + 4*L - N)/2;
+        }
+        else
+        {   // After (N-1) pairs (as above) add an odd electron
+            // with M = L - (N-1)/2 and spin up.
+            maximum_two_m += (N * (2 + 4*L - N) + 1)/2;
+        }
+    }
+
+    return maximum_two_m;
+}
+
 ConfigList::ConfigList(const RelativisticConfigList& rlist)
 {
     // Generate non-relativistic configurations

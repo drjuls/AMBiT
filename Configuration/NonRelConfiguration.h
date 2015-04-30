@@ -47,6 +47,9 @@ public:
     /** Calculate configuration average energy using relconfiglist. */
     double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body);
 
+    /** Calculate the largest projection possible for this configuration. */
+    int GetTwiceMaxProjection() const;
+
 public:
     pRelativisticConfigList relconfiglist;
 
