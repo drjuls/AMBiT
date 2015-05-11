@@ -189,7 +189,42 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
         nrlist->add(extraconfig);
     }
 
+    nrlist->unique();
     return nrlist;
+}
+
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist) const
+{
+    pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
+    ConfigList::iterator it = nrlist->begin();
+    while(it != nrlist->end())
+    {
+        rlist->append(*it->GenerateRelativisticConfigs());
+        it++;
+    }
+    
+    rlist->sort(FewestProjectionsFirstComparator());
+    rlist->unique();
+    return rlist;
+}
+
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, bool generate_projections) const
+{
+    pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
+    ConfigList::iterator it = nrlist->begin();
+    while(it != nrlist->end())
+    {
+        // Add states of correct parity
+        if(it->GetParity() == sym.GetParity() && sym.GetTwoJ() <= it->GetTwiceMaxProjection())
+            rlist->append(*it->GenerateRelativisticConfigs());
+
+        it++;
+    }
+    
+    if(generate_projections)
+        GenerateProjections(rlist, sym.GetTwoJ());
+    
+    return rlist;
 }
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections)
@@ -210,7 +245,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
 
     nrlist->unique();
 
-    pRelativisticConfigList rlist(GenerateRelativisticConfigs(nrlist));
+    pRelativisticConfigList rlist(GenerateRelativisticConfigurations(nrlist));
 
     if(generate_projections)
         GenerateProjections(rlist, sym.GetTwoJ());
@@ -312,21 +347,6 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
     }
 
     configlist->unique();
-}
-
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigs(pConfigList nrlist) const
-{
-    pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
-    ConfigList::iterator it = nrlist->begin();
-    while(it != nrlist->end())
-    {
-        rlist->append(*it->GenerateRelativisticConfigs());
-        it++;
-    }
-
-    rlist->sort(FewestProjectionsFirstComparator());
-    rlist->unique();
-    return rlist;
 }
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const

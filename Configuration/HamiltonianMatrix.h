@@ -19,14 +19,14 @@ typedef std::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOpe
 class HamiltonianMatrix : public Matrix
 {
 public:
-    HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs);
+    HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
     virtual ~HamiltonianMatrix();
 
     /** Generate Hamiltonian matrix. */
     virtual void GenerateMatrix();
 
     /** Solve the matrix that has been generated. */
-    virtual void SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels);
+    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions);
 
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
@@ -71,7 +71,7 @@ public:
     virtual void GetDiagonal(double* diag) const;
 
 protected:
-    pRelativisticConfigListConst configs;
+    pRelativisticConfigList configs;
     pTwoBodyHamiltonianOperator H_two_body;
 
 protected:

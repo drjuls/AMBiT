@@ -2,6 +2,29 @@
 #include "ExternalField/EJOperator.h"
 #include "Include.h"
 
+std::string Name(const LevelID& levelid)
+{
+    return (levelid.first->Name() + itoa(levelid.second));
+}
+
+LevelID make_LevelID(const std::string& name)
+{
+    int twoJ;
+    Parity P;
+    int index;
+
+    std::stringstream ss(name);
+    ss >> twoJ;
+    if(ss.get() == 'o')
+        P = Parity::odd;
+    else
+        P = Parity::even;
+
+    ss >> index;
+
+    return std::make_pair(std::make_shared<HamiltonianID>(twoJ, P), index);
+}
+
 TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType max):
     atom(atom), preferred_gauge(gauge), max_type(max)
 {
@@ -11,21 +34,13 @@ TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType m
 
 TransitionID TransitionMap::make_transitionID(const LevelID& left, const LevelID& right, TransitionType type) const
 {
-    TransitionID id;
     if(left < right)
-    {   std::get<0>(id) = left;
-        std::get<1>(id) = right;
-    }
+        return std::make_tuple(left, right, type);
     else
-    {   std::get<0>(id) = right;
-        std::get<1>(id) = left;
-    }
-    std::get<2>(id) = type;
-
-    return id;
+        return std::make_tuple(right, left, type);
 }
 
-bool TransitionMap::TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const
+bool TransitionMap::TransitionExists(const Symmetry& left, const Symmetry& right, TransitionType type) const
 {
     int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
     if(((left.GetTwoJ() + right.GetTwoJ())/2 < type.second)
@@ -35,7 +50,7 @@ bool TransitionMap::TransitionExists(const LevelID& left, const LevelID& right, 
     }
 
     if((type.first == MultipolarityType::E && type.second%2 == 1)       // E1, E3, ...
-       || (type.first == MultipolarityType::M && type.second%2 == 0))  // M2, M4, ...
+       || (type.first == MultipolarityType::M && type.second%2 == 0))   // M2, M4, ...
     {
         if(left.GetParity() == right.GetParity())
         {
@@ -53,10 +68,10 @@ bool TransitionMap::TransitionExists(const LevelID& left, const LevelID& right, 
 double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right)
 {
     // Get minimum transition type
-    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
+    int deltaJ = abs(left.first->GetTwoJ() - right.first->GetTwoJ())/2;
     if(deltaJ == 0)
     {
-        if(left.GetTwoJ() == 0) // 0 -> 0 transition
+        if(left.first->GetTwoJ() == 0) // 0 -> 0 transition
             return 0.;
         deltaJ++;
     }
@@ -64,8 +79,8 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
     TransitionType type;
     type.second = deltaJ;
 
-    if((deltaJ%2 == 1 && left.GetParity() != right.GetParity())
-        || (deltaJ%2 == 0 && left.GetParity() == right.GetParity()))
+    if((deltaJ%2 == 1 && left.first->GetParity() != right.first->GetParity())
+        || (deltaJ%2 == 0 && left.first->GetParity() == right.first->GetParity()))
     {
         type.first = MultipolarityType::E;
     }
@@ -89,28 +104,24 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
     // Check transition is allowed
     if(!TransitionExists(left, right, type))
     {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
-                   << left.Name() << " -> " << right.Name() << " (" << type << ")" << std::endl;
+                   << Name(left) << " -> " << Name(right) << " (" << type << ")" << std::endl;
         return 0.;
     }
 
     // Get levels
-    pLevel left_level, right_level;
-    auto level_it = levels->find(left);
-    if(level_it == levels->end())
-    {   *errstream << "Transitions::AddTransition(): Level " << left.Name() << " not found." << std::endl;
+    auto level_it = levels->find(left.first);
+    if(level_it == levels->end() || level_it->second.size() <= left.second)
+    {   *errstream << "Transitions::AddTransition(): Level " << Name(left) << " not found." << std::endl;
         return 0.;
     }
-    left_level = level_it->second;
+    const LevelVector& left_levels = level_it->second;
 
-    if(left != right)
-    {
-        level_it = levels->find(right);
-        if(level_it == levels->end())
-        {   *errstream << "Transitions::AddTransition(): Level " << right.Name() << " not found." << std::endl;
-            return 0.;
-        }
-        right_level = level_it->second;
+    level_it = levels->find(right.first);
+    if(level_it == levels->end() || level_it->second.size() <= right.second)
+    {   *errstream << "Transitions::AddTransition(): Level " << Name(right) << " not found." << std::endl;
+        return 0.;
     }
+    const LevelVector& right_levels = level_it->second;
 
     // Get transition integrals
     pTransitionIntegrals transition_integral = integrals[type];
@@ -132,24 +143,22 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
 
     ManyBodyOperator<pTransitionIntegrals> many_body_operator(transition_integral);
 
-    // Get matrix elements for all transitions with same symmetry
+    // Get matrix elements for all transitions with same HamiltonianIDs
     std::vector<double> values;
-    Symmetry leftsym = left.GetSymmetry();
-    Symmetry rightsym = right.GetSymmetry();
-    values = many_body_operator.GetMatrixElement(levels->begin(leftsym), levels->end(leftsym), levels->begin(rightsym), levels->end(rightsym));
+    values = many_body_operator.GetMatrixElement(left_levels, right_levels);
 
     // Convert to strength and add to TransitionMap
-    double angular_projection_factor = 1./MathConstant::Instance()->Electron3j(right.GetTwoJ(), left.GetTwoJ(), type.second, right.GetTwoJ(), -left.GetTwoJ());
+    double angular_projection_factor = 1./MathConstant::Instance()->Electron3j(right.first->GetTwoJ(), left.first->GetTwoJ(), type.second, right.first->GetTwoJ(), -left.first->GetTwoJ());
 
     auto value_iterator = values.begin();
-    for(auto left_it = levels->begin(leftsym); left_it != levels->end(leftsym); left_it++)
+    for(int i = 0; i < left_levels.size(); i++)
     {
-        for(auto right_it = levels->begin(rightsym); right_it != levels->end(rightsym); right_it++)
+        for(int j = 0; j < right_levels.size(); j++)
         {
             double value = (*value_iterator) * angular_projection_factor;
             value = value * value;
 
-            TransitionID current_id = make_transitionID(left_it->first, right_it->first, type);
+            TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j), type);
             (*this)[current_id] = value;
             value_iterator++;
         }
@@ -157,7 +166,7 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
 
     // Get transition specifically requested, print and return
     double value = (*this)[id];
-    *outstream << "  " << left.Name() << " -> " << right.Name() << ": S(" << type << ") = " << value << std::endl;
+    *outstream << "  " << Name(left) << " -> " << Name(right) << ": S(" << type << ") = " << value << std::endl;
 
     return value;
 }
@@ -168,7 +177,7 @@ void TransitionMap::Print() const
     for(auto& pair: *this)
     {
         const TransitionID& id = pair.first;
-        *outstream << "  " << std::get<0>(id).Name() << " -> " << std::get<1>(id).Name()
+        *outstream << "  " << Name(std::get<0>(id)) << " -> " << Name(std::get<1>(id))
                    << " (" << std::get<2>(id) << ") = " << pair.second << std::endl;
     }
 }

@@ -4,14 +4,11 @@
 #include "Atom/GetPot"
 #include "Configuration/CIIntegrals.h"
 #include "Configuration/HamiltonianMatrix.h"
-#include "Configuration/Eigenstates.h"
 #include "HartreeFock/Core.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
+#include "Configuration/Level.h"
 
-#include <map>
-
-class SolutionMap;
 class Sigma3Calculator;
 
 /** Atom is something like a "LevelGenerator", but with Read/Write operations,
@@ -59,31 +56,44 @@ public:
     /** Clear integrals for CI. */
     void ClearIntegrals();
 
-    /** Check sizes of matrices before doing full scale calculation. */
+    /** Check sizes of matrices before doing full scale calculation.
+        PRE: MakeBasis() must have been run.
+     */
     void CheckMatrixSizes();
 
-    /** Calculate levels for all chosen symmetries in user input.
+    /** Get levels to be calculated, so the client can request one be done at a time.
         PRE: MakeBasis() must have been run.
+     */
+    pLevelMap ChooseHamiltoniansAndRead();
+
+    /** Calculate levels for all chosen symmetries in user input.
+        PRE: ChooseHamiltonians() must have been run.
      */
     pLevelMap CalculateEnergies();
 
-    /** Calculate levels for given symmetry, generating CI integrals if required via. MakeIntegrals().
-        PRE: MakeBasis() must have been run.
+    /** Calculate levels for given HamiltonianID, generating CI integrals if required via. MakeIntegrals().
+        PRE: ChooseHamiltonians() must have been run.
+        Levels are added to LevelMap levels.
     */
-    pLevelMap CalculateEnergies(const Symmetry& sym);
+    const LevelVector& CalculateEnergies(pHamiltonianID hID);
 
     pLevelMap GetLevels() { return levels; }
     pLevelMapConst GetLevels() const { return levels; }
 
 public:
-    /** Load target atom, create continuum wave, calculate autoionization rate. */
-    void Autoionization(std::pair<LevelID, pLevelConst> target, const Symmetry& sym);
+    /** For all levels requested, create continuum wave and calculate autoionization rate. */
+    void Autoionization(pLevelConst target);
 
 protected:
+    /** Instantiate LevelMap and read from file.
+        Get set of requested symmetries from user input.
+     */
+    pLevelMap ChooseHamiltonians(pConfigList nrlist);
+
     /** Get configurations based on single electron configurations with no CI.
         PRE: MakeBasis() must have been run.
      */
-    pLevelMap SingleElectronConfigurations(const Symmetry& sym);
+    const LevelVector& SingleElectronConfigurations(pHamiltonianID sym);
 
     /** Attempt to read basis from file and generate HF operator.
         Return true if successful, false if file "identifier.basis" not found.
@@ -91,11 +101,6 @@ protected:
     bool ReadBasis();
 
     void PrintBasis();
-
-protected:
-    // Main structure calculation routines
-    void RunSingleElectron();
-    void RunMultipleElectron();
 
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
@@ -141,7 +146,6 @@ protected:
 
     pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
-    std::set<Symmetry> symmetries;
     pLevelMap levels;
 
 //    CIIntegralsMBPT* integralsMBPT;

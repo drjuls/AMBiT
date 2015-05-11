@@ -48,7 +48,6 @@ TEST(TransitionIntegralTester, HeTransitions)
     ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
-    pLevelMap levels = pLevelMap(new LevelMap());
     double ground_state_energy = 0., excited_state_energy = 0.;
 
     // Generate matrix and configurations
@@ -58,25 +57,27 @@ TEST(TransitionIntegralTester, HeTransitions)
     H_even.GenerateMatrix();
 
     // Solve matrix
-    H_even.SolveMatrix(sym, 3, levels);
-    levels->Print(sym);
-    pLevel ground_state = levels->begin(sym)->second;
-    pLevel singlet_S = (*levels)[LevelID(sym, 1)];
+    auto hID = std::make_shared<HamiltonianID>(sym, relconfigs);
+    LevelVector levels = H_even.SolveMatrix(hID, 3);
+    Print(levels);
+    pLevel ground_state = levels[0];
+    pLevel singlet_S = levels[1];
     ground_state_energy = ground_state->GetEnergy();
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
+    hID = std::make_shared<HamiltonianID>(sym, relconfigs);
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
-    H_odd.SolveMatrix(sym, 3, levels);
+    levels = H_odd.SolveMatrix(hID, 3);
     GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
-    g_factors.CalculateGFactors(*levels, sym);
-    levels->Print(sym);
+    g_factors.CalculateGFactors(levels);
+    Print(levels);
 
-    pLevel singlet_P = (*levels)[LevelID(sym, 1)];
-    pLevel triplet_P = (*levels)[LevelID(sym, 0)];
+    pLevel singlet_P = levels[1];
+    pLevel triplet_P = levels[0];
     excited_state_energy = singlet_P->GetEnergy();
     EXPECT_NEAR(1.5, triplet_P->GetgFactor(), 0.001);
     EXPECT_NEAR(1.0, singlet_P->GetgFactor(), 0.001);

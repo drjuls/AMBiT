@@ -3,10 +3,14 @@
 
 #include "Atom/Atom.h"
 #include "ExternalField/TransitionIntegrals.h"
+#include "Configuration/Level.h"
 #include "Universal/Enums.h"
 #include <ctype.h>
 #include <map>
 
+/** Type of electromagnetic transition, e.g. E1, M1, E2, ...
+    TransitionType is ordered and stream operators are provided.
+ */
 typedef std::pair<MultipolarityType, int> TransitionType;
 
 inline bool operator<(const TransitionType& left, const TransitionType& right)
@@ -49,6 +53,15 @@ public:
     bool operator()(const TransitionType& left, const TransitionType& right) const { return (left < right); }
 };
 
+/** LevelID uniquely specifies a Level (HamiltonianID and index).
+    The principle of don't be a jerk programming applies: for any calculation we should only be using one
+    type of HamiltonianID in Atom, so no comparisons between pHamiltonianIDs of different classes occurs.
+ */
+typedef std::pair<pHamiltonianID, int> LevelID;
+LevelID make_LevelID(const std::string& name);
+std::string Name(const LevelID& levelid);
+
+/** A transition includes a start level, final level, and transition type. */
 typedef std::tuple<LevelID, LevelID, TransitionType> TransitionID;
 
 class TransitionIDComparator
@@ -82,7 +95,10 @@ public:
     using Parent::size;
 
     /** Check if transition exists or is excluded by symmetry considerations. */
-    bool TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const;
+    bool TransitionExists(const Symmetry& left, const Symmetry& right, TransitionType type) const;
+    bool TransitionExists(const LevelID& left, const LevelID& right, TransitionType type) const
+    {   return TransitionExists(left.first->GetSymmetry(), right.first->GetSymmetry(), type);
+    }
 
     /** Calculate transition strength for smallest TransitionType possible and add to map.
         If smallest TransitionType > max_type, return zero.

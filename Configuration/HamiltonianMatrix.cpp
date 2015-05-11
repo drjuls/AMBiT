@@ -20,7 +20,7 @@
 // (instead of just one).
 //#define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigListConst relconfigs):
+HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
     H_two_body(nullptr), configs(relconfigs), most_chunk_rows(0) //, include_sigma3(false)
 {
     // Set up Hamiltonian operator
@@ -152,50 +152,56 @@ void HamiltonianMatrix::GenerateMatrix()
         matrix_section.Symmetrize();
 }
 
-void HamiltonianMatrix::SolveMatrix(const Symmetry& sym, unsigned int num_solutions, pLevelMap levels)
+LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
-    if(N == 0)
-    {   *outstream << "\nNo solutions" << std::endl;
-        return;
-    }
+    LevelVector levels;
+    if(hID->GetRelativisticConfigList() == nullptr)
+        hID->SetRelativisticConfigList(configs);
 
     unsigned int NumSolutions = mmin(num_solutions, N);
 
-    *outstream << "; Finding solutions..." << std::endl;
-
-    if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
+    if(NumSolutions == 0)
     {
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
-        const Eigen::VectorXd& E = es.eigenvalues();
-        const Eigen::MatrixXd& V = es.eigenvectors();
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
-        {
-            pLevel level(new Level(E(i), V.col(i).data(), configs, N));
-            (*levels)[LevelID(sym, i)] = level;
-        }
+        *outstream << "\nNo solutions" << std::endl;
     }
     else
-    {   // Using Davidson method
-        double* V = new double[NumSolutions * N];
-        double* E = new double[NumSolutions];
+    {   *outstream << "; Finding solutions..." << std::endl;
+        levels.reserve(NumSolutions);
 
-        Eigensolver solver;
-        #ifdef _MPI
-            solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
-        #else
-            solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
-        #endif
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
+        if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
         {
-            pLevel level(new Level(E[i], (V + N * i), configs, N));
-            (*levels)[LevelID(sym, i)] = level;
-        }
+            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
+            const Eigen::VectorXd& E = es.eigenvalues();
+            const Eigen::MatrixXd& V = es.eigenvectors();
 
-        delete[] E;
-        delete[] V;
+            for(unsigned int i = 0; i < NumSolutions; i++)
+            {
+                levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+            }
+        }
+        else
+        {   // Using Davidson method
+            double* V = new double[NumSolutions * N];
+            double* E = new double[NumSolutions];
+
+            Eigensolver solver;
+            #ifdef _MPI
+                solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
+            #else
+                solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+            #endif
+
+            for(unsigned int i = 0; i < NumSolutions; i++)
+            {
+                levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
+            }
+
+            delete[] E;
+            delete[] V;
+        }
     }
+
+    return levels;
 }
 
 std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)

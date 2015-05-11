@@ -1,8 +1,8 @@
 #ifndef MANY_BODY_OPERATOR_H
 #define MANY_BODY_OPERATOR_H
 
-#include "Level.h"
 #include "Projection.h"
+#include "LevelMap.h"
 #include <tuple>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -59,16 +59,15 @@ public:
     /** Equivalent to GetMatrixElement(level, level). */
     inline double GetMatrixElement(const Level& level) const;
 
-    /** Equivalent to calculating GetMatrixElement(level) for each level in range [begin, end).
+    /** Equivalent to calculating GetMatrixElement(level) for each level in vector.
         Return vector of matrix elements.
      */
-    inline std::vector<double> GetMatrixElement(LevelMap::const_symmetry_iterator begin, LevelMap::const_symmetry_iterator end) const;
+    inline std::vector<double> GetMatrixElement(const LevelVector& levels) const;
 
-    /** Equivalent to calculating GetMatrixElement(left, right) for each level in their respective ranges [begin, end).
+    /** Equivalent to calculating GetMatrixElement(left, right) for each pair of levels in their respective vectors.
         Return array of matrix elements indexed by left_index * (num_right) + right_index.
      */
-    inline std::vector<double> GetMatrixElement(LevelMap::const_symmetry_iterator begin_left, LevelMap::const_symmetry_iterator end_left,
-                                                LevelMap::const_symmetry_iterator begin_right, LevelMap::const_symmetry_iterator end_right) const;
+    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels) const;
 
 protected:
     std::tuple<pElectronOperators...> pOperators;
@@ -502,17 +501,18 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
 }
 
 template<typename... pElectronOperators>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(LevelMap::const_symmetry_iterator begin, LevelMap::const_symmetry_iterator end) const
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levels) const
 {
     std::vector<const double*> eigenvector;
 
-    for(auto it = begin; it != end; it++)
-        eigenvector.push_back(it->second->GetEigenvector());
+    eigenvector.reserve(levels.size());
+    for(auto it = levels.begin(); it != levels.end(); it++)
+        eigenvector.push_back((*it)->GetEigenvector().data());
 
     if(eigenvector.empty())
         return std::vector<double>();
 
-    pRelativisticConfigListConst configs = begin->second->GetRelativisticConfigList();
+    pRelativisticConfigListConst configs = levels.front()->GetRelativisticConfigList();
     std::vector<double> total(eigenvector.size(), 0.);
     std::vector<double> coeff(eigenvector.size(), 0.);
 
@@ -663,24 +663,25 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
 }
 
 template<typename... pElectronOperators>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(LevelMap::const_symmetry_iterator begin_left, LevelMap::const_symmetry_iterator end_left,
-                                                                              LevelMap::const_symmetry_iterator begin_right, LevelMap::const_symmetry_iterator end_right) const
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
 
-    for(auto it = begin_left; it != end_left; it++)
-        left_eigenvector.push_back(it->second->GetEigenvector());
+    left_eigenvector.reserve(left_levels.size());
+    for(auto it = left_levels.begin(); it != left_levels.end(); it++)
+        left_eigenvector.push_back((*it)->GetEigenvector().data());
 
-    for(auto it = begin_right; it != end_right; it++)
-        right_eigenvector.push_back(it->second->GetEigenvector());
+    right_eigenvector.reserve(right_levels.size());
+    for(auto it = right_levels.begin(); it != right_levels.end(); it++)
+        right_eigenvector.push_back((*it)->GetEigenvector().data());
 
     unsigned int return_size = left_eigenvector.size() * right_eigenvector.size();
     if(return_size == 0)
         return std::vector<double>();
 
-    pRelativisticConfigListConst configs_left = begin_left->second->GetRelativisticConfigList();
-    pRelativisticConfigListConst configs_right = begin_right->second->GetRelativisticConfigList();
+    pRelativisticConfigListConst configs_left = left_levels.front()->GetRelativisticConfigList();
+    pRelativisticConfigListConst configs_right = right_levels.front()->GetRelativisticConfigList();
     std::vector<double> total(return_size, 0.);
     std::vector<double> coeff(return_size, 0.);
 

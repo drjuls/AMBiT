@@ -53,7 +53,7 @@ public: // Define iterators
         relconfiglist_iterator(relconfiglist_iterator<OtherBase> const& other,
                                typename boost::enable_if<boost::is_convertible<OtherBase,Base>, enabler>::type = enabler()):
         relconfiglist_iterator::iterator_adaptor_(other.base()), m_csf_index(other.m_csf_index) {}
-        
+
         /** Get iterator over the projection list of the current RelativisticConfiguration. */
         RelativisticConfiguration::const_projection_iterator projection_begin() const
         {

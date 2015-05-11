@@ -33,7 +33,7 @@ public:
 
     typedef indexed_iterator<const double*> const_CSF_iterator;
 
-    /** Return whether a suitable projection with J = M = two_m/2 was found. */
+    /** Return whether a suitable projection with (J, M) was found. */
     bool GetProjections(pAngularDataLibrary data);
 
     /** Get the number of CSFs that have been calculated. */
@@ -46,6 +46,20 @@ public:
         \f[ \prod_a \frac{g_a!}{n_a!(g_a - n_a)!} \f]
      */
     int GetNumberOfLevels() const;
+
+    /** Return 2J if angular data has been set using GetProjections(), otherwise return -1. */
+    int GetTwoJ() const
+    {   if(angular_data)
+            return angular_data->GetTwoJ();
+        else return -1;
+    }
+
+    /** Return 2M if angular data has been set using GetProjections(). */
+    int GetTwoM() const
+    {   if(angular_data)
+            return angular_data->GetTwoM();
+        else return 0;
+    }
 
 public:
     /** Iterator over projections and CSFs. */

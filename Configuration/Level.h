@@ -6,58 +6,85 @@
 #include "Universal/Enums.h"
 #include <boost/iterator/filter_iterator.hpp>
 
-/** LevelID provides a key to uniquely identify an eigenstate of the Hamiltonian
-    using J, Parity, and an integer index drawn from the energy ordering of the eigenstates.
+/** HamiltonianID provides a key to uniquely identify a particular Hamiltonian
+    using an identifier for the Hamiltonian (e.g. J, parity).
+    It also stores the RelativisticConfigList common to all eigenstates (Levels)
+    of the Hamiltonian and has operations that satisfy LevelMap::HamiltonianID.
  */
-class LevelID
+class HamiltonianID : public std::enable_shared_from_this<HamiltonianID>
 {
 public:
-    LevelID(): m_twoJ(-1), m_parity(Parity::even), m_ID(0) {}
-    LevelID(int two_J, Parity parity, unsigned int level_id): m_twoJ(two_J), m_parity(parity), m_ID(level_id) {}
-    LevelID(const Symmetry& sym, unsigned int level_id): m_twoJ(sym.GetTwoJ()), m_parity(sym.GetParity()), m_ID(level_id) {}
-    LevelID(const std::string& name);
+    HamiltonianID(int kappa = -1): sym(kappa), configs(nullptr) {}
+    HamiltonianID(int two_J, Parity parity, pRelativisticConfigList rconfigs = nullptr): sym(two_J, parity), configs(rconfigs) {}
+    HamiltonianID(const Symmetry& sym, pRelativisticConfigList rconfigs = nullptr): sym(sym), configs(rconfigs) {}
+    HamiltonianID(const std::string& name);
+    HamiltonianID(const HamiltonianID& other): sym(other.sym), configs(other.configs) {}
 
-    bool operator<(const LevelID& other) const;
-    inline bool operator>(const LevelID& other) const
-    {   return (other < *this);
+    virtual bool operator<(const HamiltonianID& other) const
+    {   return (sym < other.sym);
     }
 
-    inline bool operator==(const LevelID& other) const
-    {   return ((m_twoJ == other.m_twoJ) && (m_parity == other.m_parity) && (m_ID == other.m_ID));
-    }
-    inline bool operator!=(const LevelID& other) const
-    {   return ((m_twoJ != other.m_twoJ) || (m_parity != other.m_parity) || (m_ID != other.m_ID));
+    virtual bool operator>(const HamiltonianID& other) const
+    {   return (other.sym < sym);
     }
 
-    double GetJ() const { return double(m_twoJ)/2.0; }
-    int GetTwoJ() const { return m_twoJ; }
-    Parity GetParity() const { return m_parity; }
-    unsigned int GetID() const { return m_ID; }
-    Symmetry GetSymmetry() const { return Symmetry(m_twoJ, m_parity); }
+    virtual bool operator==(const HamiltonianID& other) const
+    {   return (sym == other.sym);
+    }
 
-    /** Name is twoJ, followed by parity (e/o), followed by id. */
-    std::string Name() const;
+    double GetJ() const { return sym.GetJ(); }
+    int GetTwoJ() const { return sym.GetTwoJ(); }
+    Parity GetParity() const { return sym.GetParity(); }
+    Symmetry GetSymmetry() const { return sym; }
+
+    void SetRelativisticConfigList(pRelativisticConfigList rconfigs) { configs = rconfigs; }
+    pRelativisticConfigList GetRelativisticConfigList() { return configs; }
+    pRelativisticConfigListConst GetRelativisticConfigList() const { return configs; }
+
+    /** Unique short name for filenames, short printing.
+        In this case, twoJ, followed by parity (e/o).
+     */
+    virtual std::string Name() const;
+
+    /** Name for printing, in this case "J = <J>, P = <parity>". */
+    virtual std::string Print() const;
+
+    /** Read and write functions also write the configs. */
+    virtual void Write(FILE* fp) const;
+    virtual void Read(FILE* fp);
+
+    /** Clone object. Must be overridden by subclasses. */
+    virtual std::shared_ptr<HamiltonianID> Clone() const
+    {   return std::make_shared<HamiltonianID>(*this);
+    }
 
 protected:
-    int m_twoJ;
-    Parity m_parity;
-    unsigned int m_ID;
+    Symmetry sym;
+    pRelativisticConfigList configs;
 };
+
+typedef std::shared_ptr<HamiltonianID> pHamiltonianID;
+typedef std::shared_ptr<const HamiltonianID> pHamiltonianIDConst;
+
+inline std::ostream& operator<<(std::ostream& stream, const pHamiltonianID& hID)
+{   return stream << hID->Print();
+}
 
 /** A Level is an eigenstate of the Hamiltonian with eigenvector of length NumCSFs.
     The symmetry of the eigenstate is given by the stored RelativisticConfigList.
  */
-class Level
+class Level : public std::enable_shared_from_this<Level>
 {
-    friend class LevelMap;
 public:
     /** Initialise Level with energy eigenvalue, eigenvector, and pointer to relativistic configurations (CSFs).
         PRE: length(csf_eigenvector) == configlist->NumCSFs() == numCSFs (if supplied).
      */
-    Level(const double& energy, const double* csf_eigenvector, pRelativisticConfigListConst configlist, unsigned int numCSFs = 0);
-    Level(const Level& other);
-    Level(Level&& other);
-    ~Level();
+    Level(const double& energy, const std::vector<double>& csf_eigenvector, pHamiltonianID hamiltonian_id, const double& gFactor):
+        eigenvalue(energy), eigenvector(csf_eigenvector), hamiltonian(hamiltonian_id), gFactor(gFactor) {}
+    Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs = 0);
+    Level(const Level& other): eigenvalue(other.eigenvalue), eigenvector(other.eigenvector), hamiltonian(other.hamiltonian), gFactor(other.gFactor) {}
+    Level(Level&& other): eigenvalue(other.eigenvalue), eigenvector(other.eigenvector), hamiltonian(other.hamiltonian), gFactor(other.gFactor) {}
+    ~Level() {}
 
     const Level& operator=(const Level& other);
     Level& operator=(Level&& other);
@@ -68,129 +95,29 @@ public:
     double GetgFactor() const { return gFactor; }
     void SetgFactor(double g_factor) { gFactor = g_factor; }
 
-    const double* GetEigenvector() const { return eigenvector; }
-    unsigned int GetEigenvectorLength() const { return N; }     //!< Eigenvector length = NumCSFs
+    const std::vector<double>& GetEigenvector() const { return eigenvector; }
+    unsigned int GetEigenvectorLength() const { return eigenvector.size(); }     //!< Eigenvector length = NumCSFs
 
-    pRelativisticConfigListConst GetRelativisticConfigList() const { return configs; }
+    Parity GetParity() const { return hamiltonian->GetParity(); }
+    unsigned int GetTwoJ() const { return hamiltonian->GetTwoJ(); }
 
-//    inline ConfigurationSet* GetConfigurationSet()
-//    {   return mConfigurationSet;
-//    }
-//    inline Configuration GetLeadingConfiguration()
-//    {   return GetConfigurationSet()->GetLargestConfiguration();
-//    }
-//    inline TransitionSet* GetTransitionSet()
-//    {   return mTransitionSet;
-//    }
+    pHamiltonianID GetHamiltonianID() { return hamiltonian; }
+    pHamiltonianIDConst GetHamiltonianID() const { return hamiltonian; }
+
+    pRelativisticConfigListConst GetRelativisticConfigList() const
+    {   if(hamiltonian)
+            return hamiltonian->GetRelativisticConfigList();
+        else return nullptr;
+    }
 
 protected:
-    Level(): N(0), eigenvector(nullptr) {}  //!< For use by LevelMap::Read()
-
     double eigenvalue;
-    unsigned int N;     // length of eigenvector = configs->NumCSFs()
-    double* eigenvector;
-    pRelativisticConfigListConst configs;
+    std::vector<double> eigenvector;    // length of eigenvector = hamiltonian->configs->NumCSFs()
+    pHamiltonianID hamiltonian;         // identifier for the Hamiltonian that *this is an eigenvalue of
     double gFactor;
-//    ConfigurationSet* mConfigurationSet;
-//    TransitionSet* mTransitionSet;
 };
 
 typedef std::shared_ptr<Level> pLevel;
 typedef std::shared_ptr<const Level> pLevelConst;
-
-/** Map LevelID to pLevel. For each level, M = J.
-    As well as iterators over all levels, LevelMap provides a filter_iterator to select only
-    levels with a given Symmetry (J, Parity).
- */
-class LevelMap : private std::map<LevelID, pLevel>
-{
-private:
-    typedef std::map<LevelID, pLevel> Parent;
-
-protected:
-    /** Predicate for use in boost::filter_iterator to match iterators based on symmetry. */
-    class symmetry_match_predicate
-    {
-    public:
-        symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
-        symmetry_match_predicate(const symmetry_match_predicate& other): m_sym(other.m_sym) {}
-        ~symmetry_match_predicate() {}
-
-        symmetry_match_predicate operator=(const symmetry_match_predicate& other)
-        {   m_sym = other.m_sym; return *this;
-        }
-
-        bool operator()(Parent::value_type x) { return m_sym == x.first.GetSymmetry(); }
-    protected:
-        Symmetry m_sym;
-    };
-
-public:
-    LevelMap(): Parent() {}
-
-    typedef Parent::iterator iterator;
-    typedef Parent::const_iterator const_iterator;
-
-    using Parent::operator=;
-    using Parent::operator[];
-    using Parent::begin;
-    using Parent::clear;
-    using Parent::empty;
-    using Parent::end;
-    using Parent::find;
-    using Parent::insert;
-    using Parent::size;
-
-    /** symmetry_iterators are boost::filter_iterators that include only elements of the map
-        that have the correct symmetry.
-     */
-    typedef boost::filter_iterator<symmetry_match_predicate, iterator> symmetry_iterator;
-    typedef boost::filter_iterator<symmetry_match_predicate, const_iterator> const_symmetry_iterator;
-
-    /** Return a symmetry_iterator that selects on symmetry sym. */
-    symmetry_iterator begin(const Symmetry& sym)
-    {   return symmetry_iterator(symmetry_match_predicate(sym), begin(), end());
-    }
-
-    const_symmetry_iterator begin(const Symmetry& sym) const
-    {   return const_symmetry_iterator(symmetry_match_predicate(sym), begin(), end());
-    }
-
-    const_symmetry_iterator end(const Symmetry& sym) const
-    {   return const_symmetry_iterator(symmetry_match_predicate(sym), end(), end());
-    }
-
-    /** Number of stored levels with symmetry sym. */
-    unsigned int size(const Symmetry& sym) const;
-
-    /** Return set of all symmetries for which size(symmetry) > 0. */
-    std::set<Symmetry> GetSymmetries() const;
-
-    /** Print all levels with given symmetry.
-        Include parentage of all configurations which contribute more than min_percentage.
-        PRE: Assumes all levels with same symmetry point to same RelativisticConfigList.
-     */
-    inline void Print(const Symmetry& sym, double min_percentage = 1.0) const
-    {   Print(sym, min_percentage, false, 0.0);
-    }
-
-    /** Print all levels with given symmetry and energy < max_energy.
-        Include parentage of all configurations which contribute more than min_percentage.
-        PRE: Assumes all levels with same symmetry point to same RelativisticConfigList.
-     */
-    inline void Print(const Symmetry& sym, double min_percentage, double max_energy) const
-    {   Print(sym, min_percentage, true, max_energy);
-    }
-
-    bool Read(const std::string& filename, const std::string& angular_directory);
-    void Write(const std::string& filename) const;
-
-protected:
-    /** Hidden version with all possible options for printing. All other print functions call this one. */
-    void Print(const Symmetry& sym, double min_percentage, bool use_max_energy, double max_energy) const;
-};
-
-typedef std::shared_ptr<LevelMap> pLevelMap;
-typedef std::shared_ptr<const LevelMap> pLevelMapConst;
 
 #endif

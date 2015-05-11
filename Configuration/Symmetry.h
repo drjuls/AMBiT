@@ -6,11 +6,11 @@
 #include <iostream>
 #include <set>
 
+/** Symmetry provides a key to uniquely identify a particular Hamiltonian
+    using an identifier for the Hamiltonian (J, parity).
+ */
 class Symmetry
 {
-    /** Storage for symmetry of Hamiltonian eigenstate (J, P), where
-        J = total angular momentum and P = parity.
-    */
 public:
     Symmetry(int kappa)
     {   twoJ = 2*abs(kappa)-1;
@@ -20,6 +20,7 @@ public:
     Symmetry(int two_j, Parity parity):
         twoJ(two_j), P(parity)
     {}
+    Symmetry(const std::string& twoJp);
     Symmetry(const Symmetry& other):
         twoJ(other.twoJ), P(other.P)
     {}
@@ -37,6 +38,17 @@ public:
     {   return double(twoJ)/2.;
     }
 
+    int GetKappa() const
+    {
+        int kappa = (twoJ + 1)/2;
+        if(kappa%2 == 1)
+            kappa = -kappa;
+        if(P == Parity::odd)
+            kappa = -kappa;
+
+        return kappa;
+    }
+
     /** Return string "<twoJ>.<P>" (e.g. "2.even"). */
     std::string GetString() const;
 
@@ -49,8 +61,5 @@ protected:
     int twoJ;
     Parity P;
 };
-
-/** Get set of requested symmetries from user input. */
-std::set<Symmetry> ChooseSymmetries(const MultirunOptions& user_input);
 
 #endif

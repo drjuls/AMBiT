@@ -12,8 +12,7 @@
 #include "MBPT/CoreValenceIntegrals.h"
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/HartreeFocker.h"
-//#include "Configuration/MPIHamiltonianMatrix.h"
-//#include "Configuration/MPIMatrix.h"
+#include "HamiltonianTypes.h"
 
 void Atom::MakeMBPTIntegrals()
 {
@@ -227,19 +226,123 @@ void Atom::ClearIntegrals()
     twobody_electron = nullptr;
 }
 
+pLevelMap Atom::ChooseHamiltoniansAndRead()
+{
+    // Read existing levels
+    bool use_read = true;
+    if(user_input.search(2, "--clean", "-c"))
+        use_read = false;
+
+    if(use_read)
+    {
+        std::string filename = identifier + ".levels";
+        std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
+        if(user_input.search("AngularDataDirectory"))
+            angular_directory = user_input("AngularDataDirectory", "");
+
+        pHamiltonianID key;
+        if(user_input.search("--no-ci"))
+            key = std::make_shared<SingleOrbitalID>();
+        else if(user_input.search("CI/--single-configuration-CI"))
+            key = std::make_shared<NonRelID>();
+        else
+            key = std::make_shared<HamiltonianID>();
+
+        levels = ReadLevelMap(key, filename, angular_directory);
+    }
+    else
+        levels = std::make_shared<LevelMap>();
+
+    if(user_input.search("--no-ci"))
+    {
+        // Use all symmetries from valence set
+        pHamiltonianID key;
+        for(auto& it: *orbitals->valence)
+        {
+            key = std::make_shared<SingleOrbitalID>(it.first);
+            (*levels)[key];
+        }
+    }
+    else
+    {   // Generate non-rel configurations and hence choose Hamiltonians
+        ConfigGenerator gen(orbitals, user_input);
+        pConfigList nrconfigs = gen.GenerateNonRelConfigurations();
+
+        ChooseHamiltonians(nrconfigs);
+    }
+
+    return levels;
+}
+
+pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
+{
+    int i, num_symmetries;
+    int two_j;
+    pHamiltonianID key;
+
+//    if(user_input.search("CI/--all-symmetries"))
+//    {
+//        int max_twoJ_even = -1;
+//        int max_twoJ_odd = -1;
+//
+//        for(auto& nrconfig: *nrlist)
+//        {
+//            if(nrconfig.GetParity() == Parity::even)
+//                max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
+//            else
+//                max_twoJ_odd = mmax(max_twoJ_odd, nrconfig.GetTwiceMaxProjection());
+//        }
+//
+//        symmetries.clear();
+//        for(int twoJ = max_twoJ_even%2; twoJ <= max_twoJ_even; twoJ+=2)
+//            symmetries.insert(Symmetry(Parity::even, twoJ));
+//        for(int twoJ = max_twoJ_odd%2; twoJ <= max_twoJ_odd; twoJ+=2)
+//            symmetries.insert(Symmetry(Parity::odd, twoJ));
+//    }
+//    else
+//        symmetries = ChooseSymmetries(user_input);
+
+    // Even parity
+    num_symmetries = user_input.vector_variable_size("CI/EvenParityTwoJ");
+    for(i = 0; i < num_symmetries; i++)
+    {   two_j = user_input("CI/EvenParityTwoJ", 0, i);
+        key = std::make_shared<HamiltonianID>(two_j, Parity::even);
+        (*levels)[key];
+    }
+    
+    // Odd parity
+    num_symmetries = user_input.vector_variable_size("CI/OddParityTwoJ");
+    for(i = 0; i < num_symmetries; i++)
+    {   two_j = user_input("CI/OddParityTwoJ", 0, i);
+        key = std::make_shared<HamiltonianID>(two_j, Parity::odd);
+        (*levels)[key];
+    }
+    
+    if(levels->empty())
+    {   *errstream << "USAGE: No symmetries requested (EvenParityTwoJ or OddParityTwoJ)" << std::endl;
+    }
+
+    return levels;
+}
+
 /** Check sizes of matrices before doing full scale calculation. */
 void Atom::CheckMatrixSizes()
 {
+    if(user_input.search("--no-ci"))
+        return;
+
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
+    pConfigList nrconfigs = gen.GenerateNonRelConfigurations();
 
     // CI integrals
     MakeIntegrals();
+    ChooseHamiltonians(nrconfigs);
 
-    symmetries = ChooseSymmetries(user_input);
-    for(auto& sym: symmetries)
+    for(auto& pair: *levels)
     {
-        pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
+        Symmetry sym = pair.first->GetSymmetry();
+        pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(nrconfigs, sym);
         *outstream << "J(P) = " << sym.GetJ() << "(" << ShortName(sym.GetParity()) << "): "
                    << std::setw(6) << std::right << configs->size() << " rel. configurations; "
                    << configs->NumCSFs() <<  " CSFs." << std::endl;
@@ -248,43 +351,19 @@ void Atom::CheckMatrixSizes()
 
 pLevelMap Atom::CalculateEnergies()
 {
-    if(user_input.search("--no-ci"))
-    {
-        if(hf_electron == nullptr)
-            MakeIntegrals();
+    ChooseHamiltoniansAndRead();
 
-        // Use all symmetries from valence set
-        for(auto& it: *orbitals->valence)
-        {
-            symmetries.insert(Symmetry(it.first.Kappa()));
-        }
-
-        for(auto& sym: symmetries)
-        {
-            SingleElectronConfigurations(sym);
-            levels->Print(sym);
-        }
-    }
-    else
-    {
-        symmetries = ChooseSymmetries(user_input);
-
-        for(auto& sym: symmetries)
-            CalculateEnergies(sym);
-    }
+    for(auto& pair: *levels)
+        CalculateEnergies(pair.first);
 
     return levels;
 }
 
-pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
+const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 {
-    symmetries.insert(sym);
-    ConfigGenerator gen(orbitals, user_input);
-    pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(sym);
-
-    bool use_read = true;
-    if(user_input.search(2, "--clean", "-c"))
-        use_read = false;
+    // This function is public and can call the other CalculateEnergies variants.
+    LevelVector& levelvec = (*levels)[hID];
+    pHamiltonianID key = levels->find(hID)->first;
 
     bool use_write = true;
     if(user_input.search(2, "--dont-save", "-d"))
@@ -292,51 +371,64 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
     std::string filename = identifier + ".levels";
 
-    if(levels == nullptr)
+    if(dynamic_cast<SingleOrbitalID*>(key.get()))
     {
-        levels = pLevelMap(new LevelMap());
-
-        std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-        if(user_input.search("AngularDataDirectory"))
-            angular_directory = user_input("AngularDataDirectory", "");
-
-        if(use_read)
-            levels->Read(filename, angular_directory);
+        if(levelvec.size() == 0)
+            SingleElectronConfigurations(key);
     }
+    else
+    {   // Get relativistic configurations
+        pRelativisticConfigList configs = key->GetRelativisticConfigList();
 
-    if(user_input.search("--no-ci"))
-    {
-        if(hf_electron == nullptr)
-            MakeIntegrals();
+        if(configs == nullptr)
+        {   configs = hID->GetRelativisticConfigList();
+            key->SetRelativisticConfigList(configs);
+        }
 
-        SingleElectronConfigurations(sym);
-    }
-    else if(levels->size(sym) < NumSolutions)
-    {
-        if(twobody_electron == nullptr)
-            MakeIntegrals();
+        if(configs == nullptr)
+        {
+            ConfigGenerator gen(orbitals, user_input);
 
-        HamiltonianMatrix H(hf_electron, twobody_electron, configs);
+            if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
+            {
+                pConfigList nrconfiglist = std::make_shared<ConfigList>(nrid->GetNonRelConfiguration());
+                configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
+            }
+            else
+            {
+                configs = gen.GenerateRelativisticConfigurations(key->GetSymmetry());
+            }
+
+            key->SetRelativisticConfigList(configs);
+        }
+
+        // Only continue if we don't have enough levels
+        if(levelvec.size() < mmin(NumSolutions, configs->NumCSFs()))
+        {
+            if(twobody_electron == nullptr)
+                MakeIntegrals();
+
+            HamiltonianMatrix H(hf_electron, twobody_electron, configs);
 
 //        if(sigma3)
 //            H->IncludeSigma3(sigma3);
 
-        H.GenerateMatrix();
-        //H->PollMatrix();
+            H.GenerateMatrix();
+            //H->PollMatrix();
 
-        if(user_input.search("--write-hamiltonian"))
-        {
-            std::string hamiltonian_filename = identifier + "." + sym.GetString() + ".matrix";
-            H.Write(hamiltonian_filename);
-        }
+            if(user_input.search("--write-hamiltonian"))
+            {
+                std::string hamiltonian_filename = identifier + "." + key->Name() + ".matrix";
 
-        if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
-        {
-//            #ifdef _MPI
-//                std::string filename = identifier + "." + it->first.GetString() + ".matrix";
-//                dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
-//            #else
-                RelativisticConfigList::iterator rel_it = configs->begin();
+                // Convert spaces to underscores in filename
+                std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
+                                [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
+                H.Write(hamiltonian_filename);
+            }
+
+            if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
+            {
+                auto rel_it = configs->begin();
                 while(rel_it != configs->end())
                 {
                     *outstream << rel_it->Name();
@@ -349,22 +441,21 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 
                 *outstream << std::setprecision(12);
                 *outstream << "Matrix Before:\n" << H << std::endl;
-//            #endif
-        }
+            }
 
-        #ifdef _SCALAPACK
-            H->WriteToFile("temp.matrix");
-            MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-            MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
-        #else
-            H.SolveMatrix(sym, NumSolutions, levels);
-        #endif
+            #ifdef _SCALAPACK
+                H->WriteToFile("temp.matrix");
+                MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
+                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
+            #else
+                levelvec = H.SolveMatrix(key, NumSolutions);
+            #endif
 
-        if(sym.GetTwoJ() != 0)
-        {
-            GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
-            g_factors.CalculateGFactors(*levels, sym);
-        }
+            if(key->GetTwoJ() != 0)
+            {
+                GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+                g_factors.CalculateGFactors(levelvec);
+            }
 
 //            ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
 //            if(filegenerator)
@@ -372,8 +463,9 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
 //                filegenerator->WriteConfigs();
 //            }
 
-        if(use_write)
-            levels->Write(filename);
+            if(use_write)
+                WriteLevelMap(*levels, filename);
+        }
     }
 
     // Set up output options
@@ -398,39 +490,43 @@ pLevelMap Atom::CalculateEnergies(const Symmetry& sym)
     if(user_input.search("CI/Output/MaxDisplayedEnergy"))
     {   // Truncate display at max energy
         double DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
-        levels->Print(sym, min_percent_displayed, DavidsonMaxEnergy);
+        Print(levelvec, min_percent_displayed, DavidsonMaxEnergy);
     }
     else
-        levels->Print(sym, min_percent_displayed);
+        Print(levelvec, min_percent_displayed);
 
-    return levels;
+    return levelvec;
 }
 
-pLevelMap Atom::SingleElectronConfigurations(const Symmetry& sym)
+const LevelVector& Atom::SingleElectronConfigurations(pHamiltonianID sym)
 {
-    pAngularDataLibrary ang(new AngularDataLibrary(1, sym, sym.GetTwoJ()));
+    LevelVector& levelvec = (*levels)[sym];
 
-    unsigned int id = 0;
+    if(levelvec.size())
+        return levelvec;
+
+    if(hf_electron == nullptr)
+        MakeIntegrals();
+
+    pAngularDataLibrary ang(new AngularDataLibrary(1, sym->GetSymmetry(), sym->GetTwoJ()));
     double eigenvector = 1.;
-    for(auto& it: *orbitals->valence)
-    {
-        if(Symmetry(it.first.Kappa()) == sym)
-        {
-            // Make relativistic configuration
-            RelativisticConfiguration config;
-            config.insert(std::make_pair(it.first, 1));
-            config.GetProjections(ang);
-            ang->GenerateCSFs();
 
-            // Make "level"
-            pRelativisticConfigList configlist(new RelativisticConfigList(config));
-            double energy = hf_electron->GetMatrixElement(it.first, it.first);
-            pLevel level(new Level(energy, &eigenvector, configlist, 1));
-            levels->insert(std::make_pair(LevelID(sym, id), level));
-        }
-    }
+    OrbitalInfo info(dynamic_cast<SingleOrbitalID*>(sym.get())->GetOrbitalInfo());
+    // Make relativistic configuration
+    RelativisticConfiguration config;
+    config.insert(std::make_pair(info, 1));
+    config.GetProjections(ang);
+    ang->GenerateCSFs();
 
-    return levels;
+    // Make "level"
+    pRelativisticConfigList configlist(new RelativisticConfigList(config));
+    sym->SetRelativisticConfigList(configlist);
+    double energy = hf_electron->GetMatrixElement(info, info);
+    pLevel level(std::make_shared<Level>(energy, &eigenvector, sym, 1));
+
+    levelvec = LevelVector(1, level);
+
+    return levelvec;
 }
 
 /*

@@ -57,7 +57,6 @@ TEST(HamiltonianMatrixTester, MgILevels)
     ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
-    pLevelMap levels = pLevelMap(new LevelMap());
     double ground_state_energy = 0., excited_state_energy = 0.;
 
     // Generate matrix and configurations
@@ -67,9 +66,9 @@ TEST(HamiltonianMatrixTester, MgILevels)
     H_even.GenerateMatrix();
 
     // Solve matrix
-    H_even.SolveMatrix(sym, 3, levels);
-    levels->Print(sym);
-    ground_state_energy = levels->begin(sym)->second->GetEnergy();
+    LevelVector levels = H_even.SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
+    Print(levels);
+    ground_state_energy = levels[0]->GetEnergy();
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
@@ -77,13 +76,13 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
-    H_odd.SolveMatrix(sym, 3, levels);
+    levels = H_odd.SolveMatrix(std::make_shared<HamiltonianID>(sym, relconfigs), 3);
     GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
-    g_factors.CalculateGFactors(*levels, sym);
-    levels->Print(sym);
-    excited_state_energy = levels->begin(sym)->second->GetEnergy();
+    g_factors.CalculateGFactors(levels);
+    Print(levels);
+    excited_state_energy = levels[0]->GetEnergy();
 
-    EXPECT_NEAR(1.5, levels->begin(sym)->second->GetgFactor(), 0.001);
+    EXPECT_NEAR(1.5, levels[0]->GetgFactor(), 0.001);
 
     // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
     EXPECT_NEAR(21870, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
@@ -142,12 +141,14 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, electron_levels);
-            g_factors.CalculateGFactors(*electron_levels, sym);
-            electron_levels->Print(sym);
+            LevelVector& levels = (*electron_levels)[key];
+            levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            Print(levels);
         }
     }
 
@@ -196,28 +197,31 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, hole_levels);
-            g_factors.CalculateGFactors(*hole_levels, sym);
-            hole_levels->Print(sym);
+            LevelVector& levels = (*hole_levels)[key];
+            levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            Print(levels);
         }
     }
 
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
 
-    LevelID base_level = LevelID(symmetries[0], 0);
-    double electron_base = (*electron_levels)[base_level]->GetEnergy();
-    double hole_base = (*hole_levels)[base_level]->GetEnergy();
+    pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
+    double electron_base = (*electron_levels)[key][0]->GetEnergy();
+    double hole_base = (*hole_levels)[key][0]->GetEnergy();
 
     for(auto& pair: *electron_levels)
     {
-        if(pair.first != base_level)
+        LevelVector& elv = pair.second;
+        LevelVector& hlv = (*hole_levels)[pair.first];
+        for(int i = 0; i < elv.size(); i++)
         {
-            auto hole_it = hole_levels->find(pair.first);
-            double e = pair.second->GetEnergy() - electron_base;
-            double h = hole_it->second->GetEnergy() - hole_base;
+            double e = elv[i]->GetEnergy() - electron_base;
+            double h = hlv[i]->GetEnergy() - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -278,11 +282,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, electron_levels);
-            g_factors.CalculateGFactors(*electron_levels, sym);
+            (*electron_levels)[key] = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors((*electron_levels)[key]);
         }
     }
 
@@ -331,27 +336,29 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, hole_levels);
-            g_factors.CalculateGFactors(*hole_levels, sym);
+            (*hole_levels)[key] = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors((*hole_levels)[key]);
         }
     }
 
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
 
-    LevelID base_level = LevelID(symmetries[0], 0);
-    double electron_base = (*electron_levels)[base_level]->GetEnergy();
-    double hole_base = (*hole_levels)[base_level]->GetEnergy();
+    pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
+    double electron_base = (*electron_levels)[key][0]->GetEnergy();
+    double hole_base = (*hole_levels)[key][0]->GetEnergy();
 
     for(auto& pair: *electron_levels)
     {
-        if(pair.first != base_level)
+        LevelVector& elv = pair.second;
+        LevelVector& hlv = (*hole_levels)[pair.first];
+        for(int i = 0; i < elv.size(); i++)
         {
-            auto hole_it = hole_levels->find(pair.first);
-            double e = pair.second->GetEnergy() - electron_base;
-            double h = hole_it->second->GetEnergy() - hole_base;
+            double e = elv[i]->GetEnergy() - electron_base;
+            double h = hlv[i]->GetEnergy() - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -410,12 +417,13 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, electron_levels);
-            g_factors.CalculateGFactors(*electron_levels, sym);
-            electron_levels->Print(sym);
+            (*electron_levels)[key] = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors((*electron_levels)[key]);
+            Print((*electron_levels)[key]);
         }
     }
     
@@ -461,29 +469,31 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, hole_levels);
-            g_factors.CalculateGFactors(*hole_levels, sym);
-            hole_levels->Print(sym);
+            (*hole_levels)[key] = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors((*hole_levels)[key]);
+            Print((*hole_levels)[key]);
         }
     }
     
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
     
-    LevelID base_level = LevelID(symmetries[0], 0);
-    double electron_base = (*electron_levels)[base_level]->GetEnergy();
-    double hole_base = (*hole_levels)[base_level]->GetEnergy();
-    
+    pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
+    double electron_base = (*electron_levels)[key][0]->GetEnergy();
+    double hole_base = (*hole_levels)[key][0]->GetEnergy();
+
     for(auto& pair: *electron_levels)
     {
-        if(pair.first != base_level)
+        LevelVector& elv = pair.second;
+        LevelVector& hlv = (*hole_levels)[pair.first];
+        for(int i = 0; i < elv.size(); i++)
         {
-            auto hole_it = hole_levels->find(pair.first);
-            double e = pair.second->GetEnergy() - electron_base;
-            double h = hole_it->second->GetEnergy() - hole_base;
-            
+            double e = elv[i]->GetEnergy() - electron_base;
+            double h = hlv[i]->GetEnergy() - hole_base;
+
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
     }
@@ -544,10 +554,11 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, true);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, stretched_levels);
+            (*stretched_levels)[key] = H.SolveMatrix(key, 6);
         }
     }
 
@@ -595,11 +606,12 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         
         for(auto sym : symmetries)
         {
+            pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, false);
             gen.GenerateProjections(relconfigs, -1, sym.GetTwoJ());
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            H.SolveMatrix(sym, 6, m_levels);
+            (*m_levels)[key] = H.SolveMatrix(key, 6);
         }
     }
 
@@ -608,9 +620,13 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     for(auto& pair: *stretched_levels)
     {
         auto m_it = m_levels->find(pair.first);
-        double e = pair.second->GetEnergy();
-        double h = m_it->second->GetEnergy();
+
+        for(int i = 0; i < pair.second.size(); i++)
+        {
+            double e = pair.second[i]->GetEnergy();
+            double h = m_it->second[i]->GetEnergy();
         
-        EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
+            EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
+        }
     }
 }

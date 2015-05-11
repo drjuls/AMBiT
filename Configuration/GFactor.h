@@ -95,19 +95,20 @@ public:
         Sz(pSzOperatorConst(new SzOperator(integrator, orbitals)))
     {}
 
-    inline void CalculateGFactors(LevelMap& levels, const Symmetry& sym) const
+    inline void CalculateGFactors(LevelVector& levels) const
     {
-        unsigned int NumSolutions = levels.size(sym);
-        if(NumSolutions == 0 || sym.GetTwoJ() == 0)
+        if(levels.size() == 0 || levels.front()->GetTwoJ() == 0)
             return;
 
-        std::vector<double> total_Sz = Sz.GetMatrixElement(levels.begin(sym), levels.end(sym));
+        double J = double(levels.front()->GetTwoJ())/2.;
+
+        std::vector<double> total_Sz = Sz.GetMatrixElement(levels);
 
         auto Sz_it = total_Sz.begin();
-        auto it = levels.begin(sym);
-        while(it != levels.end(sym) && Sz_it != total_Sz.end())
+        auto it = levels.begin();
+        while(it != levels.end() && Sz_it != total_Sz.end())
         {
-            it->second->SetgFactor(*Sz_it/sym.GetJ() + 1.);
+            (*it)->SetgFactor(*Sz_it/J + 1.);
             it++;
             Sz_it++;
         }

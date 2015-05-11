@@ -35,6 +35,18 @@ public:
      */
     pConfigList GenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
 
+    /** Divide electrons between partial waves to create all possible relativistic configurations
+        from the set of non-relativistic ones.
+        PRE: nrlist should be unique.
+        POST: rlist is sorted and unique.
+     */
+    pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist) const;
+
+    /** Generate relativistic configurations from nrlist. Remove configs of wrong parity.
+        If(generate_projections == true), returned list includes projections and CSFs with J = M.
+     */
+    pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, bool generate_projections = true) const;
+
     /** Generate non-relativistic and then relativistic configurations based on the input file.
         If(generate_projections == true), returned list includes projections and CSFs with J = M.
      */
@@ -67,13 +79,6 @@ protected:
         of the original list. Append the new configurations to the list.
      */
     void GenerateExcitations(pConfigList configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const;
-
-    /** Divide electrons between partial waves to create all possible relativistic configurations
-        from the set of non-relativistic ones.
-        PRE: nrlist should be unique.
-        POST: rlist is sorted and unique.
-     */
-    pRelativisticConfigList GenerateRelativisticConfigs(pConfigList nrlist) const;
 
 protected:
     // Inputs
