@@ -15,22 +15,28 @@ public:
     SingleOrbitalID(const OrbitalInfo& info): HamiltonianID(info.Kappa()), pqn(info.PQN()) {}
     SingleOrbitalID(const SingleOrbitalID& other): HamiltonianID(other), pqn(other.pqn) {}
 
-    virtual bool operator<(const SingleOrbitalID& other) const
+    virtual bool operator<(const HamiltonianID& other) const override
     {
-        if(sym < other.sym)
+        if(sym < other.GetSymmetry())
             return true;
-        else if (other.sym < sym)
+        else if (other.GetSymmetry() < sym)
             return false;
         else
-            return pqn < other.pqn;
-    }
-
-    virtual bool operator>(const SingleOrbitalID& other) const
-    {   return (other < *this);
+        {   const SingleOrbitalID* other_soid = dynamic_cast<const SingleOrbitalID*>(&other);
+            if(other_soid)
+                return pqn < other_soid->pqn;
+            else
+                return false;
+        }
     }
     
-    virtual bool operator==(const SingleOrbitalID& other) const
-    {   return (sym == other.sym) && (pqn == other.pqn);
+    virtual bool operator==(const HamiltonianID& other) const
+    {
+        const SingleOrbitalID* other_soid = dynamic_cast<const SingleOrbitalID*>(&other);
+        if(other_soid)
+            return (sym == other_soid->sym) && (pqn == other_soid->pqn);
+        else
+            return false;
     }
 
     int GetPQN() const { return pqn; }
@@ -69,22 +75,28 @@ public:
         HamiltonianID(two_j, config.GetParity(), rconfigs), nrconfig(config) {}
     NonRelID(const NonRelID& other): HamiltonianID(other), nrconfig(other.nrconfig) {}
 
-    virtual bool operator<(const NonRelID& other) const
+    virtual bool operator<(const HamiltonianID& other) const override
     {
-        if(sym < other.sym)
+        if(sym < other.GetSymmetry())
             return true;
-        else if(other.sym < sym)
+        else if(other.GetSymmetry() < sym)
             return false;
         else
-            return nrconfig < other.nrconfig;
+        {   const NonRelID* other_nrid = dynamic_cast<const NonRelID*>(&other);
+            if(other_nrid)
+                return nrconfig < other_nrid->nrconfig;
+            else
+                return false;
+        }
     }
 
-    virtual bool operator>(const NonRelID& other) const
-    {   return (other < *this);
-    }
-
-    virtual bool operator==(const NonRelID& other) const
-    {   return (sym == other.sym) && (nrconfig == other.nrconfig);
+    virtual bool operator==(const HamiltonianID& other) const override
+    {
+        const NonRelID* other_nrid = dynamic_cast<const NonRelID*>(&other);
+        if(other_nrid)
+            return (sym == other_nrid->sym) && (nrconfig == other_nrid->nrconfig);
+        else
+            return false;
     }
 
     NonRelConfiguration& GetNonRelConfiguration() { return nrconfig; }

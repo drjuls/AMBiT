@@ -243,7 +243,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
         pHamiltonianID key;
         if(user_input.search("--no-ci"))
             key = std::make_shared<SingleOrbitalID>();
-        else if(user_input.search("CI/--single-configuration-CI"))
+        else if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
             key = std::make_shared<NonRelID>();
         else
             key = std::make_shared<HamiltonianID>();
@@ -276,48 +276,102 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
 
 pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
 {
-    int i, num_symmetries;
-    int two_j;
+    std::vector<int> even_symmetries;
+    std::vector<int> odd_symmetries;
     pHamiltonianID key;
 
-//    if(user_input.search("CI/--all-symmetries"))
-//    {
-//        int max_twoJ_even = -1;
-//        int max_twoJ_odd = -1;
-//
-//        for(auto& nrconfig: *nrlist)
-//        {
-//            if(nrconfig.GetParity() == Parity::even)
-//                max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
-//            else
-//                max_twoJ_odd = mmax(max_twoJ_odd, nrconfig.GetTwiceMaxProjection());
-//        }
-//
-//        symmetries.clear();
-//        for(int twoJ = max_twoJ_even%2; twoJ <= max_twoJ_even; twoJ+=2)
-//            symmetries.insert(Symmetry(Parity::even, twoJ));
-//        for(int twoJ = max_twoJ_odd%2; twoJ <= max_twoJ_odd; twoJ+=2)
-//            symmetries.insert(Symmetry(Parity::odd, twoJ));
-//    }
-//    else
-//        symmetries = ChooseSymmetries(user_input);
+    // Get user symmetries if CI/--all-symmetries is not used
+    if(!user_input.search("CI/--all-symmetries"))
+    {
+        // Even parity
+        even_symmetries.resize(user_input.vector_variable_size("CI/EvenParityTwoJ"), 0);
+        for(int i = 0; i < even_symmetries.size(); i++)
+            even_symmetries[i] = user_input("CI/EvenParityTwoJ", 0, i);
+        
+        // Odd parity
+        odd_symmetries.resize(user_input.vector_variable_size("CI/OddParityTwoJ"), 0);
+        for(int i = 0; i < odd_symmetries.size(); i++)
+            odd_symmetries[i] = user_input("CI/OddParityTwoJ", 0, i);
+    }
 
-    // Even parity
-    num_symmetries = user_input.vector_variable_size("CI/EvenParityTwoJ");
-    for(i = 0; i < num_symmetries; i++)
-    {   two_j = user_input("CI/EvenParityTwoJ", 0, i);
-        key = std::make_shared<HamiltonianID>(two_j, Parity::even);
-        (*levels)[key];
+    // Single configuration CI: each Hamiltonian only uses one non-rel configuration
+    if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
+    {
+        if(user_input.search("CI/--all-symmetries"))
+        {
+            // Populate levels with all symmetries
+            for(auto& nrconfig: *nrlist)
+            {
+                int maxTwoJ = nrconfig.GetTwiceMaxProjection();
+                for(int two_j = maxTwoJ%2; two_j <= maxTwoJ; two_j += 2)
+                {
+                    key = std::make_shared<NonRelID>(nrconfig, two_j);
+                    (*levels)[key];
+                }
+            }
+        }
+        else
+        {   // Populate levels with symmetries found in sets.
+            for(auto& nrconfig: *nrlist)
+            {
+                Parity P = nrconfig.GetParity();
+                int maxTwoJ = nrconfig.GetTwiceMaxProjection();
+                
+                if(P == Parity::even)
+                {
+                    for(int& two_j: even_symmetries)
+                        if(two_j <= maxTwoJ)
+                        {
+                            key = std::make_shared<NonRelID>(nrconfig, two_j);
+                            (*levels)[key];
+                        }
+                }
+                else
+                {   for(int& two_j: odd_symmetries)
+                        if(two_j <= maxTwoJ)
+                        {
+                            key = std::make_shared<NonRelID>(nrconfig, two_j);
+                            (*levels)[key];
+                        }
+                }
+
+            }
+            
+        }
     }
-    
-    // Odd parity
-    num_symmetries = user_input.vector_variable_size("CI/OddParityTwoJ");
-    for(i = 0; i < num_symmetries; i++)
-    {   two_j = user_input("CI/OddParityTwoJ", 0, i);
-        key = std::make_shared<HamiltonianID>(two_j, Parity::odd);
-        (*levels)[key];
+    // Standard CI: all non-rel configs together
+    else
+    {   // Get symmetries
+        if(user_input.search("CI/--all-symmetries"))
+        {
+            int max_twoJ_even = -1;
+            int max_twoJ_odd = -1;
+
+            for(auto& nrconfig: *nrlist)
+            {
+                if(nrconfig.GetParity() == Parity::even)
+                    max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
+                else
+                    max_twoJ_odd = mmax(max_twoJ_odd, nrconfig.GetTwiceMaxProjection());
+            }
+
+            for(int twoJ = mmax(max_twoJ_even%2, 0); twoJ <= max_twoJ_even; twoJ+=2)
+                even_symmetries.push_back(twoJ);
+            for(int twoJ = mmax(max_twoJ_odd%2, 0); twoJ <= max_twoJ_odd; twoJ+=2)
+                odd_symmetries.push_back(twoJ);
+        }
+
+        // Populate levels
+        for(int& two_j: even_symmetries)
+        {   key = std::make_shared<HamiltonianID>(two_j, Parity::even);
+            (*levels)[key];
+        }
+        for(int& two_j: odd_symmetries)
+        {   key = std::make_shared<HamiltonianID>(two_j, Parity::odd);
+            (*levels)[key];
+        }
     }
-    
+
     if(levels->empty())
     {   *errstream << "USAGE: No symmetries requested (EvenParityTwoJ or OddParityTwoJ)" << std::endl;
     }
@@ -331,6 +385,8 @@ void Atom::CheckMatrixSizes()
     if(user_input.search("--no-ci"))
         return;
 
+    levels = std::make_shared<LevelMap>();
+
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
     pConfigList nrconfigs = gen.GenerateNonRelConfigurations();
@@ -341,9 +397,23 @@ void Atom::CheckMatrixSizes()
 
     for(auto& pair: *levels)
     {
+        pHamiltonianID key = pair.first;
         Symmetry sym = pair.first->GetSymmetry();
-        pRelativisticConfigList configs = gen.GenerateRelativisticConfigurations(nrconfigs, sym);
-        *outstream << "J(P) = " << sym.GetJ() << "(" << ShortName(sym.GetParity()) << "): "
+        pRelativisticConfigList configs;
+
+        if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
+        {
+            pConfigList nrconfiglist = std::make_shared<ConfigList>(nrid->GetNonRelConfiguration());
+            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
+        }
+        else
+        {
+            configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
+        }
+        
+        key->SetRelativisticConfigList(configs);
+
+        *outstream << pair.first->Print()
                    << std::setw(6) << std::right << configs->size() << " rel. configurations; "
                    << configs->NumCSFs() <<  " CSFs." << std::endl;
     }

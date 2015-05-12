@@ -114,8 +114,12 @@ int main(int argc, char* argv[])
         else
         {
             ambit.EnergyCalculations();
-            ambit.TransitionCalculations();
-            ambit.Recombination();
+
+            if(!fileInput.search("--check-sizes"))
+            {
+                ambit.TransitionCalculations();
+                ambit.Recombination();
+            }
         }
     /*
         else
