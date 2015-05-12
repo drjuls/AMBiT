@@ -207,7 +207,7 @@ void Atom::MakeIntegrals()
         hf_electron->CalculateOneElectronIntegrals(valence, valence);
 
         // Don't need two body integrals if we're not doing CI
-        if(!user_input.search("--no-ci"))
+        if(!user_input.search(2, "--no-ci", "--no-CI"))
             two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
 
         // Add stored MBPT integrals
@@ -241,7 +241,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
             angular_directory = user_input("AngularDataDirectory", "");
 
         pHamiltonianID key;
-        if(user_input.search("--no-ci"))
+        if(user_input.search(2, "--no-ci", "--no-CI"))
             key = std::make_shared<SingleOrbitalID>();
         else if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
             key = std::make_shared<NonRelID>();
@@ -253,7 +253,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
     else
         levels = std::make_shared<LevelMap>();
 
-    if(user_input.search("--no-ci"))
+    if(user_input.search(2, "--no-ci", "--no-CI"))
     {
         // Use all symmetries from valence set
         pHamiltonianID key;
@@ -266,7 +266,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        pConfigList nrconfigs = gen.GenerateNonRelConfigurations();
+        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
 
         ChooseHamiltonians(nrconfigs);
     }
@@ -382,18 +382,20 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
 /** Check sizes of matrices before doing full scale calculation. */
 void Atom::CheckMatrixSizes()
 {
-    if(user_input.search("--no-ci"))
+    if(user_input.search(2, "--no-ci", "--no-CI"))
         return;
 
     levels = std::make_shared<LevelMap>();
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
-    pConfigList nrconfigs = gen.GenerateNonRelConfigurations();
+    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
 
     // CI integrals
     MakeIntegrals();
     ChooseHamiltonians(nrconfigs);
+
+    unsigned int total_levels = 0;
 
     for(auto& pair: *levels)
     {
@@ -413,10 +415,14 @@ void Atom::CheckMatrixSizes()
         
         key->SetRelativisticConfigList(configs);
 
-        *outstream << pair.first->Print()
+        *outstream << pair.first->Print() << ":"
                    << std::setw(6) << std::right << configs->size() << " rel. configurations; "
                    << configs->NumCSFs() <<  " CSFs." << std::endl;
+
+        total_levels += configs->NumCSFs();
     }
+
+    *outstream << "\nTotal number of levels (all symmetries included) = " << total_levels << std::endl;
 }
 
 pLevelMap Atom::CalculateEnergies()
@@ -466,14 +472,17 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
             }
             else
             {
-                configs = gen.GenerateRelativisticConfigurations(key->GetSymmetry());
+                if(nrconfigs == nullptr)
+                    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+                configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
             }
 
             key->SetRelativisticConfigList(configs);
         }
 
         // Only continue if we don't have enough levels
-        if(levelvec.size() < mmin(NumSolutions, configs->NumCSFs()))
+        int num_solutions = NumSolutions? mmin(NumSolutions, configs->NumCSFs()): configs->NumCSFs();
+        if(levelvec.size() < num_solutions)
         {
             if(twobody_electron == nullptr)
                 MakeIntegrals();
@@ -516,9 +525,9 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
             #ifdef _SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
+                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, num_solutions);
             #else
-                levelvec = H.SolveMatrix(key, NumSolutions);
+                levelvec = H.SolveMatrix(key, num_solutions);
             #endif
 
             if(key->GetTwoJ() != 0)

@@ -172,8 +172,26 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
         
         GenerateExcitations(nrlist, valence_electrons, valence_holes);
     }
-    
+
+    // Trim configurations outside of ConfigurationAverageEnergyRange
+    if(one_body && two_body && user_input.vector_variable_size("CI/ConfigurationAverageEnergyRange") == 2)
+    {
+        double lower_energy = user_input("CI/ConfigurationAverageEnergyRange", 0.0, 0);
+        double upper_energy = user_input("CI/ConfigurationAverageEnergyRange", 0.0, 1);
+
+        auto it = nrlist->begin();
+        while(it != nrlist->end())
+        {
+            double energy = it->CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
+            if(energy < lower_energy || energy > upper_energy)
+                it = nrlist->erase(it);
+            else
+                it++;
+        }
+    }
+
     // Add extra configurations not to be considered leading configurations.
+    // These are added regardless of ConfigurationAverageEnergyRange
     int num_extra_configs = user_input.vector_variable_size("CI/ExtraConfigurations");
     for(int i = 0; i < num_extra_configs; i++)
     {

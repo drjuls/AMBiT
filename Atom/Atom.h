@@ -146,6 +146,7 @@ protected:
 
     pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
+    pConfigList nrconfigs;
     pLevelMap levels;
 
 //    CIIntegralsMBPT* integralsMBPT;

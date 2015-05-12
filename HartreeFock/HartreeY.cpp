@@ -51,7 +51,7 @@ int HartreeY::NextK()
     }
 
     K = -1;
-    return false;
+    return K;
 }
 
 int HartreeY::GetMaxK() const
