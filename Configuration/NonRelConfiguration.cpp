@@ -168,7 +168,11 @@ double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst
             {
                 double weight = it_a->second;
                 if(it_a == it_b)
-                    weight *= (it_b->second - 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
+                {   if(it_a->second > 0)
+                        weight *= (it_b->second - 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
+                    else
+                        weight *= (it_b->second + 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
+                }
                 else
                     weight *= it_b->second;
 

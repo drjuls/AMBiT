@@ -74,7 +74,7 @@ int RelativisticConfiguration::GetNumberOfLevels() const
     MathConstant* math = MathConstant::Instance();
     for(const auto& pair: *this)
     {
-        result *= math->nChoosek(pair.first.MaxNumElectrons(), pair.second);
+        result *= math->nChoosek(pair.first.MaxNumElectrons(), abs(pair.second));
     }
     return result;
 }
