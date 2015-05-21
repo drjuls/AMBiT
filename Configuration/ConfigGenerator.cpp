@@ -226,7 +226,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
     return rlist;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, bool generate_projections) const
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, pAngularDataLibrary angular_library) const
 {
     pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
     ConfigList::iterator it = nrlist->begin();
@@ -239,13 +239,13 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
         it++;
     }
     
-    if(generate_projections)
-        GenerateProjections(rlist, sym.GetTwoJ());
+    if(angular_library)
+        GenerateProjections(rlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
     
     return rlist;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections)
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, pAngularDataLibrary angular_library)
 {
     pConfigList nrlist = GenerateNonRelConfigurations();
 
@@ -265,8 +265,8 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
 
     pRelativisticConfigList rlist(GenerateRelativisticConfigurations(nrlist));
 
-    if(generate_projections)
-        GenerateProjections(rlist, sym.GetTwoJ());
+    if(angular_library)
+        GenerateProjections(rlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
 
     return rlist;
 }
@@ -367,26 +367,16 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
     configlist->unique();
 }
 
-void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const
+void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, const Symmetry& sym, int two_m, pAngularDataLibrary angular_library) const
 {
     if(rlist == nullptr || rlist->size() == 0)
         return;
 
-    Parity parity = rlist->front().GetParity();
-    int electron_number = rlist->front().ElectronNumber();
-
-    std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-    if(user_input.search("AngularDataDirectory"))
-        angular_directory = user_input("AngularDataDirectory", "");
-
     // Get correct library
-    pAngularDataLibrary angular_library(new AngularDataLibrary(electron_number, Symmetry(two_j, parity), two_m, angular_directory));
-    angular_library->Read();
-
     auto it = rlist->begin();
     while(it != rlist->end())
     {
-        if(it->GetProjections(angular_library))
+        if(it->GetProjections(angular_library, sym, two_m))
             it++;
         else
             it = rlist->erase(it);
@@ -405,65 +395,5 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, int two
             it++;
         else
             it = rlist->erase(it);
-    }
-}
-
-void ConfigGenerator::GenerateProjections(pConfigList nrlist, const Symmetry& sym, int two_m) const
-{
-    if(nrlist == nullptr || nrlist->size() == 0)
-        return;
-
-    int electron_number = nrlist->front().ElectronNumber();
-
-    std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-    if(user_input.search("AngularDataDirectory"))
-        angular_directory = user_input("AngularDataDirectory", "");
-
-    // Get correct library
-    pAngularDataLibrary angular_library(new AngularDataLibrary(electron_number, sym, two_m, angular_directory));
-    angular_library->Read();
-
-    for(auto& nrconfig: *nrlist)
-    {
-        // Clear relconfiglist if symmetry is incorrect
-        if(nrconfig.GetParity() != sym.GetParity() ||
-           nrconfig.GetTwiceMaxProjection() < sym.GetTwoJ())
-            nrconfig.relconfiglist = nullptr;
-        else
-        {
-            nrconfig.GenerateRelativisticConfigs();
-
-            auto it = nrconfig.relconfiglist->begin();
-            while(it != nrconfig.relconfiglist->end())
-            {
-                if(it->GetTwiceMaxProjection() < sym.GetTwoJ())
-                    it = nrconfig.relconfiglist->erase(it);
-                else if(it->GetProjections(angular_library))
-                    it++;
-                else
-                    it = nrconfig.relconfiglist->erase(it);
-            }
-        }
-    }
-
-    angular_library->GenerateCSFs();
-
-    // Write even if there are no CSFs for a given J since this is not so obvious
-    angular_library->Write();
-
-    // Remove from list if there are no CSFs for a particular RelativisticConfiguration.
-    for(auto& nrconfig: *nrlist)
-    {
-        auto it = nrconfig.relconfiglist->begin();
-        while(it != nrconfig.relconfiglist->end())
-        {
-            if(it->NumCSFs())
-                it++;
-            else
-                it = nrconfig.relconfiglist->erase(it);
-        }
-
-        if(nrconfig.relconfiglist->size() == 0)
-            nrconfig.relconfiglist = nullptr;
     }
 }

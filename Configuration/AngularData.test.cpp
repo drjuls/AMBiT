@@ -170,9 +170,9 @@ TEST(AngularDataTester, Iterators)
     rconfig.insert(std::make_pair(OrbitalInfo(4, 2), 2));
 
     int min_TwoJ = (rconfig.ParticleNumber()%2 == 0)? 0 : 1;
-    pAngularDataLibrary library(new AngularDataLibrary(rconfig.ParticleNumber(), Symmetry(min_TwoJ, rconfig.GetParity()), min_TwoJ));
+    pAngularDataLibrary library = std::make_shared<AngularDataLibrary>(rconfig.ParticleNumber());
 
-    rconfig.GetProjections(library);
+    rconfig.GetProjections(library, Symmetry(min_TwoJ, rconfig.GetParity()), min_TwoJ);
 
     // Generate CSFs
     library->GenerateCSFs();
@@ -250,8 +250,8 @@ TEST(AngularDataTester, LadderOperator)
         twoM = twoM - 2;
     }
 
-    AngularDataLibrary lib(5, Symmetry(7, Parity::even), 3);
-    pAngularData from_lib = lib[rconfig];
+    AngularDataLibrary lib(5);
+    pAngularData from_lib = lib.GetData(rconfig, Symmetry(7, Parity::even), 3);
     lib.GenerateCSFs();
 
     // Compare CSFs

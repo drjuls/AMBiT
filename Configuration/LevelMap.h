@@ -22,6 +22,26 @@ typedef std::map<pHamiltonianID, LevelVector, pHamiltonianIDComparator> LevelMap
 typedef std::shared_ptr<LevelMap> pLevelMap;
 typedef std::shared_ptr<const LevelMap> pLevelMapConst;
 
+class symmetry_match_predicate
+{
+public:
+    symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
+    symmetry_match_predicate(const symmetry_match_predicate& other): m_sym(other.m_sym) {}
+    ~symmetry_match_predicate() {}
+
+    symmetry_match_predicate operator=(const symmetry_match_predicate& other)
+    {   m_sym = other.m_sym; return *this;
+    }
+
+    bool operator()(const std::pair<pHamiltonianID, LevelVector>& val) { return m_sym == val.first->GetSymmetry(); }
+protected:
+    Symmetry m_sym;
+};
+
+/** Symmetry filter iterator over LevelMap */
+typedef boost::filter_iterator<symmetry_match_predicate, LevelMap::iterator> LevelMap_symmetry_iterator;
+typedef boost::filter_iterator<symmetry_match_predicate, LevelMap::const_iterator> const_LevelMap_symmetry_iterator;
+
 /** Write LevelMap object to file.
     LevelMap maps HamiltonianID -> LevelVector, where the HamiltonianID defines
         Write(FILE*) and Read(FILE*) which define a unique HamiltonianID, as well as
@@ -34,7 +54,7 @@ void WriteLevelMap(const LevelMap& level_map, const std::string& filename);
         Write(FILE*) and Read(FILE*) which define a unique HamiltonianID, as well as
         GetRelativisticConfigList().
  */
-pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, const std::string& angular_directory);
+pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, pAngularDataLibrary angular_library);
 
 /** Print LevelVector to outstream, with all possible options for printing.
     All other print functions call this one.

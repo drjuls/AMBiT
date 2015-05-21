@@ -17,7 +17,7 @@ class AngularDataLibrary;
     the angular part of a RelativisticConfiguration.
     Access is only provided by const iterators.
  */
-class AngularData
+class AngularData : public std::enable_shared_from_this<AngularData>
 {
 protected:
     friend class AngularDataLibrary;
@@ -129,56 +129,75 @@ protected:
 typedef std::shared_ptr<AngularData> pAngularData;
 typedef std::shared_ptr<const AngularData> pAngularDataConst;
 
-/** Collection of AngularData elements, indexed by RelativisticConfiguration.
+/** Collection of AngularData elements, indexed by key based on RelativisticConfiguration and Symmetry.
     The collection is stored on disk in the directory specified by lib_directory, with filename
         <particle_number>.<two_j>.<parity>.<two_m>.angular
     As usually specified in the Makefile, the directory is
         AMBiT/AngularData/
  */
-class AngularDataLibrary
+class AngularDataLibrary : public std::enable_shared_from_this<AngularDataLibrary>
 {
 public:
-    /** Initialise with number of electrons, symmetry, and directory of stored libraries.
+    /** Initialise with number of electrons and directory of stored libraries.
         If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
         If lib_directory does not exist already, then this is an error so that the user can check the path specification.
      */
-    AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, const std::string& lib_directory = "");
+    AngularDataLibrary(int electron_number, const std::string& lib_directory = "");
     ~AngularDataLibrary() {}
 
+    int GetElectronNumber() const { return electron_number; }
+
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
-        If there are no projections possible with our two_m, it returns a null pointer.
-        PRE: config is sorted correctly.
+        PRE: abs(two_m) <= sym.GetTwoJ()
+             config is sorted correctly.
      */
-    pAngularData operator[](const RelativisticConfiguration& config);
+    pAngularData GetData(const RelativisticConfiguration& config, const Symmetry& sym, int two_m);
+    pAngularData GetData(const RelativisticConfiguration& config, const Symmetry& sym)
+    {   return GetData(config, sym, sym.GetTwoJ());
+    }
 
     /** Generate CSFs for all  objects in library that don't have them. Distributes work using MPI. */
     void GenerateCSFs();
 
-    void Read();
-    void Write() const;
+    /** Write any AngularData CSFs that are out of date. */
+    void Write();
+    void Write(const Symmetry& sym, int two_m);
+
+    /** Remove unused AngularData objects from library.
+        They are automatically restored on request via GetData().
+     */
+    void RemoveUnused();
 
     /** Print keys, projection_sizes and numCSFs to outstream. */
     void PrintKeys() const;
 
 protected:
-    Symmetry sym;
-    int electron_number, two_m;
+    int electron_number;
 
-    typedef std::vector<std::pair<int, int>> KeyType; // pair(kappa, number of particles) for all orbitals in RelativisticConfiguration
+    /** KeyType[0] is pair<Symmetry.Jpi, two_M>,
+        rest is pair(kappa, number of particles) for all orbitals in RelativisticConfiguration.
+        Note that parity is implied by configuration.
+     */
+    typedef std::vector<std::pair<int, int>> KeyType;
 
     /** Convert RelativisticConfiguration to KeyType. */
-    static KeyType GenerateKey(const RelativisticConfiguration& config);
+    static KeyType GenerateKey(const RelativisticConfiguration& config, const Symmetry& sym, int two_m);
 
     /** Convert KeyType to a RelativisticConfiguration. */
     static RelativisticConfiguration GenerateRelConfig(const KeyType& key);
 
-    std::string lib_directory;
-    std::string filename;
-    bool write_needed;
-    std::unordered_map<KeyType, pAngularData, boost::hash<KeyType> > library;
+    /** Retrieve or create an AngularData object for the given key.
+     */
+    pAngularData GetData(const KeyType& key);
 
-    /** Pointer to the AngularDataLibrary with same symmetry but two_m increased by one. */
-    std::shared_ptr<AngularDataLibrary> parent;
+    /** Read library from file. */
+    void Read(const Symmetry& sym, int two_m);
+
+    std::unordered_map<KeyType, pAngularData, boost::hash<KeyType>> library;
+
+    /** Details of file storage: file_info maps pair<Symmetry.Jpi, two_m> to pair<write_needed, filename>. */
+    std::map<std::pair<int, int>, std::pair<bool, std::string>> file_info;
+    std::string lib_directory;
 
 protected:
     class ProjectionSizeFirstComparator

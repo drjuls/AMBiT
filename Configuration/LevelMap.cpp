@@ -51,7 +51,7 @@ void WriteLevelMap(const LevelMap& level_map, const std::string& filename)
     fclose(fp);
 }
 
-pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, const std::string& angular_directory)
+pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, pAngularDataLibrary angular_library)
 {
     pLevelMap level_map = std::make_shared<LevelMap>();
 
@@ -71,12 +71,8 @@ pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::strin
         key->Read(fp);
 
         pRelativisticConfigList configs = key->GetRelativisticConfigList();
-        int particle_number = configs->front().ElectronNumber();
-        pAngularDataLibrary angular_library(new AngularDataLibrary(particle_number, key->GetSymmetry(), key->GetTwoJ(), angular_directory));
-        angular_library->Read();
-
         for(auto& relconfig: *configs)
-            relconfig.GetProjections(angular_library);
+            relconfig.GetProjections(angular_library, key->GetSymmetry(), key->GetTwoJ());
 
         // These should be generated already, but in case they weren't saved...
         angular_library->GenerateCSFs();

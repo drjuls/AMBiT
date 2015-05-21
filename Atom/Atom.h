@@ -59,12 +59,12 @@ public:
     /** Check sizes of matrices before doing full scale calculation.
         PRE: MakeBasis() must have been run.
      */
-    void CheckMatrixSizes();
+    void CheckMatrixSizes(pAngularDataLibrary angular_lib = nullptr);
 
     /** Get levels to be calculated, so the client can request one be done at a time.
         PRE: MakeBasis() must have been run.
      */
-    pLevelMap ChooseHamiltoniansAndRead();
+    pLevelMap ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib = nullptr);
 
     /** Calculate levels for all chosen symmetries in user input.
         PRE: ChooseHamiltonians() must have been run.
@@ -72,7 +72,7 @@ public:
     pLevelMap CalculateEnergies();
 
     /** Calculate levels for given HamiltonianID, generating CI integrals if required via. MakeIntegrals().
-        PRE: ChooseHamiltonians() must have been run.
+        PRE: ChooseHamiltoniansAndRead() must have been run.
         Levels are added to LevelMap levels.
     */
     const LevelVector& CalculateEnergies(pHamiltonianID hID);
@@ -80,11 +80,18 @@ public:
     pLevelMap GetLevels() { return levels; }
     pLevelMapConst GetLevels() const { return levels; }
 
+    pAngularDataLibrary GetAngularDataLibrary() { return angular_library; }
+
 public:
     /** For all levels requested, create continuum wave and calculate autoionization rate. */
     void Autoionization(pLevelConst target);
 
 protected:
+    /** Initialise AngularDataLibrary if it hasn't been already.
+        If trial is included, check that the number of valence electrons is correct before using.
+     */
+    void InitialiseAngularDataLibrary(pAngularDataLibrary trial = nullptr);
+
     /** Instantiate LevelMap and read from file.
         Get set of requested symmetries from user input.
      */
@@ -147,6 +154,7 @@ protected:
     pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
     pConfigList nrconfigs;
+    pAngularDataLibrary angular_library;
     pLevelMap levels;
 
 //    CIIntegralsMBPT* integralsMBPT;

@@ -43,36 +43,27 @@ public:
     pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist) const;
 
     /** Generate relativistic configurations from nrlist. Remove configs of wrong parity.
-        If(generate_projections == true), returned list includes projections and CSFs with J = M.
+        If angular_library is supplied, returned list includes projections and CSFs with M = J.
      */
-    pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, bool generate_projections = true) const;
+    pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, pAngularDataLibrary angular_library = nullptr) const;
 
     /** Generate non-relativistic and then relativistic configurations based on the input file.
-        If(generate_projections == true), returned list includes projections and CSFs with J = M.
+        If angular_library is supplied, returned list includes projections and CSFs with M = J.
      */
-    pRelativisticConfigList GenerateRelativisticConfigurations(const Symmetry& sym, bool generate_projections = true);
+    pRelativisticConfigList GenerateRelativisticConfigurations(const Symmetry& sym, pAngularDataLibrary angular_library = nullptr);
 
     /** Make all projections of the rlist that have a projection M = two_m/2.
         Remove configurations that cannot have this projection.
         Generate CSFs with angular momentum two_j/2.
         PRE: rlist should be unique.
      */
-    void GenerateProjections(pRelativisticConfigList rlist, int two_m, int two_j) const;
+    void GenerateProjections(pRelativisticConfigList rlist, const Symmetry& sym, int two_m, pAngularDataLibrary angular_library) const;
 
-    /** Generate configuration state functions (CSFs) with J = M = two_m/2.
-        Equivalent to GenerateProjections(rlist, two_m, two_m).
-     */
-    void GenerateProjections(pRelativisticConfigList rlist, int two_m) const
-    {   GenerateProjections(rlist, two_m, two_m);
+    /** Generate configuration state functions (CSFs) with J = M = two_m/2. */
+    void GenerateProjections(pRelativisticConfigList rlist, int two_m, pAngularDataLibrary angular_library) const
+    {   Parity p = rlist->front().GetParity();
+        GenerateProjections(rlist, Symmetry(two_m, p), two_m, angular_library);
     }
-
-    /** For each non-relativistic configuration in nrlist, generate relconfiglist
-        with projections and CSFs with correct symmetry.
-        Remove all relativistic configs that do not have a CSF with the correct symmetry.
-        For non-relativistic configurations that have no CSFs satisfying the symmetry,
-        relconfiglist is nullptr.
-     */
-    void GenerateProjections(pConfigList nrlist, const Symmetry& sym, int two_m) const;
 
 protected:
     /** Generate all non-relativistic configurations possible by exciting one electron

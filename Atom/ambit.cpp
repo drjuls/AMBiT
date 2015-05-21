@@ -416,10 +416,11 @@ void Ambit::EnergyCalculations()
         atoms[0].CheckMatrixSizes();
     else
     {   pLevelMap levels = atoms[0].ChooseHamiltoniansAndRead();
+        pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
 
         for(int i = 1; i < run_indexes.size(); i++)
         {   user_input.SetRun(run_indexes[i]);
-            atoms[i].ChooseHamiltoniansAndRead();
+            atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
         }
 
         for(auto& pair: *levels)

@@ -32,7 +32,7 @@ void Atom::Autoionization(pLevelConst target)
     }
 
     // Target information
-    int target_twoJ = target->GetTwoJ();
+    Symmetry target_symmetry(target->GetTwoJ(), target->GetParity());
     const std::vector<double>& target_eigenvector = target->GetEigenvector();
 
     // Create operator for construction of continuum field
@@ -80,8 +80,8 @@ void Atom::Autoionization(pLevelConst target)
             double rate = 0.0;
 
             // Get continuum wave (eps)
-            Parity eps_parity = sym.GetParity() * target->GetParity();
-            for(int eps_twoJ = abs(sym.GetTwoJ() - target->GetTwoJ()); eps_twoJ <= sym.GetTwoJ() + target->GetTwoJ(); eps_twoJ += 2)
+            Parity eps_parity = sym.GetParity() * target_symmetry.GetParity();
+            for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= sym.GetTwoJ() + target_symmetry.GetTwoJ(); eps_twoJ += 2)
             {
                 double partial = 0.0;
 
@@ -115,7 +115,7 @@ void Atom::Autoionization(pLevelConst target)
                 pRelativisticConfigList target_configs(new RelativisticConfigList(*target->GetRelativisticConfigList()));
 
                 // Couple target and epsilon; start with maximum target M
-                for(int target_twoM = target_twoJ; target_twoM >= -target_twoJ; target_twoM -= 2)
+                for(int target_twoM = target_symmetry.GetTwoJ(); target_twoM >= -target_symmetry.GetTwoJ(); target_twoM -= 2)
                 {
                     int eps_twoM = sym.GetTwoJ() - target_twoM;
                     if(eps_twoM < -eps_twoJ)
@@ -124,11 +124,11 @@ void Atom::Autoionization(pLevelConst target)
                         break;
                     ElectronInfo eps_info(100, eps_kappa, eps_twoM);
 
-                    gen.GenerateProjections(target_configs, target_twoM, target->GetTwoJ());
+                    gen.GenerateProjections(target_configs, target_symmetry, target_twoM, angular_library);
 
                     // Coupling constant for |(eps_jlm; target_jlm) JJ >
-                    double coupling = math->Wigner3j(eps_twoJ, target_twoJ, sym.GetTwoJ(), eps_twoM, target_twoM);
-                    coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_twoJ + eps_twoM + target_twoM)/2);
+                    double coupling = math->Wigner3j(eps_twoJ, target_symmetry.GetTwoJ(), sym.GetTwoJ(), eps_twoM, target_twoM);
+                    coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_symmetry.GetTwoJ() + eps_twoM + target_twoM)/2);
 
                     // Iterate over (generally larger) compound states first, for better multiporocessor load balance
                     double local_partial_j = 0.;

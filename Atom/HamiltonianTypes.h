@@ -11,8 +11,7 @@ class SingleOrbitalID : public HamiltonianID
 {
 public:
     SingleOrbitalID(): HamiltonianID(), pqn(0) {}
-    SingleOrbitalID(int kappa, int pqn): HamiltonianID(kappa), pqn(pqn) {}
-    SingleOrbitalID(const OrbitalInfo& info): HamiltonianID(info.Kappa()), pqn(info.PQN()) {}
+    SingleOrbitalID(const OrbitalInfo& info): HamiltonianID(Symmetry(info)), pqn(info.PQN()) {}
     SingleOrbitalID(const SingleOrbitalID& other): HamiltonianID(other), pqn(other.pqn) {}
 
     virtual bool operator<(const HamiltonianID& other) const override
@@ -40,7 +39,7 @@ public:
     }
 
     int GetPQN() const { return pqn; }
-    OrbitalInfo GetOrbitalInfo() const { return OrbitalInfo(pqn, sym.GetKappa()); }
+    OrbitalInfo GetOrbitalInfo() const { return OrbitalInfo(pqn, sym.GetTwoJ(), sym.GetParity()); }
 
     virtual std::string Name() const override
     {   return GetOrbitalInfo().Name();

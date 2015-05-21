@@ -11,6 +11,7 @@ class OrbitalInfo
      */
 public:
     OrbitalInfo(int pqn, int kappa);
+    OrbitalInfo(int pqn, int two_j, Parity p);
     OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const OrbitalInfo& other);
@@ -37,6 +38,17 @@ protected:
     int pqn;
     int kappa;
 };
+
+inline OrbitalInfo::OrbitalInfo(int pqn, int two_j, Parity p):
+    pqn(pqn)
+{
+    kappa = (two_j + 1)/2;
+    int L = kappa;
+    // If inconsistent, swap kappa
+    if(!(L%2 == 0 && p == Parity::even) && !(L%2 == 1 && p == Parity::odd))
+    {   kappa = -kappa;
+    }
+}
 
 inline OrbitalInfo::OrbitalInfo(pOrbitalConst s)
 {

@@ -45,13 +45,14 @@ TEST(TransitionIntegralTester, HeTransitions)
     pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(2);
     ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     double ground_state_energy = 0., excited_state_energy = 0.;
 
     // Generate matrix and configurations
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
+    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
     pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
     HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();
@@ -66,7 +67,7 @@ TEST(TransitionIntegralTester, HeTransitions)
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym);
+    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
     hID = std::make_shared<HamiltonianID>(sym, relconfigs);
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);

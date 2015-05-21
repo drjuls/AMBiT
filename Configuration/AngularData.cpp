@@ -373,13 +373,11 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
     have_CSFs = true;
 }
 
-AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym, int two_m, const std::string& lib_directory):
-    electron_number(electron_number), sym(sym), two_m(two_m), lib_directory(lib_directory), parent(nullptr), write_needed(false)
-{
-    if(lib_directory == "")
-        filename.clear();
 
-    else
+AngularDataLibrary::AngularDataLibrary(int electron_number, const std::string& lib_directory):
+    electron_number(electron_number), lib_directory(lib_directory)
+{
+    if(!lib_directory.empty())
     {   // Check library directory exists
         DIR* dir = opendir(lib_directory.c_str());
         if(!dir)
@@ -388,36 +386,38 @@ AngularDataLibrary::AngularDataLibrary(int electron_number, const Symmetry& sym,
         }
         else
             closedir(dir);
-
-        filename = lib_directory;
-        if(filename[filename.length()-1] != '/')
-            filename.append("/");
-
-        std::string holelike = (electron_number<0)?"h":"";
-        filename += itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
     }
 }
 
-pAngularData AngularDataLibrary::operator[](const RelativisticConfiguration& config)
+pAngularData AngularDataLibrary::GetData(const RelativisticConfiguration& config, const Symmetry& sym, int two_m)
 {
-    KeyType mykey(GenerateKey(config));
-
-    auto ret = library.find(mykey);
-    if(ret != library.end())
-        return ret->second;
-
-    // Check whether this config can have correct M
-    if(config.GetTwiceMaxProjection() < abs(two_m))
-        return nullptr;
-
-    pAngularData ang(new AngularData(config, two_m));
-    library[mykey] = ang;
-    return ang;
+    KeyType mykey(GenerateKey(config, sym, two_m));
+    return GetData(mykey);
 }
 
-AngularDataLibrary::KeyType AngularDataLibrary::GenerateKey(const RelativisticConfiguration& config)
+pAngularData AngularDataLibrary::GetData(const KeyType& key)
+{
+    pAngularData& ret = library[key];
+    if(ret != nullptr)
+        return ret;
+
+    if(file_info[key[0]].second.empty())
+    {
+        Read(Symmetry(key[0].first), key[0].second);
+    }
+
+    if(ret != nullptr)
+        return ret;
+
+    ret = std::make_shared<AngularData>(GenerateRelConfig(key), key[0].second);
+    return ret;
+}
+
+AngularDataLibrary::KeyType AngularDataLibrary::GenerateKey(const RelativisticConfiguration& config, const Symmetry& sym, int two_m)
 {
     KeyType key;
+    key.reserve(config.size() + 1);
+    key.push_back(std::make_pair(sym.GetJpi(), two_m));
     for(auto& config_it: config)
     {   key.push_back(std::make_pair(config_it.first.Kappa(), config_it.second));
     }
@@ -430,17 +430,21 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
     RelativisticConfiguration rconfig;
     int prev_kappa = 0;
     int pqn = 1;
-    
-    for(auto pair: key)
+
+    auto it = key.begin();
+    it++;   // Skip pair<symmetry.Jpi, two_m>
+
+    while(it != key.end())
     {   // Set PQN to some integer
-        if(pair.first == prev_kappa)
+        if(it->first == prev_kappa)
         pqn++;
         else
         {   pqn = 1;
-            prev_kappa = pair.first;
+            prev_kappa = it->first;
         }
         
-        rconfig[OrbitalInfo(pqn, pair.first)] = pair.second;
+        rconfig[OrbitalInfo(pqn, it->first)] = it->second;
+        it++;
     }
 
     return rconfig;
@@ -448,115 +452,149 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 
 void AngularDataLibrary::GenerateCSFs()
 {
-    // Generate from ladder operators if M < J
-    if(two_m < sym.GetTwoJ())
+    // First, for all keys with no CSFs, generate entries in the library with higher M,
+    // recursively until CSFs are found or M = J.
+    for(auto& pair: library)
     {
-        int parent_twom = two_m + 2;
-        if(parent == nullptr)
-        {   parent = pAngularDataLibrary(new AngularDataLibrary(electron_number, sym, parent_twom, lib_directory));
-            parent->Read();
-        }
+        pAngularData pAng = pair.second;
+        Symmetry sym(pair.first[0].first);
+        int two_m = pair.first[0].second;
 
-        // Make sure parent has all necessary keys
-        for(auto& pair: library)
+        // If no CSFs and M < J
+        while(pAng->CSFs_calculated() == false && two_m < sym.GetTwoJ())
         {
-            if(pair.second->CSFs_calculated() == false)
-            {
-                auto it = parent->library.find(pair.first);
-                if(it == parent->library.end())
-                {
-                    pAngularData ang(new AngularData(GenerateRelConfig(pair.first), parent_twom));
-                    parent->library[pair.first] = ang;
-                }
-            }
-        }
-
-        // Generate parent CSFs (recursive)
-        parent->GenerateCSFs();
-
-        // Use ladder operators
-        for(auto& pair: library)
-        {
-            if(pair.second->CSFs_calculated() == false)
-            {
-                pAngularDataConst parent_angular_data = parent->library[pair.first];
-                pair.second->LadderLowering(GenerateRelConfig(pair.first), *parent_angular_data);
-                write_needed = true;
-            }
+            KeyType new_key = pair.first;
+            two_m += 2;
+            new_key[0].second = two_m;
+            pAng = GetData(new_key);
         }
     }
-    else
+
+    // Get CSFs for M = J
+#ifndef _MPI
+    for(auto& pair: library)
     {
-    #ifndef _MPI
-        for(auto& pair: library)
-        {   auto& pAng = pair.second;
-            if(pAng->CSFs_calculated() == false)
+        Symmetry sym(pair.first[0].first);
+        int two_m = pair.first[0].second;
+        auto& pAng = pair.second;
+
+        if(pAng->CSFs_calculated() == false && sym.GetTwoJ() == two_m)
+        {
+            RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+            pAng->GenerateCSFs(rconfig, two_m);
+
+            // Set write_needed to true;
+            file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+        }
+    }
+#else
+    // Distribute AngularData objects with lots of projections (large matrix) using MPI
+    const unsigned int SHARING_SIZE_LIM = 200;
+
+    std::set<std::pair<KeyType, pAngularData>, ProjectionSizeFirstComparator> big_library;
+
+    for(auto& pair: library)
+    {
+        Symmetry sym(pair.first[0].first);
+        int two_m = pair.first[0].second;
+        auto& pAng = pair.second;
+
+        if(pAng->CSFs_calculated() == false && sym.GetTwoJ() == two_m)
+        {
+            RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+
+            if(pAng->projection_size() < SHARING_SIZE_LIM)
+                pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
+            else
+                big_library.insert(pair);
+
+            // Set write_needed to true;
+            file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+        }
+    }
+
+    // Find big CSFs with M = J
+    int root = 0;
+    for(auto& pair: big_library)
+    {
+        Symmetry sym(pair.first[0].first);
+        auto& pAng = pair.second;
+
+        if(root == ProcessorRank)
+        {
+            RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+            pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
+        }
+
+        root++;
+        if(root >= NumProcessors)
+            root = 0;
+    }
+
+    // Share CSFs with all processors
+    root = 0;
+    int ierr = 0;
+    for(auto& pair: big_library)
+    {
+        auto& pAng = pair.second;
+        ierr = MPI_Barrier(MPI_COMM_WORLD);
+        ierr = MPI_Bcast(&(pAng->num_CSFs), 1, MPI_INT, root, MPI_COMM_WORLD);
+
+        int buffer_size = pAng->num_CSFs * pAng->projection_size();
+
+        // Allocate space
+        if(root != ProcessorRank)
+        {
+            if(pAng->CSFs)
+                delete[] pAng->CSFs;
+
+            pAng->CSFs = new double[buffer_size];
+        }
+
+        ierr = MPI_Bcast(pAng->CSFs, buffer_size, MPI_DOUBLE, root, MPI_COMM_WORLD);
+        pAng->have_CSFs = true;
+
+        root++;
+        if(root >= NumProcessors)
+            root = 0;
+    }
+#endif
+
+    // Get the rest recursively using ladder operators
+    for(auto& pair: library)
+    {
+        if(pair.second->CSFs_calculated() == false)
+        {
+            KeyType new_key = pair.first;
+            RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+
+            pAngularData pAng = pair.second;
+            Symmetry sym(pair.first[0].first);
+            int two_m = pair.first[0].second;
+
+            // If no CSFs and M < J, get first parent with CSFs
+            while(pAng->CSFs_calculated() == false && two_m < sym.GetTwoJ())
             {
-                pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
-                write_needed = true;
+                two_m += 2;
+                new_key[0].second = two_m;
+                pAng = GetData(new_key);
+            }
+
+            // Work backwards to current pair
+            while(two_m > pair.first[0].second)
+            {
+                pAngularData parent = pAng;
+                two_m -= 2;
+                new_key[0].second = two_m;
+                pAng = GetData(new_key);
+                pAng->LadderLowering(rconfig, *parent);
+
+                // Set write_needed to true;
+                file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+
+                pAng = parent;
             }
         }
-    #else
-        // Distribute AngularData objects with lots of projections (large matrix) using MPI
-        const unsigned int SHARING_SIZE_LIM = 200;
-
-        std::set<std::pair<KeyType, pAngularData>, ProjectionSizeFirstComparator> big_library;
-
-        for(auto& pair: library)
-        {
-            auto& pAng = pair.second;
-            if(pAng->CSFs_calculated() == false)
-            {
-                if(pAng->projection_size() < SHARING_SIZE_LIM)
-                    pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
-                else
-                    big_library.insert(pair);
-
-                write_needed = true;
-            }
-        }
-
-        // Find big CSFs
-        int root = 0;
-        for(auto& pair: big_library)
-        {
-            auto& pAng = pair.second;
-            if(root == ProcessorRank)
-                pAng->GenerateCSFs(GenerateRelConfig(pair.first), sym.GetTwoJ());
-
-            root++;
-            if(root >= NumProcessors)
-                root = 0;
-        }
-
-        // Share CSFs with all processors
-        root = 0;
-        int ierr = 0;
-        for(auto& pair: big_library)
-        {
-            auto& pAng = pair.second;
-            ierr = MPI_Barrier(MPI_COMM_WORLD);
-            ierr = MPI_Bcast(&(pAng->num_CSFs), 1, MPI_INT, root, MPI_COMM_WORLD);
-
-            int buffer_size = pAng->num_CSFs * pAng->projection_size();
-
-            // Allocate space
-            if(root != ProcessorRank)
-            {
-                if(pAng->CSFs)
-                    delete[] pAng->CSFs;
-
-                pAng->CSFs = new double[buffer_size];
-            }
-
-            ierr = MPI_Bcast(pAng->CSFs, buffer_size, MPI_DOUBLE, root, MPI_COMM_WORLD);
-            pAng->have_CSFs = true;
-
-            root++;
-            if(root >= NumProcessors)
-                root = 0;
-        }
-    #endif
     }
 }
 
@@ -571,10 +609,23 @@ void AngularDataLibrary::GenerateCSFs()
         - (int) numCSFs
         - CSFs: double* (numCSFs * N)
  */
-void AngularDataLibrary::Read()
+void AngularDataLibrary::Read(const Symmetry& sym, int two_m)
 {
-    if(filename.empty())
+    if(lib_directory.empty())
         return;
+
+    auto& filedata = file_info[std::make_pair(sym.GetJpi(), two_m)];
+    auto& filename = filedata.second;
+
+    if(filedata.second.empty())
+    {
+        filename = lib_directory;
+        if(filename[filename.length()-1] != '/')
+            filename.append("/");
+
+        std::string holelike = (electron_number<0)?"h":"";
+        filename += itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+    }
 
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
@@ -633,60 +684,100 @@ void AngularDataLibrary::Read()
     }
 
     fclose(fp);
+    filedata.first = false;
 }
 
-void AngularDataLibrary::Write() const
+void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
 {
-    if(filename.empty() || ProcessorRank != 0 || !write_needed)
+    auto file_info_it = file_info.find(std::make_pair(sym.GetJpi(), two_m));
+
+    // If symmetry not found or write not needed, stop.
+    if(file_info_it == file_info.end() || file_info_it->second.first == false)
         return;
 
-    FILE* fp = fopen(filename.c_str(), "wb");
+#ifdef _MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
-    if(!fp)
-    {   *errstream << "AngularDataLibrary::Couldn't open file " << filename << " for writing." << std::endl;
-        return;
-    }
-
-    int num_angular_data_objects = library.size();
-    fwrite(&num_angular_data_objects, sizeof(int), 1, fp);
-
-    for(const auto& pair: library)
+    if(ProcessorRank == 0)
     {
-        // Key
-        int key_size = pair.first.size();
-        fwrite(&key_size, sizeof(int), 1, fp);
+        // Read any extra existing AngularData objects
+        auto& filedata = file_info_it->second;
+        if(filedata.second.empty())
+            Read(sym, two_m);
 
-        for(auto& key_pair: pair.first)
-        {
-            fwrite(&key_pair.first, sizeof(int), 1, fp);
-            fwrite(&key_pair.second, sizeof(int), 1, fp);
+        // Open file
+        FILE* fp = fopen(filedata.second.c_str(), "wb");
+        if(!fp)
+        {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
+            return;
         }
 
-        // Projections
-        int num_projections = pair.second->projections.size();
-        fwrite(&num_projections, sizeof(int), 1, fp);
-
-        int particle_number = 0;
-        if(num_projections)
-            particle_number = pair.second->projections.front().size();
-        fwrite(&particle_number, sizeof(int), 1, fp);
-
-        for(const auto& projection: pair.second->projections)
+        // Count number of elements with same symmetry
+        int num_angular_data_objects = 0;
+        auto symmetry_pair = std::make_pair(sym.GetJpi(), two_m);
+        for(auto& pair: library)
         {
-            fwrite(&projection[0], sizeof(int), particle_number, fp);
+            if(pair.first[0] == symmetry_pair)
+                num_angular_data_objects++;
         }
+        fwrite(&num_angular_data_objects, sizeof(int), 1, fp);
 
-        // CSFs
-        fwrite(&pair.second->num_CSFs, sizeof(int), 1, fp);
-        if(pair.second->num_CSFs)
-            fwrite(pair.second->CSFs, sizeof(double), pair.second->num_CSFs * num_projections, fp);
+        for(const auto& pair: library)
+        {
+            if(pair.first[0] == symmetry_pair)
+            {
+                // Key
+                int key_size = pair.first.size();
+                fwrite(&key_size, sizeof(int), 1, fp);
+
+                for(auto& key_pair: pair.first)
+                {
+                    fwrite(&key_pair.first, sizeof(int), 1, fp);
+                    fwrite(&key_pair.second, sizeof(int), 1, fp);
+                }
+
+                // Projections
+                int num_projections = pair.second->projections.size();
+                fwrite(&num_projections, sizeof(int), 1, fp);
+
+                int particle_number = 0;
+                if(num_projections)
+                    particle_number = pair.second->projections.front().size();
+                fwrite(&particle_number, sizeof(int), 1, fp);
+
+                for(const auto& projection: pair.second->projections)
+                {
+                    fwrite(&projection[0], sizeof(int), particle_number, fp);
+                }
+
+                // CSFs
+                fwrite(&pair.second->num_CSFs, sizeof(int), 1, fp);
+                if(pair.second->num_CSFs)
+                    fwrite(pair.second->CSFs, sizeof(double), pair.second->num_CSFs * num_projections, fp);
+            }
+        }
+        fclose(fp);
     }
 
-    fclose(fp);
+#ifdef _MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
-    // Write parent (recursive)
-    if(parent)
-        parent->Write();
+    // Set write_needed to false
+    file_info_it->second.first = false;
+}
+
+void AngularDataLibrary::Write()
+{
+    if(lib_directory.empty())
+        return;
+
+    for(auto& filedata: file_info)
+    {
+        if(filedata.second.first)
+            Write(Symmetry(filedata.first.first), filedata.first.second);
+    }
 }
 
 void AngularDataLibrary::PrintKeys() const

@@ -34,7 +34,7 @@ public:
     typedef indexed_iterator<const double*> const_CSF_iterator;
 
     /** Return whether a suitable projection with (J, M) was found. */
-    bool GetProjections(pAngularDataLibrary data);
+    bool GetProjections(pAngularDataLibrary data, const Symmetry& sym, int two_m);
 
     /** Get the number of CSFs that have been calculated. */
     unsigned int NumCSFs() const;

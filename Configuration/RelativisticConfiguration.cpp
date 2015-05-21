@@ -29,9 +29,9 @@ RelativisticConfiguration& RelativisticConfiguration::operator=(RelativisticConf
     return *this;
 }
 
-bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data)
+bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data, const Symmetry& sym, int two_m)
 {
-    angular_data = (*data)[*this];
+    angular_data = data->GetData(*this, sym, two_m);
 
     if(angular_data == nullptr)
         return false;

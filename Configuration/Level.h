@@ -14,7 +14,7 @@
 class HamiltonianID : public std::enable_shared_from_this<HamiltonianID>
 {
 public:
-    HamiltonianID(int kappa = -1): sym(kappa), configs(nullptr) {}
+    HamiltonianID(int Jpi = 0): sym(Jpi), configs(nullptr) {}
     HamiltonianID(int two_J, Parity parity, pRelativisticConfigList rconfigs = nullptr): sym(two_J, parity), configs(rconfigs) {}
     HamiltonianID(const Symmetry& sym, pRelativisticConfigList rconfigs = nullptr): sym(sym), configs(rconfigs) {}
     HamiltonianID(const std::string& name);

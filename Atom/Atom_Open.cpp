@@ -226,19 +226,44 @@ void Atom::ClearIntegrals()
     twobody_electron = nullptr;
 }
 
-pLevelMap Atom::ChooseHamiltoniansAndRead()
+void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
 {
-    // Read existing levels
+    int num_valence_electrons;
+    if(user_input.search("NumValenceElectrons"))
+        num_valence_electrons = user_input("NumValenceElectrons", 0);
+    else if(user_input.search(2, "--no-ci", "--no-CI"))
+        num_valence_electrons = 1;
+    else if(user_input.vector_variable_size("CI/LeadingConfigurations") > 0)
+    {
+        NonRelConfiguration nrconfig(user_input("CI/LeadingConfigurations", "", 0));
+        num_valence_electrons = nrconfig.ElectronNumber();
+    }
+
+    if(trial && trial->GetElectronNumber() == num_valence_electrons)
+        angular_library = trial;
+    else if(angular_library == nullptr || angular_library->GetElectronNumber() != num_valence_electrons)
+    {
+        std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
+        if(user_input.search("AngularDataDirectory"))
+            angular_directory = user_input("AngularDataDirectory", "");
+
+        angular_library = std::make_shared<AngularDataLibrary>(num_valence_electrons, angular_directory);
+    }
+}
+
+pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
+{
+    // Read existing levels?
     bool use_read = true;
     if(user_input.search(2, "--clean", "-c"))
         use_read = false;
 
+    // Get angular library
+    InitialiseAngularDataLibrary(angular_lib);
+
     if(use_read)
     {
         std::string filename = identifier + ".levels";
-        std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-        if(user_input.search("AngularDataDirectory"))
-            angular_directory = user_input("AngularDataDirectory", "");
 
         pHamiltonianID key;
         if(user_input.search(2, "--no-ci", "--no-CI"))
@@ -248,7 +273,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead()
         else
             key = std::make_shared<HamiltonianID>();
 
-        levels = ReadLevelMap(key, filename, angular_directory);
+        levels = ReadLevelMap(key, filename, angular_library);
     }
     else
         levels = std::make_shared<LevelMap>();
@@ -380,10 +405,13 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
 }
 
 /** Check sizes of matrices before doing full scale calculation. */
-void Atom::CheckMatrixSizes()
+void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 {
     if(user_input.search(2, "--no-ci", "--no-CI"))
         return;
+
+    // Get angular library
+    InitialiseAngularDataLibrary(angular_lib);
 
     levels = std::make_shared<LevelMap>();
 
@@ -395,8 +423,8 @@ void Atom::CheckMatrixSizes()
     MakeIntegrals();
     ChooseHamiltonians(nrconfigs);
 
-    unsigned int total_levels = 0;
-
+    // Get complete list of relativistic configs for all symmetries
+    std::map<Symmetry, pRelativisticConfigList> all_relconfigs;
     for(auto& pair: *levels)
     {
         pHamiltonianID key = pair.first;
@@ -412,17 +440,52 @@ void Atom::CheckMatrixSizes()
         {
             configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
         }
-        
+
         key->SetRelativisticConfigList(configs);
 
-        *outstream << pair.first->Print() << ":"
-                   << std::setw(6) << std::right << configs->size() << " rel. configurations; "
-                   << configs->NumCSFs() <<  " CSFs." << std::endl;
-
-        total_levels += configs->NumCSFs();
+        pRelativisticConfigList& symrel = all_relconfigs[sym];
+        if(!symrel)
+            symrel = std::make_shared<RelativisticConfigList>(*configs);
+        else
+            symrel->append(*configs);
     }
 
+    // Generate CSFs for each symmetry
+    *outstream << "Calculating CSFs: " << std::endl;
+    unsigned int total_levels = 0;
+    for(auto& pair: all_relconfigs)
+    {
+        const Symmetry& sym = pair.first;
+        *outstream << "J(P) = " << sym.GetJ() << "(" << ShortName(sym.GetParity()) << "): "
+                   << std::setw(6) << std::right << pair.second->size() << " rel. configurations; "
+                   << std::flush;
+
+        // Generate all projections for this symmetry and write
+        gen.GenerateProjections(pair.second, sym, sym.GetTwoJ(), angular_library);
+
+        *outstream << pair.second->NumCSFs() <<  " CSFs." << std::endl;
+        total_levels += pair.second->NumCSFs();
+    }
     *outstream << "\nTotal number of levels (all symmetries included) = " << total_levels << std::endl;
+
+    // Get Hamiltonian sizes
+    if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
+    {
+        *outstream << "\nHamiltonian matrix sizes: " << std::endl;
+        for(auto& pair: *levels)
+        {
+            auto rconfigs = pair.first->GetRelativisticConfigList();
+            unsigned int num_CSFs = 0;
+            for(auto& config: *rconfigs)
+            {
+                num_CSFs += angular_library->GetData(config, pair.first->GetSymmetry(), pair.first->GetTwoJ())->NumCSFs();
+            }
+
+            *outstream << pair.first->Print() << ":"
+                       << std::setw(6) << std::right << rconfigs->size() << " rel. configurations; "
+                       << num_CSFs <<  " CSFs." << std::endl;
+        }
+    }
 }
 
 pLevelMap Atom::CalculateEnergies()
@@ -440,10 +503,6 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
     // This function is public and can call the other CalculateEnergies variants.
     LevelVector& levelvec = (*levels)[hID];
     pHamiltonianID key = levels->find(hID)->first;
-
-    bool use_write = true;
-    if(user_input.search(2, "--dont-save", "-d"))
-        use_write = false;
 
     std::string filename = identifier + ".levels";
 
@@ -468,13 +527,13 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
             if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
             {
                 pConfigList nrconfiglist = std::make_shared<ConfigList>(nrid->GetNonRelConfiguration());
-                configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
+                configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry(), angular_library);
             }
             else
             {
                 if(nrconfigs == nullptr)
                     nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
-                configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
+                configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry(), angular_library);
             }
 
             key->SetRelativisticConfigList(configs);
@@ -542,8 +601,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 //                filegenerator->WriteConfigs();
 //            }
 
-            if(use_write)
-                WriteLevelMap(*levels, filename);
+            WriteLevelMap(*levels, filename);
         }
     }
 
@@ -587,15 +645,13 @@ const LevelVector& Atom::SingleElectronConfigurations(pHamiltonianID sym)
     if(hf_electron == nullptr)
         MakeIntegrals();
 
-    pAngularDataLibrary ang(new AngularDataLibrary(1, sym->GetSymmetry(), sym->GetTwoJ()));
     double eigenvector = 1.;
 
     OrbitalInfo info(dynamic_cast<SingleOrbitalID*>(sym.get())->GetOrbitalInfo());
     // Make relativistic configuration
     RelativisticConfiguration config;
     config.insert(std::make_pair(info, 1));
-    config.GetProjections(ang);
-    ang->GenerateCSFs();
+    config.GetProjections(angular_library, sym->GetSymmetry(), sym->GetTwoJ());
 
     // Make "level"
     pRelativisticConfigList configlist(new RelativisticConfigList(config));
