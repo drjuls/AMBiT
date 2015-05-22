@@ -5,7 +5,7 @@
 #include "ManyBodyOperator.h"
 #include <numeric>
 #include <dirent.h>
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 
@@ -471,7 +471,7 @@ void AngularDataLibrary::GenerateCSFs()
     }
 
     // Get CSFs for M = J
-#ifndef _MPI
+#ifndef AMBIT_USE_MPI
     for(auto& pair: library)
     {
         Symmetry sym(pair.first[0].first);
@@ -695,7 +695,7 @@ void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
     if(file_info_it == file_info.end() || file_info_it->second.first == false)
         return;
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
@@ -760,7 +760,7 @@ void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
         fclose(fp);
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
@@ -777,6 +777,23 @@ void AngularDataLibrary::Write()
     {
         if(filedata.second.first)
             Write(Symmetry(filedata.first.first), filedata.first.second);
+    }
+}
+
+void AngularDataLibrary::RemoveUnused()
+{
+    auto it = library.begin();
+    while(it != library.end())
+    {
+        // Remove if library holds the only pointer to the AngularData object.
+        if(it->second.use_count() == 1)
+        {
+            // Remove filename (force Read() next time)
+            file_info[it->first[0]].second.clear();
+            it = library.erase(it);
+        }
+        else
+            it++;
     }
 }
 

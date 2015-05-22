@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -537,6 +537,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
             }
 
             key->SetRelativisticConfigList(configs);
+            angular_library->RemoveUnused();
         }
 
         // Only continue if we don't have enough levels
@@ -581,7 +582,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << "Matrix Before:\n" << H << std::endl;
             }
 
-            #ifdef _SCALAPACK
+            #ifdef AMBIT_USE_SCALAPACK
                 H->WriteToFile("temp.matrix");
                 MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                 MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, num_solutions);
@@ -589,7 +590,20 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
                 levelvec = H.SolveMatrix(key, num_solutions);
             #endif
 
-            if(key->GetTwoJ() != 0)
+            // Check if gfactor overrides are present, otherwise decide on course of action
+            bool get_gfactor;
+            if(key->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
+                get_gfactor = false;
+            else if(user_input.search("CI/--gfactors"))
+                get_gfactor = true;
+            else
+            {   if(dynamic_cast<NonRelID*>(key.get()) || num_solutions > 50)
+                    get_gfactor = false;
+                else
+                    get_gfactor = true;
+            }
+
+            if(get_gfactor)
             {
                 GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
                 g_factors.CalculateGFactors(levelvec);
@@ -774,7 +788,7 @@ void Atom::RunMultipleElectron()
         CheckMatrixSizes();
     else
     {   // Warning: Need to have generated integrals already.
-        #ifdef _SCALAPACK
+        #ifdef AMBIT_USE_SCALAPACK
             MaxEnergy = userInput_("CI/MaxEnergy", 0.0);
             if(userInput_.search("CI/MaxEnergy"))
                 NumSolutions = userInput_("CI/NumSolutions", 0);
@@ -867,7 +881,7 @@ void Atom::CollateIntegralsMBPT(unsigned int num_processors)
         }
     }
 
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         // Wait for root node to finish writing
         MPI::COMM_WORLD.Barrier();
     #endif
@@ -954,7 +968,7 @@ void Atom::CalculateEnergies()
             {
                 HamiltonianMatrix* H;
 
-                #ifdef _MPI
+                #ifdef AMBIT_USE_MPI
                     H = new MPIHamiltonianMatrix(*integrals, conf_gen);
                 #else
                     H = new HamiltonianMatrix(*integrals, conf_gen);
@@ -968,7 +982,7 @@ void Atom::CalculateEnergies()
 
                 if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", 0) == 1))
                 {
-                    #ifdef _MPI
+                    #ifdef AMBIT_USE_MPI
                         std::string filename = identifier + "." + it->first.GetString() + ".matrix";
                         dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
                     #else
@@ -996,7 +1010,7 @@ void Atom::CalculateEnergies()
                     #endif
                 }
                 
-                #ifdef _SCALAPACK
+                #ifdef AMBIT_USE_SCALAPACK
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
                     MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);

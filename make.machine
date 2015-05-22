@@ -1,7 +1,7 @@
 # change this stuff only if you know what you are doing
 # Options specific to Atomic source code are
-#   -D_MPI       - To use MPI
-#   -D_SCALAPACK - To use ScaLAPACK
+#   -DAMBIT_USE_MPI       - To use MPI
+#   -DAMBIT_USE_SCALAPACK - To use ScaLAPACK
 #   -D_FSU=1     - Append underscores to fortran subroutine names (default)
 #   -D_FSU=0     - Do not append underscores to fortran subroutine names
 
@@ -82,7 +82,7 @@ ifeq ($(MACHINE), ncixe)
     F77FLAGS += -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -D_MPI #-D_SCALAPACK
+  CXXFLAGS += -wd1125 -DAMBIT_USE_MPI #-DAMBIT_USE_SCALAPACK
 
   CCDEP   = gcc
   DEPFLAG = -MM
@@ -112,7 +112,7 @@ ifeq ($(MACHINE), katana)
     F77FLAGS  = -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -D_MPI # -D_SCALAPACK
+  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI # -DAMBIT_USE_SCALAPACK
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
@@ -141,7 +141,7 @@ ifeq ($(MACHINE), jcb1pc)
     F77FLAGS  = -O2
   endif
 
-  CXXFLAGS += -D_MPI
+  CXXFLAGS += -DAMBIT_USE_MPI
 
   CCDEP   = mpiCC -std=c++11
   DEPFLAG = -MM

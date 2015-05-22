@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #include "Include.h"
 #include "MPIMatrix.h"

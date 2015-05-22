@@ -1,5 +1,5 @@
-#ifdef _MPI
-#ifdef _SCALAPACK
+#ifdef AMBIT_USE_MPI
+#ifdef AMBIT_USE_SCALAPACK
 #include <mpi.h>
 #include "Include.h"
 #include "ScalapackMatrix.h"

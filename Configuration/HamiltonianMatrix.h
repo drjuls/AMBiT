@@ -22,6 +22,9 @@ public:
     HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
     virtual ~HamiltonianMatrix();
 
+    virtual void MatrixMultiply(int m, double* b, double* c) const;
+    virtual void GetDiagonal(double* diag) const;
+
     /** Generate Hamiltonian matrix. */
     virtual void GenerateMatrix();
 
@@ -36,6 +39,9 @@ public:
 
     /** Return proportion of elements that have magnitude greater than epsilon. */
     virtual double PollMatrix(double epsilon = 1.e-15) const;
+
+    /** Clear matrix and recover memory. */
+    virtual void Clear() { chunks.clear(); }
 
 public:
 //    /** Include Sigma3 in the leading configurations. */
@@ -65,10 +71,6 @@ public:
 //     */
 //    inline double Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
 //                  const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const;
-
-public:
-    virtual void MatrixMultiply(int m, double* b, double* c) const;
-    virtual void GetDiagonal(double* diag) const;
 
 protected:
     pRelativisticConfigList configs;

@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -20,8 +20,8 @@
 
 #include <gtest/gtest.h>
 
-#ifdef _MPI
-    #ifdef _SCALAPACK
+#ifdef AMBIT_USE_MPI
+    #ifdef AMBIT_USE_SCALAPACK
     #if !(_FUS)
         #define blacs_exit_ blacs_exit
     #endif
@@ -42,7 +42,7 @@ void PrintHelp(const std::string& ApplicationName);
 
 int main(int argc, char* argv[])
 {
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI_Init(&argc, &argv);
         MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
         MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
     OutStreams::FinaliseStreams();
 
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI_Finalize();
     #endif
 

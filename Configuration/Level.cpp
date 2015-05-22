@@ -63,7 +63,7 @@ void HamiltonianID::Read(FILE* fp)
 }
 
 Level::Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs):
-    eigenvalue(energy), eigenvector(numCSFs), hamiltonian(hamiltonian_id), gFactor(0.0)
+    eigenvalue(energy), eigenvector(numCSFs), hamiltonian(hamiltonian_id)
 {
     unsigned int N = numCSFs;
     if(numCSFs == 0)
@@ -72,6 +72,7 @@ Level::Level(const double& energy, const double* csf_eigenvector, pHamiltonianID
     }
 
     memcpy(eigenvector.data(), csf_eigenvector, N * sizeof(double));
+    gFactor = std::nan("");
 }
 
 const Level& Level::operator=(const Level& other)

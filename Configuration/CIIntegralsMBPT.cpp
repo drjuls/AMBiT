@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -320,7 +320,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
             }
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
 #endif
@@ -349,7 +349,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                 // (it may have been read in)
                 if(OneElectronIntegrals.find(key) == OneElectronIntegrals.end())
                 {
-                  #ifdef _MPI
+                  #ifdef AMBIT_USE_MPI
                     // MPI: Check if this is our integral.
                     if((!PT && !ValencePT) || (count == ProcessorRank))
                     {
@@ -369,7 +369,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
                     {   integral += ValencePT->GetOneElectronValence(si, sj);
                     }
                     OneElectronIntegrals.insert(std::pair<unsigned int, double>(key, integral));
-                  #ifdef _MPI
+                  #ifdef AMBIT_USE_MPI
                     }
                     count++;
                     if(count == NumProcessors)
@@ -411,7 +411,7 @@ void CIIntegralsMBPT::UpdateOneElectronIntegrals(const std::string& sigma_id)
     if((include_mbpt1 && PT) || (include_valence_mbpt1 && ValencePT))
     {
         WriteOneElectronIntegrals();
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI::COMM_WORLD.Barrier();
     #endif
     }
@@ -431,7 +431,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
         }
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
 #endif
@@ -539,7 +539,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                 // (it may have been read in)
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
-                                  #ifdef _MPI
+                                  #ifdef AMBIT_USE_MPI
                                     // MPI: Check if this is our integral.
                                     if((!PT && !ValencePT) || (count == ProcessorRank))
                                     {
@@ -577,7 +577,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
                                     }
 
                                     TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
-                                  #ifdef _MPI
+                                  #ifdef AMBIT_USE_MPI
                                     }
                                     count++;
                                     if(count == NumProcessors)
@@ -608,7 +608,7 @@ void CIIntegralsMBPT::UpdateTwoElectronIntegrals()
     if((include_mbpt2 && PT) || (include_valence_mbpt2 && ValencePT))
     {
         WriteTwoElectronIntegrals();
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI::COMM_WORLD.Barrier();
     #endif
     }
@@ -619,7 +619,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
     if(!(include_extra_box && PT) && !(include_valence_extra_box && ValencePT))
         return;
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     // If MPI, then only calculate our integrals (these will presumably be stored).
     int count = 0;
 #endif
@@ -707,7 +707,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                                 // (it may have been read in)
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
-                                  #ifdef _MPI
+                                  #ifdef AMBIT_USE_MPI
                                     // MPI: Check if this is our integral.
                                     if(count == ProcessorRank)
                                     {
@@ -719,7 +719,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
                                             radial += ValencePT->GetTwoElectronBoxValence(s1, s2, s3, s4, k);
 
                                         TwoElectronIntegrals.insert(std::pair<unsigned int, double>(key, radial));
-                                  #ifdef _MPI
+                                  #ifdef AMBIT_USE_MPI
                                     }
                                     count++;
                                     if(count == NumProcessors)
@@ -746,7 +746,7 @@ void CIIntegralsMBPT::UpdateTwoElectronBoxDiagrams()
     }
 
     WriteTwoElectronIntegrals();
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     MPI::COMM_WORLD.Barrier();
 #endif
 }

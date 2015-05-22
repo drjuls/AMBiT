@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -44,7 +44,7 @@ void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
 void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, double*, int*, int*);
 }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 MPI::Intracomm comm_world;
 double* c_copy;
 
@@ -150,7 +150,7 @@ void Eigensolver::SolveLargeSymmetric(Matrix* matrix, double* eigenvalues, doubl
     delete[] intwork;
 }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, double* eigenvectors, unsigned int N, unsigned int num_solutions)
 {
     static int n, lim;

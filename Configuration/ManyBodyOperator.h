@@ -7,7 +7,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 #include <boost/utility/enable_if.hpp>
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 
@@ -491,7 +491,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
         config_index++;
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     double reduced_total = 0.;
     MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;
@@ -585,7 +585,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         config_index++;
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(total.size(), 0.);
     MPI_Allreduce(total.data(), reduced_total.data(), total.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;
@@ -653,7 +653,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
         config_index++;
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     double reduced_total = 0.;
     MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;
@@ -747,7 +747,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         config_index++;
     }
 
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(return_size, 0.);
     MPI_Allreduce(total.data(), reduced_total.data(), return_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;

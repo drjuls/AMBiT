@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -624,7 +624,7 @@ void Atom::Write() const
             fclose(fp);
         }
     }
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         // Wait for root node to finish writing, then update integrals.
         MPI::COMM_WORLD.Barrier();
     #endif
@@ -689,7 +689,7 @@ void Atom::ReadOrWriteBasis()
     }
     else
     {   // Wait until all nodes find there is nothing to read
-        #ifdef _MPI
+        #ifdef AMBIT_USE_MPI
             MPI::COMM_WORLD.Barrier();
         #endif
         Write();

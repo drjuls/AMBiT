@@ -6,7 +6,7 @@
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
 #include "GFactor.h"
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 
@@ -185,7 +185,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             double* E = new double[NumSolutions];
 
             Eigensolver solver;
-            #ifdef _MPI
+            #ifdef AMBIT_USE_MPI
                 solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
             #else
                 solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
@@ -237,7 +237,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         fwrite(&N, sizeof(unsigned int), 1, fp);
         const double* pbuf;
 
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         double buf[N * most_chunk_rows];
     #endif
 
@@ -253,7 +253,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
                 num_rows = chunk_it->num_rows;
                 chunk_it++;
             }
-        #ifdef _MPI
+        #ifdef AMBIT_USE_MPI
             else
             {   // Broadcast row number
                 MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -281,7 +281,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
             row += num_rows;
         }
 
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         // Send finished signal
         MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
     #endif
@@ -290,7 +290,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
     }
     else
     {
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         int row = 0;
         while(row < N)
         {

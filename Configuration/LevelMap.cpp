@@ -118,20 +118,6 @@ void Print(const LevelVector& levels, double min_percentage, bool use_max_energy
     // This will exist if configs exists
     auto hID = levels[0]->GetHamiltonianID();
 
-    bool print_gFactors = false;
-    if(hID->GetTwoJ() != 0)
-    {
-        auto it = levels.begin();
-        while(it != levels.end())
-        {
-            if((*it)->GetgFactor())
-            {   print_gFactors = true;
-                break;
-            }
-            it++;
-        }
-    }
-
     // Build map of non-rel configurations to percentage contributions
     std::map<NonRelConfiguration, double> percentages;
     for(auto& rconfig: *configs)
@@ -175,8 +161,12 @@ void Print(const LevelVector& levels, double min_percentage, bool use_max_energy
                            << std::setprecision(2) << pair.second << "%\n";
         }
 
-        if(print_gFactors)
-            *outstream << "    g-factor = " << std::setprecision(5) << (*solution_it)->GetgFactor() << "\n";
+        if(hID->GetTwoJ() != 0)
+        {
+            const double& gfactor = (*solution_it)->GetgFactor();
+            if(!std::isnan(gfactor))
+                *outstream << "    g-factor = " << std::setprecision(5) << (*solution_it)->GetgFactor() << "\n";
+        }
 
         *outstream << std::endl;
         solution_it++;

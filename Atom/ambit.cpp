@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 #include "Include.h"
@@ -15,8 +15,8 @@
 #include <sstream>
 #include <boost/bind.hpp>
 
-#ifdef _MPI
-    #ifdef _SCALAPACK
+#ifdef AMBIT_USE_MPI
+    #ifdef AMBIT_USE_SCALAPACK
     #if !(_FUS)
         #define blacs_exit_ blacs_exit
     #endif
@@ -35,7 +35,7 @@ Debug DebugOptions;
 
 int main(int argc, char* argv[])
 {
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI_Init(&argc, &argv);
         MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
         MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
@@ -285,9 +285,9 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    #ifdef _MPI
+    #ifdef AMBIT_USE_MPI
         MPI_Barrier(MPI_COMM_WORLD);
-        #ifdef _SCALAPACK
+        #ifdef AMBIT_USE_SCALAPACK
             // Continue should be non-zero, otherwise MPI_Finalise is called.
             int cont = 1;
             blacs_exit_(&cont);

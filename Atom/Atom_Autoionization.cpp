@@ -4,7 +4,7 @@
 #include "Configuration/ManyBodyOperator.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Configuration/ConfigGenerator.h"
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 
@@ -166,7 +166,7 @@ void Atom::Autoionization(pLevelConst target)
                         proj_jt++;
                         proj_index++;
                     }
-                    #ifdef _MPI
+                    #ifdef AMBIT_USE_MPI
                         double reduced_partial_j;
                         MPI_Allreduce(&local_partial_j, &reduced_partial_j, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                         partial += reduced_partial_j;

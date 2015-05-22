@@ -21,7 +21,7 @@ public:
     virtual void GetEigenvalues(const Eigenstates& eigenstates) const;
 
 public:
-#ifdef _SCALAPACK
+#ifdef AMBIT_USE_SCALAPACK
     /** SolveScalapack works differently to the SolveMatrix:
         - All eigenvalues and eigenvectors are calculated
         - All eigenvectors with eigenvalues less than eigenvalue_limit (atomic units) are processed

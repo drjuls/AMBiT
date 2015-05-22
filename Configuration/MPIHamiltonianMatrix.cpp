@@ -1,4 +1,4 @@
-#ifdef _MPI
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #include "Include.h"
 #include "MPIHamiltonianMatrix.h"
@@ -541,7 +541,7 @@ void MPIHamiltonianMatrix::GetgFactors(unsigned int NumSolutions, const double* 
     delete[] total;
 }
 
-#ifdef _SCALAPACK
+#ifdef AMBIT_USE_SCALAPACK
 void MPIHamiltonianMatrix::SolveScalapack(const std::string& filename, double eigenvalue_limit, Eigenstates& eigenstates, bool gFactors, unsigned int max_num_solutions)
 {
     if(N == 0)
