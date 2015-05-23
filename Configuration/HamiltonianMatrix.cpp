@@ -1,17 +1,19 @@
 #include "Include.h"
 #include "HamiltonianMatrix.h"
-#include "Universal/SmallMatrix.h"
-#include "Universal/SymMatrix.h"
 #include "HartreeFock/Orbital.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
-#include "GFactor.h"
+#include "Universal/ScalapackMatrix.h"
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
 
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
+
+// Don't bother with davidson method if number of solutions requested is larger than this
+// and ScaLAPACK is available.
+#define MANY_LEVELS_LIM   50
 
 // Include this define for the box diagrams of "wrong" parity.
 //#define INCLUDE_EXTRA_BOX_DIAGRAMS
@@ -179,6 +181,12 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
                 levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
             }
         }
+    #ifdef AMBIT_USE_SCALAPACK
+        else if(NumSolutions > MANY_LEVELS_LIM)
+        {
+            levels = SolveMatrixScalapack(hID, NumSolutions, false);
+        }
+    #endif
         else
         {   // Using Davidson method
             double* V = new double[NumSolutions * N];
@@ -203,6 +211,65 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
     return levels;
 }
+
+#ifdef AMBIT_USE_SCALAPACK
+LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit)
+{
+    LevelVector levels;
+    if(hID->GetRelativisticConfigList() == nullptr)
+        hID->SetRelativisticConfigList(configs);
+
+    unsigned int NumSolutions = mmin(num_solutions, N);
+
+    if(NumSolutions == 0)
+    {
+        *outstream << "\nNo solutions" << std::endl;
+    }
+    else
+    {   *outstream << "; Finding solutions using ScaLAPACK ..." << std::endl;
+
+        // Write temporary matrix file, clear current Hamiltonian to make space,
+        // then read in to ScalapackMatrix
+        std::string filename = "temp.matrix";
+
+        Write(filename);
+        Clear();
+
+        ScalapackMatrix SM(N);
+        SM.ReadTriangle(filename);
+
+        // Diagonalise
+        double* E = new double[N];  // All eigenvalues
+        double* V = new double[N];  // One eigenvector
+
+        SM.Diagonalise(E);
+
+        // Cut off num_solutions
+        if(use_energy_limit)
+            for(int i = 0; i < NumSolutions; i++)
+            {
+                if(E[i] > energy_limit)
+                {
+                    NumSolutions = i;
+                    break;
+                }
+            };
+
+        // Get levels
+        levels.reserve(NumSolutions);
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            SM.GetColumn(i, V);
+            levels.push_back(std::make_shared<Level>(E[i], V, hID, N));
+        }
+
+        delete[] E;
+        delete[] V;
+    }
+
+    return levels;
+}
+#endif
 
 std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
 {

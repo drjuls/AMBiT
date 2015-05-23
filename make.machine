@@ -95,9 +95,9 @@ ifeq ($(MACHINE), katana)
 
   LINK      = mpiCC #icpc
   LINKFLAGS = 
-  LIBDIR    = 
+  LIBDIR    = $(MKLROOT)/lib/intel64/
   LIBOBJ    = 
-  LIBS      = mkl_rt pthread m
+  LIBS      = mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_openmpi_lp64 pthread m
 
   INCLUDE  += /share/apps/sparsehash/2.0.2/include
 
@@ -112,7 +112,7 @@ ifeq ($(MACHINE), katana)
     F77FLAGS  = -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI # -DAMBIT_USE_SCALAPACK
+  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM

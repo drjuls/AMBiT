@@ -28,9 +28,6 @@ public:
     /** Generate Hamiltonian matrix. */
     virtual void GenerateMatrix();
 
-    /** Solve the matrix that has been generated. */
-    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions);
-
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
 
@@ -39,6 +36,20 @@ public:
 
     /** Return proportion of elements that have magnitude greater than epsilon. */
     virtual double PollMatrix(double epsilon = 1.e-15) const;
+
+    /** Solve the matrix that has been generated. Note that this may destroy the matrix. */
+    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions);
+
+#ifdef AMBIT_USE_SCALAPACK
+    /** Solve using ScaLAPACK. Note that this destroys the matrix.
+        If use_energy_limit is true, only return eigenvalues below energy_limit (up to num_solutions of them).
+     */
+    virtual LevelVector SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit = 0.0);
+
+    virtual LevelVector SolveMatrixScalapack(pHamiltonianID hID, double energy_limit)
+    {   return SolveMatrixScalapack(hID, N, true, energy_limit);
+    }
+#endif
 
     /** Clear matrix and recover memory. */
     virtual void Clear() { chunks.clear(); }

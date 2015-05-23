@@ -170,7 +170,7 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     for(auto& list: boxes)
         reserve_size += list.size();
     projections.reserve(reserve_size);
-    
+
     for(auto& list: boxes)
     {   projections.insert(projections.end(), list.begin(), list.end());
     }
@@ -299,7 +299,7 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
     }
 
     int particle_number = config.ParticleNumber();
-    
+
     // Create set of boxes, one for each orbital, each with a list of projections to be filled.
     std::vector<int> box_number(particle_number);
     std::vector<int> min_projection(particle_number);
@@ -313,7 +313,7 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
     {
         int current_two_m = config_it->first.TwoJ();
         int num_particles = abs(config_it->second);
-        
+
         for(int i = 0; i < num_particles; i++)
         {
             max_projection[count + i] = current_two_m;
@@ -323,7 +323,7 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
             box_ishole[count + i] = (config_it->second < 0);
             current_two_m -= 2;
         }
-        
+
         count += num_particles;
         box++;
     }
@@ -442,7 +442,7 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
         {   pqn = 1;
             prev_kappa = it->first;
         }
-        
+
         rconfig[OrbitalInfo(pqn, it->first)] = it->second;
         it++;
     }
@@ -523,6 +523,7 @@ void AngularDataLibrary::GenerateCSFs()
         if(root == ProcessorRank)
         {
             RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+            *logstream << "Calculating CSF; N = " << pAng->projection_size() << " " << rconfig << std::endl;
             pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
         }
 

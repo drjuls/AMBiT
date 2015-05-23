@@ -47,12 +47,14 @@ void pdsyev_(const char* JOBZ, const char* UPLO, const int* N, double* A, const 
 }
 
 ScalapackMatrix::ScalapackMatrix(unsigned int size):
-    Matrix(size)
+    Matrix()
 {
+    N = size;
+
     // Get number of processor rows and columns
     num_proc_rows = (int)sqrt(double(NumProcessors));
     num_proc_cols = NumProcessors/num_proc_rows;
-    
+
     while(num_proc_cols * num_proc_rows != NumProcessors)
     {   num_proc_rows--;
         num_proc_cols = NumProcessors/num_proc_rows;
@@ -62,7 +64,7 @@ ScalapackMatrix::ScalapackMatrix(unsigned int size):
     // Initialise process grid
     sl_init_(&ICTXT, &num_proc_rows, &num_proc_cols);
     blacs_gridinfo_(&ICTXT, &num_proc_rows, &num_proc_cols, &proc_row, &proc_col);
-    
+
     // Get dimensions of local array
     M_rows = (unsigned int)numroc_((const int*)&N, &MB, &proc_row, &RSRC, &num_proc_rows);
     M_cols = (unsigned int)numroc_((const int*)&N, &NB, &proc_col, &CSRC, &num_proc_cols);
@@ -110,7 +112,7 @@ ScalapackMatrix::ScalapackMatrix(unsigned int size):
     while(M_i < M_cols)
     {
         M_col_numbers[M_i] = i + k;
-        
+
         if(DebugOptions.LogScalapack())
             *logstream << " " << i + k;
 
@@ -135,26 +137,17 @@ ScalapackMatrix::~ScalapackMatrix(void)
     delete[] M_col_numbers;
 }
 
-void ScalapackMatrix::WriteMode(bool write)
-{   write_mode = write;
-}
-
 void ScalapackMatrix::Clear()
 {
     memset(M, 0, M_rows*M_cols*sizeof(double));
 }
 
-double& ScalapackMatrix::At(unsigned int i, unsigned int j)
-{
-    return M[0];
-}
-
-    /** Multiply matrix by another matrix, size N*M.
-        PRE: b and c are N * M matrices; c is initialised to zero.
-        POST: c = A * b, where A is *this.
-        Since this routine is intended for use with fortran code,
-        the indices of b and c are in (column, row) order.
-     */
+/** Multiply matrix by another matrix, size N*M.
+    PRE: b and c are N * M matrices; c is initialised to zero.
+    POST: c = A * b, where A is *this.
+    Since this routine is intended for use with fortran code,
+    the indices of b and c are in (column, row) order.
+*/
 void ScalapackMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     MPI::Intracomm& comm_world = MPI::COMM_WORLD;
@@ -187,10 +180,10 @@ void ScalapackMatrix::MatrixMultiply(int m, double* b, double* c) const
                         j_count = 0;
                     }
                 }
-                
+
                 M_i++;
             }
-            
+
         }
 
         comm_world.Allreduce(buffer, &c[k * N], N, MPI::DOUBLE, MPI::SUM);
@@ -208,17 +201,17 @@ void ScalapackMatrix::ReadTriangle(const std::string& filename)
     {   *errstream << "ScalapackMatrix::ReadTriangle: Couldn't open " << filename << std::endl;
         exit(1);
     }
-    
+
     // Check size of stored matrix matches
     unsigned int size;
     fread(&size, sizeof(unsigned int), 1, fp);
 
     if(size != N)
-    {   *errstream << "ScalapackMatrix::ReadTriangle: Matrix size mismatch: " << filename 
+    {   *errstream << "ScalapackMatrix::ReadTriangle: Matrix size mismatch: " << filename
                    << " N = " << size << std::endl;
         exit(1);
     }
-    
+
     // Read line by line and store our parts.
     unsigned int i, j;      // Position in global array
     unsigned int j_end;     // End of current block in global array
@@ -231,7 +224,7 @@ void ScalapackMatrix::ReadTriangle(const std::string& filename)
     while((i < N) && (M_i < M_rows) && (M_j < M_cols))
     {
         fread(buffer+i, sizeof(double), N-i, fp);
-        
+
         // Copy row
         if(M_row_numbers[M_i] == i)
         {
@@ -264,13 +257,13 @@ void ScalapackMatrix::ReadTriangle(const std::string& filename)
             M_pos = &M[M_j*M_rows + M_i];
 
             while(j < j_end)
-            {   
+            {
                 memcpy(M_pos, &buffer[j], sizeof(double) * (j_end - j));
                 M_pos += (j_end - j);
                 j = j_end + (num_proc_rows - 1) * MB;
                 j_end = mmin((j + MB), N);
             }
-            
+
             M_j++;
         }
 
@@ -279,7 +272,7 @@ void ScalapackMatrix::ReadTriangle(const std::string& filename)
 
         i++;
     }
-    
+
     delete[] buffer;
 }
 
@@ -290,17 +283,17 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
     {   *errstream << "ScalapackMatrix::ReadLowerTriangle: Couldn't open " << filename << std::endl;
         exit(1);
     }
-    
+
     // Check size of stored matrix matches
     unsigned int size;
     fread(&size, sizeof(unsigned int), 1, fp);
 
     if(size != N)
-    {   *errstream << "ScalapackMatrix::ReadLowerTriangle: Matrix size mismatch: " << filename 
+    {   *errstream << "ScalapackMatrix::ReadLowerTriangle: Matrix size mismatch: " << filename
                    << " N = " << size << std::endl;
         exit(1);
     }
-    
+
     // Read line by line and store our parts.
     unsigned int i, j;      // Position in global array
     unsigned int j_end;     // End of current block in global array
@@ -313,7 +306,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
     while((i < N) && (M_i < M_rows) && (M_j < M_cols))
     {
         fread(buffer+i, sizeof(double), N-i, fp);
-        
+
         // Copy column
         if(M_col_numbers[M_j] == i)
         {
@@ -324,13 +317,13 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
             M_pos = &M[M_j*M_rows + M_i];
 
             while(j < j_end)
-            {   
+            {
                 memcpy(M_pos, &buffer[j], sizeof(double) * (j_end - j));
                 M_pos += (j_end - j);
                 j = j_end + (num_proc_rows - 1) * MB;
                 j_end = mmin((j + MB), N);
             }
-            
+
             M_j++;
         }
 
@@ -339,7 +332,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
 
         i++;
     }
-    
+
     delete[] buffer;
 }
 
@@ -348,7 +341,7 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
     // Send columns to root node, which writes them sequentially.
     double* buffer = new double[N];
     double* writebuf;
-    
+
     FILE* fp;
     if(ProcessorRank == 0)
     {
@@ -382,28 +375,28 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
             M_pos = &M[M_j*M_rows + M_i];
 
             while(i < i_end)
-            {   
+            {
                 memcpy(&buffer[i], M_pos, sizeof(double) * (i_end - i));
                 M_pos += (i_end - i);
                 i = i_end + (num_proc_rows - 1) * MB;
                 i_end = mmin((i + MB), N);
             }
-            
+
             M_i++;
         }
 
         comm_world.Reduce(buffer, writebuf, N, MPI::DOUBLE, MPI::SUM, 0);
-        
+
         if(ProcessorRank == 0)
         {   fwrite(writebuf, sizeof(double), N, fp);
             //for(int count=0; count<N; count++)
             //        fprintf(fp, "%11.3e", writebuf[count]);
             //fprintf(fp, "\n");
         }
-        
+
         M_j++;
     }
-    
+
     delete[] buffer;
     if(ProcessorRank == 0)
     {   delete[] writebuf;
@@ -479,12 +472,12 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
         return;
 
     double* buffer = new double[N];
-    
+
     MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     unsigned int i, j;
     unsigned int M_i, M_j;
-    
+
     // Reset buffer
     memset(buffer, 0, sizeof(double) * N);
 
@@ -511,7 +504,7 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
     }
 
     comm_world.Allreduce(buffer, row, N, MPI::DOUBLE, MPI::SUM);
-    
+
     delete[] buffer;
 }
 
@@ -521,7 +514,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
         return;
 
     double* buffer = new double[N];
-    
+
     MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     unsigned int i, j;
@@ -548,7 +541,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
         M_pos = &M[M_j*M_rows + M_i];
 
         while(i < i_end)
-        {   
+        {
             memcpy(&buffer[i], M_pos, sizeof(double) * (i_end - i));
             M_pos += (i_end - i);
             i = i_end + (num_proc_rows - 1) * MB;
@@ -557,7 +550,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
     }
 
     comm_world.Allreduce(buffer, col, N, MPI::DOUBLE, MPI::SUM);
-    
+
     delete[] buffer;
 }
 
@@ -595,7 +588,7 @@ void ScalapackMatrix::TestEigenvalues(const double* eigenvalues, const double* V
             V_pos = &V[V_j*M_rows + V_i];
 
             while(i < i_end)
-            {   
+            {
                 memcpy(&buffer[i], V_pos, sizeof(double) * (i_end - i));
                 V_pos += (i_end - i);
                 i = i_end + (num_proc_rows - 1) * MB;

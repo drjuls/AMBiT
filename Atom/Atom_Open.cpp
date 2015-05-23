@@ -312,7 +312,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
         even_symmetries.resize(user_input.vector_variable_size("CI/EvenParityTwoJ"), 0);
         for(int i = 0; i < even_symmetries.size(); i++)
             even_symmetries[i] = user_input("CI/EvenParityTwoJ", 0, i);
-        
+
         // Odd parity
         odd_symmetries.resize(user_input.vector_variable_size("CI/OddParityTwoJ"), 0);
         for(int i = 0; i < odd_symmetries.size(); i++)
@@ -341,7 +341,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
             {
                 Parity P = nrconfig.GetParity();
                 int maxTwoJ = nrconfig.GetTwiceMaxProjection();
-                
+
                 if(P == Parity::even)
                 {
                     for(int& two_j: even_symmetries)
@@ -361,7 +361,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
                 }
 
             }
-            
+
         }
     }
     // Standard CI: all non-rel configs together
@@ -583,9 +583,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
             }
 
             #ifdef AMBIT_USE_SCALAPACK
-                H->WriteToFile("temp.matrix");
-                MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, num_solutions);
+                levelvec = H.SolveMatrixScalapack(key, num_solutions, false);
             #else
                 levelvec = H.SolveMatrix(key, num_solutions);
             #endif
@@ -823,7 +821,7 @@ void Atom::InitialiseIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT)
 
     if(valence_mbpt)
         delete valence_mbpt;
-    
+
     if(ValenceMBPT)
     {   valence_mbpt = new ValenceCalculator(lattice, core, excited_mbpt);
         integralsMBPT->IncludeValenceMBPT1(includeSigma1, valence_mbpt);
@@ -930,7 +928,7 @@ void Atom::CalculateEnergies()
     {   ShowPercentages = false;
     }
     double min_percent_displayed;
-    
+
     if(ShowPercentages)
     {   min_percent_displayed = userInput_("CI/Output/MinimumDisplayedPercentage", 1.);
     }
@@ -996,7 +994,7 @@ void Atom::CalculateEnergies()
                             }
                         }
                         *outstream << std::endl;
-                        
+
                         *outstream << std::setprecision(12);
                         *outstream << "Matrix Before:" << std::endl;
                         for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
@@ -1009,7 +1007,7 @@ void Atom::CalculateEnergies()
                         }
                     #endif
                 }
-                
+
                 #ifdef AMBIT_USE_SCALAPACK
                     H->WriteToFile("temp.matrix");
                     MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);

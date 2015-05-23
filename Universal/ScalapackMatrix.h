@@ -13,12 +13,9 @@ public:
     ScalapackMatrix(unsigned int size);
     virtual ~ScalapackMatrix(void);
 
-    virtual void WriteMode(bool write);
-    virtual void Clear();
-    virtual double& At(unsigned int i, unsigned int j);
-
     virtual void MatrixMultiply(int m, double* b, double* c) const;
     virtual void GetDiagonal(double* diag) const;
+    virtual void Clear();
 
 public:
     /** Read symmetric matrix from stored triangle.
@@ -62,7 +59,7 @@ protected:
 
 protected:
     double* M;  // Pointer to local array
-    
+
     // Descriptors for local array within global array
     unsigned int M_rows, M_cols;    // Size parameters
     unsigned int* M_row_numbers;    // Index of row and column numbers in global array
