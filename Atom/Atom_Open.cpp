@@ -582,11 +582,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << "Matrix Before:\n" << H << std::endl;
             }
 
-            #ifdef AMBIT_USE_SCALAPACK
-                levelvec = H.SolveMatrixScalapack(key, num_solutions, false);
-            #else
-                levelvec = H.SolveMatrix(key, num_solutions);
-            #endif
+            levelvec = H.SolveMatrix(key, num_solutions);
 
             // Check if gfactor overrides are present, otherwise decide on course of action
             bool get_gfactor;

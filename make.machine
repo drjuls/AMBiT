@@ -120,13 +120,13 @@ endif
 
 ifeq ($(MACHINE), jcb1pc)
   CC  = gcc
-  CXX = mpiCC -std=c++11 -Wno-unused-result
+  CXX = /opt/openmpi-1.8.5/bin/mpiCC -std=c++11 -Wno-unused-result
   F77 = gfortran
 
   LINK      = mpiCC
   LINKFLAGS =
-  LIBDIR    = /usr/local/lib
-  LIBS      = blas lapack
+  LIBDIR    =
+  LIBS      = scalapack-openmpi blacs-openmpi blacsCinit-openmpi lapack blas
 
   INCLUDE  += /usr/local/include
 
@@ -141,7 +141,7 @@ ifeq ($(MACHINE), jcb1pc)
     F77FLAGS  = -O2
   endif
 
-  CXXFLAGS += -DAMBIT_USE_MPI
+  CXXFLAGS += -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
 
   CCDEP   = mpiCC -std=c++11
   DEPFLAG = -MM

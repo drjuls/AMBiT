@@ -167,11 +167,11 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         *outstream << "\nNo solutions" << std::endl;
     }
     else
-    {   *outstream << "; Finding solutions..." << std::endl;
-        levels.reserve(NumSolutions);
-
-        if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
+    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
         {
+            *outstream << "; Finding solutions using Eigen..." << std::endl;
+            levels.reserve(NumSolutions);
+
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
             const Eigen::VectorXd& E = es.eigenvalues();
             const Eigen::MatrixXd& V = es.eigenvectors();
@@ -188,7 +188,9 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         }
     #endif
         else
-        {   // Using Davidson method
+        {   *outstream << "; Finding solutions using Davidson..." << std::endl;
+            levels.reserve(NumSolutions);
+
             double* V = new double[NumSolutions * N];
             double* E = new double[NumSolutions];
 
