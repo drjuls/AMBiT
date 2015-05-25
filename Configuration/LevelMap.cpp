@@ -1,63 +1,118 @@
 #include "LevelMap.h"
 
-void Print(const LevelVector& levels, double min_percentage)
-{   Print(levels, min_percentage, false, 0.0);
-}
+pHamiltonianIDComparator key_comparator;
 
-void Print(const LevelVector& levels, double min_percentage, double max_energy)
-{   Print(levels, min_percentage, true, max_energy);
-}
-
-void WriteLevelMap(const LevelMap& level_map, const std::string& filename)
+unsigned int LevelStore::count(const pHamiltonianIDConst& key) const
 {
-    FILE* fp = fopen(filename.c_str(), "wb");
+    if(std::binary_search(m_lib.begin(), m_lib.end(), key, key_comparator))
+        return 1;
+    else
+        return 0;
+}
 
-    // Write number of entries in LevelMap
-    unsigned int num_hamiltonians = 0;
-    for(auto& pair: level_map)
-    {
-        // Write all HamiltonianIDs that have been calculated
-        if((pair.first->GetRelativisticConfigList() != nullptr) && pair.second.size())
-            num_hamiltonians++;
+LevelStore::const_iterator LevelStore::find(const pHamiltonianIDConst& key) const
+{
+    auto it = std::lower_bound(m_lib.begin(), m_lib.end(), key, key_comparator);
+    if(it != m_lib.end() && **it == *key)
+        return it;
+    else
+        return m_lib.end();
+}
+
+LevelStore::const_iterator LevelStore::insert(pHamiltonianID key)
+{
+    auto insert_point = std::lower_bound(m_lib.begin(), m_lib.end(), key, key_comparator);
+
+    if(insert_point != m_lib.end() && **insert_point == *key)
+    {   // Key already exists in library. Copy RelativisticConfigList.
+        pRelativisticConfigList configs = key->GetRelativisticConfigList();
+        if(configs)
+            (*insert_point)->SetRelativisticConfigList(configs);
+        return insert_point;
     }
-    fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+    else
+    {   // Insert into library
+        return m_lib.insert(insert_point, key);
+    }
+}
 
-    // Write all HamiltonianIDs and Level information
-    for(auto& pair: level_map)
+LevelMap::LevelMap(pAngularDataLibrary lib): angular_library(lib) {}
+
+LevelMap::LevelMap(const std::string& file_id, pAngularDataLibrary lib):
+    filename_prefix(file_id), angular_library(lib)
+{}
+
+LevelMap::LevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& file_id, pAngularDataLibrary lib):
+    filename_prefix(file_id), angular_library(lib)
+{
+    ReadLevelMap(hamiltonian_example);
+}
+
+LevelVector LevelMap::GetLevels(pHamiltonianID key)
+{
+    auto it = m_map.find(key);
+    if(it == m_map.end())
+        return LevelVector();
+    else
+        return it->second;
+}
+
+void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
+{
+    insert(key);
+    m_map[key] = level_vector;
+
+    if(ProcessorRank == 0 && level_vector.size() && !filename_prefix.empty())
     {
-        if((pair.first->GetRelativisticConfigList() != nullptr) && pair.second.size())
+        std::string filename = filename_prefix + ".levels";
+        FILE* fp = fopen(filename.c_str(), "wb");
+        
+        // Write number of entries in LevelMap
+        unsigned int num_hamiltonians = 0;
+        for(auto& pair: m_map)
         {
-            pair.first->Write(fp);
-
-            // Write all level information
-            unsigned int num_levels = pair.second.size();
-            fwrite(&num_levels, sizeof(unsigned int), 1, fp);
-
-            for(auto& pl: pair.second)
+            // Write all HamiltonianIDs that have been calculated
+            if((pair.first->GetRelativisticConfigList() != nullptr) && pair.second.size())
+                num_hamiltonians++;
+        }
+        fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+        
+        // Write all HamiltonianIDs and Level information
+        for(auto& pair: m_map)
+        {
+            if((pair.first->GetRelativisticConfigList() != nullptr) && pair.second.size())
             {
-                const std::vector<double>& eigenvector = pl->GetEigenvector();
-                unsigned int N = eigenvector.size();
-                double eigenvalue = pl->GetEnergy();
-                double gfactor = pl->GetgFactor();
-
-                fwrite(&eigenvalue, sizeof(double), 1, fp);
-                fwrite(&N, sizeof(unsigned int), 1, fp);
-                fwrite(eigenvector.data(), sizeof(double), N, fp);
-                fwrite(&gfactor, sizeof(double), 1, fp);
+                pair.first->Write(fp);
+                
+                // Write all level information
+                unsigned int num_levels = pair.second.size();
+                fwrite(&num_levels, sizeof(unsigned int), 1, fp);
+                
+                for(auto& pl: pair.second)
+                {
+                    const std::vector<double>& eigenvector = pl->GetEigenvector();
+                    unsigned int N = eigenvector.size();
+                    double eigenvalue = pl->GetEnergy();
+                    double gfactor = pl->GetgFactor();
+                    
+                    fwrite(&eigenvalue, sizeof(double), 1, fp);
+                    fwrite(&N, sizeof(unsigned int), 1, fp);
+                    fwrite(eigenvector.data(), sizeof(double), N, fp);
+                    fwrite(&gfactor, sizeof(double), 1, fp);
+                }
             }
         }
+        
+        fclose(fp);
     }
-
-    fclose(fp);
 }
 
-pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, pAngularDataLibrary angular_library)
+void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 {
-    pLevelMap level_map = std::make_shared<LevelMap>();
-
+    std::string filename = filename_prefix + ".levels";
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
-        return level_map;
+        return;
 
     // Read number of entries in LevelMap
     unsigned int num_hamiltonians;
@@ -69,6 +124,7 @@ pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::strin
         // Read key and recover angular data
         pHamiltonianID key = hamiltonian_example->Clone();
         key->Read(fp);
+        insert(key);
 
         pRelativisticConfigList configs = key->GetRelativisticConfigList();
         for(auto& relconfig: *configs)
@@ -81,19 +137,18 @@ pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::strin
         unsigned int num_levels;
         fread(&num_levels, sizeof(unsigned int), 1, fp);
 
-        LevelVector& levels = (*level_map)[key];
+        LevelVector& levels = m_map[key];
         levels.reserve(num_levels);
+
+        double eigenvalue;
+        unsigned int N;
+        std::vector<double> eigenvector;
+        double gfactor;
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
-            double eigenvalue;
-            unsigned int N;
-            std::vector<double> eigenvector;
-            double gfactor;
-
             fread(&eigenvalue, sizeof(double), 1, fp);
             fread(&N, sizeof(unsigned int), 1, fp);
-
             eigenvector.resize(N);
             fread(eigenvector.data(), sizeof(double), N, fp);
             fread(&gfactor, sizeof(double), 1, fp);
@@ -103,19 +158,105 @@ pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::strin
     }
 
     fclose(fp);
-    return level_map;
 }
 
-void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filename)
+FileSystemLevelStore::FileSystemLevelStore(const std::string& file_prefix, pAngularDataLibrary lib):
+    filename_prefix(file_prefix), angular_library(lib)
+{}
+
+LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
 {
-    if((it->first->GetRelativisticConfigList() == nullptr) || it->second.size() == 0)
+    LevelVector levels;
+    std::string filename = filename_prefix + "." + key->GetSymmetry().GetString() + ".levels";
+
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+        return levels;
+
+    // Read number of entries in LevelMap
+    unsigned int num_hamiltonians;
+    fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+
+    // Read all HamiltonianIDs and Level information
+    for(unsigned int i = 0; i < num_hamiltonians; i++)
+    {
+        // Read key and recover angular data
+        pHamiltonianID read_key = key->Clone();
+        read_key->Read(fp);
+
+        if(*key == *read_key)
+        {
+            pRelativisticConfigList configs = read_key->GetRelativisticConfigList();
+            for(auto& relconfig: *configs)
+                relconfig.GetProjections(angular_library, read_key->GetSymmetry(), read_key->GetTwoJ());
+
+            // These should be generated already, but in case they weren't saved...
+            angular_library->GenerateCSFs();
+
+            // Read all level information
+            unsigned int num_levels;
+            fread(&num_levels, sizeof(unsigned int), 1, fp);
+
+            levels.reserve(num_levels);
+
+            double eigenvalue;
+            unsigned int N;
+            std::vector<double> eigenvector;
+            double gfactor;
+
+            for(unsigned int index = 0; index < num_levels; index++)
+            {
+                fread(&eigenvalue, sizeof(double), 1, fp);
+                fread(&N, sizeof(unsigned int), 1, fp);
+                eigenvector.resize(N);
+                fread(eigenvector.data(), sizeof(double), N, fp);
+                fread(&gfactor, sizeof(double), 1, fp);
+
+                levels.push_back(std::make_shared<Level>(eigenvalue, eigenvector, read_key, gfactor));
+            }
+
+            break;
+        }
+        else
+        {   // Skip past level information
+            unsigned int num_levels;
+            fread(&num_levels, sizeof(unsigned int), 1, fp);
+            double eigenvalue;
+            unsigned int N;
+            std::vector<double> eigenvector;
+            double gfactor;
+            
+            for(unsigned int index = 0; index < num_levels; index++)
+            {
+                fread(&eigenvalue, sizeof(double), 1, fp);
+                fread(&N, sizeof(unsigned int), 1, fp);
+                eigenvector.resize(N);
+                fread(eigenvector.data(), sizeof(double), N, fp);
+                fread(&gfactor, sizeof(double), 1, fp);
+            }
+        }
+    }
+    
+    fclose(fp);
+    return levels;
+}
+
+void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_vector)
+{
+    insert(key);
+    if(ProcessorRank != 0 || key->GetRelativisticConfigList() == nullptr || level_vector.size() == 0)
         return;
+
+    // Append level_vector to file
+    std::string expanded_prefix = filename_prefix + "." + key->GetSymmetry().GetString();
+    std::string filename = expanded_prefix + ".levels";
 
     FILE* fp = fopen(filename.c_str(), "rb+");
     if(!fp)
-    {   LevelMap levels;
-        levels.insert(*it);
-        return WriteLevelMap(levels, filename);
+    {   // Highjack LevelMap write function
+        LevelMap levels(expanded_prefix, angular_library);
+        levels.Store(key, level_vector);
+        return;
     }
 
     // Read number of entries in LevelMap
@@ -129,12 +270,12 @@ void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filena
 
     // Seek end, write HamiltonianID and Level information
     fseek(fp, 0, SEEK_END);
-    it->first->Write(fp);
+    key->Write(fp);
 
-    unsigned int num_levels = it->second.size();
+    unsigned int num_levels = level_vector.size();
     fwrite(&num_levels, sizeof(unsigned int), 1, fp);
 
-    for(auto& pl: it->second)
+    for(auto& pl: level_vector)
     {
         const std::vector<double>& eigenvector = pl->GetEigenvector();
         unsigned int N = eigenvector.size();
@@ -148,6 +289,14 @@ void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filena
     }
 
     fclose(fp);
+}
+
+void Print(const LevelVector& levels, double min_percentage)
+{   Print(levels, min_percentage, false, 0.0);
+}
+
+void Print(const LevelVector& levels, double min_percentage, double max_energy)
+{   Print(levels, min_percentage, true, max_energy);
 }
 
 void Print(const LevelVector& levels, double min_percentage, bool use_max_energy, double max_energy)

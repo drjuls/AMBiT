@@ -251,7 +251,7 @@ void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
     }
 }
 
-pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
+pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
 {
     // Read existing levels?
     bool use_read = true;
@@ -261,10 +261,10 @@ pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     // Get angular library
     InitialiseAngularDataLibrary(angular_lib);
 
-    if(use_read)
+    if(user_input.search("CI/--memory-saver"))
+        levels = std::make_shared<FileSystemLevelStore>(identifier, angular_library);
+    else if(use_read)
     {
-        std::string filename = identifier + ".levels";
-
         pHamiltonianID key;
         if(user_input.search(2, "--no-ci", "--no-CI"))
             key = std::make_shared<SingleOrbitalID>();
@@ -273,10 +273,10 @@ pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
         else
             key = std::make_shared<HamiltonianID>();
 
-        levels = ReadLevelMap(key, filename, angular_library);
+        levels = std::make_shared<LevelMap>(key, identifier, angular_library);
     }
     else
-        levels = std::make_shared<LevelMap>();
+        levels = std::make_shared<LevelMap>(identifier, angular_library);
 
     if(user_input.search(2, "--no-ci", "--no-CI"))
     {
@@ -285,7 +285,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
         for(auto& it: *orbitals->valence)
         {
             key = std::make_shared<SingleOrbitalID>(it.first);
-            (*levels)[key];
+            levels->insert(key);
         }
     }
     else
@@ -299,7 +299,7 @@ pLevelMap Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     return levels;
 }
 
-pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
+pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
 {
     std::vector<int> even_symmetries;
     std::vector<int> odd_symmetries;
@@ -331,7 +331,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
                 for(int two_j = maxTwoJ%2; two_j <= maxTwoJ; two_j += 2)
                 {
                     key = std::make_shared<NonRelID>(nrconfig, two_j);
-                    (*levels)[key];
+                    levels->insert(key);
                 }
             }
         }
@@ -348,7 +348,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
                         if(two_j <= maxTwoJ)
                         {
                             key = std::make_shared<NonRelID>(nrconfig, two_j);
-                            (*levels)[key];
+                            levels->insert(key);
                         }
                 }
                 else
@@ -356,7 +356,7 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
                         if(two_j <= maxTwoJ)
                         {
                             key = std::make_shared<NonRelID>(nrconfig, two_j);
-                            (*levels)[key];
+                            levels->insert(key);
                         }
                 }
 
@@ -389,11 +389,11 @@ pLevelMap Atom::ChooseHamiltonians(pConfigList nrlist)
         // Populate levels
         for(int& two_j: even_symmetries)
         {   key = std::make_shared<HamiltonianID>(two_j, Parity::even);
-            (*levels)[key];
+            levels->insert(key);
         }
         for(int& two_j: odd_symmetries)
         {   key = std::make_shared<HamiltonianID>(two_j, Parity::odd);
-            (*levels)[key];
+            levels->insert(key);
         }
     }
 
@@ -413,7 +413,8 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     // Get angular library
     InitialiseAngularDataLibrary(angular_lib);
 
-    levels = std::make_shared<LevelMap>();
+    // Don't read existing levels
+    levels = std::make_shared<LevelMap>(identifier, angular_library);
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
@@ -425,10 +426,9 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
     // Get complete list of relativistic configs for all symmetries
     std::map<Symmetry, pRelativisticConfigList> all_relconfigs;
-    for(auto& pair: *levels)
+    for(auto& key: *levels)
     {
-        pHamiltonianID key = pair.first;
-        Symmetry sym = pair.first->GetSymmetry();
+        Symmetry sym = key->GetSymmetry();
         pRelativisticConfigList configs;
 
         if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
@@ -472,54 +472,51 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
     {
         *outstream << "\nHamiltonian matrix sizes: " << std::endl;
-        for(auto& pair: *levels)
+        for(auto& key: *levels)
         {
-            auto rconfigs = pair.first->GetRelativisticConfigList();
+            auto rconfigs = key->GetRelativisticConfigList();
             unsigned int num_CSFs = 0;
             for(auto& config: *rconfigs)
             {
-                num_CSFs += angular_library->GetData(config, pair.first->GetSymmetry(), pair.first->GetTwoJ())->NumCSFs();
+                num_CSFs += angular_library->GetData(config, key->GetSymmetry(), key->GetTwoJ())->NumCSFs();
             }
 
-            *outstream << pair.first->Print() << ":"
+            *outstream << key->Print() << ":"
                        << std::setw(6) << std::right << rconfigs->size() << " rel. configurations; "
                        << num_CSFs <<  " CSFs." << std::endl;
         }
     }
 }
 
-pLevelMap Atom::CalculateEnergies()
+pLevelStore Atom::CalculateEnergies()
 {
     ChooseHamiltoniansAndRead();
 
-    for(auto& pair: *levels)
-        CalculateEnergies(pair.first);
+    for(auto& key: *levels)
+        CalculateEnergies(key);
 
     return levels;
 }
 
-const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
+LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 {
     // This function is public and can call the other CalculateEnergies variants.
-    LevelVector& levelvec = (*levels)[hID];
-    LevelMap::iterator current_level_it = levels->find(hID);
-    pHamiltonianID key = current_level_it->first;
+    LevelVector levelvec = levels->GetLevels(hID);
+
+    // Copy hID into level store if it isn't there already.
+    // Get key in our level store
+    pHamiltonianID key = *levels->insert(hID);
 
     std::string filename = identifier + ".levels";
 
     if(dynamic_cast<SingleOrbitalID*>(key.get()))
     {
-        if(levelvec.size() == 0)
+        if(levelvec.empty())
             SingleElectronConfigurations(key);
     }
     else
     {   // Get relativistic configurations
         pRelativisticConfigList configs = key->GetRelativisticConfigList();
-
-        if(configs == nullptr)
-        {   configs = hID->GetRelativisticConfigList();
-            key->SetRelativisticConfigList(configs);
-        }
 
         if(configs == nullptr)
         {
@@ -615,7 +612,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 
             *logstream << "Writing LevelMap " << std::flush;
             DebugOptions.MarkTime();
-            AppendLevelMap(current_level_it, filename);
+            levels->Store(key, levelvec);
             *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
         }
     }
@@ -650,9 +647,9 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
     return levelvec;
 }
 
-const LevelVector& Atom::SingleElectronConfigurations(pHamiltonianID sym)
+LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
 {
-    LevelVector& levelvec = (*levels)[sym];
+    LevelVector levelvec = levels->GetLevels(sym);
 
     if(levelvec.size())
         return levelvec;
@@ -675,6 +672,7 @@ const LevelVector& Atom::SingleElectronConfigurations(pHamiltonianID sym)
     pLevel level(std::make_shared<Level>(energy, &eigenvector, sym, 1));
 
     levelvec = LevelVector(1, level);
+    levels->Store(sym, levelvec);
 
     return levelvec;
 }

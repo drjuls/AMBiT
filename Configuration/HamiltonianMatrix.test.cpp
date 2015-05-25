@@ -100,8 +100,11 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     symmetries.emplace_back(2, Parity::even);
     symmetries.emplace_back(4, Parity::even);
 
-    pLevelMap electron_levels(new LevelMap());
-    pLevelMap hole_levels(new LevelMap());
+    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
+
+    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
 
     // CuIV - old electron way
     {   // Block for reusing names
@@ -141,17 +144,15 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(16);
-
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            LevelVector& levels = (*electron_levels)[key];
-            levels = H.SolveMatrix(key, 6);
+            LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
+            electron_levels->Store(key, levels);
             Print(levels);
         }
     }
@@ -199,17 +200,15 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(-2);
-
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            LevelVector& levels = (*hole_levels)[key];
-            levels = H.SolveMatrix(key, 6);
+            LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
+            hole_levels->Store(key, levels);
             Print(levels);
         }
     }
@@ -217,13 +216,16 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = (*electron_levels)[key][0]->GetEnergy();
-    double hole_base = (*hole_levels)[key][0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
 
-    for(auto& pair: *electron_levels)
+    for(auto& key: *electron_levels)
     {
-        LevelVector& elv = pair.second;
-        LevelVector& hlv = (*hole_levels)[pair.first];
+        LevelVector elv = electron_levels->GetLevels(key);
+        LevelVector hlv = hole_levels->GetLevels(key);
+
+        ASSERT_EQ(elv.size(), hlv.size());
+
         for(int i = 0; i < elv.size(); i++)
         {
             double e = elv[i]->GetEnergy() - electron_base;
@@ -245,8 +247,11 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     symmetries.emplace_back(1, Parity::even);
     symmetries.emplace_back(3, Parity::even);
 
-    pLevelMap electron_levels(new LevelMap());
-    pLevelMap hole_levels(new LevelMap());
+    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
+    
+    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
 
     // CuIII - old electron way
     {   // Block for reusing names
@@ -291,11 +296,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*electron_levels)[key] = H.SolveMatrix(key, 6);
-            g_factors.CalculateGFactors((*electron_levels)[key]);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            electron_levels->Store(key, levels);
         }
     }
 
@@ -347,24 +353,28 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*hole_levels)[key] = H.SolveMatrix(key, 6);
-            g_factors.CalculateGFactors((*hole_levels)[key]);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            hole_levels->Store(key, levels);
         }
     }
 
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = (*electron_levels)[key][0]->GetEnergy();
-    double hole_base = (*hole_levels)[key][0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
 
-    for(auto& pair: *electron_levels)
+    for(auto& key: *electron_levels)
     {
-        LevelVector& elv = pair.second;
-        LevelVector& hlv = (*hole_levels)[pair.first];
+        LevelVector elv = electron_levels->GetLevels(key);
+        LevelVector hlv = hole_levels->GetLevels(key);
+        
+        ASSERT_EQ(elv.size(), hlv.size());
+
         for(int i = 0; i < elv.size(); i++)
         {
             double e = elv[i]->GetEnergy() - electron_base;
@@ -383,10 +393,13 @@ TEST(HamiltonianMatrixTester, LiPlus)
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     std::vector<Symmetry> symmetries;
     symmetries.emplace_back(0, Parity::even);
+
+    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
     
-    pLevelMap electron_levels(new LevelMap());
-    pLevelMap hole_levels(new LevelMap());
-    
+    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
+
     // LiII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
@@ -430,12 +443,13 @@ TEST(HamiltonianMatrixTester, LiPlus)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*electron_levels)[key] = H.SolveMatrix(key, 6);
-            g_factors.CalculateGFactors((*electron_levels)[key]);
-            Print((*electron_levels)[key]);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            electron_levels->Store(key, levels);
+            Print(levels);
         }
     }
     
@@ -484,25 +498,29 @@ TEST(HamiltonianMatrixTester, LiPlus)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*hole_levels)[key] = H.SolveMatrix(key, 6);
-            g_factors.CalculateGFactors((*hole_levels)[key]);
-            Print((*hole_levels)[key]);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            g_factors.CalculateGFactors(levels);
+            hole_levels->Store(key, levels);
+            Print(levels);
         }
     }
     
     ASSERT_EQ(electron_levels->size(), hole_levels->size());
     
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = (*electron_levels)[key][0]->GetEnergy();
-    double hole_base = (*hole_levels)[key][0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
 
-    for(auto& pair: *electron_levels)
+    for(auto& key: *electron_levels)
     {
-        LevelVector& elv = pair.second;
-        LevelVector& hlv = (*hole_levels)[pair.first];
+        LevelVector elv = electron_levels->GetLevels(key);
+        LevelVector hlv = hole_levels->GetLevels(key);
+        
+        ASSERT_EQ(elv.size(), hlv.size());
+
         for(int i = 0; i < elv.size(); i++)
         {
             double e = elv[i]->GetEnergy() - electron_base;
@@ -524,9 +542,9 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     symmetries.emplace_back(1, Parity::even);
     symmetries.emplace_back(3, Parity::even);
     
-    pLevelMap stretched_levels(new LevelMap());
-    pLevelMap m_levels(new LevelMap());
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(-1);
+    pLevelStore stretched_levels = std::make_shared<LevelMap>(angular_library);
+    pLevelStore m_levels = std::make_shared<LevelMap>(angular_library);
     
     // CuIII - stretched state
     {   // Block for reusing names
@@ -573,7 +591,8 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*stretched_levels)[key] = H.SolveMatrix(key, 6);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            stretched_levels->Store(key, levels);
         }
     }
 
@@ -625,20 +644,22 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
             pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
-            (*m_levels)[key] = H.SolveMatrix(key, 6);
+            LevelVector levels = H.SolveMatrix(key, 6);
+            m_levels->Store(key, levels);
         }
     }
 
     ASSERT_EQ(stretched_levels->size(), m_levels->size());
 
-    for(auto& pair: *stretched_levels)
+    for(auto& key: *stretched_levels)
     {
-        auto m_it = m_levels->find(pair.first);
+        LevelVector slv = stretched_levels->GetLevels(key);
+        LevelVector mlv = m_levels->GetLevels(key);
 
-        for(int i = 0; i < pair.second.size(); i++)
+        for(int i = 0; i < slv.size(); i++)
         {
-            double e = pair.second[i]->GetEnergy();
-            double h = m_it->second[i]->GetEnergy();
+            double e = slv[i]->GetEnergy();
+            double h = mlv[i]->GetEnergy();
         
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }

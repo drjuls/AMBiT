@@ -120,7 +120,7 @@ protected:
 protected:
     Atom& atom;
     pOrbitalManagerConst orbitals;
-    pLevelMapConst levels;
+    pLevelStore levels;
 
     TransitionGauge preferred_gauge;
     TransitionType max_type;

@@ -64,22 +64,20 @@ public:
     /** Get levels to be calculated, so the client can request one be done at a time.
         PRE: MakeBasis() must have been run.
      */
-    pLevelMap ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib = nullptr);
+    pLevelStore ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib = nullptr);
 
     /** Calculate levels for all chosen symmetries in user input.
         PRE: ChooseHamiltonians() must have been run.
      */
-    pLevelMap CalculateEnergies();
+    pLevelStore CalculateEnergies();
 
     /** Calculate levels for given HamiltonianID, generating CI integrals if required via. MakeIntegrals().
         PRE: ChooseHamiltoniansAndRead() must have been run.
         Levels are added to LevelMap levels.
     */
-    const LevelVector& CalculateEnergies(pHamiltonianID hID);
+    LevelVector CalculateEnergies(pHamiltonianID hID);
 
-    pLevelMap GetLevels() { return levels; }
-    pLevelMapConst GetLevels() const { return levels; }
-
+    pLevelStore GetLevels() { return levels; }
     pAngularDataLibrary GetAngularDataLibrary() { return angular_library; }
 
 public:
@@ -98,12 +96,12 @@ protected:
     /** Instantiate LevelMap and read from file.
         Get set of requested symmetries from user input.
      */
-    pLevelMap ChooseHamiltonians(pConfigList nrlist);
+    pLevelStore ChooseHamiltonians(pConfigList nrlist);
 
     /** Get configurations based on single electron configurations with no CI.
         PRE: MakeBasis() must have been run.
      */
-    const LevelVector& SingleElectronConfigurations(pHamiltonianID sym);
+    LevelVector SingleElectronConfigurations(pHamiltonianID sym);
 
     /** Attempt to read basis from file and generate HF operator.
         Return true if successful, false if file "identifier.basis" not found.
@@ -158,7 +156,7 @@ protected:
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
     pConfigList nrconfigs;
     pAngularDataLibrary angular_library;
-    pLevelMap levels;
+    pLevelStore levels;
 
 //    CIIntegralsMBPT* integralsMBPT;
 //    CoreMBPTCalculator* mbpt;

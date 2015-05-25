@@ -415,7 +415,7 @@ void Ambit::EnergyCalculations()
     if(user_input.search("--check-sizes"))
         atoms[0].CheckMatrixSizes();
     else
-    {   pLevelMap levels = atoms[0].ChooseHamiltoniansAndRead();
+    {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
         pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
 
         for(int i = 1; i < run_indexes.size(); i++)
@@ -423,10 +423,8 @@ void Ambit::EnergyCalculations()
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
         }
 
-        for(auto& pair: *levels)
+        for(auto& key: *levels)
         {
-            pHamiltonianID sym = pair.first;
-
             for(int i = 0; i < run_indexes.size(); i++)
             {
                 // This if statement is just to switch off printing the run condition for only one run
@@ -434,7 +432,7 @@ void Ambit::EnergyCalculations()
                 {   user_input.SetRun(run_indexes[i]);
                     user_input.PrintCurrentRunCondition(*outstream, "\n");
                 }
-                atoms[i].CalculateEnergies(sym);
+                atoms[i].CalculateEnergies(key);
             }
         }
     }
@@ -489,7 +487,7 @@ void Ambit::TransitionCalculations()
     }
 
     // Calculate all transitions of a certain type below a given energy
-    pLevelMap levels = atoms[first_run_index].GetLevels();
+    pLevelStore levels = atoms[first_run_index].GetLevels();
     for(const auto& type_pair : default_types)
     {
         std::string user_string = "Transitions/All" + type_pair.first + "Below";
@@ -503,21 +501,22 @@ void Ambit::TransitionCalculations()
                 right_it++;
                 while(right_it != levels->end())
                 {
-                    if(transitions.TransitionExists(left_it->first->GetSymmetry(), right_it->first->GetSymmetry(), type_pair.second))
+                    if(transitions.TransitionExists((*left_it)->GetSymmetry(), (*right_it)->GetSymmetry(), type_pair.second))
                     {
-                        for(int i = 0; i < left_it->second.size(); i++)
+                        LevelVector left_vec = levels->GetLevels(*left_it);
+                        for(int i = 0; i < left_vec.size(); i++)
                         {
-                            if(left_it->second[i]->GetEnergy() > max_energy)
+                            if(left_vec[i]->GetEnergy() > max_energy)
                                 break;
 
-                            for(int j = 0; j < right_it->second.size(); i++)
+                            LevelVector right_vec = levels->GetLevels(*right_it);
+                            for(int j = 0; j < right_vec.size(); i++)
                             {
-                                if(right_it->second[i]->GetEnergy() > max_energy)
+                                if(right_vec[i]->GetEnergy() > max_energy)
                                     break;
 
-                                transitions.CalculateTransition(std::make_pair(left_it->first, i),
-                                                                std::make_pair(right_it->first, j), type_pair.second);
-
+                                transitions.CalculateTransition(std::make_pair(*left_it, i),
+                                                                std::make_pair(*right_it, j), type_pair.second);
                             }
                         }
                     }
@@ -574,12 +573,12 @@ void Ambit::Recombination()
 
     // Get target level
     pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
-    const auto& target_it = target_atom.GetLevels()->find(target_key);
-    if(target_it == target_atom.GetLevels()->end() || target_it->second.size() == 0)
+    LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
+    if(target_level_vec.size() == 0)
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
-    pLevelConst target_level = target_it->second[0];
+    pLevelConst target_level = target_level_vec[0];
 
     // Get widths of current levels
     atoms[first_run_index].Autoionization(target_level);

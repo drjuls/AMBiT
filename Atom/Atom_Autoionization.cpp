@@ -57,17 +57,17 @@ void Atom::Autoionization(pLevelConst target)
     }
 
     // Loop over all HamiltonianIDs
-    for(auto& compound: *levels)
+    for(auto& key: *levels)
     {
-        Symmetry sym = compound.first->GetSymmetry();
-        *outstream << "\nAutoionization for " << compound.first << ":" << std::endl;
+        Symmetry sym = key->GetSymmetry();
+        *outstream << "\nAutoionization for " << key << ":" << std::endl;
 
-        const LevelVector& levels = compound.second;
-        const auto& compound_configs = compound.first->GetRelativisticConfigList();
+        LevelVector levelvec = levels->GetLevels(key);
+        const auto& compound_configs = key->GetRelativisticConfigList();
 
         // Loop over all levels
         int level_index = 0;
-        for(auto level_it = levels.begin(); level_it != levels.end(); level_it++)
+        for(auto level_it = levelvec.begin(); level_it != levelvec.end(); level_it++)
         {
             const auto& compound_eigenvector = (*level_it)->GetEigenvector();
 
@@ -290,17 +290,17 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     }
 
     // Loop over all HamiltonianIDs
-    for(auto& compound: *levels)
+    for(auto& key: *levels)
     {
-        Symmetry sym = compound.first->GetSymmetry();
-        *outstream << "\nAutoionization for " << compound.first << ":" << std::endl;
+        Symmetry sym = key->GetSymmetry();
+        *outstream << "\nAutoionization for " << key << ":" << std::endl;
 
-        const LevelVector& levels = compound.second;
-        const auto& compound_configs = compound.first->GetRelativisticConfigList();
+        LevelVector levelvec = levels->GetLevels(key);
+        const auto& compound_configs = key->GetRelativisticConfigList();
 
         // Loop over all levels
         int level_index = 0;
-        for(auto level_it = levels.begin(); level_it != levels.end(); level_it++)
+        for(auto level_it = levelvec.begin(); level_it != levelvec.end(); level_it++)
         {
             // Choose continuum energy
             double eps_energy = (*level_it)->GetEnergy() - ionization_energy;

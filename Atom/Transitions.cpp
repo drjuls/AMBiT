@@ -109,19 +109,17 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
     }
 
     // Get levels
-    auto level_it = levels->find(left.first);
-    if(level_it == levels->end() || level_it->second.size() <= left.second)
+    LevelVector left_levels = levels->GetLevels(left.first);
+    if(left_levels.size() <= left.second)
     {   *errstream << "Transitions::AddTransition(): Level " << Name(left) << " not found." << std::endl;
         return 0.;
     }
-    const LevelVector& left_levels = level_it->second;
 
-    level_it = levels->find(right.first);
-    if(level_it == levels->end() || level_it->second.size() <= right.second)
+    LevelVector right_levels = levels->GetLevels(right.first);
+    if(right_levels.size() <= right.second)
     {   *errstream << "Transitions::AddTransition(): Level " << Name(right) << " not found." << std::endl;
         return 0.;
     }
-    const LevelVector& right_levels = level_it->second;
 
     // Get transition integrals
     pTransitionIntegrals transition_integral = integrals[type];

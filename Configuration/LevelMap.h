@@ -13,53 +13,131 @@ void Print(const LevelVector& levels, double min_percentage = 1.0);
 void Print(const LevelVector& levels, double min_percentage, double max_energy);
 
 struct pHamiltonianIDComparator {
-    bool operator() (const pHamiltonianID& lhs, const pHamiltonianID& rhs) const
+    bool operator() (const pHamiltonianIDConst& lhs, const pHamiltonianIDConst& rhs) const
     {   return *lhs < *rhs; }
 };
 
-/** Map from pHamiltonianID (which can be a subclass) to LevelVector. */
-typedef std::map<pHamiltonianID, LevelVector, pHamiltonianIDComparator> LevelMap;
-typedef std::shared_ptr<LevelMap> pLevelMap;
-typedef std::shared_ptr<const LevelMap> pLevelMapConst;
-
-class symmetry_match_predicate
+/** LevelStore consists of
+    "KeyLibrary", list of pHamiltonianID (which can be a subclass) that are required/desired,
+    and storage for associated LevelVectors.
+    Iterators act over key library.
+ */
+class LevelStore
 {
-public:
-    symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
-    symmetry_match_predicate(const symmetry_match_predicate& other): m_sym(other.m_sym) {}
-    ~symmetry_match_predicate() {}
+protected:
+    class symmetry_match_predicate;
 
-    symmetry_match_predicate operator=(const symmetry_match_predicate& other)
-    {   m_sym = other.m_sym; return *this;
+public:
+    typedef std::vector<pHamiltonianID> KeyLibrary;
+
+    LevelStore() {}
+
+    // Iterators over key library
+    typedef KeyLibrary::const_iterator const_iterator;
+
+    const_iterator begin() const { return m_lib.begin(); }
+    unsigned int count(const pHamiltonianIDConst& key) const; //!< Test for existence of key in key library.
+    bool empty() const { return m_lib.empty(); }
+    const_iterator end() const { return m_lib.end(); }
+    const_iterator find(const pHamiltonianIDConst& key) const;
+    unsigned int size() const { return m_lib.size(); }
+
+
+    /** Symmetry filter iterator over key library: matches all keys with correct symmetry. */
+    typedef boost::filter_iterator<symmetry_match_predicate, const_iterator> const_symmetry_iterator;
+    const_symmetry_iterator begin(const Symmetry& sym) const
+    {   return const_symmetry_iterator(symmetry_match_predicate(sym), begin(), end());
+    }
+    const_symmetry_iterator end(const Symmetry& sym) const
+    {   return const_symmetry_iterator(symmetry_match_predicate(sym), end(), end());
     }
 
-    bool operator()(const std::pair<pHamiltonianID, LevelVector>& val) { return m_sym == val.first->GetSymmetry(); }
+    /** Insert into key library.
+        Copy RelativisticConfigList from key into library if key already exists.
+        Return iterator to key in library.
+     */
+    virtual const_iterator insert(pHamiltonianID key);
+
+    /** Get LevelVector corresponding to key. */
+    virtual LevelVector GetLevels(pHamiltonianID key) = 0;
+
+    /** Store LevelVector (and generally write to file, although this is implementation dependent). */
+    virtual void Store(pHamiltonianID key, const LevelVector& level_vector) = 0;
+
 protected:
-    Symmetry m_sym;
+    KeyLibrary m_lib;
+
+protected:
+    class symmetry_match_predicate
+    {
+    public:
+        symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
+        symmetry_match_predicate(const symmetry_match_predicate& other): m_sym(other.m_sym) {}
+        ~symmetry_match_predicate() {}
+        
+        symmetry_match_predicate operator=(const symmetry_match_predicate& other)
+        {   m_sym = other.m_sym; return *this;
+        }
+        
+        bool operator()(const pHamiltonianID& val) { return m_sym == val->GetSymmetry(); }
+    protected:
+        Symmetry m_sym;
+    };
 };
 
-/** Symmetry filter iterator over LevelMap */
-typedef boost::filter_iterator<symmetry_match_predicate, LevelMap::iterator> LevelMap_symmetry_iterator;
-typedef boost::filter_iterator<symmetry_match_predicate, LevelMap::const_iterator> const_LevelMap_symmetry_iterator;
+typedef std::shared_ptr<LevelStore> pLevelStore;
 
-/** Write LevelMap object to file.
-    LevelMap maps HamiltonianID -> LevelVector, where the HamiltonianID defines
-        Write(FILE*) and Read(FILE*) which define a unique HamiltonianID, as well as
-        GetRelativisticConfigList().
- */
-void WriteLevelMap(const LevelMap& level_map, const std::string& filename);
+/** Implementation of LevelStore for when all levels can be stored simultaneously in memory. */
+class LevelMap : public LevelStore
+{
+    typedef std::map<pHamiltonianID, LevelVector, pHamiltonianIDComparator> MapType;
 
-/** Return LevelMap object read from file.
-    LevelMap maps pHamiltonianID -> LevelVector, where the HamiltonianID defines
-        Write(FILE*) and Read(FILE*) which define a unique HamiltonianID, as well as
-        GetRelativisticConfigList().
- */
-pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, pAngularDataLibrary angular_library);
+public:
+    /** Construct LevelMap with no read/write capacity. */
+    LevelMap(pAngularDataLibrary lib);
 
-/** Append object pointed to by LevelMap::iterator to file.
-    Calls WriteLevelMap if file doesn't exist, otherwise appends to end and updates number of records stored.
+    /** Construct LevelMap with no read. */
+    LevelMap(const std::string& file_id, pAngularDataLibrary lib);
+
+    /** Constructor attempts to read existing level map. */
+    LevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& file_id, pAngularDataLibrary lib);
+
+    /** Get LevelVector corresponding to key. */
+    virtual LevelVector GetLevels(pHamiltonianID key) override;
+    
+    /** Store LevelVector and write to file. */
+    virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
+
+protected:
+    /** Read entire LevelMap in single file. */
+    void ReadLevelMap(pHamiltonianIDConst hamiltonian_example);
+
+protected:
+    std::string filename_prefix;
+    pAngularDataLibrary angular_library;
+
+    MapType m_map;
+
+};
+
+/** Implementation of LevelStore that writes everything to files and stores almost nothing.
+    Files are separated by Symmetry, in order to speed up retrieval.
  */
-void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filename);
+class FileSystemLevelStore : public LevelStore
+{
+public:
+    FileSystemLevelStore(const std::string& file_prefix, pAngularDataLibrary lib);
+
+    /** Get LevelVector corresponding to key. */
+    virtual LevelVector GetLevels(pHamiltonianID key) override;
+    
+    /** Store LevelVector and write to file. */
+    virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
+
+protected:
+    std::string filename_prefix;
+    pAngularDataLibrary angular_library;
+};
 
 /** Print LevelVector to outstream, with all possible options for printing.
     All other print functions call this one.
