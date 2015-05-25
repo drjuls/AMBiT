@@ -609,7 +609,10 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 //                filegenerator->WriteConfigs();
 //            }
 
+            *logstream << "Writing LevelMap " << std::flush;
+            DebugOptions.MarkTime();
             WriteLevelMap(*levels, filename);
+            *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
         }
     }
 

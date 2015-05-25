@@ -238,14 +238,20 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         Clear();
 
         ScalapackMatrix SM(N);
+        *logstream << "\nReading          " << std::flush;
+        DebugOptions.MarkTime();
         SM.ReadTriangle(filename);
+        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
         // Diagonalise
+        *logstream << "Diagonalising    " << std::flush;
+        DebugOptions.MarkTime();
         double* E = new double[N];  // All eigenvalues
-        double* V = new double[N];  // One eigenvector
-
         SM.Diagonalise(E);
+        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
+        *logstream << "Copying          " << std::flush;
+        DebugOptions.MarkTime();
         // Cut off num_solutions
         if(use_energy_limit)
             for(int i = 0; i < NumSolutions; i++)
@@ -257,13 +263,26 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
                 }
             };
 
-        // Get levels
+        // Get levels. Using a larger buffer is generally better, so
+        // choose something around 1M * 8 bytes (small enough to be "in the noise")
         levels.reserve(NumSolutions);
-        for(unsigned int i = 0; i < NumSolutions; i++)
+        unsigned int column_begin = 0;
+        unsigned int num_columns_per_step = 1000000/N;
+        double* V = new double[N * num_columns_per_step];  // Eigenvectors
+
+        while(column_begin < NumSolutions)
         {
-            SM.GetColumn(i, V);
-            levels.push_back(std::make_shared<Level>(E[i], V, hID, N));
+            unsigned int column_end = mmin(column_begin + num_columns_per_step, NumSolutions);
+            SM.GetColumns(column_begin, column_end, V);
+
+            double* pV = V;
+            while(column_begin < column_end)
+            {   levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
+                column_begin++;
+                pV += N;
+            }
         }
+        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
         delete[] E;
         delete[] V;

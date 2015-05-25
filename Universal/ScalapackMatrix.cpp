@@ -59,7 +59,8 @@ ScalapackMatrix::ScalapackMatrix(unsigned int size):
     {   num_proc_rows--;
         num_proc_cols = NumProcessors/num_proc_rows;
     }
-    *logstream << "ScalapackMatrix decomposition: " << num_proc_rows << " * " << num_proc_cols << std::endl;
+    if(DebugOptions.LogScalapack())
+        *logstream << "ScalapackMatrix decomposition: " << num_proc_rows << " * " << num_proc_cols << std::endl;
 
     // Initialise process grid
     sl_init_(&ICTXT, &num_proc_rows, &num_proc_cols);
@@ -456,7 +457,7 @@ void ScalapackMatrix::Diagonalise(double* eigenvalues)
 
     if(DebugOptions.LogScalapack())
     {   // Restore matrix and test eigenvalues.
-        ReadTriangle("MgI001.matrix");
+        ReadTriangle("temp.matrix");
         TestEigenvalues(eigenvalues, V);
     }
 
@@ -550,6 +551,69 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
     }
 
     comm_world.Allreduce(buffer, col, N, MPI::DOUBLE, MPI::SUM);
+
+    delete[] buffer;
+}
+
+void ScalapackMatrix::GetColumns(unsigned int col_begin, unsigned int col_end, double* cols) const
+{
+    if(col_begin >= N || col_end <= col_begin)
+        return;
+
+    int num_cols = col_end - col_begin;
+    double* buffer = new double[N * num_cols];
+
+    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
+
+    unsigned int i, j;
+    unsigned int i_end;
+    unsigned int M_i, M_j;
+    double* M_pos;
+
+    // Reset buffer
+    memset(buffer, 0, sizeof(double) * N * num_cols);
+
+    if(DebugOptions.LogScalapack())
+        *logstream << "GetColumns " << col_begin << "->" << col_end << ": ";
+
+    // Get first column
+    unsigned int col_number = col_begin;
+    M_j = 0;
+    while(M_j < M_cols && col_number < col_end)
+    {
+        while(M_j < M_cols && M_col_numbers[M_j] < col_number)
+        {
+            M_j++;
+        }
+
+        // Fill our part of buffer
+        if(M_j < M_cols && M_col_numbers[M_j] == col_number)
+        {
+            if(DebugOptions.LogScalapack())
+                *logstream << M_j << " ";
+
+            // Get first start/end point
+            M_i = 0;
+            i = M_row_numbers[M_i];
+            i_end = mmin((i/MB + 1)*MB, N);
+            M_pos = &M[M_j*M_rows + M_i];
+
+            while(i < i_end)
+            {
+                memcpy(&buffer[N * (col_number-col_begin) + i], M_pos, sizeof(double) * (i_end - i));
+                M_pos += (i_end - i);
+                i = i_end + (num_proc_rows - 1) * MB;
+                i_end = mmin((i + MB), N);
+            }
+        }
+
+        col_number++;
+    }
+
+    if(DebugOptions.LogScalapack())
+        *logstream << std::endl;
+
+    comm_world.Allreduce(buffer, cols, N * num_cols, MPI::DOUBLE, MPI::SUM);
 
     delete[] buffer;
 }

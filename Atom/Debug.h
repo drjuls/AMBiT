@@ -1,6 +1,8 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+#include <chrono>
+
 class Debug
 {
     /** Set of options for debugging and logging.
@@ -30,7 +32,7 @@ public:
     /** Generic Options */
     inline bool HartreeEnergyUnits() const { return bHartreeUnits; }
     inline bool InvCmEnergyUnits() const { return bInvCmUnits; }
-    
+
 public:
     inline void LogFirstBuild(bool debugon) { bFirstBuild = debugon; }
     inline void LogHFIterations(bool debugon) { bHFIterations = debugon; }
@@ -44,18 +46,30 @@ public:
     inline void HartreeEnergyUnits(bool turnon) { bHartreeUnits = turnon; }
     inline void InvCmEnergyUnits(bool turnon) { bInvCmUnits = turnon; }
 
+public:
+    inline void MarkTime() { mark_time = std::chrono::steady_clock::now(); }
+    inline std::chrono::steady_clock::duration GetInterval() const
+    {   return std::chrono::steady_clock::now() - mark_time;
+    }
+    inline double GetIntervalInSeconds() const
+    {   std::chrono::steady_clock::duration d = GetInterval();
+        return std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1,1>>>(d).count();
+    }
+
 private:
     bool bFirstBuild;
     bool bHFIterations;
     bool bHFExcited;
     bool bHFContinuum;
-    
+
     bool bMBPT;
     bool bScalapack;
     bool bAugerRate;
 
     bool bHartreeUnits;
     bool bInvCmUnits;
+
+    std::chrono::steady_clock::time_point mark_time;
 };
 
 inline Debug::Debug()
@@ -64,12 +78,14 @@ inline Debug::Debug()
     bHFIterations = false;
     bHFExcited = false;
     bHFContinuum = false;
-    
+
     bMBPT = false;
     bScalapack = false;
 
     bHartreeUnits = false;
     bInvCmUnits = false;
+
+    MarkTime();
 }
 
 #endif
