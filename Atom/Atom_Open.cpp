@@ -502,7 +502,8 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 {
     // This function is public and can call the other CalculateEnergies variants.
     LevelVector& levelvec = (*levels)[hID];
-    pHamiltonianID key = levels->find(hID)->first;
+    LevelMap::iterator current_level_it = levels->find(hID);
+    pHamiltonianID key = current_level_it->first;
 
     std::string filename = identifier + ".levels";
 
@@ -552,7 +553,10 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 //        if(sigma3)
 //            H->IncludeSigma3(sigma3);
 
+            *logstream << "\nGenerate Hamiltonian " << std::flush;
+            DebugOptions.MarkTime();
             H.GenerateMatrix();
+            *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
             //H->PollMatrix();
 
             if(user_input.search("--write-hamiltonian"))
@@ -611,7 +615,7 @@ const LevelVector& Atom::CalculateEnergies(pHamiltonianID hID)
 
             *logstream << "Writing LevelMap " << std::flush;
             DebugOptions.MarkTime();
-            WriteLevelMap(*levels, filename);
+            AppendLevelMap(current_level_it, filename);
             *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
         }
     }

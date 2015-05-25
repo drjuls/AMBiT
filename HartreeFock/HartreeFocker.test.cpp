@@ -71,9 +71,9 @@ TEST(HartreeFockerTester, ContinuumOrbital)
 {
     pLattice lattice(new Lattice(1500, 1.e-6, 100.));
 
-    // Ca
-    unsigned int Z = 12;
-    std::string filling = "1s2 2s2 2p6";
+    // F V
+    unsigned int Z = 9;
+    std::string filling = "1s2 2s1";
 
     DebugOptions.LogFirstBuild(true);
     DebugOptions.LogHFIterations(true);
@@ -92,11 +92,14 @@ TEST(HartreeFockerTester, ContinuumOrbital)
     HF_Solver.StartCore(core, t);
     HF_Solver.SolveCore(core, t);
 
-    pContinuumWave epsilon(new ContinuumWave(-1, 100, 0.2));    // kappa, pqn, energy
-
-    unsigned int loop = HF_Solver.CalculateContinuumWave(epsilon, t);
-    EXPECT_NE(0, loop);
-    epsilon->Print();
+    double eV = 1./MathConstant::Instance()->HartreeEnergyIneV();
+    for(int l = 0; l <= 8; l++)
+        for(int kappa = - l - 1; kappa <= l; kappa += 2 * mmax(l, 1) + 1)
+        {
+            pContinuumWave epsilon(new ContinuumWave(kappa, 100, 0.01 * eV));    // kappa, pqn, energy
+            unsigned int loop = HF_Solver.CalculateContinuumWave(epsilon, t);
+            EXPECT_NE(0, loop);
+        }
 }
 
 TEST(HartreeFockerTester, AuContinuum)

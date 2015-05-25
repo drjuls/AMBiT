@@ -56,6 +56,11 @@ void WriteLevelMap(const LevelMap& level_map, const std::string& filename);
  */
 pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::string& filename, pAngularDataLibrary angular_library);
 
+/** Append object pointed to by LevelMap::iterator to file.
+    Calls WriteLevelMap if file doesn't exist, otherwise appends to end and updates number of records stored.
+ */
+void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filename);
+
 /** Print LevelVector to outstream, with all possible options for printing.
     All other print functions call this one.
  */

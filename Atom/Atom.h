@@ -86,6 +86,9 @@ public:
     /** For all levels requested, create continuum wave and calculate autoionization rate. */
     void Autoionization(pLevelConst target);
 
+    /** Use continuum energy grid for autoionisation. */
+    void AutoionizationEnergyGrid(pLevelConst target);
+
 protected:
     /** Initialise AngularDataLibrary if it hasn't been already.
         If trial is included, check that the number of valence electrons is correct before using.

@@ -666,12 +666,14 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             lattice->resize_to_r(lattice->MaxRealDistance() * 2.);
             s->Clear();
             s->resize(lattice->size());
-            old_phase = 0.0;
+            old_phase = -1.0;
             start_sine = 0;
             ds = 1.0;   // Do another loop!
         }
         else
-        {   ds = (final_phase - old_phase)/MathConstant::Instance()->Pi();
+        {   final_phase = final_phase/MathConstant::Instance()->Pi();
+            final_phase = final_phase - std::floor(final_phase);
+            ds = final_phase - old_phase;
             if(fabs(ds) > EnergyTolerance)
             {
                 *exchange *= 0.5;

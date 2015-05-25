@@ -47,10 +47,15 @@ public:
     inline void InvCmEnergyUnits(bool turnon) { bInvCmUnits = turnon; }
 
 public:
+    /** Set marker for later use by GetInterval(). */
     inline void MarkTime() { mark_time = std::chrono::steady_clock::now(); }
+
+    /** Get duration since last MarkTime() call. */
     inline std::chrono::steady_clock::duration GetInterval() const
     {   return std::chrono::steady_clock::now() - mark_time;
     }
+
+    /** Get number of seconds since last MarkTime() call. */
     inline double GetIntervalInSeconds() const
     {   std::chrono::steady_clock::duration d = GetInterval();
         return std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1,1>>>(d).count();

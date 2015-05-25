@@ -106,6 +106,50 @@ pLevelMap ReadLevelMap(pHamiltonianIDConst hamiltonian_example, const std::strin
     return level_map;
 }
 
+void AppendLevelMap(const LevelMap::const_iterator it, const std::string& filename)
+{
+    if((it->first->GetRelativisticConfigList() == nullptr) || it->second.size() == 0)
+        return;
+
+    FILE* fp = fopen(filename.c_str(), "rb+");
+    if(!fp)
+    {   LevelMap levels;
+        levels.insert(*it);
+        return WriteLevelMap(levels, filename);
+    }
+
+    // Read number of entries in LevelMap
+    unsigned int num_hamiltonians;
+    fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+
+    // Seek start again and write updated num_hamiltonians
+    num_hamiltonians++;
+    fseek(fp, 0, SEEK_SET);
+    fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+
+    // Seek end, write HamiltonianID and Level information
+    fseek(fp, 0, SEEK_END);
+    it->first->Write(fp);
+
+    unsigned int num_levels = it->second.size();
+    fwrite(&num_levels, sizeof(unsigned int), 1, fp);
+
+    for(auto& pl: it->second)
+    {
+        const std::vector<double>& eigenvector = pl->GetEigenvector();
+        unsigned int N = eigenvector.size();
+        double eigenvalue = pl->GetEnergy();
+        double gfactor = pl->GetgFactor();
+
+        fwrite(&eigenvalue, sizeof(double), 1, fp);
+        fwrite(&N, sizeof(unsigned int), 1, fp);
+        fwrite(eigenvector.data(), sizeof(double), N, fp);
+        fwrite(&gfactor, sizeof(double), 1, fp);
+    }
+
+    fclose(fp);
+}
+
 void Print(const LevelVector& levels, double min_percentage, bool use_max_energy, double max_energy)
 {
     if(levels.size() == 0)
