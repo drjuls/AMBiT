@@ -67,7 +67,7 @@ public:
     pLevelStore ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib = nullptr);
 
     /** Calculate levels for all chosen symmetries in user input.
-        PRE: ChooseHamiltonians() must have been run.
+        PRE: ChooseHamiltoniansAndRead() must have been run.
      */
     pLevelStore CalculateEnergies();
 
@@ -81,10 +81,14 @@ public:
     pAngularDataLibrary GetAngularDataLibrary() { return angular_library; }
 
 public:
-    /** For all levels requested, create continuum wave and calculate autoionization rate. */
+    /** For all levels requested, create continuum wave and calculate autoionization rate.
+        PRE: ChooseHamiltoniansAndRead() must have been run.
+     */
     void Autoionization(pLevelConst target);
 
-    /** Use continuum energy grid for autoionisation. */
+    /** Use continuum energy grid for autoionisation.
+        PRE: ChooseHamiltoniansAndRead() must have been run.
+     */
     void AutoionizationEnergyGrid(pLevelConst target);
 
 protected:

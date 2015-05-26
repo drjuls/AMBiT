@@ -102,7 +102,7 @@ public:
     const NonRelConfiguration& GetNonRelConfiguration() const { return nrconfig; }
 
     virtual std::string Name() const override
-    {   return nrconfig.Name() + "." + HamiltonianID::Name();
+    {   return nrconfig.NameNoSpaces() + "." + HamiltonianID::Name();
     }
 
     virtual std::string Print() const override

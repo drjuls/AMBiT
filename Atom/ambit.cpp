@@ -425,6 +425,10 @@ void Ambit::EnergyCalculations()
     {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
         pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
 
+        // Don't calculate extra levels
+        if(user_input.search(2, "--ci-complete", "--CI-complete"))
+            return;
+
         for(int i = 1; i < run_indexes.size(); i++)
         {   user_input.SetRun(run_indexes[i]);
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
@@ -588,7 +592,10 @@ void Ambit::Recombination()
     pLevelConst target_level = target_level_vec[0];
 
     // Get widths of current levels
-    atoms[first_run_index].Autoionization(target_level);
+    if(user_input.search("DR/--energy-grid"))
+        atoms[first_run_index].AutoionizationEnergyGrid(target_level);
+    else
+        atoms[first_run_index].Autoionization(target_level);
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

@@ -10,10 +10,6 @@
 
 void Atom::Autoionization(pLevelConst target)
 {
-    // Check if we should be doing continuum energy grid version
-    if(user_input("DR/EnergyGridStep", 0.0) != 0.0)
-        return AutoionizationEnergyGrid(target);
-
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     double energy_limit = user_input("DR/EnergyLimit", 0.0);
 
@@ -56,14 +52,21 @@ void Atom::Autoionization(pLevelConst target)
         hf_continuum->SetCore(continuum_core);
     }
 
+    *outstream << "\nAutoionization rates:"
+               << "\n E(eV)   A(ns)   J   P   LevelID" << std::endl;
+
+    double energy_unit_conversion = math->HartreeEnergyIneV();
+    double rate_unit_conversion = 0.413e8;
+
     // Loop over all HamiltonianIDs
     for(auto& key: *levels)
     {
         Symmetry sym = key->GetSymmetry();
-        *outstream << "\nAutoionization for " << key << ":" << std::endl;
 
         LevelVector levelvec = levels->GetLevels(key);
-        const auto& compound_configs = key->GetRelativisticConfigList();
+        pRelativisticConfigListConst compound_configs = key->GetRelativisticConfigList();
+        if(!compound_configs && levelvec.size())
+            compound_configs = levelvec[0]->GetRelativisticConfigList();
 
         // Loop over all levels
         int level_index = 0;
@@ -182,8 +185,11 @@ void Atom::Autoionization(pLevelConst target)
                 rate += 2. * math->Pi() * partial * partial;
             }
 
-            *outstream << level_index << " (E = " << std::setprecision(4) << eps_energy*math->HartreeEnergyIneV() << " eV): "
-                       <<  rate << "\t = " << rate * 0.413e8 << " /nsec" << std::endl;
+            char sep = ' ';
+            *outstream << eps_energy * energy_unit_conversion << sep
+                       << rate * rate_unit_conversion << sep
+                       << sym.GetJ() <<  sep << Sign(sym.GetParity()) << sep
+                       << key->Name() << ':' << level_index << std::endl;
 
             level_index++;
         }
@@ -193,16 +199,22 @@ void Atom::Autoionization(pLevelConst target)
 void Atom::AutoionizationEnergyGrid(pLevelConst target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
-    double grid_max = user_input("DR/EnergyLimit", 3.675);   // Default 100eV
+    double grid_max = user_input("DR/EnergyLimit", 3.675);      // Default 100eV
     double grid_step = user_input("DR/EnergyGridStep", 0.03675); // Default 1eV
     double grid_min = user_input("DR/EnergyGridMin", 0.003675); // Default 0.1eV
     std::vector<double> energy_grid;
-    int max_continuum_l = user_input("DR/ContinuumLMax", 8);     // Default maximum L = 8
+    int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
 
     int pqn_offset = 100;
     energy_grid.reserve((grid_max - grid_min)/grid_step + 1);
 
     auto math = MathConstant::Instance();
+
+    *outstream << "\nAutoionization rates:"
+               << "\n E(eV)   A(ns)   J   P   LevelID" << std::endl;
+
+    double energy_unit_conversion = math->HartreeEnergyIneV();
+    double rate_unit_conversion = 0.413e8;
 
     ConfigGenerator gen(orbitals, user_input);
     pOrbitalMap valence(new OrbitalMap(*orbitals->valence));
@@ -293,10 +305,11 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     for(auto& key: *levels)
     {
         Symmetry sym = key->GetSymmetry();
-        *outstream << "\nAutoionization for " << key << ":" << std::endl;
 
         LevelVector levelvec = levels->GetLevels(key);
-        const auto& compound_configs = key->GetRelativisticConfigList();
+        pRelativisticConfigListConst compound_configs = key->GetRelativisticConfigList();
+        if(!compound_configs && levelvec.size())
+            compound_configs = levelvec[0]->GetRelativisticConfigList();
 
         // Loop over all levels
         int level_index = 0;
@@ -351,7 +364,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                     double coupling = math->Wigner3j(eps_twoJ, target_symmetry.GetTwoJ(), sym.GetTwoJ(), eps_twoM, target_twoM);
                     coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_symmetry.GetTwoJ() + eps_twoM + target_twoM)/2);
 
-                    // Iterate over (generally larger) compound states first, for better multiporocessor load balance
+                    // Iterate over (generally larger) compound states first, for better multiprocessor load balance
                     double local_partial_j = 0.;
                     auto proj_jt = compound_configs->projection_begin();
                     int proj_index = 0;
@@ -400,10 +413,13 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
 
                 rate += 2. * math->Pi() * partial * partial;
             }
-            
-            *outstream << level_index << " (E = " << std::setprecision(4) << eps_energy*math->HartreeEnergyIneV() << " eV): "
-                       << rate << "\t = " << rate * 0.413e8 << " /nsec" << std::endl;
-            
+
+            char sep = ' ';
+            *outstream << eps_energy * energy_unit_conversion << sep
+                       << rate * rate_unit_conversion << sep
+                       << sym.GetJ() <<  sep << Sign(sym.GetParity()) << sep
+                       << key->Name() << ':' << level_index << std::endl;
+
             level_index++;
         }
     }

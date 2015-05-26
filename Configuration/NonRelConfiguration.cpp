@@ -65,20 +65,10 @@ std::string NonRelConfiguration::Name(bool aSpaceFirst) const
     return name;
 }
 
-std::string NonRelConfiguration::ShortName() const
+std::string NonRelConfiguration::NameNoSpaces() const
 {
-    auto m_it = m_config.begin();
-    std::string name;
-    while(m_it != m_config.end())
-    {
-        name.append(NonRelInfo(m_it->first).Name());
-
-        char buffer[20];
-        sprintf(buffer, "%d", m_it->second);
-        name.append(buffer);
-
-        m_it++;
-    }
+    std::string name = Name(false);
+    std::replace(name.begin(), name.end(), ' ', '-');
     return name;
 }
 
