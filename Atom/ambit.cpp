@@ -59,6 +59,13 @@ int main(int argc, char* argv[])
         *outstream << "      git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
         *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
 
+        // Print git diff output
+        if(strlen(GIT_DIFF_OUTPUT))
+        {   *outstream << "\ngit diff:\n-----------------------------\n";
+            *outstream << GIT_DIFF_OUTPUT;
+            *outstream << "-----------------------------" << std::endl;
+        }
+
         if(lineInput.search("--version"))
             return 0;
 
