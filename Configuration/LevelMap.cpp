@@ -161,82 +161,70 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 }
 
 FileSystemLevelStore::FileSystemLevelStore(const std::string& file_prefix, pAngularDataLibrary lib):
-    filename_prefix(file_prefix), angular_library(lib)
+    FileSystemLevelStore(".", file_prefix, lib)
 {}
+
+FileSystemLevelStore::FileSystemLevelStore(const std::string& dir_name, const std::string& file_prefix, pAngularDataLibrary lib):
+    directory(dir_name), filename_prefix(file_prefix), angular_library(lib)
+{
+    if(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
+    {
+        // Attempt to create, else fail
+        if(!boost::filesystem::create_directory(directory))
+        {   *errstream << "FileSystemLevelStore cannot create directory " << directory << std::endl;
+            exit(1);
+        }
+    }
+
+    directory = boost::filesystem::canonical(directory);
+}
 
 LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
 {
     LevelVector levels;
-    std::string filename = filename_prefix + "." + key->GetSymmetry().GetString() + ".levels";
+    std::string filename = filename_prefix + "." + key->Name() + ".levels";
+    filename = (directory / filename).string();
 
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
         return levels;
 
-    // Read number of entries in LevelMap
-    unsigned int num_hamiltonians;
-    fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+    // Read key and recover angular data
+    pHamiltonianID read_key = key->Clone();
+    read_key->Read(fp);
 
-    // Read all HamiltonianIDs and Level information
-    for(unsigned int i = 0; i < num_hamiltonians; i++)
+    if(*key == *read_key)
     {
-        // Read key and recover angular data
-        pHamiltonianID read_key = key->Clone();
-        read_key->Read(fp);
+        pRelativisticConfigList configs = read_key->GetRelativisticConfigList();
+        for(auto& relconfig: *configs)
+            relconfig.GetProjections(angular_library, read_key->GetSymmetry(), read_key->GetTwoJ());
 
-        if(*key == *read_key)
+        // These should be generated already, but in case they weren't saved...
+        angular_library->GenerateCSFs();
+
+        // Read all level information
+        unsigned int num_levels;
+        fread(&num_levels, sizeof(unsigned int), 1, fp);
+
+        levels.reserve(num_levels);
+
+        double eigenvalue;
+        unsigned int N;
+        std::vector<double> eigenvector;
+        double gfactor;
+
+        for(unsigned int index = 0; index < num_levels; index++)
         {
-            pRelativisticConfigList configs = read_key->GetRelativisticConfigList();
-            for(auto& relconfig: *configs)
-                relconfig.GetProjections(angular_library, read_key->GetSymmetry(), read_key->GetTwoJ());
+            fread(&eigenvalue, sizeof(double), 1, fp);
+            fread(&N, sizeof(unsigned int), 1, fp);
+            eigenvector.resize(N);
+            fread(eigenvector.data(), sizeof(double), N, fp);
+            fread(&gfactor, sizeof(double), 1, fp);
 
-            // These should be generated already, but in case they weren't saved...
-            angular_library->GenerateCSFs();
-
-            // Read all level information
-            unsigned int num_levels;
-            fread(&num_levels, sizeof(unsigned int), 1, fp);
-
-            levels.reserve(num_levels);
-
-            double eigenvalue;
-            unsigned int N;
-            std::vector<double> eigenvector;
-            double gfactor;
-
-            for(unsigned int index = 0; index < num_levels; index++)
-            {
-                fread(&eigenvalue, sizeof(double), 1, fp);
-                fread(&N, sizeof(unsigned int), 1, fp);
-                eigenvector.resize(N);
-                fread(eigenvector.data(), sizeof(double), N, fp);
-                fread(&gfactor, sizeof(double), 1, fp);
-
-                levels.push_back(std::make_shared<Level>(eigenvalue, eigenvector, read_key, gfactor));
-            }
-
-            break;
-        }
-        else
-        {   // Skip past level information
-            unsigned int num_levels;
-            fread(&num_levels, sizeof(unsigned int), 1, fp);
-            double eigenvalue;
-            unsigned int N;
-            std::vector<double> eigenvector;
-            double gfactor;
-            
-            for(unsigned int index = 0; index < num_levels; index++)
-            {
-                fread(&eigenvalue, sizeof(double), 1, fp);
-                fread(&N, sizeof(unsigned int), 1, fp);
-                eigenvector.resize(N);
-                fread(eigenvector.data(), sizeof(double), N, fp);
-                fread(&gfactor, sizeof(double), 1, fp);
-            }
+            levels.push_back(std::make_shared<Level>(eigenvalue, eigenvector, read_key, gfactor));
         }
     }
-    
+
     fclose(fp);
     return levels;
 }
@@ -248,28 +236,16 @@ void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_ve
         return;
 
     // Append level_vector to file
-    std::string expanded_prefix = filename_prefix + "." + key->GetSymmetry().GetString();
-    std::string filename = expanded_prefix + ".levels";
+    std::string filename = filename_prefix + "." + key->Name() + ".levels";
+    filename = (directory / filename).string();
 
-    FILE* fp = fopen(filename.c_str(), "rb+");
+    FILE* fp = fopen(filename.c_str(), "wb");
     if(!fp)
-    {   // Highjack LevelMap write function
-        LevelMap levels(expanded_prefix, angular_library);
-        levels.Store(key, level_vector);
-        return;
+    {   *errstream << "FileSystemLevelStore::Store() cannot open " << filename << " for writing." << std::endl;
+        exit(1);
     }
 
-    // Read number of entries in LevelMap
-    unsigned int num_hamiltonians;
-    fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
-
-    // Seek start again and write updated num_hamiltonians
-    num_hamiltonians++;
-    fseek(fp, 0, SEEK_SET);
-    fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
-
-    // Seek end, write HamiltonianID and Level information
-    fseek(fp, 0, SEEK_END);
+    // Write HamiltonianID and Level information
     key->Write(fp);
 
     unsigned int num_levels = level_vector.size();

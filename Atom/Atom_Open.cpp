@@ -262,7 +262,13 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     InitialiseAngularDataLibrary(angular_lib);
 
     if(user_input.search("CI/--memory-saver"))
-        levels = std::make_shared<FileSystemLevelStore>(identifier, angular_library);
+    {
+        std::string dir = user_input("LevelDirectory", "");
+        if(dir.empty())
+            levels = std::make_shared<FileSystemLevelStore>(identifier, angular_library);
+        else
+            levels = std::make_shared<FileSystemLevelStore>(dir, identifier, angular_library);
+    }
     else if(use_read)
     {
         pHamiltonianID key;

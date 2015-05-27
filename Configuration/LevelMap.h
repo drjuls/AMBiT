@@ -6,6 +6,7 @@
 #include "NonRelConfiguration.h"
 #include <vector>
 #include <map>
+#include <boost/filesystem.hpp>
 
 /** All levels in LevelVector should come from the same Hamiltonian, although this is not enforced. */
 typedef std::vector<pLevel> LevelVector;
@@ -41,7 +42,6 @@ public:
     const_iterator end() const { return m_lib.end(); }
     const_iterator find(const pHamiltonianIDConst& key) const;
     unsigned int size() const { return m_lib.size(); }
-
 
     /** Symmetry filter iterator over key library: matches all keys with correct symmetry. */
     typedef boost::filter_iterator<symmetry_match_predicate, const_iterator> const_symmetry_iterator;
@@ -121,12 +121,13 @@ protected:
 };
 
 /** Implementation of LevelStore that writes everything to files and stores almost nothing.
-    Files are separated by Symmetry, in order to speed up retrieval.
+    Files are separated by Key, in order to speed up retrieval.
  */
 class FileSystemLevelStore : public LevelStore
 {
 public:
     FileSystemLevelStore(const std::string& file_prefix, pAngularDataLibrary lib);
+    FileSystemLevelStore(const std::string& dir_name, const std::string& file_prefix, pAngularDataLibrary lib);
 
     /** Get LevelVector corresponding to key. */
     virtual LevelVector GetLevels(pHamiltonianID key) override;
@@ -135,6 +136,7 @@ public:
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
 
 protected:
+    boost::filesystem::path directory;
     std::string filename_prefix;
     pAngularDataLibrary angular_library;
 };

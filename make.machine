@@ -97,7 +97,7 @@ ifeq ($(MACHINE), katana)
   LINKFLAGS = 
   LIBDIR    = $(MKLROOT)/lib/intel64/
   LIBOBJ    = 
-  LIBS      = mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_openmpi_lp64 pthread m
+  LIBS      = mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_openmpi_lp64 boost_filesystem boost_system pthread m
 
   INCLUDE  += /share/apps/sparsehash/2.0.2/include
 
