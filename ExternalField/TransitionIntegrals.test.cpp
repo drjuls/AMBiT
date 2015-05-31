@@ -45,7 +45,7 @@ TEST(TransitionIntegralTester, HeTransitions)
     pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
-    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(2);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
     ConfigGenerator config_generator(orbitals, userInput);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);

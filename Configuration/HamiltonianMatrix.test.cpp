@@ -59,7 +59,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
     Symmetry sym(0, Parity::even);
     double ground_state_energy = 0., excited_state_energy = 0.;
 
-    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(2);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
@@ -100,11 +100,9 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     symmetries.emplace_back(2, Parity::even);
     symmetries.emplace_back(4, Parity::even);
 
-    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
-    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
-
-    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
-    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library);
 
     // CuIV - old electron way
     {   // Block for reusing names
@@ -147,7 +145,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -203,7 +201,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -247,11 +245,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     symmetries.emplace_back(1, Parity::even);
     symmetries.emplace_back(3, Parity::even);
 
-    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
-    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
-    
-    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
-    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library);
 
     // CuIII - old electron way
     {   // Block for reusing names
@@ -291,12 +287,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(9);
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -348,12 +344,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(-1);
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -394,11 +390,9 @@ TEST(HamiltonianMatrixTester, LiPlus)
     std::vector<Symmetry> symmetries;
     symmetries.emplace_back(0, Parity::even);
 
-    pAngularDataLibrary angular_library_electrons = std::make_shared<AngularDataLibrary>(16);
-    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library_electrons);
-    
-    pAngularDataLibrary angular_library_holes = std::make_shared<AngularDataLibrary>(-2);
-    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library_holes);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+    pLevelStore electron_levels = std::make_shared<LevelMap>(angular_library);
+    pLevelStore hole_levels = std::make_shared<LevelMap>(angular_library);
 
     // LiII - old electron way
     {   // Block for reusing names
@@ -438,12 +432,12 @@ TEST(HamiltonianMatrixTester, LiPlus)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(2);
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_electrons);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -493,12 +487,12 @@ TEST(HamiltonianMatrixTester, LiPlus)
         pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
         GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
 
-        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(0);
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library_holes);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -542,7 +536,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     symmetries.emplace_back(1, Parity::even);
     symmetries.emplace_back(3, Parity::even);
     
-    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(-1);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
     pLevelStore stretched_levels = std::make_shared<LevelMap>(angular_library);
     pLevelStore m_levels = std::make_shared<LevelMap>(angular_library);
     

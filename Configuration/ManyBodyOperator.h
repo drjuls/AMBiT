@@ -40,21 +40,25 @@ public:
     /** Rearrange p1 and p2 so that differences are at the beginning (up to max differences).
         abs(return value) is number of differences found
         sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
-        If skipped_p1_electron != nullptr, assume p1 is one electron smaller than p2;
-            the first element of p1 is the skipped electron which we can assume is not present in p2.
+        If skipped_p2_electron != nullptr, assume p2 is one electron smaller than p1;
+            the first element of p2 is the skipped electron which we can assume is not present in p1.
      */
     template<int max_diffs>
     inline int GetProjectionDifferences(IndirectProjection& p1, IndirectProjection& p2, const ElectronInfo* skipped_p1_electron = nullptr) const;
 
     /** Matrix element between two projections.
         If eplsion != nullptr, we want
-            < {epsilon, proj_left} | O | proj_right >
-        where proj_left is one electron smaller than proj_right.
+            < proj_left | O | {proj_right, epsilon} >
+        where proj_left is one electron larger than proj_right.
      */
     inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon = nullptr) const;
 
-    /** Returns <left | O | right> */
-    inline double GetMatrixElement(const Level& left, const Level& right) const;
+    /** Returns <left | O | right>.
+        If eplsion != nullptr, we want
+            < proj_left | O | {proj_right, epsilon} >
+        where proj_left is one electron larger than proj_right.
+     */
+    inline double GetMatrixElement(const Level& left, const Level& right, const ElectronInfo* epsilon = nullptr) const;
 
     /** Equivalent to GetMatrixElement(level, level). */
     inline double GetMatrixElement(const Level& level) const;
@@ -64,10 +68,10 @@ public:
      */
     inline std::vector<double> GetMatrixElement(const LevelVector& levels) const;
 
-    /** Equivalent to calculating GetMatrixElement(left, right) for each pair of levels in their respective vectors.
+    /** Equivalent to calculating GetMatrixElement(left, right, epsilon) for each pair of levels in their respective vectors.
         Return array of matrix elements indexed by left_index * (num_right) + right_index.
      */
-    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels) const;
+    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon = nullptr) const;
 
 protected:
     std::tuple<pElectronOperators...> pOperators;
@@ -219,7 +223,7 @@ void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Pro
 
 template<typename... pElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2, const ElectronInfo* skipped_p1_electron) const
+int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2, const ElectronInfo* skipped_p2_electron) const
 {
     // NB: These are static for speed: to prevent memory (de)allocation
     static IndirectProjection diff1, diff2;
@@ -244,11 +248,11 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
     int num_holes2 = 0;
     int num_electrons2 = 0;
 
-    if(skipped_p1_electron != nullptr)
+    if(skipped_p2_electron != nullptr)
     {
         // Assume first element of p1 was a skipped electron (not hole)
-        diff1.push_back(skipped_p1_electron);
-        num_electrons1++;
+        diff2.push_back(skipped_p2_electron);
+        num_electrons2++;
     }
 
     while(diff1.size() <= max_diffs && diff2.size() <= max_diffs && it1 != p1.end() && it2 != p2.end())
@@ -595,7 +599,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 }
 
 template<typename... pElectronOperators>
-double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& left, const Level& right) const
+double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& left, const Level& right, const ElectronInfo* epsilon) const
 {
     double total = 0.;
     const auto& configs_left = left.GetRelativisticConfigList();
@@ -621,7 +625,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
                         auto proj_jt = config_jt.projection_begin();
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
 
                             if(matrix_element)
                             {
@@ -663,7 +667,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& le
 }
 
 template<typename... pElectronOperators>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels) const
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
@@ -691,12 +695,12 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     int config_index = 0;
     while(config_it != configs_left->end())
     {
-        if(IsMyJob(config_index))
+        auto config_jt = configs_right->begin();
+        while(config_jt != configs_right->end())
         {
-            auto config_jt = configs_right->begin();
-            while(config_jt != configs_right->end())
+            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+                if(IsMyJob(config_index))
                 {
                     // Iterate over projections
                     auto proj_it = config_it.projection_begin();
@@ -705,7 +709,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                         auto proj_jt = config_jt.projection_begin();
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
 
                             // coefficients
                             if(matrix_element)
@@ -740,11 +744,11 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                         proj_it++;
                     }
                 }
-                config_jt++;
+                config_index++;
             }
+            config_jt++;
         }
         config_it++;
-        config_index++;
     }
 
 #ifdef AMBIT_USE_MPI

@@ -38,7 +38,7 @@ ifeq ($(MACHINE), default)
   LINK      = g++
   LINKFLAGS =
   LIBDIR    = /usr/local/lib
-  LIBS      = blas lapack
+  LIBS      = boost_filesystem boost_system lapack blas
 
   INCLUDE  += /usr/local/include
 
@@ -126,7 +126,7 @@ ifeq ($(MACHINE), jcb1pc)
   LINK      = mpiCC
   LINKFLAGS =
   LIBDIR    =
-  LIBS      = scalapack-openmpi blacs-openmpi blacsCinit-openmpi lapack blas
+  LIBS      = scalapack-openmpi blacs-openmpi blacsCinit-openmpi boost_filesystem boost_system lapack blas
 
   INCLUDE  += /usr/local/include
 

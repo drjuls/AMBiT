@@ -125,10 +125,10 @@ public:
     inline typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
         GetConfigDifferencesCount(const BaseConfiguration& other) const
     {
-        unsigned int diff_count = 0;
+        unsigned int diff_count = abs(ElectronNumber() - other.ElectronNumber());
         auto it1 = begin();
         auto it2 = other.begin();
-        
+
         // Note: assumes first and second are sorted
         while(it1 != end() && it2 != other.end())
         {
@@ -147,17 +147,17 @@ public:
                 it1++; it2++;
             }
         }
-        
+
         while(it1 != end())
         {   diff_count += abs(it1->second);
             it1++;
         }
-        
+
         while(it2 != other.end())
         {   diff_count += abs(it2->second);
             it2++;
         }
-        
+
         // Each promotion of electrons or holes makes two changes, so divide by two.
         return diff_count/2;
     }

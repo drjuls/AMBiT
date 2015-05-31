@@ -228,26 +228,15 @@ void Atom::ClearIntegrals()
 
 void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
 {
-    int num_valence_electrons;
-    if(user_input.search("NumValenceElectrons"))
-        num_valence_electrons = user_input("NumValenceElectrons", 0);
-    else if(user_input.search(2, "--no-ci", "--no-CI"))
-        num_valence_electrons = 1;
-    else if(user_input.vector_variable_size("CI/LeadingConfigurations") > 0)
-    {
-        NonRelConfiguration nrconfig(user_input("CI/LeadingConfigurations", "", 0));
-        num_valence_electrons = nrconfig.ElectronNumber();
-    }
-
-    if(trial && trial->GetElectronNumber() == num_valence_electrons)
+    if(trial)
         angular_library = trial;
-    else if(angular_library == nullptr || angular_library->GetElectronNumber() != num_valence_electrons)
+    else if(angular_library == nullptr)
     {
         std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
         if(user_input.search("AngularDataDirectory"))
             angular_directory = user_input("AngularDataDirectory", "");
 
-        angular_library = std::make_shared<AngularDataLibrary>(num_valence_electrons, angular_directory);
+        angular_library = std::make_shared<AngularDataLibrary>(angular_directory);
     }
 }
 

@@ -9,6 +9,7 @@
 #include <memory>
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/filesystem.hpp>
 
 class RelativisticConfiguration;
 class AngularDataLibrary;
@@ -138,14 +139,12 @@ typedef std::shared_ptr<const AngularData> pAngularDataConst;
 class AngularDataLibrary : public std::enable_shared_from_this<AngularDataLibrary>
 {
 public:
-    /** Initialise with number of electrons and directory of stored libraries.
+    /** Initialise with directory of stored libraries.
         If lib_directory is not specified then Read() and Write() are disabled, so all CSFs must be recalculated.
         If lib_directory does not exist already, then this is an error so that the user can check the path specification.
      */
-    AngularDataLibrary(int electron_number, const std::string& lib_directory = "");
+    AngularDataLibrary(const std::string& lib_directory = "");
     ~AngularDataLibrary() {}
-
-    int GetElectronNumber() const { return electron_number; }
 
     /** Retrieve or create an AngularData object for the given configuration, two_m, and two_j.
         PRE: abs(two_m) <= sym.GetTwoJ()
@@ -161,7 +160,7 @@ public:
 
     /** Write any AngularData CSFs that are out of date. */
     void Write();
-    void Write(const Symmetry& sym, int two_m);
+    void Write(int electron_number, const Symmetry& sym, int two_m);
 
     /** Remove unused AngularData objects from library.
         They are automatically restored on request via GetData().
@@ -172,10 +171,8 @@ public:
     void PrintKeys() const;
 
 protected:
-    int electron_number;
-
     /** KeyType[0] is pair<Symmetry.Jpi, two_M>,
-        rest is pair(kappa, number of particles) for all orbitals in RelativisticConfiguration.
+        rest is pair(kappa, number of electrons) for all orbitals in RelativisticConfiguration.
         Note that parity is implied by configuration.
      */
     typedef std::vector<std::pair<int, int>> KeyType;
@@ -186,18 +183,21 @@ protected:
     /** Convert KeyType to a RelativisticConfiguration. */
     static RelativisticConfiguration GenerateRelConfig(const KeyType& key);
 
+    static int GetElectronNumber(const KeyType& key);
+
     /** Retrieve or create an AngularData object for the given key.
      */
     pAngularData GetData(const KeyType& key);
 
     /** Read library from file. */
-    void Read(const Symmetry& sym, int two_m);
+    void Read(int electron_number, const Symmetry& sym, int two_m);
+    void Read(const std::tuple<int, int, int>& file_info_key);
 
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType>> library;
 
-    /** Details of file storage: file_info maps pair<Symmetry.Jpi, two_m> to pair<write_needed, filename>. */
-    std::map<std::pair<int, int>, std::pair<bool, std::string>> file_info;
-    std::string lib_directory;
+    /** Details of file storage: file_info maps tuple<num_electrons, Symmetry.Jpi, two_m> to pair<write_needed, file>. */
+    std::map<std::tuple<int, int, int>, std::pair<bool, boost::filesystem::path>> file_info;
+    boost::filesystem::path directory;
 
 protected:
     class ProjectionSizeFirstComparator

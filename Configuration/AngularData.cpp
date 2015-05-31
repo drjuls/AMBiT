@@ -4,9 +4,8 @@
 #include "Eigen/Eigen"
 #include "ManyBodyOperator.h"
 #include <numeric>
-#include <dirent.h>
 #ifdef AMBIT_USE_MPI
-#include <mpi.h>
+    #include <mpi.h>
 #endif
 
 AngularData::AngularData(int two_m):
@@ -374,18 +373,22 @@ void AngularData::LadderLowering(const RelativisticConfiguration& config, const 
 }
 
 
-AngularDataLibrary::AngularDataLibrary(int electron_number, const std::string& lib_directory):
-    electron_number(electron_number), lib_directory(lib_directory)
+AngularDataLibrary::AngularDataLibrary(const std::string& lib_directory):
+    directory(lib_directory)
 {
-    if(!lib_directory.empty())
-    {   // Check library directory exists
-        DIR* dir = opendir(lib_directory.c_str());
-        if(!dir)
-        {   *errstream << "AngularDataLibarary::AngularDataLibarary(): unknown directory path " << lib_directory << std::endl;
-            exit(1);
+    if(!directory.empty())
+    {
+        // Check library directory exists
+        if(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
+        {
+            // Attempt to create, else fail
+            if(!boost::filesystem::create_directory(directory))
+            {   *errstream << "AngularDataLibarary::AngularDataLibarary() cannot create directory " << directory << std::endl;
+                exit(1);
+            }
         }
-        else
-            closedir(dir);
+
+        directory = boost::filesystem::canonical(directory);
     }
 }
 
@@ -401,9 +404,10 @@ pAngularData AngularDataLibrary::GetData(const KeyType& key)
     if(ret != nullptr)
         return ret;
 
-    if(file_info[key[0]].second.empty())
+    auto file_info_key = std::make_tuple(GetElectronNumber(key), key[0].first, key[0].second);
+    if(file_info[file_info_key].second.empty())
     {
-        Read(Symmetry(key[0].first), key[0].second);
+        Read(file_info_key);
     }
 
     if(ret != nullptr)
@@ -450,6 +454,14 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
     return rconfig;
 }
 
+int AngularDataLibrary::GetElectronNumber(const KeyType& key)
+{
+    int electron_number = 0;
+    for(int i = 1; i < key.size(); i++)
+        electron_number += key[i].second;
+    return electron_number;
+}
+
 void AngularDataLibrary::GenerateCSFs()
 {
     // First, for all keys with no CSFs, generate entries in the library with higher M,
@@ -484,7 +496,7 @@ void AngularDataLibrary::GenerateCSFs()
             pAng->GenerateCSFs(rconfig, two_m);
 
             // Set write_needed to true;
-            file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+            file_info[std::make_tuple(GetElectronNumber(pair.first), sym.GetJpi(), two_m)].first = true;
         }
     }
 #else
@@ -509,7 +521,7 @@ void AngularDataLibrary::GenerateCSFs()
                 big_library.insert(pair);
 
             // Set write_needed to true;
-            file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+            file_info[std::make_tuple(GetElectronNumber(pair.first), sym.GetJpi(), two_m)].first = true;
         }
     }
 
@@ -591,7 +603,7 @@ void AngularDataLibrary::GenerateCSFs()
                 pAng->LadderLowering(rconfig, *parent);
 
                 // Set write_needed to true;
-                file_info[std::make_pair(sym.GetJpi(), two_m)].first = true;
+                file_info[std::make_tuple(GetElectronNumber(pair.first), sym.GetJpi(), two_m)].first = true;
 
                 pAng = parent;
             }
@@ -610,30 +622,27 @@ void AngularDataLibrary::GenerateCSFs()
         - (int) numCSFs
         - CSFs: double* (numCSFs * N)
  */
-void AngularDataLibrary::Read(const Symmetry& sym, int two_m)
+void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_m)
 {
-    if(lib_directory.empty())
+    if(directory.empty())
         return;
 
-    auto& filedata = file_info[std::make_pair(sym.GetJpi(), two_m)];
-    auto& filename = filedata.second;
+    auto& filedata = file_info[std::make_tuple(electron_number, sym.GetJpi(), two_m)];
+    boost::filesystem::path& filepath = filedata.second;
 
-    if(filedata.second.empty())
+    if(filepath.empty())
     {
-        filename = lib_directory;
-        if(filename[filename.length()-1] != '/')
-            filename.append("/");
-
         std::string holelike = (electron_number<0)?"h":"";
-        filename += itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+        std::string filename = itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
+
+        filepath = directory / filename;
     }
 
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = fopen(filepath.string().c_str(), "rb");
     if(!fp)
         return;
 
     int num_angular_data_objects = 0;
-
     fread(&num_angular_data_objects, sizeof(int), 1, fp);
 
     int count = 0;
@@ -688,9 +697,17 @@ void AngularDataLibrary::Read(const Symmetry& sym, int two_m)
     filedata.first = false;
 }
 
-void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
+void AngularDataLibrary::Read(const std::tuple<int, int, int>& file_info_key)
 {
-    auto file_info_it = file_info.find(std::make_pair(sym.GetJpi(), two_m));
+    return Read(std::get<0>(file_info_key), Symmetry(std::get<1>(file_info_key)), std::get<2>(file_info_key));
+}
+
+void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two_m)
+{
+    if(directory.empty())
+        return;
+
+    auto file_info_it = file_info.find(std::make_tuple(electron_number, sym.GetJpi(), two_m));
 
     // If symmetry not found or write not needed, stop.
     if(file_info_it == file_info.end() || file_info_it->second.first == false)
@@ -705,7 +722,7 @@ void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
         // Read any extra existing AngularData objects
         auto& filedata = file_info_it->second;
         if(filedata.second.empty())
-            Read(sym, two_m);
+            Read(electron_number, sym, two_m);
 
         // Open file
         FILE* fp = fopen(filedata.second.c_str(), "wb");
@@ -771,13 +788,13 @@ void AngularDataLibrary::Write(const Symmetry& sym, int two_m)
 
 void AngularDataLibrary::Write()
 {
-    if(lib_directory.empty())
+    if(directory.empty())
         return;
 
     for(auto& filedata: file_info)
     {
         if(filedata.second.first)
-            Write(Symmetry(filedata.first.first), filedata.first.second);
+            Write(std::get<0>(filedata.first), Symmetry(std::get<1>(filedata.first)), std::get<2>(filedata.first));
     }
 }
 
@@ -790,7 +807,8 @@ void AngularDataLibrary::RemoveUnused()
         if(it->second.use_count() == 1)
         {
             // Remove filename (force Read() next time)
-            file_info[it->first[0]].second.clear();
+            auto file_info_key = std::make_tuple(GetElectronNumber(it->first), it->first[0].first, it->first[0].second);
+            file_info[file_info_key].second.clear();
             it = library.erase(it);
         }
         else

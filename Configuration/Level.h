@@ -104,10 +104,21 @@ public:
     pHamiltonianID GetHamiltonianID() { return hamiltonian; }
     pHamiltonianIDConst GetHamiltonianID() const { return hamiltonian; }
 
+    pRelativisticConfigList GetRelativisticConfigList()
+    {   if(hamiltonian)
+            return hamiltonian->GetRelativisticConfigList();
+        else return nullptr;
+    }
+
     pRelativisticConfigListConst GetRelativisticConfigList() const
     {   if(hamiltonian)
             return hamiltonian->GetRelativisticConfigList();
         else return nullptr;
+    }
+
+    void SetRelativisticConfigList(pRelativisticConfigList rconfigs)
+    {   if(hamiltonian)
+            hamiltonian->SetRelativisticConfigList(rconfigs);
     }
 
 protected:

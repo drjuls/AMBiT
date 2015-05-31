@@ -63,7 +63,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     EXPECT_EQ(276, total_rel);
 
     // Test RelativisticConfigList projection iterator
-    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>(2);
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
     gen.GenerateProjections(relconfigs, 0, angular_library);
     int projection_count = 0;
     for(auto& rconfig: *relconfigs)
