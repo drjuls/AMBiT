@@ -83,7 +83,7 @@ public:
         {}
 
         const_projection_iterator(const RelativisticConfiguration& rconfig, int offset = 0):
-            const_projection_iterator::iterator_adaptor_(rconfig.projections.begin()), current_CSFs_start(rconfig.angular_data->GetCSFs()), num_CSFs(rconfig.angular_data->NumCSFs()), index_offset(0)
+            const_projection_iterator::iterator_adaptor_(rconfig.projections.begin()), current_CSFs_start(rconfig.angular_data->GetCSFs()), num_CSFs(rconfig.angular_data->NumCSFs()), index_offset(offset)
         {}
 
         const_projection_iterator(const const_projection_iterator& other):

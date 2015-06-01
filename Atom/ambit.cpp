@@ -588,11 +588,12 @@ void Ambit::Recombination()
     // Get target level
     pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
     LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
-    if(target_level_vec.size() == 0)
+    int target_level_index = user_input("DR/Target/Index", 0);
+    if(target_level_vec.size() <= target_level_index)
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
-    pLevelConst target_level = target_level_vec[0];
+    pLevelConst target_level = target_level_vec[target_level_index];
 
     // Get widths of current levels
     if(user_input.search("DR/--energy-grid"))

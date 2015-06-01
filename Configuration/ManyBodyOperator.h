@@ -687,7 +687,6 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     pRelativisticConfigListConst configs_left = left_levels.front()->GetRelativisticConfigList();
     pRelativisticConfigListConst configs_right = right_levels.front()->GetRelativisticConfigList();
     std::vector<double> total(return_size, 0.);
-    std::vector<double> coeff(return_size, 0.);
 
     unsigned int solution = 0;
 
@@ -706,6 +705,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     auto proj_it = config_it.projection_begin();
                     while(proj_it != config_it.projection_end())
                     {
+                        int left_start_CSF_index = proj_it.CSF_begin().index();
+                        int left_end_CSF_index = proj_it.CSF_end().index();
+
                         auto proj_jt = config_jt.projection_begin();
                         while(proj_jt != config_jt.projection_end())
                         {
@@ -714,30 +716,33 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                             // coefficients
                             if(matrix_element)
                             {
-                                // Summation over CSFs
-                                std::fill(coeff.begin(), coeff.end(), 0.0);
+                                int right_start_CSF_index = proj_jt.CSF_begin().index();
+                                int right_end_CSF_index = proj_jt.CSF_end().index();
 
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                                solution = 0;
+                                for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
                                 {
-                                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
                                     {
-                                        solution = 0;   // Note: solution = left_index * right_eigenvector.size() + right_index
-                                        for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                                        auto coeff_i = proj_it.CSF_begin();
+                                        for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
+                                            pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
                                         {
-                                            for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
-                                            {
-                                                coeff[solution] += (*coeff_i) * (*coeff_j)
-                                                    * left_eigenvector[left_index][coeff_i.index()]
-                                                    * right_eigenvector[right_index][coeff_j.index()];
+                                            double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
 
-                                                solution++;
+                                            auto coeff_j = proj_jt.CSF_begin();
+                                            for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
+                                                pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
+                                            {
+                                                total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+                                                coeff_j++;
                                             }
+                                            coeff_i++;
                                         }
+
+                                        solution++;
                                     }
                                 }
-
-                                for(solution = 0; solution < return_size; solution++)
-                                    total[solution] += coeff[solution] * matrix_element;
                             }
                             proj_jt++;
                         }

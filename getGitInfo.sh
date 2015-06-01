@@ -44,7 +44,7 @@ function echo_git_diff {
 # 3. Remove the final '\' from the last line
 # 4. Replace " with \"
 #
-        echo "`git diff -w --abbrev=0 HEAD 2> /dev/null | sed -e 's/\\\\/\\\\\\\\/g' -e 's/$/\\\\n \\\\/' -e '$s/ \\\\$//' -e 's/\"/\\\\"/g' `"
+        echo "`git diff -w --abbrev=0 HEAD 2> /dev/null | sed -e 's/\\\\/\\\\\\\\/g' -e 's/$/\\\\n\\\\/' -e '$s/\\\\$//' -e 's/\"/\\\\"/g' `"
         return
     fi
 }
