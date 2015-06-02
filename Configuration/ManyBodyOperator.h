@@ -518,7 +518,6 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
     pRelativisticConfigListConst configs = levels.front()->GetRelativisticConfigList();
     std::vector<double> total(eigenvector.size(), 0.);
-    std::vector<double> coeff(eigenvector.size(), 0.);
 
     unsigned int solution = 0;
 
@@ -526,12 +525,12 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     int config_index = 0;
     while(config_it != configs->end())
     {
-        if(IsMyJob(config_index))
+        auto config_jt = config_it;
+        while(config_jt != configs->end())
         {
-            auto config_jt = config_it;
-            while(config_jt != configs->end())
+            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+                if(IsMyJob(config_index))
                 {
                     // Iterate over projections
                     auto proj_it = config_it.projection_begin();
@@ -550,43 +549,39 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                             // coefficients
                             if(matrix_element)
                             {
-                                // Summation over CSFs
-                                std::fill(coeff.begin(), coeff.end(), 0.0);
+                                // If the projections are different, count twice
+                                if(proj_it != proj_jt)
+                                {   matrix_element *= 2.;
+                                }
 
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                                for(solution = 0; solution < eigenvector.size(); solution++)
                                 {
-                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                    for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                                     {
-                                        for(solution = 0; solution < coeff.size(); solution++)
+                                        double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * eigenvector[solution][coeff_i.index()];
+
+                                        RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                                        const double* pright = &eigenvector[solution][start_j.index()];
+                                        for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                                         {
-                                            coeff[solution] += (*coeff_i) * (*coeff_j)
-                                                                * eigenvector[solution][coeff_i.index()]
-                                                                * eigenvector[solution][coeff_j.index()];
+                                            total[solution] += left_coeff_and_matrix_element
+                                                                * (*coeff_j) * (*pright);
+                                            pright++;
                                         }
                                     }
                                 }
-
-                                // If the projections are different, count twice
-                                if(proj_it != proj_jt)
-                                {   for(double& element: coeff)
-                                        element *= 2.;
-                                }
-
-                                for(solution = 0; solution < coeff.size(); solution++)
-                                    total[solution] += coeff[solution] * matrix_element;
                             }
                             proj_jt++;
                         }
                         proj_it++;
                     }
                 }
-                config_jt++;
+                config_index++;
             }
+            config_jt++;
         }
         config_it++;
-        config_index++;
     }
 
 #ifdef AMBIT_USE_MPI

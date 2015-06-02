@@ -59,6 +59,7 @@ public:
     using GetPot::search;
     using GetPot::size;
     using GetPot::vector_variable_size;
+    using GetPot::print;
 
     // Overwrite scalar double variables to hide multirun vectors.
     using GetPot::operator();

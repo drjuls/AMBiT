@@ -63,9 +63,10 @@ int main(int argc, char* argv[])
 
             // Print git diff output
             if(strlen(GIT_DIFF_OUTPUT))
-            {   *outstream << "\ngit diff:\n-----------------------------\n";
+            {   *outstream << "\n----------------------------------------------------------"
+                << "\ngit diff:"
+                << "\n----------------------------------------------------------\n";
                 *outstream << GIT_DIFF_OUTPUT;
-                *outstream << "-----------------------------" << std::endl;
             }
         }
 
@@ -310,6 +311,19 @@ int main(int argc, char* argv[])
     OutStreams::FinaliseStreams();
 
     return 0;
+}
+
+Ambit::Ambit(MultirunOptions& user_input, const std::string& identifier):
+    user_input(user_input), identifier(identifier)
+{
+    if(ProcessorRank == 0)
+    {
+        *outstream << "----------------------------------------------------------"
+                   << "\ninput:"
+                   << "\n----------------------------------------------------------\n";
+        user_input.print();
+        *outstream << "----------------------------------------------------------" << std::endl;
+    }
 }
 
 void Ambit::EnergyCalculations()
@@ -615,8 +629,6 @@ void Ambit::PrintHelp(const std::string& ApplicationName)
         << "Important data:\n"
         << "   ID =       identifier for all save files\n"
         << "   Z  =       nuclear charge\n"
-        << "   NumValenceElectrons =\n"
-        << "              determines the type of calculation to run (CI or MBPT)\n"
         << "   HF/N =     number of electrons included in HF potential\n"
         << "\n"
         << "Common data structures in the input file include:\n"
@@ -627,7 +639,6 @@ void Ambit::PrintHelp(const std::string& ApplicationName)
         << "   [MBPT]     many-body perturbation theory\n"
         << "\n"
         << "Options include:\n"
-        << "   -d|--dont-save   don't save any files\n"
         << "   -s12             include one-body and two-body MBPT diagrams\n"
         << "   --check-sizes    calculate CI matrix size and/or\n"
         << "                        number of MBPT integrals\n"

@@ -8,7 +8,7 @@
 
 \include{phys_jdf}
 
-\newcommand{\option}[1]{\paragraph{\texttt{#1}}}
+\newcommand{\option}[1]{\smallskip\noindent\textbf{\texttt{#1}}}
 \newcommand{\code}[1]{\texttt{#1}}
 \marginsize{30mm}{25mm}{20mm}{20mm}
 
@@ -42,7 +42,7 @@ AMBiT supports two complementary methods of input: command line and input file. 
 
 \section{Installation}
 
-Building AMBiT on a new computer system can be done by altering ``make.machine''. At a minimum, AMBiT requires a working BLAS and LAPACK library, a c++ compiler and a fortran compiler. To run in parallel-processor mode requires MPI, and optionally SCALAPACK.
+Building AMBiT on a new computer system can be done by altering ``make.machine''. AMBiT requires a C++11 compiler and a fortran compiler, BLAS and LAPACK libraries, the boost library, Eigen, and google sparsehash. To run in parallel-processor mode requires MPI, and optionally SCALAPACK.
 
 \section{Input}
 
@@ -97,14 +97,14 @@ CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'
 \end{verbatim}
 \end{quote}
 
-\subsection{Options}
+\newpage
+\section{Options and parameters}
 The following input parameters are given in their correct place in the tree structure. They are all optional unless otherwise stated.
 
-\option{-f \emph{filename}} \textbf{[compulsory, command line]} names the input file as \emph{filename}. If this is not present, AMBiT searches the command line for an option of the form \emph{*.input} which it assumes is the input filename. 
+\option{-f \emph{filename}} \textbf{[compulsory, command line]} Names the input file as \emph{filename}. If this is not present, AMBiT searches the command line for an option of the form \emph{*.input} which it assumes is the input filename. 
 
-\option{-c, -{}-clean} Don't read from previously written data files.
-\option{-{}-check-sizes} check sizes of integral files and Hamiltonian matrices, after calculating or reading one of the core+basis sets.
-\option{-d, -{}-dont-save} Don't write to file. This is ignored if AMBiT is generating MBPT orbitals.
+\option{-c, -{}-clean} Don't read from previously written basis or levels.
+\option{-{}-check-sizes} Check sizes of integral files and Hamiltonian matrices, after calculating or reading one of the core+basis sets. Note that this command also calculates any angular data that is not already available, and so it can be slow the first time it is run for a CI problem with many valence electrons.
 
 \option{-h, -{}-help} Print usage message.
 
@@ -119,69 +119,96 @@ AlphaSquaredVariation = '-0.2, -0.1, 0.0, 0.1, 0.2'
 \end{quote}
 then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
 
-\option{-{}-interactive} Enable interactive mode at the end of a singular run. This will cause AMBiT to wait for input after completing all calculations so that the results can be further manipulated within the program.
-\option{-{}-recursive-build} Sets AMBiT to run in recursive mode to build all atoms with a given charge, iterating from a starting value of N and progressively adding electrons in the next lowest orbital until a final N is reached.
+\option{-{}-version} Print version information only.
+
+%\option{-{}-interactive} Enable interactive mode at the end of a singular run. This will cause AMBiT to wait for input after completing all calculations so that the results can be further manipulated within the program.
+%\option{-{}-recursive-build} Sets AMBiT to run in recursive mode to build all atoms with a given charge, iterating from a starting value of N and progressively adding electrons in the next lowest orbital until a final N is reached.
 \option{-{}-write-hamiltonian} Write Hamiltonian matrices to binary file (that can be read into Mathematica using AMBiT.m). Filename is \code{ID.<twoJ>.<Parity>.matrix}.
 
-\subsection{Parameters}
+\option{-{}-ci-complete} Only for use with \code{CI/-{}-memory-saver}. Don't calculate energy levels using CI (assume that they have been calculated already).
 
 \option{Z} \textbf{[compulsory]} nuclear charge.
 
-\option{[deprecated] ZIterations} This is used when NumValenceElectrons = 1. It specifies the number of times to increment Z and recalculate the energy levels before terminating.
+%\option{[deprecated] ZIterations} This is used when NumValenceElectrons = 1. It specifies the number of times to increment Z and recalculate the energy levels before terminating.
 
 \option{ID} a name for the run, used for filenames when saving various stages of the calculation. If not present identity is taken from the prefix of the ``*.input'' file. If this cannot be found (for example if the input file name does not have this suffix) then a fatal error is issued.
 
-\option{[deprecated] NumValenceElectrons} \textbf{[compulsory]} AMBiT knows what kind of calculation to do from the number of valence electrons. \texttt{NumValenceElectrons = 1} is used for HF+MBPT calculations; otherwise \textbf{NumValenceElectrons} tells AMBiT how many valence electrons will be included in the CI calculation.
+%\option{[deprecated] NumValenceElectrons} \textbf{[compulsory]} AMBiT knows what kind of calculation to do from the number of valence electrons. \texttt{NumValenceElectrons = 1} is used for HF+MBPT calculations; otherwise \textbf{NumValenceElectrons} tells AMBiT how many valence electrons will be included in the CI calculation.
 
 \option{NuclearRadius} nuclear radius in fermi. The nucleus is specified as a fermi surface with a radius and thickness parameter.
 
 \option{NuclearThickness} nuclear thickness. Set to zero for hard-core nucleus.
 
+\option{AngularDataDirectory} specify directory where angular data is stored and retrieved (from default set by make.machine).
+
+\option{LevelDirectory} [.] specify directory where levels are stored.
+
 % Lattice
-\subsection*{[Lattice]}
+\subsection{[Lattice]}
 Default is a lattice that starts exponential at small $r$ and then becomes constant spacing at larger $r$. The relevant formula is $x = r + \beta*\ln(r/r_{min})$ where $x$ is a lattice with constant spacing $H$.
+
 \option{NumPoints} [1000] number of points in lattice. This may be increased by AMBiT as necessary.
+
 \option{StartPoint} [1.e-6] first point in lattice (non-zero).
+
 \option{EndPoint} [50.] last point in lattice (size in real space).
 
 \option{-{}-exp-lattice} use pure exponential lattice instead: $r = r_{min}\exp(x)$ where $x$ is a lattice with constant spacing $H$. Defaults become NumPoints = 300 and StartPoint = 1.e-5 to correspond to a typical Grasp0 lattice.
+
 \option{H} [0.05] spacing of regular lattice $x$ (only used with \texttt{-{}-exp-lattice}).
 
 % HF
-\subsection*{[HF]: Relativistic Hartree-Fock options for building core.}
+\subsection{[HF]: Relativistic Hartree-Fock options for building core.}
+
 \option{N} \textbf{[compulsory]} number of electrons included in HF procedure. In recursive building mode, this instead specifies the number of electrons the initial atom should have.
+
 \option{Charge} can be used instead of HF/N: Charge = Z - N.
-\option{Configuration} string indicating non-relativistic structure of HF core (potential including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6: 3d4'}. A colon may be used to indicate the Fermi level, or omitted in which case the Fermi level is assumed to lie just after all orbitals. The Fermi level is used to define the CI model space (and the MBPT electron space).
+
+\option{Configuration} string indicating non-relativistic structure of HF core (possibly including open shells), e.g.~\texttt{HF/Configuration = '1s2 2s2 2p6 3s2 3p6: 3d4'}. A colon may be used to indicate the Fermi level, or omitted in which case the Fermi level is assumed to lie just after all orbitals. The Fermi level is used to define the CI model space (and the MBPT electron space).
+
+\option{-{}-breit} Include Breit interaction in HF operator.
+
 \option{-{}-local-exchange} Use local exchange approximation $x_\alpha \left(\frac{81}{32\pi^2} \frac{\rho(r)}{r^2}\right)^{1/3}$, where $\rho(r)$ is the electron density. The value $x_\alpha$ can be set using \code{HF/Xalpha} [default = 1.0].
+
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
 
 %Basis
-\subsection*{[Basis]: Details of electron orbital construction.}
+\subsection{[Basis]: Details of electron orbital construction.}
 One of the basis options must be specified.
+
 \option{ValenceBasis} \textbf{[compulsory]} set of orbitals to include in CI (if \mbox{\texttt{NumValenceElectrons}$>1$}) or HF/MBPT. This is specified by the largest principal quantum number followed by angular momenta. For example:
 \texttt{6spd5f} = 1s -- 6s, 2p -- 6p, 3d -- 6d, 4f -- 5f.
 
 \option{FrozenCore} set of orbitals that form the frozen core, which is always occupied in the CI model space. No holes are allowed at this level or below, they only exist above the frozen core and below the fermi level (which is set in HF/Configuration).
 
 \option{-{}-bspline-basis} construct basis from B-splines~\cite{johnson88pra}.
+
 \option{BSpline/N} [40] number of splines.
+
 \option{BSpline/K} [7]  order of splines.
+
 \option{BSpline/Rmax} [50.0] maximum radius of splines.
+
 \option{BSpline/SplineType} [Reno] Decides what boundary conditions to enforce to remove spurious states. Allowed types: Reno/DKB, NotreDame/Johnson, Vanderbilt
+
 \option{BSpline/-{}-reorthogonalise} perform secondary Gram-Schmidt orthogonalisation on the final basis states after the matrix diagonalisation.
 
-\option{-{}-hf-basis} Use spectroscopic (relativistic Hartree-Fock) basis.
-\option{-{}-r-basis} Use $\times r$ basis where the lowest state in each wave is spectroscopic and higher energy states are created by multiplication of the previous state by the radial function and normalisation.
-\option{-{}-custom-basis} construct basis according to the prescription in \texttt{Basis/CustomFile}.
-\option{Basis/CustomFile} ['CustomBasis.txt'] the prescription used to create a customised basis when using \texttt{-{}-custom-basis}  
+%\option{-{}-hf-basis} Use spectroscopic (relativistic Hartree-Fock) basis.
+%\option{-{}-r-basis} Use $\times r$ basis where the lowest state in each wave is spectroscopic and higher energy states are created by multiplication of the previous state by the radial function and normalisation.
+%\option{-{}-custom-basis} construct basis according to the prescription in \texttt{Basis/CustomFile}.
+%\option{Basis/CustomFile} ['CustomBasis.txt'] the prescription used to create a customised basis when using \texttt{-{}-custom-basis}  
 
 %MBPT
-\subsection*{[MBPT]: Many-body perturbation theory.}
+\subsection{[MBPT]: Many-body perturbation theory.}
 
 \option{-s1, -{}-include-sigma1} create one-body core-valence correlation diagrams. These are stored in ``[ID].one.integrals''.
+
 \option{-s2, -{}-include-sigma2} create two-body core-valence correlation diagrams. These are stored in ``[ID].two.integrals''.
+
 \option{-s3, -{}-include-sigma3} Include effective three-body interactions in the Hamiltonian. These diagrams are calculated during construction of the Hamiltonian (as opposed to calculated beforehand and stored), and can slow down the CI process considerably.
+
 \option{-s12} [default if running MBPT] = \texttt{-s1} + \texttt{-s2}
+
 \option{-s123} = = \texttt{-s1} + \texttt{-s2} + \texttt{-s3}
 
 \option{Basis} must be a superset of \texttt{Basis/ValenceBasis} using the same format, e.g.~\texttt{MBPT/Basis = 24spdfg}.
@@ -193,27 +220,83 @@ One of the basis options must be specified.
 \option{Delta} [0.0] a number to add to the denominator of every MBPT diagram. Could be equal, for example, to the difference between the HF and the CI energy~\cite{kozlov99os,berengut08jpb}.
 
 %CI
-\subsection*{[CI]: Configuration interaction and energy level options.}
+\subsection{[CI]: Configuration interaction and energy level options.}
+
+\option{-{}-all-symmetries} Calculate all possible symmetries (ignore \code{EvenParityTwoJ} and \code{OddParityTwoJ}).
+
+\option{-{}-memory-saver} Write all levels to disk and do not store in memory when levels are not being used.
+
+\option{-{}-single-configuration-ci} Diagonalise Hamiltonian only for each non-relativistic configuration (with no mixing between configurations).
+
+\option{-{}-gfactors} Calculate Land\'e $g$-factors (by default this is usually on, except in the case where  \code{-{}-single-configuration-ci} is used or the \code{NumSolutions} is large).
+
+\option{-{}-no-gfactors} Do not calculate $g$-factors.
+
+\option{-{}-print-configuration-average-energy} Print the configuration-average energy of the selected non-relativistic configurations.
+
 \option{LeadingConfigurations} lists all leading configurations from which to excite electrons when forming the Hamiltonian, e.g.~\texttt{CI/LeadingConfigurations = '3d7, 3d6 4s1, 3d6 4p1'} lists three leading configurations each with seven valence electrons. The number of valence electrons or holes should be equal for all leading configurations. Hole cases may be specified with negative occupations, e.g.~\code{'3d-2'} would specify two holes in the otherwise filled $3d$ shell.
 
 \option{ElectronExcitations} [2] number of electrons to excite from leading configurations. e.g. default 2 corresponds to SD-CI.
+
 \option{HoleExcitations} [0] number of holes to excite from leading configurations.
+
+\option{ExtraConfigurations} list any additional configurations here. No additional configurations formed by excitations of electrons or holes from these configurations will be included.
+
+\option{ConfigurationAverageEnergyRange} list of two numbers that optionally limit set of non-relativistic configurations so that their configuration-average energy (in atomic units) lies within the range. e.g.~\code{CI/ConfigurationAverageEnergyRange = '-100., -99.'}.
 
 \option{EvenParityTwoJ} list of angular momenta of even parity to create Hamiltonians and serve. e.g.~\texttt{CI/EvenParityTwoJ = '0, 2, 4, 6, 8, 10, 12'} does all even parity levels from J = 0 to 6.
 
 \option{OddParityTwoJ} list of angular momenta calculations to do for odd parity states.
 
 \option{MaxEnergy} AMBiT calculates all levels up to this energy eigenvalue. Only used when \_SCALAPACK is on.
-\option{NumSolutions} [6] calculate the first \texttt{NumSolutions} eigenvalues of the Hamiltonian (when \texttt{CI/MaxEnergy} is not used).
+
+\option{NumSolutions} [6] calculate the first \texttt{NumSolutions} eigenvalues of the Hamiltonian. To include all solutions (possibly many thousands) set to \code{0}.
+% (when \texttt{CI/MaxEnergy} is not used).
 
 \subsubsection{[CI/Output]: Configuration interaction display options.}
 
 \option{Type} Sets the type of output the program should generate, Standard is the default, other options are CommaSeparated, TabSeparated or SpaceSeparated
+
 \option{ShowgFactors} Determines if g-factors should be displayed in the final solutions or otherwise
+
 \option{ShowPercentages} Determines if percentages for solutions with mixed configurations should be displayed or not
+
 \option{NumLeadingConfigurations} Sets the maximal number of leading configurations for each solution the program should display
+
 \option{MinimumDisplayedPercentage} The percentage threshold for displaying mixing, default is 1\%
+
 \option{MaxDisplayedEnergy} The maximum energy to display when solving in Davidson method, in eV
+
+%DR
+\subsection{[DR]: Autoionization rates}
+
+\option{-{}-energy-grid} Create set of continuum wavefunctions along an energy grid, and for each compound level to calculate use the closest one.
+
+\option{IonizationEnergy} Ionization energy relative to ground state energy, e.g. if the energy of the ground state is -10.4 (atomic units) and the ionization energy is  1.0 (i.e. 27.2 eV) then use \code{DR/IonizationEnergy = -9.4}.
+
+\option{EnergyLimit} Only calculate autoionization rates for compound resonances with energy below this (relative to \code{DR/IonizationEnergy}).
+
+\option{ContinuumLMax} [6] Maximum orbital angular momentum of continuum waves to include.
+
+\option{ContinuumFieldConfiguration} Specify configuration of Hartree-Fock core in which to calculate continuum wavefunction, e.g. \code{'1s2 2s1'}. Default is Hartree-Fock core (including any open shells) specified in \code{HF/Configuration}.
+
+\subsubsection{[DR/Target]: Specify target (with one fewer electron)}
+
+\option{Filename} input file for target calculation. Must include CI and creation of target level.
+
+\option{TwoJ} twice the angular momentum of the target level.
+
+\option{Parity} specify parity of target level (either \code{even} or \code{odd}).
+
+\option{Index} [0] specify level index of target.
+
+\subsubsection{[DR/EnergyGrid] specify energy grid if \code{DR/-{}-energy-grid} is used}
+
+\option{Min} [0.003675] minimum energy of continuum wave above ionization energy (default 0.1 eV)
+
+\option{Max} [3.675] maximum energy of continuum wave above ionization energy (default 100 eV)
+
+\option{Step} [0.03675] energy grid step size (default 1 eV)
 
 \section{Multiple runs}
 

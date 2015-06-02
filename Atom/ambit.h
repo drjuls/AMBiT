@@ -9,8 +9,7 @@
 class Ambit
 {
 public:
-    Ambit(MultirunOptions& user_input, const std::string& identifier):
-        user_input(user_input), identifier(identifier) {}
+    Ambit(MultirunOptions& user_input, const std::string& identifier);
 
     void EnergyCalculations();
     void Recursive();

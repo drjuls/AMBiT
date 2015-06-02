@@ -42,10 +42,6 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
     if(user_input.search(2, "--clean", "-c"))
         use_read = false;
 
-    bool use_write = true;
-    if(user_input.search(2, "--dont-save", "-d"))
-        use_write = false;
-
     if(!use_read || !ReadBasis())
     {
         int N = user_input("HF/N", -1);  // Number of electrons
@@ -88,11 +84,8 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         // HartreeY operator
         hartreeY = basis_generator.GetHartreeY();
 
-        if(use_write)
-        {
-            std::string filename = identifier + ".basis";
-            orbitals->Write(filename);
-        }
+        std::string filename = identifier + ".basis";
+        orbitals->Write(filename);
     }
 
     return open_core;
