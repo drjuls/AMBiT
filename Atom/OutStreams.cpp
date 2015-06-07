@@ -15,18 +15,25 @@ void OutStreams::InitialiseStreams()
 #endif
 
 #ifdef UNIX   // Don't output cerr to screen
+    char* jobid = getenv("PBS_JOBID");
+
+    std::string errorname = "error";
+    std::string logname = "log";
+    std::string suffix = ".out";
+
+    if(jobid)
+    {   logname += jobid;
+        errorname += jobid;
+    }
+
     if(NumProcessors == 1)
     {   outstream = &std::cout;
-        errstream = new std::ofstream("error.out");
-        logstream = new std::ofstream("log.out");
+        errstream = new std::ofstream(errorname + suffix);
+        logstream = new std::ofstream(logname + suffix);
     }
     else
-    {   char buffer[20];
-        sprintf(buffer, "error_%d.out", ProcessorRank);
-        errstream = new std::ofstream(buffer);
-
-        sprintf(buffer, "log_%d.out", ProcessorRank);
-        logstream = new std::ofstream(buffer);
+    {   errstream = new std::ofstream(errorname + '_' + itoa(ProcessorRank) + suffix);
+        logstream = new std::ofstream(logname + '_' + itoa(ProcessorRank) + suffix);
 
         if(ProcessorRank == 0)
             outstream = &std::cout;
