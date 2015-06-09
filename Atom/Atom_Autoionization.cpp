@@ -12,6 +12,7 @@ void Atom::Autoionization(pLevelConst target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     double energy_limit = user_input("DR/EnergyLimit", -1.0);   // Default no limit
+    int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
 
     auto math = MathConstant::Instance();
 
@@ -92,7 +93,18 @@ void Atom::Autoionization(pLevelConst target)
 
             // Get continuum wave (eps)
             Parity eps_parity = sym.GetParity() * target_symmetry.GetParity();
-            for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= sym.GetTwoJ() + target_symmetry.GetTwoJ(); eps_twoJ += 2)
+
+            // Maximum L and Parity -> Maximum J
+            int max_eps_twoJ;
+            if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+                max_eps_twoJ = 2 * max_continuum_l + 1;
+            else
+                max_eps_twoJ = 2 * max_continuum_l - 1;
+
+            // continuum J should not exceed sym.J + target.J
+            max_eps_twoJ = mmin(max_eps_twoJ, sym.GetTwoJ() + target_symmetry.GetTwoJ());
+
+            for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
             {
                 double partial = 0.0;
 
@@ -310,7 +322,17 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
 
                 // Get continuum wave (eps)
                 Parity eps_parity = sym.GetParity() * target_symmetry.GetParity();
-                int max_eps_twoJ = mmin(sym.GetTwoJ() + target_symmetry.GetTwoJ(), 2 * max_continuum_l + 1);
+
+                // Maximum L and Parity -> Maximum J
+                int max_eps_twoJ;
+                if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+                    max_eps_twoJ = 2 * max_continuum_l + 1;
+                else
+                    max_eps_twoJ = 2 * max_continuum_l - 1;
+
+                // continuum J should not exceed sym.J + target.J
+                max_eps_twoJ = mmin(max_eps_twoJ, sym.GetTwoJ() + target_symmetry.GetTwoJ());
+
                 for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
                 {
                     std::vector<double> partial(num_levels, 0.0);
