@@ -12,6 +12,7 @@ void Atom::Autoionization(pLevelConst target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     double energy_limit = user_input("DR/EnergyLimit", -1.0);   // Default no limit
+    int min_continuum_l = user_input("DR/ContinuumLMin", 0);
     int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
 
     auto math = MathConstant::Instance();
@@ -94,6 +95,16 @@ void Atom::Autoionization(pLevelConst target)
             // Get continuum wave (eps)
             Parity eps_parity = sym.GetParity() * target_symmetry.GetParity();
 
+            // Minimum L and Parity -> Minimum J
+            int min_eps_twoJ;
+            if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+                min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
+            else
+                min_eps_twoJ = 2 * min_continuum_l + 1;
+
+            // continuum J should not be less than (sym.J - target.J)
+            min_eps_twoJ = mmax(min_eps_twoJ, abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()));
+
             // Maximum L and Parity -> Maximum J
             int max_eps_twoJ;
             if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
@@ -104,7 +115,7 @@ void Atom::Autoionization(pLevelConst target)
             // continuum J should not exceed sym.J + target.J
             max_eps_twoJ = mmin(max_eps_twoJ, sym.GetTwoJ() + target_symmetry.GetTwoJ());
 
-            for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
+            for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
             {
                 double partial = 0.0;
 
@@ -178,6 +189,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     double grid_max = user_input("DR/EnergyGrid/Max", 3.675);     // Default 100eV
     double grid_step = user_input("DR/EnergyGrid/Step", 0.03675); // Default 1eV
     std::vector<double> energy_grid;
+    int min_continuum_l = user_input("DR/ContinuumLMin", 0);
     int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
 
     auto math = MathConstant::Instance();
@@ -240,7 +252,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     int pqn = pqn_offset;
     for(double eps_energy = grid_min; eps_energy <= grid_max; eps_energy += grid_step)
     {
-        for(int eps_l = 0; eps_l <= max_continuum_l; eps_l++)
+        for(int eps_l = min_continuum_l; eps_l <= max_continuum_l; eps_l++)
         {
             for(int eps_kappa = -eps_l -1; eps_kappa <= eps_l; eps_kappa += 2 * mmax(eps_l, 1) + 1)
             {
@@ -323,6 +335,16 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                 // Get continuum wave (eps)
                 Parity eps_parity = sym.GetParity() * target_symmetry.GetParity();
 
+                // Minimum L and Parity -> Minimum J
+                int min_eps_twoJ;
+                if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+                    min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
+                else
+                    min_eps_twoJ = 2 * min_continuum_l + 1;
+
+                // continuum J should not be less than (sym.J - target.J)
+                min_eps_twoJ = mmax(min_eps_twoJ, abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()));
+                
                 // Maximum L and Parity -> Maximum J
                 int max_eps_twoJ;
                 if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
@@ -333,7 +355,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                 // continuum J should not exceed sym.J + target.J
                 max_eps_twoJ = mmin(max_eps_twoJ, sym.GetTwoJ() + target_symmetry.GetTwoJ());
 
-                for(int eps_twoJ = abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()); eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
+                for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
                 {
                     std::vector<double> partial(num_levels, 0.0);
                     std::vector<double> coeff(num_levels);

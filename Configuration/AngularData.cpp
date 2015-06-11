@@ -526,29 +526,35 @@ void AngularDataLibrary::GenerateCSFs()
     }
 
     // Find big CSFs with M = J
-    int root = 0;
+    int jobcount = 0;   // jobcount will run from 0 -> 2 * NumProcessors - 1
+    int otherRank = 2 * NumProcessors - 1 - ProcessorRank;
+
     for(auto& pair: big_library)
     {
         Symmetry sym(pair.first[0].first);
         auto& pAng = pair.second;
 
-        if(root == ProcessorRank)
+        if(jobcount == ProcessorRank || jobcount == otherRank)
         {
             RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
-            *logstream << "Calculating CSF; N = " << pAng->projection_size() << " " << rconfig << std::endl;
+            *logstream << "Calculating CSF: N = " << pAng->projection_size() << " " << rconfig << std::endl;
             pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
         }
 
-        root++;
-        if(root >= NumProcessors)
-            root = 0;
+        jobcount++;
+        if(jobcount >= 2 * NumProcessors)
+            jobcount = 0;
     }
 
     // Share CSFs with all processors
-    root = 0;
+    jobcount = 0;
     int ierr = 0;
     for(auto& pair: big_library)
     {
+        int root = jobcount;
+        if(root >= NumProcessors)
+            root = 2 * NumProcessors - 1 - root;
+
         auto& pAng = pair.second;
         ierr = MPI_Barrier(MPI_COMM_WORLD);
         ierr = MPI_Bcast(&(pAng->num_CSFs), 1, MPI_INT, root, MPI_COMM_WORLD);
@@ -556,7 +562,7 @@ void AngularDataLibrary::GenerateCSFs()
         int buffer_size = pAng->num_CSFs * pAng->projection_size();
 
         // Allocate space
-        if(root != ProcessorRank)
+        if(jobcount != ProcessorRank && jobcount != otherRank)
         {
             if(pAng->CSFs)
                 delete[] pAng->CSFs;
@@ -567,9 +573,9 @@ void AngularDataLibrary::GenerateCSFs()
         ierr = MPI_Bcast(pAng->CSFs, buffer_size, MPI_DOUBLE, root, MPI_COMM_WORLD);
         pAng->have_CSFs = true;
 
-        root++;
-        if(root >= NumProcessors)
-            root = 0;
+        jobcount++;
+        if(jobcount >= 2 * NumProcessors)
+            jobcount = 0;
     }
 #endif
 
