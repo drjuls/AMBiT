@@ -232,7 +232,11 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
 
         // Write temporary matrix file, clear current Hamiltonian to make space,
         // then read in to ScalapackMatrix
-        std::string filename = "temp.matrix";
+        char* jobid = getenv("PBS_JOBID");
+        std::string filename = "temp";
+        if(jobid)
+            filename += jobid;
+        filename += ".matrix";
 
         Write(filename);
         Clear();

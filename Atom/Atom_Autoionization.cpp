@@ -32,6 +32,8 @@ void Atom::Autoionization(pLevelConst target)
     {
         target_map->AddState(valence->GetState(info));
     }
+    // Add holes from compound states
+    target_map->AddStates(*orbitals->hole);
 
     // Target information
     Symmetry target_symmetry(target->GetTwoJ(), target->GetParity());
@@ -215,6 +217,8 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     {
         target_map->AddState(valence->GetState(info));
     }
+    // Add holes from compound states
+    target_map->AddStates(*orbitals->hole);
 
     // Target information
     Symmetry target_symmetry(target->GetTwoJ(), target->GetParity());
