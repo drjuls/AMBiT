@@ -545,10 +545,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 //        if(sigma3)
 //            H->IncludeSigma3(sigma3);
 
-            *logstream << "\nGenerate Hamiltonian " << std::flush;
-            DebugOptions.MarkTime();
             H.GenerateMatrix();
-            *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
             //H->PollMatrix();
 
             if(user_input.search("--write-hamiltonian"))
@@ -599,45 +596,47 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 g_factors.CalculateGFactors(levelvec);
             }
 
-//            ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
-//            if(filegenerator)
-//            {   filegenerator->SetOutputFile("PercentagesOut.txt");
-//                filegenerator->WriteConfigs();
-//            }
-
-            *logstream << "Writing LevelMap " << std::flush;
-            DebugOptions.MarkTime();
             levels->Store(key, levelvec);
-            *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
         }
     }
 
     // Set up output options
     bool ShowgFactors = true;
-    if((user_input("CI/Output/ShowgFactors", "true") == "false") || (user_input("CI/Output/ShowgFactors", 1) == 0))
+    if(user_input.search("CI/--no-gfactors"))
     {   ShowgFactors = false;
     }
 
     bool ShowPercentages = true;
-    if((user_input("CI/Output/ShowPercentages", "true") == "false") || (user_input("CI/Output/ShowPercentages", 1) == 0))
+    if(user_input.search("CI/Output/--no-configs") || user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
     {   ShowPercentages = false;
     }
-    double min_percent_displayed;
 
-    if(ShowPercentages)
-    {   min_percent_displayed = user_input("CI/Output/MinimumDisplayedPercentage", 1.);
+    if(user_input.search("CI/Output/--print-inline"))
+    {
+        std::string sep = user_input("CI/Output/Separator", " ");
+
+        if(user_input.search("CI/Output/MaxDisplayedEnergy"))
+        {   // Truncate display at max energy
+            double max_energy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
+            PrintInline(levelvec, max_energy, ShowPercentages, ShowgFactors, sep);
+        }
+        else
+            PrintInline(levelvec, ShowPercentages, ShowgFactors, sep);
     }
     else
-    {   min_percent_displayed = 101.;
-    }
+    {   double min_percent_displayed = 101.;
+        if(ShowPercentages)
+        {   min_percent_displayed = user_input("CI/Output/MinimumDisplayedPercentage", 1.);
+        }
 
-    if(user_input.search("CI/Output/MaxDisplayedEnergy"))
-    {   // Truncate display at max energy
-        double DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
-        Print(levelvec, min_percent_displayed, DavidsonMaxEnergy);
+        if(user_input.search("CI/Output/MaxDisplayedEnergy"))
+        {   // Truncate display at max energy
+            double DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
+            Print(levelvec, min_percent_displayed, DavidsonMaxEnergy);
+        }
+        else
+            Print(levelvec, min_percent_displayed);
     }
-    else
-        Print(levelvec, min_percent_displayed);
 
     return levelvec;
 }

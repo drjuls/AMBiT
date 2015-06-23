@@ -277,7 +277,7 @@ void Print(const LevelVector& levels, double min_percentage, double max_energy)
 
 void Print(const LevelVector& levels, double min_percentage, bool use_max_energy, double max_energy)
 {
-    if(levels.size() == 0)
+    if(levels.size() == 0 || ProcessorRank != 0)
         return;
 
     pRelativisticConfigListConst configs = levels[0]->GetRelativisticConfigList();
@@ -287,11 +287,14 @@ void Print(const LevelVector& levels, double min_percentage, bool use_max_energy
     // This will exist if configs exists
     auto hID = levels[0]->GetHamiltonianID();
 
+    bool use_min_percentage = (0. < min_percentage && min_percentage <= 100.);
+
     // Build map of non-rel configurations to percentage contributions
     std::map<NonRelConfiguration, double> percentages;
-    for(auto& rconfig: *configs)
-    {   percentages[rconfig] = 0.0; // Auto instantiate NonRelConfiguration from RelativisticConfiguration.
-    }
+    if(use_min_percentage)
+        for(auto& rconfig: *configs)
+        {   percentages[rconfig] = 0.0; // Auto instantiate NonRelConfiguration from RelativisticConfiguration.
+        }
 
     auto solution_it = levels.begin();
     *outstream << "Solutions for " << hID << " (N = " << (*solution_it)->GetEigenvectorLength() << "):\n";
@@ -306,38 +309,127 @@ void Print(const LevelVector& levels, double min_percentage, bool use_max_energy
         *outstream << index << ": " << std::setprecision(8) << energy << "    "
                    << std::setprecision(12) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm\n";
 
-        // Clear percentages
-        for(auto& pair: percentages)
-            pair.second = 0.0;
-
-        const double* eigenvector_csf = eigenvector.data();
-        for(auto& rconfig: *configs)
+        if(use_min_percentage)
         {
-            double contribution = 0.0;
-            for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
-            {   contribution += (*eigenvector_csf) * (*eigenvector_csf) * 100.;
-                eigenvector_csf++;
+            // Clear percentages
+            for(auto& pair: percentages)
+                pair.second = 0.0;
+
+            const double* eigenvector_csf = eigenvector.data();
+            for(auto& rconfig: *configs)
+            {
+                double contribution = 0.0;
+                for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
+                {   contribution += (*eigenvector_csf) * (*eigenvector_csf) * 100.;
+                    eigenvector_csf++;
+                }
+
+                percentages[rconfig] += contribution;
             }
 
-            percentages[rconfig] += contribution;
-        }
-
-        // Print important configurations.
-        for(auto& pair: percentages)
-        {
-            if(pair.second > min_percentage)
-                *outstream << std::setw(20) << pair.first.Name() << "  "
-                           << std::setprecision(2) << pair.second << "%\n";
+            // Print important configurations.
+            for(auto& pair: percentages)
+            {
+                if(pair.second > min_percentage)
+                    *outstream << std::setw(20) << pair.first.Name() << "  "
+                               << std::setprecision(2) << pair.second << "%\n";
+            }
         }
 
         if(hID->GetTwoJ() != 0)
         {
             const double& gfactor = (*solution_it)->GetgFactor();
             if(!std::isnan(gfactor))
-                *outstream << "    g-factor = " << std::setprecision(5) << (*solution_it)->GetgFactor() << "\n";
+                *outstream << "    g-factor = " << std::setprecision(5) << gfactor << "\n";
         }
 
         *outstream << std::endl;
+        solution_it++;
+        index++;
+    }
+}
+
+void PrintInline(const LevelVector& levels, bool print_leading_configuration, bool print_gfactors, std::string separator)
+{   PrintInline(levels, false, 0.0, print_leading_configuration, print_gfactors, separator);
+}
+
+void PrintInline(const LevelVector& levels, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator)
+{   PrintInline(levels, true, max_energy, print_leading_configuration, print_gfactors, separator);
+}
+
+void PrintInline(const LevelVector& levels, bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator)
+{
+    if(levels.size() == 0 || ProcessorRank != 0)
+        return;
+
+    pRelativisticConfigListConst configs = levels[0]->GetRelativisticConfigList();
+    if(!configs || !configs->size())
+        return;
+
+    // This will exist if configs exists
+    auto hID = levels[0]->GetHamiltonianID();
+    double J = hID->GetJ();
+    Parity P = hID->GetParity();
+
+    // Build map of non-rel configurations to percentage contributions
+    std::map<NonRelConfiguration, double> percentages;
+    if(print_leading_configuration)
+        for(auto& rconfig: *configs)
+        {   percentages[rconfig] = 0.0; // Auto instantiate NonRelConfiguration from RelativisticConfiguration.
+        };
+
+    auto solution_it = levels.begin();
+    unsigned int index = 0;
+    while(solution_it != levels.end() &&
+          (!use_max_energy || (*solution_it)->GetEnergy() < max_energy))
+    {
+        double energy = (*solution_it)->GetEnergy();
+        const std::vector<double>& eigenvector = (*solution_it)->GetEigenvector();
+
+        *outstream << J << separator << Sign(P) << separator << index << separator
+                   << std::setprecision(12) << energy;
+
+        if(print_gfactors)
+        {
+            if(hID->GetTwoJ() != 0)
+            {
+                const double& gfactor = (*solution_it)->GetgFactor();
+                *outstream << separator << std::setprecision(5) << gfactor;
+            }
+            else
+                *outstream << separator << 0.0;
+        }
+
+        if(print_leading_configuration)
+        {
+            // Clear percentages
+            for(auto& pair: percentages)
+                pair.second = 0.0;
+
+            const double* eigenvector_csf = eigenvector.data();
+            for(auto& rconfig: *configs)
+            {
+                double contribution = 0.0;
+                for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
+                {   contribution += (*eigenvector_csf) * (*eigenvector_csf) * 100.;
+                    eigenvector_csf++;
+                }
+
+                percentages[rconfig] += contribution;
+            }
+
+            // Get largest contribution
+            auto largest_contribution
+                = std::max_element(percentages.begin(), percentages.end(),
+                    [](const std::pair<NonRelConfiguration, double>& p1, const std::pair<NonRelConfiguration, double>& p2)
+                    { return p1.second < p2.second; });
+
+            *outstream << separator << largest_contribution->first.NameNoSpaces()
+                       << separator << std::setprecision(2) << largest_contribution->second;
+        }
+
+        *outstream << separator << hID->Name() << std::endl;
+
         solution_it++;
         index++;
     }

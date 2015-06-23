@@ -242,20 +242,12 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         Clear();
 
         ScalapackMatrix SM(N);
-        *logstream << "\nReading          " << std::flush;
-        DebugOptions.MarkTime();
         SM.ReadTriangle(filename);
-        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
         // Diagonalise
-        *logstream << "Diagonalising    " << std::flush;
-        DebugOptions.MarkTime();
         double* E = new double[N];  // All eigenvalues
         SM.Diagonalise(E);
-        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
-        *logstream << "Copying          " << std::flush;
-        DebugOptions.MarkTime();
         // Cut off num_solutions
         if(use_energy_limit)
             for(int i = 0; i < NumSolutions; i++)
@@ -286,7 +278,6 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
                 pV += N;
             }
         }
-        *logstream << DebugOptions.GetIntervalInSeconds() << " sec" << std::endl;
 
         delete[] E;
         delete[] V;

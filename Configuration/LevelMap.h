@@ -10,8 +10,14 @@
 
 /** All levels in LevelVector should come from the same Hamiltonian, although this is not enforced. */
 typedef std::vector<pLevel> LevelVector;
+
+/** Print levels to outstream. min_percentages outside of the range (0, 100] will switch off the printing of configurations. */
 void Print(const LevelVector& levels, double min_percentage = 1.0);
 void Print(const LevelVector& levels, double min_percentage, double max_energy);
+
+/** Print one line per level: J, P, index, E, g, Largest configuration, HamiltonianID. */
+void PrintInline(const LevelVector& levels, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ");
+void PrintInline(const LevelVector& levels, double max_energy, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ");
 
 struct pHamiltonianIDComparator {
     bool operator() (const pHamiltonianIDConst& lhs, const pHamiltonianIDConst& rhs) const
@@ -145,5 +151,6 @@ protected:
     All other print functions call this one.
  */
 void Print(const LevelVector& levels, double min_percentage, bool use_max_energy, double max_energy);
+void PrintInline(const LevelVector& levels, bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ");
 
 #endif
