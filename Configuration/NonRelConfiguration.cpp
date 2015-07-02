@@ -139,60 +139,10 @@ double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst
     if(relconfiglist == nullptr)
         GenerateRelativisticConfigs();
 
-    MathConstant* math = MathConstant::Instance();
-
     for(const auto& rconfig: *relconfiglist)
     {
         int rconfig_num_levels = rconfig.GetNumberOfLevels();
-        double rconfig_energy = 0.;
-
-        auto it_a = rconfig.begin();
-        while(it_a != rconfig.end())
-        {
-            pOrbitalConst orbital_a = orbitals->GetState(it_a->first);
-            // one body: n_a E_a
-            rconfig_energy += it_a->second * one_body->GetMatrixElement(*orbital_a, *orbital_a);
-
-            auto it_b = it_a;
-            while(it_b != rconfig.end())
-            {
-                double weight = it_a->second;
-                if(it_a == it_b)
-                {   if(it_a->second > 0)
-                        weight *= (it_b->second - 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
-                    else
-                        weight *= (it_b->second + 1)/2. * it_a->first.MaxNumElectrons()/double(it_a->first.MaxNumElectrons()-1);
-                }
-                else
-                    weight *= it_b->second;
-
-                if(weight)
-                {
-                    pOrbitalConst orbital_b = orbitals->GetState(it_b->first);
-
-                    // R^0_abab
-                    two_body->SetParameters(0, orbital_b, orbital_b);
-                    double U_ab = two_body->GetMatrixElement(*orbital_a, *orbital_a);
-
-                    // Sum_l R^k_abba (j_a  j_b k)^2 \xi(l_a + l_b + k)
-                    //                (1/2 -1/2 0)
-                    int k = two_body->SetOrbitals(orbital_b, orbital_a);
-                    while(k != -1)
-                    {
-                        if(math->sum_is_even(orbital_a->L(), orbital_b->L(), k))
-                        {
-                            double threej = math->Electron3j(orbital_a->TwoJ(), orbital_b->TwoJ(), k);
-                            U_ab -= threej * threej * two_body->GetMatrixElement(*orbital_a, *orbital_b);
-                        }
-                        k = two_body->NextK();
-                    }
-
-                    rconfig_energy += weight * U_ab;
-                }
-                it_b++;
-            }
-            it_a++;
-        }
+        double rconfig_energy = rconfig.CalculateConfigurationAverageEnergy(orbitals, one_body, two_body);
 
         energy += rconfig_num_levels * rconfig_energy;
         num_levels += rconfig_num_levels;
@@ -225,6 +175,18 @@ int NonRelConfiguration::GetTwiceMaxProjection() const
     }
 
     return maximum_two_m;
+}
+
+int NonRelConfiguration::GetNumberOfLevels()
+{
+    if(relconfiglist == nullptr)
+        GenerateRelativisticConfigs();
+
+    int num_levels = 0;
+    for(auto& rconfig: *relconfiglist)
+        num_levels += rconfig.GetNumberOfLevels();
+
+    return num_levels;
 }
 
 ConfigList::ConfigList(const RelativisticConfigList& rlist)

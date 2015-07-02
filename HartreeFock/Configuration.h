@@ -32,6 +32,14 @@ public:
     const BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
     BaseConfiguration& operator=(BaseConfiguration&& other) { m_config.swap(other.m_config); return *this; }
 
+    /** Add occupancies of two configurations. */
+    BaseConfiguration& operator+=(const BaseConfiguration& other);
+    BaseConfiguration operator+(const BaseConfiguration& other) const;
+
+    /** Subtract occupancies of two configurations. */
+    BaseConfiguration& operator-=(const BaseConfiguration& other);
+    BaseConfiguration operator-(const BaseConfiguration& other) const;
+
     bool operator<(const BaseConfiguration& other) const;
     bool operator==(const BaseConfiguration& other) const;
 
@@ -222,6 +230,50 @@ bool Configuration<OrbitalType, OccupancyType>::operator==(const Configuration<O
     if((first != m_config.end()) || (second != other.m_config.end()))
         return false;
     else return true;
+}
+
+template <class OrbitalType, class OccupancyType>
+auto Configuration<OrbitalType, OccupancyType>::operator+=(const BaseConfiguration& other) -> BaseConfiguration&
+{
+    for(auto& pair: other)
+    {
+        OccupancyType& occupancy = m_config[pair.first];
+        occupancy += pair.second;
+        if(occupancy == 0)
+            erase(pair.first);
+    }
+
+    return *this;
+}
+
+template <class OrbitalType, class OccupancyType>
+auto Configuration<OrbitalType, OccupancyType>::operator+(const BaseConfiguration& other) const -> BaseConfiguration
+{
+    BaseConfiguration ret(*this);
+    ret += other;
+    return ret;
+}
+
+template <class OrbitalType, class OccupancyType>
+auto Configuration<OrbitalType, OccupancyType>::operator-=(const BaseConfiguration& other) -> BaseConfiguration&
+{
+    for(auto& pair: other)
+    {
+        OccupancyType& occupancy = m_config[pair.first];
+        occupancy -= pair.second;
+        if(occupancy == 0)
+            erase(pair.first);
+    }
+
+    return *this;
+}
+
+template <class OrbitalType, class OccupancyType>
+auto Configuration<OrbitalType, OccupancyType>::operator-(const BaseConfiguration& other) const -> BaseConfiguration
+{
+    BaseConfiguration ret(*this);
+    ret -= other;
+    return ret;
 }
 
 template <class OrbitalType, class OccupancyType>

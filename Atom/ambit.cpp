@@ -610,7 +610,9 @@ void Ambit::Recombination()
     pLevelConst target_level = target_level_vec[target_level_index];
 
     // Get widths of current levels
-    if(user_input.search("DR/--energy-grid"))
+    if(user_input.search("--configuration-average"))
+        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level);
+    else if(user_input.search("DR/--energy-grid"))
         atoms[first_run_index].AutoionizationEnergyGrid(target_level);
     else
         atoms[first_run_index].Autoionization(target_level);

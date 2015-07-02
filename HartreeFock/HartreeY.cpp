@@ -91,14 +91,14 @@ void HartreeY::Alert()
     // If potential has grown, add points
     if(i < potential.size())
     {
-        const double* R_k = lattice->Rpower(K);
         const double* R_kplusone = lattice->Rpower(K+1);
-        double charge = potential.f[i-1] * R_k[i-1];
+        const double* R_kplustwo = lattice->Rpower(K+2);
+        double charge = potential.f[i-1] * R_kplusone[i-1];
 
         while(i < potential.size())
         {
-            potential.f[i] = charge/R_k[i];
-            potential.dfdr[i] = - K * charge/R_kplusone[i];
+            potential.f[i] = charge/R_kplusone[i];
+            potential.dfdr[i] = - K * charge/R_kplustwo[i];
             i++;
         }
     }

@@ -2,7 +2,6 @@
 #define ATOM_H
 
 #include "Atom/GetPot"
-#include "Configuration/CIIntegrals.h"
 #include "Configuration/HamiltonianMatrix.h"
 #include "HartreeFock/Core.h"
 #include "Universal/MathConstant.h"
@@ -90,6 +89,12 @@ public:
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
     void AutoionizationEnergyGrid(pLevelConst target);
+
+    /** Configuration averaged autoionisation rate.
+        PRE: Have to have nrconfigs.
+     */
+    void AutoionizationConfigurationAveraged(pLevelConst target);
+    void AutoionizationConfigurationAveraged(const OccupationMap& target);
 
 protected:
     /** Initialise AngularDataLibrary if it hasn't been already.

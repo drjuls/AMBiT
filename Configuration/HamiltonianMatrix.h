@@ -3,13 +3,13 @@
 
 #include "RelativisticConfiguration.h"
 #include "NonRelConfiguration.h"
-#include "CIIntegrals.h"
 #include "HartreeFock/HFOperator.h"
 #include "Level.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
 #include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/TwoElectronCoulombOperator.h"
 #include "Eigen/Eigen"
 
 typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;

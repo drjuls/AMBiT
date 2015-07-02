@@ -50,6 +50,10 @@ public:
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;
 
+    /** Calculate number of levels (all symmetries and relativistic configurations) corresponding to this configuration.
+     */
+    int GetNumberOfLevels();
+
 public:
     pRelativisticConfigList relconfiglist;
 

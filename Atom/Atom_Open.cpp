@@ -247,6 +247,16 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     if(user_input.search(2, "--clean", "-c"))
         use_read = false;
 
+    if(user_input.search("--configuration-average"))
+    {
+        ConfigGenerator gen(orbitals, user_input);
+        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+
+        // Create empty level set
+        levels = std::make_shared<LevelMap>(identifier, nullptr);
+        return levels;
+    }
+
     // Get angular library
     InitialiseAngularDataLibrary(angular_lib);
 

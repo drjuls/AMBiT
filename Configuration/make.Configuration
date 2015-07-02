@@ -1,4 +1,4 @@
-cxxobjects = AngularData.o CIIntegrals.o ConfigGenerator.o ElectronInfo.o \
+cxxobjects = AngularData.o ConfigGenerator.o ElectronInfo.o \
              HamiltonianMatrix.o Level.o LevelMap.o NonRelConfiguration.o \
              Projection.o RelativisticConfiguration.o \
              RelativisticConfigList.o
