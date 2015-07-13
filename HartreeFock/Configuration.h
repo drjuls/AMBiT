@@ -32,13 +32,25 @@ public:
     const BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
     BaseConfiguration& operator=(BaseConfiguration&& other) { m_config.swap(other.m_config); return *this; }
 
+    /** Add occupancies of other configuration. */
+    template<typename U>
+    typename boost::enable_if<boost::is_convertible<U, OccupancyType>, BaseConfiguration>::type&
+        operator+=(const Configuration<OrbitalType, U>& other);
+
     /** Add occupancies of two configurations. */
-    BaseConfiguration& operator+=(const BaseConfiguration& other);
-    BaseConfiguration operator+(const BaseConfiguration& other) const;
+    template<typename U>
+    typename boost::enable_if<boost::is_convertible<U, OccupancyType>, BaseConfiguration>::type
+        operator+(const Configuration<OrbitalType, U>& other) const;
+
+    /** Subtract occupancies of other configuration. */
+    template<typename U>
+    typename boost::enable_if<boost::is_convertible<U, OccupancyType>, BaseConfiguration>::type&
+        operator-=(const Configuration<OrbitalType, U>& other);
 
     /** Subtract occupancies of two configurations. */
-    BaseConfiguration& operator-=(const BaseConfiguration& other);
-    BaseConfiguration operator-(const BaseConfiguration& other) const;
+    template<typename U>
+    typename boost::enable_if<boost::is_convertible<U, OccupancyType>, BaseConfiguration>::type
+        operator-(const Configuration<OrbitalType, U>& other) const;
 
     bool operator<(const BaseConfiguration& other) const;
     bool operator==(const BaseConfiguration& other) const;
@@ -233,7 +245,9 @@ bool Configuration<OrbitalType, OccupancyType>::operator==(const Configuration<O
 }
 
 template <class OrbitalType, class OccupancyType>
-auto Configuration<OrbitalType, OccupancyType>::operator+=(const BaseConfiguration& other) -> BaseConfiguration&
+template <typename U>
+typename boost::enable_if<boost::is_convertible<U, OccupancyType>, Configuration<OrbitalType, OccupancyType>>::type&
+Configuration<OrbitalType, OccupancyType>::operator+=(const Configuration<OrbitalType, U>& other)
 {
     for(auto& pair: other)
     {
@@ -247,7 +261,9 @@ auto Configuration<OrbitalType, OccupancyType>::operator+=(const BaseConfigurati
 }
 
 template <class OrbitalType, class OccupancyType>
-auto Configuration<OrbitalType, OccupancyType>::operator+(const BaseConfiguration& other) const -> BaseConfiguration
+template <typename U>
+typename boost::enable_if<boost::is_convertible<U, OccupancyType>, Configuration<OrbitalType, OccupancyType>>::type
+Configuration<OrbitalType, OccupancyType>::operator+(const Configuration<OrbitalType, U>& other) const
 {
     BaseConfiguration ret(*this);
     ret += other;
@@ -255,7 +271,9 @@ auto Configuration<OrbitalType, OccupancyType>::operator+(const BaseConfiguratio
 }
 
 template <class OrbitalType, class OccupancyType>
-auto Configuration<OrbitalType, OccupancyType>::operator-=(const BaseConfiguration& other) -> BaseConfiguration&
+template <typename U>
+typename boost::enable_if<boost::is_convertible<U, OccupancyType>, Configuration<OrbitalType, OccupancyType>>::type&
+Configuration<OrbitalType, OccupancyType>::operator-=(const Configuration<OrbitalType, U>& other)
 {
     for(auto& pair: other)
     {
@@ -269,7 +287,9 @@ auto Configuration<OrbitalType, OccupancyType>::operator-=(const BaseConfigurati
 }
 
 template <class OrbitalType, class OccupancyType>
-auto Configuration<OrbitalType, OccupancyType>::operator-(const BaseConfiguration& other) const -> BaseConfiguration
+template <typename U>
+typename boost::enable_if<boost::is_convertible<U, OccupancyType>, Configuration<OrbitalType, OccupancyType>>::type
+Configuration<OrbitalType, OccupancyType>::operator-(const Configuration<OrbitalType, U>& other) const
 {
     BaseConfiguration ret(*this);
     ret -= other;

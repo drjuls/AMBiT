@@ -467,72 +467,6 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
         nrtarget[pair.first] = int(std::floor(pair.second + 0.1));
     }
 
-    // Create weighted set of relativistic targets broadly equivalent to occupation map
-    std::vector<std::pair<RelativisticConfiguration, double>> rtargetlist;
-    double target_energy = 0.;
-    if(!use_single_particle_energy)
-    {
-        rtargetlist.emplace_back(RelativisticConfiguration(), 1.0);
-        double broadly = 0.01;
-        for(const auto& nrpair: nrtarget)
-        {
-            if(nrpair.first.Kappa() == -1)
-            {
-                for(auto& rtarget: rtargetlist)
-                    rtarget.first[nrpair.first.GetFirstRelativisticInfo()] = nrpair.second;
-            }
-            else
-            {   // Get occupancies
-                double first_occ = target.GetOccupancy(nrpair.first.GetFirstRelativisticInfo());
-                double second_occ = target.GetOccupancy(nrpair.first.GetSecondRelativisticInfo());
-                if(fabs(first_occ + second_occ - double(nrpair.second)) > broadly)
-                    *errstream << "Atom::AutoionizationConfigurationAveraged(): target is non-integer non-rel config\n"
-                               << "    target: " << target << ";  nrtarget: " << nrtarget << std::endl;
-
-                // Check if the split is already quite good
-                if(abs(first_occ - round(first_occ)) < broadly)
-                {
-                    for(auto& rtarget: rtargetlist)
-                    {   int ifirst_occ = round(first_occ);
-                        rtarget.first[nrpair.first.GetFirstRelativisticInfo()] = ifirst_occ;
-                        rtarget.first[nrpair.first.GetSecondRelativisticInfo()] = nrpair.second - ifirst_occ;
-                    }
-                }
-                else
-                {   RelativisticConfiguration add1, add2;
-                    double weighting1;
-
-                    add1[nrpair.first.GetFirstRelativisticInfo()] = floor(first_occ);
-                    add1[nrpair.first.GetSecondRelativisticInfo()] = nrpair.second - floor(first_occ);
-                    add2[nrpair.first.GetFirstRelativisticInfo()] = ceil(first_occ);
-                    add2[nrpair.first.GetSecondRelativisticInfo()] = nrpair.second - ceil(first_occ);
-                    weighting1 = 1. - (first_occ - floor(first_occ));
-
-                    // Create new rtargetlist, adding config1 and config2 to each of the old list
-                    std::vector<std::pair<RelativisticConfiguration, double>> rtargetlist_new;
-                    for(auto& rtarget: rtargetlist)
-                    {
-                        RelativisticConfiguration rconfig1 = rtarget.first;
-                        rconfig1 += add1;
-                        RelativisticConfiguration rconfig2 = rtarget.first;
-                        rconfig2 += add2;
-
-                        rtargetlist_new.emplace_back(std::make_pair(rconfig1, weighting1 * rtarget.second));
-                        rtargetlist_new.emplace_back(std::make_pair(rconfig2, (1. - weighting1) * rtarget.second));
-                    }
-
-                    rtargetlist.swap(rtargetlist_new);
-                }
-            }
-        }
-
-        // Get target energy
-        for(const auto& rtarget: rtargetlist)
-        {
-            target_energy += rtarget.first.CalculateConfigurationAverageEnergy(orbitals->valence, hf, hartreeY) * rtarget.second;
-        }
-    }
-
     // Select orbitals in target wavefunction
     std::set<OrbitalInfo> target_info_set;
     pOrbitalMap target_map(new OrbitalMap(lattice));
@@ -565,7 +499,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     }
 
     *outstream << "\nAutoionization rates:"
-               << "\n E(eV)   A(ns)   Num.levels   Configuration" << std::endl;
+               << "\n E(eV)   A(ns)   Configuration" << std::endl;
 
     double energy_unit_conversion = math->HartreeEnergyIneV();
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
@@ -587,8 +521,6 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
         for(auto& rdiff: *reldiffs)
         {
-            double num_levels_rdiff = 0.;
-
             // Build continuum
             double eps_energy = 0;
             if(use_single_particle_energy)
@@ -597,14 +529,8 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                     eps_energy += valence->GetState(pair.first)->Energy() * pair.second;
             }
             else
-            {   for(auto& rtarget: rtargetlist)
-                {
-                    RelativisticConfiguration rcompound = rtarget.first + rdiff;
-                    eps_energy += CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) * rtarget.second;
-                    num_levels_rdiff += rcompound.GetNumberOfLevels() * rtarget.second;
-                }
-
-                eps_energy -= target_energy;
+            {   OccupationMap rcompound = target + rdiff;
+                eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) - ionization_energy;
             }
 
             //eps_energy = eps_energy - ionization_energy;
@@ -715,17 +641,21 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                         double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
                         double multiplier = Vah / (2*k1 + 1);
 
-                        int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
-                        int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
-
-                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                        if(!double_occupancy_excitation)
                         {
-                            double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
-                            if(partial_k2)
-                                partial_k2 *= math->minus_one_to_the_power(k1 + k2)
-                                              * two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
+                            // Exchange part
+                            int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
+                            int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
 
-                            multiplier += partial_k2;
+                            for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                            {
+                                double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
+                                if(partial_k2)
+                                    partial_k2 *= math->minus_one_to_the_power(k1 + k2)
+                                                  * two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
+
+                                multiplier += partial_k2;
+                            }
                         }
 
                         rate += Vah * multiplier;
@@ -733,7 +663,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 }
             }
 
-            rate *= target.GetOccupancy(*h)/h->MaxNumElectrons()
+            rate *= 2. * math->Pi() * target.GetOccupancy(*h)/h->MaxNumElectrons()
                     * (1. - target.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
                     * (1. - target.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
 
@@ -742,7 +672,6 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 char sep = ' ';
                 *outstream << eps_energy * energy_unit_conversion << sep
                            << rate * rate_unit_conversion << sep
-                           << num_levels_rdiff << sep
                            << nrconfig.NameNoSpaces() << std::endl;
             }
         }
