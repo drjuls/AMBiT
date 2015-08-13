@@ -538,9 +538,9 @@ void Ambit::TransitionCalculations()
                                 break;
 
                             LevelVector right_vec = levels->GetLevels(*right_it);
-                            for(int j = 0; j < right_vec.size(); i++)
+                            for(int j = 0; j < right_vec.size(); j++)
                             {
-                                if(right_vec[i]->GetEnergy() > max_energy)
+                                if(right_vec[j]->GetEnergy() > max_energy)
                                     break;
 
                                 transitions.CalculateTransition(std::make_pair(*left_it, i),
