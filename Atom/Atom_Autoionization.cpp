@@ -498,6 +498,14 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
         hf_continuum->SetCore(continuum_core);
     }
 
+    // Get target including core for occupancy
+    OccupationMap target_with_core;
+    for(const auto& orb: *orbitals->core)
+    {
+        target_with_core[orb.first] += orb.first.MaxNumElectrons();
+    }
+    target_with_core += target;
+
     *outstream << "\nAutoionization rates:"
                << "\n E(eV)   A(ns)   Configuration" << std::endl;
 
@@ -663,9 +671,9 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 }
             }
 
-            rate *= 2. * math->Pi() * target.GetOccupancy(*h)/h->MaxNumElectrons()
-                    * (1. - target.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
-                    * (1. - target.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
+            rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
+                    * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
+                    * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
 
             if(ProcessorRank == 0)
             {
