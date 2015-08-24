@@ -10,6 +10,7 @@
 #include <cmath>
 #include <new>
 #include <sstream>
+#include <fstream>
 
 #include "Atom/Debug.h"
 

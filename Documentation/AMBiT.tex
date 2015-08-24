@@ -172,6 +172,10 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.
 
+\option{AddLocalPotential/Filename} Import a potential from a file. Imported file should be a text list of radial points and corresponding potentials: $R \quad V(R)$, with one point per line. The imported potential is interpolated onto the lattice.
+
+\option{AddLocalPotential/Scale} [1.0] Scale the imported potential.
+
 %Basis
 \subsection{[Basis]: Details of electron orbital construction.}
 One of the basis options must be specified.

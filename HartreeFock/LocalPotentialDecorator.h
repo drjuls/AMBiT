@@ -13,14 +13,41 @@ class LocalPotentialDecorator : public HFOperatorDecorator
 public:
     LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
 
+    void SetScale(double factor) { scale = factor; }
+    double GetScale() const { return scale; }
+
 public:
     virtual RadialFunction GetDirectPotential() const override;
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
+    virtual LocalPotentialDecorator* Clone() const override
+    {   pHFOperator wrapped_clone(wrapped->Clone());
+        LocalPotentialDecorator* loc = new LocalPotentialDecorator(wrapped_clone, integrator);
+        loc->scale = scale;
+        return loc;
+    }
+
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+
+protected:
+    double scale;
+};
+
+typedef std::shared_ptr<LocalPotentialDecorator> pLocalPotentialDecorator;
+typedef std::shared_ptr<const LocalPotentialDecorator> pLocalPotentialDecoratorConst;
+
+/** Import a potential from a file.
+    Imported file should be a text list of radial points and corresponding potentials
+        R   V(R)
+    with one point per line.
+ */
+class ImportedPotentialDecorator : public LocalPotentialDecorator
+{
+public:
+    ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy = pOPIntegrator());
 };
 
 /** Decorate HF operator with a local approximation to the exchange potential. Good for first approximations.
@@ -29,8 +56,10 @@ public:
         \f[ x_{\alpha} \left( \frac{81}{32 \pi^2} \frac{\rho(r)}{r^2} \right)^{1/3} \f]
     where \f$\rho(r)\f$ is the density of electrons. The prefactor
         \f$x_\alpha = 1\f$ corresponds to the Dirac-Slater potential, while
-        \f$x_\alpha = 2/3\f$ gives the Kohn-Sham potential.
-    Remember to turn off the exchange potential using wrapped_hf->Include
+        \f$x_\alpha = 2/3\f$ gives the Kohn-Sham potential and
+        \f$x_\alpha = 0\f$ is Core-Hartree.
+    Xalpha is not quite the same as scaling, since the Latter correction is not affected.
+    Remember to turn off the exchange potential using wrapped_hf->Include.
  */
 class LocalExchangeApproximation : public LocalPotentialDecorator
 {

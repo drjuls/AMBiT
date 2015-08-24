@@ -113,6 +113,14 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         undressed_hf = hf;
     }
 
+    std::string filename = user_input("HF/AddLocalPotential/Filename", "");
+    if(!filename.empty())
+    {
+        double scale = user_input("HF/AddLocalPotential/Scale", 1.);
+        pLocalPotentialDecorator loc(new ImportedPotentialDecorator(hf, filename));
+        loc->SetScale(scale);
+    }
+
     // Set closed core occupancies
     OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
     

@@ -435,13 +435,15 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
                 
                 if(debugHF)
                     *logstream << "  " << std::setw(4) << orbital->Name()
-                               << "  E = " << std::setprecision(12) << orbital->Energy()
+                               << "  E = " << std::setprecision(12) << new_orbital->Energy()
                                << "  deltaE = " << std::setprecision(3) << deltaE
                                << "  size: (" << new_orbital->size()
                                << ") " << hf->GetLattice()->R(new_orbital->size()) << std::endl;
 
-                *exchange *= (1. - prop_new);
-                *exchange += hf->GetExchange(new_orbital) * prop_new;
+                if(exchange_included)
+                {   *exchange *= (1. - prop_new);
+                    *exchange += hf->GetExchange(new_orbital) * prop_new;
+                }
 
                 *orbital *= (1. - prop_new);
                 *orbital += (*new_orbital) * prop_new;
@@ -460,7 +462,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
                 *errstream << "Core: Failed to converge excited HF state " << orbital->Name() << std::endl;
         }
     }
-    
+
     if(DebugOptions.OutputHFExcited())
     {
         *outstream << std::setprecision(12);

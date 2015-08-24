@@ -5,7 +5,7 @@
 #include "Universal/Interpolator.h"
 
 LocalPotentialDecorator::LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf)
+    HFOperatorDecorator(wrapped_hf), scale(1.)
 {
     // If integration_strategy is supplied, use it.
     // Otherwise the integration_strategy from wrapped_hf will be used.
@@ -16,7 +16,7 @@ LocalPotentialDecorator::LocalPotentialDecorator(pHFOperator wrapped_hf, pOPInte
 RadialFunction LocalPotentialDecorator::GetDirectPotential() const
 {
     RadialFunction ret = wrapped->GetDirectPotential();
-    ret += directPotential;
+    ret +=  directPotential * scale;
 
     return ret;
 }
@@ -26,7 +26,7 @@ void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const Sp
     wrapped->GetODEFunction(latticepoint, fg, w);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = physicalConstant->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
         w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
         w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
     }
@@ -37,7 +37,7 @@ void LocalPotentialDecorator::GetODECoefficients(unsigned int latticepoint, cons
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = physicalConstant->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
         w_g[0] += alpha * directPotential.f[latticepoint];
         w_f[1] -= alpha * directPotential.f[latticepoint];
     }
@@ -48,7 +48,7 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
     if(latticepoint < directPotential.size())
-    {   const double alpha = physicalConstant->GetAlpha();
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
         jacobian[0][1] += alpha * directPotential.f[latticepoint];
         jacobian[1][0] -= alpha * directPotential.f[latticepoint];
 
@@ -60,9 +60,38 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
 SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
-    ta -= a * directPotential;
+    ta -= a * directPotential * scale;
 
     return ta;
+}
+
+ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy):
+    LocalPotentialDecorator(wrapped_hf, integration_strategy)
+{
+    std::ifstream infile(filename.c_str());
+    std::vector<double> lat, pot;
+
+    double x, y;
+    while(infile.good())
+    {
+        infile >> x >> y;
+
+        if(!infile.fail())
+        {
+            lat.push_back(x);
+            pot.push_back(y);
+        }
+    }
+    infile.close();
+
+    Interpolator interp(lat);
+    const double* R = lattice->R();
+    double maximum_distance = mmin(lattice->MaxRealDistance(), x);
+    directPotential.Clear();
+    directPotential.resize(lattice->real_to_lattice(maximum_distance));
+
+    for(int i = 0; i < directPotential.size(); i++)
+        interp.Interpolate(pot, R[i], directPotential.f[i], directPotential.dfdr[i], 6);
 }
 
 LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pOPIntegrator integration_strategy):
