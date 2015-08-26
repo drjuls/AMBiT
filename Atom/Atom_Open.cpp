@@ -64,7 +64,7 @@ void Atom::MakeMBPTIntegrals()
             brueckner_orbital.reset(new Orbital(*pair.second));
 
             // Iterate
-            hartree_focker.SolveOrbital(brueckner_orbital, brueckner);
+            hartree_focker.CalculateExcitedState(brueckner_orbital, brueckner);
 
             // Copy back to orbital manager
             *pair.second = *brueckner_orbital;

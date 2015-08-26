@@ -16,6 +16,7 @@ public:
 public:
     /** Hartree-Fock */
     inline bool LogFirstBuild() const { return bFirstBuild; }
+    inline bool LogHFInnerLoop() const { return bHFInnerLoop; }
     inline bool LogHFIterations() const { return bHFIterations; }
     inline bool OutputHFExcited() const { return bHFExcited; }
     inline bool LogHFContinuum() const { return bHFContinuum; }
@@ -35,6 +36,7 @@ public:
 
 public:
     inline void LogFirstBuild(bool debugon) { bFirstBuild = debugon; }
+    inline void LogHFInnerLoop(bool debugon) { bHFInnerLoop = debugon; }
     inline void LogHFIterations(bool debugon) { bHFIterations = debugon; }
     inline void OutputHFExcited(bool debugon) { bHFExcited = debugon; }
     inline void LogHFContinuum(bool debugon) { bHFContinuum = debugon; }
@@ -63,6 +65,7 @@ public:
 
 private:
     bool bFirstBuild;
+    bool bHFInnerLoop;
     bool bHFIterations;
     bool bHFExcited;
     bool bHFContinuum;

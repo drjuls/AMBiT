@@ -203,7 +203,7 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
     }
 
     if(maximum < tolerance*100)
-    {   *errstream << "Orbital::Checksize: Zero function. " << std::endl;
+    {   *errstream << "Orbital::Checksize: Zero function in " << Name() << std::endl;
         PAUSE
         exit(1);
     }

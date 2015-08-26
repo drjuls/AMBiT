@@ -69,6 +69,9 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 
     thomas_fermi->SetCore(core);
 
+    bool include_exchange = hf->IncludeExchange();
+    thomas_fermi->IncludeExchange(false);
+
     // Iterate states, slowly adding in direct HF + local exchange approximation.
     bool debug = DebugOptions.LogFirstBuild();
 
@@ -81,70 +84,15 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
         while(it != core->end())
         {
             pOrbital s = it->second;
-            unsigned int iterations = 0;
-            double nu_change_factor = 0.25;
-            int zero_difference = 0;        // Difference between required and actual number of nodes of wavefunction
-            int previous_zero_difference = 0;
-            bool is_first_iteration = true;
 
-            double trial_nu = s->Nu();
-            double starting_nu = trial_nu;
-            double starting_nu_change_factor = nu_change_factor;
-            double starting_nu_percentage = 1.00;
-
-            do
-            {   s->Clear();
-
-                // Attempt the local exchange approximation method.
-                // This is encapsulated in the UpdateHFPotential method
-                // when first_build = true.
-                iterations = IterateOrbitalTailMatching(s, thomas_fermi);
-                if(iterations >= MaxHFIterations)
-                {   // Evil - this should never happen given our simple model.
-                    *errstream << "    HartreeFocker::StartCore (" << m << ") " << s->Name()
-                               << ": iterations = " << iterations << std::endl;
-                    if(m == 9)
-                    {   *outstream << "    HartreeFocker::StartCore (" << m << ") " << s->Name()
-                                   << ": iterations = " << iterations << std::endl;
-                        *outstream << "       ...try modifying energy/wavefunction tolerances." << std::endl;
-                        exit(1);
-                    }
-                }
-
-                zero_difference = s->NumNodes() + s->L() + 1 - s->PQN();
-
-                if(zero_difference)
-                {
-                    if(debug)
-                        *logstream << "    Zero difference: " << zero_difference << "  nu = " << trial_nu << std::endl;
-                    s->SetNu(trial_nu - zero_difference/abs(zero_difference) * nu_change_factor * trial_nu);
-                    trial_nu = s->Nu();
-                    if(!(((zero_difference > 0) && (previous_zero_difference > 0)) || ((zero_difference < 0) && (previous_zero_difference < 0))) && !is_first_iteration)
-                    {
-                        nu_change_factor = nu_change_factor * 0.75;
-                    }
-                }
-                previous_zero_difference = zero_difference;
-                is_first_iteration = false;
-                if(s->Nu() < 1.0e-5)
-                {
-                    starting_nu_percentage -= 0.1;
-                    if(starting_nu_percentage <= 0.0)
-                    {
-                        *errstream << "HartreeFocker::StartCore: Cannot converge Hartree Fock energy." << std::endl;
-                        exit(1);
-                    }
-                    trial_nu = starting_nu;
-                    nu_change_factor = starting_nu_change_factor * starting_nu_percentage;
-                }
-            }
-            while(zero_difference);
+            s->Clear();
+            ConvergeOrbital(s, thomas_fermi, pSpinorFunction(), &HartreeFocker::IterateOrbitalTailMatching, 1.e-6);
 
             if(debug)
             {   if(DebugOptions.HartreeEnergyUnits())
-                *logstream << "  " << s->Name() << "  en: " << s->Energy() << std::endl;
-            else
-                *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
+                    *logstream << "  " << s->Name() << "  en: " << s->Energy() << std::endl;
+                else
+                    *logstream << "  " << s->Name() << " nu:   " << s->Nu() << std::endl;
             }
 
             it++;
@@ -152,6 +100,8 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 
         thomas_fermi->SetCore(core, 0.4);
     }
+
+    hf->IncludeExchange(include_exchange);
 }
 
 /** Iterate all orbitals in core until self-consistency is reached. */
@@ -172,16 +122,17 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
     double deltaE, max_deltaE;
     unsigned int loop = 0;
     int zero_difference = 0;
+    int abs_zero_diff = 0;
+    double energy_tolerance = 1.e-6;
 
     hf->SetCore(core);
-
     bool include_exchange = hf->IncludeExchange();
-    double charge = mmax(1., hf->GetCharge());
 
     do
     {   loop++;
         max_deltaE = 0.;
-        
+        abs_zero_diff = 0;
+
         if(debug)
             *logstream << "HF Iteration :" << loop << std::endl;
         
@@ -192,41 +143,35 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
             pOrbital new_state = it->second;
             double old_energy = new_state->Energy();
 
-            do
-            {   if(include_exchange)
-                {
-                    pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(new_state)));
-                    deltaE = IterateOrbital(new_state, hf, exchange);
-                }
-                else
-                {   IterateOrbitalTailMatching(new_state, hf);
-                    deltaE = new_state->Energy() - old_energy;
-                }
+            if(include_exchange)
+            {
+                pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(new_state)));
+                deltaE = ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbital, energy_tolerance);
+            }
+            else
+            {
+                pSpinorFunction exchange(new SpinorFunction(new_state->Kappa()));
+                deltaE = ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbitalTailMatching, energy_tolerance);
+            }
 
-                zero_difference = new_state->NumNodes() + new_state->L() + 1 - new_state->PQN();
-                if(zero_difference)
-                {
-                    if(DebugOptions.LogFirstBuild())
-                        *logstream << new_state->Name() << " zero diff: " << zero_difference << ", E = " << new_state->Energy() << std::endl;
+            zero_difference = new_state->NumNodes() + new_state->L() + 1 - new_state->PQN();
+            abs_zero_diff += abs(zero_difference);
 
-                    // This moves the state one pqn at a time
-                    double trial_nu = new_state->Nu() - zero_difference/abs(zero_difference)/charge;
-                    new_state->SetNu(trial_nu);
-                }
-            }while(zero_difference);
-            
             if(debug)
                 *logstream << "  " << std::setw(4) << new_state->Name()
-                << "  E = " << std::setprecision(12) << old_energy
-                << "  deltaE = " << std::setprecision(4) << deltaE
-                << "  size: (" << new_state->size()
-                << ") " << core->GetLattice()->R(new_state->size()) << std::endl;
-            
+                           << "  E = " << std::setprecision(12) << old_energy
+                           << "  deltaE = " << std::setprecision(4) << deltaE
+                           << "  size: (" << new_state->size()
+                           << ") " << core->GetLattice()->R(new_state->size()) << std::endl;
+
             deltaE = fabs(deltaE/new_state->Energy());
             max_deltaE = mmax(deltaE, max_deltaE);
-            
+
             it++;
         }
+
+        if((energy_tolerance > EnergyTolerance) && (abs_zero_diff == 0))
+            energy_tolerance = mmax(energy_tolerance * 0.1, EnergyTolerance);
         
         // Mix new and old states.
         auto core_it = core->begin();
@@ -259,45 +204,6 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
 
     if(loop >= MaxHFIterations)
         *errstream << "Failed to converge Hartree-Fock in Core." << std::endl;
-}
-
-/** Find self-consistent solution to hf operator, including exchange. */
-double HartreeFocker::SolveOrbital(pOrbital orbital, pHFOperator hf)
-{
-    double E = orbital->Energy();
-    double initial_energy = E;
-    double delta_E = 0.0;
-
-    if(!orbital->size())
-    {   pHFOperator hf_local(new LocalPotentialDecorator(hf));
-        IterateOrbitalTailMatching(orbital, hf_local);
-    }
-
-    pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(orbital)));
-
-    double prop_new = 0.5;
-
-    unsigned int loop;
-    for(loop = 0; loop < MaxHFIterations; loop++)
-    {
-        // Get solution with current exchange
-        IterateOrbital(orbital, hf, exchange);
-        delta_E = orbital->Energy() - E;
-
-        // Check number of nodes for pqn
-        //*outstream << "Loop " << loop << ": " << E << " " << delta_E << std::endl;
-
-        if(fabs(delta_E/E) < EnergyTolerance)
-            break;
-
-        // Adjust exchange
-        SpinorFunction new_exchange = hf->GetExchange(orbital);
-        *exchange = *exchange * (1. - prop_new) + new_exchange * prop_new;
-        E = E  + delta_E * prop_new;
-        orbital->SetEnergy(E);
-    }
-
-    return E - initial_energy;
 }
 
 unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator hf)
@@ -353,110 +259,27 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
             trial_nu = trial_nu + (double)(orbital->PQN() - largest_core_pqn - 1)/Charge;
             orbital->SetNu(trial_nu/Charge);
         }
-        
-        // Calculate wavefunction with local exchange approximation.
-        // Check that the number of nodes of the wavefunction is correct, otherwise
-        // adjust nu and start again.
-        
-        int zero_difference = 0;    // Difference between required and actual number of nodes of wavefunction
-        
-        do
-        {   pHFOperator hf_localexch(new LocalExchangeApproximation(hf));
-            hf_localexch->SetCore(core);
-            hf_localexch->IncludeExchange(false);
-            loop = IterateOrbitalTailMatching(orbital, hf_localexch);
-            //loop = IterateOrbitalTailMatching(orbital, hf);
 
-            if(loop >= MaxHFIterations)
-            {   // Evil - this should never happen given our simple model.
-                *errstream << "CalculateExcitedState: Local exchange approximation failed to converge.\n"
-                           << "  " << orbital->Name() << "  iterations = " << loop << std::endl;
-                PAUSE
-                exit(1);
-            }
-            
-            zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
-            if(DebugOptions.LogFirstBuild())
-                *logstream << orbital->Name() << " zero diff: " << zero_difference << ", E = " << orbital->Energy() << std::endl;
-
-            if(zero_difference)
-            {   // This moves the state one pqn at a time
-                trial_nu = orbital->Nu() - zero_difference/abs(zero_difference)/Charge;
-                orbital->SetNu(trial_nu);
-            }
+        // Calculate wavefunction without exchange.
+        if(!orbital->size())
+        {
+            hf->SetCore(core);
+            hf->IncludeExchange(false);
+            ConvergeOrbital(orbital, hf, pSpinorFunction(), &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
         }
-        while(zero_difference || (loop >= MaxHFIterations));
-        
+
         if(!core->empty())
         {
             // Hartree-Fock loops
-            bool debugHF = DebugOptions.LogHFIterations();
+            hf->IncludeExchange(exchange_included);
 
-            double deltaE;
-            loop = 0;
-            pOrbital new_orbital(new Orbital(*orbital));
-            double prop_new = 0.4;
-
-            pSpinorFunction exchange;
             if(exchange_included)
-            {   hf->IncludeExchange(true);
-                exchange.reset(new SpinorFunction(hf->GetExchange(orbital)));
+            {
+                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
+                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
             }
-
-            do
-            {   loop++;
-                if(loop > 100)
-                    prop_new = 0.1;
-
-                int prev_zero_difference = 0;
-                do
-                {   if(zero_difference)
-                    {
-                        if(prev_zero_difference * zero_difference >= 0)
-                        {   trial_nu = new_orbital->Nu() - zero_difference/abs(zero_difference)/Charge;
-                        }
-                        else
-                        {   trial_nu = new_orbital->Nu() - 0.5 * zero_difference/abs(zero_difference)/Charge;
-                        }
-
-                        new_orbital->SetNu(trial_nu);
-                        prev_zero_difference = zero_difference;
-                    }
-
-                    double start_energy = new_orbital->Energy();
-                    if(exchange_included)
-                        IterateOrbital(new_orbital, hf, exchange);
-                    else
-                        IterateOrbitalTailMatching(new_orbital, hf);
-                    deltaE = new_orbital->Energy() - start_energy;
-
-                    zero_difference = new_orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
-                } while(zero_difference);
-                
-                if(debugHF)
-                    *logstream << "  " << std::setw(4) << orbital->Name()
-                               << "  E = " << std::setprecision(12) << new_orbital->Energy()
-                               << "  deltaE = " << std::setprecision(3) << deltaE
-                               << "  size: (" << new_orbital->size()
-                               << ") " << hf->GetLattice()->R(new_orbital->size()) << std::endl;
-
-                if(exchange_included)
-                {   *exchange *= (1. - prop_new);
-                    *exchange += hf->GetExchange(new_orbital) * prop_new;
-                }
-
-                *orbital *= (1. - prop_new);
-                *orbital += (*new_orbital) * prop_new;
-
-                // Renormalise core states (should be close already) and update energy.
-                orbital->ReNormalise(odesolver->GetIntegrator());
-                orbital->SetEnergy((1. - prop_new) * orbital->Energy() + prop_new * new_orbital->Energy());
-
-                *new_orbital = *orbital;
-                deltaE = fabs(deltaE/new_orbital->Energy());
-            }while((deltaE > EnergyTolerance) && (loop < MaxHFIterations));
-
-            IterateOrbital(orbital, hf);
+            else
+                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
 
             if(loop >= MaxHFIterations)
                 *errstream << "Core: Failed to converge excited HF state " << orbital->Name() << std::endl;
@@ -482,95 +305,111 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
     return loop;
 }
 
-/** Find energy eigenvalue for orbital with a given exchange potential.
-    If exchange is not given, generate from hf.
-    Note: this function does not iterate/update the exchange potential,
-    so the final orbital is not an eigenvalue of the hf operator.
- */
-double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange)
+double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance)
 {
     pLattice lattice = hf->GetLattice();
-    const double alpha = hf->GetPhysicalConstant()->GetAlpha();
     pOPIntegrator integrator = hf->GetOPIntegrator();
 
-    SpinorFunction ex(orbital->Kappa());
-    if(exchange)
-        ex = *exchange;
+    if(orbital->size())
+    {   orbital->ReNormalise(integrator);
+        orbital->CheckSize(lattice, WavefunctionTolerance);
+    }
     else
-        ex = hf->GetExchange(orbital);
+    {   double nu = mmax(orbital->Nu(), 1./(9. * hf->GetZ()));
+        orbital->SetNu(nu);
+        double r_cutoff = (2. * mmax(1., hf->GetCharge()) * nu + 10.) * nu;
+        orbital->resize(lattice->real_to_lattice(r_cutoff));
+        if(orbital->size() > lattice->size())
+            lattice->resize(orbital->size());
+    }
+
+    bool include_exchange = hf->IncludeExchange() && exchange;
 
     double delta_E = 0.0;
+    double Eupper = 0.0;
+    double Elower = -(hf->GetZ() * hf->GetZ());
+
     double E = orbital->Energy();
     double initial_energy = E;
+    int zero_difference = 0;
+    unsigned int loop = 0;
 
     do
-    {   // Use greens method to iterate orbital
-        orbital->CheckSize(lattice, WavefunctionTolerance);
-        orbital->ReNormalise(integrator);
+    {   loop++;
 
         E = orbital->Energy();
+        delta_E = iterator(*this, orbital, hf, exchange);
 
-        // Get solutions to homogenous equation (no exchange)
-        hf->SetODEParameters(orbital->Kappa(), E);
-        hf->IncludeExchange(false);
-        Orbital originregular(*orbital);
-        Orbital infinityregular(*orbital);
-        odesolver->IntegrateBackwards(hf, &infinityregular);
-        odesolver->IntegrateForwards(hf, &originregular);
+        // Check zeros and modify energy as required
+        zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
+        if(zero_difference > 0)
+        {
+            // Too many nodes: decrease E
+            Eupper = E;
+            delta_E = 0.1 * E;
+        }
+        else if(zero_difference < 0)
+        {
+            // Too few nodes: increase E
+            Elower = E;
+            delta_E = -0.1 * E;
+        }
+        else
+        {   // Limit magnitude of delta_nu to 0.1
+            double max_delta_E = (-2. * E);
+            max_delta_E *= sqrt(max_delta_E) * 0.1;
 
-        GreensMethodODE greens(lattice);
-        greens.SetHomogenousSolutions(originregular, infinityregular);
+            if(fabs(delta_E) > max_delta_E)
+                delta_E = (delta_E > 0.0? max_delta_E: -max_delta_E);
+        }
 
-        RadialFunction G0(orbital->size());
-        RadialFunction GInf(orbital->size());
-
-        greens.SetSourceTerm(ex * alpha, true);
-        odesolver->IntegrateForwards(&greens, &G0);
-        greens.SetSourceTerm(ex * alpha, false);
-        odesolver->IntegrateBackwards(&greens, &GInf);
-
-        *orbital = originregular * GInf - infinityregular * G0;
-
-        // Now modify energy if required
-        double norm = orbital->Norm(integrator);
-
-        // Get delta_psi using Greens operator with psi as the source term
-        greens.SetSourceTerm(*orbital, true);
-        odesolver->IntegrateForwards(&greens, &G0);
-        greens.SetSourceTerm(*orbital, false);
-        odesolver->IntegrateBackwards(&greens, &GInf);
-
-        Orbital delta_psi = originregular * GInf - infinityregular * G0;
-        delta_psi *= hf->GetPhysicalConstant()->GetAlpha();
-
-        double var = integrator->GetInnerProduct(*orbital, delta_psi);
-
-        delta_E = (1. - norm)/(2. * var);
-        if(fabs(delta_E/E) > 0.5)
-            delta_E *= 0.5 * fabs(E/delta_E);
+        if(E + delta_E >= Eupper)
+            delta_E = (Eupper - E)/2.;
+        else if(E + delta_E <= Elower)
+            delta_E = (Elower - E)/2.;
 
         orbital->SetEnergy(E + delta_E);
-    
-    } while (fabs(delta_E/E) > EnergyTolerance);
+        orbital->ReNormalise(integrator);
+        orbital->CheckSize(lattice, WavefunctionTolerance);
+
+        if(DebugOptions.LogHFInnerLoop())
+            *logstream << "  " << std::setw(4) << orbital->Name()
+                       << "  E = " << std::setprecision(12) << E
+                       << "  deltaE = " << std::setprecision(3) << delta_E
+                       << "  size: (" << orbital->size()
+                       << ") " << hf->GetLattice()->R(orbital->size())
+                       << "  zerodiff = " << zero_difference << std::endl;
+
+    } while((loop < MaxHFIterations) && (fabs(delta_E/E) > energy_tolerance));
+
+    orbital->ReNormalise(integrator);
+    orbital->CheckSize(lattice, WavefunctionTolerance);
 
     // Get better derivative
-    hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), &ex);
-    hf->IncludeExchange(true);
-    hf->GetDerivative(*orbital);
+    if(include_exchange)
+    {
+        hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
+        hf->IncludeExchange(true);
+        hf->GetDerivative(*orbital);
+    }
 
     return orbital->Energy() - initial_energy;
 }
 
-unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange)
+double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator, double energy_tolerance)
 {
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetZ();
-    const double alpha = hf->GetPhysicalConstant()->GetAlpha();
     pOPIntegrator integrator = odesolver->GetIntegrator();
     AdamsSolver adamssolver(integrator);
 
+    pSpinorFunction exchange(new SpinorFunction(orbital->Kappa()));
+
     if(orbital->size())
+    {   orbital->ReNormalise(integrator);
         orbital->CheckSize(lattice, WavefunctionTolerance);
+        *exchange = hf->GetExchange(orbital);
+    }
     else
     {   double nu = mmax(orbital->Nu(), 1./(9.*Z));
         orbital->SetNu(nu);
@@ -580,62 +419,195 @@ unsigned int HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOper
             lattice->resize(orbital->size());
     }
 
-    double delta = 0.;
     unsigned int loop = 0;
-    
+    double E = orbital->Energy();
+    double initial_energy = E;
+
+    double delta_E = 0.0;
+    double Eupper = 0.0;
+    double Elower = -(hf->GetZ() * hf->GetZ());
+
+    int zero_difference = 0;
+    Orbital prev(*orbital);
+
     do
     {   loop++;
+        E = orbital->Energy();
 
-        // Get forward and backwards meeting point
-        unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->Nu())/2.);
+        delta_E = iterator(*this, orbital, hf, exchange);
 
-        // Integrate backwards until first maximum
-        hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
-        Orbital backwards(*orbital);
-        unsigned int peak = adamssolver.IntegrateBackwardsUntilPeak(hf, &backwards);
-        if(peak < critical_point)
-            peak = critical_point;
+        // Check zeros and modify energy as required
+        zero_difference = orbital->NumNodes() + orbital->L() + 1 - orbital->PQN();
+        if(zero_difference > 0)
+        {
+            // Too many nodes: decrease E
+            Eupper = E;
+            delta_E = 0.1 * E;
 
-        double f_right = backwards.f[peak];
-        double g_right = backwards.g[peak];
-
-        odesolver->IntegrateForwards(hf, orbital.get());
-        
-        // Test whether forwards and backwards integrations met and modify energy accordingly.
-
-        // Scale the backwards integration to meet the forwards one in f[peak].
-        double tail_scaling = orbital->f[peak]/f_right;
-        unsigned int i;
-        for(i = peak+1; i < orbital->size(); i++)
-        {   orbital->f[i] = tail_scaling * backwards.f[i];
-            orbital->dfdr[i] = tail_scaling * backwards.dfdr[i];
-            orbital->g[i] = tail_scaling * backwards.g[i];
-            orbital->dgdr[i] = tail_scaling * backwards.dgdr[i];
+            *orbital = prev;
+            orbital->SetEnergy(E + delta_E);
         }
-        
-        double norm = orbital->Norm(integrator);
-        delta = pow(orbital->Nu(), 3.) * orbital->f[peak] * (tail_scaling * g_right - orbital->g[peak])/norm/alpha;
+        else if(zero_difference < 0)
+        {
+            // Too few nodes: increase E
+            Elower = E;
+            delta_E = -0.1 * E;
 
-        if(fabs(delta) > 0.1)
-            delta = 0.1 * delta/fabs(delta);
-        
-        // Set new principal quantum number
-        orbital->SetNu(orbital->Nu() - delta);
-        orbital->ReNormalise(integrator);
-        
-        orbital->CheckSize(lattice, WavefunctionTolerance);
-    }
-    while((loop < MaxHFIterations) && (fabs(delta) > TailMatchingEnergyTolerance));
+            *orbital = prev;
+            orbital->SetEnergy(E + delta_E);
+        }
+        else
+        {   // Limit magnitude of delta_nu to 0.1
+            double original_delta_E = delta_E;
+            double max_delta_E = (-2. * E);
+            max_delta_E *= sqrt(max_delta_E) * 0.1;
+
+            if(fabs(delta_E) > max_delta_E)
+                delta_E = (delta_E > 0.0? max_delta_E: -max_delta_E);
+
+            // Check upper and lower energy limits
+            if(E + delta_E >= Eupper)
+            {
+                delta_E = (Eupper - E)/2.;
+            }
+            else if(E + delta_E <= Elower)
+            {
+                delta_E = (Elower - E)/2.;
+            }
+
+            orbital->SetEnergy(E + delta_E);
+
+            // Mix old and new orbitals
+            double prop_new = 0.5;
+            if(fabs(original_delta_E) > energy_tolerance)
+                prop_new *= fabs(delta_E/original_delta_E);
+
+            (*orbital) *= prop_new;
+            (*orbital) += prev * (1. - prop_new);
+
+            orbital->CheckSize(lattice, WavefunctionTolerance);
+            orbital->ReNormalise(integrator);
+            prev = *orbital;
+
+            *exchange = hf->GetExchange(orbital);
+        }
+
+        if(DebugOptions.LogHFInnerLoop())
+            *logstream << "  " << std::setw(4) << orbital->Name()
+                       << "  E = " << std::setprecision(12) << E
+                       << "  deltaE = " << std::setprecision(3) << delta_E
+                       << "  size: (" << orbital->size()
+                       << ") " << hf->GetLattice()->R(orbital->size())
+                       << "  zerodiff = " << zero_difference << std::endl;
+
+    } while((loop < MaxHFIterations) && (fabs(delta_E/E) > energy_tolerance));
+
+    // Get better derivative
+    hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
+    hf->IncludeExchange(true);
+    hf->GetDerivative(*orbital);
+
+    return orbital->Energy() - initial_energy;
+}
+
+double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange)
+{
+    pLattice lattice = hf->GetLattice();
+    const double alpha = hf->GetPhysicalConstant()->GetAlpha();
+    pOPIntegrator integrator = hf->GetOPIntegrator();
+    const SpinorFunction& ex(*exchange);
 
     orbital->ReNormalise(integrator);
+    orbital->CheckSize(lattice, WavefunctionTolerance);
 
-    return loop;
+    // Get solutions to homogenous equation (no exchange)
+    hf->SetODEParameters(orbital->Kappa(), orbital->Energy());
+    hf->IncludeExchange(false);
+    Orbital originregular(*orbital);
+    Orbital infinityregular(*orbital);
+    odesolver->IntegrateBackwards(hf, &infinityregular);
+    odesolver->IntegrateForwards(hf, &originregular);
+
+    GreensMethodODE greens(lattice);
+    greens.SetHomogenousSolutions(originregular, infinityregular);
+
+    RadialFunction G0(orbital->size());
+    RadialFunction GInf(orbital->size());
+
+    greens.SetSourceTerm(ex * alpha, true);
+    odesolver->IntegrateForwards(&greens, &G0);
+    greens.SetSourceTerm(ex * alpha, false);
+    odesolver->IntegrateBackwards(&greens, &GInf);
+
+    *orbital = originregular * GInf - infinityregular * G0;
+
+    double norm = orbital->Norm(integrator);
+
+    // Get delta_psi using Greens operator with psi as the source term
+    greens.SetSourceTerm(*orbital, true);
+    odesolver->IntegrateForwards(&greens, &G0);
+    greens.SetSourceTerm(*orbital, false);
+    odesolver->IntegrateBackwards(&greens, &GInf);
+
+    Orbital delta_psi = originregular * GInf - infinityregular * G0;
+    delta_psi *= hf->GetPhysicalConstant()->GetAlpha();
+
+    double var = integrator->GetInnerProduct(*orbital, delta_psi);
+
+    return (1. - norm)/(2. * var);
+}
+
+double HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange)
+{
+    pLattice lattice = hf->GetLattice();
+    const double Z = hf->GetZ();
+    const double alpha = hf->GetPhysicalConstant()->GetAlpha();
+    pOPIntegrator integrator = odesolver->GetIntegrator();
+    AdamsSolver adamssolver(integrator);
+
+    // Get forward and backwards meeting point
+    unsigned int critical_point = lattice->real_to_lattice((1./Z + orbital->Nu())/2.);
+
+    // Integrate backwards until first maximum
+    if(exchange)
+        hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
+    else
+        hf->SetODEParameters(orbital->Kappa(), orbital->Energy());
+
+    Orbital backwards(*orbital);
+    unsigned int peak = adamssolver.IntegrateBackwardsUntilPeak(hf, &backwards);
+    if(peak < critical_point)
+        peak = critical_point;
+
+    double f_right = backwards.f[peak];
+    double g_right = backwards.g[peak];
+
+    odesolver->IntegrateForwards(hf, orbital.get());
+    
+    // Test whether forwards and backwards integrations met and modify energy accordingly.
+
+    // Scale the backwards integration to meet the forwards one in f[peak].
+    double tail_scaling = orbital->f[peak]/f_right;
+    unsigned int i;
+    for(i = peak+1; i < orbital->size(); i++)
+    {   orbital->f[i] = tail_scaling * backwards.f[i];
+        orbital->dfdr[i] = tail_scaling * backwards.dfdr[i];
+        orbital->g[i] = tail_scaling * backwards.g[i];
+        orbital->dgdr[i] = tail_scaling * backwards.dgdr[i];
+    }
+
+    double norm = orbital->Norm(integrator);
+    double delta_nu = pow(orbital->Nu(), 3.) * orbital->f[peak] * (tail_scaling * g_right - orbital->g[peak])/norm/alpha;
+    double new_nu = orbital->Nu() - delta_nu;
+
+    return -0.5/(new_nu * new_nu) - orbital->Energy();
 }
 
 unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator hf)
 {
     unsigned int loop = 0;
     double final_amplitude, final_phase;
+    pContinuumWave previous_s(new ContinuumWave(s->Kappa()));
     pSpinorFunction exchange(new SpinorFunction(s->Kappa()));
     double ds, old_phase = 0.;
     unsigned int start_sine = 0;
@@ -648,6 +620,7 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
     do
     {   loop++;
 
+        *previous_s = *s;
         start_sine = IntegrateContinuum(s, hf, exchange, final_amplitude, final_phase);
         if(!start_sine)
         {   // Likely reason for not reaching start_sine is that the lattice is too small. Extend it and try again.
@@ -678,8 +651,9 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             ds = final_phase - old_phase;
             if(fabs(ds) > EnergyTolerance)
             {
-                *exchange *= 0.5;
-                *exchange += hf->GetExchange(s) * 0.5;
+                *s *= 0.5;
+                *s += (*previous_s * 0.5);
+                *exchange = hf->GetExchange(s);
                 old_phase = final_phase;
             }
             else
@@ -692,7 +666,7 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             }
         }
     }
-    while((loop < MaxHFIterations) && (fabs(ds) > EnergyTolerance));
+    while((loop < MaxHFIterations) && (fabs(ds) > TailMatchingEnergyTolerance));
 
     // Actual amplitude of wavefunction as r->Infinity (from IntegrateContinuum),
     //      A = final_amplitude/(2E)^(1/4)
@@ -810,5 +784,4 @@ unsigned int HartreeFocker::IntegrateContinuum(pContinuumWave s, pHFOperator hf,
     }
     
     return start_sine;
-
 }

@@ -80,4 +80,7 @@ protected:
     double Xalpha;
 };
 
+typedef std::shared_ptr<LocalExchangeApproximation> pLocalExchangeApproximation;
+typedef std::shared_ptr<const LocalExchangeApproximation> pLocalExchangeApproximationConst;
+
 #endif

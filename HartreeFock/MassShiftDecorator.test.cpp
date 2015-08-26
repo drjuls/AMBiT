@@ -46,7 +46,7 @@ TEST(MassShiftDecoratorTester, CaII)
 
     // Check that < 4s | t | 4s > = t.Energy()
     t->SetInverseMass(0.001);
-    HF_Solver.SolveOrbital(new_4s, t);
+    HF_Solver.CalculateExcitedState(new_4s, t);
     EXPECT_NEAR(new_4s->Norm(integrator), 1.0, 1.e-8);
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), new_4s->Energy(), 1.e-6 * fabs(new_4s->Energy()));
 }
@@ -85,12 +85,12 @@ TEST(MassShiftDecoratorTester, SrIISlow)
     // Test that gradient of SMS operator is correct (compared to old values)
     t->SetInverseMass(0.001);
     HF_Solver.SolveCore(core, t);
-    HF_Solver.SolveOrbital(new_5s, t);
+    HF_Solver.CalculateExcitedState(new_5s, t);
     double Eplus = new_5s->Energy();
 
     t->SetInverseMass(-0.001);
     HF_Solver.SolveCore(core, t);
-    HF_Solver.SolveOrbital(new_5s, t);
+    HF_Solver.CalculateExcitedState(new_5s, t);
     double Eminus = new_5s->Energy();
 
     double sms = -660./3609.;

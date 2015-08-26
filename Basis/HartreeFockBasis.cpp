@@ -49,7 +49,7 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
                 {
                     pOrbital ds = pOrbital(new Orbital(kappa, pqn));
                     if(nu)
-                        ds->SetNu(nu + 1.);
+                        ds->SetNu(nu + 1./hf->GetCharge());
                     HF_Solver.CalculateExcitedState(ds, hf);
                     nu = ds->Nu();
                     excited->AddState(ds);

@@ -46,7 +46,7 @@ TEST(HFOperatorTester, ODESolver)
     // Check core orbital
     pOrbital new_2p(new Orbital(*core->GetState(OrbitalInfo(2, 1))));
     new_2p->SetEnergy(-12.0);
-    HF_Solver.SolveOrbital(new_2p, t);
+    HF_Solver.ConvergeOrbitalAndExchange(new_2p, t, &HartreeFocker::IterateOrbital, 1.e-12);
 
     EXPECT_NEAR(new_2p->Energy(), -14.282789, 1.e-6 * 14.282789);
 }

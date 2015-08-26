@@ -74,28 +74,28 @@ TEST_F(BasisGeneratorTester, BSplineBasis)
     EXPECT_NEAR(-0.095195645, excited->GetState(OrbitalInfo(6, 1))->Energy(), 1.e-3 * 0.095195645);   // 6p
 }
 
-//TEST_F(BasisGeneratorTester, HFBasis)
-//{
-//    char* argv[2];
-//    argv[0] = new char[50];
-//    argv[0][0] = 0;
-//    argv[1] = new char[50];
-//    std::strcpy(argv[1], "Basis/--hf-basis");
-//    MultirunOptions lineInput(2, argv, ",");
-//    userInput->absorb(lineInput);
-//
-//    DebugOptions.OutputHFExcited(true);
-//    pHFOperatorConst hf = core_generator->GetOpenHFOperator();
-//    pOPIntegrator integrator = hf->GetOPIntegrator();
-//    pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
-//    
-//    // Check that < 4s | h | 4s > = h.Energy()
-//    pOrbitalConst valence_state = excited->GetState(OrbitalInfo(4, -1));
-//    ASSERT_FALSE(valence_state == NULL);
-//    EXPECT_NEAR(1.0, valence_state->Norm(integrator), 1.e-8);
-//    EXPECT_NEAR(-0.41663136, valence_state->Energy(), 1.e-3 * 0.41663136);
-//    
-//    EXPECT_NEAR(-0.10135097, excited->GetState(OrbitalInfo(5, 2))->Energy(), 1.e-3 * 0.10135097);   // 5d
-//    EXPECT_NEAR(-0.080142532, excited->GetState(OrbitalInfo(5, -4))->Energy(), 1.e-3 * 0.080142532);  // 5f*
-//    EXPECT_NEAR(-0.095195645, excited->GetState(OrbitalInfo(6, 1))->Energy(), 1.e-3 * 0.095195645);   // 6p
-//}
+TEST_F(BasisGeneratorTester, HFBasis)
+{
+    char* argv[2];
+    argv[0] = new char[50];
+    argv[0][0] = 0;
+    argv[1] = new char[50];
+    std::strcpy(argv[1], "Basis/--hf-basis");
+    MultirunOptions lineInput(2, argv, ",");
+    userInput->absorb(lineInput);
+
+    DebugOptions.OutputHFExcited(true);
+    pHFOperatorConst hf = core_generator->GetOpenHFOperator();
+    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
+    
+    // Check that < 4s | h | 4s > = h.Energy()
+    pOrbitalConst valence_state = excited->GetState(OrbitalInfo(4, -1));
+    ASSERT_FALSE(valence_state == NULL);
+    EXPECT_NEAR(1.0, valence_state->Norm(integrator), 1.e-8);
+    EXPECT_NEAR(-0.41663136, valence_state->Energy(), 1.e-3 * 0.41663136);
+    
+    EXPECT_NEAR(-0.10135097, excited->GetState(OrbitalInfo(5, 2))->Energy(), 1.e-3 * 0.10135097);   // 5d
+    EXPECT_NEAR(-0.080142532, excited->GetState(OrbitalInfo(5, -4))->Energy(), 1.e-3 * 0.080142532);  // 5f*
+    EXPECT_NEAR(-0.095195645, excited->GetState(OrbitalInfo(6, 1))->Energy(), 1.e-3 * 0.095195645);   // 6p
+}

@@ -7,6 +7,9 @@
 class HartreeFocker
 {
 public:
+    typedef std::function<double(HartreeFocker&, pOrbital, pHFOperator, pSpinorFunctionConst)> IteratorFunction;
+
+public:
     HartreeFocker(pODESolver ode_solver): odesolver(ode_solver), continuum_normalisation_type(ContinuumNormalisation::LandauEnergy) {}
 
     /** Get first guess at the core orbitals using Thomas-Fermi and gradually building in
@@ -17,11 +20,6 @@ public:
 
     /** Iterate all orbitals in core until self-consistency is reached. */
     void SolveCore(pCore core, pHFOperator hf);
-
-    /** Find self-consistent solution to hf operator, including exchange.
-        Return change in energy.
-     */
-    double SolveOrbital(pOrbital orbital, pHFOperator hf);
 
     /** Create a new orbital in the field of the core.
         Return number of loops required for HF convergence.
@@ -35,26 +33,37 @@ public:
     unsigned int CalculateContinuumWave(pContinuumWave s, pHFOperator hf);
 
     /** Find energy eigenvalue for orbital with a given exchange potential.
-        If exchange is not given, generate from hf.
-        Note: this function does not iterate/update the exchange potential, 
-        so the final orbital is not an eigenvalue of the hf operator.
+        Note: this function does not iterate/update the exchange potential,
+            so the final orbital is not an eigenvalue of the hf operator.
         Return change in energy.
      */
-    double IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange = pSpinorFunction());
+    double ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance);
 
-    /** Find energy eigenvalue for orbital using tail matching method.
+    /** Find self-consistent solution to hf operator, including exchange.
+        Exchange is calculated from hf operator in each loop.
+        Return change in energy.
+     */
+    double ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator, double energy_tolerance);
+
+    /** Iterator function for ConvergeOrbital and ConvergeOrbitalAndExchange.
+        IterateOrbital uses the Greens method discussed in Johnson. A non-zero exchange term is required.
+        Return change in energy.
+     */
+    double IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange);
+
+    /** Iterator function for ConvergeOrbital and ConvergeOrbitalAndExchange using tail matching method.
         Unlike the Greens method used in IterateOrbital(), this method doesn't require a
         source term (exchange term), so it can solve without exchange or with a local exchange approximation.
-        Return number of loops.
+        Return change in energy.
      */
-    unsigned int IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange = pSpinorFunction());
+    double IterateOrbitalTailMatching(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange = pSpinorFunction());
 
     unsigned int IntegrateContinuum(pContinuumWave s, pHFOperator hf, pSpinorFunction exchange, double& final_amplitude, double& final_phase);
 
 protected:
     pODESolver odesolver;
 
-    unsigned int MaxHFIterations = 1000;
+    unsigned int MaxHFIterations = 200;
     double WavefunctionTolerance = 1.E-11;
     double EnergyTolerance = 1.E-14;
     double TailMatchingEnergyTolerance = 1.E-8;

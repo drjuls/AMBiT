@@ -245,13 +245,30 @@ void HFOperator::EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s)
 
     i = end_point - numpoints + 1;
     double P;
-    while(i < directPotential.size())
-    {   P = -2.*(directPotential.f[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
-        if(P > 0.)
-            break;
-        i++;
-    }
-    
+    double rturn = 0.;
+    do
+    {   while(i < directPotential.size())
+        {   P = -2.*(directPotential.f[i] + s.Energy()) + double(s.Kappa()*(s.Kappa() + 1))/pow(lattice->R(i),2.);
+            if(P > 0.)
+                break;
+            i++;
+        }
+
+        if(P < 0.)
+        {   // Take action for failing to get to semi-classical regime
+            if(rturn == 0.)
+            {   // Estimate classical turning point
+                rturn = -mmax(GetCharge(), 1.)/s.Energy();
+                while(rturn < lattice->MaxRealDistance())
+                    rturn *= 1.5;
+            }
+            else
+                rturn *= 1.5;
+
+            lattice->resize_to_r(rturn);
+        }
+    } while(P < 0.);
+
     end_point = i + numpoints - 1;
     if(end_point > directPotential.size() - 1)
     {   end_point = directPotential.size() - 1;

@@ -40,10 +40,16 @@ TEST(HartreeFockerTester, CaIIOrbital)
     EXPECT_NEAR(core->GetState(OrbitalInfo(3, -2))->Energy(), -1.87184451641, 1.e-6 * 1.87184451641);
 
     unsigned int pqn = 4;
-    double trialE = -0.5 * Charge/(pqn*pqn);
+    double trialE = -Charge*Charge/(2.*pqn*pqn);
     pOrbital start_4s(new Orbital(-1, pqn, trialE));
 
     HF_Solver.CalculateExcitedState(start_4s, t);
+    for(auto& orbpair: *core)
+    {
+        auto& orb = *orbpair.second;
+        if(orb.Kappa() == -1)
+            EXPECT_NEAR(0.0, integrator->GetInnerProduct(*start_4s, orb), 1.e-10);
+    }
 
     EXPECT_NEAR(start_4s->Energy(), -0.41663154, 0.000001 * 0.41663154);
     EXPECT_NEAR(start_4s->Norm(integrator), 1.0, 1.e-8);
@@ -56,14 +62,14 @@ TEST(HartreeFockerTester, CaIIOrbital)
     EXPECT_NEAR(t->GetMatrixElement(*new_4s, *new_4s), -0.41663154, 1.e-6 * 0.41663154);
 
     // Create 5d orbital
-//    pOrbital new_5d(new Orbital(2, 5, -0.1));
-//    HF_Solver.CalculateExcitedState(new_5d, t);
-//    EXPECT_NEAR(new_5d->Energy(), -0.10135136, 1.e-6 * 0.10135136);
+    pOrbital new_5d(new Orbital(2, 5, -0.1));
+    HF_Solver.CalculateExcitedState(new_5d, t);
+    EXPECT_NEAR(new_5d->Energy(), -0.10135136, 1.e-6 * 0.10135136);
 
     // Check core orbital
     pOrbital new_2p(new Orbital(*core->GetState(OrbitalInfo(2, 1))));
     new_2p->SetEnergy(-12.0);
-    HF_Solver.SolveOrbital(new_2p, t);
+    HF_Solver.ConvergeOrbitalAndExchange(new_2p, t, &HartreeFocker::IterateOrbital, 1.e-12);
     EXPECT_NEAR(new_2p->Energy(), -14.282789, 1.e-6 * 14.282789);
 }
 
