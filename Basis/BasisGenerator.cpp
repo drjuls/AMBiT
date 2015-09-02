@@ -131,7 +131,6 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     // Create closed core with empty pointers for all occupied orbitals
     closed_core = pCore(new Core(lattice));
     closed_core->SetOccupancies(closed_shell_occupations);
-    
 }
 
 void BasisGenerator::SetOrbitalMaps()

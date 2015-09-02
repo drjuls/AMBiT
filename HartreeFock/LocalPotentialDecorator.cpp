@@ -69,6 +69,10 @@ ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, c
     LocalPotentialDecorator(wrapped_hf, integration_strategy)
 {
     std::ifstream infile(filename.c_str());
+    if(!infile.is_open())
+    {   *errstream << "ImportedPotentialDecorator: unable to open file " << filename << std::endl;
+        return;
+    }
     std::vector<double> lat, pot;
 
     double x, y;

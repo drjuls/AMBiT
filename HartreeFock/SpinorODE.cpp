@@ -3,6 +3,9 @@
 SpinorODE::SpinorODE(pLattice lattice): LatticeObserver(lattice), include_nonlocal(true)
 {}
 
+SpinorODE::SpinorODE(const SpinorODE& other): LatticeObserver(other.lattice), include_nonlocal(other.include_nonlocal)
+{}
+
 void SpinorODE::IncludeExchange(bool include_exchange)
 {
     include_nonlocal = include_exchange;

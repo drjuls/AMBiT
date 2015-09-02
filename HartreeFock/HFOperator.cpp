@@ -12,14 +12,14 @@ HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_
 }
 
 HFOperator::HFOperator(const HFOperator& other):
-    SpinorOperator(other.integrator), SpinorODE(other.lattice), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     Z = other.Z;
     SetCore(other.GetCore());
 }
 
 HFOperator::HFOperator(double Z, const HFOperator& other):
-    SpinorOperator(other.integrator), SpinorODE(other.lattice), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     this->Z = Z;
     charge = other.charge;

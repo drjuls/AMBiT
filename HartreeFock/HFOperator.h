@@ -115,10 +115,13 @@ public:
     /** If integration_strategy is null, take from decorated_object. */
     HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
         HFOperator(decorated_object->GetZ(), *decorated_object), wrapped(decorated_object)
-    {   if(integration_strategy != nullptr)
+    {
+        if(integration_strategy != nullptr)
             integrator = integration_strategy;
+
         core = decorated_object->GetCore();
         charge = Z - double(core->NumElectrons());
+        IncludeExchange(wrapped->IncludeExchange());
     }
     virtual ~HFOperatorDecorator() {}
 

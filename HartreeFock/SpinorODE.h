@@ -19,6 +19,7 @@ class SpinorODE : public LatticeObserver
 {
 public:
     SpinorODE(pLattice lattice);
+    SpinorODE(const SpinorODE& other);
     virtual ~SpinorODE() {}
 
     pLattice GetLattice() { return lattice; }

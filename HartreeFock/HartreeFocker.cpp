@@ -267,23 +267,23 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
             hf->IncludeExchange(false);
             ConvergeOrbital(orbital, hf, pSpinorFunction(), &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
         }
+    }
 
-        if(!core->empty())
+    if(!core->empty())
+    {
+        // Hartree-Fock loops
+        hf->IncludeExchange(exchange_included);
+
+        if(exchange_included)
         {
-            // Hartree-Fock loops
-            hf->IncludeExchange(exchange_included);
-
-            if(exchange_included)
-            {
-                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
-                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
-            }
-            else
-                ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
-
-            if(loop >= MaxHFIterations)
-                *errstream << "Core: Failed to converge excited HF state " << orbital->Name() << std::endl;
+            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
+            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
         }
+        else
+            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
+
+        if(loop >= MaxHFIterations)
+            *errstream << "Core: Failed to converge excited HF state " << orbital->Name() << std::endl;
     }
 
     if(DebugOptions.OutputHFExcited())
@@ -404,11 +404,13 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
     AdamsSolver adamssolver(integrator);
 
     pSpinorFunction exchange(new SpinorFunction(orbital->Kappa()));
+    bool include_exchange = hf->IncludeExchange();
 
     if(orbital->size())
     {   orbital->ReNormalise(integrator);
         orbital->CheckSize(lattice, WavefunctionTolerance);
-        *exchange = hf->GetExchange(orbital);
+        if(include_exchange)
+            *exchange = hf->GetExchange(orbital);
     }
     else
     {   double nu = mmax(orbital->Nu(), 1./(9.*Z));
@@ -489,7 +491,8 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
             orbital->ReNormalise(integrator);
             prev = *orbital;
 
-            *exchange = hf->GetExchange(orbital);
+            if(include_exchange)
+                *exchange = hf->GetExchange(orbital);
         }
 
         if(DebugOptions.LogHFInnerLoop())
@@ -504,7 +507,7 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
 
     // Get better derivative
     hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
-    hf->IncludeExchange(true);
+    hf->IncludeExchange(include_exchange);
     hf->GetDerivative(*orbital);
 
     return orbital->Energy() - initial_energy;
