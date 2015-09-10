@@ -99,8 +99,9 @@ public:
 public:
     /** Get solution from r=rmax backwards to the first maximum.
         Return lattice position of peak.
+        Sanity check that peak is below the classical turning point.
      */
-    virtual unsigned int IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution);
+    virtual unsigned int IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution, int classical_turning_point);
     
 protected:
     unsigned int order;

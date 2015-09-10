@@ -228,7 +228,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 
         // Get a trial value for nu if state hasn't already got one.
         double trial_nu;
-        if(std::isnan(orbital->Nu()))
+        if(std::isnan(orbital->Nu()) || orbital->Energy() >= 0.)
         {
             switch(orbital->L())
             {   case 0:
@@ -269,22 +269,14 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
         }
     }
 
-    if(!core->empty())
-    {
-        // Hartree-Fock loops
-        hf->IncludeExchange(exchange_included);
+    // Hartree-Fock loops
+    hf->IncludeExchange(exchange_included);
+    ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
 
-        if(exchange_included)
-        {
-            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
-            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
-        }
-        else
-            ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
-
-        if(loop >= MaxHFIterations)
-            *errstream << "Core: Failed to converge excited HF state " << orbital->Name() << std::endl;
-    }
+    if(!core->empty() && exchange_included)
+        ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
+    else
+        ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
 
     if(DebugOptions.OutputHFExcited())
     {
@@ -299,7 +291,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
         else
             *outstream << orbital->Name() << "  nu = " << orbital->Nu();
         
-        *outstream << "  loops: " << loop << "  size: (" << orbital->size() << ") " << hf->GetLattice()->R(orbital->size()) << std::endl;
+        *outstream << "  size: (" << orbital->size() << ") " << hf->GetLattice()->R(orbital->size()) << std::endl;
     }
     
     return loop;
@@ -381,6 +373,9 @@ double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorF
                        << "  zerodiff = " << zero_difference << std::endl;
 
     } while((loop < MaxHFIterations) && (fabs(delta_E/E) > energy_tolerance));
+
+    if(loop >= MaxHFIterations)
+        *errstream << "ConvergeOrbital: Failed to converge HF state " << orbital->Name() << std::endl;
 
     orbital->ReNormalise(integrator);
     orbital->CheckSize(lattice, WavefunctionTolerance);
@@ -505,6 +500,9 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
 
     } while((loop < MaxHFIterations) && (fabs(delta_E/E) > energy_tolerance));
 
+    if(loop >= MaxHFIterations)
+        *errstream << "ConvergeOrbitalAndExchange: Failed to converge HF state " << orbital->Name() << std::endl;
+
     // Get better derivative
     hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
     hf->IncludeExchange(include_exchange);
@@ -577,8 +575,20 @@ double HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator h
     else
         hf->SetODEParameters(orbital->Kappa(), orbital->Energy());
 
+    // Get classical turning point
+    RadialFunction V = hf->GetDirectPotential();
+    const double* R = lattice->R();
+    int classical_turning_point = V.size();
+    double centrifugal = -0.5 * orbital->Kappa() * (orbital->Kappa() + 1);
+    double P;
+    do
+    {   classical_turning_point--;
+        P = orbital->Energy() + V.f[classical_turning_point]
+            + centrifugal/(R[classical_turning_point] * R[classical_turning_point]);
+    }while(P < 0. && classical_turning_point > 0);
+
     Orbital backwards(*orbital);
-    unsigned int peak = adamssolver.IntegrateBackwardsUntilPeak(hf, &backwards);
+    unsigned int peak = adamssolver.IntegrateBackwardsUntilPeak(hf, &backwards, classical_turning_point);
     if(peak < critical_point)
         peak = critical_point;
 

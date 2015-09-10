@@ -17,8 +17,8 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> S
 class SigmaPotential
 {
 public:
-    SigmaPotential();
-    SigmaPotential(unsigned int end_point, unsigned int start_point = 0);   //<! Matrix size = end_point - start_point
+    SigmaPotential(pLattice lattice);
+    SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point = 0);   //<! Matrix size = (end_point - start_point)/stride
     ~SigmaPotential();
 
     /** include_fg: store off diagonal (fg and gf) terms;
@@ -26,7 +26,7 @@ public:
      */
     void IncludeLower(bool include_fg = false, bool include_gg = false);
 
-    unsigned int size() const { return (matrix_size + start); }
+    unsigned int size() const;
     void clear();
     void resize_and_clear(unsigned int new_size);
 
@@ -45,7 +45,7 @@ public:
         Direct integration is hard-coded here for efficiency when using Eigen, therefore lattice is
         needed rather than an integrator.
      */
-    SpinorFunction ApplyTo(const SpinorFunction& a, pLattice lattice) const;
+    SpinorFunction ApplyTo(const SpinorFunction& a) const;
 
     /** Attempt to read file. Return false if file not found, in which case SigmaPotential is not changed. */
     bool Read(const std::string& filename);
@@ -53,11 +53,14 @@ public:
 
 protected:
     // A matrix for each quadrant of Sigma
+    pLattice lattice;
     SigmaMatrix ff, fg, gf, gg;
     bool use_fg, use_gg;
 
     unsigned int start;
     unsigned int matrix_size;
+    std::vector<double> Rgrid;
+    std::vector<double> dRgrid;
 };
 
 typedef std::shared_ptr<SigmaPotential> pSigmaPotential;

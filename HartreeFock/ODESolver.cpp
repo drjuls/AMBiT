@@ -149,7 +149,7 @@ void AdamsSolver::IntegrateBackwards(pSpinorODEConst op, Orbital* solution)
     }
 }
 
-unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution)
+unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbital* solution, int classical_turning_point)
 {
     Orbital& s = *solution;
     op->EstimateOrbitalNearInfinity(order, s);
@@ -161,7 +161,7 @@ unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbita
     double w_f[2];
     double w_g[2];
     double w_const[2];
-    
+
     const double* dR = lattice->dR();
 
     for(int i = start_point; i >= end_point; i--)
@@ -190,7 +190,7 @@ unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbita
         s.dgdr[i] = w_f[1] * s.f[i] + w_g[1] * s.g[i] + w_const[1];
 
         // Break when peak is reached
-        if(s.dfdr[i]/s.dfdr[i+1] <= 0.0)
+        if(s.dfdr[i]/s.dfdr[i+1] <= 0.0 && i <= classical_turning_point)
         {   peak = i;
             break;
         }

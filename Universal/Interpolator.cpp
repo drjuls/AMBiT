@@ -39,14 +39,8 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     if(lattice)
         left = lattice->real_to_lattice(xvalue);
     else
-    {   left = 0;
-        if(xvalue > R[R.size()-1])
-            left = R.size();
-        else
-        {   while(xvalue > R[left])
-                left++;
-        }
-    }
+        left = std::lower_bound(R.begin(), R.end(), xvalue) - R.begin();
+
     // left is the lattice point just less than xvalue
     if(left > 0)
         left--;

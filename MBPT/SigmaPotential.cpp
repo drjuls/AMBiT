@@ -1,31 +1,25 @@
 #include "Include.h"
 #include "SigmaPotential.h"
+#include "Universal/Interpolator.h"
 
-typedef Eigen::Map<const Eigen::VectorXd> EigenVectorMapped;
-typedef Eigen::Map<const Eigen::ArrayXd> EigenArrayMapped;
+#define stride 4
 
-SigmaPotential::SigmaPotential():
-    start(0), matrix_size(0)
+#if (stride == 1)
+    typedef Eigen::Map<const Eigen::VectorXd> EigenVectorMapped;
+    typedef Eigen::Map<const Eigen::ArrayXd> EigenArrayMapped;
+#else
+    typedef Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned, Eigen::InnerStride<stride>> EigenVectorMapped;
+    typedef Eigen::Map<const Eigen::ArrayXd, Eigen::Unaligned, Eigen::InnerStride<stride>> EigenArrayMapped;
+#endif
+
+SigmaPotential::SigmaPotential(pLattice lattice):
+    start(0), matrix_size(0), lattice(lattice)
 {}
 
-SigmaPotential::SigmaPotential(unsigned int end_point, unsigned int start_point):
-    start(start_point), matrix_size(0)
+SigmaPotential::SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point):
+    start(start_point), matrix_size(0), lattice(lattice)
 {
     resize_and_clear(end_point);
-}
-
-void SigmaPotential::IncludeLower(bool include_fg, bool include_gg)
-{
-    use_fg = include_fg;
-
-    unsigned int new_matrix_size = use_fg? matrix_size: 0;
-    fg = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
-    gf = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
-
-    use_gg = include_gg;
-
-    new_matrix_size = use_gg? matrix_size: 0;
-    gg = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
 }
 
 SigmaPotential::~SigmaPotential()
@@ -41,7 +35,10 @@ void SigmaPotential::clear()
 
 void SigmaPotential::resize_and_clear(unsigned int new_size)
 {
-    matrix_size = new_size - start;
+    if(new_size > lattice->size())
+        new_size = lattice->size();
+
+    matrix_size = (new_size - start)/stride;
     ff = SigmaMatrix::Zero(matrix_size, matrix_size);
     if(use_fg)
     {   fg = SigmaMatrix::Zero(matrix_size, matrix_size);
@@ -49,6 +46,35 @@ void SigmaPotential::resize_and_clear(unsigned int new_size)
     }
     if(use_gg)
         gg = SigmaMatrix::Zero(matrix_size, matrix_size);
+
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    Rgrid.resize(matrix_size);
+    dRgrid.resize(matrix_size);
+    for(int i = 0; i < matrix_size; i++)
+    {
+        Rgrid[i] = R[start + i * stride];
+        dRgrid[i] = dR[start + i * stride] * stride;
+    }
+}
+
+unsigned int SigmaPotential::size() const
+{   return (start + matrix_size * stride);
+}
+
+void SigmaPotential::IncludeLower(bool include_fg, bool include_gg)
+{
+    use_fg = include_fg;
+
+    unsigned int new_matrix_size = use_fg? matrix_size: 0;
+    fg = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
+    gf = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
+
+    use_gg = include_gg;
+
+    new_matrix_size = use_gg? matrix_size: 0;
+    gg = SigmaMatrix::Zero(new_matrix_size, new_matrix_size);
 }
 
 void SigmaPotential::AddToSigma(const SpinorFunction& s1, const SpinorFunction& s2, double coeff)
@@ -84,23 +110,23 @@ void SigmaPotential::AddToSigma(const std::vector<double>& f1, const std::vector
     ff.noalias() += coeff * mapped_f1 * mapped_f2.transpose();
 }
 
-SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a, pLattice lattice) const
+SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a) const
 {
     // PRE: a.size() >= size()
-    SpinorFunction ret(a.Kappa(), start+matrix_size);
+    SpinorFunction ret(a.Kappa(), start + matrix_size*stride);
 
     // Map used subset of a.f and a.g on to Eigen arrays (coefficient-wise multiplication).
     EigenArrayMapped fa(a.f.data()+start, matrix_size);
     EigenArrayMapped dr(lattice->dR()+start, matrix_size);
 
     // coefficient-wise multiplication
-    Eigen::VectorXd fadr = (fa * dr).matrix();
+    Eigen::VectorXd fadr = (fa * dr * double(stride)).matrix();
     Eigen::VectorXd sigma_a_f = ff * fadr;
 
     if(use_fg)
     {
         EigenArrayMapped ga(a.g.data()+start, matrix_size);
-        Eigen::VectorXd gadr = (ga * dr).matrix();
+        Eigen::VectorXd gadr = (ga * dr * double(stride)).matrix();
 
         // Add fg part to upper
         sigma_a_f += fg * gadr;
@@ -112,11 +138,28 @@ SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a, pLattice lattice
         if(use_gg)
             sigma_a_g += gg * gadr;
 
-        // Copy to ret
-        std::copy(sigma_a_g.data(), sigma_a_g.data()+matrix_size, ret.g.begin()+start);
+        if(stride == 1)
+            std::copy(sigma_a_g.data(), sigma_a_g.data()+matrix_size, ret.g.begin()+start);
+        else
+        {   const double* R = lattice->R();
+            const std::vector<double> ag(sigma_a_g.data(), sigma_a_g.data()+matrix_size);
+            Interpolator interp(Rgrid, dRgrid);
+            double deriv;
+            for(int i = start; i < ret.size(); i++)
+                interp.Interpolate(ag, R[i], ret.g[i], deriv, 6);
+        }
     }
 
-    std::copy(sigma_a_f.data(), sigma_a_f.data()+matrix_size, ret.f.begin()+start);
+    if(stride == 1)
+        std::copy(sigma_a_f.data(), sigma_a_f.data()+matrix_size, ret.f.begin()+start);
+    else
+    {   const double* R = lattice->R();
+        const std::vector<double> af(sigma_a_f.data(), sigma_a_f.data()+matrix_size);
+        Interpolator interp(Rgrid, dRgrid);
+        double deriv;
+        for(int i = start; i < ret.size(); i++)
+            interp.Interpolate(af, R[i], ret.f[i], deriv, 6);
+    }
 
     return ret;
 }
@@ -134,27 +177,17 @@ bool SigmaPotential::Read(const std::string& filename)
     fread(&use_fg, sizeof(bool), 1, fp);
     fread(&use_gg, sizeof(bool), 1, fp);
 
-    ff = SigmaMatrix::Zero(matrix_size, matrix_size);
+    resize_and_clear(start + matrix_size * stride);
+
     fread(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
 
     if(use_fg)
-    {   fg = SigmaMatrix::Zero(matrix_size, matrix_size);
-        gf = SigmaMatrix::Zero(matrix_size, matrix_size);
-
-        fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-        fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-    }
-    else
-    {   fg = SigmaMatrix::Zero(0, 0);
-        gg = SigmaMatrix::Zero(0, 0);
+    {   fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
+        fread(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
     }
 
     if(use_gg)
-    {   gf = SigmaMatrix::Zero(matrix_size, matrix_size);
-        fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-    }
-    else
-        gg = SigmaMatrix::Zero(0, 0);
+        fread(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
 
     fclose(fp);
     return true;
@@ -172,6 +205,7 @@ void SigmaPotential::Write(const std::string& filename) const
 
     // Write data
     fwrite(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
+
     if(use_fg)
     {   fwrite(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
         fwrite(gf.data(), sizeof(double), matrix_size * matrix_size, fp);

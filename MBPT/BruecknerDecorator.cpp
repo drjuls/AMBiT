@@ -22,7 +22,7 @@ void BruecknerDecorator::CalculateSigma(int kappa, pBruecknerSigmaCalculator bru
 {
     if(sigmas.find(kappa) == sigmas.end())
     {
-        pSigmaPotential sigma(new SigmaPotential(lattice->size(), 100));
+        pSigmaPotential sigma(new SigmaPotential(lattice, lattice->real_to_lattice(8.), 100));
         sigma->IncludeLower(use_fg, use_gg);
         brueckner_calculator->GetSecondOrderSigma(kappa, *sigma);
 
@@ -49,7 +49,7 @@ void BruecknerDecorator::Read(const std::string& identifier, int kappa)
 {
     std::string filename = identifier + "." + itoa(kappa) + ".sigma";
 
-    pSigmaPotential sigma(new SigmaPotential());
+    pSigmaPotential sigma(new SigmaPotential(lattice));
     if(sigma->Read(filename))
     {
         sigmas[kappa] = sigma;
@@ -156,10 +156,10 @@ SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& 
         if(s.size() < sigma->size())
         {   SpinorFunction bigger_s(s);
             bigger_s.resize(sigma->size());
-            ret = sigma->ApplyTo(bigger_s, lattice);
+            ret = sigma->ApplyTo(bigger_s);
         }
         else
-            ret = sigma->ApplyTo(s, lattice);
+            ret = sigma->ApplyTo(s);
 
         ret *= (-lambda);   // Remember we are storing HF potential -V (that is, V > 0)
 
