@@ -5,6 +5,7 @@
 \usepackage{anysize}
 \usepackage[T1]{fontenc}
 \usepackage{courier}
+\usepackage{amsmath}
 
 \include{phys_jdf}
 
@@ -126,6 +127,10 @@ then \texttt{-r=0} is equivalent to selecting the third case with \texttt{-r=3}.
 \option{-{}-write-hamiltonian} Write Hamiltonian matrices to binary file (that can be read into Mathematica using AMBiT.m). Filename is \code{ID.<twoJ>.<Parity>.matrix}.
 
 \option{-{}-ci-complete} Only for use with \code{CI/-{}-memory-saver}. Don't calculate energy levels using CI (assume that they have been calculated already).
+
+\option{-{}-no-ci} Option for use particularly when running single-valence-electron (e.g. alkali) atoms to not calculate CI energy levels.
+
+\option{-{}-configuration-average} Use configuration average for energy levels, transitions, autoionization rates, etc.
 
 \option{Z} \textbf{[compulsory]} nuclear charge.
 
@@ -274,6 +279,12 @@ One of the basis options must be specified.
 %DR
 \subsection{[DR]: Autoionization rates}
 
+Calculate autoionization rates for levels:
+\[
+A_{\nu J} = 2\pi \sum_{j l} \left| \left< \nu JM \Big| \hat V \Big| \{i, \epsilon_{j l} \} JM \right> \right|^2
+\]
+where $\epsilon_{j l}$ is the continuum wave at the energy $\epsilon_\nu$. Note that $A_{\nu J}$ is independent of $M$.
+
 \option{-{}-energy-grid} Create set of continuum wavefunctions along an energy grid, and for each compound level to calculate use the closest one.
 
 \option{IonizationEnergy} Ionization energy relative to ground state energy, e.g. if the energy of the ground state is -10.4 (atomic units) and the ionization energy is  1.0 (i.e. 27.2 eV) then use \code{DR/IonizationEnergy = -9.4}.
@@ -301,6 +312,29 @@ One of the basis options must be specified.
 \option{Max} [3.675] maximum energy of continuum wave above ionization energy (default 100 eV)
 
 \option{Step} [0.03675] energy grid step size (default 1 eV)
+
+\subsubsection{Configuration-averaged version}
+If \texttt{-{}-configuration-average} is used, there is an alternative version that calculates the total strength for each dielectronic excitation from the target $a b h^{-1}$ (i.e. hole in $h$ and excitation to orbitals $a$ and $b$).
+The formula is
+\begin{multline}
+\nonumber
+S_\textsl{abh} = \pi \sum_{j l k} \big< a b \big\Vert \hat V^k \big\Vert \epsilon_{j l} h\big> 
+	\left[ \frac{\big< a b \big\Vert \hat V^k \big\Vert \epsilon_{j l} h \big>}{2k+1}
+	- \sum_{k'} (-1)^{k+k'+1} \left\{ \begin{array}{ccc} k & j_a & j_\epsilon \\ k' & j_b & j_h \end{array} \right\}
+	\big< a b \big\Vert \hat V^k \big\Vert h \epsilon_{j l} \big> \right]\\
+	\cdot \frac{n_h}{2 j_h + 1} \left(1 - \frac{n_a}{2 j_a + 1} \right) \left(1 - \frac{n_b}{2 j_b + 1} \right)
+	+ \left< \textrm{swap}\ a \leftrightarrow b \right>
+\end{multline}
+where $n_h$, $n_a$, $n_b$ are target occupancies of the orbitals.
+Connection with the level-resolved autoionization rate is made via
+\[
+S_\textsl{abh} \approx \sum_{\nu \in abh^{-1}} \sum_J \frac{2J_\nu + 1}{2 (2J_i + 1)} A_{\nu J} \ .
+\]
+Additional options for the configuration-averaged version:
+
+\option{-{}-single-particle-energy} Print simple sum over HF energies $\epsilon_a + \epsilon_b - \epsilon_h$ rather than configuration-average energy.
+
+\option{-{}-print-relativistic-difference} Print relativistic orbitals $a b h^{-1}$ rather than non-relativistic configuration.
 
 \section{Multiple runs}
 

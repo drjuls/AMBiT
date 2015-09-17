@@ -448,6 +448,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
     double grid_min = user_input("DR/EnergyGrid/Min", 0.003675);  // Default 0.1eV
     bool use_single_particle_energy = user_input.search("DR/--single-particle-energy");
+    bool print_relativistic_config = user_input.search("DR/--print-relativistic-difference");
 
     auto math = MathConstant::Instance();
 
@@ -507,7 +508,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     target_with_core += target;
 
     *outstream << "\nAutoionization rates:"
-               << "\n E(eV)   A(ns)   Configuration" << std::endl;
+               << "\n E(eV)   S(ns)   Configuration" << std::endl;
 
     double energy_unit_conversion = math->HartreeEnergyIneV();
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
@@ -541,14 +542,11 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) - ionization_energy;
             }
 
-            //eps_energy = eps_energy - ionization_energy;
             if(energy_limit > 0.0 && (eps_energy > energy_limit))
                 continue;
             double eps_energy_calculated = eps_energy;
             if(eps_energy_calculated <= grid_min)
                 eps_energy_calculated = grid_min;
-
-            eps_energy_calculated = 0.03675;
 
             // Get participating electrons:
             //     a -> h and b -> eps
@@ -649,21 +647,18 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                         double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
                         double multiplier = Vah / (2*k1 + 1);
 
-                        if(!double_occupancy_excitation)
+                        // Exchange part
+                        int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
+                        int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
+
+                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
                         {
-                            // Exchange part
-                            int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
-                            int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
+                            double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
+                            if(partial_k2)
+                                partial_k2 *= math->minus_one_to_the_power(k1 + k2)
+                                              * two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
 
-                            for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
-                            {
-                                double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
-                                if(partial_k2)
-                                    partial_k2 *= math->minus_one_to_the_power(k1 + k2)
-                                                  * two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
-
-                                multiplier += partial_k2;
-                            }
+                            multiplier += partial_k2;
                         }
 
                         rate += Vah * multiplier;
@@ -671,7 +666,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 }
             }
 
-            rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
+            rate *= math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
                     * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
                     * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
 
@@ -679,8 +674,12 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
             {
                 char sep = ' ';
                 *outstream << eps_energy * energy_unit_conversion << sep
-                           << rate * rate_unit_conversion << sep
-                           << nrconfig.NameNoSpaces() << std::endl;
+                           << rate * rate_unit_conversion << sep;
+
+                if(print_relativistic_config)
+                    *outstream << rdiff.Name() << std::endl;
+                else
+                    *outstream << nrconfig.NameNoSpaces() << std::endl;
             }
         }
     }
