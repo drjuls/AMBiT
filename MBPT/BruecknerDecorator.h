@@ -28,9 +28,11 @@ public:
      */
     void CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, pSpinorOperatorConst bare_hf = nullptr);
 
-    /** Set the scaling parameter. */
-    void SetSigmaScaling(double sigma_amount) { lambda = sigma_amount; }
-    double GetSigmaScaling() const { return lambda; }
+    /** Set the scaling parameter for given kappa. */
+    void SetSigmaScaling(int kappa, double sigma_amount) { lambda[kappa] = sigma_amount; }
+
+    /** Get the scaling parameter for given kappa. */
+    double GetSigmaScaling(int kappa) const;
 
     /** Attempt to read sigma with given kappa, filename is "identifier.[kappa].sigma". */
     void Read(const std::string& identifier, int kappa);
@@ -62,9 +64,9 @@ protected:
     virtual SpinorFunction CalculateExtraNonlocal(const SpinorFunction& s, bool include_derivative) const;
 
 protected:
-    std::map<int, pSigmaPotential> sigmas;   //!< Map kappa to Sigma
+    std::map<int, pSigmaPotential> sigmas;  //!< Map kappa to Sigma
+    std::map<int, double> lambda;           //!< Map kappa to scalings
     bool use_fg, use_gg;
-    double lambda;
 };
 
 typedef std::shared_ptr<BruecknerDecorator> pBruecknerDecorator;

@@ -25,7 +25,7 @@ public:
     }
 
     virtual bool operator>(const HamiltonianID& other) const
-    {   return (other.sym < sym);
+    {   return (other < *this);
     }
 
     virtual bool operator==(const HamiltonianID& other) const

@@ -55,6 +55,9 @@ public:
     /** Write all electron states to a file. */
     virtual void Write(FILE* fp) const;
 
+    /** Print summary of orbitals to outstream. */
+    virtual void Print() const;
+
     pLattice GetLattice() const { return lattice; }
 
     /** Add or replace state. */

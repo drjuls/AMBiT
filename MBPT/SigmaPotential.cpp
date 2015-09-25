@@ -2,22 +2,15 @@
 #include "SigmaPotential.h"
 #include "Universal/Interpolator.h"
 
-#define stride 4
-
-#if (stride == 1)
-    typedef Eigen::Map<const Eigen::VectorXd> EigenVectorMapped;
-    typedef Eigen::Map<const Eigen::ArrayXd> EigenArrayMapped;
-#else
-    typedef Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned, Eigen::InnerStride<stride>> EigenVectorMapped;
-    typedef Eigen::Map<const Eigen::ArrayXd, Eigen::Unaligned, Eigen::InnerStride<stride>> EigenArrayMapped;
-#endif
+typedef Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned, Eigen::InnerStride<>> EigenVectorMapped;
+typedef Eigen::Map<const Eigen::ArrayXd, Eigen::Unaligned, Eigen::InnerStride<>> EigenArrayMapped;
 
 SigmaPotential::SigmaPotential(pLattice lattice):
-    start(0), matrix_size(0), lattice(lattice)
+    start(0), matrix_size(0), lattice(lattice), stride(4)
 {}
 
-SigmaPotential::SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point):
-    start(start_point), matrix_size(0), lattice(lattice)
+SigmaPotential::SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point, unsigned int stride):
+    start(start_point), matrix_size(0), lattice(lattice), stride(stride)
 {
     resize_and_clear(end_point);
 }
@@ -81,15 +74,15 @@ void SigmaPotential::AddToSigma(const SpinorFunction& s1, const SpinorFunction& 
 {
     // PRE: s1.size() & s2.size() >= size()
     // Map used subset of f1, f2 on to Eigen vectors
-    EigenVectorMapped f1(s1.f.data()+start, matrix_size);
-    EigenVectorMapped f2(s2.f.data()+start, matrix_size);
+    EigenVectorMapped f1(s1.f.data()+start, matrix_size, Eigen::InnerStride<>(stride));
+    EigenVectorMapped f2(s2.f.data()+start, matrix_size, Eigen::InnerStride<>(stride));
 
     ff.noalias() += coeff * f1 * f2.transpose();
 
     if(use_fg || use_gg)
     {
-        EigenVectorMapped g1(s1.g.data()+start, matrix_size);
-        EigenVectorMapped g2(s2.g.data()+start, matrix_size);
+        EigenVectorMapped g1(s1.g.data()+start, matrix_size, Eigen::InnerStride<>(stride));
+        EigenVectorMapped g2(s2.g.data()+start, matrix_size, Eigen::InnerStride<>(stride));
 
         if(use_fg)
         {   fg.noalias() += coeff * f1 * g2.transpose();
@@ -104,8 +97,8 @@ void SigmaPotential::AddToSigma(const std::vector<double>& f1, const std::vector
 {
     // PRE: s1.size() & s2.size() >= size()
     // Map used subset of f1, f2 on to Eigen vectors
-    EigenVectorMapped mapped_f1(f1.data()+start, matrix_size);
-    EigenVectorMapped mapped_f2(f2.data()+start, matrix_size);
+    EigenVectorMapped mapped_f1(f1.data()+start, matrix_size, Eigen::InnerStride<>(stride));
+    EigenVectorMapped mapped_f2(f2.data()+start, matrix_size, Eigen::InnerStride<>(stride));
 
     ff.noalias() += coeff * mapped_f1 * mapped_f2.transpose();
 }
@@ -116,8 +109,8 @@ SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a) const
     SpinorFunction ret(a.Kappa(), start + matrix_size*stride);
 
     // Map used subset of a.f and a.g on to Eigen arrays (coefficient-wise multiplication).
-    EigenArrayMapped fa(a.f.data()+start, matrix_size);
-    EigenArrayMapped dr(lattice->dR()+start, matrix_size);
+    EigenArrayMapped fa(a.f.data()+start, matrix_size, Eigen::InnerStride<>(stride));
+    EigenArrayMapped dr(lattice->dR()+start, matrix_size, Eigen::InnerStride<>(stride));
 
     // coefficient-wise multiplication
     Eigen::VectorXd fadr = (fa * dr * double(stride)).matrix();
@@ -125,7 +118,7 @@ SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a) const
 
     if(use_fg)
     {
-        EigenArrayMapped ga(a.g.data()+start, matrix_size);
+        EigenArrayMapped ga(a.g.data()+start, matrix_size, Eigen::InnerStride<>(stride));
         Eigen::VectorXd gadr = (ga * dr * double(stride)).matrix();
 
         // Add fg part to upper
@@ -173,6 +166,7 @@ bool SigmaPotential::Read(const std::string& filename)
 
     fread(&matrix_size, sizeof(unsigned int), 1, fp);
     fread(&start, sizeof(unsigned int), 1, fp);
+    fread(&stride, sizeof(unsigned int), 1, fp);
 
     fread(&use_fg, sizeof(bool), 1, fp);
     fread(&use_gg, sizeof(bool), 1, fp);
@@ -199,6 +193,7 @@ void SigmaPotential::Write(const std::string& filename) const
 
     fwrite(&matrix_size, sizeof(unsigned int), 1, fp);
     fwrite(&start, sizeof(unsigned int), 1, fp);
+    fwrite(&stride, sizeof(unsigned int), 1, fp);
 
     fwrite(&use_fg, sizeof(bool), 1, fp);
     fwrite(&use_gg, sizeof(bool), 1, fp);

@@ -119,6 +119,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         double scale = user_input("HF/AddLocalPotential/Scale", 1.);
         pLocalPotentialDecorator loc(new ImportedPotentialDecorator(hf, filename));
         loc->SetScale(scale);
+        hf = loc;
     }
 
     // Set closed core occupancies
@@ -324,7 +325,7 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     if(DebugOptions.OutputHFExcited())
     {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
         double orth = TestOrthogonality(max_i, max_j);
-        *outstream << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
+        *logstream << "<" << max_i.Name() << " | " << max_j.Name() << "> = " << orth << std::endl;
     }
 
     return orbitals;

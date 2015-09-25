@@ -60,15 +60,14 @@ public:
 
     unsigned int IntegrateContinuum(pContinuumWave s, pHFOperator hf, pSpinorFunction exchange, double& final_amplitude, double& final_phase);
 
+    double WavefunctionTolerance = 1.e-11;
+    double EnergyTolerance = 1.e-14;
+    double TailMatchingEnergyTolerance = 1.e-8;
+    ContinuumNormalisation continuum_normalisation_type;
+
 protected:
     pODESolver odesolver;
-
-    unsigned int MaxHFIterations = 200;
-    double WavefunctionTolerance = 1.E-11;
-    double EnergyTolerance = 1.E-14;
-    double TailMatchingEnergyTolerance = 1.E-8;
-
-    ContinuumNormalisation continuum_normalisation_type;
+    unsigned int MaxHFIterations = 500;
 
 protected:
     class ContinuumPhaseODE: public OneDimensionalODE

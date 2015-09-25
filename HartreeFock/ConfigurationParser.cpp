@@ -47,9 +47,9 @@ std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
     while(basis_def[p])
     {
         int pqn = atoi(basis_def + p);
-        while(basis_def[p] && isdigit(basis_def[p]))
+        while(basis_def[p] && (isdigit(basis_def[p]) || isblank(basis_def[p])))
             p++;
-        while(basis_def[p] && !isdigit(basis_def[p]))
+        while(basis_def[p] && !isdigit(basis_def[p]) && !isblank(basis_def[p]))
         {
             // Get L
             L = MathConstant::Instance()->GetL(tolower(basis_def[p]));

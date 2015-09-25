@@ -9,12 +9,9 @@ MathConstant* MathConstant::Instance()
     return &instance;
 }
 
-MathConstant::MathConstant()
+MathConstant::MathConstant():
+    SpectroscopicNotation{"spdfghiklmnoqrtuv"}
 {
-    const char temp[] = "spdfghiklmnoqrtuv";
-    SpectroscopicNotation = new char[std::strlen(temp)+1];
-    std::strcpy(SpectroscopicNotation, temp);
-
     // Maximum largest stored twoJ for Wigner3J.
     // Set by consideration of key.
     MaxStoredTwoJ = 40;
@@ -22,9 +19,7 @@ MathConstant::MathConstant()
 }
 
 MathConstant::~MathConstant()
-{
-    delete[] SpectroscopicNotation;
-}
+{}
 
 double MathConstant::Pi() const { return 3.1415926535897932384626433832795; }
 
@@ -39,21 +34,20 @@ double MathConstant::AtomicFrequencySI() const    { return 4.0 * Pi() * RydbergC
 
 char MathConstant::GetSpectroscopicNotation(unsigned int l)  const
 {
-    if(l < 17)
+    if(l < SpectroscopicNotation.size())
         return SpectroscopicNotation[l];
     return 0;
 }
 
-unsigned int MathConstant::GetL(char spectroscopic_notation) const
+int MathConstant::GetL(char spectroscopic_notation) const
 {
-    unsigned int i=0;
-    const char* c = SpectroscopicNotation;
-    while(*c && (*c != spectroscopic_notation))
-    {   i++;
-        c++;
+    for(int L=0; L < SpectroscopicNotation.size(); L++)
+    {
+        if(SpectroscopicNotation[L] == spectroscopic_notation)
+            return L;
     }
 
-    return i;
+    return -1;
 }
 
 /** Clever method for finding wigner coefficients takes the log of the expression to convert

@@ -263,7 +263,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
 
         if(debug)
-            *outstream << "kappa = " << kappa << std::endl;
+            *logstream << "kappa = " << kappa << std::endl;
 
         bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
 
@@ -279,7 +279,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
             if(s)
             {   if(debug)
                 {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                    *outstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
+                    *logstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
                                << "  deltaE: " << diff << std::endl;
                 }
 
@@ -304,7 +304,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                 // Remove spurious states
                 if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
                 {   if(debug)
-                        *outstream << "  Orbital removed: energy = " << ds->Energy()
+                        *logstream << "  Orbital removed: energy = " << ds->Energy()
                                    << "  norm = " << ds->Norm(integrator) << std::endl;
                 }
                 else
@@ -313,7 +313,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                     excited->AddState(ds);
 
                     if(debug)
-                    {   *outstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                    {   *logstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
                                    << " norm: " << ds->Norm(integrator) - 1. << std::endl;
                     }
 

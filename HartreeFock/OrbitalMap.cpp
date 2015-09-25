@@ -125,8 +125,10 @@ void OrbitalMap::Read(FILE* fp)
         max_size = mmax(max_size, ds->size());
     }
 
-    // Ensure lattice is large enough for new states
-    lattice->R(max_size);
+    // Ensure lattice is large enough for all states
+    if(max_size > lattice->size())
+        lattice->resize(max_size);
+
 }
 
 void OrbitalMap::AddStates(const OrbitalMap& other)
@@ -141,4 +143,15 @@ unsigned int OrbitalMap::LargestOrbitalSize() const
         biggest = mmax(biggest, it.second->size());
 
     return biggest;
+}
+
+void OrbitalMap::Print() const
+{
+    for(auto it: m_orbitals)
+    {
+        *outstream << std::setw(6) << it.first.Name()
+                   << "  E = " << std::setprecision(12) << it.second->Energy()
+                   << "  size: (" << it.second->size()
+                   << ") " << std::setprecision(4) << lattice->R(it.second->size()) << std::endl;
+    }
 }

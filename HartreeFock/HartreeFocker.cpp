@@ -8,6 +8,8 @@
 #include "ThomasFermiDecorator.h"
 #include "Universal/Interpolator.h"
 
+#define PRINT_HF_LOOP_ORBITALS false
+
 void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 {
     // Sanity check
@@ -441,6 +443,14 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
             Eupper = E;
             delta_E = 0.1 * E;
 
+            #if PRINT_HF_LOOP_ORBITALS
+            if(DebugOptions.LogHFInnerLoop())
+            {
+                std::string filename = orbital->Name() + "_" + itoa(loop) + ".orb";
+                orbital->Print(filename, lattice);
+            }
+            #endif
+
             *orbital = prev;
             orbital->SetEnergy(E + delta_E);
         }
@@ -449,6 +459,14 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
             // Too few nodes: increase E
             Elower = E;
             delta_E = -0.1 * E;
+
+            #if PRINT_HF_LOOP_ORBITALS
+            if(DebugOptions.LogHFInnerLoop())
+            {
+                std::string filename = orbital->Name() + "_" + itoa(loop) + ".orb";
+                orbital->Print(filename, lattice);
+            }
+            #endif
 
             *orbital = prev;
             orbital->SetEnergy(E + delta_E);
@@ -475,7 +493,7 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
             orbital->SetEnergy(E + delta_E);
 
             // Mix old and new orbitals
-            double prop_new = 0.5;
+            double prop_new = 0.1;
             if(fabs(original_delta_E) > energy_tolerance)
                 prop_new *= fabs(delta_E/original_delta_E);
 
@@ -485,6 +503,14 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
             orbital->CheckSize(lattice, WavefunctionTolerance);
             orbital->ReNormalise(integrator);
             prev = *orbital;
+
+            #if PRINT_HF_LOOP_ORBITALS
+            if(DebugOptions.LogHFInnerLoop())
+            {
+                std::string filename = orbital->Name() + "_" + itoa(loop) + ".orb";
+                orbital->Print(filename, lattice);
+            }
+            #endif
 
             if(include_exchange)
                 *exchange = hf->GetExchange(orbital);

@@ -410,6 +410,11 @@ void Ambit::EnergyCalculations()
     user_input.SetRun(run_indexes[first_run_index]);        // Just for the printing (each atom has its own user_input)
     user_input.PrintCurrentRunCondition(*outstream, "\n");
     pCoreConst hf_open_core = atoms[first_run_index].MakeBasis();
+    *outstream << "Core orbitals: \n";
+    hf_open_core->Print();
+
+    *outstream << "Excited orbitals: \n";
+    atoms[first_run_index].GetBasis()->excited->Print();
     *outstream << std::endl;
 
     // Don't output the others

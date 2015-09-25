@@ -220,13 +220,28 @@ One of the basis options must be specified.
 
 \option{-s123} = = \texttt{-s1} + \texttt{-s2} + \texttt{-s3}
 
-\option{Basis} must be a superset of \texttt{Basis/ValenceBasis} using the same format, e.g.~\texttt{MBPT/Basis = 24spdfg}.
+\option{-{}-brueckner} Create $\Sigma$ matrices and use Brueckner orbitals everywhere in the calculation. More options in MBPT/Brueckner (which are ignored if \texttt{-{}-brueckner} is not switched on).
 
-\option{TwoElectronStorageLimits} defines limits on for which radial integrals MBPT is calculated. e.g.~\texttt{MBPT/TwoElectronStorageLimits = 7} means that one of the orbitals must have principal quantum number $n <= 7$; \texttt{'7, 8'} means that, in addition, one of the other orbitals must have $n <= 8$, etc. Up to four principal quantum numbers can be specified.
+\option{Basis} must be a superset of \code{Basis/ValenceBasis} using the same format, e.g.~\code{MBPT/Basis = 24spdfg}.
+
+\option{TwoElectronStorageLimits} defines limits on for which radial integrals MBPT is calculated. e.g.~\code{MBPT/TwoElectronStorageLimits = 7} means that one of the orbitals must have principal quantum number $n <= 7$; \code{'7, 8'} means that, in addition, one of the other orbitals must have $n <= 8$, etc. Up to four principal quantum numbers can be specified.
 
 \option{BoxDiagramStorageLimits} same as \texttt{MBPT/TwoElectronStorageLimits} but for diagrams that violate the usual parity selection rules.
 
 \option{Delta} [0.0] a number to add to the denominator of every MBPT diagram. Could be equal, for example, to the difference between the HF and the CI energy~\cite{kozlov99os,berengut08jpb}.
+
+\subsubsection{[MBPT/Brueckner]}
+
+\option{-{}-brueckner-use-lower} Include matrices between upper and lower components of wavefunction ($f$ and $g$) in $\Sigma$ potential.
+
+\option{-{}-brueckner-use-lower-lower} Include lower-lower $\Sigma$ matrix (between $g$ and $g$).
+
+\option{Scaling} List of $\kappa$s and scaling factors to apply to $\Sigma$ matrix when forming Brueckner orbitals, maximum of one for each $\kappa$.
+e.g. \code{MBPT/Brueckner/Scaling = '-1, 0.827821, 1, 0.931278, -2, 0.949873'}
+
+\option{EnergyScaling} Set scalings by orbital energy rather than a number (this prints the scaling used also). List the orbital followed by the required energy for that orbital. Energy is set in the open-core HF potential.
+This option is ignored if scalings are set by \code{MBPT/Brueckner/Scaling} option.
+e.g. from Cs atom:  {\code{MBPT/Brueckner/EnergyScaling = '6s, -0.143098, 6p, -0.092166, 6p+, -0.089642'}
 
 %CI
 \subsection{[CI]: Configuration interaction and energy level options.}

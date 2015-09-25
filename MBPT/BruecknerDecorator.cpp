@@ -2,7 +2,7 @@
 #include "Universal/Interpolator.h"
 
 BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(1.)
+    HFOperatorDecorator(wrapped_hf, integration_strategy)
 {
     IncludeLower();
 }
@@ -42,6 +42,17 @@ void BruecknerDecorator::CalculateSigma(int kappa, pOrbitalManagerConst orbitals
 
         CalculateSigma(kappa, calculator);
     }
+}
+
+double BruecknerDecorator::GetSigmaScaling(int kappa) const
+{
+    double scaling = 1.;
+
+    auto it = lambda.find(kappa);
+    if(it != lambda.end())
+        scaling = it->second;
+
+    return scaling;
 }
 
 /** Attempt to read sigma with given kappa, filename is "identifier.[kappa].sigma". */
@@ -161,7 +172,8 @@ SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& 
         else
             ret = sigma->ApplyTo(s);
 
-        ret *= (-lambda);   // Remember we are storing HF potential -V (that is, V > 0)
+        double scaling = GetSigmaScaling(s.Kappa());
+        ret *= (-scaling);  // Remember we are storing HF potential -V (that is, V > 0)
 
         if(include_derivative)
         {

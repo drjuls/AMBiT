@@ -118,75 +118,46 @@ int Core::NumElectrons() const
 
 void Core::Write(FILE* fp) const
 {
-    // TODO: Output occupancies
-
     // Output core
     OrbitalMap::Write(fp);
-//
-//    // Output open shell states
-//    unsigned int num_open = OpenShellStorage.size();
-//    fwrite(&num_open, sizeof(unsigned int), 1, fp);
-//
-//    BaseMap::const_iterator it = OpenShellStorage.begin();
-//    while(it != OpenShellStorage.end())
-//    {
-//        it->second->Write(fp);
-//        it++;
-//    }
-//
-//    // Output original occupancies
-//    num_open = OpenShellStates.size();
-//    fwrite(&num_open, sizeof(unsigned int), 1, fp);
-//
-//    std::map<OrbitalInfo, double>::const_iterator info_it = OpenShellStates.begin();
-//    while(info_it != OpenShellStates.end())
-//    {
-//        unsigned int pqn = info_it->first.PQN();
-//        int kappa = info_it->first.Kappa();
-//        double occ = info_it->second;
-//
-//        fwrite(&pqn, sizeof(unsigned int), 1, fp);
-//        fwrite(&kappa, sizeof(int), 1, fp);
-//        fwrite(&occ, sizeof(double), 1, fp);
-//
-//        info_it++;
-//    }
+
+    // Output occupancies
+    unsigned int size = occupancy.size();
+    fwrite(&size, sizeof(unsigned int), 1, fp);
+    for(auto& pair: occupancy)
+    {
+        int kappa = pair.first.Kappa();
+        int pqn = pair.first.PQN();
+        double occ = pair.second;
+
+        fwrite(&kappa, sizeof(int), 1, fp);
+        fwrite(&pqn, sizeof(int), 1, fp);
+        fwrite(&occ, sizeof(double), 1, fp);
+    }
 }
 
 void Core::Read(FILE* fp)
 {
     clear();
-    unsigned int num_core, i;
-    unsigned int max_size = 0;
-
-    // TODO: Read occupancies
-    // Read original occupancies
-//    fread(&num_open, sizeof(unsigned int), 1, fp);
-//    for(i = 0; i<num_open; i++)
-//    {
-//        unsigned int pqn;
-//        int kappa;
-//        double occ;
-//
-//        fread(&pqn, sizeof(unsigned int), 1, fp);
-//        fread(&kappa, sizeof(int), 1, fp);
-//        fread(&occ, sizeof(double), 1, fp);
-//
-//        OrbitalInfo info(pqn, kappa);
-//        OpenShellStates.insert(std::pair<OrbitalInfo, double>(info, occ));
-//    }
+    occupancy.clear();
+    unsigned int occ_size, i;
 
     // Read core
-    fread(&num_core, sizeof(unsigned int), 1, fp);
-    for(i = 0; i<num_core; i++)
-    {
-        pOrbital ds(new Orbital(-1));
-        ds->Read(fp);
-        max_size = mmax(max_size, ds->size());
-        AddState(ds);
-    }
+    OrbitalMap::Read(fp);
 
-    // Ensure lattice is large enough for all states
-    if(max_size > lattice->size())
-        lattice->resize(max_size);
+    // Read occupancies
+    fread(&occ_size, sizeof(unsigned int), 1, fp);
+    for(i = 0; i < occ_size; i++)
+    {
+        int kappa;
+        int pqn;
+        double occ;
+
+        fread(&kappa, sizeof(int), 1, fp);
+        fread(&pqn, sizeof(int), 1, fp);
+        fread(&occ, sizeof(double), 1, fp);
+
+        OrbitalInfo info(pqn, kappa);
+        occupancy.insert(std::pair<OrbitalInfo, double>(info, occ));
+    }
 }

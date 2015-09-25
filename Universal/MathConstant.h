@@ -30,8 +30,8 @@ public:
     double RydbergConstantSI() const;     //!< In SI units (inverse m).
     double AtomicFrequencySI() const;     //!< Multiply a frequency in atomic units by this factor to get frequency in SI units (Hz).
 
-    char GetSpectroscopicNotation(unsigned int l) const;
-    unsigned int GetL(char spectroscopic_notation) const;
+    char GetSpectroscopicNotation(unsigned int l) const;    //!< Returns 0 if not found
+    int GetL(char spectroscopic_notation) const;            //!< Returns -1 if not found
 
     // Functions
     double Wigner3j(double j1, double j2, double j3, double m1, double m2, double m3) const;
@@ -97,7 +97,7 @@ protected:
     ~MathConstant();
 
 protected:
-    char* SpectroscopicNotation;
+    const std::string SpectroscopicNotation;
     std::map<int, double> Symbols3j;
 
     unsigned int MaxStoredTwoJ;

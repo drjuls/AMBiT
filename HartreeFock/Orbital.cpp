@@ -23,12 +23,16 @@ Orbital::Orbital(Orbital&& other):
 const Orbital& Orbital::operator=(const Orbital& other)
 {
     SpinorFunction::operator=(other);
+    pqn = other.pqn;
+    energy = other.energy;
     return *this;
 }
 
 Orbital& Orbital::operator=(Orbital&& other)
 {
     SpinorFunction::operator=(other);
+    pqn = other.pqn;
+    energy = other.energy;
     return *this;
 }
 

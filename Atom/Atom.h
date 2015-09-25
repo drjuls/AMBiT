@@ -117,7 +117,10 @@ protected:
      */
     bool ReadBasis();
 
-    void PrintBasis();
+    /** Generate or read sigma matrices, create Brueckner orbitals, and use them everywhere.
+        If(!generate_sigmas), new sigmas will not be created.
+     */
+    void GenerateBruecknerOrbitals(bool generate_sigmas);
 
 public:
     /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
