@@ -459,7 +459,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         "[Basis]\n" +
         "--bspline-basis\n" +
         "ValenceBasis = 2s\n" +
-        "FrozenCore = \n" +
+        "FrozenCore = 0\n" +
         "BSpline/Rmax = 50.0\n" +
         "[CI]\n" +
         "LeadingConfigurations = '0'\n" +

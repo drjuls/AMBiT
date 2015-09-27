@@ -11,22 +11,7 @@
 
 Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier):
     user_input(userInput), Z(atomic_number), identifier(atom_identifier)
-{
-    lattice = pLattice();
-    orbitals = nullptr;
-
-    // CI + MBPT parameters
-    NumSolutions = user_input("CI/NumSolutions", 6);
-    MaxEnergy = 0.0;
-    mbptBasisString = "";
-    ciBasisString = "";
-    check_size_only = false;
-    save_eigenstates = true;
-    generate_mbpt_integrals = false;
-    includeSigma1 = false;
-    includeSigma2 = false;
-    includeSigma3 = false;
-}
+{}
 
 Atom::~Atom(void)
 {}
@@ -117,9 +102,14 @@ bool Atom::ReadBasis()
 void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
 {
     pBruecknerDecorator brueckner(new BruecknerDecorator(hf));
-    bool use_fg = user_input.search("MBPT/Brueckner/--brueckner-use-lower");
-    bool use_gg = user_input.search("MBPT/Brueckner/--brueckner-use-lower-lower");
+    bool use_fg = user_input.search("MBPT/Brueckner/--use-lower");
+    bool use_gg = user_input.search("MBPT/Brueckner/--use-lower-lower");
     brueckner->IncludeLower(use_fg, use_gg);
+
+    double sigma_start_r = user_input("MBPT/Brueckner/StartPoint", 4.35e-5);
+    double sigma_end_r   = user_input("MBPT/Brueckner/EndPoint", 8.0);
+    int stride = user_input("MBPT/Brueckner/Stride", 4);
+    brueckner->SetMatrixParameters(stride, sigma_start_r, sigma_end_r);
 
     // Attempt to read all requested kappas
     std::set<int> valence_kappas;

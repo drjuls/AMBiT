@@ -500,7 +500,8 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         }
 
         // Only continue if we don't have enough levels
-        int num_solutions = NumSolutions? mmin(NumSolutions, configs->NumCSFs()): configs->NumCSFs();
+        int num_solutions = user_input("CI/NumSolutions", 6);
+        num_solutions = (num_solutions? mmin(num_solutions, configs->NumCSFs()): configs->NumCSFs());
         if(levelvec.size() < num_solutions)
         {
             if(twobody_electron == nullptr)

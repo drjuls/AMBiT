@@ -232,9 +232,9 @@ One of the basis options must be specified.
 
 \subsubsection{[MBPT/Brueckner]}
 
-\option{-{}-brueckner-use-lower} Include matrices between upper and lower components of wavefunction ($f$ and $g$) in $\Sigma$ potential.
+\option{-{}-use-lower} Include matrices between upper and lower components of wavefunction ($f$ and $g$) in $\Sigma$ potential.
 
-\option{-{}-brueckner-use-lower-lower} Include lower-lower $\Sigma$ matrix (between $g$ and $g$).
+\option{-{}-use-lower-lower} Include lower-lower $\Sigma$ matrix (between $g$ and $g$).
 
 \option{Scaling} List of $\kappa$s and scaling factors to apply to $\Sigma$ matrix when forming Brueckner orbitals, maximum of one for each $\kappa$.
 e.g. \code{MBPT/Brueckner/Scaling = '-1, 0.827821, 1, 0.931278, -2, 0.949873'}
@@ -242,6 +242,13 @@ e.g. \code{MBPT/Brueckner/Scaling = '-1, 0.827821, 1, 0.931278, -2, 0.949873'}
 \option{EnergyScaling} Set scalings by orbital energy rather than a number (this prints the scaling used also). List the orbital followed by the required energy for that orbital. Energy is set in the open-core HF potential.
 This option is ignored if scalings are set by \code{MBPT/Brueckner/Scaling} option.
 e.g. from Cs atom:  {\code{MBPT/Brueckner/EnergyScaling = '6s, -0.143098, 6p, -0.092166, 6p+, -0.089642'}
+
+\option{StartPoint} [4.35e-5 = 2.3 fm] Start point of $\Sigma$ matrix.
+
+\option{EndPoint} [8.0] End point of $\Sigma$ matrix.
+
+\option{Stride} [4] Only store every $\textsl{stride}^{th}$ lattice point of $\Sigma$.\\
+Final size of $\Sigma$ matrix is (lattice[EndPoint] - lattice[StartPoint])/Stride.
 
 %CI
 \subsection{[CI]: Configuration interaction and energy level options.}

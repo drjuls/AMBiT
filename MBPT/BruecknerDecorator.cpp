@@ -7,6 +7,13 @@ BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator int
     IncludeLower();
 }
 
+void BruecknerDecorator::SetMatrixParameters(int stride, double start, double end)
+{
+    matrix_stride = stride;
+    matrix_start = lattice->real_to_lattice(start);
+    matrix_end = lattice->real_to_lattice(end);
+}
+
 BruecknerDecorator* BruecknerDecorator::Clone() const
 {
     pHFOperator wrapped_clone(wrapped->Clone());
@@ -22,7 +29,7 @@ void BruecknerDecorator::CalculateSigma(int kappa, pBruecknerSigmaCalculator bru
 {
     if(sigmas.find(kappa) == sigmas.end())
     {
-        pSigmaPotential sigma(new SigmaPotential(lattice, lattice->real_to_lattice(8.), 100));
+        pSigmaPotential sigma(new SigmaPotential(lattice, matrix_end, matrix_start, matrix_stride));
         sigma->IncludeLower(use_fg, use_gg);
         brueckner_calculator->GetSecondOrderSigma(kappa, *sigma);
 

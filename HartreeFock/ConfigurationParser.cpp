@@ -38,7 +38,7 @@ OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::strin
 std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
 {
     unsigned int p = 0;
-    unsigned int L = 0;
+    int L = 0;
 
     const char* basis_def = basis.c_str();
     std::vector<int> num_states;
@@ -53,7 +53,11 @@ std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
         {
             // Get L
             L = MathConstant::Instance()->GetL(tolower(basis_def[p]));
-            if(L >= num_states.size())
+            if(L < 0)
+            {   *errstream << "ConfigurationParser::ParseBasisSize() bad string: " << basis << std::endl;
+                exit(1);
+            }
+            else if(L >= num_states.size())
                 num_states.resize(L+1);
             num_states[L] = pqn;
             p++;

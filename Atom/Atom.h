@@ -41,6 +41,14 @@ public:
     pPhysicalConstant GetPhysicalConstants() { return hf->GetPhysicalConstant(); }
     pPhysicalConstantConst GetPhysicalConstants() const { return hf->GetPhysicalConstant(); }
 
+    /** Get closed-shell HF operator. */
+    pHFOperatorConst GetHFOperator() const { return hf; }
+    pHFOperator GetHFOperator() { return hf; }
+
+    /** Get open-shell HF operator. */
+    pHFOperatorConst GetOpenHFOperator() const { return hf_open; }
+    pHFOperator GetOpenHFOperator() { return hf_open; }
+
 public:
     /** Generate integrals with MBPT, store and collate from all processors.
         PRE: MakeBasis() must have been run.
@@ -155,8 +163,6 @@ protected:
     std::string identifier;
     double Z;         // Nuclear charge
 
-    unsigned int num_valence_electrons;
-
     pLattice lattice;
     pCore open_core;                //!< Open-shell HF core
     pHFOperator hf;                 //!< Closed-shell HF operator
@@ -169,27 +175,6 @@ protected:
     pConfigList nrconfigs;
     pAngularDataLibrary angular_library;
     pLevelStore levels;
-
-//    CIIntegralsMBPT* integralsMBPT;
-//    CoreMBPTCalculator* mbpt;
-//    ValenceCalculator* valence_mbpt;
-//    Sigma3Calculator* sigma3;
-
-//    SymmetryEigenstatesMap symEigenstates;
-//    SolutionMap* mSolutionMap;
-
-    // CI + MBPT parameters
-    unsigned int NumSolutions;
-    double MaxEnergy;
-    std::string mbptBasisString;    // User input string
-    std::string ciBasisString;      // User input string
-    bool check_size_only;           // Check integral and CI sizes
-    bool save_eigenstates;          // Save final energy eigenstates
-    bool generate_mbpt_integrals;   // Generate MBPT integrals on this run
-    // Which MBPT bits to include
-    bool includeSigma1;
-    bool includeSigma2;
-    bool includeSigma3;
 };
 
 #endif

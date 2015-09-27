@@ -18,7 +18,8 @@ class SigmaPotential
 {
 public:
     SigmaPotential(pLattice lattice);
-    SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point = 0, unsigned int stride = 4);   //<! Matrix size = (end_point - start_point)/stride
+    /** Matrix size = (end_point - start_point)/stride */
+    SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point = 0, unsigned int stride = 4);
     ~SigmaPotential();
 
     /** include_fg: store off diagonal (fg and gf) terms;

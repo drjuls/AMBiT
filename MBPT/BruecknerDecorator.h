@@ -15,6 +15,13 @@ class BruecknerDecorator : public HFOperatorDecorator
 {
 public:
     BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = nullptr);
+
+    /** Set parameters for new sigma matrices: matrix size = (start_i - end_i)/stride
+        where start = lattice->R[start_i] etc.
+        Since many outer products are required to make the matrix, smaller matrices are much more efficient.
+     */
+    void SetMatrixParameters(int stride = 4, double start = 4.35e-5, double end = 8.0);
+
     void IncludeLower(bool include_fg = false, bool include_gg = false)
     {   use_fg = include_fg;
         use_gg = include_gg;
@@ -67,6 +74,9 @@ protected:
     std::map<int, pSigmaPotential> sigmas;  //!< Map kappa to Sigma
     std::map<int, double> lambda;           //!< Map kappa to scalings
     bool use_fg, use_gg;
+    int matrix_stride;
+    int matrix_start;
+    int matrix_end;
 };
 
 typedef std::shared_ptr<BruecknerDecorator> pBruecknerDecorator;
