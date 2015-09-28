@@ -11,12 +11,11 @@
     Z at the origin and charge at infinity (for neutral atoms this charge = 1).
     The final (mixed with HF) potential is forced to have a minimum value of charge/r at all points.
  */
-class ThomasFermiDecorator: public HFOperatorDecorator
+class ThomasFermiDecorator: public HFOperatorDecorator<ThomasFermiDecorator>
 {
 public:
     ThomasFermiDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator());
-
-    virtual ThomasFermiDecorator* Clone() const override;
+    ThomasFermiDecorator(const ThomasFermiDecorator& other): HFOperatorDecorator(other) {}
 
     virtual void SetCore(pCoreConst hf_core, double hf_mixing = 0.0);
     virtual RadialFunction GetDirectPotential() const override;

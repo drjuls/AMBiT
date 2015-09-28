@@ -14,17 +14,19 @@
     The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
     Typical values of inverse mass (1/M) are of order 0.001.
  */
-class MassShiftDecorator : public HFOperatorDecorator
+class MassShiftDecorator : public HFOperatorDecorator<MassShiftDecorator>
 {
 public:
-    MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator()):
+        HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(0.0) {}
+    MassShiftDecorator(const MassShiftDecorator& other):
+        HFOperatorDecorator(other), lambda(other.lambda) {}
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
     double GetInverseMass() const { return lambda; }
 
 public:
-    virtual MassShiftDecorator* Clone() const override;
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

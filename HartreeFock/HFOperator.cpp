@@ -23,6 +23,10 @@ HFOperator::HFOperator(double Z, const HFOperator& other):
 {
     this->Z = Z;
     charge = other.charge;
+    directPotential = other.directPotential;
+    currentExchangePotential = other.currentExchangePotential;
+    currentEnergy = other.currentEnergy;
+    currentKappa = other.currentKappa;
 }
 
 HFOperator::~HFOperator()

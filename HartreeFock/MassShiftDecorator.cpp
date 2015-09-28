@@ -5,18 +5,6 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
 
-MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf, integration_strategy), lambda(0.0)
-{}
-
-MassShiftDecorator* MassShiftDecorator::Clone() const
-{
-    pHFOperator wrapped_clone(wrapped->Clone());
-    MassShiftDecorator* ret = new MassShiftDecorator(wrapped_clone, integrator);
-    ret->lambda = lambda;
-    return ret;
-}
-
 void MassShiftDecorator::Alert()
 {
     if(currentExchangePotential.size() > lattice->size())

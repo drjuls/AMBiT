@@ -24,7 +24,7 @@ public:
     virtual ~HFOperator();
 
 protected:
-    /** Protected version, for use by Decorators, does not run SetCore(). */
+    /** Protected version, for use by Decorators and Clone(), does not run SetCore(). */
     HFOperator(double Z, const HFOperator& other);
 
 public:
@@ -38,12 +38,12 @@ public:
 
     virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
 
-    /** Deep copy of the HFOperator object, particularly including wrapped objects.
+    /** Deep copy of the HFOperator object, particularly including wrapped objects (but not the core or physical constants).
         The caller must take responsibility for deallocating the clone. A typical idiom would be
         to wrap the pointer immediately with a shared pointer, e.g.:
             pHFOperator cloned(old_HFOperator.Clone())
      */
-    virtual HFOperator* Clone() const { return new HFOperator(*this); }
+    virtual std::shared_ptr<HFOperator> Clone() const { return std::shared_ptr<HFOperator>(new HFOperator(Z, *this)); }
 
 public:
     /** Extend/reduce direct potential to match lattice size. */
@@ -109,8 +109,14 @@ protected:
 typedef std::shared_ptr<HFOperator> pHFOperator;
 typedef std::shared_ptr<const HFOperator> pHFOperatorConst;
 
+template <class Derived>
 class HFOperatorDecorator : public HFOperator
 {
+    /** HFOperatorDecorator is a base class for HFOperator decorators.
+        It follows the curiously recurring template pattern to provide Clone() function.
+        When deriving from it use the syntax
+            class MyDecorator : public HFOperatorDecorator<MyDecorator>
+     */
 public:
     /** If integration_strategy is null, take from decorated_object. */
     HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
@@ -123,6 +129,9 @@ public:
         charge = Z - double(core->NumElectrons());
         IncludeExchange(wrapped->IncludeExchange());
     }
+    HFOperatorDecorator(const HFOperatorDecorator& other):
+        HFOperator(other.GetZ(), other), wrapped(other.wrapped)
+    {}
     virtual ~HFOperatorDecorator() {}
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
@@ -136,10 +145,12 @@ public:
     {   return wrapped->GetDirectPotential();
     }
 
-    /** Deep copy of the HartreeY object, including wrapped objects. */
-    virtual HFOperatorDecorator* Clone() const override
-    {   pHFOperator wrapped_clone(wrapped->Clone());
-        return new HFOperatorDecorator(wrapped_clone, integrator);
+    /** Deep copy of the HFOperator object, including wrapped objects. */
+    virtual pHFOperator Clone() const override
+    {
+        Derived* ret(new Derived(*dynamic_cast<const Derived*>(this)));
+        ret->wrapped = wrapped->Clone();
+        return pHFOperator(ret);
     }
 
     /** Extend/reduce direct potential to match lattice size.

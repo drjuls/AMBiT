@@ -10,12 +10,13 @@
     where R is the nuclear radius and t a thickness parameter (default 2.3).
     From this a potential is created that is then normalised to Z.
  */
-class NucleusDecorator: public LocalPotentialDecorator
+class NucleusDecorator: public LocalPotentialDecorator<NucleusDecorator>
 {
 public:
     NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
-
-    virtual NucleusDecorator* Clone() const override;
+    NucleusDecorator(const NucleusDecorator& other):
+        LocalPotentialDecorator(other), nuclear_radius(other.nuclear_radius), nuclear_thickness(other.nuclear_thickness)
+    {}
 
     /** Set parameters of proton distribution (in Fermi). */
     virtual void SetFermiParameters(double radius, double thickness = 2.3);

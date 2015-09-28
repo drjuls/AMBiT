@@ -55,7 +55,7 @@ void Atom::Autoionization(pLevelConst target)
     if(config == "")
         hf_continuum = hf_open;
     else
-    {   hf_continuum.reset(hf_open->Clone());
+    {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, config));
         for(auto& orbital: *continuum_core)
         {
@@ -231,7 +231,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     if(config == "")
         hf_continuum = hf_open;
     else
-    {   hf_continuum.reset(hf_open->Clone());
+    {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, config));
         for(auto& orbital: *continuum_core)
         {
@@ -488,7 +488,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     if(config == "")
         hf_continuum = hf_open;
     else
-    {   hf_continuum.reset(hf_open->Clone());
+    {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, config));
         for(auto& orbital: *continuum_core)
         {

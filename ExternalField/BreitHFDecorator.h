@@ -9,18 +9,15 @@
     where \f$ b_{ijkl} \f$ is the Breit operator.
     The direct part \f$ b_{ibjb} \f$ is zero, so only the exchange part contributes.
  */
-class BreitHFDecorator : public HFOperatorDecorator
+class BreitHFDecorator : public HFOperatorDecorator<BreitHFDecorator>
 {
 public:
     BreitHFDecorator(pHFOperator wrapped_hf, pHartreeY breit_operator):
         HFOperatorDecorator(wrapped_hf), breit_operator(breit_operator)
     {}
     BreitHFDecorator(const BreitHFDecorator& other):
-        HFOperatorDecorator(wrapped), breit_operator(other.breit_operator)
+        HFOperatorDecorator(other), breit_operator(other.breit_operator)
     {}
-
-    /** Note that the clone will share the breit_operator object. */
-    virtual BreitHFDecorator* Clone() const override;
 
     virtual void Alert() override;
 

@@ -11,10 +11,15 @@
 
     The sigma potential is non-local, so it is added with the exchange part.
  */
-class BruecknerDecorator : public HFOperatorDecorator
+class BruecknerDecorator : public HFOperatorDecorator<BruecknerDecorator>
 {
 public:
     BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = nullptr);
+    BruecknerDecorator(const BruecknerDecorator& other):
+        HFOperatorDecorator(other), sigmas(other.sigmas), lambda(other.lambda),
+        use_fg(other.use_fg), use_gg(other.use_gg), matrix_stride(other.matrix_stride),
+        matrix_start(other.matrix_start), matrix_end(other.matrix_end)
+    {}
 
     /** Set parameters for new sigma matrices: matrix size = (start_i - end_i)/stride
         where start = lattice->R[start_i] etc.
@@ -51,7 +56,6 @@ public:
     void Write(const std::string& identifier) const;
 
 public:
-    virtual BruecknerDecorator* Clone() const override;
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

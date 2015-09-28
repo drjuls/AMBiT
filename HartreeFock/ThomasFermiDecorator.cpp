@@ -12,14 +12,6 @@ ThomasFermiDecorator::ThomasFermiDecorator(pHFOperator decorated_object, pOPInte
         integrator = integration_strategy;
 }
 
-ThomasFermiDecorator* ThomasFermiDecorator::Clone() const
-{
-    pHFOperator wrapped_clone(wrapped->Clone());
-    ThomasFermiDecorator* ret = new ThomasFermiDecorator(wrapped_clone, integrator);
-    ret->SetCore(core);
-    return ret;
-}
-
 void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
 {
     wrapped->SetCore(hf_core);

@@ -117,7 +117,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     if(!filename.empty())
     {
         double scale = user_input("HF/AddLocalPotential/Scale", 1.);
-        pLocalPotentialDecorator loc(new ImportedPotentialDecorator(hf, filename));
+        pImportedPotentialDecorator loc(new ImportedPotentialDecorator(hf, filename));
         loc->SetScale(scale);
         hf = loc;
     }
