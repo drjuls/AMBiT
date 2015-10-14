@@ -499,6 +499,10 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
         hf_continuum->SetCore(continuum_core);
     }
 
+    // HF solver for making continuum
+    pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
+    HartreeFocker HF_Solver(ode_solver);
+
     // Get target including core for occupancy
     OccupationMap target_with_core;
     for(const auto& orb: *orbitals->core)
@@ -533,7 +537,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
             // Build continuum
             double eps_energy = 0;
             if(use_single_particle_energy)
-            {   //eps_energy = nrcore_energy;
+            {
                 for(auto& pair: rdiff)
                     eps_energy += valence->GetState(pair.first)->Energy() * pair.second;
             }
@@ -580,14 +584,10 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 const OrbitalInfo* a = electrons[choose_electron_a];
                 const OrbitalInfo* b = electrons[1 - choose_electron_a];
 
-                // Get limits on k1
-                int min_k1 = abs(a->L() - h->L());
-                if(2 * min_k1 < abs(a->TwoJ() - h->TwoJ()))
-                    min_k1 += 2;
-
-                int max_k1 = a->L() + h->L();
-                if(2 * max_k1 > a->TwoJ() + h->TwoJ())
-                    max_k1 -= 2;
+                // Get largest k1 which inform eps_twoJ
+                int max_k1_overall = a->L() + h->L();
+                if(2 * max_k1_overall > a->TwoJ() + h->TwoJ())
+                    max_k1_overall -= 2;
 
                 // Get epsilon
                 // Minimum L and Parity -> Minimum J
@@ -597,7 +597,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 else
                     min_eps_twoJ = 2 * min_continuum_l + 1;
 
-                min_eps_twoJ = mmax(min_eps_twoJ, abs(2 * min_k1 - b->TwoJ()));
+                min_eps_twoJ = mmax(min_eps_twoJ, b->TwoJ() - 2 * max_k1_overall);
 
                 // Maximum L and Parity -> Maximum J
                 int max_eps_twoJ;
@@ -606,7 +606,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 else
                     max_eps_twoJ = 2 * max_continuum_l - 1;
 
-                max_eps_twoJ = mmin(max_eps_twoJ, 2 * max_k1 + b->TwoJ());
+                max_eps_twoJ = mmin(max_eps_twoJ, b->TwoJ() + 2 * max_k1_overall);
 
                 for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ+=2)
                 {
@@ -614,8 +614,6 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                     int eps_kappa = (eps_twoJ + 1)/2;
                     eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
 
-                    pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
-                    HartreeFocker HF_Solver(ode_solver);
                     OrbitalInfo eps_info(100, eps_kappa);
                     pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy_calculated));
                     HF_Solver.CalculateContinuumWave(eps, hf_continuum);
@@ -627,10 +625,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                     pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
                     all_orbitals->all->AddState(eps);
                     all_orbitals->MakeStateIndexes();
-                    pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(all_orbitals, hf));
                     pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
-                    one_body_integrals->clear();
-                    one_body_integrals->CalculateOneElectronIntegrals(valence, continuum_map);
                     two_body_integrals->clear();
                     two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
@@ -642,26 +637,36 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                     //              - Sum_k2 (-1)^(k1 + k2 + 1) * 6jSym * < a, b || V^k2 || eps, h >
                     // 6jSym = { k1 jb jeps }
                     //         { k2 ja  jh  }
+
+                    int min_k1 = mmax(abs(b->L() - eps_info.L()), abs(a->L() - h->L()));
+                    int max_k1 = mmin(b->L() + eps_info.L(), abs(a->L() + h->L()));
+
                     for(int k1 = min_k1; k1 <= max_k1; k1 += 2)
                     {
                         double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
-                        double multiplier = Vah / (2*k1 + 1);
 
-                        // Exchange part
-                        int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
-                        int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
-
-                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                        if(fabs(Vah) > 1.e-15)
                         {
-                            double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
-                            if(partial_k2)
-                                partial_k2 *= math->minus_one_to_the_power(k1 + k2)
-                                              * two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
+                            double multiplier = Vah / (2*k1 + 1);
 
-                            multiplier += partial_k2;
+                            // Exchange part
+                            int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
+                            int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
+
+                            for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                            {
+                                double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
+                                if(partial_k2)
+                                {
+                                    double Vbh = two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
+                                    partial_k2 *= math->minus_one_to_the_power(k1 + k2) * Vbh;
+                                }
+
+                                multiplier += partial_k2;
+                            }
+
+                            rate += Vah * multiplier;
                         }
-
-                        rate += Vah * multiplier;
                     }
                 }
             }

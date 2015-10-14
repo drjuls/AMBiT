@@ -1,4 +1,6 @@
 #include "LevelMap.h"
+#include "Include.h"
+#include <thread>
 
 pHamiltonianIDComparator key_comparator;
 
@@ -167,12 +169,18 @@ FileSystemLevelStore::FileSystemLevelStore(const std::string& file_prefix, pAngu
 FileSystemLevelStore::FileSystemLevelStore(const std::string& dir_name, const std::string& file_prefix, pAngularDataLibrary lib):
     directory(dir_name), filename_prefix(file_prefix), angular_library(lib)
 {
-    if(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
+    while(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
     {
-        // Attempt to create, else fail
-        if(!boost::filesystem::create_directory(directory))
-        {   *errstream << "FileSystemLevelStore cannot create directory " << directory << std::endl;
-            exit(1);
+        if(ProcessorRank == 0)
+        {   // Attempt to create, else fail
+            if(!boost::filesystem::create_directory(directory))
+            {   *errstream << "FileSystemLevelStore cannot create directory " << directory << std::endl;
+                exit(1);
+            }
+        }
+        else
+        {   // Wait a short time while master rank makes directory
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
 

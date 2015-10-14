@@ -3,8 +3,6 @@
 #endif
 #include "Include.h"
 #include "Eigensolver.h"
-#include "SmallMatrix.h"
-#include "Configuration/MPIMatrix.h"
 
 #define SMALL_LIM 1000
 

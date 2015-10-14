@@ -93,6 +93,8 @@ ifeq ($(MACHINE), katana)
   CXX = mpiCC -std=c++11 #-fopenmp
   F77 = ifort
 
+  ANGULAR_DATA_DIRECTORY = /srv/scratch/ambit/AngularData
+
   LINK      = mpiCC #icpc
   LINKFLAGS = 
   LIBDIR    = $(MKLROOT)/lib/intel64/
