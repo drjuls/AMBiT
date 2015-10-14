@@ -89,6 +89,13 @@ public:
     {   return (double)v/x * boost::math::sph_bessel(v, x) - boost::math::sph_bessel(v + 1, x);
     }
 
+    /** Spherical bessel function j_v(x) in the limit of small x:
+            j_v(x) = x^v / (2v + 1)!!
+     */
+    inline double sph_bessel_small_limit(unsigned int v, double x) const
+    {   return pow(x, v)/boost::math::double_factorial<double>(2 * v + 1);
+    }
+
     /** Return number of combinations of k elements in n slots. */
     unsigned int nChoosek(unsigned int n, unsigned int k) const;
 

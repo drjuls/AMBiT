@@ -1,6 +1,5 @@
 #include "EJOperator.h"
 #include "Include.h"
-#include "Universal/Function.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 #include <boost/math/special_functions/bessel.hpp>
@@ -12,7 +11,8 @@ double EJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
     double coeff = 0.0;
 
     // This is the reduced matrix element of the spherical tensor CJ
-    coeff = MathConstant::Instance()->SphericalTensorReducedMatrixElement(b.Kappa(), a.Kappa(), K);
+    MathConstant* math = MathConstant::Instance();
+    coeff = math->SphericalTensorReducedMatrixElement(b.Kappa(), a.Kappa(), K);
 
     // Convert from reduced matrix element to full matrix element
     //coeff *= pow(-1.0, e1.J() - e1.M()) * MathConstant::Instance()->Electron3j(e2.J(), e1.J(), J, e2.M(), -e1.M());
@@ -40,7 +40,7 @@ double EJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
             RadialFunction bessel(mmin(a.size(), b.size()));
             for(unsigned int i = 0; i < bessel.size(); i++)
             {
-                bessel.f[i] = sph_bessel_small_limit(K, R[i]);
+                bessel.f[i] = math->sph_bessel_small_limit(K, R[i]);
             }
 
             double overlap = integrator->GetPotentialMatrixElement(b, a, bessel);
@@ -84,8 +84,8 @@ double EJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
             for(unsigned int i = 0; i < integrand.size(); i++)
             {
                 double pR = p * R[i];
-                integrand.f[i] = - kappa_diff * (sph_bessel_prime(K, pR) + boost::math::sph_bessel(K, pR)/pR) * (b.f[i] * a.g[i] + b.g[i] * a.f[i])
-                    + (b.f[i] * a.g[i] - b.g[i] * a.f[i]) * K * boost::math::sph_bessel(K, pR)/pR;
+                integrand.f[i] = - kappa_diff * (math->sph_bessel_prime(K, pR) + math->sph_bessel(K, pR)/pR) * (b.f[i] * a.g[i] + b.g[i] * a.f[i])
+                    + (b.f[i] * a.g[i] - b.g[i] * a.f[i]) * K * math->sph_bessel(K, pR)/pR;
             }
 
 
@@ -102,7 +102,8 @@ double MJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
     double matrix_element = 0.0;
     double coeff = 0.0;
 
-    coeff = MathConstant::Instance()->SphericalTensorReducedMatrixElement(-b.Kappa(), a.Kappa(), K);
+    MathConstant* math = MathConstant::Instance();
+    coeff = math->SphericalTensorReducedMatrixElement(-b.Kappa(), a.Kappa(), K);
 
     // Don't bother computing the overlap if the angular part is zero
     if(coeff == 0)
@@ -127,7 +128,7 @@ double MJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
 
         for(unsigned int i = 0; i < integrand.size(); i++)
         {
-            integrand.f[i] = (b.f[i] * a.g[i] + b.g[i] * a.f[i]) * sph_bessel_small_limit(K, R[i]) * kappa_plus;
+            integrand.f[i] = (b.f[i] * a.g[i] + b.g[i] * a.f[i]) * math->sph_bessel_small_limit(K, R[i]) * kappa_plus;
         }
 
         double overlap = integrator->Integrate(integrand);
