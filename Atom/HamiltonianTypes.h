@@ -29,7 +29,7 @@ public:
         }
     }
     
-    virtual bool operator==(const HamiltonianID& other) const
+    virtual bool operator==(const HamiltonianID& other) const override
     {
         const SingleOrbitalID* other_soid = dynamic_cast<const SingleOrbitalID*>(&other);
         if(other_soid)
@@ -55,7 +55,7 @@ public:
         pqn = configs->front().begin()->first.PQN();
     }
     
-    virtual pHamiltonianID Clone() const
+    virtual pHamiltonianID Clone() const override
     {   return std::make_shared<SingleOrbitalID>(*this);
     }
 
@@ -114,7 +114,7 @@ public:
         nrconfig = NonRelConfiguration(configs->front());
     }
 
-    virtual pHamiltonianID Clone() const
+    virtual pHamiltonianID Clone() const override
     {   return std::make_shared<NonRelID>(*this);
     }
 

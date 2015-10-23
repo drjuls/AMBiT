@@ -108,7 +108,7 @@ public:
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
         i.e. t | a > has kappa == kappa_b.
      */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const { return ApplyTo(a, kappa_b, false); }
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override { return ApplyTo(a, kappa_b, false); }
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
     {   return SpinorFunction(kappa_b);
     }

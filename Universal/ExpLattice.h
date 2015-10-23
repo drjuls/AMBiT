@@ -18,7 +18,7 @@ public:
 
     /** Equality does not check size of lattice. */
     virtual bool operator==(const ExpLattice& other) const;
-    virtual bool operator==(const Lattice& other) const { return false; }
+    virtual bool operator==(const Lattice& other) const override { return false; }
 
     /** Calculate the value that r[i] should be. */
     virtual double lattice_to_real(unsigned int i) const override;
