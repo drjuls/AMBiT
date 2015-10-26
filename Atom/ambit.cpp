@@ -433,8 +433,10 @@ void Ambit::Recombination()
        }
     }
 
+    *outstream << "\nTarget:" << std::endl;
     Ambit target_calculator(target_input, target_id);
     target_calculator.EnergyCalculations();
+    *outstream << "----------------------------------------------------------" << std::endl;
 
     Atom& target_atom = target_calculator.atoms[target_calculator.first_run_index];
 

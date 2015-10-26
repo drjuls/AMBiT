@@ -88,7 +88,7 @@ public:
     pAngularDataLibrary GetAngularDataLibrary() { return angular_library; }
 
 public:
-    /** For all levels requested, create continuum wave and calculate autoionization rate.
+    /** For all levels requested, create continuum wave and calculate autoionization width.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
     void Autoionization(pLevelConst target);
@@ -98,7 +98,7 @@ public:
      */
     void AutoionizationEnergyGrid(pLevelConst target);
 
-    /** Configuration averaged autoionisation rate.
+    /** Configuration averaged autoionisation strength S.
         PRE: Have to have nrconfigs.
      */
     void AutoionizationConfigurationAveraged(pLevelConst target);
