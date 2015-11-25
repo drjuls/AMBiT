@@ -23,12 +23,15 @@ public:
     virtual double GetNuclearRadius() const    { return nuclear_radius;    }    //!< Radius of nucleus in Fermi.
     virtual double GetNuclearThickness() const { return nuclear_thickness; }    //!< Nuclear thickness in Fermi.
 
+    /** Calculate nuclear RMS radius for the distribution used. */
+    virtual double CalculateNuclearRMSRadius() const;
+
 protected:
     virtual RadialFunction CalculateNuclearDensity(double radius, double thickness) const;
 
 protected:
-    double nuclear_radius;
-    double nuclear_thickness;
+    double nuclear_radius;      //!< In Fermi
+    double nuclear_thickness;   //!< In Fermi
 };
 
 typedef std::shared_ptr<NucleusDecorator> pNucleusDecorator;

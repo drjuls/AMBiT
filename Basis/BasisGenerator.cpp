@@ -7,6 +7,7 @@
 #include "HartreeFock/MassShiftDecorator.h"
 #include "HartreeFock/NonRelativisticSMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
+#include "ExternalField/RadiativePotential.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
     hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
@@ -73,10 +74,11 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     double nuclear_radius = user_input("NuclearRadius", 0.0);
     if(nuclear_radius)
     {
-        pNucleusDecorator nucleus(new NucleusDecorator(hf));
+        nucleus.reset(new NucleusDecorator(hf));
         double nuclear_thickness = user_input("NuclearThickness", 2.3);
         nucleus->SetFermiParameters(nuclear_radius, nuclear_thickness);
         nucleus->SetCore(open_core);
+        *outstream << "Nuclear RMS radius = " << nucleus->CalculateNuclearRMSRadius() << std::endl;
         hf = nucleus;
         undressed_hf = hf;
     }
@@ -101,6 +103,13 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
         pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
         hf = breit_hf;
+    }
+
+    if(user_input.search("HF/--uehling"))
+    {
+        double nuclear_rms_radius = GetNuclearRMSRadius();
+        pHFOperator uehling(new UehlingDecorator(hf, nuclear_rms_radius));
+        hf = uehling;
     }
 
     if(user_input.search("HF/--local-exchange"))
@@ -410,4 +419,12 @@ double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j)
     }
 
     return max_orth;
+}
+
+double BasisGenerator::GetNuclearRMSRadius() const
+{
+    if(nucleus)
+        return nucleus->CalculateNuclearRMSRadius();
+    else
+        return 0.0;
 }

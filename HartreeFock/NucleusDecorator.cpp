@@ -27,6 +27,31 @@ void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)
     }
 }
 
+double NucleusDecorator::CalculateNuclearRMSRadius() const
+{
+    if(nuclear_radius <= 0.1)
+        return 0.0;
+    else if(nuclear_thickness <= 0.01)
+        return std::sqrt(3./5.) * nuclear_radius;
+
+    // nuclear_density(r) = r^2 rho(r)
+    RadialFunction nuclear_density = CalculateNuclearDensity(nuclear_radius, nuclear_thickness);
+    const double* R = lattice->R();
+    const double* R2 = lattice->Rpower(2);
+
+    double r2rho = integrator->Integrate(nuclear_density);
+
+    for(int i = 0; i < nuclear_density.size(); i++)
+    {
+        nuclear_density.dfdr[i] = R2[i] * nuclear_density.dfdr[i] + 2. * R[i] * nuclear_density.f[i];
+        nuclear_density.f[i] *= R2[i];
+    }
+
+    double r4rho = integrator->Integrate(nuclear_density);
+
+    return std::sqrt(r4rho/r2rho) * MathConstant::Instance()->BohrRadiusInFermi();
+}
+
 RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double thickness) const
 {
     RadialFunction density(lattice->size());
@@ -44,7 +69,8 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
     else if(thickness > 0.01 * fermi_length)
     {
         double B = 4.*log(3.)/thickness;
-        double A = 3.*Z/(radius * (radius*radius + (pi*pi)/(B*B)));
+        double A = 3.*Z/(radius * (radius*radius + (pi*pi)/(B*B))); // Approximate normalisation
+
         for(unsigned int i=0; i<lattice->size(); i++)
         {
             double X = B * (R[i] - radius);

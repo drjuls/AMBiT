@@ -4,6 +4,7 @@
 #include "Atom/MultirunOptions.h"
 #include "HartreeFock/Orbital.h"
 #include "HartreeFock/HFOperator.h"
+#include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/HartreeY.h"
 #include "OrbitalManager.h"
 #include <list>
@@ -64,6 +65,9 @@ public:
     virtual pPhysicalConstant GetPhysicalConstant() { return physical_constant; }
     virtual pPhysicalConstantConst GetPhysicalConstant() const { return physical_constant; }
 
+    /** Get nuclear RMS radius. */
+    virtual double GetNuclearRMSRadius() const;
+
 protected:
     /** Create open-shell hf operator and set open_core occupancies. Used by GenerateHFCore() and RecreateBasis().
         POST: undressed_hf is base HF with finite nuclear radius;
@@ -107,6 +111,9 @@ protected:
 
     pHFOperator hf;     //!< Open-shell hf operator
     pHartreeY hartreeY; //!< Dressed HartreeY operator
+
+    // Useful decorators to track if used
+    pNucleusDecorator nucleus;
 };
 
 #endif

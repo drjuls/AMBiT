@@ -38,7 +38,7 @@ ifeq ($(MACHINE), default)
   LINK      = g++
   LINKFLAGS =
   LIBDIR    = /usr/local/lib
-  LIBS      = boost_filesystem boost_system lapack blas
+  LIBS      = gsl boost_filesystem boost_system lapack blas
 
   INCLUDE  += /usr/local/include
 
