@@ -8,7 +8,9 @@
                B = 4ln(3)/t
      \f]
     where R is the nuclear radius and t a thickness parameter (default 2.3).
-    From this a potential is created that is then normalised to Z.
+    Density is normalised to Z:
+     \f[ \int rho(r) dr = Z \f]
+    From this a potential is created that is normalised to Z/r as r->infinity.
  */
 class NucleusDecorator: public LocalPotentialDecorator<NucleusDecorator>
 {
@@ -22,6 +24,9 @@ public:
     virtual void SetFermiParameters(double radius, double thickness = 2.3);
     virtual double GetNuclearRadius() const    { return nuclear_radius;    }    //!< Radius of nucleus in Fermi.
     virtual double GetNuclearThickness() const { return nuclear_thickness; }    //!< Nuclear thickness in Fermi.
+
+    /** Get the nuclear density function, rho(r). */
+    virtual RadialFunction GetNuclearDensity() const;
 
     /** Calculate nuclear RMS radius for the distribution used. */
     virtual double CalculateNuclearRMSRadius() const;

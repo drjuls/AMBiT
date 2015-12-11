@@ -52,6 +52,11 @@ double NucleusDecorator::CalculateNuclearRMSRadius() const
     return std::sqrt(r4rho/r2rho) * MathConstant::Instance()->BohrRadiusInFermi();
 }
 
+RadialFunction NucleusDecorator::GetNuclearDensity() const
+{
+    return CalculateNuclearDensity(nuclear_radius, nuclear_thickness);
+}
+
 RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double thickness) const
 {
     RadialFunction density(lattice->size());
@@ -101,5 +106,8 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
         density.resize(i);
     }
 
-    return density;
+    // Renormalise
+    double r2rho = integrator->Integrate(density);
+
+    return density * (Z/r2rho);
 }

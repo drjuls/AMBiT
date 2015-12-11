@@ -65,6 +65,9 @@ public:
     virtual pPhysicalConstant GetPhysicalConstant() { return physical_constant; }
     virtual pPhysicalConstantConst GetPhysicalConstant() const { return physical_constant; }
 
+    /** Get nucleus decorator if used, nullptr otherwise. */
+    virtual pNucleusDecorator GetNucleusDecorator() const { return nucleus; }
+
     /** Get nuclear RMS radius. */
     virtual double GetNuclearRMSRadius() const;
 
