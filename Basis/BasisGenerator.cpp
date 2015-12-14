@@ -107,9 +107,30 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     if(user_input.search("HF/--uehling"))
     {
-        double nuclear_rms_radius = GetNuclearRMSRadius();
-        pHFOperator uehling(new UehlingDecorator(hf, nuclear_rms_radius));
+        if(nucleus && !user_input.search("HF/--hard-sphere-QED"))
+        {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
+        }
+        else
+        {   double nuclear_rms_radius = GetNuclearRMSRadius();
+            uehling.reset(new UehlingDecorator(hf, nuclear_rms_radius));
+        }
+
         hf = uehling;
+    }
+
+    if(user_input.search("HF/--self-energy"))
+    {
+        if(nucleus && !user_input.search("HF/--hard-sphere-QED"))
+        {   magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
+            electricQED.reset(new ElectricSelfEnergyDecorator(magneticQED, nucleus->GetNuclearDensity()));
+        }
+        else
+        {   double nuclear_rms_radius = GetNuclearRMSRadius();
+            magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nuclear_rms_radius));
+            electricQED.reset(new ElectricSelfEnergyDecorator(magneticQED, nuclear_rms_radius));
+        }
+
+        hf = electricQED;
     }
 
     if(user_input.search("HF/--local-exchange"))
@@ -231,6 +252,33 @@ void BasisGenerator::SetOrbitalMaps()
     }
 }
 
+void BasisGenerator::UpdateNonSelfConsistentOperators()
+{
+    if(user_input.search("HF/--include-QED-screening"))
+    {
+        if(nucleus == nullptr || user_input.search("HF/--hard-sphere-QED"))
+        {
+            *logstream << "Cannot have screened Uehling without finite sized nucleus." << std::endl;
+            return;
+        }
+
+        RadialFunction density(nucleus->GetNuclearDensity());
+        for(const auto& orb: *open_core)
+        {
+            density -= orb.second->GetDensity() * open_core->GetOccupancy(orb.first);
+        }
+
+        if(uehling)
+            uehling->GenerateUehling(density);
+        if(magneticQED)
+            magneticQED->GenerateMagnetic(density);
+        if(electricQED)
+        {   electricQED->GenerateEhigh(density);
+            electricQED->GenerateElow(density);
+        }
+    }
+}
+
 pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 {
     open_core = pCore(new Core(lattice));
@@ -258,6 +306,8 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
         HF_Solver.SolveCore(open_core, undressed_hf);
     }
 
+    // Update any non-self-consistent screening operators (e.g. radiative potentials)
+    UpdateNonSelfConsistentOperators();
     HF_Solver.SolveCore(open_core, hf);
 
     // Resize lattice according to larger of core or user input.
@@ -288,6 +338,7 @@ pHFOperator BasisGenerator::RecreateBasis(pOrbitalManager orbital_manager)
     }
 
     hf->SetCore(open_core);
+    UpdateNonSelfConsistentOperators();
 
     // Modify orbital manager maps according to input file
     orbitals = orbital_manager;

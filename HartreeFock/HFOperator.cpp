@@ -189,6 +189,8 @@ void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction&
 
 void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
 {
+    RadialFunction V(GetDirectPotential());
+
     const int start_point = 0;
     const double alpha = physicalConstant->GetAlpha();
 
@@ -202,13 +204,13 @@ void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunctio
     for(i=start_point; i<start_point+numpoints; i++)
     {   if(s.Kappa() < 0)
         {   s.f[i] = pow(lattice->R(i), -s.Kappa());
-            s.g[i] = alpha * s.f[i] * lattice->R(i) * directPotential.f[i] / (2 * s.Kappa() - 1);
+            s.g[i] = alpha * s.f[i] * lattice->R(i) * V.f[i] / (2 * s.Kappa() - 1);
             s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
             s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
         }
         else
         {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
-            s.f[i] = s.g[i] * lattice->R(i) * alpha * directPotential.f[i] / (2 * s.Kappa() + 1);
+            s.f[i] = s.g[i] * lattice->R(i) * alpha * V.f[i] / (2 * s.Kappa() + 1);
             s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
             s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
         }

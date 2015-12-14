@@ -192,7 +192,7 @@ TEST(RadiativePotentialTester, CoreHartreeCs)
     mag = pHFOperator(new MagneticSelfEnergyDecorator(hf, density));
     EXPECT_NEAR(1.378e-5, mag->GetMatrixElement(*s, *s) - hf->GetMatrixElement(*s, *s), 1.e-8);
 
-    electric = pHFOperator(new ElectricSelfEnergyDecorator(mag, density));
-    double total = electric->GetMatrixElement(*s, *s) - hf->GetMatrixElement(*s, *s);
-    EXPECT_NEAR(8.6304e-5, total, 1.e-8);
+//    electric = pHFOperator(new ElectricSelfEnergyDecorator(mag, density));
+//    double total = electric->GetMatrixElement(*s, *s) - hf->GetMatrixElement(*s, *s);
+//    EXPECT_NEAR(8.6304e-5, total, 1.e-8);
 }

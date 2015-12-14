@@ -6,6 +6,7 @@
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/HartreeY.h"
+#include "ExternalField/RadiativePotential.h"
 #include "OrbitalManager.h"
 #include <list>
 
@@ -24,6 +25,12 @@ public:
         Return open shell Hartree-Fock core.
      */
     virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
+
+    /** Update any non-self-consistent screening operators in hf (e.g. radiative potentials).
+        Warning: Because these are not self-consistent, it is not possible to exactly recreate the hf operator
+                 to match saved orbitals.
+     */
+    virtual void UpdateNonSelfConsistentOperators();
 
     /** Generate excited states.
         PRE: core must have been built using GenerateHFCore() already.
@@ -117,6 +124,9 @@ protected:
 
     // Useful decorators to track if used
     pNucleusDecorator nucleus;
+    pUehlingDecorator uehling;
+    pMagneticSelfEnergyDecorator magneticQED;
+    pElectricSelfEnergyDecorator electricQED;
 };
 
 #endif

@@ -231,8 +231,8 @@ void MagneticSelfEnergyDecorator::GetODECoefficients(unsigned int latticepoint, 
 
     if(latticepoint < magnetic.size())
     {
-        w_f[0] += magnetic.f[latticepoint] * fg.f[latticepoint];
-        w_g[1] -= magnetic.f[latticepoint] * fg.g[latticepoint];
+        w_f[0] += magnetic.f[latticepoint];
+        w_g[1] -= magnetic.f[latticepoint];
     }
 }
 void MagneticSelfEnergyDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
@@ -254,12 +254,14 @@ SpinorFunction MagneticSelfEnergyDecorator::ApplyTo(const SpinorFunction& a) con
     SpinorFunction ta = wrapped->ApplyTo(a);
     ta.resize(mmax(ta.size(), magnetic.size()));
 
+    double alpha = physicalConstant->GetAlpha();
+
     for(int i = 0; i < magnetic.size(); i++)
     {
-        ta.f[i] -= magnetic.f[i] * a.g[i];
-        ta.dfdr[i] -= (magnetic.dfdr[i] * a.g[i] + magnetic.f[i] * a.dgdr[i]);
-        ta.g[i] -= magnetic.f[i] * a.f[i];
-        ta.dgdr[i] -= (magnetic.dfdr[i] * a.f[i] + magnetic.f[i] * a.dfdr[i]);
+        ta.f[i] -= magnetic.f[i] * a.g[i] / alpha;
+        ta.dfdr[i] -= (magnetic.dfdr[i] * a.g[i] + magnetic.f[i] * a.dgdr[i]) / alpha;
+        ta.g[i] -= magnetic.f[i] * a.f[i] / alpha;
+        ta.dgdr[i] -= (magnetic.dfdr[i] * a.f[i] + magnetic.f[i] * a.dfdr[i]) / alpha;
     }
 
     return ta;
@@ -271,7 +273,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
     magnetic.resize(lattice->size());
 
     MathConstant* math = MathConstant::Instance();
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
     double nuclear_radius = std::sqrt(5./3.) * nuclear_rms_radius/math->BohrRadiusInFermi();
 
@@ -302,7 +304,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
     };
 
     size_t sizelimit = 1000;
-    double prefactor = 3. * Z/math->Pi();
+    double prefactor = 3. * Z * alpha/math->Pi();
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
@@ -368,7 +370,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     magnetic.resize(lattice->size());
 
     MathConstant* math = MathConstant::Instance();
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
 
     // Functions for inner integral (over t) with r, rp fixed
@@ -421,7 +423,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
 
-    double prefactor = gsl_pow_3(alpha)/(16.0 * math->Pi());
+    double prefactor = gsl_pow_4(alpha)/(16.0 * math->Pi());
 
     unsigned int i_r = 0;
     while(i_r < lattice->size())
@@ -489,7 +491,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
     directPotential.resize(lattice->size());
 
     MathConstant* math = MathConstant::Instance();
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
     double nuclear_radius = std::sqrt(5./3.) * nuclear_rms_radius/math->BohrRadiusInFermi();
 
@@ -640,7 +642,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     directPotential.resize(lattice->size());
 
     MathConstant* math = MathConstant::Instance();
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
 
     // Functions for inner integral (over t) with r, rp fixed
@@ -729,7 +731,7 @@ void ElectricSelfEnergyDecorator::GenerateStepElow(double nuclear_rms_radius)
     // Use point-like here
     RadialFunction Elow(lattice->size());
 
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
 
     double prefactor = Bfit * gsl_pow_3(Z * alpha) * Z;
@@ -794,7 +796,7 @@ void ElectricSelfEnergyDecorator::GenerateElow(const RadialFunction& density)
 
 void ElectricSelfEnergyDecorator::Initialize()
 {
-    double alpha = physicalConstant->GetAlpha();
+    const double alpha = physicalConstant->GetAlpha();
     Ra = 0.07 * Z*Z * gsl_pow_3(alpha);
 
     double Zp = (Z - 80.) * alpha;

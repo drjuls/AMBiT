@@ -34,6 +34,11 @@ public:
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
+    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override
+    {   // HFOperator uses GetDirectPotential() which will use the correct potential.
+        HFOperator::EstimateOrbitalNearOrigin(numpoints, s);
+    }
+
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 

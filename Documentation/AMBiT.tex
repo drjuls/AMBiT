@@ -175,6 +175,12 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 
 \option{-{}-uehling} Include Uehling potential in HF operator.
 
+\option{-{}-self-energy} Include QED self-energy radiative potential in HF operator.
+
+\option{-{}-hard-sphere-QED} Use hard sphere instead of nuclear distribution for QED operators (Uehling and self-energy).
+
+\option{-{}-include-QED-screening} Include core electron screening when calculating QED operators. Cannot be used with \code{-{}-hard-sphere-QED}.
+
 \option{-{}-local-exchange} Use local exchange approximation $x_\alpha \left(\frac{81}{32\pi^2} \frac{\rho(r)}{r^2}\right)^{1/3}$, where $\rho(r)$ is the electron density. The value $x_\alpha$ can be set using \code{HF/Xalpha} [default = 1.0].
 
 \option{-{}-read-grasp0} Read core and excited states from Grasp0 ``MCDF.DAT'' file rather than generating it or reading from an AMBiT ``[ID].core.atom'' file.

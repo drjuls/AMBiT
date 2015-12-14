@@ -14,7 +14,6 @@ public:
     UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pOPIntegrator integration_strategy = pOPIntegrator());
     UehlingDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pOPIntegrator integration_strategy = pOPIntegrator());
 
-protected:
     /** Set local direct_potential to Uehling potential with nuclear_rms_radius (fm). */
     void GenerateStepUehling(double nuclear_rms_radius);
 
@@ -36,10 +35,9 @@ public:
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
-public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
-protected:
+public:
     /** Generate magnetic part of self-energy with nuclear_rms_radius (fm). */
     void GenerateStepMagnetic(double nuclear_rms_radius);
 
@@ -60,7 +58,6 @@ public:
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term = true, pOPIntegrator integration_strategy = pOPIntegrator());
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pOPIntegrator integration_strategy = pOPIntegrator());
 
-protected:
     /** Generate high-frequency electric part of self-energy with nuclear_rms_radius (fm). */
     void GenerateStepEhigh(double nuclear_rms_radius);
 
@@ -73,6 +70,7 @@ protected:
     /** Generate low-frequency electric part from given density. */
     void GenerateElow(const RadialFunction& density);
 
+protected:
     /** Initialise Afit and Ra. */
     void Initialize();
 
@@ -82,5 +80,9 @@ protected:
     double Ra;      //!< Cutoff radius for offmass term.
     bool integrate_offmass_term;    //!< Integrate offmass term in GenerateStepEhigh.
 };
+
+typedef std::shared_ptr<UehlingDecorator> pUehlingDecorator;
+typedef std::shared_ptr<MagneticSelfEnergyDecorator> pMagneticSelfEnergyDecorator;
+typedef std::shared_ptr<ElectricSelfEnergyDecorator> pElectricSelfEnergyDecorator;
 
 #endif
