@@ -455,6 +455,8 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     ConfigGenerator gen(orbitals, user_input);
     pOrbitalMap valence(new OrbitalMap(*orbitals->valence));
 
+    *outstream << "\nTarget occupancy:\n  " << target.Name() << std::endl;
+
     // Create non-relativistic target
     NonRelConfiguration nrtarget;
     Configuration<NonRelInfo, double> nrfrac_target;
@@ -511,7 +513,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     }
     target_with_core += target;
 
-    *outstream << "\nAutoionization rates:"
+    *outstream << "\nAutoionization strength:"
                << "\n E(eV)   S(ns)   Configuration" << std::endl;
 
     double energy_unit_conversion = math->HartreeEnergyIneV();
@@ -671,14 +673,14 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 }
             }
 
-            rate *= math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
+            rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
                     * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
                     * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
 
             if(ProcessorRank == 0)
             {
                 char sep = ' ';
-                *outstream << eps_energy * energy_unit_conversion << sep
+                *outstream << std::setprecision(8) << eps_energy * energy_unit_conversion << sep
                            << rate * rate_unit_conversion << sep;
 
                 if(print_relativistic_config)
