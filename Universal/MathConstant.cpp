@@ -31,6 +31,8 @@ double MathConstant::InvCmInMHz() const           { return 29979.2458; }
 double MathConstant::BohrRadiusSI() const         { return 5.2917720859e-11; }
 double MathConstant::RydbergConstantSI() const    { return 10973731.6; }
 double MathConstant::AtomicFrequencySI() const    { return 4.0 * Pi() * RydbergConstantSI() * SpeedOfLightSI(); }
+double MathConstant::AtomicFrequencyMHz() const   { return RydbergConstantSI() * SpeedOfLightSI() * 2.e-6; }
+double MathConstant::NuclearMagneton() const      { return 1.987131e-6; }
 
 char MathConstant::GetSpectroscopicNotation(unsigned int l)  const
 {

@@ -29,6 +29,8 @@ public:
     double BohrRadiusSI() const;          //!< Atomic unit in meters.
     double RydbergConstantSI() const;     //!< In SI units (inverse m).
     double AtomicFrequencySI() const;     //!< Multiply a frequency in atomic units by this factor to get frequency in SI units (Hz).
+    double AtomicFrequencyMHz() const;    //!< Atomic frequency in MHz.
+    double NuclearMagneton() const;       //!< Nuclear magneton 1/(2 m_p c) in atomic units.
 
     char GetSpectroscopicNotation(unsigned int l) const;    //!< Returns 0 if not found
     int GetL(char spectroscopic_notation) const;            //!< Returns -1 if not found
