@@ -5,7 +5,7 @@
 #include "Universal/SpinorFunction.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Eigen/Eigen"
+#include <Eigen/Eigen>
 #include "Atom/MultirunOptions.h"
 
 enum SplineType {NotreDame, Reno, Vanderbilt};

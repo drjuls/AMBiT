@@ -23,12 +23,14 @@ ifeq ($(HOSTNAME), jcb1pc)
 endif
 
 SRCDIR = $(shell pwd)
-INCLUDE = $(SRCDIR)
-ANGULAR_DATA_DIRECTORY=$(SRCDIR)/AngularData
 
 # Override these below, if necessary
+ANGULAR_DATA_DIRECTORY=$(SRCDIR)/AngularData
+EIGEN_INCLUDE_DIR = /usr/local/include/Eigen3
 GTEST_INCLUDE_DIR = $(SRCDIR)
 GTEST_LIBS_DIR    = $(SRCDIR)/gtest
+
+INCLUDE = $(SRCDIR) $(EIGEN_INCLUDE_DIR)
 
 ifeq ($(MACHINE), default)
   CC  = gcc

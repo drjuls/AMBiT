@@ -4,7 +4,7 @@
 #include "Universal/SpinorFunction.h"
 #include "Universal/Lattice.h"
 #include <vector>
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> SigmaMatrix;
 

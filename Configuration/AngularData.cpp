@@ -1,7 +1,7 @@
 #include "AngularData.h"
 #include "Include.h"
 #include "RelativisticConfiguration.h"
-#include "Eigen/Eigen"
+#include <Eigen/Eigen>
 #include "ManyBodyOperator.h"
 #include <numeric>
 #ifdef AMBIT_USE_MPI

@@ -10,7 +10,7 @@
 #include "ManyBodyOperator.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/TwoElectronCoulombOperator.h"
-#include "Eigen/Eigen"
+#include <Eigen/Eigen>
 
 typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
