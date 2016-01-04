@@ -4,6 +4,7 @@
 #include <map>
 #include <stdlib.h>
 #include <boost/math/special_functions.hpp>
+#include "Enums.h"
 
 /** Class of mathematical constants, following the Singleton pattern. 
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
@@ -72,6 +73,9 @@ public:
     // Helper functions
     inline int is_half_integer(int twoj) const { return twoj%2 == 1; }
 
+    /** Convert half-integer J and parity to kappa = (-1)^(l+j+1/2) (j+1/2) */
+    inline int convert_to_kappa(int twoj, Parity P);
+
     /** Return +1 if power is even, -1 if odd. */
     inline int minus_one_to_the_power(int power) const { return (abs(power)%2)? -1 : 1; }
 
@@ -80,6 +84,7 @@ public:
 
     /** Return true if (a + b + c) is even. */
     inline bool sum_is_even(int a, int b, int c) const { return (a + b + c)%2 == 0; }
+    inline bool sum_is_even(int a, int b, int c, int d) const { return (a + b + c + d)%2 == 0; }
 
     /** Spherical bessel function j_v(x) */
     inline double sph_bessel(unsigned int v, double x) const { return boost::math::sph_bessel(v, x); }
@@ -118,5 +123,17 @@ protected:
      */
     double LogFactorialFraction(unsigned int num, unsigned int denom) const;
 };
+
+inline int MathConstant::convert_to_kappa(int twoj, Parity P)
+{
+    int kappa = (twoj + 1)/2;
+    int L = kappa;
+
+    // If inconsistent, swap kappa
+    if((L%2 == 0 && P == Parity::odd) || (L%2 == 1 && P == Parity::even))
+        kappa = -kappa;
+
+    return kappa;
+}
 
 #endif
