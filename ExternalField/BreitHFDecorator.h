@@ -9,11 +9,11 @@
     where \f$ b_{ijkl} \f$ is the Breit operator.
     The direct part \f$ b_{ibjb} \f$ is zero, so only the exchange part contributes.
  */
-class BreitHFDecorator : public HFOperatorDecorator<BreitHFDecorator>
+class BreitHFDecorator : public HFOperatorDecorator<HFBasicDecorator, BreitHFDecorator>
 {
 public:
     BreitHFDecorator(pHFOperator wrapped_hf, pHartreeY breit_operator):
-        HFOperatorDecorator(wrapped_hf), breit_operator(breit_operator)
+        BaseDecorator(wrapped_hf), breit_operator(breit_operator)
     {}
     BreitHFDecorator(const BreitHFDecorator& other):
         HFOperatorDecorator(other), breit_operator(other.breit_operator)

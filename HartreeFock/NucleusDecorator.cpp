@@ -2,7 +2,7 @@
 #include "Universal/MathConstant.h"
 
 NucleusDecorator::NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
-    LocalPotentialDecorator(wrapped_hf, integration_strategy), nuclear_radius(0.0), nuclear_thickness(0.0)
+    BaseDecorator(wrapped_hf, integration_strategy), nuclear_radius(0.0), nuclear_thickness(0.0)
 {}
 
 void NucleusDecorator::SetFermiParameters(double radius_fm, double thickness_fm)

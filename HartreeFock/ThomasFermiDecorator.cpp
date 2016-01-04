@@ -3,15 +3,6 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Interpolator.h"
 
-ThomasFermiDecorator::ThomasFermiDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy):
-    HFOperatorDecorator(decorated_object)
-{
-    // If integration_strategy is supplied, use it.
-    // Otherwise the integration_strategy from wrapped_hf will be used.
-    if(integration_strategy != NULL)
-        integrator = integration_strategy;
-}
-
 void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
 {
     wrapped->SetCore(hf_core);

@@ -11,12 +11,12 @@
 
     The sigma potential is non-local, so it is added with the exchange part.
  */
-class BruecknerDecorator : public HFOperatorDecorator<BruecknerDecorator>
+class BruecknerDecorator : public HFOperatorDecorator<HFBasicDecorator, BruecknerDecorator>
 {
 public:
     BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = nullptr);
     BruecknerDecorator(const BruecknerDecorator& other):
-        HFOperatorDecorator(other), sigmas(other.sigmas), lambda(other.lambda),
+        BaseDecorator(other), sigmas(other.sigmas), lambda(other.lambda),
         use_fg(other.use_fg), use_gg(other.use_gg), matrix_stride(other.matrix_stride),
         matrix_start(other.matrix_start), matrix_end(other.matrix_end)
     {}

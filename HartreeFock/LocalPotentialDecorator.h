@@ -3,26 +3,20 @@
 
 #include "HFOperator.h"
 
-/** Template class to add an extra local potential to a HF operator.
+/** Add an extra local potential to a HF operator.
     Extra local potential should be stored in directPotential (inherited from HF operator) and
     must be set by subclasses via SetCore() and/or SetODEParameters().
     Note sign is for normal electrostatic potential: V_nucleus(r) > 0.
  */
-template <class Derived>
-class LocalPotentialDecorator : public HFOperatorDecorator<Derived>
+class LocalPotentialDecorator : public HFOperatorDecorator<HFBasicDecorator, LocalPotentialDecorator>
 {
 public:
     LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator()):
-        HFOperatorDecorator<Derived>(wrapped_hf), scale(1.)
-    {
-        // If integration_strategy is supplied, use it.
-        // Otherwise the integration_strategy from wrapped_hf will be used.
-        if(integration_strategy != NULL)
-            HFOperatorDecorator<Derived>::integrator = integration_strategy;
-    }
+        BaseDecorator(wrapped_hf, integration_strategy), scale(1.)
+    {}
 
-    LocalPotentialDecorator(const LocalPotentialDecorator<Derived>& other):
-        HFOperatorDecorator<Derived>(other), scale(other.scale)
+    LocalPotentialDecorator(const LocalPotentialDecorator& other):
+        BaseDecorator(other), scale(other.scale)
     {}
 
     void SetScale(double factor) { scale = factor; }
@@ -51,12 +45,12 @@ protected:
         R   V(R)
     with one point per line.
  */
-class ImportedPotentialDecorator : public LocalPotentialDecorator<ImportedPotentialDecorator>
+class ImportedPotentialDecorator : public HFOperatorDecorator<LocalPotentialDecorator, ImportedPotentialDecorator>
 {
 public:
     ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy = pOPIntegrator());
     ImportedPotentialDecorator(const ImportedPotentialDecorator& other):
-        LocalPotentialDecorator(other) {}
+        BaseDecorator(other) {}
 };
 
 typedef std::shared_ptr<ImportedPotentialDecorator> pImportedPotentialDecorator;
@@ -73,12 +67,12 @@ typedef std::shared_ptr<const ImportedPotentialDecorator> pImportedPotentialDeco
     Xalpha is not quite the same as scaling, since the Latter correction is not affected.
     Remember to turn off the exchange potential using wrapped_hf->Include.
  */
-class LocalExchangeApproximation : public LocalPotentialDecorator<LocalExchangeApproximation>
+class LocalExchangeApproximation : public HFOperatorDecorator<LocalPotentialDecorator, LocalExchangeApproximation>
 {
 public:
     LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pOPIntegrator integration_strategy = pOPIntegrator());
     LocalExchangeApproximation(const LocalExchangeApproximation& other):
-        LocalPotentialDecorator(other), Xalpha(other.Xalpha)
+        BaseDecorator(other), Xalpha(other.Xalpha)
     {}
 
     void SetXalpha(double x_alpha) { Xalpha = x_alpha; }
@@ -93,64 +87,5 @@ protected:
 
 typedef std::shared_ptr<LocalExchangeApproximation> pLocalExchangeApproximation;
 typedef std::shared_ptr<const LocalExchangeApproximation> pLocalExchangeApproximationConst;
-
-// Template functions for LocalPotentialDecorator below
-
-template <class Derived>
-RadialFunction LocalPotentialDecorator<Derived>::GetDirectPotential() const
-{
-    RadialFunction ret = HFOperatorDecorator<Derived>::wrapped->GetDirectPotential();
-    ret +=  HFOperatorDecorator<Derived>::directPotential * scale;
-
-    return ret;
-}
-
-template <class Derived>
-void LocalPotentialDecorator<Derived>::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
-{
-    HFOperatorDecorator<Derived>::wrapped->GetODEFunction(latticepoint, fg, w);
-
-    if(latticepoint < HFOperatorDecorator<Derived>::directPotential.size())
-    {   const double alpha = HFOperatorDecorator<Derived>::physicalConstant->GetAlpha() * scale;
-        w[0] += alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint] * fg.g[latticepoint];
-        w[1] -= alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint] * fg.f[latticepoint];
-    }
-}
-
-template <class Derived>
-void LocalPotentialDecorator<Derived>::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
-{
-    HFOperatorDecorator<Derived>::wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
-
-    if(latticepoint < HFOperatorDecorator<Derived>::directPotential.size())
-    {   const double alpha = HFOperatorDecorator<Derived>::physicalConstant->GetAlpha() * scale;
-        w_g[0] += alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint];
-        w_f[1] -= alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint];
-    }
-}
-
-template <class Derived>
-void LocalPotentialDecorator<Derived>::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
-{
-    HFOperatorDecorator<Derived>::wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
-
-    if(latticepoint < HFOperatorDecorator<Derived>::directPotential.size())
-    {   const double alpha = HFOperatorDecorator<Derived>::physicalConstant->GetAlpha() * scale;
-        jacobian[0][1] += alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint];
-        jacobian[1][0] -= alpha * HFOperatorDecorator<Derived>::directPotential.f[latticepoint];
-
-        dwdr[0] += alpha * HFOperatorDecorator<Derived>::directPotential.dfdr[latticepoint] * fg.g[latticepoint];
-        dwdr[1] -= alpha * HFOperatorDecorator<Derived>::directPotential.dfdr[latticepoint] * fg.f[latticepoint];
-    }
-}
-
-template <class Derived>
-SpinorFunction LocalPotentialDecorator<Derived>::ApplyTo(const SpinorFunction& a) const
-{
-    SpinorFunction ta = HFOperatorDecorator<Derived>::wrapped->ApplyTo(a);
-    ta -= a * HFOperatorDecorator<Derived>::directPotential * scale;
-
-    return ta;
-}
 
 #endif

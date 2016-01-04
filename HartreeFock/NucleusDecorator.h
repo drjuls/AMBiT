@@ -12,12 +12,12 @@
      \f[ \int rho(r) dr = Z \f]
     From this a potential is created that is normalised to Z/r as r->infinity.
  */
-class NucleusDecorator: public LocalPotentialDecorator<NucleusDecorator>
+class NucleusDecorator: public HFOperatorDecorator<LocalPotentialDecorator, NucleusDecorator>
 {
 public:
     NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
     NucleusDecorator(const NucleusDecorator& other):
-        LocalPotentialDecorator(other), nuclear_radius(other.nuclear_radius), nuclear_thickness(other.nuclear_thickness)
+        BaseDecorator(other), nuclear_radius(other.nuclear_radius), nuclear_thickness(other.nuclear_thickness)
     {}
 
     /** Set parameters of proton distribution (in Fermi). */

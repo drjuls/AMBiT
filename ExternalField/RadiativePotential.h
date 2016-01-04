@@ -7,7 +7,7 @@
 /** Uehling potential decorator.
     Uses step potential from Ginges & Berengut.
  */
-class UehlingDecorator: public LocalPotentialDecorator<UehlingDecorator>
+class UehlingDecorator: public HFOperatorDecorator<LocalPotentialDecorator, UehlingDecorator>
 {
 public:
     /** Generate Uehling potential using step potential with radius nuclear_rms_radius (fm). */
@@ -24,7 +24,7 @@ public:
 /** Radiative potential decorator for magnetic part of self-energy.
     Includes potential for step density and variable density.
  */
-class MagneticSelfEnergyDecorator: public HFOperatorDecorator<MagneticSelfEnergyDecorator>
+class MagneticSelfEnergyDecorator: public HFOperatorDecorator<HFBasicDecorator, MagneticSelfEnergyDecorator>
 {
 public:
     MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pOPIntegrator integration_strategy = pOPIntegrator());
@@ -52,7 +52,7 @@ protected:
 /** Radiative potential decorator for electric part of self-energy (high and low frequency).
     Includes potential for step density and variable density.
  */
-class ElectricSelfEnergyDecorator: public LocalPotentialDecorator<ElectricSelfEnergyDecorator>
+class ElectricSelfEnergyDecorator: public HFOperatorDecorator<LocalPotentialDecorator, ElectricSelfEnergyDecorator>
 {
 public:
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term = true, pOPIntegrator integration_strategy = pOPIntegrator());

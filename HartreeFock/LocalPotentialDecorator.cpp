@@ -4,8 +4,60 @@
 #include "CoulombOperator.h"
 #include "Universal/Interpolator.h"
 
+RadialFunction LocalPotentialDecorator::GetDirectPotential() const
+{
+    RadialFunction ret = wrapped->GetDirectPotential();
+    ret += directPotential * scale;
+
+    return ret;
+}
+
+void LocalPotentialDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
+{
+    wrapped->GetODEFunction(latticepoint, fg, w);
+
+    if(latticepoint < directPotential.size())
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
+        w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
+        w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
+    }
+}
+
+void LocalPotentialDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
+{
+    wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
+
+    if(latticepoint < directPotential.size())
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
+        w_g[0] += alpha * directPotential.f[latticepoint];
+        w_f[1] -= alpha * directPotential.f[latticepoint];
+    }
+}
+
+void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
+{
+    wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
+
+    if(latticepoint < directPotential.size())
+    {   const double alpha = physicalConstant->GetAlpha() * scale;
+        jacobian[0][1] += alpha * directPotential.f[latticepoint];
+        jacobian[1][0] -= alpha * directPotential.f[latticepoint];
+
+        dwdr[0] += alpha * directPotential.dfdr[latticepoint] * fg.g[latticepoint];
+        dwdr[1] -= alpha * directPotential.dfdr[latticepoint] * fg.f[latticepoint];
+    }
+}
+
+SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
+{
+    SpinorFunction ta = wrapped->ApplyTo(a);
+    ta -= a * directPotential * scale;
+    
+    return ta;
+}
+
 ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy):
-    LocalPotentialDecorator(wrapped_hf, integration_strategy)
+    BaseDecorator(wrapped_hf, integration_strategy)
 {
     std::ifstream infile(filename.c_str());
     if(!infile.is_open())
@@ -38,7 +90,7 @@ ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, c
 }
 
 LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pOPIntegrator integration_strategy):
-    LocalPotentialDecorator(wrapped_hf, integration_strategy), Xalpha(x_alpha)
+    BaseDecorator(wrapped_hf, integration_strategy), Xalpha(x_alpha)
 {}
 
 void LocalExchangeApproximation::SetCore(pCoreConst hf_core)

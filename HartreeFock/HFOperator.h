@@ -38,11 +38,7 @@ public:
 
     virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
 
-    /** Deep copy of the HFOperator object, particularly including wrapped objects (but not the core or physical constants).
-        The caller must take responsibility for deallocating the clone. A typical idiom would be
-        to wrap the pointer immediately with a shared pointer, e.g.:
-            pHFOperator cloned(old_HFOperator.Clone())
-     */
+    /** Deep copy of the HFOperator object, particularly including wrapped objects (but not the core or physical constants). */
     virtual std::shared_ptr<HFOperator> Clone() const { return std::shared_ptr<HFOperator>(new HFOperator(Z, *this)); }
 
 public:
@@ -109,17 +105,15 @@ protected:
 typedef std::shared_ptr<HFOperator> pHFOperator;
 typedef std::shared_ptr<const HFOperator> pHFOperatorConst;
 
-template <class Derived>
-class HFOperatorDecorator : public HFOperator
+/** HFBasicDecorator is a simple base class for HFOperator decorators.
+    Derive classes from it using the HFOperatorDecorator template below:
+        class MyDecorator : public HFOperatorDecorator<HFBasicDecorator, MyDecorator>
+ */
+class HFBasicDecorator : public HFOperator
 {
-    /** HFOperatorDecorator is a base class for HFOperator decorators.
-        It follows the curiously recurring template pattern to provide Clone() function.
-        When deriving from it use the syntax
-            class MyDecorator : public HFOperatorDecorator<MyDecorator>
-     */
 public:
     /** If integration_strategy is null, take from decorated_object. */
-    HFOperatorDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
+    HFBasicDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
         HFOperator(decorated_object->GetZ(), *decorated_object), wrapped(decorated_object)
     {
         if(integration_strategy != nullptr)
@@ -129,10 +123,10 @@ public:
         charge = Z - double(core->NumElectrons());
         IncludeExchange(wrapped->IncludeExchange());
     }
-    HFOperatorDecorator(const HFOperatorDecorator& other):
+    HFBasicDecorator(const HFBasicDecorator& other):
         HFOperator(other.GetZ(), other), wrapped(other.wrapped)
     {}
-    virtual ~HFOperatorDecorator() {}
+    virtual ~HFBasicDecorator() {}
 
     /** Set/reset the Hartree-Fock core, from which the potential is derived. */
     virtual void SetCore(pCoreConst hf_core) override
@@ -148,9 +142,9 @@ public:
     /** Deep copy of the HFOperator object, including wrapped objects. */
     virtual pHFOperator Clone() const override
     {
-        Derived* ret(new Derived(*dynamic_cast<const Derived*>(this)));
+        std::shared_ptr<HFBasicDecorator> ret(std::make_shared<HFBasicDecorator>(*this));
         ret->wrapped = wrapped->Clone();
-        return pHFOperator(ret);
+        return ret;
     }
 
     /** Extend/reduce direct potential to match lattice size.
@@ -225,6 +219,32 @@ public:
 
 protected:
     pHFOperator wrapped;
+};
+
+/** HFOperatorDecorator is a base class for HFOperator decorators.
+    It follows the curiously recurring template pattern to provide Clone() function.
+    When deriving from it use the syntax
+    class MyDecorator : public HFOperatorDecorator<BaseDecorator, MyDecorator>
+ */
+template <typename Base, typename Derived>
+class HFOperatorDecorator : public Base
+{
+public:
+    using Base::Base;
+
+    HFOperatorDecorator(const Derived& other):
+        Base(other)
+    {}
+
+    virtual pHFOperator Clone() const override
+    {
+        std::shared_ptr<Derived> ret = std::make_shared<Derived>(static_cast<Derived const &>(*this));
+        ret->wrapped = this->wrapped->Clone();
+        return ret;
+    }
+
+protected:
+    typedef HFOperatorDecorator<Base, Derived> BaseDecorator;
 };
 
 #endif
