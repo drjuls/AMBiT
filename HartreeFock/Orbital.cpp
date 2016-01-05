@@ -4,97 +4,21 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
-Orbital::Orbital(const OrbitalInfo& info):
+OrbitalBase::OrbitalBase(const OrbitalInfo& info):
     SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
 {}
 
-Orbital::Orbital(int kappa, int pqn, double energy, unsigned int size):
+OrbitalBase::OrbitalBase(int kappa, int pqn, double energy, unsigned int size):
     SpinorFunction(kappa, size), pqn(pqn), energy(energy)
 {}
 
-Orbital::Orbital(const Orbital& other):
-    SpinorFunction(other), pqn(other.pqn), energy(other.energy)
-{}
-
-Orbital::Orbital(Orbital&& other):
-    SpinorFunction(other), pqn(other.pqn), energy(other.energy)
-{}
-
-const Orbital& Orbital::operator=(const Orbital& other)
-{
-    SpinorFunction::operator=(other);
-    pqn = other.pqn;
-    energy = other.energy;
-    return *this;
-}
-
-Orbital& Orbital::operator=(Orbital&& other)
-{
-    SpinorFunction::operator=(other);
-    pqn = other.pqn;
-    energy = other.energy;
-    return *this;
-}
-
-const Orbital& Orbital::operator*=(double scale_factor)
-{
-    SpinorFunction::operator*=(scale_factor);
-    return *this;
-}
-
-Orbital Orbital::operator*(double scale_factor) const
-{
-    Orbital ret(*this);
-    ret *= scale_factor;
-    return ret;
-}
-
-const Orbital& Orbital::operator+=(const Orbital& other)
-{
-    SpinorFunction::operator+=(other);
-    return *this;
-}
-
-const Orbital& Orbital::operator-=(const Orbital& other)
-{
-    SpinorFunction::operator-=(other);
-    return *this;
-}
-
-Orbital Orbital::operator+(const Orbital& other) const
-{
-    Orbital ret(*this);
-    ret += other;
-    return ret;
-}
-
-Orbital Orbital::operator-(const Orbital& other) const
-{
-    Orbital ret(*this);
-    ret -= other;
-    return ret;
-}
-
-const Orbital& Orbital::operator*=(const RadialFunction& chi)
-{
-    SpinorFunction::operator*=(chi);
-    return *this;
-}
-
-Orbital Orbital::operator*(const RadialFunction& chi) const
-{
-    Orbital ret(*this);
-    ret *= chi;
-    return ret;
-}
-
-double Orbital::Energy() const
+double OrbitalBase::Energy() const
 {
     return energy;
 }
 
 /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
-double Orbital::Nu() const
+double OrbitalBase::Nu() const
 {
     double nu;
     if(std::fabs(energy) < 1.e-10)
@@ -108,17 +32,17 @@ double Orbital::Nu() const
     return nu;
 }
 
-int Orbital::PQN() const
+int OrbitalBase::PQN() const
 {
     return pqn;
 }
 
-void Orbital::SetEnergy(double Energy)
+void OrbitalBase::SetEnergy(double Energy)
 {
     energy = Energy;
 }
 
-void Orbital::SetNu(double Nu)
+void OrbitalBase::SetNu(double Nu)
 {
     if(fabs(Nu) > 1.e-5)
         energy = -0.5/(Nu * Nu);
@@ -129,17 +53,17 @@ void Orbital::SetNu(double Nu)
         energy = -energy;
 }
 
-void Orbital::SetPQN(int PQN)
+void OrbitalBase::SetPQN(int PQN)
 {
     pqn = PQN;
 }
 
-std::string Orbital::Name() const
+std::string OrbitalBase::Name() const
 {
-    return OrbitalInfo(this).Name();
+    return OrbitalInfo(std::static_pointer_cast<const Orbital>(shared_from_this())).Name();
 }
 
-void Orbital::Write(FILE* fp) const
+void OrbitalBase::Write(FILE* fp) const
 {
     // As well as the SpinorFunction vectors, we need to output some other things
     fwrite(&pqn, sizeof(int), 1, fp);
@@ -148,7 +72,7 @@ void Orbital::Write(FILE* fp) const
     SpinorFunction::Write(fp);
 }
 
-void Orbital::Read(FILE* fp)
+void OrbitalBase::Read(FILE* fp)
 {
     fread(&pqn, sizeof(int), 1, fp);
     fread(&energy, sizeof(double), 1, fp);
@@ -156,12 +80,12 @@ void Orbital::Read(FILE* fp)
     SpinorFunction::Read(fp);
 }
 
-bool Orbital::Print(pLattice lattice) const
+bool OrbitalBase::Print(pLattice lattice) const
 {
     return Print(Name() + "_orbital.txt", lattice);
 }
 
-bool Orbital::Print(const std::string& filename, pLattice lattice) const
+bool OrbitalBase::Print(const std::string& filename, pLattice lattice) const
 {
     FILE* fp = fopen(filename.c_str(), "wt");
     
@@ -174,7 +98,7 @@ bool Orbital::Print(const std::string& filename, pLattice lattice) const
         return false;
 }
 
-bool Orbital::Print(FILE* fp, pLattice lattice) const
+bool OrbitalBase::Print(FILE* fp, pLattice lattice) const
 {
     unsigned int i;
     if(lattice)
@@ -193,7 +117,7 @@ bool Orbital::Print(FILE* fp, pLattice lattice) const
     return true;
 }
 
-bool Orbital::CheckSize(pLattice lattice, double tolerance)
+bool OrbitalBase::CheckSize(pLattice lattice, double tolerance)
 {
     double maximum = 0.;
     unsigned int i = 0;
@@ -274,12 +198,12 @@ bool Orbital::CheckSize(pLattice lattice, double tolerance)
     else return true;
 }
 
-double Orbital::Norm(pOPIntegrator integrator) const
+double OrbitalBase::Norm(pOPIntegrator integrator) const
 {
     return integrator->GetNorm(*this);
 }
 
-void Orbital::ReNormalise(pOPIntegrator integrator, double norm)
+void OrbitalBase::ReNormalise(pOPIntegrator integrator, double norm)
 {
     if(norm > 0.)
         (*this) *= sqrt(norm/Norm(integrator));
@@ -287,7 +211,7 @@ void Orbital::ReNormalise(pOPIntegrator integrator, double norm)
         Clear();
 }
 
-unsigned int Orbital::NumNodes() const
+unsigned int OrbitalBase::NumNodes() const
 {
     // Count number of zeros
     unsigned int zeros = 0;

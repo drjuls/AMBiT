@@ -6,11 +6,12 @@ double DeltaOrbital::Energy() const
 }
 
 RPAOrbital::RPAOrbital(const RPAOrbital& other):
-Orbital(other)
+    BaseClass(other)
 {
     for(const auto& pair: other.deltapsi)
     {
-        pDeltaOrbital clone(new DeltaOrbital(*pair.second));
+        pDeltaOrbital clone = std::static_pointer_cast<DeltaOrbital>(pair.second->Clone());
+        clone->parent = std::static_pointer_cast<RPAOrbital>(shared_from_this());
         deltapsi[pair.first] = clone;
     }
 }

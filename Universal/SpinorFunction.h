@@ -18,12 +18,7 @@ class SpinorFunction : public std::enable_shared_from_this<SpinorFunction>
 {
 public:
     SpinorFunction(int kappa, unsigned int size = 0);
-    SpinorFunction(const SpinorFunction& other);
-    SpinorFunction(SpinorFunction&& other);
     virtual ~SpinorFunction() {}
-
-    const SpinorFunction& operator=(const SpinorFunction& other);
-    SpinorFunction& operator=(SpinorFunction&& other);
 
     std::vector<double> f, g,       // Upper and lower components of the radial functions
                         dfdr, dgdr; // Function derivatives, ie. df/dr, dg/dr
@@ -82,28 +77,6 @@ protected:
 typedef std::shared_ptr<SpinorFunction> pSpinorFunction;
 typedef std::shared_ptr<const SpinorFunction> pSpinorFunctionConst;
 
-inline int SpinorFunction::L() const
-{   if (kappa > 0)
-        return (kappa);
-    else
-        return (-kappa-1);
-}
-
-inline double SpinorFunction::J() const
-{   return (double)abs(kappa) - 0.5;
-}
-
-inline int SpinorFunction::TwoJ() const
-{   return (2*abs(kappa) - 1);
-}
-
-inline Parity SpinorFunction::GetParity() const
-{   if(L()%2 == 0)
-        return Parity::even;
-    else
-        return Parity::odd;
-}
-
 /** RadialFunction is a vector function and its derivative,
     similar to one component of a SpinorFunction.
  */
@@ -143,5 +116,27 @@ public:
     bool Print(const std::string& filename, pLattice lattice = pLattice()) const;
     bool Print(FILE* fp, pLattice lattice = pLattice()) const;
 };
+
+inline int SpinorFunction::L() const
+{   if (kappa > 0)
+    return (kappa);
+else
+    return (-kappa-1);
+}
+
+inline double SpinorFunction::J() const
+{   return (double)abs(kappa) - 0.5;
+}
+
+inline int SpinorFunction::TwoJ() const
+{   return (2*abs(kappa) - 1);
+}
+
+inline Parity SpinorFunction::GetParity() const
+{   if(L()%2 == 0)
+    return Parity::even;
+else
+    return Parity::odd;
+}
 
 #endif

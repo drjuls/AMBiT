@@ -9,14 +9,6 @@ SpinorFunction::SpinorFunction(int kappa, unsigned int size):
         resize(size);
 }
 
-SpinorFunction::SpinorFunction(const SpinorFunction& other):
-    f(other.f), g(other.g), dfdr(other.dfdr), dgdr(other.dgdr), kappa(other.kappa)
-{}
-
-SpinorFunction::SpinorFunction(SpinorFunction&& other):
-    f(other.f), g(other.g), dfdr(other.dfdr), dgdr(other.dgdr), kappa(other.kappa)
-{}
-
 void SpinorFunction::resize(unsigned int size)
 {   f.resize(size);
     g.resize(size);
@@ -29,26 +21,6 @@ void SpinorFunction::Clear()
     g.clear();
     dfdr.clear();
     dgdr.clear();
-}
-
-const SpinorFunction& SpinorFunction::operator=(const SpinorFunction& other)
-{
-    f = other.f;
-    g = other.g;
-    dfdr = other.dfdr;
-    dgdr = other.dgdr;
-
-    kappa = other.kappa;
-
-    return *this;
-}
-
-SpinorFunction& SpinorFunction::operator=(SpinorFunction&& other)
-{
-    swap(other);
-    kappa = other.kappa;
-
-    return *this;
 }
 
 void SpinorFunction::swap(SpinorFunction& other)
