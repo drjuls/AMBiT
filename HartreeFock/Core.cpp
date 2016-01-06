@@ -10,14 +10,6 @@ Core::Core(pLattice lat, const std::string& filling): OrbitalMap(lat)
         SetOccupancies(ConfigurationParser::ParseFractionalConfiguration(filling));
 }
 
-Core::Core(const Core& other):
-    OrbitalMap(other), occupancy(other.occupancy)
-{}
-
-Core::Core(Core&& other):
-    OrbitalMap(other), occupancy(other.occupancy)
-{}
-
 Core::Core(const OrbitalMap& other):
     OrbitalMap(other)
 {
@@ -25,25 +17,13 @@ Core::Core(const OrbitalMap& other):
         occupancy[orbital.first] = 2 * abs(orbital.first.Kappa());
 }
 
-const Core& Core::operator=(const Core& other)
+Core* Core::Clone(pLattice new_lattice) const
 {
-    OrbitalMap::operator=(other);
-    occupancy = other.occupancy;
-    return *this;
-}
+    pOrbitalMap base_map(OrbitalMap::Clone(new_lattice));
 
-const Core& Core::Clone(const Core& other, pLattice new_lattice)
-{
-    OrbitalMap::Clone(other, new_lattice);
-    occupancy = other.occupancy;
+    Core* ret = new Core(*base_map);
+    ret->occupancy = occupancy;
 
-    return *this;
-}
-
-Core Core::Clone(pLattice new_lattice) const
-{
-    Core ret(new_lattice);
-    ret.Clone(*this, new_lattice);
     return ret;
 }
 

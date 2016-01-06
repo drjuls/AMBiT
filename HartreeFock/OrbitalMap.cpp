@@ -2,75 +2,53 @@
 #include "OrbitalMap.h"
 #include "Universal/Interpolator.h"
 
-const OrbitalMap& OrbitalMap::operator=(const OrbitalMap& other)
+OrbitalMap* OrbitalMap::Clone(pLattice new_lattice) const
 {
-    lattice = other.lattice;
-    m_orbitals = other.m_orbitals;
+    OrbitalMap* ret;
 
-    return *this;
-}
+    if(new_lattice && new_lattice != lattice)
+    {   // Interpolate on to new lattice
+        ret = new OrbitalMap(new_lattice);
 
-const OrbitalMap& OrbitalMap::Clone(const OrbitalMap& other, pLattice new_lattice)
-{
-    bool interpolate = false;
-    if(new_lattice && new_lattice != other.lattice)
-    {   lattice = new_lattice;
-        interpolate = true;
-    }
-    else
-        lattice = other.lattice;
-
-    clear();
-
-    if(interpolate)
-    {
-        Interpolator interp(other.lattice);
+        Interpolator interp(lattice);
         unsigned int order = 6;
 
-        const double* R_old = other.lattice->R();
-        const double* R = lattice->R();
+        const double* R_old = lattice->R();
+        const double* R = new_lattice->R();
 
-        for(auto pair: other)
+        for(auto pair: *this)
         {
-            pOrbitalConst old_orbital = pair.second;
+            pOrbitalConst s_old = pair.second;
 
             // Copy kappa, pqn, etc.
-            pOrbital s(new Orbital(old_orbital->Kappa(), old_orbital->PQN(), old_orbital->Energy()));
+            pOrbital s = s_old->Clone();
 
-            double real_orbital_size = R_old[old_orbital->size() - 1];
+            double real_orbital_size = R_old[s_old->size() - 1];
             unsigned int new_size = lattice->real_to_lattice(real_orbital_size);
             s->resize(new_size);
 
             for(unsigned int i = 0; i < new_size; i++)
-            {   interp.Interpolate(old_orbital->f, R[i], s->f[i], s->dfdr[i], order);
-                interp.Interpolate(old_orbital->g, R[i], s->g[i], s->dgdr[i], order);
+            {   interp.Interpolate(s_old->f, R[i], s->f[i], s->dfdr[i], order);
+                interp.Interpolate(s_old->g, R[i], s->g[i], s->dgdr[i], order);
             }
             
-            AddState(s);
+            ret->AddState(s);
         }
-
     }
     else
     {   //Simply copy orbitals
-        auto it = other.begin();
-        while(it != other.end())
-        {
-            pOrbitalConst old_orbital = it->second;
+        ret = new OrbitalMap(lattice);
 
-            pOrbital s(new Orbital(*old_orbital));
-            AddState(s);
+        auto it = begin();
+        while(it != end())
+        {
+            pOrbital s = it->second->Clone();
+            ret->AddState(s);
 
             it++;
         }
     }
 
-    return *this;
-}
-
-OrbitalMap OrbitalMap::Clone(pLattice new_lattice) const
-{
-    OrbitalMap ret(new_lattice);
-    ret.Clone(*this, new_lattice);
     return ret;
 }
 

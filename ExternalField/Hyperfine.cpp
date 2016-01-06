@@ -109,12 +109,12 @@ SpinorFunction HyperfineDipoleRPADecorator::CalculateExtraExchange(const SpinorF
         return exchange;
 
     MathConstant* math = MathConstant::Instance();
-    pRPAOrbital a(alph->parent);
+    pRPAOrbital a(alph->GetParent());
 
     // First term: - <kappa || f || parent>
-    exchange = hyperfine.ApplyTo(*a, alph->Kappa());
+    exchange = hyperfine.ApplyTo(*a, alph->Kappa()) * (-1.);
 
-    // Second term: - <kappa || deltaV || parent>
+    // Second term: <kappa || deltaV || parent>
     // Sum deltaV for all core states. Core states are `b', delta is `beta'.
     for(const auto& cs: *core)
     {
@@ -176,9 +176,9 @@ SpinorFunction HyperfineDipoleRPADecorator::CalculateExtraExchange(const SpinorF
         }
     }
 
-    // Third term: - deltaE |parent >
+    // Third term: deltaE |parent >
     if(a->Kappa() == alph->Kappa())
-        exchange -= (*a) * alph->Energy();
+        exchange += (*a) * alph->DeltaEnergy();
 
     return exchange;
 }

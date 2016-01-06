@@ -7,8 +7,9 @@
 class RPAOrbital;
 
 /** DeltaOrbital is a perturbation to an existing orbital (which is an RPAOrbital).
- It has a definite kappa.
- The PQN is zero: it cannot be uniquely identified from OrbitalInfo.
+    Member DeltaEnergy() is the shift in energy of parent due to this DeltaOrbital.
+    It has a definite kappa.
+    The PQN is zero: it cannot be uniquely identified from OrbitalInfo.
  */
 class DeltaOrbital : public OrbitalTemplate<Orbital, DeltaOrbital>
 {
@@ -17,9 +18,23 @@ public:
         BaseClass(kappa), deltaEnergy(0.), parent(parent)
     {}
 
-    /** Energy() should return the parent energy. */
+    /** Get an identical Clone() except with a new parent. */
+    std::shared_ptr<DeltaOrbital> CloneWithNewParent(std::shared_ptr<RPAOrbital> new_parent) const;
+
+    /** Return parent energy. */
     virtual double Energy() const override;
 
+    /** Get parent. */
+    virtual std::shared_ptr<RPAOrbital> GetParent() const { return parent.lock(); }
+
+    /** Set parent. */
+    virtual void SetParent(std::shared_ptr<RPAOrbital> new_parent) { parent = new_parent; }
+
+    /** Get DeltaEnergy: shift in energy of parent due to this DeltaOrbital. */
+    virtual double DeltaEnergy() const { return deltaEnergy; }
+    virtual void SetDeltaEnergy(double energy) { deltaEnergy = energy; }
+
+protected:
     double deltaEnergy;
     std::weak_ptr<RPAOrbital> parent;
 };
@@ -40,9 +55,15 @@ public:
     virtual ~RPAOrbital() {}
 
     /** Clone makes deep copy of deltapsi. */
-    virtual pOrbital Clone() const
+    virtual pOrbital Clone() const override
     {
-        pOrbital ret = std::make_shared<RPAOrbital>(static_cast<const RPAOrbital&>(*this));
+        std::shared_ptr<RPAOrbital> ret = std::make_shared<RPAOrbital>(static_cast<const Orbital&>(*this));
+
+        for(const auto& pair: deltapsi)
+        {
+            pDeltaOrbital clone = pair.second->CloneWithNewParent(ret);
+            ret->deltapsi[pair.first] = clone;
+        }
         return ret;
     }
 

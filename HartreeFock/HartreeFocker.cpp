@@ -118,7 +118,7 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
     // 2. Mix old wavefunctions with new ones.
     // 3. Update potentials.
 
-    pCore next_states(new Core(core->Clone()));
+    pCore next_states(core->Clone());
     double prop_new = 0.5;
     
     double deltaE, max_deltaE;

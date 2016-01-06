@@ -18,6 +18,10 @@ class OrbitalInfo;
     It also contains a principal quantum number, which may or may not correspond
     to the spectroscopic pqn.
     Some of the functions assume that the orbital is explicitly bounded and hence normalisable, integrable, etc.
+
+    Orbital is derived from OrbitalTemplate<OrbitalBase, OrbitalTemplate>.
+    Inherit from Orbital using the syntax:
+        class DerivedOrbital : public OrbitalTemplate<Orbital, DerivedOrbital>
  */
 class OrbitalBase : public SpinorFunction
 {
@@ -26,35 +30,26 @@ public:
     OrbitalBase(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0);
     virtual ~OrbitalBase() {}
 
-    virtual std::shared_ptr<Orbital> Clone() const = 0; // { return std::make_shared<OrbitalBase>(*this); };
+    virtual std::shared_ptr<Orbital> Clone() const = 0;
 
     virtual double Energy() const;
-    
+
     /** Nu is the effective principal quantum number, E = -1/(2 nu^2). */
     virtual double Nu() const;
     virtual int PQN() const;
-    
+
     virtual void SetEnergy(double Energy);
     virtual void SetNu(double Nu);
     virtual void SetPQN(int PQN);
-    
+
     virtual std::string Name() const;
-    
-//    const OrbitalBase& operator*=(double scale_factor);
-//    OrbitalBase operator*(double scale_factor) const;
-//    const OrbitalBase& operator+=(const OrbitalBase& other);
-//    const OrbitalBase& operator-=(const OrbitalBase& other);
-//    OrbitalBase operator+(const OrbitalBase& other) const;
-//    OrbitalBase operator-(const OrbitalBase& other) const;
-//    const OrbitalBase& operator*=(const RadialFunction& chi);
-//    OrbitalBase operator*(const RadialFunction& chi) const;
 
     /** Store the state. File pointer fp must be open and writable. */
     virtual void Write(FILE* fp) const;
-    
+
     /** Read the state from file. fp must be open and readable. */
     virtual void Read(FILE* fp);
-    
+
     /** Print state to file, optionally printing lattice. Return success. */
     virtual bool Print(pLattice lattice = pLattice()) const;
     virtual bool Print(const std::string& filename, pLattice lattice = pLattice()) const;
@@ -69,13 +64,13 @@ public: // These functions assume that the orbital is explicitly bounded
         Return true if the size was correct, false if there was a change.
      */
     bool CheckSize(pLattice lattice, double tolerance);
-    
+
     /** Get current normalisation of the orbital. */
     virtual double Norm(pOPIntegrator integrator) const;
-    
+
     /** Scale the orbital so that it is normalised to "norm". */
     virtual void ReNormalise(pOPIntegrator integrator, double norm = 1.);
-    
+
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;
 
@@ -83,9 +78,6 @@ protected:
     int pqn;
     double energy;
 };
-
-//typedef std::shared_ptr<OrbitalBase> pOrbital;
-//typedef std::shared_ptr<const OrbitalBase> pOrbitalConst;
 
 template <typename Base, typename Derived>
 class OrbitalTemplate : public Base
@@ -171,12 +163,13 @@ auto OrbitalTemplate<Base, Derived>::operator+=(const Derived& other) -> const D
     if(this->size() < other.size())
         this->resize(other.size());
 
-        for(unsigned int i = 0; i < other.size(); i++)
-        {   this->f[i] += other.f[i];
-            this->g[i] += other.g[i];
-            this->dfdr[i] += other.dfdr[i];
-            this->dgdr[i] += other.dgdr[i];
-        }
+    for(unsigned int i = 0; i < other.size(); i++)
+    {
+        this->f[i] += other.f[i];
+        this->g[i] += other.g[i];
+        this->dfdr[i] += other.dfdr[i];
+        this->dgdr[i] += other.dgdr[i];
+    }
 
     return static_cast<const Derived&>(*this);
 }
@@ -209,13 +202,13 @@ auto OrbitalTemplate<Base, Derived>::operator*=(const RadialFunction& chi) -> co
     if(chi.size() < this->size())
         this->resize(chi.size());
 
-        for(unsigned int i = 0; i < this->size(); i++)
-        {   this->f[i] *= chi.f[i];
-            this->g[i] *= chi.f[i];
-            this->dfdr[i] = this->f[i] * chi.dfdr[i] + this->dfdr[i] * chi.f[i];
-            this->dgdr[i] = this->g[i] * chi.dfdr[i] + this->dgdr[i] * chi.f[i];
-        }
-
+    for(unsigned int i = 0; i < this->size(); i++)
+    {
+        this->f[i] *= chi.f[i];
+        this->g[i] *= chi.f[i];
+        this->dfdr[i] = this->f[i] * chi.dfdr[i] + this->dfdr[i] * chi.f[i];
+        this->dgdr[i] = this->g[i] * chi.dfdr[i] + this->dgdr[i] * chi.f[i];
+    }
     return static_cast<const Derived&>(*this);
 }
 

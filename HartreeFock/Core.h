@@ -12,18 +12,13 @@ class Core : public OrbitalMap
 {
 public:
     Core(pLattice lat, const std::string& filling = "");
-    Core(const Core& other);
-    Core(Core&& other);
     Core(const OrbitalMap& other);  //!< Create closed-shell core with fully occupied orbitals from other.
     virtual ~Core() {}
-
-    const Core& operator=(const Core& other);
 
     /** Deep copy of all orbitals, interpolating from new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice.
      */
-    const Core& Clone(const Core& other, pLattice new_lattice = pLattice());
-    Core Clone(pLattice new_lattice = pLattice()) const;
+    virtual Core* Clone(pLattice new_lattice = nullptr) const override;
 
     virtual double GetOccupancy(OrbitalInfo info) const;
     virtual double GetOccupancy(pOrbital info) const;

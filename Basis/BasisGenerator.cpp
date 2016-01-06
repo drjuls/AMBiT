@@ -287,7 +287,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
 
     if(open_shell_core)
     {   // Copy, use same lattice
-        open_core->Clone(*open_shell_core);
+        open_core.reset(open_shell_core->Clone());
         lattice = open_core->GetLattice();
         orbitals = pOrbitalManager(new OrbitalManager(lattice));
     }

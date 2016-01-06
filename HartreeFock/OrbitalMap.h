@@ -15,17 +15,12 @@ protected:
 
 public:
     OrbitalMap(pLattice lat): lattice(lat) {}
-    OrbitalMap(const OrbitalMap& other): lattice(other.lattice), m_orbitals(other.m_orbitals) {}
-    OrbitalMap(OrbitalMap&& other): lattice(other.lattice), m_orbitals(other.m_orbitals) {}
     virtual ~OrbitalMap() {}
-
-    const OrbitalMap& operator=(const OrbitalMap& other);
 
     /** Deep copy of all orbitals, interpolating from new_lattice (if supplied and required).
         If new_lattice is NULL, then lattice = other.lattice.
      */
-    const OrbitalMap& Clone(const OrbitalMap& other, pLattice new_lattice = pLattice());
-    OrbitalMap Clone(pLattice new_lattice = pLattice()) const;
+    virtual OrbitalMap* Clone(pLattice new_lattice = nullptr) const;
 
     typedef BaseMap::iterator iterator;
     typedef BaseMap::const_iterator const_iterator;
