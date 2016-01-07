@@ -1,7 +1,7 @@
-cxxobjects = BasisGenerator.o BSplineBasis.o BSplineGrid.o \
+cxxobjects = BasisGenerator.o BSplineBasis.o \
              HartreeFockBasis.o OrbitalManager.o
 cobjects = 
-fobjects = Spline.o
+fobjects = 
 
 include $(SRCDIR)/make.instructions
 

@@ -1,17 +1,14 @@
 #include "BasisGenerator.h"
-#include "BSplineGrid.h"
+#include "BSplineBasis.h"
 #include "Include.h"
-#include "Spline.h"
 #include "Universal/SpinorFunction.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include <Eigen/Eigen>
 #include "Atom/MultirunOptions.h"
+#include <Eigen/Eigen>
+#include <gsl/gsl_bspline.h>
 
-enum SplineType {NotreDame, Reno, Vanderbilt};
-typedef Orbital BSpline;
-typedef pOrbital pBSpline;
-
+// This file contains B-spline routines from BasisGenerator as well as BSplineBasis
 pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
     pOrbitalMap excited(new OrbitalMap(lattice));
@@ -22,23 +19,24 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
     bool debug = DebugOptions.OutputHFExcited();
 
     // Get spline type and parameters
-    SplineType spline_type = Reno;
+    SplineType spline_type = SplineType::Reno;
     std::string spline_type_string = user_input("Basis/BSpline/SplineType", "Reno");
     if(spline_type_string.compare("Reno") == 0 || spline_type_string.compare("DKB") == 0)
-        spline_type = Reno;
+        spline_type = SplineType::Reno;
     else if(spline_type_string.compare("Vanderbilt") == 0)
-        spline_type = Vanderbilt;
+        spline_type = SplineType::Vanderbilt;
     else if(spline_type_string.compare("NotreDame") == 0 || spline_type_string.compare("Johnson") == 0)
-        spline_type = NotreDame;
+        spline_type = SplineType::NotreDame;
 
     int n = user_input("Basis/BSpline/N", 40);
     int k = user_input("Basis/BSpline/K", 7);
     double rmax = user_input("Basis/BSpline/Rmax", lattice->MaxRealDistance());
+    double dr0  = user_input("Basis/BSpline/R0", 0.0);
 
     if(rmax > lattice->MaxRealDistance())
         lattice->resize(rmax);
 
-    if(spline_type == Reno)
+    if(spline_type == SplineType::Reno)
     {   // Fix k. k should be at least lmax + 3
         int lmax = max_pqn.size() - 1;
         if(k < lmax + 3)
@@ -48,26 +46,105 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         }
     }
 
-    double dr0;
-
-    const double alpha = physical_constant->GetAlpha();
-    const double alphasquared = physical_constant->GetAlphaSquared();
+    bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
     pOPIntegrator integrator = hf->GetOPIntegrator();
+
+    // Make splines and store
+    BSplineBasis spline_maker(lattice, n, k, rmax, dr0, spline_type);
 
     for(int l = 0; l < max_pqn.size(); l++)
     {
         if(!max_pqn[l])
             continue;
 
-    for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
-    {
-        if(kappa == 0)
-            break;
-
-        if(spline_type == NotreDame)
+        for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
         {
-            // Set up grid and splines
-            switch(l)
+            if(kappa == 0)
+                break;
+
+            if(debug)
+                *logstream << "kappa = " << kappa << std::endl;
+
+            pOrbitalMap basis = spline_maker.GenerateBSplines(hf, kappa, max_pqn[l]);
+
+            for(auto it = basis->begin(); it != basis->end(); it++)
+            {
+                pOrbital ds = it->second;
+
+                // Check whether it is in the core
+                pOrbitalConst s = open_core->GetState(it->first);
+                if(s)
+                {   if(debug)
+                    {   double diff = fabs((s->Energy() - ds->Energy())/s->Energy());
+                        *logstream << "  " << s->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                   << "  deltaE: " << diff << std::endl;
+                    }
+
+                    if(!closed_core->GetOccupancy(it->first))
+                    {   pOrbital s_copy = s->Clone();
+                        excited->AddState(s_copy);
+                    }
+                }
+                else
+                {   if(reorth)
+                        Orthogonalise(ds);
+
+                    if(debug)
+                    {   *logstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
+                                   << " norm: " << ds->Norm(integrator) - 1. << std::endl;
+                    }
+
+                    ds->ReNormalise(integrator);
+
+                    excited->AddState(ds);
+                }
+            }
+        }
+    }
+
+    return excited;
+}
+
+void BSplineBasis::SetParameters(int n, int k, double rmax, SplineType method)
+{
+    SetParameters(n, k, rmax, 0.0, method);
+}
+
+void BSplineBasis::SetParameters(int n, int k, double rmax, double dr0, SplineType method)
+{
+    N = n;
+    K = k;
+    Rmax = rmax;
+    dR0 = dr0;
+    spline_type = method;
+}
+
+std::vector<pBSpline> BSplineBasis::MakeSplines(int kappa, pPhysicalConstant constants)
+{
+    // Splines to return
+    std::vector<pBSpline> splines;
+
+    // Number of splines to make. These will be trimmed at the end to get back to N.
+    int n = N;
+
+    if(spline_type == SplineType::Reno)
+        n = N + abs(kappa) + 1;
+    else if(spline_type == SplineType::NotreDame)
+        n = N;
+    else if(spline_type == SplineType::Vanderbilt)
+        n = N + 1;
+
+    // Get breakpoints (knot points)
+    gsl_vector* breakpoints = gsl_vector_alloc(n - K + 2);
+
+    double dr0 = dR0;
+    if(dr0 < 1.e-10)
+    {
+        if(spline_type == SplineType::NotreDame)
+        {
+            // dr0 depends on L
+            int L = (kappa > 0? kappa: -kappa-1);
+            switch(L)
             {   case 0:
                 case 1:
                     dr0 = 0.0001;
@@ -83,247 +160,276 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         }
         else
             dr0 = 0.0001;
+    }
 
-        // Total number of splines, including zeroed ones.
-        unsigned int num_splines = n;
-        if(spline_type == Reno)
-            num_splines = n + abs(kappa) + 1;
-        else if(spline_type == NotreDame)
-            num_splines = n;
-        else if(spline_type == Vanderbilt)
-            num_splines = n + 1;
+    // Get parameter beta and h in
+    //     breakpoints[i] = beta * (exp(h*(i-k+1)) - 1)
+    // Subject to constraints
+    //     breakpoints[0] = 0
+    //     breakpoints[1] = dr0
+    //     breakpoints[last] = rmax
+    double a = Rmax/dr0;
+    double ipow = n - K + 1;
 
-        // Create splines
-        BSplineGrid grid(num_splines, k, dr0, rmax);
-        int nderiv = 3;     // Number of derivatives of spline (including zeroth)
-        double* fspline_buf = new double[nderiv * MaximumK];
+    double xold;
+    double x = 0.5;
+    do
+    {   xold = x;
+        x = xold - (1. + a * xold - gsl_pow_int(1. + xold, ipow))
+                   /(a - ipow * gsl_pow_int(1. + xold, ipow-1));
+    }while(fabs(x - xold) > 1.e-15);
 
-        const double* knots = grid.GetSplineKnots();
+    double h = log(1. + x);
+    double beta = dr0/x;
 
-        // Consistency check: make sure there are enough lattice points between each spline segment
-        unsigned int prev_knot_point = 0;
-        for(unsigned int i = 0; i < num_splines; i++)
+    gsl_vector_set(breakpoints, 0, 0.0);
+
+    for(unsigned int i = 1; i < breakpoints->size; i++)
+        gsl_vector_set(breakpoints, i, beta * (exp(h*i) - 1.));
+
+    // Consistency check: make sure there are enough lattice points between each breakpoint
+    unsigned int prev_knot_point = 0;
+    for(unsigned int i = 1; i < breakpoints->size; i++)
+    {
+        unsigned int curr_knot_point = lattice->real_to_lattice(gsl_vector_get(breakpoints, i));
+
+        if((curr_knot_point - prev_knot_point) <= K)
         {
-            unsigned int curr_knot_point = lattice->real_to_lattice(knots[i]);
-            // skip zeros
-            if((curr_knot_point - prev_knot_point) && (curr_knot_point - prev_knot_point) <= k)
-            {   
-                // Print whole list and escape!
-                *errstream << "\nBSplineBasis: constructing Kappa = " << kappa << std::endl;
-                *errstream << "Warning: too few points in each spline segment. Increase lattice size." << std::endl;
-                unsigned int prev = 0;
-                for(unsigned int i = 0; i < num_splines; i++)
-                {   unsigned int curr = lattice->real_to_lattice(knots[i]);
-                    if(curr > 0)
-                        *errstream << i << " " << curr << "  " << curr - prev << "  " << knots[i] << std::endl;
-                    prev = curr;
-                }
-                break;
+            // Print whole list and escape!
+            *errstream << "\nBSplineBasis: constructing Kappa = " << kappa << std::endl;
+            *errstream << "Warning: too few points in each spline segment. Increase Lattice/NumPoints." << std::endl;
+            unsigned int prev = 0;
+            for(unsigned int i = 0; i < n; i++)
+            {   unsigned int curr = lattice->real_to_lattice(gsl_vector_get(breakpoints, i));
+                if(curr > 0)
+                    *errstream << i << " " << curr << "  " << curr - prev << "  " << gsl_vector_get(breakpoints, i) << std::endl;
+                prev = curr;
             }
-            else
-                prev_knot_point = curr_knot_point;
+            break;
         }
+        else
+            prev_knot_point = curr_knot_point;
+    }
 
-        unsigned int point = 0;
-        unsigned int left = k-1;
+    gsl_bspline_workspace* gsl_workspace = gsl_bspline_alloc(K, breakpoints->size);
+    gsl_bspline_knots(breakpoints, gsl_workspace);
 
-        // Get values of splines on HF lattice
-        unsigned int lattice_size = lattice->real_to_lattice(rmax);
-        const double* R_lattice = lattice->R();
+    gsl_vector_free(breakpoints);
 
-        std::vector<pBSpline> B_lattice(num_splines*2);
-        std::vector<pBSpline>::iterator it = B_lattice.begin();
-        while(it != B_lattice.end())
-            *it++ = pBSpline(new BSpline(kappa, 0, 0.0, lattice_size));
+    // Allocate splines
+    splines.resize(n * 2);
 
-        point = 0;
-        left = k-1;
+    unsigned int lattice_size = lattice->real_to_lattice(Rmax);
+    const double* R = lattice->R();
 
-        while(point < lattice_size)
+    auto it = splines.begin();
+    while(it != splines.end())
+    {   *it = std::make_shared<BSpline>(kappa, 0, 0.0, lattice_size);
+        ++it;
+    }
+
+    // Fill splines
+    int nderiv = 2;     // Get zeroth, first and second derivatives of splines
+
+    gsl_matrix* dB = gsl_matrix_alloc(n, nderiv+1);
+    gsl_bspline_deriv_workspace* deriv_workspace = gsl_bspline_deriv_alloc(K);
+
+    const double alpha = constants->GetAlpha();
+
+    for(int i = 0; i < lattice_size; i++)
+    {
+        const double& x = R[i];
+        gsl_bspline_deriv_eval(x, nderiv, dB, gsl_workspace, deriv_workspace);
+
+        for(int s = 0; s < n; s++)
         {
-            double x = R_lattice[point];
-
-            while(knots[left+1] < x)
-                left++;
-
-            // 'left' is an array marker, so add 1 for fortran arrays
-            int leftplus1 = (int)left + 1;
-            bsplvd_(knots, &k, &x, &leftplus1, fspline_buf, &nderiv);
-
-            // Transfer spline values from fspline_buf
-            for(unsigned int s = 0; s < k; s++)
+            // Get non-zero spline values
+            double spline_value = gsl_matrix_get(dB, s, 0);
+            if(spline_value)
             {
-                BSpline& Bupper = *B_lattice[s + left + 1 - k];      // B_i, i < n
-                BSpline& Blower = *B_lattice[num_splines + s + left + 1 - k];  // B_i, i > n
+                BSpline& Bupper = *splines[s];      // B_i, i < n
+                BSpline& Blower = *splines[s + n];  // B_i, i >= n
 
-                Bupper.f[point] = fspline_buf[s];
-                Bupper.dfdr[point] = fspline_buf[s + MaximumK];
+                double deriv_value = gsl_matrix_get(dB, s, 1);
+                Bupper.f[i] = spline_value;
+                Bupper.dfdr[i] = deriv_value;
 
-                Blower.g[point] = fspline_buf[s];
-                Blower.dgdr[point] = fspline_buf[s + MaximumK];
+                Blower.g[i] = spline_value;
+                Blower.dgdr[i] = deriv_value;
 
-                if(spline_type == Reno || spline_type == Vanderbilt)
+                // Apply dual kinetic balance
+                if(spline_type == SplineType::Reno || spline_type == SplineType::Vanderbilt)
                 {
-                    // Calculate small component
-                    Bupper.g[point] = (Bupper.dfdr[point] + kappa/x * Bupper.f[point]) * alpha/2.;
-                    Bupper.dgdr[point] = (fspline_buf[s + 2*MaximumK] + kappa/x * Bupper.dfdr[point] - kappa/(x*x) * Bupper.f[point]) * alpha/2.;
+                    double second_deriv = gsl_matrix_get(dB, s, 2);
 
-                    Blower.f[point] = (Blower.dgdr[point] - kappa/x * Blower.g[point]) * alpha/2.;
-                    Blower.dfdr[point] = (fspline_buf[s + 2*MaximumK] - kappa/x * Blower.dgdr[point] + kappa/(x*x) * Blower.g[point]) * alpha/2.;
+                    // Calculate small component
+                    Bupper.g[i] = (Bupper.dfdr[i] + kappa/x * Bupper.f[i]) * alpha/2.;
+                    Bupper.dgdr[i] = (second_deriv + kappa/x * Bupper.dfdr[i] - kappa/(x*x) * Bupper.f[i]) * alpha/2.;
+
+                    Blower.f[i] = (Blower.dgdr[i] - kappa/x * Blower.g[i]) * alpha/2.;
+                    Blower.dfdr[i] = (second_deriv - kappa/x * Blower.dgdr[i] + kappa/(x*x) * Blower.g[i]) * alpha/2.;
                 }
             }
-
-            point++;
         }
+    }
 
-        delete[] fspline_buf;
+    if(spline_type == SplineType::Reno)
+    {
+        // Drop the splines at zero and Rmax to satisfy boundary conditions
+        std::vector<pBSpline>::iterator it;
+        it = splines.begin();
+        splines.erase(it, it + abs(kappa));
 
-        if(spline_type == Reno)
+        it = splines.begin() + N;
+        splines.erase(it, it + abs(kappa) + 1);
+        splines.erase(splines.end() - 1);
+    }
+    else if(spline_type == SplineType::Vanderbilt)
+    {
+        std::vector<pBSpline>::iterator it;
+        it = splines.begin();
+        splines.erase(it);
+
+        it = splines.begin() + N;
+        splines.erase(it);
+    }
+
+    gsl_matrix_free(dB);
+    gsl_bspline_free(gsl_workspace);
+    gsl_bspline_deriv_free(deriv_workspace);
+
+    if(splines.size() != 2 * N)
+    {   *errstream << "BSplineBasis::MakeSplines: Number of splines (" << splines.size() << ") does not equal 2N = " << 2 * N << std::endl;
+        exit(1);
+    }
+
+    return splines;
+}
+
+// Generate B-splines from core states up to max_pqn.
+// If max_pqn <= 0, return all states including negative energy Dirac sea.
+pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperator hf, int kappa, int max_pqn)
+{
+    pOrbitalMap excited(new OrbitalMap(lattice));
+    bool debug = DebugOptions.OutputHFExcited();
+
+    pPhysicalConstant physical_constant = hf->GetPhysicalConstant();
+    const double alpha = physical_constant->GetAlpha();
+    const double alphasquared = physical_constant->GetAlphaSquared();
+
+    pOPIntegrator integrator = hf->GetOPIntegrator();
+
+    // Create splines
+    std::vector<pBSpline> splines = MakeSplines(kappa, physical_constant);
+
+    // Wavefunctions are expanded in terms of B-splines as
+    //     f = Sum_i (c_i. B_i)
+    //     g = Sum_i (d_i. B_i)
+    // To make integrals b(i,j) = <Bi|Bj> and A(i,j) = <Bi|H|Bj>
+
+    unsigned int n2 = splines.size();      // size of the matrices A and b
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n2, n2);
+    Eigen::MatrixXd b = Eigen::MatrixXd::Zero(n2, n2);
+
+    unsigned int j;
+
+    /* jcb: I removed the Gaussian integration that was previously being used to calculate <Bi|Bj>
+            as well as the direct part of the potential. I think using the normal lattice is good enough.
+            If someone wants to restore the Gaussian integration, use something like
+                double BB = B_gauss[i*size + point] * B_gauss[j*size + point] * dR_grid[point];
+                int_1 += BB;
+                int_V += BB * potential_grid[point];
+                int_KappaOnR += BB * kappa/R_grid[point];
+    */
+    unsigned int i = 0;
+    for(j=0; j<n2; j++)
+    {
+        BSpline& Bj = *splines[j];
+        SpinorFunction hf_applied_to_Bj = hf->ApplyTo(Bj);
+
+        for(i=j; i<n2; i++)
         {
-            // Drop the splines at zero and Rmax to satisfy boundary conditions
-            std::vector<pBSpline>::iterator it;
-            it = B_lattice.begin();
-            B_lattice.erase(it, it + abs(kappa));
-            it = B_lattice.begin() + n;
-            B_lattice.erase(it, it + abs(kappa) + 1);        
-            B_lattice.erase(B_lattice.end() - 1);
+            BSpline& Bi = *splines[i];
+            A(i, j) = A(j, i) = integrator->GetInnerProduct(Bi, hf_applied_to_Bj);
+            b(i, j) = b(j, i) = integrator->GetInnerProduct(Bi, Bj);
         }
-        else if(spline_type == Vanderbilt)
-        {
-            std::vector<pBSpline>::iterator it;
-            it = B_lattice.begin();
-            B_lattice.erase(it);
-            it = B_lattice.begin() + n;
-            B_lattice.erase(it);
-        }
+    }
 
-        // Wavefunctions are expanded in terms of B-splines as
-        //     f = Sum_i (c_i. B_i)
-        //     g = Sum_i (d_i. B_i)
-        // To make integrals b(i,j) = <Bi|Bj> and A(i,j) = <Bi|H|Bj>
+    // Boundary conditions to remove spurious states
+    if(spline_type == SplineType::NotreDame)
+    {
+        // Account for boundary conditions on splines.
+        // At r = 0, this is effectively a delta function to push spurious states to high energy.
+        if(kappa < 0)
+            A(0, 0) += 1./alpha;
+        else
+            A(0, 0) += 2./alphasquared;
+        A(0, N) += 0.5;
+        A(N, 0) += -0.5;
 
-        unsigned int n2 = B_lattice.size();      // size of the matrices A and b
-        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n2, n2);
-        Eigen::MatrixXd b = Eigen::MatrixXd::Zero(n2, n2);
+        // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
+        A((N-1), (N-1)) += 0.5/alpha;
+        A((N-1), (n2-1)) += -0.5;
+        A((n2-1), (N-1)) += 0.5;
+        A((n2-1), (n2-1)) += -0.5*alpha;
+    }
+    else if(spline_type == SplineType::Vanderbilt)
+    {
+        // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
+        A((N-1), (N-1)) += 0.5/alpha;
+        A((N-1), (n2-1)) += -0.5;
+        A((n2-1), (N-1)) += 0.5;
+        A((n2-1), (n2-1)) += -0.5*alpha;
+    }
 
-        unsigned int j;
+    // Solve A*p[i] = energy*B*p[i]
+    Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd> es(A,b);
+    const Eigen::VectorXd& eigenvalues = es.eigenvalues();
+    const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
 
-        /* jcb: I removed the Gaussian integration that was previously being used to calculate <Bi|Bj>
-                as well as the direct part of the potential. I think using the normal lattice is good enough.
-                If someone wants to restore the Gaussian integration, use something like
-                     double BB = B_gauss[i*size + point] * B_gauss[j*size + point] * dR_grid[point];
-                     int_1 += BB;
-                     int_V += BB * potential_grid[point];
-                     int_KappaOnR += BB * kappa/R_grid[point];
-         */
-        unsigned int i = 0;
+    // Interpolate from B-splines to HF lattice and store
+    int L = (kappa > 0? kappa: -kappa-1);
+    int pqn = L + 1;
+    i = N;
+
+    // Include Dirac sea if max_pqn <= 0.
+    if(max_pqn <= 0)
+    {   pqn = pqn - N;
+        i = 0;
+    }
+
+    while((i < n2) && ((max_pqn <= 0) || (pqn <= max_pqn)))
+    {
+        // Construct the orbital by summing splines with coefficients
+        pOrbital ds = std::make_shared<Orbital>(kappa, pqn, eigenvalues[i]);
+
         for(j=0; j<n2; j++)
         {
-            BSpline& Bj = *B_lattice[j];
-            SpinorFunction hf_applied_to_Bj = hf->ApplyTo(Bj);
-
-            for(i=j; i<n2; i++)
-            {
-                BSpline& Bi = *B_lattice[i];
-                A(i, j) = A(j, i) = integrator->GetInnerProduct(Bi, hf_applied_to_Bj);
-                b(i, j) = b(j, i) = integrator->GetInnerProduct(Bi, Bj);
-            }
+            (*ds) += (*splines[j]) * eigenvectors(j, i);
         }
-
-        // Boundary conditions to remove spurious states
-        if(spline_type == NotreDame)
-        {
-            // Account for boundary conditions on splines.
-            // At r = 0, this is effectively a delta function to push spurious states to high energy.
-            if(kappa < 0)
-                A(0, 0) += 1./alpha;
-            else
-                A(0, 0) += 2./alphasquared;
-            A(0, n) += 0.5;
-            A(n, 0) += -0.5;
-
-            // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A((n-1), (n-1)) += 0.5/alpha;
-            A((n-1), (n2-1)) += -0.5;
-            A((n2-1), (n-1)) += 0.5;
-            A((n2-1), (n2-1)) += -0.5*alpha;
+        
+        // Remove spurious states
+        if(i >= N && fabs(ds->Norm(integrator) - 1.) > 1.e-2)
+        {   if(debug)
+                *logstream << "  Orbital removed: kappa = " << kappa << "  energy = " << ds->Energy()
+                           << "  norm = " << ds->Norm(integrator) << std::endl;
         }
-        else if(spline_type == Vanderbilt)
-        {
-            // At r = Rmax, these boundary conditions force f(r) = g(r) (effective mass->infinity).
-            A((n-1), (n-1)) += 0.5/alpha;
-            A((n-1), (n2-1)) += -0.5;
-            A((n2-1), (n-1)) += 0.5;
-            A((n2-1), (n2-1)) += -0.5*alpha;
+        else
+        {   excited->AddState(ds);
+            pqn++;
         }
-
-        // Solve A*p[i] = energy*B*p[i]
-        Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd> es(A,b);
-        const Eigen::VectorXd& eigenvalues = es.eigenvalues();
-        const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
-
-        if(debug)
-            *logstream << "kappa = " << kappa << std::endl;
-
-        bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
-
-        // Interpolate from B-splines to HF lattice and store
-        unsigned int pqn = l + 1;
-        i = n2/2;
-        pOrbitalConst s;
-
-        while((pqn <= max_pqn[l]) && (i < n2))
-        {
-            // Check whether it is in the core
-            s = open_core->GetState(OrbitalInfo(pqn, kappa));
-            if(s)
-            {   if(debug)
-                {   double diff = fabs((s->Energy() - eigenvalues[i])/s->Energy());
-                    *logstream << "  " << s->Name() << " en: " << std::setprecision(8) << eigenvalues[i]
-                               << "  deltaE: " << diff << std::endl;
-                }
-
-                if(!closed_core->GetOccupancy(OrbitalInfo(pqn,kappa)))
-                {   pOrbital s_copy(new Orbital(s));
-                    *s_copy = *s;
-                    excited->AddState(s_copy);
-                }
-
-                pqn++;
-            }
-            else
-            {   // Construct the orbital by summing splines with coefficients
-                pOrbital ds = pOrbital(new Orbital(kappa, pqn, eigenvalues[i]));
-                ds->resize(lattice_size);
-
-                for(j=0; j<n2; j++)
-                {
-                    (*ds) += (*B_lattice[j]) * eigenvectors(j, i);
-                }
-
-                // Remove spurious states
-                if(fabs(ds->Norm(integrator) - 1.) > 1.e-2)
-                {   if(debug)
-                        *logstream << "  Orbital removed: energy = " << ds->Energy()
-                                   << "  norm = " << ds->Norm(integrator) << std::endl;
-                }
-                else
-                {   if(reorth)
-                        Orthogonalise(ds);
-                    excited->AddState(ds);
-
-                    if(debug)
-                    {   *logstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
-                                   << " norm: " << ds->Norm(integrator) - 1. << std::endl;
-                    }
-
-                    pqn++;
-                }
-            }
-            i++;
-        }
-    }   // kappa loop
-    }   // l loop
+        i++;
+    }
 
     return excited;
+}
+
+pOrbitalMap BSplineBasis::GeneratePositiveBasis(pHFOperator hf, int kappa)
+{
+    return GenerateBSplines(hf, kappa, abs(kappa) + N);
+}
+
+pOrbitalMap BSplineBasis::GenerateCompleteBasis(pHFOperator hf, int kappa)
+{
+    return GenerateBSplines(hf, kappa, 0);
 }
