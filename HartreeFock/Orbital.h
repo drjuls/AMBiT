@@ -93,10 +93,10 @@ public:
     Derived operator*(double scale_factor) const;
 
     /** Adding or subtracting two spinor functions can only occur if both have same angular part. */
-    const Derived& operator+=(const Derived& other);
-    const Derived& operator-=(const Derived& other);
-    Derived operator+(const Derived& other) const;
-    Derived operator-(const Derived& other) const;
+    const Derived& operator+=(const SpinorFunction& other);
+    const Derived& operator-=(const SpinorFunction& other);
+    Derived operator+(const SpinorFunction& other) const;
+    Derived operator-(const SpinorFunction& other) const;
 
     /** Multiply spinor function by another radial function (assumed zero outside range). */
     const Derived& operator*=(const RadialFunction& chi);
@@ -158,7 +158,7 @@ auto OrbitalTemplate<Base, Derived>::operator*(double scale_factor) const -> Der
 }
 
 template <typename Base, typename Derived>
-auto OrbitalTemplate<Base, Derived>::operator+=(const Derived& other) -> const Derived&
+auto OrbitalTemplate<Base, Derived>::operator+=(const SpinorFunction& other) -> const Derived&
 {
     if(this->size() < other.size())
         this->resize(other.size());
@@ -175,21 +175,21 @@ auto OrbitalTemplate<Base, Derived>::operator+=(const Derived& other) -> const D
 }
 
 template <typename Base, typename Derived>
-auto OrbitalTemplate<Base, Derived>::operator-=(const Derived& other) -> const Derived&
+auto OrbitalTemplate<Base, Derived>::operator-=(const SpinorFunction& other) -> const Derived&
 {
     (*this) += other * (-1.0);
     return static_cast<const Derived&>(*this);
 }
 
 template <typename Base, typename Derived>
-auto OrbitalTemplate<Base, Derived>::operator+(const Derived& other) const -> Derived
+auto OrbitalTemplate<Base, Derived>::operator+(const SpinorFunction& other) const -> Derived
 {
     Derived ret(*this);
     return ret += other;
 }
 
 template <typename Base, typename Derived>
-auto OrbitalTemplate<Base, Derived>::operator-(const Derived& other) const -> Derived
+auto OrbitalTemplate<Base, Derived>::operator-(const SpinorFunction& other) const -> Derived
 {
     Derived ret(*this);
     return ret -= other;

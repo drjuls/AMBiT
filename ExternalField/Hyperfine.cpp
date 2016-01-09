@@ -2,8 +2,8 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
-HyperfineDipoleOperator::HyperfineDipoleOperator(pLattice lattice, pOPIntegrator integration_strategy):
-    SpinorOperator(1, integration_strategy), lattice(lattice)
+HyperfineDipoleOperator::HyperfineDipoleOperator(pOPIntegrator integration_strategy):
+    SpinorOperator(1, integration_strategy), lattice(integration_strategy->GetLattice())
 {}
 
 SpinorFunction HyperfineDipoleOperator::ApplyTo(const SpinorFunction& a, int kappa_b) const
@@ -30,8 +30,89 @@ SpinorFunction HyperfineDipoleOperator::ApplyTo(const SpinorFunction& a, int kap
     return ret * prefactor;
 }
 
+SpinorFunction HyperfineRPAOperator::ApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    SpinorFunction ret(kappa_b);
+    MathConstant* math = MathConstant::Instance();
+
+    // To save confusion: kappa_b -> alph
+    int kappa_alph = kappa_b;
+    int alph_L = (kappa_b > 0? kappa_b: -kappa_b-1);
+    int alph_TwoJ = 2 * abs(kappa_alph) - 1;
+    double alph_J = double(alph_TwoJ)/2;
+
+    pSpinorFunctionConst pa = a.shared_from_this();
+
+    // First term: <kappa || f || parent>
+    ret = hyperfine.ApplyTo(a, kappa_alph);
+
+    // Second term: <kappa || deltaV || parent>
+    // Sum deltaV for all core states. Core states are `b', delta is `beta'.
+    for(const auto& cs: *core)
+    {
+        pRPAOrbitalConst b(std::dynamic_pointer_cast<const RPAOrbital>(cs.second));
+        if(b == nullptr)
+            continue;
+
+        // Sum over beta
+        for(const auto& cs_delta: b->deltapsi)
+        {
+            pDeltaOrbitalConst beta = cs_delta.second;
+            double occupancy_factor = (a.TwoJ()+1) * (b->TwoJ()+1) * (alph_TwoJ+1) * (beta->TwoJ()+1);
+            occupancy_factor = sqrt(occupancy_factor);
+            // TODO: Open shells need to be scaled
+
+            // C: alph -> b; beta -> a
+            // Sum over all k
+            if((alph_L + b->L())%2 == (a.L() + beta->L())%2)
+            {
+                int mink = mmax(abs(a.L() - beta->L()), abs(alph_L - b->L()));
+                int maxk = mmin(a.L() + beta->L(), alph_L + b->L());
+                for(int k = mink; k <= maxk; k+=2)
+                {
+                    double coeff = math->Wigner6j(1., alph_J, a.J(), k, beta->J(), b->J()) *
+                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + 1);
+                    coeff *= math->Electron3j(a.TwoJ(), beta->TwoJ(), k) * math->Electron3j(alph_TwoJ, b->TwoJ(), k);
+
+                    if(coeff)
+                    {
+                        coeff *= occupancy_factor;
+
+                        hartreeY->SetParameters(k, beta, pa);
+                        ret -= hartreeY->ApplyTo(*b) * coeff;
+                    }
+                }
+            }
+
+            // D: alph->beta; b -> a
+            // Sum over all k
+            if((a.L() + b->L())%2 == (alph_L + beta->L())%2)
+            {
+                int mink = mmax(abs(a.L() - b->L()), abs(alph_L - beta->L()));
+                int maxk = mmin(a.L() + b->L(), alph_L + beta->L());
+                for(int k = mink; k <= maxk; k+=2)
+                {
+                    double coeff = math->Wigner6j(1., a.J(), alph_J, k, beta->J(), b->J()) *
+                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + 1);
+                    coeff *= math->Electron3j(a.TwoJ(), b->TwoJ(), k) * math->Electron3j(alph_TwoJ, beta->TwoJ(), k);
+
+                    if(coeff)
+                    {
+                        coeff *= occupancy_factor;
+
+                        hartreeY->SetParameters(k, b, pa);
+                        ret -= hartreeY->ApplyTo(*beta) * coeff;
+                    }
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
 HyperfineDipoleRPADecorator::HyperfineDipoleRPADecorator(pHFOperator wrapped, pHartreeY hartreeY, pOPIntegrator integration_strategy):
-    BaseDecorator(wrapped, integration_strategy), hyperfine(lattice, integration_strategy), hartreeY(hartreeY)
+    BaseDecorator(wrapped, integration_strategy), hyperfine(integration_strategy), hartreeY(hartreeY)
 {}
 
 void HyperfineDipoleRPADecorator::Alert()

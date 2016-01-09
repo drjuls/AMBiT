@@ -33,6 +33,8 @@ public:
     virtual iterator end() { return m_orbitals.end(); }
     virtual const_iterator end() const { return m_orbitals.end(); }
     virtual iterator erase(const_iterator position) { return m_orbitals.erase(position); }
+    virtual iterator find(const OrbitalInfo& key) { return m_orbitals.find(key); }
+    virtual const_iterator find(const OrbitalInfo& key) const { return m_orbitals.find(key); }
     virtual unsigned int size() const { return m_orbitals.size(); }
 
     /** Get pointer to discrete state.

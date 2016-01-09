@@ -17,6 +17,9 @@ public:
     DeltaOrbital(int kappa, std::shared_ptr<RPAOrbital> parent):
         BaseClass(kappa), deltaEnergy(0.), parent(parent)
     {}
+    DeltaOrbital(const Orbital& other):
+        BaseClass(other), deltaEnergy(0.), parent()
+    {}
 
     /** Get an identical Clone() except with a new parent. */
     std::shared_ptr<DeltaOrbital> CloneWithNewParent(std::shared_ptr<RPAOrbital> new_parent) const;
@@ -51,7 +54,6 @@ public:
     RPAOrbital(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0):
         BaseClass(kappa, pqn, energy, size) {}
     RPAOrbital(const Orbital& other): BaseClass(other) {}
-    RPAOrbital(const RPAOrbital& other);    //!< Deep copy of deltapsi
     virtual ~RPAOrbital() {}
 
     /** Clone makes deep copy of deltapsi. */

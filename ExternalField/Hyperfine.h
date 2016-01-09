@@ -11,7 +11,7 @@ class HyperfineDipoleOperator : public SpinorOperator
 {
 public:
     /** Point-like nucleus. */
-    HyperfineDipoleOperator(pLattice lattice, pOPIntegrator integration_strategy);
+    HyperfineDipoleOperator(pOPIntegrator integration_strategy);
 
 public:
     /** Hyperfine shift with nuclear magneton in atomic units. */
@@ -20,6 +20,27 @@ public:
 protected:
     pLattice lattice;
 };
+
+class HyperfineRPAOperator : public SpinorOperator
+{
+public:
+    HyperfineRPAOperator(pCoreConst core, pHartreeY hartreeY):
+        SpinorOperator(1, hartreeY->GetOPIntegrator()), hartreeY(hartreeY), core(core),
+        hyperfine(hartreeY->GetOPIntegrator())
+    {}
+
+    virtual void SetCore(pCoreConst rpa_core) { core = rpa_core; }
+
+    /** Return (f + deltaVhf)|a> */
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
+
+protected:
+    HyperfineDipoleOperator hyperfine;
+    pCoreConst core;
+    pHartreeY hartreeY;
+};
+
+typedef std::shared_ptr<HyperfineRPAOperator> pHyperfineRPAOperator;
 
 /** Add external dipole field and change in HF operator to RHS of RPA equations.
     These are added only to DeltaOrbital;
