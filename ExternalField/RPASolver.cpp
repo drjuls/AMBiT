@@ -24,31 +24,11 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
                 int kappa = deltapsi.first;
                 if(basis.count(kappa) == 0)
                 {
-                    pOrbitalMap spline_basis;// = bspline_maker.GenerateBSplines(hf, kappa, 12);
+                    pOrbitalMap spline_basis;
                     if(include_negative_basis)
                         spline_basis = bspline_maker.GenerateCompleteBasis(hf, kappa);
                     else
                         spline_basis = bspline_maker.GeneratePositiveBasis(hf, kappa);
-
-                    // Convert to DeltaOrbitals
-//                    pOrbitalMap excited = std::make_shared<OrbitalMap>(lattice);
-//                    for(auto& pair: *spline_basis)
-//                    {
-//                        pDeltaOrbital delta = std::make_shared<DeltaOrbital>(*pair.second);
-//                        excited->AddState(delta);
-//                    }
-//                    basis[kappa] = excited;
-
-                    // Remove core orbitals
-                    auto it = spline_basis->begin();
-                    while(it != spline_basis->end())
-                    {
-                        if(core->count(OrbitalInfo(it->first)))
-                        {   it = spline_basis->erase(it);
-                        }
-                        else
-                            ++it;
-                    }
 
                     basis[kappa] = spline_basis;
                 }
@@ -65,6 +45,7 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
     pCore next_states(core->Clone());
 
     double deltaE, max_deltaE;
+    double max_norm;
     unsigned int loop = 0;
 
     rpa->SetCore(core);
@@ -72,6 +53,7 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
     do
     {   loop++;
         max_deltaE = 0.;
+        max_norm = 0.;
 
         if(debug)
             *logstream << "RPA Iteration: " << loop << std::endl;
@@ -92,6 +74,9 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
                     double old_energy = orbital->DeltaEnergy();
                     deltaE = IterateDeltaOrbital(orbital, rpa);
 
+                    double norm = orbital->Norm(integrator);
+                    max_norm = mmax(norm, max_norm);
+
                     if(orbital->Kappa() == rpa_orbital->Kappa())
                     {
                         max_deltaE = mmax(fabs(deltaE), max_deltaE);
@@ -108,6 +93,31 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
                                    << "  size: (" << orbital->size()
                                    << ") " << lattice->R(orbital->size())
                                    << "  norm = " << orbital->Norm(integrator) << std::endl;
+                    }
+                }
+            }
+        }
+
+        // Try to remove spin-orbit partner from basis if DeltaOrbitals are growing out of control
+        if(!remove_spin_orbit_partner && (max_norm > 0.1))
+        {
+            remove_spin_orbit_partner = true;
+
+            // Start again
+            if(debug)
+                *logstream << "\nRestarting RPA, removing spin-orbit partners." << std::endl;
+
+            loop = 0;
+            for(auto pair: *next_states)
+            {
+                pRPAOrbital rpa_orbital = std::dynamic_pointer_cast<RPAOrbital>(pair.second);
+                if(rpa_orbital)
+                {
+                    for(auto deltapsi: rpa_orbital->deltapsi)
+                    {
+                        pDeltaOrbital orbital = deltapsi.second;
+                        orbital->Clear();
+                        orbital->SetDeltaEnergy(0.0);
                     }
                 }
             }
@@ -175,9 +185,6 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHyperfineRPAOperat
         double new_DE = integrator->GetInnerProduct(*parent, X_a);
         orbital->SetDeltaEnergy(new_DE);
         delta_DE = new_DE - start_DE;
-
-        // Subtract deltaEnergy|a> from X_a
-//        X_a -= (*parent) * start_DE;
     }
 
     orbital->Clear();
@@ -185,7 +192,9 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHyperfineRPAOperat
     for(auto& basis_pair: *basis[kappa])
     {
         // Remove parent from basis if necessary since deltaOrbital must be orthogonal to parent
-        if(parent_info != basis_pair.first)
+        if((parent_info.PQN() != basis_pair.first.PQN()) ||
+           (remove_spin_orbit_partner && (parent_info.L() != basis_pair.first.L())) ||
+           (!remove_spin_orbit_partner && (parent_info.Kappa() != basis_pair.first.Kappa())))
         {
             pOrbitalConst beta = basis_pair.second;
 

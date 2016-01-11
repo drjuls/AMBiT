@@ -11,6 +11,7 @@
 #include <new>
 #include <sstream>
 #include <fstream>
+#include <gsl/gsl_math.h>
 
 #include "Atom/Debug.h"
 

@@ -134,3 +134,70 @@ TEST(HyperfineTester, Na)
     deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
     EXPECT_NEAR(18.01, stretched_state * deltaE * g_I/s->J() * MHz, 0.1);
 }
+
+TEST(HyperfineTester, CsRPA)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // Cs - Comparison with Dzuba, Flambaum, Sushkov, JPB 17, 1953 (1984)
+    std::string user_input_string = std::string() +
+    "NuclearRadius = 5.61\n" +
+    "NuclearThickness = 2.3\n" +
+    "Z = 55\n" +
+    "[HF]\n" +
+    "N = 54\n" +
+    "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6'\n" +
+    "[Basis]\n" +
+    "--hf-basis\n" +
+    "ValenceBasis = 6spd\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    pCore core = basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+    pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
+
+    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    double Rmag = 5.61; // Nuclear magnetic radius (fm)
+    HyperfineDipoleOperator HFS(integrator, Rmag);
+
+    MathConstant* math = MathConstant::Instance();
+    double g_I = 2.578/3.5;
+    double kCm = math->HartreeEnergyInInvCm() * 1000.;
+
+    pOrbital s;
+    double stretched_state;     // Convert from reduced matrix element to stretched state m = j
+
+    s = orbitals->valence->GetState(OrbitalInfo(6, -1));
+    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
+    EXPECT_NEAR(47.31, stretched_state * HFS.GetMatrixElement(*s, *s) * g_I/s->J() * kCm, 0.2);
+
+    // RPA: replace core orbitals with RPAOrbitals
+    pCore rpa_core(new Core(lattice));
+    for(const auto& orb: *core)
+    {
+        pRPAOrbital new_orb(new RPAOrbital(*orb.second));
+        for(int twoj = mmax(1, new_orb->TwoJ()-2); twoj <= new_orb->TwoJ()+2; twoj+=2)
+        {
+            int kappa = math->convert_to_kappa(twoj, new_orb->GetParity());
+            new_orb->deltapsi.insert(std::make_pair(kappa, std::make_shared<DeltaOrbital>(kappa, new_orb)));
+        }
+        rpa_core->AddState(new_orb);
+    }
+    rpa_core->SetOccupancies(core->GetOccupancies());
+
+    // Get HF+HFS operator
+    pHFOperator hf = basis_generator.GetClosedHFOperator();
+    pHyperfineRPAOperator rpa = std::make_shared<HyperfineRPAOperator>(rpa_core, basis_generator.GetHartreeY());
+    RPASolver rpa_solver;
+
+    DebugOptions.LogHFIterations(true);
+    rpa_solver.SolveRPACore(rpa_core, hf, rpa, true);
+
+    pRPAOrbital ext = std::make_shared<RPAOrbital>(*s);
+    double deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
+    EXPECT_NEAR(56.79, stretched_state * deltaE * g_I/s->J() * kCm, 0.2);
+}

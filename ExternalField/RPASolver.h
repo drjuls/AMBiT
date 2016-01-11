@@ -9,7 +9,7 @@
 class RPASolver
 {
 public:
-    RPASolver() {}
+    RPASolver(): remove_spin_orbit_partner(false) {}
     ~RPASolver() {}
 
     /** Populate the DeltaOrbitals self-consistently.
@@ -29,7 +29,8 @@ public:
 
 protected:
     std::map<int, pOrbitalMap> basis;   //!< DeltaOrbital basis for each kappa
-    unsigned int MaxRPAIterations = 30;
+    bool remove_spin_orbit_partner;     //!< Remove spin-orbit partner from basis (small energy denominators can be fatal)
+    unsigned int MaxRPAIterations = 100;
 };
 
 #endif
