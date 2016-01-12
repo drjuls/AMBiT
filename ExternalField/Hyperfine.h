@@ -28,9 +28,9 @@ protected:
 class HyperfineRPAOperator : public SpinorOperator
 {
 public:
-    HyperfineRPAOperator(pCoreConst core, pHartreeY hartreeY):
+    HyperfineRPAOperator(pCoreConst core, pHartreeY hartreeY, double nuclear_magnetic_radius_fm = 0.0):
         SpinorOperator(1, hartreeY->GetOPIntegrator()), hartreeY(hartreeY), core(core),
-        hyperfine(hartreeY->GetOPIntegrator(), 5.61)
+        hyperfine(hartreeY->GetOPIntegrator(), nuclear_magnetic_radius_fm)
     {}
 
     virtual void SetCore(pCoreConst rpa_core) { core = rpa_core; }

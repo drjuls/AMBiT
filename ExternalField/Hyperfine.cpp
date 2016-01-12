@@ -92,7 +92,7 @@ SpinorFunction HyperfineRPAOperator::ApplyTo(const SpinorFunction& a, int kappa_
                         coeff *= occupancy_factor;
 
                         hartreeY->SetParameters(k, beta, pa);
-                        ret -= hartreeY->ApplyTo(*b) * coeff;
+                        ret -= hartreeY->ApplyTo(*b, ret.Kappa()) * coeff;
                     }
                 }
             }
@@ -114,7 +114,7 @@ SpinorFunction HyperfineRPAOperator::ApplyTo(const SpinorFunction& a, int kappa_
                         coeff *= occupancy_factor;
 
                         hartreeY->SetParameters(k, b, pa);
-                        ret -= hartreeY->ApplyTo(*beta) * coeff;
+                        ret -= hartreeY->ApplyTo(*beta, ret.Kappa()) * coeff;
                     }
                 }
             }

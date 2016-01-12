@@ -137,7 +137,7 @@ double RPASolver::CalculateRPAExcited(pRPAOrbital orbital, pHyperfineRPAOperator
     MathConstant* math = MathConstant::Instance();
     pOPIntegrator integrator = rpa->GetOPIntegrator();
 
-    *logstream << "  RPA orbital " << std::setw(4) << orbital->Name() << std::endl;
+    *logstream << "RPA orbital " << std::setw(4) << orbital->Name() << std::endl;
 
     for(int twoj = mmax(1, orbital->TwoJ()-2); twoj <= orbital->TwoJ()+2; twoj+=2)
     {
