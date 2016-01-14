@@ -74,7 +74,7 @@ TEST(HyperfineTester, Na)
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
-    HyperfineDipoleOperator HFS(integrator);
+    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator);
 
     MathConstant* math = MathConstant::Instance();
     pOrbital s = orbitals->valence->GetState(OrbitalInfo(3, -1));
@@ -83,56 +83,36 @@ TEST(HyperfineTester, Na)
 
     // Convert from reduced matrix element to stretched state m = j
     double stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(623.64, stretched_state * HFS.GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(623.64, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
 
     // p-wave
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(63.43, stretched_state * HFS.GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(63.43, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -2));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(12.60, stretched_state * HFS.GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
-
-    // RPA: replace core orbitals with RPAOrbitals
-    pCore rpa_core(new Core(lattice));
-    for(const auto& orb: *core)
-    {
-        pRPAOrbital new_orb(new RPAOrbital(*orb.second));
-        for(int twoj = mmax(1, new_orb->TwoJ()-2); twoj <= new_orb->TwoJ()+2; twoj+=2)
-        {
-            int kappa = math->convert_to_kappa(twoj, new_orb->GetParity());
-            new_orb->deltapsi.insert(std::make_pair(kappa, std::make_shared<DeltaOrbital>(kappa, new_orb)));
-        }
-        rpa_core->AddState(new_orb);
-    }
-    rpa_core->SetOccupancies(core->GetOccupancies());
+    EXPECT_NEAR(12.60, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pHyperfineRPAOperator rpa = std::make_shared<HyperfineRPAOperator>(rpa_core, basis_generator.GetHartreeY());
-    RPASolver rpa_solver;
+    pRPAOperator rpa = std::make_shared<RPAOperator<HyperfineDipoleOperator>>(HFS, basis_generator.GetHartreeY());
+    RPASolver rpa_solver(core);
 
     DebugOptions.LogHFIterations(true);
-    rpa_solver.SolveRPACore(rpa_core, hf, rpa, true);
+    rpa_solver.SolveRPACore(hf, rpa);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    pRPAOrbital ext = std::make_shared<RPAOrbital>(*s);
-    double deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
-    EXPECT_NEAR(767.24, stretched_state * deltaE * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(767.24, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    ext = std::make_shared<RPAOrbital>(*s);
-    deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
-    EXPECT_NEAR(82.33, stretched_state * deltaE * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(82.33, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -2));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    ext = std::make_shared<RPAOrbital>(*s);
-    deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
-    EXPECT_NEAR(18.01, stretched_state * deltaE * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(18.01, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 }
 
 TEST(HyperfineTester, CsRPA)
@@ -163,7 +143,7 @@ TEST(HyperfineTester, CsRPA)
 
     pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
     double Rmag = 5.6748; // Nuclear magnetic radius (fm)
-    HyperfineDipoleOperator HFS(integrator, Rmag);
+    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator, Rmag);
 
     MathConstant* math = MathConstant::Instance();
     double g_I = 2.582768/3.5;
@@ -174,32 +154,18 @@ TEST(HyperfineTester, CsRPA)
 
     s = orbitals->valence->GetState(OrbitalInfo(6, -1));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(47.54, stretched_state * HFS.GetMatrixElement(*s, *s) * g_I/s->J() * kCm, 0.01);
+    EXPECT_NEAR(47.54, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * kCm, 0.01);
 
     d = orbitals->valence->GetState(OrbitalInfo(5, 2));
-    EXPECT_NEAR(0.505e-10, HFS.GetMatrixElement(*d, *s) * g_I, 0.001e-10);
-
-    // RPA: replace core orbitals with RPAOrbitals
-    pCore rpa_core(new Core(lattice));
-    for(const auto& orb: *core)
-    {
-        pRPAOrbital new_orb(new RPAOrbital(*orb.second));
-        for(int twoj = mmax(1, new_orb->TwoJ()-2); twoj <= new_orb->TwoJ()+2; twoj+=2)
-        {
-            int kappa = math->convert_to_kappa(twoj, new_orb->GetParity());
-            new_orb->deltapsi.insert(std::make_pair(kappa, std::make_shared<DeltaOrbital>(kappa, new_orb)));
-        }
-        rpa_core->AddState(new_orb);
-    }
-    rpa_core->SetOccupancies(core->GetOccupancies());
+    EXPECT_NEAR(0.505e-10, HFS->GetMatrixElement(*d, *s) * g_I, 0.001e-10);
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pHyperfineRPAOperator rpa = std::make_shared<HyperfineRPAOperator>(rpa_core, basis_generator.GetHartreeY(), 5.6748);
-    RPASolver rpa_solver;
+    pRPAOperator rpa = std::make_shared<RPAOperator<HyperfineDipoleOperator>>(HFS, basis_generator.GetHartreeY());
+    RPASolver rpa_solver(core);
 
     DebugOptions.LogHFIterations(true);
-    rpa_solver.SolveRPACore(rpa_core, hf, rpa, true);
+    rpa_solver.SolveRPACore(hf, rpa);
 
     pRPAOrbital ext = std::make_shared<RPAOrbital>(*s);
     double deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);

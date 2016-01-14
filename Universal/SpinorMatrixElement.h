@@ -13,7 +13,13 @@
 class SpinorMatrixElement : public std::enable_shared_from_this<SpinorMatrixElement>
 {
 public:
-    SpinorMatrixElement(int K = 0, pOPIntegrator integration_strategy = nullptr): integrator(integration_strategy), K(K) {}
+    SpinorMatrixElement(pOPIntegrator integration_strategy = nullptr): K(0), P(Parity::even), integrator(integration_strategy) {}
+    SpinorMatrixElement(int K, Parity P, pOPIntegrator integration_strategy = nullptr): K(K), P(P), integrator(integration_strategy) {}
+    /** Initialise with P = (-1)^K */
+    SpinorMatrixElement(int K, pOPIntegrator integration_strategy = nullptr):
+        integrator(integration_strategy), K(K)
+    {   P = (K%2? Parity::odd: Parity::even);
+    }
 
     /** Reduced matrix element < b || t(K) || a > for our operator t(K).
         Usually the operation t|a> makes sense for any Orbital, but in order to have a
@@ -23,9 +29,14 @@ public:
     {   return 0.;
     }
 
-    /** Get multipolarity K for this operator and all wrapped (added) operators. */
+    /** Get multipolarity K for this operator. */
     virtual int GetK() const
     {   return K;
+    }
+
+    /** Get parity of this operator. */
+    virtual Parity GetParity() const
+    {   return P;
     }
 
     virtual pOPIntegrator GetOPIntegrator() const
@@ -35,6 +46,7 @@ public:
 protected:
     pOPIntegrator integrator;
     int K;
+    Parity P;
 };
 
 typedef std::shared_ptr<SpinorMatrixElement> pSpinorMatrixElement;

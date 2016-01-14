@@ -15,7 +15,7 @@
 class SpinorOperator : public SpinorMatrixElement
 {
 public:
-    SpinorOperator(int K = 0, pOPIntegrator integration_strategy = nullptr): SpinorMatrixElement(K, integration_strategy) {}
+    using SpinorMatrixElement::SpinorMatrixElement;
     SpinorOperator(pOPIntegrator integration_strategy): SpinorOperator(0, integration_strategy) {}
 
     /** < b | t | a > for an operator t.

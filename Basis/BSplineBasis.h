@@ -43,4 +43,6 @@ protected:
     SplineType spline_type;
 };
 
+typedef std::shared_ptr<BSplineBasis> pBSplineBasis;
+
 #endif

@@ -1,20 +1,29 @@
 #include "RPASolver.h"
 #include "Include.h"
 #include "Basis/BSplineBasis.h"
-#include <Eigen/Eigen>
 
-void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator rpa, bool include_negative_basis)
+void RPASolver::SolveRPACore(pHFOperator hf, pRPAOperator rpa)
 {
+    hf0 = hf;
+
+    // Get rpa core: replace orbitals with RPAOrbitals
+    pCore rpa_core = std::make_shared<Core>(hf->GetLattice());
+    for(const auto& orb: *hf->GetCore())
+    {
+        pRPAOrbital rpa_orb = std::make_shared<RPAOrbital>(*orb.second);
+        CreateDeltaOrbitals(rpa_orb, rpa);
+
+        rpa_core->AddState(rpa_orb);
+    }
+    rpa_core->SetOccupancies(hf->GetCore()->GetOccupancies());
+
     // Get basis for DeltaOrbitals: map from kappa to complete basis
     basis.clear();
     pLattice lattice = hf->GetLattice();
     pOPIntegrator integrator = hf->GetOPIntegrator();
 
-    double Rmax = lattice->R(core->LargestOrbitalSize());
-    BSplineBasis bspline_maker(lattice, 40, 7, Rmax);
-
     // Go through all deltaOrbitals and make sure there is a basis set for that kappa
-    for(auto& pair: *core)
+    for(auto& pair: *rpa_core)
     {
         pRPAOrbital orbital = std::dynamic_pointer_cast<RPAOrbital>(pair.second);
         if(orbital)
@@ -25,10 +34,10 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
                 if(basis.count(kappa) == 0)
                 {
                     pOrbitalMap spline_basis;
-                    if(include_negative_basis)
-                        spline_basis = bspline_maker.GenerateCompleteBasis(hf, kappa);
+                    if(include_dirac_sea)
+                        spline_basis = basis_maker->GenerateCompleteBasis(hf, kappa);
                     else
-                        spline_basis = bspline_maker.GeneratePositiveBasis(hf, kappa);
+                        spline_basis = basis_maker->GeneratePositiveBasis(hf, kappa);
 
                     basis[kappa] = spline_basis;
                 }
@@ -42,13 +51,13 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
 
     bool debug = DebugOptions.LogHFIterations();
 
-    pCore next_states(core->Clone());
+    pCore next_states(rpa_core->Clone());
 
     double deltaE, max_deltaE;
     double max_norm;
     unsigned int loop = 0;
 
-    rpa->SetCore(core);
+    rpa->SetCore(rpa_core);
 
     do
     {   loop++;
@@ -124,46 +133,80 @@ void RPASolver::SolveRPACore(pCore core, pHFOperator hf, pHyperfineRPAOperator r
         }
 
         // Copy new states
-        core.reset(next_states->Clone());
+        rpa_core.reset(next_states->Clone());
 
         // Update potential
-        rpa->SetCore(core);
+        rpa->SetCore(rpa_core);
 
     }while((max_deltaE > EnergyTolerance) && (loop < MaxRPAIterations));
 }
 
-double RPASolver::CalculateRPAExcited(pRPAOrbital orbital, pHyperfineRPAOperator rpa)
+double RPASolver::CalculateRPAExcited(pRPAOrbital orbital, pRPAOperatorConst rpa)
 {
-    MathConstant* math = MathConstant::Instance();
     pOPIntegrator integrator = rpa->GetOPIntegrator();
 
-    *logstream << "RPA orbital " << std::setw(4) << orbital->Name() << std::endl;
+    bool debug = DebugOptions.OutputHFExcited();
+    if(debug)
+        *logstream << "RPA orbital " << std::setw(4) << orbital->Name() << std::endl;
 
-    for(int twoj = mmax(1, orbital->TwoJ()-2); twoj <= orbital->TwoJ()+2; twoj+=2)
+    CreateDeltaOrbitals(orbital, rpa);
+
+    // Go through all deltaOrbitals and make sure there is a basis set for that kappa
+    for(auto& deltapsi: orbital->deltapsi)
     {
-        int kappa = math->convert_to_kappa(twoj, orbital->GetParity());
+        int kappa = deltapsi.first;
+        if(basis.count(kappa) == 0)
+        {
+            pOrbitalMap spline_basis;
+            if(include_dirac_sea)
+                spline_basis = basis_maker->GenerateCompleteBasis(hf0, kappa);
+            else
+                spline_basis = basis_maker->GeneratePositiveBasis(hf0, kappa);
 
-        pDeltaOrbital delta = std::make_shared<DeltaOrbital>(kappa, orbital);
-        orbital->deltapsi.insert(std::make_pair(kappa, delta));
+            basis[kappa] = spline_basis;
+        }
+    }
 
+    for(auto& pair: orbital->deltapsi)
+    {
+        pDeltaOrbital delta = pair.second;
         double deltaE = IterateDeltaOrbital(delta, rpa);
 
-        if(kappa == orbital->Kappa())
+        if(debug)
         {
-            *logstream << "    kappa = " << std::setw(3) << kappa
-                << "  DE = " << std::setprecision(12) << deltaE
-                << "  norm = " << delta->Norm(integrator) << std::endl;
-        }
-        else
-        {   *logstream << "    kappa = " << std::setw(3) << kappa
-                << "  norm = " << delta->Norm(integrator) << std::endl;
+            if(delta->Kappa() == orbital->Kappa())
+            {
+                *logstream << "    kappa = " << std::setw(3) << delta->Kappa()
+                           << "  DE = " << std::setprecision(12) << deltaE
+                           << "  norm = " << delta->Norm(integrator) << std::endl;
+            }
+            else
+            {   *logstream << "    kappa = " << std::setw(3) << delta->Kappa()
+                           << "  norm = " << delta->Norm(integrator) << std::endl;
+            }
         }
     }
 
     return orbital->deltapsi[orbital->Kappa()]->DeltaEnergy();
 }
 
-double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHyperfineRPAOperator rpa)
+void RPASolver::CreateDeltaOrbitals(pRPAOrbital orbital, pRPAOperatorConst rpa) const
+{
+    MathConstant* math = MathConstant::Instance();
+    int twoK = 2 * rpa->GetK();
+    Parity Pdelta = orbital->GetParity() * rpa->GetParity();
+
+    orbital->deltapsi.clear();
+
+    for(int twoj = mmax(1, orbital->TwoJ() - twoK); twoj <= orbital->TwoJ() + twoK; twoj+=2)
+    {
+        int kappa = math->convert_to_kappa(twoj, Pdelta);
+        if(orbital->deltapsi.find(kappa) == orbital->deltapsi.end())
+            orbital->deltapsi[kappa] = std::make_shared<DeltaOrbital>(kappa, orbital);
+    }
+}
+
+double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst rpa) const
 {
     int kappa = orbital->Kappa();
     double start_DE = orbital->DeltaEnergy();
@@ -189,7 +232,7 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHyperfineRPAOperat
 
     orbital->Clear();
 
-    for(auto& basis_pair: *basis[kappa])
+    for(const auto& basis_pair: *basis.at(kappa))
     {
         // Remove parent from basis if necessary since deltaOrbital must be orthogonal to parent
         if((parent_info.PQN() != basis_pair.first.PQN()) ||
@@ -207,85 +250,3 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHyperfineRPAOperat
 
     return delta_DE;
 }
-
-//double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pHFOperator hf)
-//{
-//    int kappa = orbital->Kappa();
-//    double start_DE = orbital->DeltaEnergy();
-//
-//    pRPAOrbital parent = orbital->GetParent();
-//    double parent_energy = parent->Energy();
-//
-//    // Remove parent from basis if necessary since deltaOrbital must be orthogonal to parent
-//    pOrbitalMap trimbasis = basis[kappa];
-//    if(kappa == parent->Kappa())
-//    {
-//        auto it = trimbasis->find(OrbitalInfo(parent.get()));
-//        if(it != trimbasis->end())
-//            trimbasis->erase(it);
-//    }
-//
-//    // Get coefficients of basis (x) via equation
-//    //  A * x = B
-//    // where A = <beta | hf | alpha>
-//    //       B = E_a
-//    unsigned int n = trimbasis->size();
-//    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n, n);
-//    Eigen::VectorXd B = Eigen::VectorXd::Constant(n, parent_energy);
-//
-//    pOPIntegrator integrator = hf->GetOPIntegrator();
-//
-//    // Get vector of DE = < parent | hf | alpha>
-//    Eigen::VectorXd DE = Eigen::VectorXd::Zero(n);
-//
-//    auto it_alpha = trimbasis->begin();
-//    for(int a = 0; a < n; a++)
-//    {
-//        pDeltaOrbital alpha = std::static_pointer_cast<DeltaOrbital>(it_alpha->second);
-//        alpha->SetDeltaEnergy(start_DE);
-//        alpha->SetParent(parent);
-//        SpinorFunction H_alpha = hf->ApplyTo(*alpha);
-//
-//        auto it_beta = trimbasis->begin();
-//        for(int b = 0; b < n; b++)
-//        {
-//            A(b, a) = integrator->GetInnerProduct(*it_beta->second, H_alpha);
-//            ++it_beta;
-//        }
-//
-//        // Get change in deltaEnergy
-//        if(kappa == parent->Kappa())
-//        {
-//            DE(a) = integrator->GetInnerProduct(*parent, H_alpha);
-//        }
-//
-//        ++it_alpha;
-//    }
-//
-//    // Solve A x = B
-//    Eigen::VectorXd x = A.colPivHouseholderQr().solve(B);
-//
-//    *errstream << "\nA: \n";
-//    *errstream << A << std::endl;
-//    *errstream << x << std::endl;
-//    *errstream << "Sum of x = " << x.sum() << std::endl;
-//
-//    // Regenerate orbital
-//    orbital->Clear();
-//    it_alpha = trimbasis->begin();
-//    for(int a = 0; a < n; a++)
-//    {
-//        (*orbital) += (*it_alpha->second) * x(a);
-//        ++it_alpha;
-//    }
-//
-//    // Adjust deltaEnergy
-//    double delta_DE = 0.0;
-//    if(kappa == parent->Kappa())
-//    {
-//        delta_DE = DE.dot(x);
-//        orbital->SetDeltaEnergy(start_DE + delta_DE);
-//    }
-//
-//    return delta_DE;
-//}
