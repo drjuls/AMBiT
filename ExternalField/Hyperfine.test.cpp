@@ -8,6 +8,7 @@
 #include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/SlaterIntegrals.h"
+#include "MBPT/BruecknerDecorator.h"
 #include "RPASolver.h"
 
 TEST(HyperfineTester, Rb)
@@ -61,8 +62,10 @@ TEST(HyperfineTester, Na)
         "N = 10\n" +
         "Configuration = '1s2 2s2 2p6'\n" +
         "[Basis]\n" +
-        "--hf-basis\n" +
-        "ValenceBasis = 3spd\n";
+        "--bspline-basis\n" +
+        "ValenceBasis = 3spd\n" +
+        "[MBPT]\n" +
+        "Basis = 20spdf\n";
 
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
@@ -113,6 +116,42 @@ TEST(HyperfineTester, Na)
     s = orbitals->valence->GetState(OrbitalInfo(3, -2));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
     EXPECT_NEAR(18.01, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+
+    // Brueckner orbitals
+    s = orbitals->valence->GetState(OrbitalInfo(3, -1));
+    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
+
+    pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(orbitals, hf));
+    pSlaterIntegrals two_body_integrals(new SlaterIntegralsMap(orbitals, basis_generator.GetHartreeY()));
+    CoreMBPTCalculator mbpt(orbitals, one_body_integrals, two_body_integrals);
+    mbpt.UpdateIntegrals();
+
+    *logstream << std::setprecision(10);
+
+    double hf_energy = s->Energy();
+    *logstream << "HF:         " << hf_energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+
+    double direct_summation = hf_energy + mbpt.GetOneElectronDiagrams(OrbitalInfo(3, -1), OrbitalInfo(3, -1));
+    *logstream << "Direct sum: " << direct_summation * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+
+    // Calculate sigma potential
+    pBruecknerDecorator brueckner(new BruecknerDecorator(hf));
+    brueckner->IncludeLower(false);
+
+    pOrbital brueckner_target(new Orbital(*s));
+    brueckner->CalculateSigma(brueckner_target->Kappa(), orbitals, basis_generator.GetHartreeY(), hf);
+
+    double brueckner_matrix_element = brueckner->GetMatrixElement(*brueckner_target, *brueckner_target);
+    *logstream << "Brueckner:  " << brueckner_matrix_element * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+
+    // Iterate
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    HartreeFocker hartree_focker(ode_solver);
+    hartree_focker.ConvergeOrbitalAndExchange(brueckner_target, brueckner);
+    *logstream << "Iterated:   " << brueckner_target->Energy() * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+
+    // Comparison with experiment
+    EXPECT_NEAR(885.81, stretched_state * rpa->GetMatrixElement(*brueckner_target, *brueckner_target) * g_I/s->J() * MHz, 2.0);
 }
 
 TEST(HyperfineTester, CsRPA)

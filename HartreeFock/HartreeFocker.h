@@ -37,13 +37,13 @@ public:
             so the final orbital is not an eigenvalue of the hf operator.
         Return change in energy.
      */
-    double ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance);
+    double ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator = &HartreeFocker::IterateOrbitalTailMatching, double energy_tolerance = 1.e-8);
 
     /** Find self-consistent solution to hf operator, including exchange.
         Exchange is calculated from hf operator in each loop.
         Return change in energy.
      */
-    double ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator, double energy_tolerance);
+    double ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator = &HartreeFocker::IterateOrbital, double energy_tolerance = 1.e-14);
 
     /** Iterator function for ConvergeOrbital and ConvergeOrbitalAndExchange.
         IterateOrbital uses the Greens method discussed in Johnson. A non-zero exchange term is required.
