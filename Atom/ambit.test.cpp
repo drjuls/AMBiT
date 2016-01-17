@@ -4,11 +4,7 @@
 #include "Include.h"
 #include "OutStreams.h"
 #include "gitInfo.h"
-//#include "Atom.h"
-//#include "RateCalculator.h"
 #include "Universal/Enums.h"
-//#include "Universal/Function.h"
-//#include "Universal/Integrator.h"
 #include "Atom/GetPot"
 #include <boost/math/special_functions/bessel.hpp>
 

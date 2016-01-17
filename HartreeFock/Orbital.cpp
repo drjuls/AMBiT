@@ -198,12 +198,12 @@ bool OrbitalBase::CheckSize(pLattice lattice, double tolerance)
     else return true;
 }
 
-double OrbitalBase::Norm(pOPIntegrator integrator) const
+double OrbitalBase::Norm(pIntegrator integrator) const
 {
     return integrator->GetNorm(*this);
 }
 
-void OrbitalBase::ReNormalise(pOPIntegrator integrator, double norm)
+void OrbitalBase::ReNormalise(pIntegrator integrator, double norm)
 {
     if(norm > 0.)
         (*this) *= sqrt(norm/Norm(integrator));

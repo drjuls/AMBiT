@@ -2,7 +2,7 @@
 #define G_FACTOR_H
 
 #include "ManyBodyOperator.h"
-#include "HartreeFock/OpIntegrator.h"
+#include "HartreeFock/Integrator.h"
 #include "Basis/OrbitalManager.h"
 
 /** Sz operator is a one body electron operator that calculates
@@ -13,7 +13,7 @@
 class SzOperator
 {
 public:
-    SzOperator(pOPIntegrator integrator, pOrbitalManagerConst pOrbitals):
+    SzOperator(pIntegrator integrator, pOrbitalManagerConst pOrbitals):
         orbitals(pOrbitals)
     {
         num_orbitals = orbitals->size();
@@ -91,7 +91,7 @@ typedef std::shared_ptr<const SzOperator> pSzOperatorConst;
 class GFactorCalculator
 {
 public:
-    GFactorCalculator(pOPIntegrator integrator, pOrbitalManagerConst orbitals):
+    GFactorCalculator(pIntegrator integrator, pOrbitalManagerConst orbitals):
         Sz(pSzOperatorConst(new SzOperator(integrator, orbitals)))
     {}
 

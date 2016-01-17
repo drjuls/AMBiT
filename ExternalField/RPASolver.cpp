@@ -20,7 +20,7 @@ void RPASolver::SolveRPACore(pHFOperator hf, pRPAOperator rpa)
     // Get basis for DeltaOrbitals: map from kappa to complete basis
     basis.clear();
     pLattice lattice = hf->GetLattice();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     // Go through all deltaOrbitals and make sure there is a basis set for that kappa
     for(auto& pair: *rpa_core)
@@ -143,7 +143,7 @@ void RPASolver::SolveRPACore(pHFOperator hf, pRPAOperator rpa)
 
 double RPASolver::CalculateRPAExcited(pRPAOrbital orbital, pRPAOperatorConst rpa)
 {
-    pOPIntegrator integrator = rpa->GetOPIntegrator();
+    pIntegrator integrator = rpa->GetIntegrator();
 
     bool debug = DebugOptions.OutputHFExcited();
     if(debug)
@@ -216,7 +216,7 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
     double parent_energy = parent->Energy();
     OrbitalInfo parent_info = OrbitalInfo(parent.get());
 
-    pOPIntegrator integrator = rpa->GetOPIntegrator();
+    pIntegrator integrator = rpa->GetIntegrator();
 
     // Apply (f + deltaV)|a>
     SpinorFunction X_a = rpa->ApplyTo(*parent, orbital->Kappa());

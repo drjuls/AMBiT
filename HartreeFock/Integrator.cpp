@@ -1,32 +1,32 @@
-#include "OpIntegrator.h"
+#include "Integrator.h"
 #include "Include.h"
 
-double OPIntegrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
+double Integrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
 {
     RadialFunction integrand = a.GetDensity(b);
     return Integrate(integrand);
 }
 
-double OPIntegrator::GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const
+double Integrator::GetInnerProduct(const RadialFunction& a, const RadialFunction& b) const
 {
     RadialFunction integrand = a * b;
     return Integrate(integrand);
 }
 
-double OPIntegrator::GetNorm(const SpinorFunction& a) const
+double Integrator::GetNorm(const SpinorFunction& a) const
 {
     RadialFunction integrand = a.GetDensity();
     return Integrate(integrand);
 }
 
-double OPIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const SpinorFunction& b, const RadialFunction& V) const
+double Integrator::GetPotentialMatrixElement(const SpinorFunction& a, const SpinorFunction& b, const RadialFunction& V) const
 {
     RadialFunction integrand = a.GetDensity(b);
     integrand *= V;
     return Integrate(integrand);
 }
 
-double OPIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, const RadialFunction& V) const
+double Integrator::GetPotentialMatrixElement(const SpinorFunction& a, const RadialFunction& V) const
 {
     RadialFunction integrand = a.GetDensity();
     integrand *= V;

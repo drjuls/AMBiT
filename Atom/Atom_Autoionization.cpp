@@ -125,7 +125,7 @@ void Atom::Autoionization(pLevelConst target)
                 int eps_kappa = (eps_twoJ + 1)/2;
                 eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
 
-                pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
+                pODESolver ode_solver(new AdamsSolver(hf->GetIntegrator()));
                 HartreeFocker HF_Solver(ode_solver);
                 pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy));
                 HF_Solver.CalculateContinuumWave(eps, hf_continuum);
@@ -245,7 +245,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     // Create continuum waves
     pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
     pOrbitalMap continuum_map(new OrbitalMap(lattice));
-    pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
+    pODESolver ode_solver(new AdamsSolver(hf->GetIntegrator()));
     HartreeFocker HF_Solver(ode_solver);
 
     int pqn_offset = 100;
@@ -502,7 +502,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     }
 
     // HF solver for making continuum
-    pODESolver ode_solver(new AdamsSolver(hf->GetOPIntegrator()));
+    pODESolver ode_solver(new AdamsSolver(hf->GetIntegrator()));
     HartreeFocker HF_Solver(ode_solver);
 
     // Get target including core for occupancy

@@ -19,7 +19,7 @@
 class HFOperator : public SpinorOperator, public SpinorODE
 {
 public:
-    HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pOPIntegrator integration_strategy, pCoulombOperator coulomb);
+    HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb);
     HFOperator(const HFOperator& other);
     virtual ~HFOperator();
 
@@ -113,7 +113,7 @@ class HFBasicDecorator : public HFOperator
 {
 public:
     /** If integration_strategy is null, take from decorated_object. */
-    HFBasicDecorator(pHFOperator decorated_object, pOPIntegrator integration_strategy = pOPIntegrator()):
+    HFBasicDecorator(pHFOperator decorated_object, pIntegrator integration_strategy = pIntegrator()):
         HFOperator(decorated_object->GetZ(), *decorated_object), wrapped(decorated_object)
     {
         if(integration_strategy != nullptr)

@@ -34,7 +34,7 @@ TEST(EJOperatorTester, LiTransitions)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     EJOperator E1(constants, 1, integrator);
 
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(2, -1));
@@ -78,7 +78,7 @@ TEST(EJOperatorTester, NaTransitions)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     EJOperator E1(constants, 1, integrator);
 
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(3, -1));
@@ -122,7 +122,7 @@ TEST(MJOperatorTester, LiTransitions)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     MJOperator M1(constants, 1, integrator);
 
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));

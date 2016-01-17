@@ -1,6 +1,6 @@
 #include "HartreeY.h"
 
-HartreeY::HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb):
+HartreeY::HartreeY(pIntegrator integration_strategy, pCoulombOperator coulomb):
     HartreeYBase(integration_strategy), LatticeObserver(integration_strategy->GetLattice()), coulomb(coulomb)
 {
     two_body_reverse_symmetry_exists = true;

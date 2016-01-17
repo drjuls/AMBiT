@@ -10,7 +10,7 @@ public:
     /** Use nuclear_magnetic_radius_fm to assume uniformly magnetised spherical nucleus (in fm).
         Default nuclear_magnetic_radius = 0, corresponding to a point-like nucleus.
      */
-    HyperfineDipoleOperator(pOPIntegrator integration_strategy, double nuclear_magnetic_radius_fm = 0.0);
+    HyperfineDipoleOperator(pIntegrator integration_strategy, double nuclear_magnetic_radius_fm = 0.0);
 
 public:
     /** Hyperfine shift with nuclear magneton in atomic units. */

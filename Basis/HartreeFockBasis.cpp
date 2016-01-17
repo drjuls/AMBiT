@@ -12,7 +12,7 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
     bool debug = DebugOptions.OutputHFExcited();
 
     // Create Hartree-Fock solver; define integrators.
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     HartreeFocker HF_Solver(ode_solver);
 

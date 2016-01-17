@@ -1,7 +1,7 @@
 #include "BasisGenerator.h"
 #include "Include.h"
 #include "HartreeFock/ConfigurationParser.h"
-#include "HartreeFock/OpIntegrator.h"
+#include "HartreeFock/Integrator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/MassShiftDecorator.h"
@@ -55,7 +55,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         exit(1);
     }
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
@@ -296,7 +296,7 @@ pCore BasisGenerator::GenerateHFCore(pCoreConst open_shell_core)
     InitialiseHF(undressed_hf);
 
     // Create Hartree-Fock solver; define integrators.
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     HartreeFocker HF_Solver(ode_solver);
 
@@ -393,7 +393,7 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
 
 void BasisGenerator::Orthogonalise(pOrbital current) const
 {
-    pOPIntegrator integrator(hf->GetOPIntegrator());
+    pIntegrator integrator(hf->GetIntegrator());
     current->ReNormalise(integrator);
 
     // Orthogonalise to core
@@ -438,7 +438,7 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
 double BasisGenerator::TestOrthogonality(OrbitalInfo& max_i, OrbitalInfo& max_j) const
 {
     double max_orth = 0.;
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     pOrbitalMap all_states;
     if(orbitals->all)

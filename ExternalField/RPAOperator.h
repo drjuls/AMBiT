@@ -9,7 +9,7 @@
 class RPAOperatorBase : public SpinorOperator
 {
 public:
-    RPAOperatorBase(int K, Parity P, pOPIntegrator integrator): SpinorOperator(K, P, integrator) {}
+    RPAOperatorBase(int K, Parity P, pIntegrator integrator): SpinorOperator(K, P, integrator) {}
     virtual void SetCore(pCoreConst rpa_core) = 0;
 };
 
@@ -22,7 +22,7 @@ class RPAOperator : public RPAOperatorBase
 {
 public:
     RPAOperator(pSpinorOperator external, pHartreeY hartreeY):
-        RPAOperatorBase(external->GetK(), external->GetParity(), external->GetOPIntegrator()),
+        RPAOperatorBase(external->GetK(), external->GetParity(), external->GetIntegrator()),
         external(external), hartreeY(hartreeY), core(nullptr)
     {}
 

@@ -126,7 +126,7 @@ double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& ri
     if(transition_integral == nullptr)
     {
         // Create new TransitionIntegrals object and calculate integrals
-        pOPIntegrator integrator(new SimpsonsIntegrator(atom.GetLattice()));
+        pIntegrator integrator(new SimpsonsIntegrator(atom.GetLattice()));
         pSpinorMatrixElementConst pOperator;
         if(type.first == MultipolarityType::E)
             pOperator = std::make_shared<EJOperator>(atom.GetPhysicalConstants(), type.second, integrator, preferred_gauge);

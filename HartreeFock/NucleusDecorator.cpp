@@ -1,7 +1,7 @@
 #include "NucleusDecorator.h"
 #include "Universal/MathConstant.h"
 
-NucleusDecorator::NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
+NucleusDecorator::NucleusDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), nuclear_radius(0.0), nuclear_thickness(0.0)
 {}
 

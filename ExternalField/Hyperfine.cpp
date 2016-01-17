@@ -2,7 +2,7 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
-HyperfineDipoleOperator::HyperfineDipoleOperator(pOPIntegrator integration_strategy, double nuclear_magnetic_radius_fm):
+HyperfineDipoleOperator::HyperfineDipoleOperator(pIntegrator integration_strategy, double nuclear_magnetic_radius_fm):
     SpinorOperator(1, Parity::even, integration_strategy), lattice(integration_strategy->GetLattice())
 {
     nuclear_radius = nuclear_magnetic_radius_fm/MathConstant::Instance()->BohrRadiusInFermi();

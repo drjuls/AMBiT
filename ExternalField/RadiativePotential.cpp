@@ -10,13 +10,13 @@
 #define accuracy_rel 1.e-10
 #define accuracy_abs 1.e-20
 
-UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pOPIntegrator integration_strategy):
+UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
     GenerateStepUehling(nuclear_rms_radius);
 }
 
-UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pOPIntegrator integration_strategy):
+UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
     GenerateUehling(density);
@@ -203,13 +203,13 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
     interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
 }
 
-MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pOPIntegrator integration_strategy):
+MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy)
 {
     GenerateStepMagnetic(nuclear_rms_radius);
 }
 
-MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pOPIntegrator integration_strategy):
+MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy)
 {
     GenerateMagnetic(density);
@@ -469,7 +469,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     interp.GetDerivative(magnetic.f, magnetic.dfdr, 6);
 }
 
-ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term, pOPIntegrator integration_strategy):
+ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), integrate_offmass_term(integrate_offmass_term)
 {
     Initialize();
@@ -477,7 +477,7 @@ ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf,
     GenerateStepElow(nuclear_rms_radius);
 }
 
-ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pOPIntegrator integration_strategy):
+ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), integrate_offmass_term(true)
 {
     Initialize();

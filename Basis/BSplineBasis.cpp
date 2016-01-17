@@ -47,7 +47,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
     }
 
     bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     // Make splines and store
     BSplineBasis spline_maker(lattice, n, k, rmax, dr0, spline_type);
@@ -317,7 +317,7 @@ pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperator hf, int kappa, int max_pq
     const double alpha = physical_constant->GetAlpha();
     const double alphasquared = physical_constant->GetAlphaSquared();
 
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     // Create splines
     std::vector<pBSpline> splines = MakeSplines(kappa, physical_constant);

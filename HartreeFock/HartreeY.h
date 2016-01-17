@@ -29,7 +29,7 @@
 class HartreeYBase : public SpinorOperator
 {
 public:
-    HartreeYBase(pOPIntegrator integration_strategy = nullptr): SpinorOperator(-1, integration_strategy), two_body_reverse_symmetry_exists(true) {}
+    HartreeYBase(pIntegrator integration_strategy = nullptr): SpinorOperator(-1, integration_strategy), two_body_reverse_symmetry_exists(true) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
@@ -141,7 +141,7 @@ typedef std::shared_ptr<const HartreeYBase> pHartreeYConst;
 class HartreeY : public HartreeYBase, public LatticeObserver
 {
 public:
-    HartreeY(pOPIntegrator integration_strategy, pCoulombOperator coulomb);
+    HartreeY(pIntegrator integration_strategy, pCoulombOperator coulomb);
     virtual ~HartreeY() {}
 
     /** Resize potential to match lattice. */
@@ -203,11 +203,11 @@ protected:
 class HartreeYDecorator : public HartreeYBase
 {
 public:
-    HartreeYDecorator(pHartreeY wrapped, pOPIntegrator integration_strategy = nullptr):
+    HartreeYDecorator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
         HartreeYBase(integration_strategy)
     {   component = wrapped;
         if(!integrator)
-            integrator = component->GetOPIntegrator();
+            integrator = component->GetIntegrator();
     }
 
     virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override

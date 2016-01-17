@@ -46,7 +46,7 @@ MultirunOptions* BasisGeneratorTester::userInput = NULL;
 TEST_F(BasisGeneratorTester, StartCore)
 {
     pHFOperatorConst hf = core_generator->GetOpenHFOperator();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     // Check that < 3s | h | 3s > = h.Energy()
     pOrbitalConst core_3s = core->GetState(OrbitalInfo(3, -1));
@@ -60,7 +60,7 @@ TEST_F(BasisGeneratorTester, BSplineBasis)
 {
     DebugOptions.OutputHFExcited(true);
     pHFOperatorConst hf = core_generator->GetOpenHFOperator();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
     pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
 
     // Check that < 4s | h | 4s > = h.Energy()
@@ -86,7 +86,7 @@ TEST_F(BasisGeneratorTester, HFBasis)
 
     DebugOptions.OutputHFExcited(true);
     pHFOperatorConst hf = core_generator->GetOpenHFOperator();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
     pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
     
     // Check that < 4s | h | 4s > = h.Energy()

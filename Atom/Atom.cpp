@@ -132,7 +132,7 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     }
 
     // And finally change all our valence orbitals to Brueckner orbitals
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     HartreeFocker hartree_focker(ode_solver);
 

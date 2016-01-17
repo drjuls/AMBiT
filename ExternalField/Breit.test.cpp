@@ -35,7 +35,7 @@ TEST(BreitTester, LiLikeNe)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
@@ -104,7 +104,7 @@ TEST(BreitTester, HgSlow)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 
@@ -162,7 +162,7 @@ TEST(BreitTester, IrSixteenPlusSlow)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
 

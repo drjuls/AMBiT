@@ -8,7 +8,7 @@
 class BreitZero : public HartreeYDecorator
 {
 public:
-    BreitZero(pHartreeY wrapped, pOPIntegrator integration_strategy, pCoulombOperator coulomb):
+    BreitZero(pHartreeY wrapped, pIntegrator integration_strategy, pCoulombOperator coulomb):
         HartreeYDecorator(wrapped, integration_strategy), coulomb(coulomb)
     {   two_body_reverse_symmetry_exists = false;
     }

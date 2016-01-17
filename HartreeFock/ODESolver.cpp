@@ -1,7 +1,7 @@
 #include "ODESolver.h"
 #include "Include.h"
 
-AdamsSolver::AdamsSolver(pOPIntegrator integrator): ODESolver(integrator)
+AdamsSolver::AdamsSolver(pIntegrator integrator): ODESolver(integrator)
 {
     order = 10;
     adams_coeff

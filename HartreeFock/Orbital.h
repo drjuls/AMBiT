@@ -3,7 +3,7 @@
 
 #include "Universal/Lattice.h"
 #include "Universal/SpinorFunction.h"
-#include "OpIntegrator.h"
+#include "Integrator.h"
 #include <memory>
 #include <string>
 #include <math.h>
@@ -66,10 +66,10 @@ public: // These functions assume that the orbital is explicitly bounded
     bool CheckSize(pLattice lattice, double tolerance);
 
     /** Get current normalisation of the orbital. */
-    virtual double Norm(pOPIntegrator integrator) const;
+    virtual double Norm(pIntegrator integrator) const;
 
     /** Scale the orbital so that it is normalised to "norm". */
-    virtual void ReNormalise(pOPIntegrator integrator, double norm = 1.);
+    virtual void ReNormalise(pIntegrator integrator, double norm = 1.);
 
     /** Count the number of nodes of the wavefunction. */
     unsigned int NumNodes() const;

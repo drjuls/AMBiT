@@ -302,7 +302,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance)
 {
     pLattice lattice = hf->GetLattice();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
 
     if(orbital->size())
     {   orbital->ReNormalise(integrator);
@@ -397,7 +397,7 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
 {
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetZ();
-    pOPIntegrator integrator = odesolver->GetIntegrator();
+    pIntegrator integrator = odesolver->GetIntegrator();
     AdamsSolver adamssolver(integrator);
 
     pSpinorFunction exchange(new SpinorFunction(orbital->Kappa()));
@@ -541,7 +541,7 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
 {
     pLattice lattice = hf->GetLattice();
     const double alpha = hf->GetPhysicalConstant()->GetAlpha();
-    pOPIntegrator integrator = hf->GetOPIntegrator();
+    pIntegrator integrator = hf->GetIntegrator();
     const SpinorFunction& ex(*exchange);
 
     orbital->ReNormalise(integrator);
@@ -589,7 +589,7 @@ double HartreeFocker::IterateOrbitalTailMatching(pOrbital orbital, pHFOperator h
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetZ();
     const double alpha = hf->GetPhysicalConstant()->GetAlpha();
-    pOPIntegrator integrator = odesolver->GetIntegrator();
+    pIntegrator integrator = odesolver->GetIntegrator();
     AdamsSolver adamssolver(integrator);
 
     // Get forward and backwards meeting point

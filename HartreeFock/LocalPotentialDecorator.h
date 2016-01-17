@@ -11,7 +11,7 @@
 class LocalPotentialDecorator : public HFOperatorDecorator<HFBasicDecorator, LocalPotentialDecorator>
 {
 public:
-    LocalPotentialDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator()):
+    LocalPotentialDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = pIntegrator()):
         BaseDecorator(wrapped_hf, integration_strategy), scale(1.)
     {}
 
@@ -48,7 +48,7 @@ protected:
 class ImportedPotentialDecorator : public HFOperatorDecorator<LocalPotentialDecorator, ImportedPotentialDecorator>
 {
 public:
-    ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy = pOPIntegrator());
+    ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pIntegrator integration_strategy = pIntegrator());
     ImportedPotentialDecorator(const ImportedPotentialDecorator& other):
         BaseDecorator(other) {}
 };
@@ -70,7 +70,7 @@ typedef std::shared_ptr<const ImportedPotentialDecorator> pImportedPotentialDeco
 class LocalExchangeApproximation : public HFOperatorDecorator<LocalPotentialDecorator, LocalExchangeApproximation>
 {
 public:
-    LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pOPIntegrator integration_strategy = pOPIntegrator());
+    LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pIntegrator integration_strategy = pIntegrator());
     LocalExchangeApproximation(const LocalExchangeApproximation& other):
         BaseDecorator(other), Xalpha(other.Xalpha)
     {}

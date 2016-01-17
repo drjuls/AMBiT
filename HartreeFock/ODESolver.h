@@ -2,7 +2,7 @@
 #define ODE_SOLVER_H
 
 #include "SpinorODE.h"
-#include "OpIntegrator.h"
+#include "Integrator.h"
 
 /** OneDimensionalODE is an abstract class for numerical integration of a simple one-dimensional
     linear ordinary differential equations (ODE) of the form
@@ -44,10 +44,10 @@ typedef std::shared_ptr<const OneDimensionalODE> pOneDimensionalODEConst;
 class ODESolver
 {
 public:
-    ODESolver(pOPIntegrator integrator): integrator(integrator), lattice(integrator->GetLattice()) {}
+    ODESolver(pIntegrator integrator): integrator(integrator), lattice(integrator->GetLattice()) {}
     virtual ~ODESolver() {}
 
-    pOPIntegrator GetIntegrator() { return integrator; }
+    pIntegrator GetIntegrator() { return integrator; }
     pLattice GetLattice() { return lattice; }
 
 public:
@@ -68,7 +68,7 @@ public:
 
 protected:
     pLattice lattice;
-    pOPIntegrator integrator;
+    pIntegrator integrator;
 };
 
 typedef std::shared_ptr<ODESolver> pODESolver;
@@ -77,7 +77,7 @@ typedef std::shared_ptr<const ODESolver> pODESolverConst;
 class AdamsSolver : public ODESolver
 {
 public:
-    AdamsSolver(pOPIntegrator integrator);
+    AdamsSolver(pIntegrator integrator);
     virtual ~AdamsSolver() {}
 
 public:

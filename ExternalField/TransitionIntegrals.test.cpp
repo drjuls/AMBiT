@@ -41,7 +41,7 @@ TEST(TransitionIntegralTester, HeTransitions)
     hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
     pCoulombOperator coulomb(new CoulombOperator(lattice));
-    pHartreeY hartreeY(new HartreeY(hf->GetOPIntegrator(), coulomb));
+    pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
     pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
@@ -73,7 +73,7 @@ TEST(TransitionIntegralTester, HeTransitions)
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
     levels = H_odd.SolveMatrix(hID, 3);
-    GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+    GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
     g_factors.CalculateGFactors(levels);
     Print(levels);
 
@@ -87,7 +87,7 @@ TEST(TransitionIntegralTester, HeTransitions)
     EXPECT_NEAR(171160, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 17000);
 
     // Calculate transition
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pSpinorMatrixElement E1(new EJOperator(constants, 1, integrator, TransitionGauge::Length));
     pTransitionIntegrals E1_matrix_elements(new TransitionIntegrals(orbitals, E1));
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);

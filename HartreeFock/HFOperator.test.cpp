@@ -22,7 +22,7 @@ TEST(HFOperatorTester, ODESolver)
     pCore core(new Core(lattice));
     core->SetOccupancies(filling);
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());

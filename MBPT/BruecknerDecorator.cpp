@@ -1,7 +1,7 @@
 #include "BruecknerDecorator.h"
 #include "Universal/Interpolator.h"
 
-BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy):
+BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy)
 {
     SetMatrixParameters();

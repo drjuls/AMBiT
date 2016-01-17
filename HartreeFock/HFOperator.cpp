@@ -4,7 +4,7 @@
 #include "Universal/Interpolator.h"
 #include "Universal/MathConstant.h"
 
-HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pOPIntegrator integration_strategy, pCoulombOperator coulomb) :
+HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb) :
     SpinorOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;

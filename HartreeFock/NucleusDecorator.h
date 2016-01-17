@@ -15,7 +15,7 @@
 class NucleusDecorator: public HFOperatorDecorator<LocalPotentialDecorator, NucleusDecorator>
 {
 public:
-    NucleusDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator());
+    NucleusDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = pIntegrator());
     NucleusDecorator(const NucleusDecorator& other):
         BaseDecorator(other), nuclear_radius(other.nuclear_radius), nuclear_thickness(other.nuclear_thickness)
     {}

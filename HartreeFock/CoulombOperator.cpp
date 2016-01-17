@@ -21,7 +21,7 @@ void CoulombOperator::GetPotential(int k, const RadialFunction& density, RadialF
     else if (ode_solver)
         ode_to_use = ode_solver;
     else
-    {   pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    {   pIntegrator integrator(new SimpsonsIntegrator(lattice));
         ode_to_use = pODESolver(new AdamsSolver(integrator));
     }
 
@@ -53,7 +53,7 @@ void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot,
     else if (ode_solver)
         ode_to_use = ode_solver;
     else
-    {   pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    {   pIntegrator integrator(new SimpsonsIntegrator(lattice));
         ode_to_use = pODESolver(new AdamsSolver(integrator));
     }
 

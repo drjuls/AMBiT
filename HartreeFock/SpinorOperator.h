@@ -2,7 +2,7 @@
 #define ONE_BODY_OPERATOR_H
 
 #include "Orbital.h"
-#include "OpIntegrator.h"
+#include "Integrator.h"
 #include "Universal/SpinorMatrixElement.h"
 
 /** SpinorOperator is a base class for calculating radial matrix elements with an orbital basis.
@@ -16,7 +16,7 @@ class SpinorOperator : public SpinorMatrixElement
 {
 public:
     using SpinorMatrixElement::SpinorMatrixElement;
-    SpinorOperator(pOPIntegrator integration_strategy): SpinorOperator(0, integration_strategy) {}
+    SpinorOperator(pIntegrator integration_strategy): SpinorOperator(0, integration_strategy) {}
 
     /** < b | t | a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
@@ -49,11 +49,11 @@ typedef std::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
 class SpinorOperatorDecorator : public SpinorOperator
 {
 public:
-    SpinorOperatorDecorator(pSpinorOperator wrapped, pOPIntegrator integration_strategy = nullptr):
+    SpinorOperatorDecorator(pSpinorOperator wrapped, pIntegrator integration_strategy = nullptr):
         SpinorOperator(wrapped->GetK(), integration_strategy)
     {   component = wrapped;
         if(!integrator)
-            integrator = component->GetOPIntegrator();
+            integrator = component->GetIntegrator();
     }
 
     /** Subclasses may call this inherited function. */

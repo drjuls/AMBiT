@@ -19,7 +19,7 @@ TEST(MassShiftDecoratorTester, CaII)
     pCore core(new Core(lattice));
     core->SetOccupancies(occ);
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());
@@ -63,7 +63,7 @@ TEST(MassShiftDecoratorTester, SrIISlow)
 
     pCore core(new Core(lattice, filling));
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());

@@ -21,7 +21,7 @@
 class NonRelativisticSMSOperator : public HartreeYDecorator
 {
 public:
-    NonRelativisticSMSOperator(pHartreeY wrapped, pOPIntegrator integration_strategy = nullptr):
+    NonRelativisticSMSOperator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
         HartreeYDecorator(wrapped, integration_strategy), lambda(1.0), p_cd(1.0)
     {   K = 1;
         two_body_reverse_symmetry_exists = false;

@@ -36,7 +36,7 @@ TEST(HyperfineTester, Rb)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     HyperfineDipoleOperator HFS(integrator);
 
     MathConstant* math = MathConstant::Instance();
@@ -76,7 +76,7 @@ TEST(HyperfineTester, Na)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator);
 
     MathConstant* math = MathConstant::Instance();
@@ -180,7 +180,7 @@ TEST(HyperfineTester, CsRPA)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     double Rmag = 5.6748; // Nuclear magnetic radius (fm)
     pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator, Rmag);
 

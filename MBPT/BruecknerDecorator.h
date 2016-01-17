@@ -14,7 +14,7 @@
 class BruecknerDecorator : public HFOperatorDecorator<HFBasicDecorator, BruecknerDecorator>
 {
 public:
-    BruecknerDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = nullptr);
+    BruecknerDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = nullptr);
     BruecknerDecorator(const BruecknerDecorator& other):
         BaseDecorator(other), sigmas(other.sigmas), lambda(other.lambda),
         use_fg(other.use_fg), use_gg(other.use_gg), matrix_stride(other.matrix_stride),

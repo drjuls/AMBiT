@@ -8,7 +8,7 @@
 class EJOperator : public SpinorMatrixElement
 {
 public:
-    EJOperator(pPhysicalConstant constants, int J, pOPIntegrator integration_strategy, TransitionGauge gauge = TransitionGauge::Length):
+    EJOperator(pPhysicalConstant constants, int J, pIntegrator integration_strategy, TransitionGauge gauge = TransitionGauge::Length):
         SpinorMatrixElement(J, integration_strategy), constants(constants), gauge(gauge)
     {}
 
@@ -25,7 +25,7 @@ protected:
 class MJOperator : public SpinorMatrixElement
 {
 public:
-    MJOperator(pPhysicalConstant constants, int J, pOPIntegrator integration_strategy):
+    MJOperator(pPhysicalConstant constants, int J, pIntegrator integration_strategy):
         SpinorMatrixElement(J, integration_strategy), constants(constants)
     {}
 

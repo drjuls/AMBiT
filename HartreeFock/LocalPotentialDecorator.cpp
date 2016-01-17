@@ -56,7 +56,7 @@ SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
     return ta;
 }
 
-ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pOPIntegrator integration_strategy):
+ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
     std::ifstream infile(filename.c_str());
@@ -89,7 +89,7 @@ ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, c
         interp.Interpolate(pot, R[i], directPotential.f[i], directPotential.dfdr[i], 6);
 }
 
-LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pOPIntegrator integration_strategy):
+LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), Xalpha(x_alpha)
 {}
 

@@ -559,7 +559,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             if(get_gfactor)
             {
-                GFactorCalculator g_factors(hf->GetOPIntegrator(), orbitals);
+                GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
                 g_factors.CalculateGFactors(levelvec);
             }
 

@@ -5,14 +5,14 @@
 #include "Universal/SpinorFunction.h"
 #include <memory>
 
-/** OPIntegrator provides an interface for integrating radial functions and spinor functions.
+/** Integrator provides an interface for integrating radial functions and spinor functions.
     A default implementation for spinor integration routines is provided, that defers the
     actual integration to the abstract function Integrate().
  */
-class OPIntegrator
+class Integrator
 {
 public:
-    OPIntegrator(pLattice lat): lattice(lat) {}
+    Integrator(pLattice lat): lattice(lat) {}
 
     virtual double Integrate(const RadialFunction& integrand) const = 0;
 
@@ -37,13 +37,13 @@ protected:
     pLattice lattice;
 };
 
-typedef std::shared_ptr<OPIntegrator> pOPIntegrator;
+typedef std::shared_ptr<Integrator> pIntegrator;
 
-/** SimpsonsIntegrator overrides many functions in OPIntegrator for speed. */
-class SimpsonsIntegrator : public OPIntegrator
+/** SimpsonsIntegrator overrides many functions in Integrator for speed. */
+class SimpsonsIntegrator : public Integrator
 {
 public:
-    SimpsonsIntegrator(pLattice lat): OPIntegrator(lat) {}
+    SimpsonsIntegrator(pLattice lat): Integrator(lat) {}
 
     virtual double Integrate(const RadialFunction& integrand) const override;
 

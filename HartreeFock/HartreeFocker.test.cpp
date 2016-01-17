@@ -23,7 +23,7 @@ TEST(HartreeFockerTester, CaIIOrbital)
     pCore core(new Core(lattice, filling));
 
     // Set up HF ODE and HartreeFocker
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());
@@ -88,7 +88,7 @@ TEST(HartreeFockerTester, ContinuumOrbital)
     pCore core(new Core(lattice, filling));
 
     // Set up HF ODE and HartreeFocker
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());
@@ -125,7 +125,7 @@ TEST(HartreeFockerTester, AuContinuum)
     pCore core(new Core(lattice, filling));
 
     // Set up HF ODE and HartreeFocker
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
     pPhysicalConstant physical_constant(new PhysicalConstant());

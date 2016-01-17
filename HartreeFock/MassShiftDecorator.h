@@ -17,7 +17,7 @@
 class MassShiftDecorator : public HFOperatorDecorator<HFBasicDecorator, MassShiftDecorator>
 {
 public:
-    MassShiftDecorator(pHFOperator wrapped_hf, pOPIntegrator integration_strategy = pOPIntegrator()):
+    MassShiftDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = pIntegrator()):
         BaseDecorator(wrapped_hf, integration_strategy), lambda(0.0) {}
     MassShiftDecorator(const MassShiftDecorator& other):
         BaseDecorator(other), lambda(other.lambda) {}

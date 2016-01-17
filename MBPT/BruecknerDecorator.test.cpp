@@ -75,7 +75,7 @@ TEST(BruecknerDecoratorTester, MgIISlow)
     EXPECT_NEAR(direct_summation - hf_energy, brueckner_matrix_element - hf_energy, 0.01 * fabs(direct_summation - hf_energy));
 
     // Iterate: usually around 10% difference
-    pOPIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     HartreeFocker hartree_focker(ode_solver);
     hartree_focker.CalculateExcitedState(brueckner_target, brueckner);
