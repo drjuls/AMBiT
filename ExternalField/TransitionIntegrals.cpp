@@ -25,7 +25,7 @@ unsigned int TransitionIntegrals::CalculateOneElectronIntegrals(pOrbitalMapConst
                 if(check_size_only)
                     found_keys.insert(key);
                 else if(!integrals.count(key))
-                    integrals[key] = op->GetMatrixElement(*s1, *s2);
+                    integrals[key] = op->GetReducedMatrixElement(*s1, *s2);
             }
             it_2++;
         }

@@ -4,7 +4,7 @@
 #include "SpinorOperator.h"
 #include "CoulombOperator.h"
 
-/** HartreeY is a one-body operator defined by
+/** HartreeY is a radial one-body operator defined by
     \f[
         Y^k_{cd}(r) = \int \frac{r_<^k}{r_>^{k+1}} \psi_c^\dag (r') \psi_d (r') dr'
                       . \xi(k + c.L() + d.L()) . \Delta(k, c.J(), d.J())
@@ -26,10 +26,10 @@
     The boolean two_body_reverse_symmetry_exists contains this information, which is
     accessible via the function ReverseSymmetryExists().
  */
-class HartreeYBase : public SpinorOperator
+class HartreeYBase
 {
 public:
-    HartreeYBase(pIntegrator integration_strategy = nullptr): SpinorOperator(-1, integration_strategy), two_body_reverse_symmetry_exists(true) {}
+    HartreeYBase(pIntegrator integration_strategy = nullptr): K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
@@ -76,6 +76,20 @@ public:
     /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
     virtual int GetMaxK() const { return -1; }
 
+    /** Get multipolarity K for this operator. */
+    virtual int GetK() const
+    {   return K;
+    }
+
+    /** Get parity of this operator. */
+    virtual Parity GetParity() const
+    {   return (K%2? Parity::odd: Parity::even);
+    }
+
+    virtual pIntegrator GetIntegrator() const
+    {   return integrator;
+    }
+
     /** Deep copy of the HartreeY object, particularly including wrapped objects.
         The caller must take responsibility for deallocating the clone. A typical idiom would be
         to wrap the pointer immediately with a shared pointer, e.g.:
@@ -84,7 +98,7 @@ public:
     virtual HartreeYBase* Clone() const { return new HartreeYBase(integrator); }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const
     {   return GetMatrixElement(b, a, false);
     }
 
@@ -102,18 +116,20 @@ public:
     /** Potential = t | a > for an operator t such that the resulting Potential has the same angular symmetry as a.
         i.e. t | a > has kappa == kappa_a.
      */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override { return ApplyTo(a, a.Kappa(), false); }
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const { return ApplyTo(a, a.Kappa(), false); }
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, bool reverse) const { return ApplyTo(a, a.Kappa(), reverse); }
 
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
         i.e. t | a > has kappa == kappa_b.
      */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override { return ApplyTo(a, kappa_b, false); }
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const { return ApplyTo(a, kappa_b, false); }
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
     {   return SpinorFunction(kappa_b);
     }
 
 protected:
+    pIntegrator integrator;
+    int K;
     bool two_body_reverse_symmetry_exists;
     pSpinorFunctionConst c;
     pSpinorFunctionConst d;

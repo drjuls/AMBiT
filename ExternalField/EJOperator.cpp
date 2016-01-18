@@ -5,7 +5,7 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/factorials.hpp>
 
-double EJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
+double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double matrix_element = 0.0;
     double coeff = 0.0;
@@ -97,7 +97,7 @@ double EJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
     return matrix_element;
 }
 
-double MJOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
+double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double matrix_element = 0.0;
     double coeff = 0.0;

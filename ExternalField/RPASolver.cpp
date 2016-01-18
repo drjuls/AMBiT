@@ -218,8 +218,8 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
 
     pIntegrator integrator = rpa->GetIntegrator();
 
-    // Apply (f + deltaV)|a>
-    SpinorFunction X_a = rpa->ApplyTo(*parent, orbital->Kappa());
+    // Apply (f + deltaV)||a>
+    SpinorFunction X_a = rpa->ReducedApplyTo(*parent, orbital->Kappa());
 
     // Apply deltaEnergy term if kappa == parent->Kappa()
     if(kappa == parent->Kappa())

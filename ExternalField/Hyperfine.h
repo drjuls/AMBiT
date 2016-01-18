@@ -14,7 +14,7 @@ public:
 
 public:
     /** Hyperfine shift with nuclear magneton in atomic units. */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
 protected:
     double nuclear_radius;

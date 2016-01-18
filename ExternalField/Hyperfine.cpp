@@ -9,7 +9,7 @@ HyperfineDipoleOperator::HyperfineDipoleOperator(pIntegrator integration_strateg
     nuclear_radius_lattice = lattice->real_to_lattice(nuclear_radius);
 }
 
-SpinorFunction HyperfineDipoleOperator::ApplyTo(const SpinorFunction& a, int kappa_b) const
+SpinorFunction HyperfineDipoleOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
 {
     SpinorFunction ret(kappa_b, a.size());
     MathConstant* math = MathConstant::Instance();

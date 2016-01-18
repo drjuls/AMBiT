@@ -33,7 +33,9 @@ public:
     /** Set parent. */
     virtual void SetParent(std::shared_ptr<RPAOrbital> new_parent) { parent = new_parent; }
 
-    /** Get DeltaEnergy: shift in energy of parent due to this DeltaOrbital. */
+    /** Get DeltaEnergy: the shift in energy of parent due to this DeltaOrbital.
+        Warning: This is the "reduced" energy, < a || f + deltaV || a > where a is the parent.
+     */
     virtual double DeltaEnergy() const { return deltaEnergy; }
     virtual void SetDeltaEnergy(double energy) { deltaEnergy = energy; }
 

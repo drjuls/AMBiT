@@ -44,9 +44,8 @@ TEST(HyperfineTester, Rb)
     double g_I = 0.54121;
     double MHz = math->AtomicFrequencyMHz();
 
-    // Convert from reduced matrix element to stretched state m = j
-    double stretched_state = math->Electron3j(s.TwoJ(), s.TwoJ(), 1, -s.TwoJ(), s.TwoJ());
-    EXPECT_NEAR(643.9, stretched_state * HFS.GetMatrixElement(s, s) * g_I/s.J() * MHz, 0.1);
+    // Comparisons made with stretched states m = j
+    EXPECT_NEAR(643.9, HFS.GetMatrixElement(s, s) * g_I/s.J() * MHz, 0.1);
 }
 
 TEST(HyperfineTester, Na)
@@ -84,18 +83,14 @@ TEST(HyperfineTester, Na)
     double g_I = 2.2176/1.5;
     double MHz = math->AtomicFrequencyMHz();
 
-    // Convert from reduced matrix element to stretched state m = j
-    double stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(623.64, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(623.64, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
 
     // p-wave
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(63.43, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(63.43, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -2));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(12.60, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(12.60, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -106,20 +101,16 @@ TEST(HyperfineTester, Na)
     rpa_solver.SolveRPACore(hf, rpa);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(767.24, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(82.33, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(82.33, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -2));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(18.01, stretched_state * rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
+    EXPECT_NEAR(18.01, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);
 
     // Brueckner orbitals
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
-    stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
 
     pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(orbitals, hf));
     pSlaterIntegrals two_body_integrals(new SlaterIntegralsMap(orbitals, basis_generator.GetHartreeY()));
@@ -151,7 +142,7 @@ TEST(HyperfineTester, Na)
     *logstream << "Iterated:   " << brueckner_target->Energy() * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
 
     // Comparison with experiment
-    EXPECT_NEAR(885.81, stretched_state * rpa->GetMatrixElement(*brueckner_target, *brueckner_target) * g_I/s->J() * MHz, 2.0);
+    EXPECT_NEAR(885.81, rpa->GetMatrixElement(*brueckner_target, *brueckner_target) * g_I/s->J() * MHz, 2.0);
 }
 
 TEST(HyperfineTester, CsRPA)
@@ -161,15 +152,15 @@ TEST(HyperfineTester, CsRPA)
     // Cs - Comparison with Dzuba code
     // [private communication; similar to Dzuba, Flambaum, Sushkov, JPB 17, 1953 (1984)]
     std::string user_input_string = std::string() +
-    "NuclearRadius = 5.6748\n" +
-    "NuclearThickness = 2.3\n" +
-    "Z = 55\n" +
-    "[HF]\n" +
-    "N = 54\n" +
-    "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6'\n" +
-    "[Basis]\n" +
-    "--hf-basis\n" +
-    "ValenceBasis = 6spd\n";
+        "NuclearRadius = 5.6748\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 55\n" +
+        "[HF]\n" +
+        "N = 54\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6'\n" +
+        "[Basis]\n" +
+        "--hf-basis\n" +
+        "ValenceBasis = 6spd\n";
 
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
@@ -193,10 +184,10 @@ TEST(HyperfineTester, CsRPA)
 
     s = orbitals->valence->GetState(OrbitalInfo(6, -1));
     stretched_state = math->Electron3j(s->TwoJ(), s->TwoJ(), 1, -s->TwoJ(), s->TwoJ());
-    EXPECT_NEAR(47.54, stretched_state * HFS->GetMatrixElement(*s, *s) * g_I/s->J() * kCm, 0.01);
+    EXPECT_NEAR(47.54, stretched_state * HFS->GetReducedMatrixElement(*s, *s) * g_I/s->J() * kCm, 0.01);
 
     d = orbitals->valence->GetState(OrbitalInfo(5, 2));
-    EXPECT_NEAR(0.505e-10, HFS->GetMatrixElement(*d, *s) * g_I, 0.001e-10);
+    EXPECT_NEAR(0.505e-10, HFS->GetReducedMatrixElement(*d, *s) * g_I, 0.001e-10);
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();

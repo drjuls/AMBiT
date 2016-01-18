@@ -29,8 +29,8 @@ public:
     /** Set core RPA orbitals. */
     virtual void SetCore(pCoreConst rpa_core) override { core = rpa_core; }
 
-    /** Return (f + deltaVhf)|a> */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
+    /** Return (f + deltaVhf)||a> */
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
 protected:
     pSpinorOperator external;
@@ -41,7 +41,7 @@ protected:
 // Template functions
 
 template<class ExternalSpinorOperator>
-SpinorFunction RPAOperator<ExternalSpinorOperator>::ApplyTo(const SpinorFunction& a, int kappa_b) const
+SpinorFunction RPAOperator<ExternalSpinorOperator>::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
 {
     SpinorFunction ret(kappa_b);
     MathConstant* math = MathConstant::Instance();
@@ -55,7 +55,7 @@ SpinorFunction RPAOperator<ExternalSpinorOperator>::ApplyTo(const SpinorFunction
     pSpinorFunctionConst pa = a.shared_from_this();
 
     // First term: <kappa || f || parent>
-    ret = external->ApplyTo(a, kappa_alph);
+    ret = external->ReducedApplyTo(a, kappa_alph);
 
     // Second term: <kappa || deltaV || parent>
     // Sum deltaV for all core states. Core states are `b', delta is `beta'.

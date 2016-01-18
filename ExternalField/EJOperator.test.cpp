@@ -41,15 +41,15 @@ TEST(EJOperatorTester, LiTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
 
-    EXPECT_NEAR(fabs(E1.GetMatrixElement(s, p1)), fabs(E1.GetMatrixElement(p1, s)), 1.e-4);
-    EXPECT_NEAR(3.3644, fabs(E1.GetMatrixElement(s, p1)), 0.0003);
-    EXPECT_NEAR(4.7580, fabs(E1.GetMatrixElement(s, p3)), 0.0005);
+    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
+    EXPECT_NEAR(3.3644, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    EXPECT_NEAR(4.7580, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 
     E1.SetGauge(TransitionGauge::Velocity);
 
-    EXPECT_NEAR(fabs(E1.GetMatrixElement(s, p3)), fabs(E1.GetMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(3.4301, fabs(E1.GetMatrixElement(s, p1)), 0.0003);
-    EXPECT_NEAR(4.8510, fabs(E1.GetMatrixElement(s, p3)), 0.0005);
+    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
+    EXPECT_NEAR(3.4301, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    EXPECT_NEAR(4.8510, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 }
 
 TEST(EJOperatorTester, NaTransitions)
@@ -85,15 +85,15 @@ TEST(EJOperatorTester, NaTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(3, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(3, -2));
 
-    EXPECT_NEAR(fabs(E1.GetMatrixElement(s, p3)), fabs(E1.GetMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(3.6906, fabs(E1.GetMatrixElement(s, p1)), 0.0003);
-    EXPECT_NEAR(5.2188, fabs(E1.GetMatrixElement(s, p3)), 0.0005);
+    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
+    EXPECT_NEAR(3.6906, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    EXPECT_NEAR(5.2188, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 
     E1.SetGauge(TransitionGauge::Velocity);
 
-    EXPECT_NEAR(fabs(E1.GetMatrixElement(s, p1)), fabs(E1.GetMatrixElement(p1, s)), 1.e-4);
-    EXPECT_NEAR(3.6516, fabs(E1.GetMatrixElement(s, p1)), 0.0003);
-    EXPECT_NEAR(5.1632, fabs(E1.GetMatrixElement(s, p3)), 0.0005);
+    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
+    EXPECT_NEAR(3.6516, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    EXPECT_NEAR(5.1632, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 }
 
 TEST(MJOperatorTester, LiTransitions)
@@ -128,6 +128,6 @@ TEST(MJOperatorTester, LiTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
 
-    EXPECT_NEAR(fabs(M1.GetMatrixElement(p3, p1)), fabs(M1.GetMatrixElement(p1, p3)), 1.e-4);
-    EXPECT_NEAR(2./sqrt(3.), fabs(M1.GetMatrixElement(p3, p1)), 0.0003);
+    EXPECT_NEAR(fabs(M1.GetReducedMatrixElement(p3, p1)), fabs(M1.GetReducedMatrixElement(p1, p3)), 1.e-4);
+    EXPECT_NEAR(2./sqrt(3.), fabs(M1.GetReducedMatrixElement(p3, p1)), 0.0003);
 }

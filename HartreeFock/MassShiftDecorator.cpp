@@ -78,7 +78,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     exchange.resize(s.size());
 
     pHartreeY zero(new HartreeYBase());
-    pSpinorOperator sms(new NonRelativisticSMSOperator(zero, integrator));
+    pHartreeY sms(new NonRelativisticSMSOperator(zero, integrator));
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);

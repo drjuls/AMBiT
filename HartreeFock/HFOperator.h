@@ -9,7 +9,7 @@
 
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     \f[
-    t = \left( \begin{array}{cc}
+    h = \left( \begin{array}{cc}
                   -V             & (-d/dr + \kappa/r)/\alpha \\
         (d/dr + \kappa/r)/\alpha &     -2/\alpha^2 - V
         \end{array} \right)
@@ -82,9 +82,49 @@ public:
     virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const override;
 
 public:
-    /** Potential = t | a > for an operator t. */
+    /** I prefer to work with normal (not reduced) operators for Hartree-Fock, since in this case
+            h | a > = E_a | a >
+        For operators with K = 0, hence for non-zero operators j_a = j_b and m_a = m_b, these are related by
+            < b || h || a > = sqrt(2j+1) < b | h | a >
+     */
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override;
+
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const override
+    {
+        if(a.Kappa() == kappa_b)
+            return ApplyTo(a);
+        else
+            return SpinorFunction(kappa_b);
+    }
+
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override
+    {
+        SpinorFunction ta = ApplyTo(a, b.Kappa());
+        if(!integrator)
+        {   *errstream << "HFOperator::GetMatrixElement(): no integrator found." << std::endl;
+            exit(1);
+        }
+        return integrator->GetInnerProduct(ta, b);
+    }
+
+    /** Overriden so multiplication by sqrt(2j+1) is applied to matrix element, not entire orbital. */
+    virtual double GetReducedMatrixElement(const Orbital& b, const Orbital& a) const override
+    {
+        SpinorFunction ta = this->ApplyTo(a, b.Kappa());
+        if(!integrator)
+        {   *errstream << "HFOperator::GetMatrixElement(): no integrator found." << std::endl;
+            exit(1);
+        }
+        return integrator->GetInnerProduct(ta, b) * sqrt(a.TwoJ() + 1);
+    }
+
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a) const override
+    {   return ApplyTo(a) * sqrt(a.TwoJ() + 1);
+    }
+
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override
+    {   return ApplyTo(a, kappa_b) * sqrt(a.TwoJ() + 1);
+    }
 
 protected:
     virtual SpinorFunction CalculateExchange(const SpinorFunction& s) const;

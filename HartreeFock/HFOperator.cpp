@@ -5,21 +5,21 @@
 #include "Universal/MathConstant.h"
 
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb) :
-    SpinorOperator(integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
+    SpinorOperator(0, integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
     SetCore(hf_core);
 }
 
 HFOperator::HFOperator(const HFOperator& other):
-    SpinorOperator(other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(0, other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     Z = other.Z;
     SetCore(other.GetCore());
 }
 
 HFOperator::HFOperator(double Z, const HFOperator& other):
-    SpinorOperator(other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
+    SpinorOperator(0, other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
 {
     this->Z = Z;
     charge = other.charge;
@@ -342,14 +342,6 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
     }
 
     return ta;
-}
-
-SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a, int kappa_b) const
-{
-    if(a.Kappa() == kappa_b)
-        return ApplyTo(a);
-    else
-        return SpinorFunction(kappa_b);
 }
 
 SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
