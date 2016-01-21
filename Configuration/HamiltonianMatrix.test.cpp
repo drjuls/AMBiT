@@ -44,7 +44,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     // Generate integrals
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+    pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
     hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
     pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -132,7 +132,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -188,7 +188,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -277,7 +277,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -334,7 +334,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -368,7 +368,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
-        
+
         ASSERT_EQ(elv.size(), hlv.size());
 
         for(int i = 0; i < elv.size(); i++)
@@ -422,7 +422,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -477,7 +477,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -570,7 +570,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
@@ -623,7 +623,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
-        pOneElectronIntegrals hf_electron(new OneElectronIntegrals(orbitals, hf));
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));

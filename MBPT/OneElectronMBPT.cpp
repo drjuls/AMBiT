@@ -1,6 +1,6 @@
 #include "OneElectronMBPT.h"
 
-OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pOneElectronIntegrals bare_one_body, pSlaterIntegrals bare_two_body):
+OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body):
     OneElectronMBPT(orbitals, pCoreMBPTCalculator(new CoreMBPTCalculator(orbitals, bare_one_body, bare_two_body)), bare_one_body->GetOperator())
 {}
 

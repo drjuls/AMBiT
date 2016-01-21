@@ -3,6 +3,7 @@
 
 #include "Universal/SpinorFunction.h"
 #include "HartreeFock/Orbital.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include "Include.h"
 
 /** SpinorMatrixElement is a base class for calculating radial matrix elements with an orbital basis. */
@@ -48,7 +49,19 @@ public:
     /** Return false if matrix element is zero by symmetry (angular) properties only. */
     bool IsNonZero(const Orbital& b, const Orbital& a) const
     {
-        return ((abs(a.TwoJ() - b.TwoJ()) <= 2 * K) && (a.GetParity() * b.GetParity() == P));
+        if(K == 0)
+            return a.Kappa() == b.Kappa();
+        else
+            return ((abs(a.TwoJ() - b.TwoJ()) <= 2 * K) && (a.GetParity() * b.GetParity() == P));
+    }
+
+    /** Return false if matrix element is zero by symmetry (angular) properties only. */
+    bool IsNonZero(const OrbitalInfo& b, const OrbitalInfo& a) const
+    {
+        if(K == 0)
+            return a.Kappa() == b.Kappa();
+        else
+            return ((abs(a.TwoJ() - b.TwoJ()) <= 2 * K) && (a.GetParity() * b.GetParity() == P));
     }
 
 protected:

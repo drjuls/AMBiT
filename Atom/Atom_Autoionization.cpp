@@ -137,7 +137,7 @@ void Atom::Autoionization(pLevelConst target)
                 pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
                 all_orbitals->all->AddState(eps);
                 all_orbitals->MakeStateIndexes();
-                pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(all_orbitals, hf));
+                pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
                 pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
                 one_body_integrals->clear();
                 one_body_integrals->CalculateOneElectronIntegrals(valence, continuum_map);
@@ -146,7 +146,7 @@ void Atom::Autoionization(pLevelConst target)
 
                 // Create operator for autoionization
                 pTwoElectronCoulombOperator two_body_operator(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
-                ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
+                ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
                 // Couple target and epsilon; start with maximum target M
                 auto target_config_it = target_configs.begin();
@@ -274,7 +274,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
 
     // Create two-body integrals
     all_orbitals->MakeStateIndexes();
-    pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(all_orbitals, hf));
+    pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
     pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
     one_body_integrals->clear();
     one_body_integrals->CalculateOneElectronIntegrals(valence, continuum_map);
@@ -283,7 +283,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
 
     // Create operator for autoionization
     pTwoElectronCoulombOperator two_body_operator(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
-    ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
+    ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
     // Create copies of target_configs with different two_M
     std::vector<pRelativisticConfigList> target_configs;

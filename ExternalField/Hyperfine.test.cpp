@@ -112,7 +112,7 @@ TEST(HyperfineTester, Na)
     // Brueckner orbitals
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
 
-    pOneElectronIntegrals one_body_integrals(new OneElectronIntegrals(orbitals, hf));
+    pHFIntegrals one_body_integrals(new HFIntegrals(orbitals, hf));
     pSlaterIntegrals two_body_integrals(new SlaterIntegralsMap(orbitals, basis_generator.GetHartreeY()));
     CoreMBPTCalculator mbpt(orbitals, one_body_integrals, two_body_integrals);
     mbpt.UpdateIntegrals();

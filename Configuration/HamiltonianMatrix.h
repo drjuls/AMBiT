@@ -12,14 +12,14 @@
 #include "MBPT/TwoElectronCoulombOperator.h"
 #include <Eigen/Eigen>
 
-typedef ManyBodyOperator<pOneElectronIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
+typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef std::shared_ptr<const TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperatorConst;
 
 class HamiltonianMatrix : public Matrix
 {
 public:
-    HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void MatrixMultiply(int m, double* b, double* c) const;

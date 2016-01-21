@@ -2,7 +2,7 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 
-CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals two_body):
+CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body):
     MBPTCalculator(orbitals), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 

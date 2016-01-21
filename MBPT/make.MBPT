@@ -1,5 +1,5 @@
 cxxobjects = BruecknerDecorator.o CoreMBPTCalculator.o \
-             MBPTCalculator.o OneElectronIntegrals.o OneElectronMBPT.o \
+             MBPTCalculator.o OneElectronMBPT.o \
              SigmaPotential.o
 cobjects = 
 fobjects =

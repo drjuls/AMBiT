@@ -2,7 +2,6 @@
 #define TRANSITIONS_H
 
 #include "Atom/Atom.h"
-#include "ExternalField/TransitionIntegrals.h"
 #include "Configuration/Level.h"
 #include "Universal/Enums.h"
 #include <ctype.h>

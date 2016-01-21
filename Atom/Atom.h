@@ -170,7 +170,7 @@ protected:
     pOrbitalManagerConst orbitals;
     pHartreeY hartreeY;
 
-    pOneElectronIntegrals hf_electron;              //!< One-body Hamiltonian
+    pHFIntegrals hf_electron;                       //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
     pConfigList nrconfigs;
     pAngularDataLibrary angular_library;

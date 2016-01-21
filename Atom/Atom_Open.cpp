@@ -31,7 +31,7 @@ void Atom::MakeMBPTIntegrals()
         return;
 
     // Bare integrals for MBPT
-    pOneElectronIntegrals bare_one_body_integrals(new OneElectronIntegrals(orbitals, hf));
+    pHFIntegrals bare_one_body_integrals(new HFIntegrals(orbitals, hf));
     pSlaterIntegrals bare_two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
     pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, bare_one_body_integrals, bare_two_body_integrals));
 
@@ -159,7 +159,7 @@ void Atom::MakeIntegrals()
     }
     else
     {   // Normal integrals
-        hf_electron.reset(new OneElectronIntegrals(orbitals, hf));
+        hf_electron.reset(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(valence, valence);
 
         // Don't need two body integrals if we're not doing CI

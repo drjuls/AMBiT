@@ -4,12 +4,12 @@
 // #include "CoreValenceIntegrals.h"
 
 template <class MapType>
-CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pHartreeY hartreeY_op):
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pHartreeY hartreeY_op):
     CoreValenceIntegrals(one_body, pSlaterIntegrals(new SlaterIntegrals<MapType>(orbitals, hartreeY_op)))
 {}
 
 template <class MapType>
-CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals bare_integrals):
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals bare_integrals):
     SlaterIntegrals<MapType>(orbitals, false), core_PT(nullptr),
     include_core(true), include_core_subtraction(true), include_core_extra_box(true),
     include_valence(false), include_valence_subtraction(false), include_valence_extra_box(false)

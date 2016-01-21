@@ -9,7 +9,7 @@ class EJOperator : public SpinorMatrixElement
 {
 public:
     EJOperator(pPhysicalConstant constants, int J, pIntegrator integration_strategy, TransitionGauge gauge = TransitionGauge::Length):
-        SpinorMatrixElement(J, integration_strategy), constants(constants), gauge(gauge)
+        SpinorMatrixElement(J, (J%2? Parity::odd: Parity::even), integration_strategy), constants(constants), gauge(gauge)
     {}
 
     virtual void SetGauge(TransitionGauge gauge_type) { gauge = gauge_type; }
@@ -26,7 +26,7 @@ class MJOperator : public SpinorMatrixElement
 {
 public:
     MJOperator(pPhysicalConstant constants, int J, pIntegrator integration_strategy):
-        SpinorMatrixElement(J, integration_strategy), constants(constants)
+        SpinorMatrixElement(J, (J%2? Parity::even: Parity::odd), integration_strategy), constants(constants)
     {}
 
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */

@@ -4,10 +4,10 @@
 #include "OneElectronIntegrals.h"
 #include "CoreMBPTCalculator.h"
 
-class OneElectronMBPT : public OneElectronIntegrals
+class OneElectronMBPT : public HFIntegrals
 {
 public:
-    OneElectronMBPT(pOrbitalManagerConst orbitals, pOneElectronIntegrals bare_one_body, pSlaterIntegrals bare_two_body);
+    OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body);
     OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator = nullptr);
 
     virtual ~OneElectronMBPT() {}

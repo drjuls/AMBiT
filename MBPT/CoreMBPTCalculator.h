@@ -23,7 +23,7 @@
 class CoreMBPTCalculator : public MBPTCalculator
 {
 public:
-    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals two_body);
+    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body);
     virtual ~CoreMBPTCalculator();
 
     virtual unsigned int GetStorageSize() override;
@@ -124,7 +124,7 @@ protected:
     double CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
 protected:
-    pOneElectronIntegrals one_body;
+    pHFIntegrals one_body;
     pSlaterIntegrals two_body;
 
     pOrbitalMapConst core;

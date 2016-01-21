@@ -16,10 +16,10 @@ protected:
 
 public:
     /** Use bare integrals with the same MapType: SlaterIntegrals<MapType>. */
-    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pHartreeY hartreeY_op);
+    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pHartreeY hartreeY_op);
 
     /** Specify container object for bare integrals. */
-    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pOneElectronIntegrals one_body, pSlaterIntegrals bare_integrals);
+    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals bare_integrals);
 
     /** Specify CoreMBPTCalculator directly. */
     CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator);

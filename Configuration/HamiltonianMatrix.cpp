@@ -22,7 +22,7 @@
 // (instead of just one).
 //#define SIGMA3_AND
 
-HamiltonianMatrix::HamiltonianMatrix(pOneElectronIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
     H_two_body(nullptr), configs(relconfigs), most_chunk_rows(0) //, include_sigma3(false)
 {
     // Set up Hamiltonian operator
