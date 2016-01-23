@@ -37,10 +37,16 @@ public:
 
     inline MultirunOptions& operator=(const MultirunOptions& other);
 
-    // (*) absorbing contents of another MultirunOptions object
+    /** (*) absorbing contents of another MultirunOptions object */
     inline void absorb(const MultirunOptions& That);
 
-    inline int GetNumRuns() const;
+    /** Check if variable name is present in GetPot. */
+    inline bool VariableExists(const std::string& variable);
+
+    /** Check if section is present in GetPot. */
+    inline bool SectionExists(const std::string& section_name);
+
+    inline int GetNumRuns() const;      //!< Get number of runs indicated by Multirun variable
     inline void SetRun(int run_index);
 
     /** Attempt to find a run where varying parameter is zero.
@@ -65,6 +71,8 @@ public:
     using GetPot::operator();
     inline double operator()(const char* VarName, const double& Default) const;
 
+    void set_prefix(const std::string& Prefix);
+
 protected:
     inline void ParseMultirun();
 
@@ -75,6 +83,8 @@ protected:
 
     int num_runs;
     int current_run_index;
+
+    STRING_VECTOR subsection_list;
 };
 
 inline MultirunOptions::MultirunOptions(): GetPot(), num_runs(1), current_run_index(0)
@@ -144,6 +154,22 @@ inline void MultirunOptions::absorb(const MultirunOptions& other)
         multirun_keys.insert(multirun_keys.end(), other.multirun_keys.begin(), other.multirun_keys.end());
         multirun_values.insert(multirun_values.end(), other.multirun_values.begin(), other.multirun_values.end());
     }
+
+    subsection_list.insert(subsection_list.end(), other.subsection_list.begin(), other.subsection_list.end());
+    std::sort(subsection_list.begin(), subsection_list.end());
+    auto end = std::unique(subsection_list.begin(), subsection_list.end());
+    subsection_list.resize(std::distance(subsection_list.begin(), end));
+    subsection_list.shrink_to_fit();
+}
+
+bool MultirunOptions::VariableExists(const std::string& variable)
+{
+    return (vector_variable_size(variable.c_str()) != 0);
+}
+
+bool MultirunOptions::SectionExists(const std::string& section_name)
+{
+    return std::binary_search(subsection_list.begin(), subsection_list.end(), section_name);
 }
 
 inline double MultirunOptions::operator()(const char* VarName, const double& Default) const
@@ -164,6 +190,14 @@ inline double MultirunOptions::operator()(const char* VarName, const double& Def
         ret = GetPot::operator()(VarName, Default);
 
     return ret;
+}
+
+inline void MultirunOptions::set_prefix(const std::string& Prefix)
+{
+    prefix = Prefix;
+
+    if(prefix.size() && *prefix.rbegin() != '/')
+        prefix += '/';
 }
 
 inline int MultirunOptions::GetNumRuns() const
@@ -232,6 +266,17 @@ inline void MultirunOptions::ParseMultirun()
             multirun_values.push_back(values);
         }
     }
+
+    // Get all subsections
+    subsection_list.clear();
+    for_each(++argv.begin(), argv.end(), [&](const std::string& arg){
+        STRING_VECTOR temp = __get_section_tree(arg);
+        subsection_list.insert(subsection_list.end(), temp.begin(), temp.end());
+    });
+
+    std::sort(subsection_list.begin(), subsection_list.end());
+    auto end = std::unique(subsection_list.begin(), subsection_list.end());
+    subsection_list.resize(std::distance(subsection_list.begin(), end));
 }
 
 #endif

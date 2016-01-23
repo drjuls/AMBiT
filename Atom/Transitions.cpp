@@ -1,181 +1,248 @@
 #include "Transitions.h"
-#include "ExternalField/EJOperator.h"
 #include "Include.h"
+#include "HamiltonianTypes.h"
+#include "HartreeFock/ConfigurationParser.h"
 
 std::string Name(const LevelID& levelid)
 {
-    return (levelid.first->Name() + itoa(levelid.second));
+    return (levelid.first->Name() + ":" + itoa(levelid.second));
 }
 
-LevelID make_LevelID(const std::string& name)
+void TransitionCalculator::CalculateAndPrint()
 {
-    int twoJ;
-    Parity P;
-    int index;
+    // Get all named matrix elements
+    int num_transitions = user_input.vector_variable_size("MatrixElements");
+    bool all_below = user_input.VariableExists("AllBelow");
 
-    std::stringstream ss(name);
-    ss >> twoJ;
-    if(ss.get() == 'o')
-        P = Parity::odd;
-    else
-        P = Parity::even;
+    PrintHeader();
 
-    ss >> index;
+    for(int i = 0; i < num_transitions; i++)
+        CalculateTransition(user_input("MatrixElements", "", i));
 
-    return std::make_pair(std::make_shared<HamiltonianID>(twoJ, P), index);
-}
-
-TransitionMap::TransitionMap(Atom& atom, TransitionGauge gauge, TransitionType max):
-    atom(atom), preferred_gauge(gauge), max_type(max)
-{
-    orbitals = atom.GetBasis();
-    levels = atom.GetLevels();
-}
-
-TransitionID TransitionMap::make_transitionID(const LevelID& left, const LevelID& right, TransitionType type) const
-{
-    if(left < right)
-        return std::make_tuple(left, right, type);
-    else
-        return std::make_tuple(right, left, type);
-}
-
-bool TransitionMap::TransitionExists(const Symmetry& left, const Symmetry& right, TransitionType type) const
-{
-    int deltaJ = abs(left.GetTwoJ() - right.GetTwoJ())/2;
-    if(((left.GetTwoJ() + right.GetTwoJ())/2 < type.second)
-       || (deltaJ > type.second))
+    if(!all_below)
     {
-        return false;
+        if(!num_transitions)
+            *outstream << "  No transitions requested." << std::endl;
+
+        return;
     }
 
-    if((type.first == MultipolarityType::E && type.second%2 == 1)       // E1, E3, ...
-       || (type.first == MultipolarityType::M && type.second%2 == 0))   // M2, M4, ...
+    // Calculate all transitions of a certain type below a given energy
+    double max_energy = user_input("AllBelow", 0.0);
+    bool found_one = false;
+
+    auto left_it = levels->begin();
+    while(left_it != levels->end())
     {
-        if(left.GetParity() == right.GetParity())
+        auto right_it = left_it;
+        right_it++;
+        while(right_it != levels->end())
         {
-            return false;
+            if(TransitionExists((*left_it)->GetSymmetry(), (*right_it)->GetSymmetry()))
+            {
+                LevelVector left_vec = levels->GetLevels(*left_it);
+                for(int i = 0; i < left_vec.size(); i++)
+                {
+                    if(left_vec[i]->GetEnergy() > max_energy)
+                        break;
+
+                    LevelVector right_vec = levels->GetLevels(*right_it);
+                    for(int j = 0; j < right_vec.size(); j++)
+                    {
+                        if(right_vec[j]->GetEnergy() > max_energy)
+                            break;
+
+                        found_one = true;
+                        CalculateTransition(std::make_pair(*left_it, i), std::make_pair(*right_it, j));
+                    }
+                }
+            }
+            right_it++;
         }
-    }
-    else if(left.GetParity() != right.GetParity())
-    {
-        return false;
+        left_it++;
     }
 
-    return true;
+    if(!found_one)
+    {   *outstream << "  No transitions below E = " << max_energy << std::endl;
+        return;
+    }
 }
 
-double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right)
+void TransitionCalculator::PrintAll() const
 {
-    // Get minimum transition type
-    int deltaJ = abs(left.first->GetTwoJ() - right.first->GetTwoJ())/2;
-    if(deltaJ == 0)
+    if(matrix_elements.size())
     {
-        if(left.first->GetTwoJ() == 0) // 0 -> 0 transition
-            return 0.;
-        deltaJ++;
+        PrintHeader();
+        for(auto& pair: matrix_elements)
+            PrintTransition(pair.first.first, pair.first.second, pair.second);
     }
-
-    TransitionType type;
-    type.second = deltaJ;
-
-    if((deltaJ%2 == 1 && left.first->GetParity() != right.first->GetParity())
-        || (deltaJ%2 == 0 && left.first->GetParity() == right.first->GetParity()))
-    {
-        type.first = MultipolarityType::E;
-    }
-    else
-        type.first = MultipolarityType::M;
-
-    if(max_type < type)
-        return 0.;
-
-    return CalculateTransition(left, right, type);
 }
 
-double TransitionMap::CalculateTransition(const LevelID& left, const LevelID& right, TransitionType type)
+double TransitionCalculator::CalculateTransition(const LevelID& left, const LevelID& right)
 {
-    // Check it doesn't exist already
-    TransitionID id = make_transitionID(left, right, type);
-
-    if(this->find(id) != this->end())
-        return (*this)[id];
+    double return_value = 0.0;
 
     // Check transition is allowed
-    if(!TransitionExists(left, right, type))
-    {   *errstream << "Transitions::AddTransition(): Transition not allowed: "
-                   << Name(left) << " -> " << Name(right) << " (" << type << ")" << std::endl;
-        return 0.;
-    }
-
-    // Get levels
-    LevelVector left_levels = levels->GetLevels(left.first);
-    if(left_levels.size() <= left.second)
-    {   *errstream << "Transitions::AddTransition(): Level " << Name(left) << " not found." << std::endl;
-        return 0.;
-    }
-
-    LevelVector right_levels = levels->GetLevels(right.first);
-    if(right_levels.size() <= right.second)
-    {   *errstream << "Transitions::AddTransition(): Level " << Name(right) << " not found." << std::endl;
-        return 0.;
-    }
-
-    // Get transition integrals
-    pTransitionIntegrals transition_integral = integrals[type];
-    if(transition_integral == nullptr)
+    if(TransitionExists(left, right))
     {
-        // Create new TransitionIntegrals object and calculate integrals
-        pIntegrator integrator(new SimpsonsIntegrator(atom.GetLattice()));
-        pSpinorMatrixElementConst pOperator;
-        if(type.first == MultipolarityType::E)
-            pOperator = std::make_shared<EJOperator>(atom.GetPhysicalConstants(), type.second, integrator, preferred_gauge);
-        else
-            pOperator = std::make_shared<MJOperator>(atom.GetPhysicalConstants(), type.second, integrator);
+        // Check it doesn't exist already
+        TransitionID id = make_transitionID(left, right);
 
-        transition_integral.reset(new TransitionIntegrals(orbitals, pOperator));
-
-        integrals[type] = transition_integral;
-        transition_integral->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-    }
-
-    ManyBodyOperator<pTransitionIntegrals> many_body_operator(transition_integral);
-
-    // Get matrix elements for all transitions with same HamiltonianIDs
-    std::vector<double> values;
-    values = many_body_operator.GetMatrixElement(left_levels, right_levels);
-
-    // Convert to strength and add to TransitionMap
-    double angular_projection_factor = 1./MathConstant::Instance()->Electron3j(right.first->GetTwoJ(), left.first->GetTwoJ(), type.second, right.first->GetTwoJ(), -left.first->GetTwoJ());
-
-    auto value_iterator = values.begin();
-    for(int i = 0; i < left_levels.size(); i++)
-    {
-        for(int j = 0; j < right_levels.size(); j++)
+        auto found_it = matrix_elements.find(id);
+        if(found_it != matrix_elements.end())
         {
-            double value = (*value_iterator) * angular_projection_factor;
-            value = value * value;
+            return_value = found_it->second;
+        }
+        else
+        {   // Get levels
+            LevelVector left_levels = levels->GetLevels(left.first);
+            if(left_levels.size() <= left.second)
+            {   *errstream << "TransitionCalculator: Level " << Name(left) << " not found." << std::endl;
+                return 0.;
+            }
 
-            TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j), type);
-            (*this)[current_id] = value;
-            value_iterator++;
+            LevelVector right_levels = levels->GetLevels(right.first);
+            if(right_levels.size() <= right.second)
+            {   *errstream << "TransitionCalculator: Level " << Name(right) << " not found." << std::endl;
+                return 0.;
+            }
+
+            // Get transition integrals
+            if(integrals == nullptr)
+            {
+                // Create new TransitionIntegrals object and calculate integrals
+                integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+            }
+
+            ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
+
+            // Get matrix elements for all transitions with same HamiltonianIDs
+            std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
+
+            // Add to matrix_elements map
+            auto value_iterator = values.begin();
+            for(int i = 0; i < left_levels.size(); i++)
+            {
+                for(int j = 0; j < right_levels.size(); j++)
+                {
+                    TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
+                    matrix_elements.insert(std::make_pair(current_id, *value_iterator));
+                    value_iterator++;
+                }
+            }
+
+            return_value = matrix_elements[id];
         }
     }
 
-    // Get transition specifically requested, print and return
-    double value = (*this)[id];
-    *outstream << "  " << Name(left) << " -> " << Name(right) << ": S(" << type << ") = " << value << std::endl;
-
-    return value;
+    // Return transition specifically requested
+    PrintTransition(left, right, return_value);
+    return return_value;
 }
 
-void TransitionMap::Print() const
+double TransitionCalculator::CalculateTransition(const std::string& transition)
 {
-    *outstream << "\nTransition strengths (S):\n";
-    for(auto& pair: *this)
+    int pos = transition.find("->");
+    if(pos == std::string::npos)
     {
-        const TransitionID& id = pair.first;
-        *outstream << "  " << Name(std::get<0>(id)) << " -> " << Name(std::get<1>(id))
-                   << " (" << std::get<2>(id) << ") = " << pair.second << std::endl;
+        LevelID only(make_LevelID(transition.substr(0, pos)));
+
+        if(!only.first)
+        {   *errstream << "TransitionCalculator: " << transition << " incorrectly formed." << std::endl;
+            return 0.;
+        }
+        return CalculateTransition(only, only);
     }
+    else
+    {   LevelID left(make_LevelID(transition.substr(0, pos)));
+        LevelID right(make_LevelID(transition.substr(pos+2)));
+
+        if(!left.first || !right.first)
+        {   *errstream << "TransitionCalculator: " << transition << " incorrectly formed." << std::endl;
+            return 0.;
+        }
+
+        return CalculateTransition(left, right);
+    }
+}
+
+LevelID TransitionCalculator::make_LevelID(const std::string& name)
+{
+    LevelID ret(nullptr, 0);
+
+    // Single particle type
+    if(user_input.search("--no-ci") || user_input.search("--no-CI"))
+    {
+        OrbitalInfo info = ConfigurationParser::ParseOrbital<OrbitalInfo>(name);
+
+        ret.first = std::make_shared<SingleOrbitalID>(info);
+        ret.second = 0;
+    }
+    // Non-relativistic configuration type
+    else if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
+    {
+        int index_break = name.find(":");
+        int fullstop_break = name.find(".");
+        if(index_break == std::string::npos || fullstop_break == std::string::npos || fullstop_break > index_break)
+            return ret;
+
+        NonRelConfiguration config = ConfigurationParser::ParseConfiguration<NonRelInfo, int>(name.substr(0, fullstop_break));
+
+        // Get symmetry
+        int p = fullstop_break+1;
+        int twoJ = atoi(name.c_str() + p);
+        if((twoJ < 0) || (twoJ > 100))
+            return ret;
+        while(name[p] && (isdigit(name[p]) || isblank(name[p])))
+            p++;
+
+        Parity P;
+        if(name[p] == 'o')
+            P = Parity::odd;
+        else if(name[p] == 'e')
+            P = Parity::even;
+        else
+            return ret;
+
+        int index = atoi(name.c_str() + index_break + 1);
+        if(index < 0 || P != config.GetParity())
+            return ret;
+
+        ret.first = std::make_shared<NonRelID>(config, twoJ);
+        ret.second = index;
+    }
+    // Usual HamiltonianID type
+    else
+    {   int twoJ = -1;
+        Parity P;
+        int index = -1;
+
+        std::stringstream ss(name);
+        ss >> twoJ;
+        if((twoJ < 0) || (twoJ > 100) || !ss.good())
+            return ret;
+
+        char c = ss.get();
+        if(c == 'o' && ss.good())
+            P = Parity::odd;
+        else if(c == 'e' && ss.good())
+            P = Parity::even;
+        else
+            return ret;
+
+        // Colon is optional for usual type
+        if(ss.peek() == ':')
+            ss.get();
+
+        ss >> index;
+        if(index < 0)
+            return ret;
+
+        ret.first = std::make_shared<HamiltonianID>(twoJ, P);
+        ret.second = index;
+    }
+
+
+    return ret;
 }

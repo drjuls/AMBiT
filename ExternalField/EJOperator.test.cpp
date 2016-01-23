@@ -38,7 +38,7 @@ TEST(EJOperatorTester, LiTransitions)
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    EJOperator E1(constants, 1, integrator);
+    EJOperator E1(1, integrator);
 
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(2, -1));
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
@@ -79,10 +79,9 @@ TEST(EJOperatorTester, NaTransitions)
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-    pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    EJOperator E1(constants, 1, integrator);
+    EJOperator E1(1, integrator);
 
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(3, -1));
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(3, 1));
@@ -123,10 +122,9 @@ TEST(MJOperatorTester, LiTransitions)
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-    pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    MJOperator M1(constants, 1, integrator);
+    MJOperator M1(1, integrator);
 
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
@@ -216,7 +214,7 @@ TEST(EJOperatorTester, HeTransitions)
 
     // Calculate transition
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorMatrixElement E1(new EJOperator(constants, 1, integrator, TransitionGauge::Length));
+    pSpinorMatrixElement E1(new EJOperator(1, integrator, TransitionGauge::Length));
     pTransitionIntegrals E1_matrix_elements(new TransitionIntegrals(orbitals, E1));
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
@@ -304,7 +302,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         LevelVector levels = H.SolveMatrix(key, 3);
 
         // Calculate transition
-        pSpinorMatrixElement M1(new MJOperator(basis_generator.GetPhysicalConstant(), 1, hf->GetIntegrator()));
+        pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, hf->GetIntegrator());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
@@ -367,7 +365,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         // Calculate transition
         pIntegrator integrator(new SimpsonsIntegrator(lattice));
-        pSpinorMatrixElement M1(new MJOperator(basis_generator.GetPhysicalConstant(), 1, integrator));
+        pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, integrator);
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);

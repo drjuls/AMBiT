@@ -23,12 +23,11 @@ double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
         return 0.0;
     }
 
-    const double alpha = constants->GetAlpha();
     const double* R = integrator->GetLattice()->R();
 
     // p = omega/c, in atomic units
     double omega = fabs(a.Energy() - b.Energy());
-    double p = omega * alpha;
+    double p = omega/math->SpeedOfLightAU();
 
     if(gauge == TransitionGauge::Length)
     {
@@ -111,12 +110,11 @@ double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
         return 0.0;
     }
 
-    const double alpha = constants->GetAlpha();
     const double* R = integrator->GetLattice()->R();
 
     // p = omega/c, in atomic units
     double omega = fabs(a.Energy() - b.Energy());
-    double p = omega * alpha;
+    double p = omega/math->SpeedOfLightAU();
 
     if(p < 1.e-6)
     {
@@ -135,7 +133,7 @@ double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
         matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1);
 
         // This is the matrix operator with dimensions in atomic units
-        matrix_element *= 2.0 / alpha;
+        matrix_element *= 2.0 * math->SpeedOfLightAU();
     }
     else
     {
@@ -151,8 +149,35 @@ double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
         matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/pow(p, K);
 
         // This is the matrix operator with dimensions in atomic units
-        matrix_element *= 2.0 / alpha;
+        matrix_element *= 2.0 * math->SpeedOfLightAU();
     }
 
     return matrix_element;
+}
+
+EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels, pIntegrator integrator):
+    TransitionCalculator(user_input, orbitals, levels), type(type), J(J)
+{
+    if(type == MultipolarityType::E)
+        op = std::make_shared<EJOperator>(J, integrator);
+    else
+        op = std::make_shared<MJOperator>(J, integrator);
+}
+
+void EMCalculator::PrintHeader() const
+{
+    *outstream << Name(type) << J << " transition strengths (S):" << std::endl;
+}
+
+void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
+{
+    MathConstant* math = MathConstant::Instance();
+
+    // Convert to reduced matrix element and square to get strength
+    int twoj1 = left.first->GetTwoJ();
+    int twoj2 = right.first->GetTwoJ();
+    double value = matrix_element/math->Electron3j(twoj2, twoj1, J, twoj2, -twoj1);
+
+    *outstream << "  " << Name(left) << " -> " << Name(right)
+               << " = " << value * value << std::endl;
 }

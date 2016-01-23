@@ -6,6 +6,7 @@
 #include "gitInfo.h"
 #include "ambit.h"
 #include "Atom.h"
+#include "ExternalField/EJOperator.h"
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
@@ -307,95 +308,39 @@ void Ambit::EnergyCalculations()
 
 void Ambit::TransitionCalculations()
 {
-    TransitionMap transitions(atoms[first_run_index]);
+    Atom& atom = atoms[first_run_index];
 
-    // Calculate default types
-    std::vector<std::pair<std::string, TransitionType>> default_types =
-           {{"E1", TransitionType(MultipolarityType::E, 1)},
-            {"M1", TransitionType(MultipolarityType::M, 1)},
-            {"E2", TransitionType(MultipolarityType::E, 2)},
-            {"M2", TransitionType(MultipolarityType::M, 2)},
-            {"E3", TransitionType(MultipolarityType::E, 3)},
+    // EM types
+    std::vector<std::tuple<std::string, MultipolarityType, int>> EM_transition_types =
+           {{"E1", MultipolarityType::E, 1},
+            {"M1", MultipolarityType::M, 1},
+            {"E2", MultipolarityType::E, 2},
+            {"M2", MultipolarityType::M, 2},
+            {"E3", MultipolarityType::E, 3},
            };
 
-    for(const auto& type_pair: default_types)
+    std::vector<std::unique_ptr<TransitionCalculator>> calculators;
+
+    for(const auto& types: EM_transition_types)
     {
-        std::string user_string = "Transitions/" + type_pair.first;
-        int num_transitions = user_input.vector_variable_size(user_string.c_str());
-        for(int i = 0; i < num_transitions; i++)
+        std::string user_string = "Transitions/" + std::get<0>(types);
+
+        if(user_input.SectionExists(user_string))
         {
-            std::string transition = user_input(user_string.c_str(), "", i);
-            int pos = transition.find("->");
-            if(pos == std::string::npos)
-                *errstream << "TransitionCalculations: " << user_string << " = " << transition << " not properly formed." << std::endl;
-            else
-            {   LevelID left(make_LevelID(transition.substr(0, pos)));
-                LevelID right(make_LevelID(transition.substr(pos+2)));
+            user_input.set_prefix(user_string);
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom.GetBasis(), atom.GetLevels(), atom.GetHFOperator()->GetIntegrator()));
 
-                transitions.CalculateTransition(left, right, type_pair.second);
-            }
+            *outstream << "\n";
+            calculon->CalculateAndPrint();
+            calculators.push_back(std::move(calculon));
         }
     }
 
-    // Calculate non-identified transitions
-    int num_transitions = user_input.vector_variable_size("Transitions/Transitions");
-    for(int i = 0; i < num_transitions; i++)
+    for(auto& calc: calculators)
     {
-        std::string transition = user_input("Transitions/Transitions", "", i);
-        int pos = transition.find("->");
-        if(pos == std::string::npos)
-            *errstream << "TransitionCalculations: " << transition << " not properly formed." << std::endl;
-        else
-        {   LevelID left(make_LevelID(transition.substr(0, pos)));
-            LevelID right(make_LevelID(transition.substr(pos+2)));
-
-            transitions.CalculateTransition(left, right);
-        }
+        *outstream << "\n";
+        calc->PrintAll();
     }
-
-    // Calculate all transitions of a certain type below a given energy
-    pLevelStore levels = atoms[first_run_index].GetLevels();
-    for(const auto& type_pair : default_types)
-    {
-        std::string user_string = "Transitions/All" + type_pair.first + "Below";
-        double max_energy = user_input(user_string.c_str(), 0.0);
-        if(max_energy)
-        {
-            auto left_it = levels->begin();
-            while(left_it != levels->end())
-            {
-                auto right_it = left_it;
-                right_it++;
-                while(right_it != levels->end())
-                {
-                    if(transitions.TransitionExists((*left_it)->GetSymmetry(), (*right_it)->GetSymmetry(), type_pair.second))
-                    {
-                        LevelVector left_vec = levels->GetLevels(*left_it);
-                        for(int i = 0; i < left_vec.size(); i++)
-                        {
-                            if(left_vec[i]->GetEnergy() > max_energy)
-                                break;
-
-                            LevelVector right_vec = levels->GetLevels(*right_it);
-                            for(int j = 0; j < right_vec.size(); j++)
-                            {
-                                if(right_vec[j]->GetEnergy() > max_energy)
-                                    break;
-
-                                transitions.CalculateTransition(std::make_pair(*left_it, i),
-                                                                std::make_pair(*right_it, j), type_pair.second);
-                            }
-                        }
-                    }
-                    right_it++;
-                }
-                left_it++;
-            }
-        }
-    }
-
-    if(transitions.size())
-        transitions.Print();
 }
 
 void Ambit::Recombination()

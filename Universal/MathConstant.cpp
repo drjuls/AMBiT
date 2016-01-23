@@ -27,6 +27,7 @@ double MathConstant::BohrRadiusInFermi() const    { return 52917.7249; }
 double MathConstant::HartreeEnergyIneV() const    { return 27.211383; }
 double MathConstant::HartreeEnergyInInvCm() const { return 219474.631371; }
 double MathConstant::SpeedOfLightSI() const       { return 299792458; }
+double MathConstant::SpeedOfLightAU() const       { return 1./0.007297352932703; }
 double MathConstant::InvCmInMHz() const           { return 29979.2458; }
 double MathConstant::BohrRadiusSI() const         { return 5.2917720859e-11; }
 double MathConstant::RydbergConstantSI() const    { return 10973731.6; }

@@ -26,6 +26,7 @@ public:
     double HartreeEnergyIneV() const;     //!< Hartree energy natural unit in code, convert to eV.
     double HartreeEnergyInInvCm() const;  //!< Hartree energy natural unit in code, convert to inverse cm (wavenumber).
     double SpeedOfLightSI() const;        //!< Speed of light in SI units (m/s).
+    double SpeedOfLightAU() const;
     double InvCmInMHz() const;            //!< Multiply by speed of light (cm/10^6 s).
     double BohrRadiusSI() const;          //!< Atomic unit in meters.
     double RydbergConstantSI() const;     //!< In SI units (inverse m).

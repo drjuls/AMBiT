@@ -50,7 +50,11 @@ public:
     bool IsNonZero(const Orbital& b, const Orbital& a) const
     {
         if(K == 0)
-            return a.Kappa() == b.Kappa();
+        {   if(P == Parity::even)
+                return a.Kappa() == b.Kappa();
+            else
+                return a.Kappa() == -b.Kappa();
+        }
         else
             return ((abs(a.TwoJ() - b.TwoJ()) <= 2 * K) && (a.GetParity() * b.GetParity() == P));
     }
@@ -59,7 +63,11 @@ public:
     bool IsNonZero(const OrbitalInfo& b, const OrbitalInfo& a) const
     {
         if(K == 0)
-            return a.Kappa() == b.Kappa();
+        {   if(P == Parity::even)
+                return a.Kappa() == b.Kappa();
+            else
+                return a.Kappa() == -b.Kappa();
+        }
         else
             return ((abs(a.TwoJ() - b.TwoJ()) <= 2 * K) && (a.GetParity() * b.GetParity() == P));
     }
