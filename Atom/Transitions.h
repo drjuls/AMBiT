@@ -21,12 +21,19 @@ typedef std::pair<LevelID, LevelID> TransitionID;
         - operator creation (in the constructor),
         - PrintHeader(), and 
         - PrintTransition()
+    TransitionCalculator provides generic RPA routines for authors of subclasses.
+    When constructing the operator use something like
+        if(user_input.search("--rpa"))
+            op = MakeStaticRPA(op, hf, hartreeY);
  */
 class TransitionCalculator
 {
 public:
     TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels):
         user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr)
+    {}
+    TransitionCalculator(MultirunOptions& user_input, Atom& atom):
+        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
     {}
 
     /** Parse user_input for transition requests, calculate and print.
@@ -47,6 +54,11 @@ protected:
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const = 0;
 
 protected:
+    /** Parse user_input for RPA options. Return an RPAOperator.
+        PRE: hf->GetCore() should be a self-consistent solution of hf.
+     */
+    virtual pSpinorMatrixElement MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const;
+
     /** Check if transition exists or is excluded by symmetry considerations. */
     inline bool TransitionExists(const Symmetry& left, const Symmetry& right) const
     {

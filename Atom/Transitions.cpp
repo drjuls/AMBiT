@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "HamiltonianTypes.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "ExternalField/RPASolver.h"
 
 std::string Name(const LevelID& levelid)
 {
@@ -14,6 +15,7 @@ void TransitionCalculator::CalculateAndPrint()
     int num_transitions = user_input.vector_variable_size("MatrixElements");
     bool all_below = user_input.VariableExists("AllBelow");
 
+    *outstream << "\n";
     PrintHeader();
 
     for(int i = 0; i < num_transitions; i++)
@@ -72,10 +74,34 @@ void TransitionCalculator::PrintAll() const
 {
     if(matrix_elements.size())
     {
+        *outstream << "\n";
         PrintHeader();
         for(auto& pair: matrix_elements)
             PrintTransition(pair.first.first, pair.first.second, pair.second);
     }
+}
+
+pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const
+{
+    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hartreeY);
+
+    // Get BSplineBasis parameters
+    int N = user_input("RPA/BSpline/N", 40);
+    int K = user_input("RPA/BSpline/N", 7);
+    double Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
+    Rmax = user_input("RPA/BSpline/Rmax", Rmax);
+    double dR0 = user_input("RPA/BSpline/R0", 0.0);
+
+    pBSplineBasis basis_maker = std::make_shared<BSplineBasis>(hf->GetLattice(), N, K, Rmax, dR0);
+
+    bool use_negative_states = true;
+    if(user_input.search("RPA/--no-negative-states"))
+        use_negative_states = false;
+
+    RPASolver rpa_solver(basis_maker, use_negative_states);
+    rpa_solver.SolveRPACore(hf, rpa);
+
+    return rpa;
 }
 
 double TransitionCalculator::CalculateTransition(const LevelID& left, const LevelID& right)
@@ -171,8 +197,13 @@ LevelID TransitionCalculator::make_LevelID(const std::string& name)
 {
     LevelID ret(nullptr, 0);
 
+    // Decide on type and then parse
+    int index_break = name.find(":");
+    int fullstop_break = name.find(".");
+    bool noParityFound = (name.find('e') == std::string::npos && name.find('o') == std::string::npos);
+
     // Single particle type
-    if(user_input.search("--no-ci") || user_input.search("--no-CI"))
+    if(index_break == std::string::npos && fullstop_break == std::string::npos && noParityFound)
     {
         OrbitalInfo info = ConfigurationParser::ParseOrbital<OrbitalInfo>(name);
 
@@ -180,11 +211,9 @@ LevelID TransitionCalculator::make_LevelID(const std::string& name)
         ret.second = 0;
     }
     // Non-relativistic configuration type
-    else if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
+    else if(fullstop_break != std::string::npos)
     {
-        int index_break = name.find(":");
-        int fullstop_break = name.find(".");
-        if(index_break == std::string::npos || fullstop_break == std::string::npos || fullstop_break > index_break)
+        if(index_break == std::string::npos || fullstop_break > index_break)
             return ret;
 
         NonRelConfiguration config = ConfigurationParser::ParseConfiguration<NonRelInfo, int>(name.substr(0, fullstop_break));

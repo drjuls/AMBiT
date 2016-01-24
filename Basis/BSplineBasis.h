@@ -24,13 +24,13 @@ public:
     void SetParameters(int n, int k, double rmax, double dr0, SplineType method = SplineType::Reno);
 
     /** Generate B-splines from core states up to max_pqn. */
-    pOrbitalMap GenerateBSplines(pHFOperator hf, int kappa, int max_pqn);
+    pOrbitalMap GenerateBSplines(pHFOperatorConst hf, int kappa, int max_pqn);
 
     /** Return all positive energy states (removes Dirac sea). */
-    pOrbitalMap GeneratePositiveBasis(pHFOperator hf, int kappa);
+    pOrbitalMap GeneratePositiveBasis(pHFOperatorConst hf, int kappa);
 
     /** Generate complete B-spline basis set including negative energy states (Dirac sea). */
-    pOrbitalMap GenerateCompleteBasis(pHFOperator hf, int kappa);
+    pOrbitalMap GenerateCompleteBasis(pHFOperatorConst hf, int kappa);
 
 protected:
     /** Generate a set of splines using GSL routines. */

@@ -308,7 +308,7 @@ std::vector<pBSpline> BSplineBasis::MakeSplines(int kappa, pPhysicalConstant con
 
 // Generate B-splines from core states up to max_pqn.
 // If max_pqn <= 0, return all states including negative energy Dirac sea.
-pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperator hf, int kappa, int max_pqn)
+pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperatorConst hf, int kappa, int max_pqn)
 {
     pOrbitalMap excited(new OrbitalMap(lattice));
     bool debug = DebugOptions.OutputHFExcited();
@@ -424,12 +424,12 @@ pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperator hf, int kappa, int max_pq
     return excited;
 }
 
-pOrbitalMap BSplineBasis::GeneratePositiveBasis(pHFOperator hf, int kappa)
+pOrbitalMap BSplineBasis::GeneratePositiveBasis(pHFOperatorConst hf, int kappa)
 {
     return GenerateBSplines(hf, kappa, abs(kappa) + N);
 }
 
-pOrbitalMap BSplineBasis::GenerateCompleteBasis(pHFOperator hf, int kappa)
+pOrbitalMap BSplineBasis::GenerateCompleteBasis(pHFOperatorConst hf, int kappa)
 {
     return GenerateBSplines(hf, kappa, 0);
 }

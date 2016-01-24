@@ -34,7 +34,7 @@ public:
         If include_negative_basis, include basis states in Dirac sea.
         PRE: core should be self-consistent solution of hf.
      */
-    void SolveRPACore(pHFOperator hf, pRPAOperator rpa);
+    void SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa);
 
     /** Return RPA energy correction to excited state. */
     double CalculateRPAExcited(pRPAOrbital orbital, pRPAOperatorConst rpa);
@@ -51,7 +51,7 @@ public:
 
 protected:
     pBSplineBasis basis_maker;
-    pHFOperator hf0;                    //!< Keep HF operator for making additional basis orbitals
+    pHFOperatorConst hf0;               //!< Keep HF operator for making additional basis orbitals
     bool include_dirac_sea;
     std::map<int, pOrbitalMap> basis;   //!< DeltaOrbital basis for each kappa
 

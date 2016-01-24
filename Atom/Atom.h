@@ -49,6 +49,9 @@ public:
     pHFOperatorConst GetOpenHFOperator() const { return hf_open; }
     pHFOperator GetOpenHFOperator() { return hf_open; }
 
+    /** Get HartreeY operator. */
+    pHartreeY GetHartreeY() { return hartreeY; }
+
 public:
     /** Generate integrals with MBPT, store and collate from all processors.
         PRE: MakeBasis() must have been run.

@@ -130,6 +130,13 @@ public:
     /** lattice has changed size; react accordingly. */
     virtual void Alert() = 0;
 
+    /** All LatticeObservers can share the lattice, even when const.
+        The lattice can be considered a "mutable" member of classes since it can expand and in any case
+        all observers will be alerted if it changes.
+        Hence it is reasonable to return pLattice rather than pLatticeConst.
+     */
+    virtual pLattice GetLattice() const { return lattice; }
+
 protected:
     pLattice lattice;
 };

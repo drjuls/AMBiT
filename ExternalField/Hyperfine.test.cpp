@@ -94,7 +94,7 @@ TEST(HyperfineTester, Na)
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pRPAOperator rpa = std::make_shared<RPAOperator<HyperfineDipoleOperator>>(HFS, basis_generator.GetHartreeY());
+    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, basis_generator.GetHartreeY());
     RPASolver rpa_solver(core);
 
     DebugOptions.LogHFIterations(true);
@@ -191,7 +191,7 @@ TEST(HyperfineTester, CsRPA)
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pRPAOperator rpa = std::make_shared<RPAOperator<HyperfineDipoleOperator>>(HFS, basis_generator.GetHartreeY());
+    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, basis_generator.GetHartreeY());
     RPASolver rpa_solver(core);
 
     DebugOptions.LogHFIterations(true);

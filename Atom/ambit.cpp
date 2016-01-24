@@ -7,6 +7,7 @@
 #include "ambit.h"
 #include "Atom.h"
 #include "ExternalField/EJOperator.h"
+#include "ExternalField/Hyperfine.h"
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
@@ -304,7 +305,22 @@ void Ambit::EnergyCalculations()
             }
         }
     }
+    do { int x = 0; if(true) { x = 0; x++; x--; } } while (false);
 }
+
+// Used below to run all transition types. Can only be used if they have constructor
+//      TransitionCalculatorType(user_input, atom)
+#define RUN_AND_STORE_TRANSITION(id, TRANSITION_CALCULATOR_TYPE) \
+do { \
+  std::string prefix = std::string("Transitions/") + (#id); \
+  if(user_input.SectionExists(prefix)) \
+  { \
+    user_input.set_prefix(prefix); \
+    std::unique_ptr<TRANSITION_CALCULATOR_TYPE> calculon(new TRANSITION_CALCULATOR_TYPE(user_input, atom)); \
+    calculon->CalculateAndPrint(); \
+    calculators.push_back(std::move(calculon)); \
+  } \
+} while(0)
 
 void Ambit::TransitionCalculations()
 {
@@ -330,18 +346,23 @@ void Ambit::TransitionCalculations()
             user_input.set_prefix(user_string);
             std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom.GetBasis(), atom.GetLevels(), atom.GetHFOperator()->GetIntegrator()));
 
-            *outstream << "\n";
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
         }
     }
 
+    // Other operators
+    RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
+
+    user_input.set_prefix("");
+
     for(auto& calc: calculators)
     {
-        *outstream << "\n";
         calc->PrintAll();
     }
 }
+
+#undef RUN_AND_STORE_TRANSITION
 
 void Ambit::Recombination()
 {

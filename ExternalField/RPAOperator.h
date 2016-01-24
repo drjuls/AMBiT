@@ -5,29 +5,17 @@
 #include "HartreeFock/HartreeY.h"
 #include "RPAOrbital.h"
 
-/** Base class provides an interface for template. */
-class RPAOperatorBase : public SpinorOperator
-{
-public:
-    RPAOperatorBase(int K, Parity P, pIntegrator integrator): SpinorOperator(K, P, integrator) {}
-    virtual void SetCore(pCoreConst rpa_core) = 0;
-};
-
-typedef std::shared_ptr<RPAOperatorBase> pRPAOperator;
-typedef std::shared_ptr<const RPAOperatorBase> pRPAOperatorConst;
-
 /** Add RPA corrections to external SpinorOperator. */
-template<class ExternalSpinorOperator>
-class RPAOperator : public RPAOperatorBase
+class RPAOperator : public SpinorOperator
 {
 public:
     RPAOperator(pSpinorOperator external, pHartreeY hartreeY):
-        RPAOperatorBase(external->GetK(), external->GetParity(), external->GetIntegrator()),
+        SpinorOperator(external->GetK(), external->GetParity(), external->GetIntegrator()),
         external(external), hartreeY(hartreeY), core(nullptr)
     {}
 
     /** Set core RPA orbitals. */
-    virtual void SetCore(pCoreConst rpa_core) override { core = rpa_core; }
+    virtual void SetCore(pCoreConst rpa_core) { core = rpa_core; }
 
     /** Return (f + deltaVhf)||a> */
     virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
@@ -38,10 +26,10 @@ protected:
     pHartreeY hartreeY;
 };
 
-// Template functions
+typedef std::shared_ptr<RPAOperator> pRPAOperator;
+typedef std::shared_ptr<const RPAOperator> pRPAOperatorConst;
 
-template<class ExternalSpinorOperator>
-SpinorFunction RPAOperator<ExternalSpinorOperator>::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+inline SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
 {
     SpinorFunction ret(kappa_b);
     MathConstant* math = MathConstant::Instance();

@@ -42,3 +42,33 @@ SpinorFunction HyperfineDipoleOperator::ReducedApplyTo(const SpinorFunction& a, 
 
     return ret * prefactor;
 }
+
+HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+{
+    pHFOperatorConst hf = atom.GetHFOperator();
+
+    double magnetic_radius = user_input("NuclearMagneticRadius", 0.0);
+    op = std::make_shared<HyperfineDipoleOperator>(hf->GetIntegrator(), magnetic_radius);
+
+    g_I = user_input("gOnI", 1.0);
+
+    if(user_input.search("--rpa"))
+        op = MakeStaticRPA(std::static_pointer_cast<HyperfineDipoleOperator>(op), hf, atom.GetHartreeY());
+}
+
+void HyperfineDipoleCalculator::PrintHeader() const
+{
+    *outstream << "Hyperfine dipole matrix elements (stretched states) in MHz: " << std::endl;
+}
+
+void HyperfineDipoleCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
+{
+    MathConstant* math = MathConstant::Instance();
+    double value = matrix_element * g_I * math->AtomicFrequencyMHz();
+    if(left == right)
+        value = value/left.first->GetJ();
+
+    *outstream << "  " << Name(left) << " -> " << Name(right)
+               << " = " << std::setprecision(6) << value << std::endl;
+}

@@ -205,7 +205,7 @@ unsigned int OneElectronIntegrals<IsHermitianZeroOperator>::CalculateOneElectron
 
                     if(!integrals.count(key))
                     {
-                        const SpinorFunction& rhs = op_applied[(s2->TwoJ() - s1->TwoJ() + TwoK)/2];
+                        const SpinorFunction& rhs = op_applied[(s2->TwoJ() - twoj_min)/2];
                         integrals[key] = integrator->GetInnerProduct(*s2, rhs);
                     }
                 }

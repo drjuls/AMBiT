@@ -22,8 +22,6 @@ public:
     SpinorODE(const SpinorODE& other);
     virtual ~SpinorODE() {}
 
-    pLattice GetLattice() { return lattice; }
-
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = nullptr) = 0;
     

@@ -2,6 +2,7 @@
 #define HYPERFINE_H
 
 #include "HartreeFock/SpinorOperator.h"
+#include "Atom/Transitions.h"
 
 /** Hyperfine operator based on relativistic Johnson formula. */
 class HyperfineDipoleOperator : public SpinorOperator
@@ -20,6 +21,18 @@ protected:
     double nuclear_radius;
     unsigned int nuclear_radius_lattice;
     pLattice lattice;
+};
+
+class HyperfineDipoleCalculator : public TransitionCalculator
+{
+public:
+    HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom);
+
+    virtual void PrintHeader() const override;
+    virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
+
+protected:
+    double g_I;
 };
 
 #endif

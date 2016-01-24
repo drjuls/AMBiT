@@ -2,7 +2,7 @@
 #include "Include.h"
 #include "Basis/BSplineBasis.h"
 
-void RPASolver::SolveRPACore(pHFOperator hf, pRPAOperator rpa)
+void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
 {
     hf0 = hf;
 

@@ -179,5 +179,5 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     double value = matrix_element/math->Electron3j(twoj2, twoj1, J, twoj2, -twoj1);
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
-               << " = " << value * value << std::endl;
+               << " = " << std::setprecision(6) << value * value << std::endl;
 }

@@ -1,5 +1,5 @@
 cxxobjects = BreitHFDecorator.o BreitZero.o EJOperator.o Hyperfine.o \
-             RadiativePotential.o
+             RadiativePotential.o RPAOrbital.o RPASolver.o
 cobjects =
 fobjects =
 
