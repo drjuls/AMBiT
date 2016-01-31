@@ -30,6 +30,7 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
     MathConstant* math = MathConstant::Instance();
     double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
     double nuclear_radius = std::sqrt(5./3.) * nuclear_rms_radius/math->BohrRadiusInFermi();
 
     struct integration_parameters_type
@@ -65,6 +66,7 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     // Get interior
     int i = 0;
@@ -76,7 +78,7 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
 
         int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
         if(ierr)
-            *errstream << "UehlingDecorator: GSL QAGIU error: r = " << parameters.r << ", integral = " << integral << ", abserr = " << abserr << std::endl;
+            cumulative_error += fabs(prefactor/parameters.r * abserr * dR[i]);
         directPotential.f[i] = prefactor/parameters.r * integral;
 
         i++;
@@ -108,7 +110,7 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
 
         int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
         if(ierr)
-            *errstream << "UehlingDecorator: GSL QAGIU error: r = " << parameters.r << ", integral = " << integral << ", abserr = " << abserr << std::endl;
+            cumulative_error += fabs(prefactor/parameters.r * abserr * dR[i]);
         directPotential.f[i] = prefactor/parameters.r * integral;
 
         if(fabs(directPotential.f[i]) < 1.e-15)
@@ -117,6 +119,12 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
     }
 
     directPotential.resize(mmin(i+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "UehlingDecorator::GenerateStepUehling() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
     Interpolator interp(lattice);
@@ -131,6 +139,7 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
     MathConstant* math = MathConstant::Instance();
     double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
 
     // Functions for inner integral (over t) with r, rp fixed
     struct integration_parameters_type
@@ -163,12 +172,14 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     unsigned int i_r = 0;
     while(i_r < lattice->size())
     {
         parameters.r = R[i_r];
         const double& r = parameters.r;
+        double cumulative_error_p = 0.;
 
         // Get outer integrand, phi(rp), which will be integrated with the usual Integrator.
         RadialFunction phi(density.size());
@@ -184,12 +195,11 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
             phi.f[p] = density.f[p]/parameters.rp * integral;
 
             if(ierr)
-                *errstream << "UehlingDecorator::GenerateUehling: GSL QAGIU error: (r, rp) = ("
-                           << parameters.r << ", " << parameters.rp
-                           << "), integral = " << integral << ", abserr = " << abserr << std::endl;
+                cumulative_error_p += fabs(density.f[p]/parameters.rp * abserr * dR[p]);
         }
 
         directPotential.f[i_r] = prefactor/r * integrator->Integrate(phi);
+        cumulative_error += fabs(prefactor/r * cumulative_error_p * dR[i_r]);
 
         if(fabs(directPotential.f[i_r]) < 1.e-15)
             break;
@@ -197,6 +207,12 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
     }
 
     directPotential.resize(mmin(i_r+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "UehlingDecorator::GenerateUehling(density) error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
     Interpolator interp(lattice);
@@ -275,6 +291,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
     MathConstant* math = MathConstant::Instance();
     const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
     double nuclear_radius = std::sqrt(5./3.) * nuclear_rms_radius/math->BohrRadiusInFermi();
 
     struct integration_parameters_type
@@ -308,6 +325,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     // Get interior
     int i = 0;
@@ -319,7 +337,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
 
         int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
         if(ierr)
-            *errstream << "MagneticSelfEnergyDecorator: GSL QAGIU error: r = " << parameters.r << ", integral = " << integral << ", abserr = " << abserr << std::endl;
+            cumulative_error += fabs(prefactor * abserr * dR[i]);
         magnetic.f[i] = prefactor * integral;
 
         i++;
@@ -349,7 +367,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
 
         int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
         if(ierr)
-            *errstream << "MagneticSelfEnergyDecorator: GSL QAGIU error: r = " << parameters.r << ", integral = " << integral << ", abserr = " << abserr << std::endl;
+            cumulative_error += fabs(prefactor * abserr * dR[i]);
         magnetic.f[i] = prefactor * integral;
 
         if(fabs(magnetic.f[i]) < 1.e-15)
@@ -358,6 +376,12 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
     }
 
     magnetic.resize(mmin(i+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(magnetic);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "MagneticSelfEnergyDecorator::GenerateStepMagnetic() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
     Interpolator interp(lattice);
@@ -372,6 +396,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     MathConstant* math = MathConstant::Instance();
     const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
 
     // Functions for inner integral (over t) with r, rp fixed
     struct inner_parameters_type
@@ -422,6 +447,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     size_t sizelimit = 1000;
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     double prefactor = gsl_pow_4(alpha)/(16.0 * math->Pi());
 
@@ -430,6 +456,8 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     {
         inner_parameters.r = R[i_r];
         const double& r = inner_parameters.r;
+        double cumulative_error_H = 0.;
+        double cumulative_error_I = 0.;
 
         // Get outer integrands. I call them phi(rp) and chi(rp) for H and I, respectively.
         // These will be integrated with the usual Integrator.
@@ -444,18 +472,18 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
             double abserr;
 
             int ierrH = gsl_integration_qagiu(&inner_integrand_H, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+            if(ierrH)
+                cumulative_error_H += fabs(density.f[p]/inner_parameters.rp * abserr * dR[p]);
             phi.f[p] = density.f[p]/inner_parameters.rp * integral;
 
             int ierrI = gsl_integration_qagiu(&inner_integrand_I, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+            if(ierrI)
+                cumulative_error_I += fabs(density.f[p]/inner_parameters.rp * abserr * dR[p]);
             chi.f[p] = density.f[p]/inner_parameters.rp * integral;
-
-            if(ierrH || ierrI)
-                *errstream << "MagneticSelfEnergyDecorator: GSL QAGIU error: (r, rp) = ("
-                           << inner_parameters.r << ", " << inner_parameters.rp
-                           << "), integral = " << integral << ", abserr = " << abserr << std::endl;
         }
 
         magnetic.f[i_r] = prefactor/r * (integrator->Integrate(phi) - integrator->Integrate(chi)/r);
+        cumulative_error += fabs(prefactor/r) * (cumulative_error_H + cumulative_error_I/r) * dR[i_r];
 
         if(fabs(magnetic.f[i_r]) < 1.e-15)
             break;
@@ -463,6 +491,12 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
     }
 
     magnetic.resize(mmin(i_r+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(magnetic);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "MagneticSelfEnergyDecorator::GenerateMagnetic() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
     Interpolator interp(lattice);
@@ -493,6 +527,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
     MathConstant* math = MathConstant::Instance();
     const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->dR();
     double nuclear_radius = std::sqrt(5./3.) * nuclear_rms_radius/math->BohrRadiusInFermi();
 
     struct integration_parameters_type
@@ -537,6 +572,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     // Get potential
     int i = 0;
@@ -548,7 +584,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
 
         int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
         if(ierr)
-            *errstream << "ElectricSelfEnergyDecorator: GSL QAGIU error: r = " << parameters.r << ", integral = " << integral << ", abserr = " << abserr << std::endl;
+            cumulative_error += fabs(prefactor/parameters.r * abserr * dR[i]);
 
         directPotential.f[i] = prefactor/parameters.r * integral;
 
@@ -598,6 +634,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
         while(i < lattice->size())
         {
             offmass_parameters.r = R[i];
+            double cumulative_error_p = 0.;
 
             // Get outer integrand (over rp): call this phi
             RadialFunction phi(lattice->real_to_lattice(nuclear_radius)+1);
@@ -609,14 +646,13 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
 
                 int ierr = gsl_integration_qagiu(&offmass_integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
                 if(ierr)
-                    *errstream << "ElectricSelfEnergyDecorator: GSL QAGIU error: (r, rp) = ("
-                               << offmass_parameters.r << ", " << offmass_parameters.rp
-                               << "), integral = " << integral << ", abserr = " << abserr << std::endl;
+                    cumulative_error_p += fabs(offmass_parameters.rp * abserr * dR[p]);
 
                 phi.f[p] = offmass_parameters.rp * integral;
             }
 
             correction.f[i] = prefactor/offmass_parameters.r * integrator->Integrate(phi);
+            cumulative_error += fabs(prefactor/offmass_parameters.r * cumulative_error_p * dR[i]);
 
             if(offmass_parameters.r > nuclear_radius && correction.f[i] < 1.e-15)
                 break;
@@ -631,6 +667,12 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
             directPotential.f[i] *= offmass(R[i]);
     }
 
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "ElectricSelfEnergyDecorator::GenerateStepEhigh() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
+
     // Get derivative
     Interpolator interp(lattice);
     interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
@@ -644,6 +686,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     MathConstant* math = MathConstant::Instance();
     const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
+    const double* dR = lattice->R();
 
     // Functions for inner integral (over t) with r, rp fixed
     struct inner_parameters_type
@@ -661,14 +704,16 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     // Inner integrand: params = {r, rp, ra, alpha, Z}
     gsl_function inner_integrand;
     inner_integrand.params = &inner_parameters;
-    inner_integrand.function = [](double t, void* parameters){
+    inner_integrand.function = [](double x, void* parameters){
         const inner_parameters_type* params = static_cast<const inner_parameters_type*>(parameters);
+        double t = std::sqrt(1.+x*x)/x; // Transform 1
         double t2 = t * t;
         double rsum = 2.0 * t * (params->rp + params->r)/params->alpha;
         double rdiff = 2.0 * t * fabs(params->rp - params->r)/params->alpha;
         double ra = 2.0 * t * params->ra/params->alpha;
 
-        double common1 = std::sqrt(t2 - 1.0);
+        //double common1 = std::sqrt(t2 - 1.0);   // No transform
+        double common1 = x * std::sqrt(x*x + 1.0);  // Transform 1
         double common2 = (1. - 0.5/t2) * (std::log(t2-1) + 4.*log(1./params->Z/params->alpha + 0.5)) - 1.5 + 1./t2;
 
         double part1 = std::exp(-rsum) - std::exp(-rdiff);
@@ -683,6 +728,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     size_t sizelimit = 1000;
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
+    double cumulative_error = 0.;
 
     double prefactor = Afit * alpha / (4.0 * math->Pi());
 
@@ -691,6 +737,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     {
         inner_parameters.r = R[i_r];
         const double& r = inner_parameters.r;
+        double cumulative_error_p = 0.;
 
         // Get outer integrand phi(rp), to be integrated with the usual Integrator.
         RadialFunction phi(density.size());
@@ -702,16 +749,15 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
             double integral;
             double abserr;
 
-            int ierr = gsl_integration_qagiu(&inner_integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+            int ierr = gsl_integration_qagiu(&inner_integrand, 0.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
             if(ierr)
-                *errstream << "ElectricSelfEnergyDecorator: GSL QAGIU error: (r, rp) = ("
-                           << inner_parameters.r << ", " << inner_parameters.rp
-                           << "), integral = " << integral << ", abserr = " << abserr << std::endl;
+                cumulative_error_p += fabs(density.f[p]/inner_parameters.rp * abserr * dR[p]);
 
             phi.f[p] = density.f[p]/inner_parameters.rp * integral;
         }
 
         directPotential.f[i_r] = prefactor * integrator->Integrate(phi)/r;
+        cumulative_error += fabs(prefactor * cumulative_error_p/r * dR[i_r]);
 
         if(fabs(directPotential.f[i_r]) < 1.e-15)
             break;
@@ -719,7 +765,13 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     }
 
     directPotential.resize(mmin(i_r+1, lattice->size()));
-    
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "ElectricSelfEnergyDecorator::GenerateEhigh() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
+
     // Get derivative
     Interpolator interp(lattice);
     interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
