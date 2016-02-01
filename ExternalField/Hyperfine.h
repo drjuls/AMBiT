@@ -2,7 +2,7 @@
 #define HYPERFINE_H
 
 #include "HartreeFock/SpinorOperator.h"
-#include "Atom/Transitions.h"
+#include "Transitions.h"
 
 /** Hyperfine operator based on relativistic Johnson formula. */
 class HyperfineDipoleOperator : public SpinorOperator

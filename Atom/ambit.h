@@ -4,7 +4,6 @@
 #include "Include.h"
 #include "MultirunOptions.h"
 #include "Atom.h"
-#include "Transitions.h"
 
 class Ambit
 {

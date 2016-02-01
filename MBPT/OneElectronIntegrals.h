@@ -4,6 +4,7 @@
 #include "HartreeFock/SpinorOperator.h"
 #include "Basis/OrbitalManager.h"
 #include "Configuration/ElectronInfo.h"
+#include "Universal/SpinorFunction.h"
 
 /** OneElectronIntegrals takes a SpinorMatrixElement and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2),
@@ -179,7 +180,7 @@ unsigned int OneElectronIntegrals<IsHermitianZeroOperator>::CalculateOneElectron
             int twoj_min = mmax(1, s1->TwoJ() - TwoK);
             int twoj_max = s1->TwoJ() + TwoK;
 
-            std::vector<const SpinorFunction> op_applied;
+            std::vector<SpinorFunction> op_applied;
             op_applied.reserve((twoj_max - twoj_min)/2 + 1);
             for(int twoj2 = twoj_min; twoj2 <= twoj_max; twoj2 += 2)
             {

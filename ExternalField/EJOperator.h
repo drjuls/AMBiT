@@ -4,7 +4,7 @@
 #include "Universal/SpinorMatrixElement.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Enums.h"
-#include "Atom/Transitions.h"
+#include "Transitions.h"
 
 class EJOperator : public SpinorMatrixElement
 {

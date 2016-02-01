@@ -327,12 +327,12 @@ void Ambit::TransitionCalculations()
     Atom& atom = atoms[first_run_index];
 
     // EM types
-    std::vector<std::tuple<std::string, MultipolarityType, int>> EM_transition_types =
-           {{"E1", MultipolarityType::E, 1},
-            {"M1", MultipolarityType::M, 1},
-            {"E2", MultipolarityType::E, 2},
-            {"M2", MultipolarityType::M, 2},
-            {"E3", MultipolarityType::E, 3},
+    std::array<std::tuple<std::string, MultipolarityType, int>, 5> EM_transition_types =
+           {std::make_tuple("E1", MultipolarityType::E, 1),
+            std::make_tuple("M1", MultipolarityType::M, 1),
+            std::make_tuple("E2", MultipolarityType::E, 2),
+            std::make_tuple("M2", MultipolarityType::M, 2),
+            std::make_tuple("E3", MultipolarityType::E, 3),
            };
 
     std::vector<std::unique_ptr<TransitionCalculator>> calculators;

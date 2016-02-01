@@ -1,4 +1,4 @@
-cxxobjects = Atom.o Atom_Open.o Atom_Autoionization.o OutStreams.o Transitions.o
+cxxobjects = Atom.o Atom_Open.o Atom_Autoionization.o OutStreams.o
 cobjects = 
 fobjects =
 

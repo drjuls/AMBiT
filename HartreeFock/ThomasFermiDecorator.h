@@ -14,7 +14,8 @@
 class ThomasFermiDecorator: public HFOperatorDecorator<HFBasicDecorator, ThomasFermiDecorator>
 {
 public:
-    using BaseDecorator::BaseDecorator;
+    ThomasFermiDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = nullptr):
+        BaseDecorator(wrapped_hf, integration_strategy) {}
 
     virtual void SetCore(pCoreConst hf_core, double hf_mixing = 0.0);
     virtual RadialFunction GetDirectPotential() const override;

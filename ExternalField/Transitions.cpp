@@ -1,6 +1,6 @@
 #include "Transitions.h"
 #include "Include.h"
-#include "HamiltonianTypes.h"
+#include "Atom/HamiltonianTypes.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "ExternalField/RPASolver.h"
 
