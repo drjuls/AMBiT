@@ -42,7 +42,7 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
                         excited->AddState(s_copy);
 
                         if(debug)
-                            *logstream << "  " << s_copy->Name() << " en:   " << s_copy->Energy() << "  size:  " << s_copy->size() << std::endl;
+                            *logstream << "  " << s_copy->Name() << " en:   " << std::setprecision(12) << s_copy->Energy() << "  size:  " << s_copy->size() << std::endl;
                     }
                 }
                 else
@@ -55,7 +55,7 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
                     excited->AddState(ds);
 
                     if(debug)
-                        *logstream << "  " << ds->Name() << " en:   " << ds->Energy() << "  size:  " << ds->size() << std::endl;
+                        *logstream << "  " << ds->Name() << " en:   " << std::setprecision(12) << ds->Energy() << "  size:  " << ds->size() << std::endl;
                 }
 
                 pqn++;

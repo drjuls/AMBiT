@@ -148,12 +148,14 @@ void HartreeFocker::SolveCore(pCore core, pHFOperator hf)
             if(include_exchange)
             {
                 pSpinorFunction exchange(new SpinorFunction(hf->GetExchange(new_state)));
-                deltaE = ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbital, energy_tolerance);
+                ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbital, energy_tolerance);
+                deltaE = new_state->Energy() - old_energy;
             }
             else
             {
                 pSpinorFunction exchange(new SpinorFunction(new_state->Kappa()));
-                deltaE = ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbitalTailMatching, energy_tolerance);
+                ConvergeOrbital(new_state, hf, exchange, &HartreeFocker::IterateOrbitalTailMatching, energy_tolerance);
+                deltaE = new_state->Energy() - old_energy;
             }
 
             zero_difference = new_state->NumNodes() + new_state->L() + 1 - new_state->PQN();
@@ -212,6 +214,7 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 {
     // Number of iterations required. Zero shows that the state existed previously.
     unsigned int loop = 0;
+    std::pair<bool, double> convergence_test;
     pCoreConst core = hf->GetCore();
     bool exchange_included = hf->IncludeExchange();
 
@@ -273,14 +276,17 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
 
     // Hartree-Fock loops
     hf->IncludeExchange(exchange_included);
-    ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
+    convergence_test = ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, TailMatchingEnergyTolerance);
+    if(!convergence_test.first)
+        *logstream << "  " << std::setw(4) << orbital->Name()
+                   << " CalculateExcitedState first pass (using tail matching) failed to converge." << std::endl;
 
     if(!core->empty() && exchange_included)
-        ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
+        convergence_test = ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbital, EnergyTolerance);
     else
-        ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
+        convergence_test = ConvergeOrbitalAndExchange(orbital, hf, &HartreeFocker::IterateOrbitalTailMatching, EnergyTolerance);
 
-    if(DebugOptions.OutputHFExcited())
+    if(DebugOptions.OutputHFExcited() || !convergence_test.first)
     {
         *outstream << std::setprecision(12);
         if(DebugOptions.HartreeEnergyUnits() || DebugOptions.InvCmEnergyUnits())
@@ -292,14 +298,17 @@ unsigned int HartreeFocker::CalculateExcitedState(pOrbital orbital, pHFOperator 
         }
         else
             *outstream << orbital->Name() << "  nu = " << orbital->Nu();
-        
+
+        *outstream << "  deltaE = " << std::setprecision(3) << convergence_test.second;
+        if(!convergence_test.first)
+            *outstream << " (NOT CONVERGED) ";
         *outstream << "  size: (" << orbital->size() << ") " << hf->GetLattice()->R(orbital->size()) << std::endl;
     }
     
     return loop;
 }
 
-double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance)
+std::pair<bool, double> HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange, IteratorFunction iterator, double energy_tolerance)
 {
     pLattice lattice = hf->GetLattice();
     pIntegrator integrator = hf->GetIntegrator();
@@ -324,7 +333,6 @@ double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorF
     double Elower = -(hf->GetZ() * hf->GetZ());
 
     double E = orbital->Energy();
-    double initial_energy = E;
     int zero_difference = 0;
     unsigned int loop = 0;
 
@@ -390,10 +398,10 @@ double HartreeFocker::ConvergeOrbital(pOrbital orbital, pHFOperator hf, pSpinorF
         hf->GetDerivative(*orbital);
     }
 
-    return orbital->Energy() - initial_energy;
+    return std::make_pair((loop < MaxHFIterations), delta_E);
 }
 
-double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator, double energy_tolerance)
+std::pair<bool, double> HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator hf, IteratorFunction iterator, double energy_tolerance)
 {
     pLattice lattice = hf->GetLattice();
     const double Z = hf->GetZ();
@@ -420,7 +428,6 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
 
     unsigned int loop = 0;
     double E = orbital->Energy();
-    double initial_energy = E;
 
     double delta_E = 0.0;
     double Eupper = 0.0;
@@ -516,7 +523,8 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
                 *exchange = hf->GetExchange(orbital);
         }
 
-        if(DebugOptions.LogHFInnerLoop())
+        // Log last three iterations if approaching MaxHFIterations
+        if(DebugOptions.LogHFInnerLoop() || loop > MaxHFIterations - 3)
             *logstream << "  " << std::setw(4) << orbital->Name()
                        << "  E = " << std::setprecision(12) << E
                        << "  deltaE = " << std::setprecision(3) << delta_E
@@ -527,14 +535,18 @@ double HartreeFocker::ConvergeOrbitalAndExchange(pOrbital orbital, pHFOperator h
     } while((loop < MaxHFIterations) && (fabs(delta_E/E) > energy_tolerance));
 
     if(loop >= MaxHFIterations)
-        *errstream << "ConvergeOrbitalAndExchange: Failed to converge HF state " << orbital->Name() << std::endl;
+    {
+        *errstream << "ConvergeOrbitalAndExchange: Failed to converge HF state:\n"
+                   << "  " << std::setw(4) << orbital->Name()
+                   << "  deltaE = " << std::setprecision(3) << delta_E << std::endl;
+    }
 
     // Get better derivative
     hf->SetODEParameters(orbital->Kappa(), orbital->Energy(), exchange.get());
     hf->IncludeExchange(include_exchange);
     hf->GetDerivative(*orbital);
 
-    return orbital->Energy() - initial_energy;
+    return std::make_pair((loop < MaxHFIterations), delta_E);
 }
 
 double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFunctionConst exchange)
