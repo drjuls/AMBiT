@@ -305,7 +305,6 @@ void Ambit::EnergyCalculations()
             }
         }
     }
-    do { int x = 0; if(true) { x = 0; x++; x--; } } while (false);
 }
 
 // Used below to run all transition types. Can only be used if they have constructor
