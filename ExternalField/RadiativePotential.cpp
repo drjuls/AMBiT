@@ -220,13 +220,13 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
 }
 
 MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf, integration_strategy)
+    BaseDecorator(wrapped_hf, integration_strategy)
 {
     GenerateStepMagnetic(nuclear_rms_radius);
 }
 
 MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
-    HFOperatorDecorator(wrapped_hf, integration_strategy)
+    BaseDecorator(wrapped_hf, integration_strategy)
 {
     GenerateMagnetic(density);
 }
@@ -268,6 +268,7 @@ void MagneticSelfEnergyDecorator::GetODEJacobian(unsigned int latticepoint, cons
 SpinorFunction MagneticSelfEnergyDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
+
     ta.resize(mmax(ta.size(), magnetic.size()));
 
     double alpha = physicalConstant->GetAlpha();

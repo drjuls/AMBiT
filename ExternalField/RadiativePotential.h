@@ -3,6 +3,7 @@
 
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
+#include "LimitApplicabilityWrapper.h"
 
 /** Uehling potential decorator.
     Uses step potential from Ginges & Berengut.
@@ -19,6 +20,26 @@ public:
 
     /** Generate Uehling from given density. */
     void GenerateUehling(const RadialFunction& density);
+};
+
+/** The Flambaum-Ginges radiative potentials are only applicable to s- and p- waves.
+    They are not fitted to d-waves, and vastly overestimate their effect.
+    We use a LimitApplicabilityWrapper to achieve this.
+ */
+template <class DecoratorType>
+class LimitToSandP : public HFOperatorDecorator<LimitApplicabilityWrapper<DecoratorType>, LimitToSandP<DecoratorType>>
+{
+public:
+    template <class... DecoratorTypeArgs>
+    LimitToSandP(DecoratorTypeArgs... args):
+        HFOperatorDecorator<LimitApplicabilityWrapper<DecoratorType>, LimitToSandP<DecoratorType>>(args...)
+    {}
+
+protected:
+    virtual bool ChangeThisSpinorFunction(const SpinorFunction& fg) const override
+    {
+        return (fg.L() < 2);
+    }
 };
 
 /** Radiative potential decorator for magnetic part of self-energy.
@@ -52,7 +73,7 @@ protected:
 /** Radiative potential decorator for electric part of self-energy (high and low frequency).
     Includes potential for step density and variable density.
  */
-class ElectricSelfEnergyDecorator: public HFOperatorDecorator<LocalPotentialDecorator, ElectricSelfEnergyDecorator>
+class ElectricSelfEnergyDecorator: public HFOperatorDecorator<LimitToSandP<LocalPotentialDecorator>, ElectricSelfEnergyDecorator>
 {
 public:
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term = true, pIntegrator integration_strategy = pIntegrator());
