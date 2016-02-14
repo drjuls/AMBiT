@@ -1,7 +1,7 @@
 #include "MBPTCalculator.h"
 
 MBPTCalculator::MBPTCalculator(pOrbitalManagerConst pOrbitals):
-    orbitals(pOrbitals)
+    orbitals(pOrbitals), valence(pOrbitals->valence)
 {
     SetValenceEnergies();
 }

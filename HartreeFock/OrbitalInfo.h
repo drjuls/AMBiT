@@ -14,6 +14,7 @@ public:
     OrbitalInfo(int pqn, int two_j, Parity p);
     OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
+    OrbitalInfo(const Orbital& s);
     OrbitalInfo(const OrbitalInfo& other);
     virtual ~OrbitalInfo(void) {}
 
@@ -60,6 +61,12 @@ inline OrbitalInfo::OrbitalInfo(const Orbital* s)
 {
     pqn = s->PQN();
     kappa = s->Kappa();
+}
+
+inline OrbitalInfo::OrbitalInfo(const Orbital& s)
+{
+    pqn = s.PQN();
+    kappa = s.Kappa();
 }
 
 inline OrbitalInfo::OrbitalInfo(int principal_qn, int kap):

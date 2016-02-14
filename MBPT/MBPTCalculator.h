@@ -29,6 +29,18 @@ public:
     {   delta = energy_shift;
     }
 
+    /** Return true if one of the orbital info arguments is not in the valence set. */
+    template <typename... OrbitalTypes>
+    inline bool InQSpace(const OrbitalInfo& orb, const OrbitalTypes&... orbitals) const
+    {
+        return ((valence->count(orb) == 0) || InQSpace(orbitals...));
+    }
+
+    inline bool InQSpace(const OrbitalInfo& orb) const
+    {
+        return (valence->count(orb) == 0);
+    }
+
 protected:
     /** Return absolute value of the difference of two unsigned integers. */
     inline int absdiff(int i, int j) const;
@@ -61,6 +73,7 @@ protected:
     
 protected:
     pOrbitalManagerConst orbitals;
+    pOrbitalMapConst valence;
 
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;

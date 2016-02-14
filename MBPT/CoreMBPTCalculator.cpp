@@ -145,7 +145,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Ebeta = it_beta->second->Energy();
 
                         double coeff;
-                        if((sa.L() + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sbeta) && (sa.L() + sbeta.L() + k1)%2 == 0)
                             coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -173,7 +173,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Em = it_m->second->Energy();
 
                         double coeff;
-                        if((sa.L() + sm.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sm) && (sa.L() + sm.L() + k1)%2 == 0)
                             coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -250,7 +250,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                         const double Ebeta = it_beta->second->Energy();
 
                         double C_abeta;
-                        if((sa.L() + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sbeta) && (sa.L() + sbeta.L() + k1)%2 == 0)
                             C_abeta = MathConstant::Instance()->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
@@ -347,7 +347,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                         const double Em = it_m->second->Energy();
 
                         double C_am;
-                        if((sa.L() + sm.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sm) && (sa.L() + sm.L() + k1)%2 == 0)
                             C_am = MathConstant::Instance()->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             C_am = 0.;
@@ -419,7 +419,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            if(sn.Kappa() == salpha.Kappa())
+            if(sn.Kappa() == salpha.Kappa() && InQSpace(sn, salpha))
             {
                 double coeff = one_body->GetMatrixElement(sn, salpha);
                 coeff = coeff * sn.MaxNumElectrons();
@@ -466,7 +466,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            if(sn.Kappa() == salpha.Kappa())
+            if(sn.Kappa() == salpha.Kappa() && InQSpace(sn, salpha))
             {
                 double C_nalpha = one_body->GetMatrixElement(sn, salpha);
                 C_nalpha = C_nalpha * sn.MaxNumElectrons();
@@ -517,7 +517,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
         const OrbitalInfo& sn = it_n->first;
         const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sa.Kappa())
+        if(sn.Kappa() == sa.Kappa() && InQSpace(sn))
         {
             double term = one_body->GetMatrixElement(sa, sn) * one_body->GetMatrixElement(sn, sb);
             term = term/(En - ValenceEnergy + delta);
@@ -554,10 +554,10 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
             const double Ealpha = it_alpha->second->Energy();
 
             double coeff;
-            if((sn.L() + salpha.L() + k)%2)
-                coeff = 0.;
-            else
+            if(InQSpace(sn, salpha) && (sn.L() + salpha.L() + k)%2 == 0)
                 coeff = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
+            else
+                coeff = 0.;
 
             if(coeff)
             {
@@ -612,11 +612,9 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            double C_nalpha;
-            if((sn.L() + salpha.L() + k)%2)
-                C_nalpha = 0.;
-            else
-                C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);                
+            double C_nalpha = 0.;
+            if(InQSpace(sn, salpha) && (sn.L() + salpha.L() + k)%2 == 0)
+                C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
 
             if(C_nalpha)
             {
@@ -717,12 +715,10 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            double C_nalpha;
-            if((sa.L() + sn.L())%2 != (salpha.L() + sd.L())%2)
-                C_nalpha = 0.;
-            else if((sn.L() + sc.L())%2 != (sb.L() + salpha.L())%2)
-                C_nalpha = 0.;
-            else
+            double C_nalpha = 0.;
+            if(InQSpace(sn, salpha) &&
+               ((sa.L() + sn.L())%2 == (salpha.L() + sd.L())%2) &&
+               ((sn.L() + sc.L())%2 == (sb.L() + salpha.L())%2))
                 C_nalpha = double(sn.MaxNumElectrons()) * double(salpha.MaxNumElectrons()) * (2. * double(k) + 1.);
 
             if(C_nalpha)
@@ -817,12 +813,10 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
             const OrbitalInfo& sn = it_n->first;
             const double En = it_n->second->Energy();
 
-            double coeff_mn;
-            if((sa.L() + sm.L())%2 != (sb.L() + sn.L())%2)
-                coeff_mn = 0.;
-            else if((sm.L() + sc.L())%2 != (sd.L() + sn.L())%2)
-                coeff_mn = 0.;
-            else
+            double coeff_mn = 0.;
+            if(InQSpace(sn, sm) &&
+               ((sa.L() + sm.L())%2 == (sb.L() + sn.L())%2) &&
+               ((sm.L() + sc.L())%2 == (sd.L() + sn.L())%2))
                 coeff_mn = double(sm.MaxNumElectrons()) * double(sn.MaxNumElectrons()) * (2. * double(k) + 1.);
 
             if(coeff_mn)
@@ -903,20 +897,22 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     while(it_n != core->end())
     {
         const OrbitalInfo& sn = it_n->first;
-        const double En = it_n->second->Energy();
-
-        if(sn.Kappa() == sa.Kappa())
+        if(InQSpace(sn))
         {
-            double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
-            energy -= R1 * one_body->GetMatrixElement(sa, sn) / (En - Ea + delta);
-        }
+            const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sc.Kappa())
-        {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
-            energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
-        }
+            if(sn.Kappa() == sa.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
+                energy -= R1 * one_body->GetMatrixElement(sa, sn) / (En - Ea + delta);
+            }
 
+            if(sn.Kappa() == sc.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
+                energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
+            }
+        }
         it_n++;
     }
 
@@ -925,20 +921,22 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     while(it_n != core->end())
     {
         const OrbitalInfo& sn = it_n->first;
-        const double En = it_n->second->Energy();
-
-        if(sn.Kappa() == sb.Kappa())
+        if(InQSpace(sn))
         {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
-            energy -= R1 * one_body->GetMatrixElement(sb, sn) / (En - Eb + delta);
-        }
+            const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sd.Kappa())
-        {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
-            energy -= R1 * one_body->GetMatrixElement(sn, sd) / (En - Ed + delta);
-        }
+            if(sn.Kappa() == sb.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
+                energy -= R1 * one_body->GetMatrixElement(sb, sn) / (En - Eb + delta);
+            }
 
+            if(sn.Kappa() == sd.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
+                energy -= R1 * one_body->GetMatrixElement(sn, sd) / (En - Ed + delta);
+            }
+        }
         it_n++;
     }
 
@@ -1021,7 +1019,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                         const Orbital& sbeta = *(it_beta->second);
 
                         double coeff;
-                        if((external_L + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && (external_L + sbeta.L() + k1)%2 == 0)
                             coeff = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -1049,7 +1047,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                         const Orbital& sm = *(it_m->second);
 
                         double coeff;
-                        if((external_L + sm.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && (external_L + sm.L() + k1)%2 == 0)
                             coeff =  constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -1138,7 +1136,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                         const Orbital& sbeta = *(it_beta->second);
 
                         double C_abeta;
-                        if((external_L + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && (external_L + sbeta.L() + k1)%2 == 0)
                             C_abeta = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
@@ -1257,7 +1255,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                         const Orbital& sm = *(it_m->second);
 
                         double C_am;
-                        if((external_L + sm.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && (external_L + sm.L() + k1)%2 == 0)
                             C_am = constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
                         else
                             C_am = 0.;
