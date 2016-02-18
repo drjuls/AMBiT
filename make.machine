@@ -21,6 +21,9 @@ endif
 ifeq ($(HOSTNAME), jcb1pc)
   MACHINE = jcb1pc
 endif
+ifeq ($(findstring pg, $(HOSTNAME)), pg)
+  MACHINE = peregrine
+endif
 
 SRCDIR = $(shell pwd)
 
@@ -102,9 +105,39 @@ ifeq ($(MACHINE), katana)
   LINKFLAGS = 
   LIBDIR    = $(MKLROOT)/lib/intel64/
   LIBOBJ    = 
-  LIBS      = gsl mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_openmpi_lp64 boost_filesystem boost_system pthread m
+  LIBS      = gsl mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_intelmpi_lp64 boost_filesystem boost_system pthread m
 
   INCLUDE  += /share/apps/sparsehash/2.0.2/include
+
+  ifdef debug
+    BUILD     = Debug
+    CFLAGS    = -g
+    CXXFLAGS  = -g
+  else
+    BUILD     = Release
+    CFLAGS    = -O2
+    CXXFLAGS  = -O3
+    F77FLAGS  = -O2 -fpe0 -static -nofor_main
+  endif
+
+  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
+
+  CCDEP   = gcc -std=c++11
+  DEPFLAG = -MM
+endif
+
+ifeq ($(MACHINE), peregrine)
+  CC  = 
+  CXX = mpiicpc -std=c++11 #-fopenmp
+  F77 = mpiifort
+
+  LINK      = mpiicpc
+  LINKFLAGS = 
+  LIBDIR    =
+  LIBOBJ    = 
+  LIBS      = gsl mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_intelmpi_lp64 boost_filesystem boost_system pthread m
+
+#  INCLUDE  += ${MKLROOT}/include /share/apps/sparsehash/2.0.2/include
 
   ifdef debug
     BUILD     = Debug
