@@ -36,8 +36,15 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
 
     std::set<KeyType> found_keys;   // For check_size_only
 
+    int num_new_keys = 0;
     if(!check_size_only)
+    {
+        // Get number of new keys needed
+        num_new_keys = CalculateTwoElectronIntegrals(orbital_map_1, orbital_map_2, orbital_map_3, orbital_map_4, check_size_only);
+        num_new_keys -= this->TwoElectronIntegrals.size();
+
         core_PT->UpdateIntegrals();
+    }
 
     auto it_1 = orbital_map_1->begin();
     while(it_1 != orbital_map_1->end())

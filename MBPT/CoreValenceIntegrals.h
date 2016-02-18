@@ -31,21 +31,6 @@ public:
      */
     virtual unsigned int CalculateTwoElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, pOrbitalMapConst orbital_map_3, pOrbitalMapConst orbital_map_4, bool check_size_only = false) override;
 
-    /** Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
-        Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.
-        For two electron integrals:
-            i1.pqn <= limit1
-            (i2.pqn or i3.pqn) <= limit2
-            (i2.pqn and i3.pqn) <= limit3
-        For 'x'* 3 waves (spd) and 'y'* 4 waves (spdf) in basis set,
-            N = 61 x^4       N = 279 y^4.
-        After max_pqn_1 = 4,
-            N ~ 502 x^3      N ~ 1858 y^3,
-        and hopefully after max_pqn_2 and then max_pqn_3
-            N ~ x^2 and then N ~ x, respectively.
-     */
-    //virtual unsigned int CalculateTwoElectronIntegrals(int limit1 = 0, int limit2 = 0, int limit3 = 0, bool check_size_only = false);
-
     void IncludeCore(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams);
     void IncludeValence(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams);
 

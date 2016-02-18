@@ -125,12 +125,14 @@ void Atom::MakeMBPTIntegrals()
     {
         if(one_body_mbpt)
         {
+            mbpt_integrals_one->Read(identifier + ".one.int");
             mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
             mbpt_integrals_one->Write(identifier + ".one.int");
         }
 
         if(two_body_mbpt)
         {
+            mbpt_integrals_two->Read(identifier + ".two.int");
             mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
             mbpt_integrals_two->Write(identifier + ".two.int");
         }
