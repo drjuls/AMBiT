@@ -123,8 +123,8 @@ public:
     }
 
     /** Read integrals, adding to existing keys or creating new ones. */
-    void Read(const std::string& filename);
-    void Write(const std::string& filename) const;
+    virtual void Read(const std::string& filename);
+    virtual void Write(const std::string& filename) const;
 
     /** Get the spinor operator. */
     pSpinorMatrixElementConst GetOperator() const { return op; }

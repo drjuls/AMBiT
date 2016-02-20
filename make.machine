@@ -131,9 +131,9 @@ ifeq ($(MACHINE), jcb1pc)
   LINK      = mpiCC
   LINKFLAGS =
   LIBDIR    =
-  LIBS      = scalapack-openmpi blacs-openmpi blacsCinit-openmpi boost_filesystem boost_system lapack blas
+  LIBS      = gsl scalapack-openmpi blacs-openmpi blacsCinit-openmpi boost_filesystem boost_system lapack blas
 
-  INCLUDE  += /usr/local/include
+  INCLUDE  += /usr/include
 
   ifdef debug
     BUILD     = Debug

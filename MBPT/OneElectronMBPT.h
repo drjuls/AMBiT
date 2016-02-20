@@ -4,11 +4,15 @@
 #include "OneElectronIntegrals.h"
 #include "CoreMBPTCalculator.h"
 
+/** Valence-valence HFIntegrals including core and/or virtual correlations via MBPT.
+    Default setting: include all core MBPT and no valence MBPT. Change using IncludeCore()/IncludeValence().
+    Writing to file is overriden, and occurs automatically when calculating as a failsafe.
+ */
 class OneElectronMBPT : public HFIntegrals
 {
 public:
-    OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body);
-    OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator = nullptr);
+    OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body, const std::string& write_file);
+    OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator, const std::string& write_file);
 
     virtual ~OneElectronMBPT() {}
 
@@ -17,6 +21,11 @@ public:
         PRE: OrbitalMaps should only include a subset of valence orbitals.
      */
     virtual unsigned int CalculateOneElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, bool check_size_only = false);
+
+#ifdef AMBIT_USE_MPI
+    /** MPI version of Write() overridden to gather and write. */
+    virtual void Write(const std::string& filename) const override;
+#endif
 
     void IncludeCore(bool include_mbpt, bool include_subtraction);
     void IncludeValence(bool include_mbpt, bool include_subtraction);
@@ -32,6 +41,10 @@ protected:
     /** Valence-valence MBPT effects. */
     bool include_valence;
     bool include_valence_subtraction;
+
+    std::vector<unsigned int> new_keys;
+    std::vector<double> new_values;
+    std::string write_file;
 };
 
 typedef std::shared_ptr<OneElectronMBPT> pOneElectronMBPT;
