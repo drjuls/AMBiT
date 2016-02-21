@@ -87,10 +87,10 @@ pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator externa
 
     // Get BSplineBasis parameters
     int N = user_input("RPA/BSpline/N", 40);
-    int K = user_input("RPA/BSpline/N", 7);
+    int K = user_input("RPA/BSpline/K", 7);
     double Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
     Rmax = user_input("RPA/BSpline/Rmax", Rmax);
-    double dR0 = user_input("RPA/BSpline/R0", 0.0);
+    double dR0 = user_input("RPA/BSpline/R0", 0.0);     // Use default
 
     pBSplineBasis basis_maker = std::make_shared<BSplineBasis>(hf->GetLattice(), N, K, Rmax, dR0);
 

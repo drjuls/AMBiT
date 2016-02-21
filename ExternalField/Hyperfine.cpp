@@ -72,3 +72,59 @@ void HyperfineDipoleCalculator::PrintTransition(const LevelID& left, const Level
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(6) << value << std::endl;
 }
+
+HyperfineQuadrupoleOperator::HyperfineQuadrupoleOperator(pIntegrator integration_strategy):
+    SpinorOperator(2, Parity::even, integration_strategy), lattice(integration_strategy->GetLattice())
+{}
+
+SpinorFunction HyperfineQuadrupoleOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    SpinorFunction ret(kappa_b, a.size());
+    MathConstant* math = MathConstant::Instance();
+
+    double prefactor = -math->SphericalTensorReducedMatrixElement(kappa_b, a.Kappa(), 2);
+    if(!prefactor)
+        return ret;
+    prefactor *= math->Barn();
+
+    const double* R3 = lattice->Rpower(3);
+    const double* R4 = lattice->Rpower(4);
+
+    unsigned int i;
+    for(i = 0; i < ret.size(); i++)
+    {
+        ret.f[i] = a.f[i]/R3[i];
+        ret.dfdr[i] = a.dfdr[i]/R3[i] - 3. * a.f[i]/R4[i];
+        ret.g[i] = a.g[i]/R3[i];
+        ret.dgdr[i] = a.dgdr[i]/R3[i] - 3. * a.g[i]/R4[i];
+    }
+
+    return ret * prefactor;
+}
+
+HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+{
+    pHFOperatorConst hf = atom.GetHFOperator();
+
+    op = std::make_shared<HyperfineQuadrupoleOperator>(hf->GetIntegrator());
+
+    Q = user_input("Q", 1.0);
+
+    if(user_input.search("--rpa"))
+        op = MakeStaticRPA(std::static_pointer_cast<HyperfineQuadrupoleOperator>(op), hf, atom.GetHartreeY());
+}
+
+void HyperfineQuadrupoleCalculator::PrintHeader() const
+{
+    *outstream << "Hyperfine quadrupole matrix elements (stretched states) in MHz: " << std::endl;
+}
+
+void HyperfineQuadrupoleCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
+{
+    MathConstant* math = MathConstant::Instance();
+    double value = 2. * Q * matrix_element * math->AtomicFrequencyMHz();
+
+    *outstream << "  " << Name(left) << " -> " << Name(right)
+               << " = " << std::setprecision(6) << value << std::endl;
+}

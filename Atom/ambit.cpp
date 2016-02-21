@@ -353,6 +353,7 @@ void Ambit::TransitionCalculations()
 
     // Other operators
     RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
+    RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
 
     user_input.set_prefix("");
 

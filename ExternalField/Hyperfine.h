@@ -35,4 +35,32 @@ protected:
     double g_I;
 };
 
+/** Hyperfine electric quadrupole operator based on relativistic Johnson formula.
+        t = -C^(2)/r^3
+ */
+class HyperfineQuadrupoleOperator: public SpinorOperator
+{
+public:
+    HyperfineQuadrupoleOperator(pIntegrator integration_strategy);
+
+public:
+    /** Hyperfine shift for Q = 1 barn in atomic units. */
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
+
+protected:
+    pLattice lattice;
+};
+
+class HyperfineQuadrupoleCalculator : public TransitionCalculator
+{
+public:
+    HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom);
+
+    virtual void PrintHeader() const override;
+    virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
+
+protected:
+    double Q;
+};
+
 #endif
