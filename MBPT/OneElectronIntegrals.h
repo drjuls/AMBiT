@@ -123,8 +123,8 @@ public:
     }
 
     /** Read integrals, adding to existing keys or creating new ones. */
-    void Read(const std::string& filename);
-    void Write(const std::string& filename) const;
+    virtual void Read(const std::string& filename);
+    virtual void Write(const std::string& filename) const;
 
     /** Get the spinor operator. */
     pSpinorMatrixElementConst GetOperator() const { return op; }
@@ -263,7 +263,7 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
-        exit(1);
+        return;
     }
 
     OrbitalIndex old_state_index;
@@ -298,21 +298,24 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
 template <bool IsHermitianZeroOperator>
 void OneElectronIntegrals<IsHermitianZeroOperator>::Write(const std::string& filename) const
 {
-    FILE* fp = fopen(filename.c_str(), "wb");
-
-    // Write state index
-    WriteOrbitalIndexes(orbitals->state_index, fp);
-
-    unsigned int num_integrals = size();
-    fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
-
-    for(auto& pair: integrals)
+    if(ProcessorRank == 0)
     {
-        fwrite(&pair.first, sizeof(unsigned int), 1, fp);
-        fwrite(&pair.second, sizeof(double), 1, fp);
-    }
+        FILE* fp = fopen(filename.c_str(), "wb");
 
-    fclose(fp);
+        // Write state index
+        WriteOrbitalIndexes(orbitals->state_index, fp);
+
+        unsigned int num_integrals = size();
+        fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+
+        for(auto& pair: integrals)
+        {
+            fwrite(&pair.first, sizeof(unsigned int), 1, fp);
+            fwrite(&pair.second, sizeof(double), 1, fp);
+        }
+
+        fclose(fp);
+    }
 }
 
 #endif

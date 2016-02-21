@@ -37,8 +37,8 @@ void Atom::MakeMBPTIntegrals()
 
     auto& valence = orbitals->valence;
 
-    pOneElectronMBPT mbpt_integrals_one(new OneElectronMBPT(orbitals, core_mbpt, hf));
-    pCoreValenceIntegralsMap mbpt_integrals_two(new CoreValenceIntegralsMap(orbitals, core_mbpt));
+    pOneElectronMBPT mbpt_integrals_one = std::make_shared<OneElectronMBPT>(orbitals, core_mbpt, hf, identifier + ".one.int");
+    pCoreValenceIntegralsMap mbpt_integrals_two = std::make_shared<CoreValenceIntegralsMap>(orbitals, core_mbpt, identifier + ".two.int");
 
     // Use subtraction diagrams and extra box diagrams?
     // First find out whether the core is our closed shell core, while we're at it, get maximum pqn.
@@ -125,14 +125,14 @@ void Atom::MakeMBPTIntegrals()
     {
         if(one_body_mbpt)
         {
+            mbpt_integrals_one->Read(identifier + ".one.int");
             mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
-            mbpt_integrals_one->Write(identifier + ".one.int");
         }
 
         if(two_body_mbpt)
         {
+            mbpt_integrals_two->Read(identifier + ".two.int");
             mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
-            mbpt_integrals_two->Write(identifier + ".two.int");
         }
     }
 }

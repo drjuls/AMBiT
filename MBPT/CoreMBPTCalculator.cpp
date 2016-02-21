@@ -56,7 +56,7 @@ double CoreMBPTCalculator::GetOneElectronSubtraction(const OrbitalInfo& s1, cons
     double term1 = CalculateSubtraction1(s1, s2);
     double term2 = CalculateSubtraction2(s1, s2);
     double term3 = CalculateSubtraction3(s1, s2);
-    
+
     return (term1 + term2 + term3);
 }
 
@@ -145,7 +145,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Ebeta = it_beta->second->Energy();
 
                         double coeff;
-                        if((sa.L() + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sbeta) && (sa.L() + sbeta.L() + k1)%2 == 0)
                             coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -159,7 +159,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                             // R2 = R_k1 (b n, beta alpha)
                             double R1 = two_body->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
                             double R2 = two_body->GetTwoElectronIntegral(k1, sb, sn, sbeta, salpha);
-                            
+
                             energy1 += R1 * R2 * coeff;
                         }
                         it_beta++;
@@ -173,7 +173,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Em = it_m->second->Energy();
 
                         double coeff;
-                        if((sa.L() + sm.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sm) && (sa.L() + sm.L() + k1)%2 == 0)
                             coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -199,7 +199,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
         }
         it_n++;
     }
-    
+
     if(debug)
         *outstream << "  " << energy1 * constants->HartreeEnergyInInvCm()
                    << "  " << energy3 * constants->HartreeEnergyInInvCm() << std::endl;
@@ -217,7 +217,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
 
     unsigned int k1, k1max;
     unsigned int k2, k2max;
-    
+
     double energy = 0.;
 
     auto it_n = core->begin();
@@ -250,7 +250,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                         const double Ebeta = it_beta->second->Energy();
 
                         double C_abeta;
-                        if((sa.L() + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sbeta) && (sa.L() + sbeta.L() + k1)%2 == 0)
                             C_abeta = MathConstant::Instance()->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
@@ -282,14 +282,14 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
 
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (n b, beta alpha)
                                     double R2 = two_body->GetTwoElectronIntegral(k2, sn, sb, sbeta, salpha);
-                                    
+
                                     energy += R1 * R2 * coeff;
                                 }
                                 k2 += 2;
                             }
                         }
                         it_beta++;
-                    } 
+                    }
                 } // C_nalpha
                 k1 += 2;
             }
@@ -297,7 +297,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
         }
         it_n++;
     }
-    
+
     if(debug)
         *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
@@ -347,7 +347,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                         const double Em = it_m->second->Energy();
 
                         double C_am;
-                        if((sa.L() + sm.L() + k1)%2 == 0)
+                        if(InQSpace(sn, salpha, sm) && (sa.L() + sm.L() + k1)%2 == 0)
                             C_am = MathConstant::Instance()->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             C_am = 0.;
@@ -384,7 +384,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                             }
                         }
                         it_m++;
-                    } 
+                    }
                 } // C_nalpha
                 k1 += 2;
             }
@@ -395,7 +395,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
 
     if(debug)
         *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
-    return energy;    
+    return energy;
 }
 
 double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const OrbitalInfo& sb) const
@@ -419,7 +419,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            if(sn.Kappa() == salpha.Kappa())
+            if(sn.Kappa() == salpha.Kappa() && InQSpace(sn, salpha))
             {
                 double coeff = one_body->GetMatrixElement(sn, salpha);
                 coeff = coeff * sn.MaxNumElectrons();
@@ -451,7 +451,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
         *outstream << "Sub 2:    ";
 
     double energy = 0.;
-    
+
     unsigned int k1, k1max;
 
     auto it_n = core->begin();
@@ -466,7 +466,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            if(sn.Kappa() == salpha.Kappa())
+            if(sn.Kappa() == salpha.Kappa() && InQSpace(sn, salpha))
             {
                 double C_nalpha = one_body->GetMatrixElement(sn, salpha);
                 C_nalpha = C_nalpha * sn.MaxNumElectrons();
@@ -517,7 +517,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
         const OrbitalInfo& sn = it_n->first;
         const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sa.Kappa())
+        if(sn.Kappa() == sa.Kappa() && InQSpace(sn))
         {
             double term = one_body->GetMatrixElement(sa, sn) * one_body->GetMatrixElement(sn, sb);
             term = term/(En - ValenceEnergy + delta);
@@ -554,10 +554,10 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
             const double Ealpha = it_alpha->second->Energy();
 
             double coeff;
-            if((sn.L() + salpha.L() + k)%2)
-                coeff = 0.;
-            else
+            if(InQSpace(sn, salpha) && (sn.L() + salpha.L() + k)%2 == 0)
                 coeff = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
+            else
+                coeff = 0.;
 
             if(coeff)
             {
@@ -612,11 +612,9 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            double C_nalpha;
-            if((sn.L() + salpha.L() + k)%2)
-                C_nalpha = 0.;
-            else
-                C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);                
+            double C_nalpha = 0.;
+            if(InQSpace(sn, salpha) && (sn.L() + salpha.L() + k)%2 == 0)
+                C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
 
             if(C_nalpha)
             {
@@ -665,7 +663,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                     {
                         // R1 = R_k1 (b alpha, n d)
                         double R1 = two_body->GetTwoElectronIntegral(k1, sb, salpha, sn, sd);
-                        
+
                         // R2 = R_k (a n, c alpha)
                         double R2 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, salpha);
 
@@ -717,12 +715,10 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
             const OrbitalInfo& salpha = it_alpha->first;
             const double Ealpha = it_alpha->second->Energy();
 
-            double C_nalpha;
-            if((sa.L() + sn.L())%2 != (salpha.L() + sd.L())%2)
-                C_nalpha = 0.;
-            else if((sn.L() + sc.L())%2 != (sb.L() + salpha.L())%2)
-                C_nalpha = 0.;
-            else
+            double C_nalpha = 0.;
+            if(InQSpace(sn, salpha) &&
+               ((sa.L() + sn.L())%2 == (salpha.L() + sd.L())%2) &&
+               ((sn.L() + sc.L())%2 == (sb.L() + salpha.L())%2))
                 C_nalpha = double(sn.MaxNumElectrons()) * double(salpha.MaxNumElectrons()) * (2. * double(k) + 1.);
 
             if(C_nalpha)
@@ -758,7 +754,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
                                               * MathConstant::Instance()->Wigner6j(sb.J(), sd.J(), k, k1, k2, salpha.J());
 
                             if(coeff)
-                            {   
+                            {
                                 coeff = coeff * coeff_ad * C_nalpha;
 
                                 // R2 = R_k2 (2b, c4)
@@ -817,12 +813,10 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
             const OrbitalInfo& sn = it_n->first;
             const double En = it_n->second->Energy();
 
-            double coeff_mn;
-            if((sa.L() + sm.L())%2 != (sb.L() + sn.L())%2)
-                coeff_mn = 0.;
-            else if((sm.L() + sc.L())%2 != (sd.L() + sn.L())%2)
-                coeff_mn = 0.;
-            else
+            double coeff_mn = 0.;
+            if(InQSpace(sn, sm) &&
+               ((sa.L() + sm.L())%2 == (sb.L() + sn.L())%2) &&
+               ((sm.L() + sc.L())%2 == (sd.L() + sn.L())%2))
                 coeff_mn = double(sm.MaxNumElectrons()) * double(sn.MaxNumElectrons()) * (2. * double(k) + 1.);
 
             if(coeff_mn)
@@ -845,7 +839,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                     {
                         // R1 = R_k1 (ab, mn)
                         double R1 = two_body->GetTwoElectronIntegral(k1, sa, sb, sm, sn);
-                        
+
                         k2 = kmin(sm, sc, sn, sd);
                         k2max = kmax(sm, sc, sn, sd);
 
@@ -858,7 +852,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                                               * MathConstant::Instance()->Wigner6j(sd.J(), sb.J(), k, k1, k2, sn.J());
 
                             if(coeff)
-                            {   
+                            {
                                 coeff = coeff * coeff_ab * coeff_mn;
                                 if((k1 + k2)%2)
                                     coeff = -coeff;
@@ -903,20 +897,22 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     while(it_n != core->end())
     {
         const OrbitalInfo& sn = it_n->first;
-        const double En = it_n->second->Energy();
-
-        if(sn.Kappa() == sa.Kappa())
+        if(InQSpace(sn))
         {
-            double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
-            energy -= R1 * one_body->GetMatrixElement(sa, sn) / (En - Ea + delta);
-        }
+            const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sc.Kappa())
-        {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
-            energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
-        }
+            if(sn.Kappa() == sa.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
+                energy -= R1 * one_body->GetMatrixElement(sa, sn) / (En - Ea + delta);
+            }
 
+            if(sn.Kappa() == sc.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
+                energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
+            }
+        }
         it_n++;
     }
 
@@ -925,389 +921,26 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     while(it_n != core->end())
     {
         const OrbitalInfo& sn = it_n->first;
-        const double En = it_n->second->Energy();
-
-        if(sn.Kappa() == sb.Kappa())
+        if(InQSpace(sn))
         {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
-            energy -= R1 * one_body->GetMatrixElement(sb, sn) / (En - Eb + delta);
-        }
+            const double En = it_n->second->Energy();
 
-        if(sn.Kappa() == sd.Kappa())
-        {
-            double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
-            energy -= R1 * one_body->GetMatrixElement(sn, sd) / (En - Ed + delta);
-        }
+            if(sn.Kappa() == sb.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
+                energy -= R1 * one_body->GetMatrixElement(sb, sn) / (En - Eb + delta);
+            }
 
+            if(sn.Kappa() == sd.Kappa())
+            {
+                double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
+                energy -= R1 * one_body->GetMatrixElement(sn, sd) / (En - Ed + delta);
+            }
+        }
         it_n++;
     }
 
     if(debug)
         *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
-}
-
-BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body):
-    MBPTCalculator(orbitals), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
-{}
-
-void BruecknerSigmaCalculator::GetSecondOrderSigma(int kappa, SigmaPotential& sigma)
-{
-    if(DebugOptions.LogMBPT())
-        *outstream << "\nkappa = " << kappa << std::endl;
-
-    CalculateCorrelation1and3(kappa, sigma);
-    CalculateCorrelation2(kappa, sigma);
-    CalculateCorrelation4(kappa, sigma);
-}
-
-void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotential& sigma)
-{
-    const bool debug = DebugOptions.LogMBPT();
-
-    int external_twoJ = 2*abs(kappa) - 1;
-    int external_L = (kappa > 0)? kappa: (-kappa-1);
-
-    if(debug)
-        *outstream << "Cor 1+3:  ";
-    double spacing = 1./double(core->size() * excited->size());
-    double count = 0.;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance()->Instance();
-    unsigned int sigma_size = sigma.size();
-
-    unsigned int k1, k1max;
-
-    // Firstly, get the loop 24
-    auto it_n = core->begin();
-    while(it_n != core->end())
-    {
-        const Orbital& sn = *it_n->second;
-
-        auto it_alpha = excited->begin();
-        while(it_alpha != excited->end())
-        {
-            const Orbital& salpha = *(it_alpha->second);
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-
-            k1max = kmax(it_n->first, it_alpha->first);
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY->SetParameters(k1, it_n->second, it_alpha->second);
-
-                if(C_nalpha && !hartreeY->isZero())
-                {
-                    C_nalpha = C_nalpha * C_nalpha * it_n->first.MaxNumElectrons() * it_alpha->first.MaxNumElectrons()
-                                                / (2. * k1 + 1.);
-
-                    // Correlation 1 has excited state beta
-                    auto it_beta = excited->begin();
-                    while(it_beta != excited->end())
-                    {
-                        const Orbital& sbeta = *(it_beta->second);
-
-                        double coeff;
-                        if((external_L + sbeta.L() + k1)%2 == 0)
-                            coeff = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
-                        else
-                            coeff = 0.;
-
-                        if(coeff)
-                        {
-                            coeff = coeff * coeff * C_nalpha * it_beta->first.MaxNumElectrons();
-                            coeff = coeff/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
-
-                            // R1 = R_k1 (a n, beta alpha)
-                            // R2 = R_k1 (b n, beta alpha)
-                            SpinorFunction Ybeta = hartreeY->ApplyTo(sbeta, kappa);
-                            Ybeta.resize(sigma_size);
-
-                            sigma.AddToSigma(Ybeta, Ybeta, coeff);
-                        }
-
-                        it_beta++;
-                    }
-
-                    // Correlation 3 has core state m
-                    auto it_m = core->begin();
-                    while(it_m != core->end())
-                    {
-                        const Orbital& sm = *(it_m->second);
-
-                        double coeff;
-                        if((external_L + sm.L() + k1)%2 == 0)
-                            coeff =  constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
-                        else
-                            coeff = 0.;
-
-                        if(coeff)
-                        {
-                            coeff = coeff * coeff * C_nalpha * it_m->first.MaxNumElectrons();
-                            coeff = coeff/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
-
-                            // R1 = R_k1 (a alpha, m n)
-                            // R2 = R_k1 (b alpha, m n)
-                            SpinorFunction Ym = hartreeY->ApplyTo(sm, kappa, true);
-                            Ym.resize(sigma_size);
-
-                            sigma.AddToSigma(Ym, Ym, coeff);
-                        }
-                        it_m++;
-                    }
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_alpha++;
-        }
-        it_n++;
-    }
-}
-
-void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& sigma)
-{
-    const bool debug = DebugOptions.LogMBPT();
-
-    int external_twoJ = 2*abs(kappa) - 1;
-    int external_L = (kappa > 0)? kappa: (-kappa-1);
-    double external_J = double(external_twoJ)/2.;
-
-    if(debug)
-        *outstream << "Cor 2:    ";
-    double spacing = 1./double(core->size() * excited->size());
-    double count = 0.;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance();
-    unsigned int sigma_size = sigma.size();
-
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
-
-    pHartreeY hartreeY1(hartreeY->Clone());
-    pHartreeY hartreeY2(hartreeY->Clone());
-
-    auto it_n = core->begin();
-    while(it_n != core->end())
-    {
-        const Orbital& sn = *(it_n->second);
-
-        auto it_alpha = excited->begin();
-        while(it_alpha != excited->end())
-        {
-            const Orbital& salpha = *(it_alpha->second);
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, it_n->second, it_alpha->second);
-
-                if(C_nalpha && !hartreeY1->isZero())
-                {
-                    C_nalpha = C_nalpha * it_n->first.MaxNumElectrons() * it_alpha->first.MaxNumElectrons();
-
-                    auto it_beta = excited->begin();
-                    while(it_beta != excited->end())
-                    {
-                        const Orbital& sbeta = *(it_beta->second);
-
-                        double C_abeta;
-                        if((external_L + sbeta.L() + k1)%2 == 0)
-                            C_abeta = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
-                        else
-                            C_abeta = 0.;
-
-                        if(C_abeta && (external_L + salpha.L() + sn.L() + sbeta.L())%2 == 0)
-                        {
-                            C_abeta = C_abeta * it_beta->first.MaxNumElectrons();
-                            C_abeta = C_abeta/(ValenceEnergy + sn.Energy() - sbeta.Energy() - salpha.Energy() + delta);
-
-                            // R1 = R_k1 (a n, beta alpha)
-                            SpinorFunction Y1 = hartreeY1->ApplyTo(sbeta, kappa);
-                            Y1.resize(sigma_size);
-
-                            k2 = absdiff(sn.L(), sbeta.L());
-                            if(absdiff(sn.TwoJ(), sbeta.TwoJ()) > 2 * k2)
-                                k2 += 2;
-                            k2max = (sn.TwoJ() + sbeta.TwoJ())/2;
-
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_abeta = -C_abeta;
-
-                            while(k2 <= k2max)
-                            {
-                                double coeff
-                                = C_abeta * C_nalpha * constants->Electron3j(external_twoJ, salpha.TwoJ(), k2)
-                                * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
-                                * constants->Wigner6j(external_J, sbeta.J(), k1, sn.J(), salpha.J(), k2);
-                                // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
-
-                                if(coeff)
-                                {
-                                    hartreeY2->SetParameters(k2, it_n->second, it_beta->second);
-
-                                    // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
-                                    SpinorFunction Y2 = hartreeY2->ApplyTo(salpha, kappa);
-                                    if(Y2.size())
-                                    {
-                                        Y2.resize(sigma_size);
-                                        sigma.AddToSigma(Y1, Y2, coeff);
-                                    }
-                                }
-                                k2 += 2;
-                            }
-                        }
-                        it_beta++;
-                    }
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_alpha++;
-        }
-        it_n++;
-    }
-}
-
-void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& sigma)
-{
-    const bool debug = DebugOptions.LogMBPT();
-
-    int external_twoJ = 2*abs(kappa) - 1;
-    int external_L = (kappa > 0)? kappa: (-kappa-1);
-    double external_J = double(external_twoJ)/2.;
-
-    if(debug)
-        *outstream << "Cor 4:    ";
-    double spacing = 1./double(core->size() * excited->size());
-    double count = 0.;
-
-    const double ValenceEnergy = ValenceEnergies.find(kappa)->second;
-    MathConstant* constants = MathConstant::Instance();
-    unsigned int sigma_size = sigma.size();
-
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
-
-    pHartreeY hartreeY1(hartreeY->Clone());
-    pHartreeY hartreeY2(hartreeY->Clone());
-
-    auto it_n = core->begin();
-    while(it_n != core->end())
-    {
-        const OrbitalInfo& info_n = it_n->first;
-        const Orbital& sn = *(it_n->second);
-
-        auto it_alpha = excited->begin();
-        while(it_alpha != excited->end())
-        {
-            const OrbitalInfo& info_alpha = it_alpha->first;
-            const Orbital& salpha = *(it_alpha->second);
-
-            if(debug)
-            {   count += spacing;
-                if(count >= 0.02)
-                {   *logstream << ".";
-                    count -= 0.02;
-                }
-            }
-
-            k1 = kmin(info_n, info_alpha);
-            k1max = kmax(info_n, info_alpha);
-
-            while(k1 <= k1max)
-            {
-                double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, it_alpha->second, it_n->second);
-
-                if(C_nalpha && !hartreeY1->isZero())
-                {
-                    C_nalpha = C_nalpha * info_n.MaxNumElectrons() * info_alpha.MaxNumElectrons();
-
-                    auto it_m = core->begin();
-                    while(it_m != core->end())
-                    {
-                        const OrbitalInfo& info_m = it_m->first;
-                        const Orbital& sm = *(it_m->second);
-
-                        double C_am;
-                        if((external_L + sm.L() + k1)%2 == 0)
-                            C_am = constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
-                        else
-                            C_am = 0.;
-
-                        if(C_am && (external_L + sn.L() + sm.L() + salpha.L())%2 == 0)
-                        {
-                            C_am = C_am * info_m.MaxNumElectrons();
-                            C_am = C_am/(ValenceEnergy + salpha.Energy() - sn.Energy() - sm.Energy() - delta);
-
-                            // R1 = R_k1 (a alpha, m n)
-                            SpinorFunction Y1 = hartreeY1->ApplyTo(sm, kappa);
-                            Y1.resize(sigma_size);
-
-                            // Note: we can rely on HartreeY to check triangle and parity for (k2, n, b)
-                            k2 = kmin(info_m, info_alpha);
-                            k2max = kmax(info_m, info_alpha);
-
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_am = -C_am;
-
-                            while(k2 <= k2max)
-                            {
-                                double coeff
-                                = C_am * C_nalpha * constants->Electron3j(external_twoJ, sn.TwoJ(), k2)
-                                    * constants->Electron3j(sm.TwoJ(), salpha.TwoJ(), k2)
-                                    * constants->Wigner6j(external_J, sm.J(), k1, salpha.J(), sn.J(), k2);
-
-                                if(coeff)
-                                {
-                                    hartreeY2->SetParameters(k2, it_alpha->second, it_m->second);
-
-                                    // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
-                                    SpinorFunction Y2 = hartreeY2->ApplyTo(sn, kappa);
-                                    if(Y2.size())
-                                    {
-                                        Y2.resize(sigma_size);
-                                        sigma.AddToSigma(Y1, Y2, coeff);
-                                    }
-                                }
-                                k2 += 2;
-                            }
-                        }
-                        it_m++;
-                    } 
-                } // C_nalpha
-                k1 += 2;
-            }
-            it_alpha++;
-        }
-        it_n++;
-    }
 }
