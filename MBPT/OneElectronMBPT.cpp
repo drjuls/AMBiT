@@ -1,5 +1,7 @@
 #include "OneElectronMBPT.h"
+#ifdef AMBIT_USE_MPI
 #include <mpi.h>
+#endif
 
 OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body, const std::string& write_file):
     OneElectronMBPT(orbitals, std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body, bare_two_body), bare_one_body->GetOperator(), write_file)

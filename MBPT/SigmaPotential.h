@@ -8,19 +8,22 @@
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> SigmaMatrix;
 
+class BruecknerSigmaCalculator;
+
 /** Storage class for Brueckner "Sigma" potential made of four radial matrices:
         Sigma(r1, r2) = ( ff  fg )
                         ( gf  gg )
     where each quadrant is a matrix in (r1, r2).
     By default it only stores one matrix: the "ff" part; use IncludeLower() to use the "fg" or "gg" parts.
  */
-class SigmaPotential
+class SigmaPotential: public LatticeObserver
 {
+    friend class BruecknerSigmaCalculator;  // Exposes internals for MPI reduction
 public:
     SigmaPotential(pLattice lattice);
     /** Matrix size = (end_point - start_point)/stride */
     SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point = 0, unsigned int stride = 4);
-    ~SigmaPotential();
+    virtual ~SigmaPotential();
 
     /** include_fg: store off diagonal (fg and gf) terms;
         include_gg: store gg term (can't imagine that it would be useful; smaller than ff by a factor ~(Z_ion * alpha)^2)
@@ -30,6 +33,7 @@ public:
     unsigned int size() const;
     void clear();
     void resize_and_clear(unsigned int new_size);
+    virtual void Alert();
 
     /** Sigma(r1, r2) += s1(r1) * s2(r2) * coeff
         PRE: s1.size() & s2.size() >= size()
@@ -54,12 +58,11 @@ public:
 
 protected:
     // A matrix for each quadrant of Sigma
-    pLattice lattice;
-    SigmaMatrix ff, fg, gf, gg;
+    SigmaMatrix ff, fg, gf, gg; //!< Matrices of size matrix_size or zero if not used
     bool use_fg, use_gg;
 
-    unsigned int start;
-    unsigned int matrix_size;
+    unsigned int start;         //!< start point on lattice
+    unsigned int matrix_size;   //!< matrix_size = (end_point - start)/stride
     unsigned int stride;
     std::vector<double> Rgrid;
     std::vector<double> dRgrid;

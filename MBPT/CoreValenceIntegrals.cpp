@@ -1,6 +1,6 @@
 #include "Include.h"
 #ifdef AMBIT_USE_MPI
-    #include <mpi.h>
+#include <mpi.h>
 #endif
 
 // Below purposely not included: this file is for a template class and should be included in the header.

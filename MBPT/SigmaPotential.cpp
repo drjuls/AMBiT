@@ -6,11 +6,11 @@ typedef Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned, Eigen::InnerStride<>
 typedef Eigen::Map<const Eigen::ArrayXd, Eigen::Unaligned, Eigen::InnerStride<>> EigenArrayMapped;
 
 SigmaPotential::SigmaPotential(pLattice lattice):
-    start(0), matrix_size(0), lattice(lattice), stride(4)
+    LatticeObserver(lattice), start(0), matrix_size(0), stride(4)
 {}
 
 SigmaPotential::SigmaPotential(pLattice lattice, unsigned int end_point, unsigned int start_point, unsigned int stride):
-    start(start_point), matrix_size(0), lattice(lattice), stride(stride)
+    LatticeObserver(lattice), start(start_point), matrix_size(0), stride(stride)
 {
     resize_and_clear(end_point);
 }
@@ -49,6 +49,24 @@ void SigmaPotential::resize_and_clear(unsigned int new_size)
     {
         Rgrid[i] = R[start + i * stride];
         dRgrid[i] = dR[start + i * stride] * stride;
+    }
+}
+
+void SigmaPotential::Alert()
+{
+    if(lattice->size() < size())
+    {
+        matrix_size = (lattice->size() - start)/stride;
+        ff.noalias() = ff.topLeftCorner(matrix_size, matrix_size);
+        if(use_fg)
+        {   fg.noalias() = fg.topLeftCorner(matrix_size, matrix_size);
+            gf.noalias() = gf.topLeftCorner(matrix_size, matrix_size);
+        }
+        if(use_gg)
+            gg.noalias() = gg.topLeftCorner(matrix_size, matrix_size);
+
+        Rgrid.resize(matrix_size);
+        dRgrid.resize(matrix_size);
     }
 }
 
@@ -189,24 +207,27 @@ bool SigmaPotential::Read(const std::string& filename)
 
 void SigmaPotential::Write(const std::string& filename) const
 {
-    FILE* fp = fopen(filename.c_str(), "wb");
+    if(ProcessorRank == 0)
+    {
+        FILE* fp = fopen(filename.c_str(), "wb");
 
-    fwrite(&matrix_size, sizeof(unsigned int), 1, fp);
-    fwrite(&start, sizeof(unsigned int), 1, fp);
-    fwrite(&stride, sizeof(unsigned int), 1, fp);
+        fwrite(&matrix_size, sizeof(unsigned int), 1, fp);
+        fwrite(&start, sizeof(unsigned int), 1, fp);
+        fwrite(&stride, sizeof(unsigned int), 1, fp);
 
-    fwrite(&use_fg, sizeof(bool), 1, fp);
-    fwrite(&use_gg, sizeof(bool), 1, fp);
+        fwrite(&use_fg, sizeof(bool), 1, fp);
+        fwrite(&use_gg, sizeof(bool), 1, fp);
 
-    // Write data
-    fwrite(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
+        // Write data
+        fwrite(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
 
-    if(use_fg)
-    {   fwrite(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-        fwrite(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
+        if(use_fg)
+        {   fwrite(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
+            fwrite(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
+        }
+        if(use_gg)
+            fwrite(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
+
+        fclose(fp);
     }
-    if(use_gg)
-        fwrite(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
-
-    fclose(fp);
 }

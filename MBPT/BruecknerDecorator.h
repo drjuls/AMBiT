@@ -3,7 +3,7 @@
 
 #include "HartreeFock/HFOperator.h"
 #include "SigmaPotential.h"
-#include "CoreMBPTCalculator.h"
+#include "BruecknerSigmaCalculator.h"
 
 /** BruecknerDecorator adds one-body "sigma" operators to a HF potential.
     It stores a mapping from kappa to SigmaPotential, and can read and write sigmas to file.

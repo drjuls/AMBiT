@@ -1,4 +1,4 @@
-cxxobjects = BruecknerDecorator.o CoreMBPTCalculator.o \
+cxxobjects = BruecknerDecorator.o BruecknerSigmaCalculator.o CoreMBPTCalculator.o \
              MBPTCalculator.o OneElectronMBPT.o \
              SigmaPotential.o
 cobjects = 

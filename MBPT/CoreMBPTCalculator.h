@@ -4,7 +4,6 @@
 #include "MBPTCalculator.h"
 #include "SlaterIntegrals.h"
 #include "OneElectronIntegrals.h"
-#include "MBPT/SigmaPotential.h"
 
 /** Calculate diagrams of many-body perturbation theory.
     One-body diagrams (functions GetSecondOrderSigma()) are of the form
@@ -50,19 +49,19 @@ protected:
     /** Calculate diagrams of second order (shown here 1 through 4).
         ->>------>------>>--  ->>------>------<---  ->>------<------>>--  ->>------<------>---
          a   |  beta |   b     a   |  beta |   n     a   |   m   |   b     a   |   m   | alpha
-             |       |             |       |             |       |             |       |      
+             |       |             |       |             |       |             |       |
         --<------>------<---  --<------>------>>--  --<------>------<---  -->------<------>>--
-         n     alpha     n     n     alpha     b     n     alpha     n    alpha    n       b  
+         n     alpha     n     n     alpha     b     n     alpha     n    alpha    n       b
 
          PRE: si.kappa == sf.kappa
      */
     double CalculateCorrelation1and3(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     double CalculateCorrelation2(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
     double CalculateCorrelation4(const OrbitalInfo& sa, const OrbitalInfo& sb) const;
-    
+
     /** Calculate subtraction diagrams of second order (shown here 1 through 3).
         ->>------------->>--  ->>-------------<---  ->>------<------>>--
-         a           |   b     a           |   n     a   |   n   |   b  
+         a           |   b     a           |   n     a   |   n   |   b
                      |                     |             |       |
         --<------>------<---  --<------>------>>--       x       x
          n   | alpha     n     n   | alpha     b
@@ -77,10 +76,10 @@ protected:
 
     /** Calculate two-electron screening diagrams of second order (shown here 1 through 3).
         ->>------------->>--  ->>-------------<---  ->>------------->>--
-          a          |   c      a          |   n      a          |   c  
+          a          |   c      a          |   n      a          |   c
                      |                     |                     |
         --<------>------<---  --<------>------>>--  ->>------>------<---
-          n  | alpha     n      n  | alpha     c      b  | alpha     n     
+          n  | alpha     n      n  | alpha     c      b  | alpha     n
              |                     |                     |
         ->>------------->>--  ->>------------->>--  --<-----------------
           b              d      b              d      n              d
@@ -92,16 +91,16 @@ protected:
 
     /** Calculate two-electron screening "box" diagrams of second order (shown here 4 through 6).
         ->>-------------<---  ->>------>------>>--  ->>-------------<---
-          a          |   n      a  | alpha |   c      a          |   m  
+          a          |   n      a  | alpha |   c      a          |   m
                      |             |       |                     |
         --<------------->>--  ->>-------------<---  --<------------->>--
-          n  |       |   c      b  |           n      m  |       |   c     
+          n  |       |   c      b  |           n      m  |       |   c
              |       |             |                     |       |
         ->>------>------>>--  --<------------->>--  ->>-------------<---
           b    alpha     d      n              d      b  |           n
-                                                         |              
+                                                         |
                                                     --<------------->>--
-                                                      n              d  
+                                                      n              d
          NOTE: diagrams 4 and 5 are mirrors of each other (swapping a<->b and c<->d)
      */
     double CalculateTwoElectron4(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
@@ -113,13 +112,13 @@ protected:
                      |          There are four diagrams, with the hole state
                      |          being connected to each of the four valence lines.
         ->>-------------<---
-          a              n  
-                            
+          a              n
+
         --<------------->>--
-          n  |           c  
-             |              
+          n  |           c
+             |
         ->>------------->>--
-          b              d  
+          b              d
      */
     double CalculateTwoElectronSub(unsigned int k, const OrbitalInfo& sa, const OrbitalInfo& sb, const OrbitalInfo& sc, const OrbitalInfo& sd) const;
 
@@ -132,41 +131,5 @@ protected:
 };
 
 typedef std::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
-
-class BruecknerSigmaCalculator : public MBPTCalculator
-{
-public:
-    BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body);
-    virtual ~BruecknerSigmaCalculator() {}
-
-    virtual unsigned int GetStorageSize() override { return 0; }
-    virtual void UpdateIntegrals() override { return; }
-
-    /** Create a second-order one-electron MBPT (sigma1) operator. */
-    void GetSecondOrderSigma(int kappa, SigmaPotential& sigma);
-
-protected:
-    /** Calculate diagrams of second order (shown here 1 through 4).
-     ->>------>------>>--  ->>------>------<---  ->>------<------>>--  ->>------<------>---
-     a   |  beta |   b     a   |  beta |   n     a   |   m   |   b     a   |   m   | alpha
-     |       |             |       |             |       |             |       |
-     --<------>------<---  --<------>------>>--  --<------>------<---  -->------<------>>--
-     n     alpha     n     n     alpha     b     n     alpha     n    alpha    n       b
-
-     PRE: si.kappa == sf.kappa
-     */
-    void CalculateCorrelation1and3(int kappa, SigmaPotential& sigma);
-    void CalculateCorrelation2(int kappa, SigmaPotential& sigma);
-    void CalculateCorrelation4(int kappa, SigmaPotential& sigma);
-
-protected:
-    pSpinorOperatorConst hf;
-    pHartreeY hartreeY;
-
-    pOrbitalMapConst core;
-    pOrbitalMapConst excited;
-};
-
-typedef std::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
 
 #endif
