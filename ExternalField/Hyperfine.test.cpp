@@ -9,6 +9,7 @@
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/SlaterIntegrals.h"
 #include "MBPT/BruecknerDecorator.h"
+#include "MBPT/CoreMBPTCalculator.h"
 #include "RPASolver.h"
 
 TEST(HyperfineTester, Rb)

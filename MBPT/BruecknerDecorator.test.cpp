@@ -8,6 +8,7 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "Basis/BasisGenerator.h"
 #include "Universal/MathConstant.h"
+#include "MBPT/CoreMBPTCalculator.h"
 
 TEST(BruecknerDecoratorTester, MgIISlow)
 {
