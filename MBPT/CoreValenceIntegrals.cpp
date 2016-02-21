@@ -1,4 +1,5 @@
 #include "Include.h"
+#include <chrono>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -60,9 +61,17 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
     if(!check_size_only)
         core_PT->UpdateIntegrals();
 
+    // Save state every hour or so unless nearly_done is true
+    std::chrono::steady_clock::time_point mark_time = std::chrono::steady_clock::now();
+    std::chrono::minutes gap(47);   // 47 minutes
+    bool nearly_done = false;
+
     auto it_1 = orbital_map_1->begin();
     while(it_1 != orbital_map_1->end())
     {
+        if(std::next(it_1) == orbital_map_1->end())
+            nearly_done = true;
+
         i1 = this->orbitals->state_index.at(it_1->first);
         const auto& s1 = it_1->first;
 
@@ -162,6 +171,14 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                                 k+=2;
                         }
                     }
+
+                    // Save state if lots of time has passed
+                    std::chrono::steady_clock::duration t = std::chrono::steady_clock::now() - mark_time;
+                    if(!nearly_done && t > gap)
+                    {   this->Write(write_file);    // Write has an MPI_Barrier, so all processes are at the same time
+                        mark_time = std::chrono::steady_clock::now();
+                    }
+
                     it_4++;
                 }
                 it_2++;
