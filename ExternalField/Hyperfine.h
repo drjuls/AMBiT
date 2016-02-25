@@ -41,13 +41,15 @@ protected:
 class HyperfineQuadrupoleOperator: public SpinorOperator
 {
 public:
-    HyperfineQuadrupoleOperator(pIntegrator integration_strategy);
+    HyperfineQuadrupoleOperator(pIntegrator integration_strategy, double nuclear_radius_fm);
 
 public:
     /** Hyperfine shift for Q = 1 barn in atomic units. */
     virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
 protected:
+    double nuclear_radius;
+    unsigned int nuclear_radius_lattice;
     pLattice lattice;
 };
 

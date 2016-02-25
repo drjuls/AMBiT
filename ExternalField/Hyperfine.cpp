@@ -48,7 +48,14 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    double magnetic_radius = user_input("NuclearMagneticRadius", 0.0);
+    double magnetic_radius = user_input("NuclearMagneticRadius", -1.0);
+    if(magnetic_radius < 0.0)
+    {   pNucleusDecorator nuc = atom.GetNucleusDecorator();
+        if(nuc)
+            magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
+        else
+            magnetic_radius = 0.;
+    }
     op = std::make_shared<HyperfineDipoleOperator>(hf->GetIntegrator(), magnetic_radius);
 
     g_I = user_input("gOnI", 1.0);
@@ -73,9 +80,12 @@ void HyperfineDipoleCalculator::PrintTransition(const LevelID& left, const Level
                << " = " << std::setprecision(6) << value << std::endl;
 }
 
-HyperfineQuadrupoleOperator::HyperfineQuadrupoleOperator(pIntegrator integration_strategy):
+HyperfineQuadrupoleOperator::HyperfineQuadrupoleOperator(pIntegrator integration_strategy, double nuclear_radius_fm):
     SpinorOperator(2, Parity::even, integration_strategy), lattice(integration_strategy->GetLattice())
-{}
+{
+    nuclear_radius = nuclear_radius_fm/MathConstant::Instance()->BohrRadiusInFermi();
+    nuclear_radius_lattice = lattice->real_to_lattice(nuclear_radius);
+}
 
 SpinorFunction HyperfineQuadrupoleOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
 {
@@ -87,11 +97,20 @@ SpinorFunction HyperfineQuadrupoleOperator::ReducedApplyTo(const SpinorFunction&
         return ret;
     prefactor *= math->Barn();
 
+    const double* R = lattice->R();
     const double* R3 = lattice->Rpower(3);
     const double* R4 = lattice->Rpower(4);
 
+    double Rn4 = gsl_pow_4(nuclear_radius);
     unsigned int i;
-    for(i = 0; i < ret.size(); i++)
+    for(i = 0; i < nuclear_radius_lattice; i++)
+    {
+        ret.f[i] = R[i] * a.f[i]/Rn4;
+        ret.dfdr[i] = (R[i] * a.dfdr[i] + a.f[i])/Rn4;
+        ret.g[i] = R[i] * a.g[i]/Rn4;
+        ret.dgdr[i] = (R[i] * a.dgdr[i] + a.g[i])/Rn4;
+    }
+    for(i = nuclear_radius_lattice; i < ret.size(); i++)
     {
         ret.f[i] = a.f[i]/R3[i];
         ret.dfdr[i] = a.dfdr[i]/R3[i] - 3. * a.f[i]/R4[i];
@@ -107,7 +126,15 @@ HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& us
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    op = std::make_shared<HyperfineQuadrupoleOperator>(hf->GetIntegrator());
+    double magnetic_radius = user_input("NuclearQuadrupoleRadius", -1.0);
+    if(magnetic_radius < 0.0)
+    {   pNucleusDecorator nuc = atom.GetNucleusDecorator();
+        if(nuc)
+            magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
+        else
+            magnetic_radius = 0.;
+    }
+    op = std::make_shared<HyperfineQuadrupoleOperator>(hf->GetIntegrator(), magnetic_radius);
 
     Q = user_input("Q", 1.0);
 

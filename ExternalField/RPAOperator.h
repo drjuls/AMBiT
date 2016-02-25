@@ -61,6 +61,21 @@ inline SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int k
             occupancy_factor = sqrt(occupancy_factor);
             // TODO: Open shells need to be scaled
 
+            // Direct term: a -> alph, b -> beta
+            if((alph_L + a.L() + K)%2 == 0 && (b->L() + beta->L() + K)%2 == 0)
+            {
+                double coeff = 2./(2. * K + 1.) * math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + 1);
+                coeff *= math->Electron3j(alph_TwoJ, a.TwoJ(), K) * math->Electron3j(b->TwoJ(), beta->TwoJ(), K);
+
+                if(coeff)
+                {
+                    coeff *= occupancy_factor;
+
+                    hartreeY->SetParameters(K, b, beta);
+                    ret += hartreeY->ApplyTo(a, ret.Kappa()) * coeff;
+                }
+            }
+
             // C: alph -> b; beta -> a
             // Sum over all k
             if((alph_L + b->L())%2 == (a.L() + beta->L())%2)
@@ -70,7 +85,7 @@ inline SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int k
                 for(int k = mink; k <= maxk; k+=2)
                 {
                     double coeff = math->Wigner6j(K, alph_J, a.J(), k, beta->J(), b->J()) *
-                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k);
+                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
                     coeff *= math->Electron3j(a.TwoJ(), beta->TwoJ(), k) * math->Electron3j(alph_TwoJ, b->TwoJ(), k);
 
                     if(coeff)
@@ -92,7 +107,7 @@ inline SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int k
                 for(int k = mink; k <= maxk; k+=2)
                 {
                     double coeff = math->Wigner6j(K, a.J(), alph_J, k, beta->J(), b->J()) *
-                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k);
+                                   math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
                     coeff *= math->Electron3j(a.TwoJ(), b->TwoJ(), k) * math->Electron3j(alph_TwoJ, beta->TwoJ(), k);
 
                     if(coeff)

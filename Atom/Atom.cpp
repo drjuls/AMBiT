@@ -64,6 +64,9 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         // HartreeY operator
         hartreeY = basis_generator.GetHartreeY();
 
+        // Nucleus
+        nucleus = basis_generator.GetNucleusDecorator();
+
         std::string filename = identifier + ".basis";
         orbitals->Write(filename);
     }
@@ -95,6 +98,9 @@ bool Atom::ReadBasis()
 
     // HartreeY operator
     hartreeY = basis_generator.GetHartreeY();
+
+    // Nucleus
+    nucleus = basis_generator.GetNucleusDecorator();
 
     return true;
 }

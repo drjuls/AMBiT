@@ -7,6 +7,7 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Configuration/Level.h"
+#include "HartreeFock/NucleusDecorator.h"
 
 class Sigma3Calculator;
 
@@ -51,6 +52,9 @@ public:
 
     /** Get HartreeY operator. */
     pHartreeY GetHartreeY() { return hartreeY; }
+
+    /** Get nuclear if it exists. */
+    pNucleusDecorator GetNucleusDecorator() { return nucleus; }
 
 public:
     /** Generate integrals with MBPT, store and collate from all processors.
@@ -172,6 +176,7 @@ protected:
     pHFOperator hf_open;            //!< Open-shell HF operator
     pOrbitalManagerConst orbitals;
     pHartreeY hartreeY;
+    pNucleusDecorator nucleus;      //!< Pointer to nucleus (if included)
 
     pHFIntegrals hf_electron;                       //!< One-body Hamiltonian
     pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
