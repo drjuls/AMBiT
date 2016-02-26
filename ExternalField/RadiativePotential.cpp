@@ -569,7 +569,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
     };
 
     size_t sizelimit = 1000;
-    double prefactor = -Afit * 3. * Z * gsl_pow_4(alpha) / (16. * math->Pi() * gsl_pow_3(nuclear_radius));
+    double prefactor = -AfitSP * 3. * Z * gsl_pow_4(alpha) / (16. * math->Pi() * gsl_pow_3(nuclear_radius));
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
     gsl_set_error_handler_off();
@@ -600,7 +600,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
     if(integrate_offmass_term)
     {
         RadialFunction correction(lattice->size());
-        prefactor = Afit * 6. * Z * alpha * Ra / (4. * math->Pi() * gsl_pow_3(nuclear_radius));
+        prefactor = AfitSP * 6. * Z * alpha * Ra / (4. * math->Pi() * gsl_pow_3(nuclear_radius));
 
         // Integrand over t
         struct offmass_parameters_type
@@ -731,7 +731,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
     gsl_set_error_handler_off();
     double cumulative_error = 0.;
 
-    double prefactor = Afit * alpha / (4.0 * math->Pi());
+    double prefactor = AfitSP * alpha / (4.0 * math->Pi());
 
     unsigned int i_r = 0;
     while(i_r < lattice->size())
@@ -787,7 +787,7 @@ void ElectricSelfEnergyDecorator::GenerateStepElow(double nuclear_rms_radius)
     const double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
 
-    double prefactor = Bfit * gsl_pow_3(Z * alpha) * Z;
+    double prefactor = gsl_pow_3(Z * alpha) * Z;
 
     int i = 0;
     while(i < lattice->size())
@@ -801,7 +801,9 @@ void ElectricSelfEnergyDecorator::GenerateStepElow(double nuclear_rms_radius)
     }
 
     Elow.resize(mmin(i+1, lattice->size()));
-    directPotential += Elow;
+
+    directPotential += Elow * BfitSP;
+    potDWave += Elow * BfitD;
 }
 
 /** Generate low-frequency electric part from given density. */
@@ -813,7 +815,7 @@ void ElectricSelfEnergyDecorator::GenerateElow(const RadialFunction& density)
     double alpha = physicalConstant->GetAlpha();
     const double* R = lattice->R();
 
-    double prefactor = Bfit * gsl_pow_3(alpha) * Z / 2.;
+    double prefactor = gsl_pow_3(alpha) * Z / 2.;
 
     int i = 0;
     while(i < lattice->size())
@@ -844,7 +846,163 @@ void ElectricSelfEnergyDecorator::GenerateElow(const RadialFunction& density)
     Interpolator interp(lattice);
     interp.GetDerivative(Elow.f, Elow.dfdr, 6);
 
-    directPotential += Elow;
+    directPotential += Elow * BfitSP;
+    potDWave += Elow * BfitD;
+}
+
+RadialFunction ElectricSelfEnergyDecorator::GetDirectPotential() const
+{
+    RadialFunction ret = wrapped->GetDirectPotential();
+    ret += directPotential;
+
+    return ret;
+}
+
+void ElectricSelfEnergyDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
+{
+    wrapped->GetODEFunction(latticepoint, fg, w);
+
+    if(latticepoint < directPotential.size())
+    {
+        const double alpha = physicalConstant->GetAlpha();
+        switch(fg.L())
+        {
+            case 0:
+            case 1:
+                w[0] += alpha * directPotential.f[latticepoint] * fg.g[latticepoint];
+                w[1] -= alpha * directPotential.f[latticepoint] * fg.f[latticepoint];
+                break;
+            case 2:
+                w[0] += alpha * potDWave.f[latticepoint] * fg.g[latticepoint];
+                w[1] -= alpha * potDWave.f[latticepoint] * fg.f[latticepoint];
+            default:
+                break;
+        }
+    }
+}
+
+void ElectricSelfEnergyDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
+{
+    wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
+
+    if(latticepoint < directPotential.size())
+    {
+        const double alpha = physicalConstant->GetAlpha();
+        switch(fg.L())
+        {
+            case 0:
+            case 1:
+                w_g[0] += alpha * directPotential.f[latticepoint];
+                w_f[1] -= alpha * directPotential.f[latticepoint];
+                break;
+            case 2:
+                w_g[0] += alpha * potDWave.f[latticepoint];
+                w_f[1] -= alpha * potDWave.f[latticepoint];
+            default:
+                break;
+        }
+    }
+}
+
+void ElectricSelfEnergyDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
+{
+    wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
+
+    if(latticepoint < directPotential.size())
+    {
+        const double alpha = physicalConstant->GetAlpha();
+        switch(fg.L())
+        {
+            case 0:
+            case 1:
+                jacobian[0][1] += alpha * directPotential.f[latticepoint];
+                jacobian[1][0] -= alpha * directPotential.f[latticepoint];
+                dwdr[0] += alpha * directPotential.dfdr[latticepoint] * fg.g[latticepoint];
+                dwdr[1] -= alpha * directPotential.dfdr[latticepoint] * fg.f[latticepoint];
+                break;
+            case 2:
+                jacobian[0][1] += alpha * potDWave.f[latticepoint];
+                jacobian[1][0] -= alpha * potDWave.f[latticepoint];
+                dwdr[0] += alpha * potDWave.dfdr[latticepoint] * fg.g[latticepoint];
+                dwdr[1] -= alpha * potDWave.dfdr[latticepoint] * fg.f[latticepoint];
+            default:
+                break;
+        }
+    }
+}
+void ElectricSelfEnergyDecorator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
+{
+    switch(s.L())
+    {
+        case 0:
+        case 1:
+            // HFOperator uses GetDirectPotential() which will use the correct potential.
+            HFOperator::EstimateOrbitalNearOrigin(numpoints, s);
+            break;
+        case 2:
+        {
+            RadialFunction V(wrapped->GetDirectPotential());
+            V += potDWave;
+
+            const int start_point = 0;
+            const double alpha = physicalConstant->GetAlpha();
+
+            double correction = 0.;
+            if(s.size() >= numpoints)
+                correction = s.f[start_point];
+            else
+                s.resize(numpoints);
+
+            unsigned int i;
+            for(i=start_point; i<start_point+numpoints; i++)
+            {   if(s.Kappa() < 0)
+            {   s.f[i] = pow(lattice->R(i), -s.Kappa());
+                s.g[i] = alpha * s.f[i] * lattice->R(i) * V.f[i] / (2 * s.Kappa() - 1);
+                s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
+                s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
+            }
+            else
+            {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
+                s.f[i] = s.g[i] * lattice->R(i) * alpha * V.f[i] / (2 * s.Kappa() + 1);
+                s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
+                s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
+            }
+            }
+
+            // Determine an appropriate scaling to make the norm close to unit.
+            if(correction)
+                correction = correction/s.f[start_point];
+            else
+                correction = Z * Z;
+
+            for(i=start_point; i<start_point+numpoints; i++)
+            {   s.f[i] = s.f[i] * correction;
+                s.g[i] = s.g[i] * correction;
+                s.dfdr[i] = s.dfdr[i] * correction;
+                s.dgdr[i] = s.dgdr[i] * correction;
+            }
+        }
+        default:
+            break;
+    }
+}
+
+SpinorFunction ElectricSelfEnergyDecorator::ApplyTo(const SpinorFunction& a) const
+{
+    SpinorFunction ta = wrapped->ApplyTo(a);
+    switch(a.L())
+    {
+        case 0:
+        case 1:
+            ta -= a * directPotential;
+            break;
+        case 2:
+            ta -= a * potDWave;
+        default:
+            break;
+    }
+
+    return ta;
 }
 
 void ElectricSelfEnergyDecorator::Initialize()
@@ -856,7 +1014,10 @@ void ElectricSelfEnergyDecorator::Initialize()
     double Zp2 = Zp * Zp;
     double Zp3 = Zp2 * Zp;
     double Zp4 = Zp2 * Zp2;
-    Afit = 1.071 - 1.976 * Zp2 - 2.128 * Zp3 + 0.169 * Zp4;
+    AfitSP = 1.071 - 1.976 * Zp2 - 2.128 * Zp3 + 0.169 * Zp4;
 
-    Bfit = 0.074 + 0.35 * Z * alpha;
+    double Za = Z * alpha;
+    double Za2 = Za * Za;
+    BfitSP = 0.074 + 0.35 * Za;
+    BfitD  = 0.056 + 0.050 * Za + 0.195 * Za2;
 }
