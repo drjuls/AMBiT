@@ -3,6 +3,7 @@
 
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
+#include "LimitApplicabilityWrapper.h"
 
 /** Uehling potential decorator.
     Uses step potential from Ginges & Berengut.
@@ -51,8 +52,10 @@ protected:
 
 /** Radiative potential decorator for electric part of self-energy (high and low frequency).
     Includes potential for step density and variable density.
+    Implementation: s and p-wave potential is stored in directPotential (following LocalPotentialDecorator),
+                    d-wave potential is stored in potDWave.
  */
-class ElectricSelfEnergyDecorator: public HFOperatorDecorator<LocalPotentialDecorator, ElectricSelfEnergyDecorator>
+class ElectricSelfEnergyDecorator: public HFOperatorDecorator<HFBasicDecorator, ElectricSelfEnergyDecorator>
 {
 public:
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term = true, pIntegrator integration_strategy = pIntegrator());
@@ -70,15 +73,27 @@ public:
     /** Generate low-frequency electric part from given density. */
     void GenerateElow(const RadialFunction& density);
 
+public:
+    virtual RadialFunction GetDirectPotential() const override;
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
+    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override;
+
+public:
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+
 protected:
     /** Initialise Afit and Ra. */
     void Initialize();
 
 protected:
-    double Afit;    //!< Fitting function for Ehigh term.
-    double Bfit;    //!< Fitting function for Elow term.
+    double AfitSP;  //!< Fitting function for Ehigh term for s and p-waves.
+    double BfitSP;  //!< Fitting function for Elow term for s and p-waves.
+    double BfitD;   //!< Fitting function for Elow term for d-waves.
     double Ra;      //!< Cutoff radius for offmass term.
     bool integrate_offmass_term;    //!< Integrate offmass term in GenerateStepEhigh.
+    RadialFunction potDWave;
 };
 
 typedef std::shared_ptr<UehlingDecorator> pUehlingDecorator;
