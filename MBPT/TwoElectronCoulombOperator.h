@@ -8,13 +8,17 @@
 #include "Universal/MathConstant.h"
 #include "MBPT/SlaterIntegrals.h"
 
-//#define INCLUDE_EXTRA_BOX_DIAGRAMS 1
-
+/** Holds two-electron radial integrals (which may have MBPT) and adds angular part to give two-body matrix elements.
+    Option include_extra_box_diagrams will include "off-parity" matrix elements if they are found in the radial integrals
+    (these diagams are found in MBPT).
+ */
 template <class pTwoElectronIntegralType>
 class TwoElectronCoulombOperator
 {
 public:
-    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals): integrals(ci_integrals) {}
+    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals, bool include_box = false):
+        integrals(ci_integrals), include_extra_box_diagrams(include_box)
+    {}
 
     double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
 
@@ -25,6 +29,7 @@ public:
     double GetReducedMatrixElement(int k, const OrbitalInfo& e1, const OrbitalInfo& e2, const OrbitalInfo& e3, const OrbitalInfo& e4) const;
 
 protected:
+    bool include_extra_box_diagrams;
     pTwoElectronIntegralType integrals;
 };
 
@@ -81,42 +86,43 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
         k = k+2;
     }
 
-#ifdef INCLUDE_EXTRA_BOX_DIAGRAMS
     // Include the box diagrams with "wrong" parity.
-    k = mmax(abs(e1.L() - e3.L()), abs(e2.L() - e4.L())) + 1;
-    kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L()) - 1;
-
-    while(k <= kmax)
+    if(include_extra_box_diagrams)
     {
-        double radial = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
+        k = mmax(abs(e1.L() - e3.L()), abs(e2.L() - e4.L())) + 1;
+        kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L()) - 1;
 
-        if(radial)
+        while(k <= kmax)
         {
-            double coeff = 0.;
-            if(fabs(q) <= k)
-                coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
-                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
+            double radial = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
 
-            if(coeff)
-                coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
-                        constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
-
-            if(coeff)
+            if(radial)
             {
-                if(int(q - e1.M() - e2.M() + 1.)%2)
-                    coeff = - coeff;
+                double coeff = 0.;
+                if(fabs(q) <= k)
+                    coeff = constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, -e1.TwoM(), e3.TwoM()) *
+                            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, -e2.TwoM(), e4.TwoM());
 
-                coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
-                                            e3.MaxNumElectrons() * e4.MaxNumElectrons()));
-                
-                total += coeff * radial;
+                if(coeff)
+                    coeff = coeff * constants->Electron3j(e1.TwoJ(), e3.TwoJ(), k, 1, -1) *
+                            constants->Electron3j(e2.TwoJ(), e4.TwoJ(), k, 1, -1);
+
+                if(coeff)
+                {
+                    if(((two_q - e1.TwoM() - e2.TwoM())/2 + 1)%2)
+                        coeff = - coeff;
+
+                    coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                                e3.MaxNumElectrons() * e4.MaxNumElectrons()));
+
+                    total += coeff * radial;
+                }
             }
+
+            k = k+2;
         }
-        
-        k = k+2;
     }
-#endif
-    
+
     return total;
 }
 
@@ -125,17 +131,22 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetReducedMatrixElem
 {
     MathConstant* math = MathConstant::Instance();
 
-    if(!math->sum_is_even(e1.L(), e3.L(), k) || !math->sum_is_even(e2.L(), e4.L(), k))
-        return 0.0;
+    if(!include_extra_box_diagrams)
+    {
+        if(!math->sum_is_even(e1.L(), e3.L(), k) || !math->sum_is_even(e2.L(), e4.L(), k))
+            return 0.0;
+    }
 
-    double total = math->Electron3j(e1.TwoJ(), e3.TwoJ(), k) *
-            math->Electron3j(e2.TwoJ(), e4.TwoJ(), k);
+    double total = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
 
     if(total)
     {
-        total *= sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
-                             e3.MaxNumElectrons() * e4.MaxNumElectrons()));
-        total *= integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
+        total *= math->Electron3j(e1.TwoJ(), e3.TwoJ(), k) *
+                 math->Electron3j(e2.TwoJ(), e4.TwoJ(), k);
+
+        if(total)
+            total *= sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                 e3.MaxNumElectrons() * e4.MaxNumElectrons()));
     }
 
     return total;

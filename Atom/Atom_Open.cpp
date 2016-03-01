@@ -54,7 +54,7 @@ void Atom::MakeMBPTIntegrals()
         max_pqn_in_core = mmax(max_pqn_in_core, pair.first.PQN());
     }
 
-    bool use_box = !user_input.search("MBPT/--no-box-diagrams");
+    bool use_box = !user_input.search("MBPT/--no-extra-box");
     bool include_core = !user_input.search("MBPT/--no-core");
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
     mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
@@ -183,7 +183,8 @@ void Atom::MakeIntegrals()
         if(two_body_mbpt)
             two_body_integrals->Read(identifier + ".two.int");
 
-        twobody_electron.reset(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
+        bool include_box = two_body_mbpt && !user_input.search("MBPT/--no-extra-box");
+        twobody_electron = std::make_shared<TwoElectronCoulombOperator<pSlaterIntegrals>>(two_body_integrals, include_box);
     }
 }
 
