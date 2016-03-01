@@ -3,6 +3,7 @@
 
 #include "SlaterIntegrals.h"
 #include "CoreMBPTCalculator.h"
+#include "ValenceMBPTCalculator.h"
 
 /** Valence-valence SlaterIntegrals (for CI) including core and/or virtual correlations via MBPT.
     CoreValenceIntegrals<MapType> both is a SlaterIntegrals<MapType> and has one for use in the MBPTCalculator.
@@ -22,8 +23,8 @@ public:
     /** Specify container object for bare integrals. */
     CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals bare_integrals, const std::string& write_file);
 
-    /** Specify CoreMBPTCalculator directly. */
-    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, const std::string& write_file);
+    /** Specify CoreMBPTCalculator and ValenceMBPTCalculator directly. */
+    CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pValenceMBPTCalculator valence_mbpt_calculator, const std::string& write_file);
 
     virtual ~CoreValenceIntegrals();
 
@@ -42,7 +43,7 @@ public:
 
 protected:
     pCoreMBPTCalculator core_PT;
-    //ValenceCalculator* valence_PT;
+    pValenceMBPTCalculator valence_PT;
 
     /** Core MBPT effects. */
     bool include_core;

@@ -3,6 +3,7 @@
 
 #include "OneElectronIntegrals.h"
 #include "CoreMBPTCalculator.h"
+#include "ValenceMBPTCalculator.h"
 
 /** Valence-valence HFIntegrals including core and/or virtual correlations via MBPT.
     Default setting: include all core MBPT and no valence MBPT. Change using IncludeCore()/IncludeValence().
@@ -12,7 +13,7 @@ class OneElectronMBPT : public HFIntegrals
 {
 public:
     OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body, const std::string& write_file);
-    OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator, const std::string& write_file);
+    OneElectronMBPT(pOrbitalManagerConst orbitals, pSpinorMatrixElementConst pOperator, pCoreMBPTCalculator core_mbpt_calculator, pValenceMBPTCalculator valence_mbpt_calculator, const std::string& write_file);
 
     virtual ~OneElectronMBPT() {}
 
@@ -28,18 +29,17 @@ public:
 #endif
 
     void IncludeCore(bool include_mbpt, bool include_subtraction);
-    void IncludeValence(bool include_mbpt, bool include_subtraction);
+    void IncludeValence(bool include_subtraction);
 
 protected:
     pCoreMBPTCalculator core_PT;
-    //ValenceCalculator* valence_PT;
+    pValenceMBPTCalculator valence_PT;
 
     /** Core MBPT effects. */
     bool include_core;
     bool include_core_subtraction;
 
     /** Valence-valence MBPT effects. */
-    bool include_valence;
     bool include_valence_subtraction;
 
     std::vector<unsigned int> new_keys;

@@ -19,14 +19,27 @@ CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbital
     include_valence(false), include_valence_subtraction(false), include_valence_extra_box(false)
 {
     core_PT.reset(new CoreMBPTCalculator(this->orbitals, one_body, bare_integrals));
+    valence_PT.reset(new ValenceMBPTCalculator(this->orbitals, one_body, bare_integrals));
 }
 
 template <class MapType>
-CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, const std::string& write_file):
-    SlaterIntegrals<MapType>(orbitals, false), write_file(write_file), core_PT(core_mbpt_calculator),
-    include_core(true), include_core_subtraction(true), include_core_extra_box(true),
+CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pValenceMBPTCalculator valence_mbpt_calculator, const std::string& write_file):
+    SlaterIntegrals<MapType>(orbitals, false), write_file(write_file),
+    core_PT(core_mbpt_calculator), valence_PT(valence_mbpt_calculator),
+    include_core(false), include_core_subtraction(false), include_core_extra_box(false),
     include_valence(false), include_valence_subtraction(false), include_valence_extra_box(false)
-{}
+{
+    if(core_PT)
+    {   include_core = true;
+        include_core_subtraction = true;
+        include_core_extra_box = true;
+    }
+    if(valence_PT)
+    {   include_valence = true;
+        include_valence_subtraction = true;
+        include_valence_extra_box = true;
+    }
+}
 
 template <class MapType>
 CoreValenceIntegrals<MapType>::~CoreValenceIntegrals()
@@ -59,7 +72,12 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
 #endif
 
     if(!check_size_only)
-        core_PT->UpdateIntegrals();
+    {
+        if(include_core || include_core_subtraction || include_core_extra_box)
+            core_PT->UpdateIntegrals();
+        if(include_valence || include_valence_subtraction || include_valence_extra_box)
+            valence_PT->UpdateIntegrals();
+    }
 
     // Save state every hour or so unless nearly_done is true
     std::chrono::steady_clock::time_point mark_time = std::chrono::steady_clock::now();
@@ -142,12 +160,22 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                                     #endif
 
                                         double radial = 0;
-                                        if(usual_parity && include_core)
-                                            radial += core_PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
-                                        if(usual_parity && include_core_subtraction)
-                                            radial += core_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
-                                        if(!usual_parity && include_core_extra_box)
-                                            radial += core_PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
+                                        if(usual_parity)
+                                        {   if(include_core)
+                                                radial += core_PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
+                                            if(include_core_subtraction)
+                                                radial += core_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
+                                            if(include_valence)
+                                                radial += valence_PT->GetTwoElectronValence(k, s1, s2, s3, s4);
+                                            if(include_valence_subtraction)
+                                                radial += valence_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
+                                        }
+                                        else
+                                        {   if(include_core_extra_box)
+                                                radial += core_PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
+                                            if(include_valence_extra_box)
+                                                radial += valence_PT->GetTwoElectronBoxValence(k, s1, s2, s3, s4);
+                                        }
 
                                     #ifdef AMBIT_USE_MPI
                                         new_keys.push_back(key);
@@ -299,15 +327,15 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
 template <class MapType>
 void CoreValenceIntegrals<MapType>::IncludeCore(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams)
 {
-    include_core = include_mbpt;
-    include_core_subtraction = include_subtraction;
-    include_core_extra_box = include_wrong_parity_box_diagrams;
+    include_core = include_mbpt && core_PT;
+    include_core_subtraction = include_subtraction && core_PT;
+    include_core_extra_box = include_wrong_parity_box_diagrams && core_PT;
 }
 
 template <class MapType>
 void CoreValenceIntegrals<MapType>::IncludeValence(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams)
 {
-    include_valence = include_mbpt;
-    include_valence_subtraction = include_subtraction;
-    include_valence_extra_box = include_wrong_parity_box_diagrams;
+    include_valence = include_mbpt && valence_PT;
+    include_valence_subtraction = include_subtraction && valence_PT;
+    include_valence_extra_box = include_wrong_parity_box_diagrams && valence_PT;
 }

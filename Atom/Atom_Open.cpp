@@ -31,19 +31,20 @@ void Atom::MakeMBPTIntegrals()
         return;
 
     // Bare integrals for MBPT
-    pHFIntegrals bare_one_body_integrals(new HFIntegrals(orbitals, hf));
-    pSlaterIntegrals bare_two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
-    pCoreMBPTCalculator core_mbpt(new CoreMBPTCalculator(orbitals, bare_one_body_integrals, bare_two_body_integrals));
+    pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
+    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsMap>(orbitals, hartreeY);
+    pCoreMBPTCalculator core_mbpt = std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
+    pValenceMBPTCalculator val_mbpt = std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
 
     auto& valence = orbitals->valence;
 
-    pOneElectronMBPT mbpt_integrals_one = std::make_shared<OneElectronMBPT>(orbitals, core_mbpt, hf, identifier + ".one.int");
-    pCoreValenceIntegralsMap mbpt_integrals_two = std::make_shared<CoreValenceIntegralsMap>(orbitals, core_mbpt, identifier + ".two.int");
+    pOneElectronMBPT mbpt_integrals_one = std::make_shared<OneElectronMBPT>(orbitals, hf, core_mbpt, val_mbpt, identifier + ".one.int");
+    pCoreValenceIntegralsMap mbpt_integrals_two = std::make_shared<CoreValenceIntegralsMap>(orbitals, core_mbpt, val_mbpt, identifier + ".two.int");
 
     // Use subtraction diagrams and extra box diagrams?
     // First find out whether the core is our closed shell core, while we're at it, get maximum pqn.
     int max_pqn_in_core = 0;
-    bool is_open_shell = false;
+    bool is_open_shell = (orbitals->core->size() != open_core->size()); // Minimum requirement
     for(auto pair: *orbitals->core)
     {
         double occ = open_core->GetOccupancy(pair.first);
@@ -54,8 +55,18 @@ void Atom::MakeMBPTIntegrals()
     }
 
     bool use_box = !user_input.search("MBPT/--no-box-diagrams");
-    mbpt_integrals_one->IncludeCore(true, is_open_shell);
-    mbpt_integrals_two->IncludeCore(true, is_open_shell, use_box);
+    bool include_core = !user_input.search("MBPT/--no-core");
+    mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
+    mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
+
+    bool include_valence = user_input.search("MBPT/--use-valence");
+    mbpt_integrals_one->IncludeValence(include_valence && is_open_shell);
+    mbpt_integrals_two->IncludeValence(include_valence, include_valence && is_open_shell, include_valence && use_box);
+
+    // Adjust delta
+    double delta = user_input("MBPT/Delta", 0.0);
+    core_mbpt->SetEnergyShift(delta);
+    val_mbpt->SetEnergyShift(delta);
 
     // Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
     // Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.

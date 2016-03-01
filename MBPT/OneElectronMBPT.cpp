@@ -4,13 +4,22 @@
 #endif
 
 OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body, const std::string& write_file):
-    OneElectronMBPT(orbitals, std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body, bare_two_body), bare_one_body->GetOperator(), write_file)
+    OneElectronMBPT(orbitals, bare_one_body->GetOperator(),
+                    std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body, bare_two_body),
+                    std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body, bare_two_body), write_file)
 {}
 
-OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pCoreMBPTCalculator core_mbpt_calculator, pSpinorMatrixElementConst pOperator, const std::string& write_file):
-    OneElectronIntegrals(orbitals, pOperator), core_PT(core_mbpt_calculator), write_file(write_file),
-    include_core(true), include_core_subtraction(true), include_valence(false), include_valence_subtraction(false)
-{}
+OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pSpinorMatrixElementConst pOperator, pCoreMBPTCalculator core_mbpt_calculator, pValenceMBPTCalculator valence_mbpt_calculator, const std::string& write_file):
+    OneElectronIntegrals(orbitals, pOperator), core_PT(core_mbpt_calculator), valence_PT(valence_mbpt_calculator), write_file(write_file),
+    include_core(false), include_core_subtraction(false), include_valence_subtraction(false)
+{
+    if(core_PT)
+    {   include_core = true;
+        include_core_subtraction = true;
+    }
+    if(valence_PT)
+        include_valence_subtraction = true;
+}
 
 unsigned int OneElectronMBPT::CalculateOneElectronIntegrals(pOrbitalMapConst orbital_map_1, pOrbitalMapConst orbital_map_2, bool check_size_only)
 {
@@ -37,7 +46,12 @@ unsigned int OneElectronMBPT::CalculateOneElectronIntegrals(pOrbitalMapConst orb
 #endif
 
     if(!check_size_only)
-        core_PT->UpdateIntegrals();
+    {
+        if(include_core || include_core_subtraction)
+            core_PT->UpdateIntegrals();
+        if(include_valence_subtraction)
+            valence_PT->UpdateIntegrals();
+    }
 
     auto it_1 = orbital_map_1->begin();
     while(it_1 != orbital_map_1->end())
@@ -57,7 +71,7 @@ unsigned int OneElectronMBPT::CalculateOneElectronIntegrals(pOrbitalMapConst orb
 
                 if(check_size_only)
                 {
-                    if(include_core || include_core_subtraction || include_valence || include_valence_subtraction)
+                    if(include_core || include_core_subtraction || include_valence_subtraction)
                         found_keys.insert(key);
                 }
                 else
@@ -77,6 +91,8 @@ unsigned int OneElectronMBPT::CalculateOneElectronIntegrals(pOrbitalMapConst orb
                             value += core_PT->GetOneElectronDiagrams(s1, s2);
                         if(include_core_subtraction)
                             value += core_PT->GetOneElectronSubtraction(s1, s2);
+                        if(include_valence_subtraction)
+                            value += valence_PT->GetOneElectronSubtraction(s1, s2);
 
                     #ifdef AMBIT_USE_MPI
                         new_keys.push_back(key);
@@ -190,12 +206,11 @@ void OneElectronMBPT::Write(const std::string& filename) const
 
 void OneElectronMBPT::IncludeCore(bool include_mbpt, bool include_subtraction)
 {
-    include_core = include_mbpt;
-    include_core_subtraction = include_subtraction;
+    include_core = include_mbpt && core_PT;
+    include_core_subtraction = include_subtraction && core_PT;
 }
 
-void OneElectronMBPT::IncludeValence(bool include_mbpt, bool include_subtraction)
+void OneElectronMBPT::IncludeValence(bool include_subtraction)
 {
-    include_valence = include_mbpt;
-    include_valence_subtraction = include_subtraction;
+    include_valence_subtraction = include_subtraction && valence_PT;
 }

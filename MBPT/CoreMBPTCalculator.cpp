@@ -14,8 +14,8 @@ CoreMBPTCalculator::~CoreMBPTCalculator()
 
 unsigned int CoreMBPTCalculator::GetStorageSize()
 {
-    unsigned int total = two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited, true);
-    total += two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core, true);
+    unsigned int total = two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited, true);
+    total += two_body->CalculateTwoElectronIntegrals(core, valence, excited, core, true);
     total += one_body->CalculateOneElectronIntegrals(core, excited, true);
 
     return total;
@@ -26,8 +26,8 @@ void CoreMBPTCalculator::UpdateIntegrals()
     SetValenceEnergies();
 
     one_body->CalculateOneElectronIntegrals(core, excited);
-    two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, excited);
-    two_body->CalculateTwoElectronIntegrals(core, orbitals->valence, excited, core);
+    two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited);
+    two_body->CalculateTwoElectronIntegrals(core, valence, excited, core);
 }
 
 double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const
@@ -36,7 +36,7 @@ double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const O
         return 0.;
 
     if(DebugOptions.LogMBPT())
-        *outstream << "\n < " << s1.Name() << " | " << s2.Name() << " > :" << std::endl;
+        *logstream << "\n < " << s1.Name() << " | " << s2.Name() << " > :" << std::endl;
 
     double term1 = CalculateCorrelation1and3(s1, s2);
     double term2 = CalculateCorrelation2(s1, s2);
@@ -51,7 +51,7 @@ double CoreMBPTCalculator::GetOneElectronSubtraction(const OrbitalInfo& s1, cons
         return 0.;
 
     if(DebugOptions.LogMBPT())
-        *outstream << "\n < " << s1.Name() << " | " << s2.Name() << " > :" << std::endl;
+        *logstream << "\n < " << s1.Name() << " | " << s2.Name() << " > :" << std::endl;
 
     double term1 = CalculateSubtraction1(s1, s2);
     double term2 = CalculateSubtraction2(s1, s2);
@@ -63,7 +63,7 @@ double CoreMBPTCalculator::GetOneElectronSubtraction(const OrbitalInfo& s1, cons
 double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
-        *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
+        *logstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
     double term = 0.;
@@ -80,7 +80,7 @@ double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalI
 double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
-        *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
+        *logstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
     double term = 0.;
@@ -94,7 +94,7 @@ double CoreMBPTCalculator::GetTwoElectronBoxDiagrams(unsigned int k, const Orbit
 double CoreMBPTCalculator::GetTwoElectronSubtraction(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
 {
     if(DebugOptions.LogMBPT())
-        *outstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
+        *logstream << "\n R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
     return CalculateTwoElectronSub(k, s1, s2, s3, s4);
@@ -104,7 +104,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
 {
     const bool debug = DebugOptions.LogMBPT();
     if(debug)
-        *outstream << "Cor 1+3:  ";
+        *logstream << "Cor 1+3:  ";
 
     const double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
     MathConstant* constants = MathConstant::Instance();
@@ -201,8 +201,8 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
     }
 
     if(debug)
-        *outstream << "  " << energy1 * constants->HartreeEnergyInInvCm()
-                   << "  " << energy3 * constants->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy1 * constants->HartreeEnergyInInvCm()
+                   << "  " << std::setprecision(6) << energy3 * constants->HartreeEnergyInInvCm() << std::endl;
     return energy1 + energy3;
 }
 
@@ -211,7 +211,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "Cor 2:    ";
+        *logstream << "Cor 2:    ";
 
     const double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
 
@@ -299,7 +299,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -308,7 +308,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "Cor 4:    ";
+        *logstream << "Cor 4:    ";
 
     const double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
 
@@ -394,7 +394,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -403,7 +403,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "Sub 1:    ";
+        *logstream << "Sub 1:    ";
 
     double energy = 0.;
 
@@ -440,7 +440,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -448,7 +448,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
 {
     const bool debug = DebugOptions.LogMBPT();
     if(debug)
-        *outstream << "Sub 2:    ";
+        *logstream << "Sub 2:    ";
 
     double energy = 0.;
 
@@ -497,7 +497,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -506,7 +506,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "Sub 3:    ";
+        *logstream << "Sub 3:    ";
 
     double energy = 0.;
     double ValenceEnergy = ValenceEnergies.find(sa.Kappa())->second;
@@ -528,7 +528,7 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -537,7 +537,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "TwoE 1:   ";
+        *logstream << "TwoE 1:   ";
 
     double energy = 0.;
 
@@ -581,7 +581,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -590,7 +590,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "TwoE 2/3: ";
+        *logstream << "TwoE 2/3: ";
 
     double energy = 0.;
     const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
@@ -678,7 +678,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -692,7 +692,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "TwoE 4/5: ";
+        *logstream << "TwoE 4/5: ";
 
     double energy = 0.;
     const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
@@ -774,7 +774,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -788,7 +788,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "TwoE 6:   ";
+        *logstream << "TwoE 6:   ";
 
     double energy = 0.;
     const double coeff_ac = MathConstant::Instance()->Electron3j(sa.TwoJ(), sc.TwoJ(), k);
@@ -874,7 +874,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
 
@@ -883,7 +883,7 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     const bool debug = DebugOptions.LogMBPT();
 
     if(debug)
-        *outstream << "2eSub :   ";
+        *logstream << "2eSub :   ";
 
     double energy = 0.;
 
@@ -912,18 +912,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
                 energy -= R1 * one_body->GetMatrixElement(sn, sc) / (En - Ec + delta);
             }
-        }
-        it_n++;
-    }
-
-    // Hole line is attached to sb or sd.
-    it_n = core->begin();
-    while(it_n != core->end())
-    {
-        const OrbitalInfo& sn = it_n->first;
-        if(InQSpace(sn))
-        {
-            const double En = it_n->second->Energy();
 
             if(sn.Kappa() == sb.Kappa())
             {
@@ -941,6 +929,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     }
 
     if(debug)
-        *outstream << "  " << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
+        *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
 }
