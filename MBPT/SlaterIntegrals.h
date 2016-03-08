@@ -149,9 +149,9 @@ protected:
     MapType TwoElectronIntegrals;
 };
 
-typedef SlaterIntegrals<std::map<long long int, double>> SlaterIntegralsMap;
-typedef SlaterIntegrals<google::dense_hash_map<long long int, double>> SlaterIntegralsDenseHash;
-typedef SlaterIntegrals<google::sparse_hash_map<long long int, double>> SlaterIntegralsSparseHash;
+typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
+typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
+typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
 
 #include "SlaterIntegrals.cpp"
 

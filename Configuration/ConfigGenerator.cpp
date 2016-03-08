@@ -209,6 +209,16 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
 
     nrlist->unique();
 
+    // Print configuration list if requested
+    if(user_input.search("CI/--print-configurations"))
+    {
+        *outstream << "\nConfigurations:" << std::endl;
+        for(auto& config: *nrlist)
+        {
+            *outstream << "  " << config << std::endl;
+        }
+    }
+
     // Print configuration average energies if requested
     if(one_body && two_body && user_input.search("CI/--print-configuration-average-energy"))
     {

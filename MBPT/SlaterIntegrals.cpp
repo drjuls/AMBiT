@@ -197,8 +197,9 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     {
         radial = TwoElectronIntegrals.find(key)->second;
     }
-    else
-    {   *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
+    else if((s1.L() + s3.L() + k) == 0)
+    {   // Only print error if requested integral has correct parity rules
+        *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
                    << "\n  key = " << key << "  num_states = " << NumStates 
                    << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;

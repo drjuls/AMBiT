@@ -124,9 +124,15 @@ void Atom::MakeMBPTIntegrals()
 
     if(check_sizes)
     {
-        *outstream << "Num stored coulomb integrals for MBPT = " << core_mbpt->GetStorageSize();
+        unsigned int size = 0;
+        if(include_core)
+            size += core_mbpt->GetStorageSize();
+        if(include_valence)
+            size += val_mbpt->GetStorageSize();
 
-        unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence, true);
+        *outstream << "Num stored coulomb integrals for MBPT = " << size;
+
+        size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence, true);
         *outstream << "\nNum one-body mbpt integrals: " << size;
 
         size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3], true);
@@ -137,13 +143,15 @@ void Atom::MakeMBPTIntegrals()
         if(one_body_mbpt)
         {
             mbpt_integrals_one->Read(identifier + ".one.int");
-            mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+            unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+            *logstream << "One-body MBPT integrals complete: size = " << size << std::endl;
         }
 
         if(two_body_mbpt)
         {
             mbpt_integrals_two->Read(identifier + ".two.int");
-            mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
+            unsigned int size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
+            *logstream << "Two-body MBPT integrals complete: size = " << size << std::endl;
         }
     }
 }

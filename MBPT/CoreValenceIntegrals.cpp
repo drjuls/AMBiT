@@ -141,9 +141,10 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                             {
                                 KeyType key = this->GetKey(k, i1, i2, i3, i4);
 
-                                if(check_size_only && this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end())
+                                if(check_size_only)
                                 {
-                                    if(include_core || include_core_subtraction || include_valence || include_valence_subtraction || !usual_parity)
+                                    if((this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end()) &&
+                                       (include_core || include_core_subtraction || include_valence || include_valence_subtraction || !usual_parity))
                                         found_keys.insert(key);
                                 }
                                 else
@@ -309,6 +310,7 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
         }
 
         fclose(fp);
+        *logstream << "Written " << total_integrals << " two-body MBPT integrals." << std::endl;
     }
     else
     {   // Send data to root. First number of keys.
