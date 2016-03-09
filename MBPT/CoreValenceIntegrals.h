@@ -55,9 +55,13 @@ protected:
     bool include_valence_subtraction;
     bool include_valence_extra_box;
 
+    std::string write_file;
+#ifdef AMBIT_USE_MPI
+    bool my_calculations_done;
+    mutable bool root_complete;
     std::vector<KeyType> new_keys;
     std::vector<double> new_values;
-    std::string write_file;
+#endif
 };
 
 typedef CoreValenceIntegrals<std::map<unsigned long long int, double>> CoreValenceIntegralsMap;

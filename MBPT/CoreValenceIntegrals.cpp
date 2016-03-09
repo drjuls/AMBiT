@@ -1,4 +1,5 @@
 #include "Include.h"
+#include <boost/filesystem.hpp>
 #include <chrono>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
@@ -68,6 +69,9 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
 
         for(const auto& pair: this->TwoElectronIntegrals)
             found_keys.insert(pair.first);
+
+        my_calculations_done = false;
+        root_complete = false;
     }
 #endif
 
@@ -222,7 +226,16 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
     else
     #ifdef AMBIT_USE_MPI
     {   // Gather to root node, write to file, and read back in
-        this->Write(write_file);
+        my_calculations_done = true;
+        if(ProcessorRank == 0)
+            root_complete = true;
+
+        // Do loop protects processes that finished before root and therefore
+        // may have to write multiple times.
+        do{
+            this->Write(write_file);
+        } while(!root_complete);
+
         this->clear();
         new_keys.clear();
         new_values.clear();
@@ -256,12 +269,9 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
 
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
-
-        // Write state index
-        WriteOrbitalIndexes(this->orbitals->state_index, fp);
-
-        fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
+        // Send completion status
+        int complete = (my_calculations_done? 1: 0);
+        MPI_Bcast(&complete, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         // Get number of keys from all processes
         std::vector<unsigned int> num_integrals(NumProcessors);
@@ -272,6 +282,14 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
         {
             MPI_Recv(&num_integrals[proc], 1, MPI_UNSIGNED, proc, 1, MPI_COMM_WORLD, &status);
         }
+
+        // Open after it is clear that all processes are on board
+        FILE* fp = fopen(filename.c_str(), "wb");
+
+        // Write state index
+        WriteOrbitalIndexes(this->orbitals->state_index, fp);
+
+        fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
 
         unsigned int total_integrals = std::accumulate(num_integrals.begin(), num_integrals.end(), this->size());
         fwrite(&total_integrals, sizeof(unsigned int), 1, fp);
@@ -311,9 +329,31 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
 
         fclose(fp);
         *logstream << "Written " << total_integrals << " two-body MBPT integrals." << std::endl;
+
+        // The *.two.int.save file is created to protect the work while
+        // the *.two.int file is being re-written.
+        // It is removed after the last write.
+        boost::filesystem::path current_path(filename);
+        boost::filesystem::path save_path(filename + ".save");
+
+        if(boost::filesystem::exists(save_path))
+            boost::filesystem::remove(save_path);
+        if(!my_calculations_done)
+            boost::filesystem::copy(current_path, save_path);
     }
     else
-    {   // Send data to root. First number of keys.
+    {   // Receive root completion status
+        if(!root_complete)
+        {   int buffer;
+            MPI_Bcast(&buffer, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            root_complete = (buffer != 0);
+        }
+
+        // If root is complete, but we are not, continue until our work is complete
+        if(root_complete && !my_calculations_done)
+            return;
+
+        // Send data to root. First number of keys.
         unsigned int num_keys = new_keys.size();
         MPI_Send(&num_keys, 1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD);
 
