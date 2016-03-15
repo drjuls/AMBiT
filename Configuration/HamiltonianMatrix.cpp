@@ -23,16 +23,24 @@
 //#define SIGMA3_AND
 
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
-    H_two_body(nullptr), configs(relconfigs), most_chunk_rows(0) //, include_sigma3(false)
+    H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
-    H_two_body = pTwoBodyHamiltonianOperator(new TwoBodyHamiltonianOperator(hf, coulomb));
+    H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(hf, coulomb);
 
     // Set up matrix
     N = configs->NumCSFs();
 
     *logstream << " " << N << " " << std::flush;
     *outstream << " Number of CSFs = " << N << std::flush;
+}
+
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
+    HamiltonianMatrix(hf, coulomb, relconfigs)
+{
+    // Set up three-body operator
+    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
+    leading_configs = leadconfigs;
 }
 
 HamiltonianMatrix::~HamiltonianMatrix()
@@ -92,12 +100,19 @@ void HamiltonianMatrix::GenerateMatrix()
         config_it = (*configs)[current_chunk.config_indices.first];
         for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
+            bool leading_config_i = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_it));
+
             // Loop through the rest of the configs
             auto config_jt = config_it;
             while(config_jt != configs->end())
             {
+                bool leading_config_j = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_jt));
+
+                int config_diff_num = config_it->GetConfigDifferencesCount(*config_jt);
+                bool do_three_body = (leading_config_i || leading_config_j) && (config_diff_num <= 3);
+
                 // Check that the number of differences is small enough
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= 2)
+                if(do_three_body || (config_diff_num <= 2))
                 {
                     // Loop through projections
                     auto proj_it = config_it.projection_begin();
@@ -111,7 +126,11 @@ void HamiltonianMatrix::GenerateMatrix()
 
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+                            double operatorH;
+                            if(do_three_body)
+                                operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                            else
+                                operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
 
                             if(fabs(operatorH) > 1.e-15)
                             {

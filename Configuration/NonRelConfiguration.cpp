@@ -189,22 +189,17 @@ int NonRelConfiguration::GetNumberOfLevels()
     return num_levels;
 }
 
-ConfigList::ConfigList(const RelativisticConfigList& rlist)
-{
-    // Generate non-relativistic configurations
-    for(auto& rconfig: rlist)
-    {
-        m_list.push_back(NonRelConfiguration(rconfig));
-    }
-
-    m_list.sort(BaseComparator());
-    unique();
-}
-
 std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
 {
     for(auto& config: config_list)
     {   stream << config.Name() << ",";
     }
     return stream;
+}
+
+void SortAndUnique(ConfigList& config_list)
+{
+    std::sort(config_list.begin(), config_list.end());
+    auto last = std::unique(config_list.begin(), config_list.end());
+    config_list.erase(last, config_list.end());
 }

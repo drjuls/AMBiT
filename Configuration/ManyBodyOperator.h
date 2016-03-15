@@ -171,7 +171,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
                     int sign = i->IsHole()? -1 : 1;
                     matrix_element += OneBodyMatrixElements(*i, *i) * sign;
 
-                    auto j = i;
+                    auto j = std::next(i);
                     while(j != end)
                     {
                         int total_sign = sign * (j->IsHole()? -1 : 1);
@@ -198,6 +198,76 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             else if(abs(num_diffs) == 2)
             {
                 matrix_element += TwoBodyMatrixElements(*left[0], *left[1], *right[0], *right[1]);
+            }
+            break;
+        case 3:
+            if(num_diffs == 0)
+            {
+                auto i = boost::make_indirect_iterator(left.begin());
+                auto end = boost::make_indirect_iterator(left.end());
+                while(i != end)
+                {
+                    int sign = i->IsHole()? -1 : 1;
+                    matrix_element += OneBodyMatrixElements(*i, *i) * sign;
+
+                    auto j = std::next(i);
+                    while(j != end)
+                    {
+                        int total_sign = sign * (j->IsHole()? -1 : 1);
+                        matrix_element += TwoBodyMatrixElements(*i, *j, *i, *j) * total_sign;
+
+                        auto k = std::next(j);
+                        while(k != end)
+                        {
+                            int threebody_sign = total_sign * (k->IsHole()? -1 : 1);
+                            matrix_element += ThreeBodyMatrixElements(*i, *j, *k, *i, *j, *k) * threebody_sign;
+                            k++;
+                        }
+                        j++;
+                    }
+                    i++;
+                }
+            }
+            else if(abs(num_diffs) == 1)
+            {
+                matrix_element += OneBodyMatrixElements(*left[0], *right[0]);
+
+                auto i = boost::make_indirect_iterator(left.begin());
+                auto end = boost::make_indirect_iterator(left.end());
+                i++;    // Skip first element
+                while(i != end)
+                {
+                    int sign = i->IsHole()? -1 : 1;
+                    matrix_element += TwoBodyMatrixElements(*left.front(), *i, *right.front(), *i) * sign;
+
+                    auto j = std::next(i);
+                    while(j != end)
+                    {
+                        int total_sign = sign * (j->IsHole()? -1 : 1);
+                        matrix_element += ThreeBodyMatrixElements(*left.front(), *i, *j, *right.front(), *i, *j) * total_sign;
+                        j++;
+                    }
+                    i++;
+                }
+            }
+            else if(abs(num_diffs) == 2)
+            {
+                matrix_element += TwoBodyMatrixElements(*left[0], *left[1], *right[0], *right[1]);
+
+                auto i = boost::make_indirect_iterator(left.begin());
+                auto end = boost::make_indirect_iterator(left.end());
+                std::advance(i, 2);    // Skip first two elements
+                while(i != end)
+                {
+                    int sign = i->IsHole()? -1 : 1;
+                    matrix_element += ThreeBodyMatrixElements(*left[0], *left[1], *i, *right[0], *right[1], *i) * sign;
+
+                    i++;
+                }
+            }
+            else if(abs(num_diffs) == 3)
+            {
+                matrix_element += ThreeBodyMatrixElements(*left[0], *left[1], *left[2], *right[0], *right[1], *right[2]);
             }
             break;
         default:
