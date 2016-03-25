@@ -125,18 +125,54 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                                 double R1 = two_body->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
                                 double R2 = two_body->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
 
-                                total += coeff * R1 * R2;
+                                total -= coeff * R1 * R2;
                             }
                         }
                         ++it_n;
+                    }
+
+                    if(include_valence)
+                    {
+                        // Summation over excited state 'alpha'
+                        auto it_alpha = high->begin();
+                        while(it_alpha != high->end())
+                        {
+                            const OrbitalInfo& salpha = it_alpha->first;
+                            int two_Jalpha = salpha.TwoJ();
+
+                            if((two_Jalpha >= abs(two_mn)) && (salpha.L()%2 == ln_parity))
+                            {
+                                const double Ealpha = it_alpha->second->Energy();
+
+                                double coeff = constants->Electron3j(e2.TwoJ(), two_Jalpha, k1, -e2.TwoM(), two_mn) *
+                                constants->Electron3j(two_Jalpha, e5.TwoJ(), k2, -two_mn, e5.TwoM());
+
+                                if(coeff)
+                                {
+                                    coeff *= constants->Electron3j(e2.TwoJ(), two_Jalpha, k1) *
+                                             constants->Electron3j(two_Jalpha, e5.TwoJ(), k2) *
+                                             coeff14 * coeff36 /(ValenceEnergy - Ealpha + delta);
+
+                                    coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
+                                                  e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
+                                            * double(two_Jalpha + 1);
+
+                                    double R1 = two_body->GetTwoElectronIntegral(k1, e1, e2, e4, salpha);
+                                    double R2 = two_body->GetTwoElectronIntegral(k2, e3, salpha, e6, e5);
+
+                                    total += coeff * R1 * R2;
+                                }
+                            }
+                            ++it_alpha;
+                        }
                     }
                 }
             }
         }
     }
 
-    // phase = -1 * (-1)^(m2 + m3 + m4 + m5) = -1 * (-1)^(m1 - m6)
-    if((abs(e1.TwoM() - e6.TwoM())/2)%2 == 0)
+    // phase = (-1)^(m2 + m3 + m4 + m5) = (-1)^(m1 - m6)
+    if((abs(e1.TwoM() - e6.TwoM())/2)%2)
         total = - total;
 
     return total;
