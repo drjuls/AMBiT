@@ -46,6 +46,9 @@ public:
      */
     virtual void PrintAll() const;
 
+    /** Print one-electron transition integrals. */
+    virtual void PrintIntegrals();
+
 protected:
     /** Print the header line to outstream, explaining transition type, units, etc. */
     virtual void PrintHeader() const = 0;

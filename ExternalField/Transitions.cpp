@@ -14,9 +14,16 @@ void TransitionCalculator::CalculateAndPrint()
     // Get all named matrix elements
     int num_transitions = user_input.vector_variable_size("MatrixElements");
     bool all_below = user_input.VariableExists("AllBelow");
+    bool print_integrals = user_input.search("--print-integrals");
 
     *outstream << "\n";
     PrintHeader();
+
+    if(print_integrals)
+    {   PrintIntegrals();
+        *outstream << std::endl;
+        PrintHeader();
+    }
 
     for(int i = 0; i < num_transitions; i++)
         CalculateTransition(user_input("MatrixElements", "", i));
@@ -78,6 +85,37 @@ void TransitionCalculator::PrintAll() const
         PrintHeader();
         for(auto& pair: matrix_elements)
             PrintTransition(pair.first.first, pair.first.second, pair.second);
+    }
+}
+
+void TransitionCalculator::PrintIntegrals()
+{
+    if(integrals == nullptr)
+    {
+        // Create new TransitionIntegrals object and calculate integrals
+        integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+        integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+    }
+
+    *outstream << "One-body transition integrals (a.u.):" << std::endl;
+    *outstream << std::setprecision(8);
+    auto it1 = orbitals->valence->begin();
+    while(it1 != orbitals->valence->end())
+    {
+        const auto& orb1 = it1->first;
+
+        auto it2 = it1;
+        while(it2 != orbitals->valence->end())
+        {
+            const auto& orb2 = it2->first;
+
+            if(op->IsNonZero(orb1, orb2))
+            *outstream << "  " << orb1.Name() << " -> " << orb2.Name()
+                       << " = " << integrals->GetMatrixElement(orb1, orb2) << std::endl;
+
+            ++it2;
+        }
+        ++it1;
     }
 }
 
