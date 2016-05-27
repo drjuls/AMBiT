@@ -43,14 +43,12 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     int total_rel = 0;
     ConfigGenerator gen(orbitals, userInput);
 
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
-    ConfigList nonrelconfigs(*relconfigs);
-    total_non_rel += nonrelconfigs.size();
+    pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
+    total_non_rel += nonrelconfigs->size();
     total_rel += relconfigs->size();
 
-    relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::odd));
-    nonrelconfigs = *relconfigs;
-    total_non_rel += nonrelconfigs.size();
+    relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::odd));
     total_rel += relconfigs->size();
 
     // Check number of non-rel configurations:
@@ -113,9 +111,9 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     ConfigGenerator gen(orbitals, userInput);
 
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
-    ConfigList nonrelconfigs(*relconfigs);
-    unsigned int non_rel = nonrelconfigs.size();
+    pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
+    unsigned int non_rel = nonrelconfigs->size();
     unsigned int rel = relconfigs->size();
 
     // CuII - using holes now
@@ -146,9 +144,9 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     pOrbitalManagerConst holes_orbitals = holes_basis_generator.GenerateBasis();
     ConfigGenerator holes_gen(holes_orbitals, holesInput);
 
-    pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(Symmetry(0, Parity::even));
-    ConfigList holes_nonrelconfigs(*holes_relconfigs);
+    pConfigList holes_nonrelconfigs = holes_gen.GenerateNonRelConfigurations();
+    pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(holes_nonrelconfigs, Symmetry(0, Parity::even));
 
-    EXPECT_EQ(non_rel, holes_nonrelconfigs.size());
+    EXPECT_EQ(non_rel, holes_nonrelconfigs->size());
     EXPECT_EQ(rel, holes_relconfigs->size());
 }

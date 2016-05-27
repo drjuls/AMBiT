@@ -3,8 +3,8 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 
-ValenceMBPTCalculator::ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body):
-    MBPTCalculator(orbitals), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
+ValenceMBPTCalculator::ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
 {}
 
 ValenceMBPTCalculator::~ValenceMBPTCalculator()

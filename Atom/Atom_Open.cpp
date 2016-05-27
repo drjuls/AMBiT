@@ -19,7 +19,7 @@ void Atom::MakeMBPTIntegrals()
     bool make_new_integrals = user_input.search(2, "-m", "--mbpt");
     bool check_sizes = user_input.search("--check-sizes");
     bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
-    bool two_body_mbpt = user_input.search(3, "-s2", "-s12", "-s123");
+    bool two_body_mbpt = user_input.search(4, "-s2", "-s12", "-s23", "-s123");
 
     // First make any Brueckner orbitals, and use these everywhere
     if(user_input.search("MBPT/--brueckner") && !check_sizes)
@@ -33,8 +33,11 @@ void Atom::MakeMBPTIntegrals()
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
     pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsMap>(orbitals, hartreeY);
-    pCoreMBPTCalculator core_mbpt = std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
-    pValenceMBPTCalculator val_mbpt = std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
+
+    // MBPT calculators
+    std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
+    pCoreMBPTCalculator core_mbpt = std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals, fermi_orbitals);
+    pValenceMBPTCalculator val_mbpt = std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals, fermi_orbitals);
 
     auto& valence = orbitals->valence;
 
@@ -162,19 +165,29 @@ void Atom::MakeIntegrals()
 
     pSlaterIntegrals two_body_integrals;
     bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
-    bool two_body_mbpt = user_input.search(3, "-s2", "-s12", "-s123");
+    bool two_body_mbpt = user_input.search(4, "-s2", "-s12", "-s23", "-s123");
+    bool three_body_mbpt = user_input.search(3, "-s3", "-s23", "-s123");
 
     if(!two_body_mbpt)
         two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY));
     else
         two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
 
+    if(three_body_mbpt)
+    {   bool use_valence = user_input.search("MBPT/--use-valence");
+        std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
+        threebody_electron = std::make_shared<Sigma3Calculator>(orbitals, two_body_integrals, use_valence, fermi_orbitals);
+    }
+
     auto& valence = orbitals->valence;
 
     if(user_input.search("--check-sizes"))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
-        *outstream << "\nNum coulomb integrals: " << size << std::endl;
+        *outstream << "\nNum Coulomb integrals: " << size << std::endl;
+
+        if(three_body_mbpt)
+            *outstream << "\nSigma3 Coulomb integrals: " << threebody_electron->GetStorageSize() << std::endl;
     }
     else
     {   // Normal integrals
@@ -193,6 +206,10 @@ void Atom::MakeIntegrals()
 
         bool include_box = two_body_mbpt && !user_input.search("MBPT/--no-extra-box");
         twobody_electron = std::make_shared<TwoElectronCoulombOperator<pSlaterIntegrals>>(two_body_integrals, include_box);
+
+        // Calculate integrals for sigma3
+        if(three_body_mbpt)
+            threebody_electron->UpdateIntegrals();
     }
 }
 
@@ -200,6 +217,7 @@ void Atom::ClearIntegrals()
 {
     hf_electron = nullptr;
     twobody_electron = nullptr;
+    threebody_electron = nullptr;
 }
 
 void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
@@ -273,6 +291,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
         nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+        leading_configs = gen.GetLeadingConfigs();
 
         ChooseHamiltonians(nrconfigs);
     }
@@ -400,6 +419,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
     nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+    leading_configs = gen.GetLeadingConfigs();
 
     // CI integrals
     MakeIntegrals();
@@ -414,7 +434,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
         if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
         {
-            pConfigList nrconfiglist = std::make_shared<ConfigList>(nrid->GetNonRelConfiguration());
+            pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
             configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
         }
         else
@@ -505,13 +525,16 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
             {
-                pConfigList nrconfiglist = std::make_shared<ConfigList>(nrid->GetNonRelConfiguration());
+                pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
                 configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry(), angular_library);
             }
             else
             {
                 if(nrconfigs == nullptr)
+                {
                     nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+                    leading_configs = gen.GetLeadingConfigs();
+                }
                 configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry(), angular_library);
             }
 
@@ -527,12 +550,13 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             if(twobody_electron == nullptr)
                 MakeIntegrals();
 
-            HamiltonianMatrix H(hf_electron, twobody_electron, configs);
+            std::unique_ptr<HamiltonianMatrix> H;
+            if(threebody_electron)
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs));
+            else
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
 
-//        if(sigma3)
-//            H->IncludeSigma3(sigma3);
-
-            H.GenerateMatrix();
+            H->GenerateMatrix();
             //H->PollMatrix();
 
             if(user_input.search("--write-hamiltonian"))
@@ -542,7 +566,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 // Convert spaces to underscores in filename
                 std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
                                 [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
-                H.Write(hamiltonian_filename);
+                H->Write(hamiltonian_filename);
             }
 
             if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
@@ -559,10 +583,10 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << std::endl;
 
                 *outstream << std::setprecision(12);
-                *outstream << "Matrix Before:\n" << H << std::endl;
+                *outstream << "Matrix Before:\n" << *H << std::endl;
             }
 
-            levelvec = H.SolveMatrix(key, num_solutions);
+            levelvec = H->SolveMatrix(key, num_solutions);
 
             // Check if gfactor overrides are present, otherwise decide on course of action
             bool get_gfactor;
@@ -657,379 +681,3 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
 
     return levelvec;
 }
-
-/*
-void Atom::RunMultipleElectron()
-{
-    check_size_only = userInput_.search("--check-sizes");
-    generate_mbpt_integrals = userInput_.search("--generate-integrals-mbpt")
-                             && (mbptBasisString != "");
-
-    // Don't generate MBPT integrals if we're not saving them!
-    if(generate_mbpt_integrals && !useWrite && !check_size_only)
-    {   *outstream << "USAGE: Cannot use \"--generate-integrals-mbpt\" with \"--dont-save\" unless\n"
-                   << "       only doing a \"--check-sizes\"." << std::endl;
-        exit(1);
-    }
-
-    bool collate_mbpt_integrals = (generate_mbpt_integrals || userInput_.search("--collate-integrals-mbpt"))
-                                  && !check_size_only;
-
-    if(collate_mbpt_integrals)
-    {
-        while(!RunIndexAtEnd())
-        {   CollateIntegralsMBPT(NumProcessors);
-            RunIndexNext(false);
-        }
-        RunIndexBegin(false);
-    }
-
-    // MBPT Options
-    bool includeSall = userInput_.search(2, "-s123", "--include-sigma-all");
-    includeSigma1 = userInput_.search(3, "-s1", "-s12", "--include-sigma1");
-    includeSigma2 = userInput_.search(3, "-s2", "-s12", "--include-sigma2");
-    includeSigma3 = userInput_.search(2, "-s3", "--include-sigma3");
-
-    includeSigma1 = includeSigma1 || includeSall;
-    includeSigma2 = includeSigma2 || includeSall;
-    includeSigma3 = includeSigma3 || includeSall;
-
-    // If not specified for mbpt integral calculation, make both Sigma 1 and Sigma 2
-    if(generate_mbpt_integrals && !includeSigma1 && !includeSigma2)
-    {   includeSigma1 = true;
-        includeSigma2 = true;
-    }
-
-    unsigned int num_mbpt_delta = userInput_.vector_variable_size("MBPT/Delta");
-    if((num_mbpt_delta > 1) && (num_mbpt_delta != multiple_length))
-    {   *outstream << "ERROR: MBPT/Delta has too few elements. Must match multiple run length." << std::endl;
-        exit(1);
-    }
-    for(unsigned int i = 0; i < num_mbpt_delta; i++)
-    {   mbpt_delta.push_back(userInput_("MBPT/Delta", 0.0, i));
-    }
-
-    // Generate the MBPT integrals
-    if(generate_mbpt_integrals)
-    {
-        InitialiseIntegralsMBPT(true, false);
-
-        if(check_size_only)
-        {   *outstream << std::endl;
-            unsigned int stored_size = integrals->GetStorageSize();
-            *outstream << "Total calculated MBPT integrals: " << stored_size << std::endl;
-        }
-        else
-        {   // Generate all MBPT integrals
-            while(!RunIndexAtEnd())
-            {
-                SetRunParameters(false);
-                SetRunCore();
-                SetRunIntegrals();  // This does the actual calculations
-
-                RunIndexNext(false);
-            }
-            RunIndexBegin(false);
-
-            // Collate new integrals
-            if(collate_mbpt_integrals)
-            {
-                while(!RunIndexAtEnd())
-                {   CollateIntegralsMBPT(NumProcessors);
-                    RunIndexNext(false);
-                }
-                RunIndexBegin(false);
-            }
-        }
-    }
-
-    // We have finished generating MBPT integrals and collated them.
-    // Create the integral sets for creating Hamiltonian
-    if(integrals)
-        delete integrals;
-
-    if(includeSigma2)
-        integrals = new CIIntegralsMBPT(*excited);
-    else
-        integrals = new CIIntegrals(*excited);
-    integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-
-    if(includeSigma3)
-        sigma3 = new Sigma3Calculator(lattice, core, excited);
-
-    SetRunParameters(false);
-    SetRunCore();
-    SetRunIntegrals(true);
-
-    // Choose J, Parity symmetries for CI run.
-    ChooseSymmetries();
-
-    if(check_size_only)
-        CheckMatrixSizes();
-    else
-    {   // Warning: Need to have generated integrals already.
-        #ifdef AMBIT_USE_SCALAPACK
-            MaxEnergy = userInput_("CI/MaxEnergy", 0.0);
-            if(userInput_.search("CI/MaxEnergy"))
-                NumSolutions = userInput_("CI/NumSolutions", 0);
-            else
-                NumSolutions = userInput_("CI/NumSolutions", 6);
-        #else
-            NumSolutions = userInput_("CI/NumSolutions", 6);
-        #endif
-
-        CalculateEnergies();
-    }
-}
-
-void Atom::InitialiseIntegralsMBPT(bool CoreMBPT, bool ValenceMBPT)
-{
-    integrals = new CIIntegralsMBPT(*excited);
-    integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-
-    core->ToggleClosedShellCore();
-
-    if(mbpt)
-        delete mbpt;
-
-    if(CoreMBPT)
-    {   mbpt = new CoreMBPTCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeMBPT1(includeSigma1, mbpt);
-        integralsMBPT->IncludeMBPT2(includeSigma2, mbpt);
-        integralsMBPT->IncludeExtraBoxDiagrams(includeSigma2);
-    }
-    else
-        mbpt = NULL;
-
-    if(valence_mbpt)
-        delete valence_mbpt;
-
-    if(ValenceMBPT)
-    {   valence_mbpt = new ValenceCalculator(lattice, core, excited_mbpt);
-        integralsMBPT->IncludeValenceMBPT1(includeSigma1, valence_mbpt);
-        integralsMBPT->IncludeValenceMBPT2(includeSigma2, valence_mbpt);
-        integralsMBPT->IncludeValenceExtraBoxDiagrams(includeSigma2);
-    }
-    else
-        valence_mbpt = NULL;
-
-    std::vector<int> two_electron_limits;
-    for(unsigned int i = 0; i < 3; i++)
-        two_electron_limits.push_back(userInput_("MBPT/TwoElectronStorageLimits", 0, i));
-    integralsMBPT->SetTwoElectronStorageLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
-
-    // Affects both core and valence MBPT if extra box diagrams are included.
-    // To include box diagrams in Hamiltonian, uncomment the #defines at the top of HamiltonianMatrix.cpp.
-    if(userInput_.vector_variable_size("MBPT/BoxDiagramStorageLimits") >= 1)
-    {   two_electron_limits.clear();
-        for(unsigned int i = 0; i < 3; i++)
-            two_electron_limits.push_back(userInput_("MBPT/BoxDiagramStorageLimits", 0, i));
-    }
-    integralsMBPT->SetExtraBoxDiagramLimits(two_electron_limits[0], two_electron_limits[1], two_electron_limits[2]);
-}
-
-void Atom::CollateIntegralsMBPT(unsigned int num_processors)
-{
-    bool integrals_previously_exist = true;
-
-    if(!integrals)
-    {   integrals_previously_exist = false;
-        integrals = new CIIntegralsMBPT(*excited);
-        integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-    }
-    else if(integralsMBPT)
-    {   // Stop doing MBPT calculations
-        integralsMBPT->IncludeMBPT1(false);
-        integralsMBPT->IncludeMBPT2(false);
-        integralsMBPT->IncludeExtraBoxDiagrams(false);
-        integralsMBPT->IncludeValenceMBPT1(false);
-        integralsMBPT->IncludeValenceMBPT2(false);
-        integralsMBPT->IncludeValenceExtraBoxDiagrams(false);
-    }
-
-    integrals->SetIdentifier(identifier);
-    integrals->Clear();
-
-    if(ProcessorRank == 0)
-    {   if(includeSigma1)
-        {   integralsMBPT->ReadMultipleOneElectronIntegrals(identifier, num_processors);
-            integrals->WriteOneElectronIntegrals(true);
-        }
-        if(includeSigma2)
-        {   integralsMBPT->ReadMultipleTwoElectronIntegrals(identifier, num_processors);
-            integrals->WriteTwoElectronIntegrals(true);
-        }
-    }
-
-    #ifdef AMBIT_USE_MPI
-        // Wait for root node to finish writing
-        MPI::COMM_WORLD.Barrier();
-    #endif
-
-    if(!integrals_previously_exist)
-    {   delete integrals;
-        integrals = NULL;
-        integralsMBPT = NULL;
-    }
-}
-
-void Atom::GenerateIntegrals()
-{
-    if(integrals)
-        delete integrals;
-
-    if(includeSigma1 || includeSigma2)
-        integrals = new CIIntegralsMBPT(*excited);
-    else
-        integrals = new CIIntegrals(*excited);
-
-    integralsMBPT = dynamic_cast<CIIntegralsMBPT*>(integrals);
-
-    integrals->IncludeValenceSMS(false);
-
-    integrals = new CIIntegrals(hf, hartreeY, orbitals->valence, identifier, hartreeY_reverse_symmetry);
-
-    if(!user_input.search("--check-sizes"))
-    {
-        integrals->Update();
-        if(sigma3)
-            sigma3->UpdateIntegrals(excited);
-    }
-}
-
-void Atom::CalculateEnergies()
-{
-    // Set up output options
-    bool ShowgFactors = true;
-    if((userInput_("CI/Output/ShowgFactors", "true") == "false") || (userInput_("CI/Output/ShowgFactors", 1) == 0))
-    {   ShowgFactors = false;
-    }
-
-    bool ShowPercentages = true;
-    if((userInput_("CI/Output/ShowPercentages", "true") == "false") || (userInput_("CI/Output/ShowPercentages", 1) == 0))
-    {   ShowPercentages = false;
-    }
-    double min_percent_displayed;
-
-    if(ShowPercentages)
-    {   min_percent_displayed = userInput_("CI/Output/MinimumDisplayedPercentage", 1.);
-    }
-    else
-    {   min_percent_displayed = 101.;
-    }
-
-    bool TruncateDisplayAtMaxEnergy = userInput_.search("CI/Output/MaxDisplayedEnergy");
-    double DavidsonMaxEnergy = 0.;
-    if(TruncateDisplayAtMaxEnergy)
-    {
-        DavidsonMaxEnergy = userInput_("CI/Output/MaxDisplayedEnergy", 0.);
-    }
-
-    // Create and solve Hamiltonian matrix for all symmetries
-    SymmetryEigenstatesMap::iterator it = symEigenstates.begin();
-
-    while(it != symEigenstates.end())
-    {
-        ConfigGenerator* conf_gen = GenerateConfigurations(it->first);
-
-        bool give_conf_gen_to_eigenstates = false;
-        if(NumberRunsSelected() == 1)
-            give_conf_gen_to_eigenstates = true;
-
-        while(!RunIndexAtEnd())
-        {
-            Eigenstates* E = new Eigenstates(identifier, conf_gen, give_conf_gen_to_eigenstates);
-
-            SetRunParameters(true);
-            SetRunCore();
-            SetRunIntegrals();
-
-            if(!useRead || !E->Read())
-            {
-                HamiltonianMatrix* H;
-
-                #ifdef AMBIT_USE_MPI
-                    H = new MPIHamiltonianMatrix(*integrals, conf_gen);
-                #else
-                    H = new HamiltonianMatrix(*integrals, conf_gen);
-                #endif
-
-                if(sigma3)
-                    H->IncludeSigma3(sigma3);
-
-                H->GenerateMatrix();
-                //H->PollMatrix();
-
-                if((userInput_("CI/Output/PrintH", "false") == "true") || (userInput_("CI/Output/PrintH", 0) == 1))
-                {
-                    #ifdef AMBIT_USE_MPI
-                        std::string filename = identifier + "." + it->first.GetString() + ".matrix";
-                        dynamic_cast<MPIHamiltonianMatrix*>(H)->WriteToFile(filename, false);
-                    #else
-                        RelativisticConfigList::iterator rel_it = conf_gen->GetRelConfigs()->begin();
-                        while(rel_it != conf_gen->GetRelConfigs()->end())
-                        {
-                            *outstream << rel_it->Name();
-                            if(rel_it++ != conf_gen->GetRelConfigs()->end())
-                            {
-                                *outstream << ",";
-                            }
-                        }
-                        *outstream << std::endl;
-
-                        *outstream << std::setprecision(12);
-                        *outstream << "Matrix Before:" << std::endl;
-                        for(unsigned int i = 0; i < H->GetMatrix()->GetSize(); i++)
-                        {
-                            for(unsigned int j = 0; j < H->GetMatrix()->GetSize(); j++)
-                            {
-                                *outstream << H->GetMatrix()->At(i,j) << " ";
-                            }
-                            *outstream << std::endl;
-                        }
-                    #endif
-                }
-
-                #ifdef AMBIT_USE_SCALAPACK
-                    H->WriteToFile("temp.matrix");
-                    MPIHamiltonianMatrix* MpiH = dynamic_cast<MPIHamiltonianMatrix*>(H);
-                    MpiH->SolveScalapack("temp.matrix", MaxEnergy, *E, true, NumSolutions);
-                #else
-                    H->SolveMatrix(NumSolutions, *E, GetSolutionMap(), ShowgFactors, TruncateDisplayAtMaxEnergy, min_percent_displayed, DavidsonMaxEnergy);
-                #endif
-
-                delete H;
-
-                ConfigFileGenerator* filegenerator = dynamic_cast<ConfigFileGenerator*>(conf_gen);
-                if(filegenerator)
-                {   filegenerator->SetOutputFile("PercentagesOut.txt");
-                    filegenerator->WriteConfigs();
-                }
-
-                if(save_eigenstates)
-                    E->Write();
-            }
-            else
-            {   E->Print();
-            }
-
-            // Keep E if not multiple run and save_eigenstates is true
-            if(save_eigenstates && NumberRunsSelected() == 1)
-            {   it->second = E;
-                //E->Clear();
-            }
-            else
-            {   //delete E;
-            }
-
-            RunIndexNext(false);
-        }
-
-        if(!give_conf_gen_to_eigenstates)
-            delete conf_gen;
-
-        RunIndexBegin(false);
-        it++;
-    }
-}
-*/

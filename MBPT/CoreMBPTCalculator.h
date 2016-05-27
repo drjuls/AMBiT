@@ -22,7 +22,7 @@
 class CoreMBPTCalculator : public MBPTCalculator
 {
 public:
-    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body);
+    CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals = "");
     virtual ~CoreMBPTCalculator();
 
     virtual unsigned int GetStorageSize() override;

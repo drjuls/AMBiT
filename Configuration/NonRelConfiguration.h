@@ -64,29 +64,10 @@ protected:
     void SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig);
 };
 
-class ConfigList : public SortedList<NonRelConfiguration>
-{
-public:
-    ConfigList() {}
-    ConfigList(const ConfigList& other): BaseSortedList(other) {}
-    ConfigList(ConfigList&& other): BaseSortedList(other) {}
-    ConfigList(const NonRelConfiguration& val): BaseSortedList(val) {}
-    ConfigList(NonRelConfiguration&& val): BaseSortedList(val) {}
+typedef std::vector<NonRelConfiguration> ConfigList;
+std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
 
-    /** Create unique non-relativistic list from rlist. */
-    ConfigList(const RelativisticConfigList& rlist);
-
-    ConfigList& operator=(const ConfigList& other)
-    {   BaseSortedList::operator=(other);
-        return *this;
-    }
-    ConfigList& operator=(ConfigList&& other)
-    {   BaseSortedList::operator=(other);
-        return *this;
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
-};
+void SortAndUnique(ConfigList& config_list);
 
 typedef std::shared_ptr<ConfigList> pConfigList;
 typedef std::shared_ptr<const ConfigList> pConfigListConst;

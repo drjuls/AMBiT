@@ -2,8 +2,8 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 
-CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body):
-    MBPTCalculator(orbitals), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
+CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 
 CoreMBPTCalculator::~CoreMBPTCalculator()

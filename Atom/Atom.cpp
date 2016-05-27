@@ -131,8 +131,9 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     // Make new sigma potentials if they haven't been read (slowly)
     if(generate_sigmas)
     {
+        std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
         for(int kappa: valence_kappas)
-        {   brueckner->CalculateSigma(kappa, orbitals, hartreeY);
+        {   brueckner->CalculateSigma(kappa, orbitals, hartreeY, fermi_orbitals);
             brueckner->Write(identifier, kappa);
         }
     }

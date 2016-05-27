@@ -87,6 +87,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
     int numValenceElectrons = 0;
     
     int num_configs = user_input.vector_variable_size("CI/LeadingConfigurations");
+    leading_configs->reserve(num_configs);
     for(int i = 0; i < num_configs; i++)
     {
         const std::string name = user_input("CI/LeadingConfigurations", "", i);
@@ -97,22 +98,24 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
             numValenceElectrons = config.ElectronNumber();
         else if(config.ElectronNumber() != numValenceElectrons)
         {   *errstream << "USAGE: LeadingConfiguration " << name
-            << " does not have correct number of valence electrons." << std::endl;
+                       << " does not have correct number of valence electrons." << std::endl;
             exit(1);
         }
-        leading_configs->add(config);
+        leading_configs->push_back(config);
     }
 
     if(numValenceElectrons == 0)
     {   // Add vacuum state: no holes or electrons
-        leading_configs->add(NonRelConfiguration());
+        leading_configs->push_back(NonRelConfiguration());
     }
 
-    nrlist->merge(*leading_configs);
-    
+    SortAndUnique(*leading_configs);
+    nrlist->insert(nrlist->end(), leading_configs->begin(), leading_configs->end());
+    SortAndUnique(*nrlist);
+
     // Total number of excitation steps
     int total_num_excitations = mmax(electron_excitations, hole_excitations);
-    
+
     for(int excitation_step = 0; excitation_step < total_num_excitations; excitation_step++)
     {
         NonRelInfoSet valence_electrons;
@@ -193,6 +196,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
     // Add extra configurations not to be considered leading configurations.
     // These are added regardless of ConfigurationAverageEnergyRange
     int num_extra_configs = user_input.vector_variable_size("CI/ExtraConfigurations");
+    nrlist->reserve(nrlist->size() + num_extra_configs);
     for(int i = 0; i < num_extra_configs; i++)
     {
         const std::string extraname = user_input("CI/ExtraConfigurations", "", i);
@@ -204,10 +208,10 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
             << " does not have correct number of valence electrons." << std::endl;
             exit(1);
         }
-        nrlist->add(extraconfig);
+        nrlist->push_back(extraconfig);
     }
 
-    nrlist->unique();
+    SortAndUnique(*nrlist);
 
     // Print configuration list if requested
     if(user_input.search("CI/--print-configurations"))
@@ -284,8 +288,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
             it++;
     }
 
-    nrlist->unique();
-
+    SortAndUnique(*nrlist);
     pRelativisticConfigList rlist(GenerateRelativisticConfigurations(nrlist));
 
     if(angular_library)
@@ -318,7 +321,7 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
                         NonRelConfiguration new_config(*config_it);
                         new_config.RemoveSingleParticle(particle_it->first);
                         if(new_config.AddSingleParticle(electron))
-                            configlist->add(new_config);
+                            configlist->push_back(new_config);
                     }
                 }
             }
@@ -331,7 +334,7 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
                         NonRelConfiguration new_config(*config_it);
                         new_config.AddSingleParticle(particle_it->first);
                         if(new_config.RemoveSingleParticle(hole))
-                            configlist->add(new_config);
+                            configlist->push_back(new_config);
                     }
                 }
             }
@@ -349,7 +352,7 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
                 {
                     NonRelConfiguration new_config(config_with_extra_electron);
                     if(new_config.RemoveSingleParticle(hole))
-                        configlist->add(new_config);
+                        configlist->push_back(new_config);
                 }
             }
         }
@@ -368,14 +371,14 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
                     NonRelConfiguration new_config(*config_it);
                     new_config.AddSingleParticle(particle_it->first);
                     new_config.RemoveSingleParticle(other_particle_it->first);
-                    configlist->add(new_config);
+                    configlist->push_back(new_config);
                 }
                 else if((particle_it->second > 0) && (other_particle_it->second < 0))
                 {
                     NonRelConfiguration new_config(*config_it);
                     new_config.RemoveSingleParticle(particle_it->first);
                     new_config.AddSingleParticle(other_particle_it->first);
-                    configlist->add(new_config);
+                    configlist->push_back(new_config);
                 }
 
                 other_particle_it++;
@@ -387,7 +390,7 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
         config_it++;
     }
 
-    configlist->unique();
+    SortAndUnique(*configlist);
 }
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, const Symmetry& sym, int two_m, pAngularDataLibrary angular_library) const

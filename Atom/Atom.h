@@ -8,6 +8,7 @@
 #include "Universal/PhysicalConstant.h"
 #include "Configuration/Level.h"
 #include "HartreeFock/NucleusDecorator.h"
+#include "MBPT/Sigma3Calculator.h"
 
 class Sigma3Calculator;
 
@@ -138,31 +139,11 @@ protected:
     void GenerateBruecknerOrbitals(bool generate_sigmas);
 
 public:
-    /** Generate integrals with MBPT. CIIntegralsMBPT will automatically store them,
-        each processor with a separate file.
-        Optionally include delta (cm-1). (eg: delta = E_CI - E_HF for the ground state)
-     */
-    void InitialiseIntegralsMBPT(bool CoreMBPT = true, bool ValenceMBPT = false);
-
-    /** Collate integrals generated from CIIntegralsMBPT.
-        num_processors is the number of stored files to collate.
-        If num_processors = 0, it will assume "NumProcessors" (i.e. all processors).
-     */
-    void CollateIntegralsMBPT(unsigned int num_processors = 0);
-
-public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds);
     bool ReadGraspMCDF(const std::string& filename);
     void WriteGraspMCDF() const;
     void WriteGraspMcdfOrbital(FILE* fp, pOrbitalConst ds, unsigned int lattice_size) const;
-
-protected:
-    /** Parse basis string definition (e.g. 8spd5f) and convert to vector. */
-    bool ParseBasisSize(const char* basis_def, std::vector<unsigned int>& num_states);
-
-    /** Assumes excited object has been created (and excited_mbpt, if UseMBPT is true). */
-    void CreateBasis(bool UseMBPT);
 
 protected:
     MultirunOptions user_input;
@@ -178,8 +159,11 @@ protected:
     pHartreeY hartreeY;
     pNucleusDecorator nucleus;      //!< Pointer to nucleus (if included)
 
-    pHFIntegrals hf_electron;                       //!< One-body Hamiltonian
-    pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian
+    pHFIntegrals hf_electron;                       //!< One-body Hamiltonian operator
+    pTwoElectronCoulombOperator twobody_electron;   //!< Two-body Hamiltonian operator
+    pSigma3Calculator threebody_electron;           //!< Three-body Hamiltonian operator
+
+    pConfigList leading_configs;
     pConfigList nrconfigs;
     pAngularDataLibrary angular_library;
     pLevelStore levels;

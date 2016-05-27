@@ -1,406 +1,76 @@
 #include "Sigma3Calculator.h"
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/CoulombIntegrator.h"
-#include "HartreeFock/StateIntegrator.h"
 
-unsigned int Sigma3Integrals::GetStorageSize(const ExcitedStates& valence)
-{
-    UpdateStateIndexes(valence);
-
-    unsigned int sizesms = 0;
-    unsigned int size2 = 0;
-
-    // SMS integrals: need all < n | p | b > and < a | p | b >
-    // where n is core; a and b are valence
-
-    // k == 1
-    // triangle(k, j1, j2) -> j1 + j2 >= 1 (always satisfied)
-    //                     -> |j1 - j2| <= 1
-    // (l1 + l2 + 1)%2 == 0
-
-    std::set<unsigned int>::const_iterator it_n, it_a, it_b;
-
-    it_b = valence_states.begin();
-    while(it_b != valence_states.end())
-    {
-        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
-
-        it_n = core_states.begin();
-        while(it_n != core_states.end())
-        {
-            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-
-            if((abs(b.TwoJ() - n.TwoJ()) <= 2) &&
-               ((n.L() + b.L() + 1)%2 == 0))
-                sizesms++;
-
-            it_n++;
-        }
-
-        it_a = valence_states.begin();
-        while((it_a != valence_states.end()) && (*it_a <= *it_b))
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-            if((abs(b.TwoJ() - a.TwoJ()) <= 2) &&
-               ((a.L() + b.L() + 1)%2 == 0))
-                sizesms++;
-
-            it_a++;
-        }
-
-        it_b++;
-    }
-
-    *logstream << "Num sms integrals: " << sizesms << std::endl;
-
-     // Two-electron Slater integrals for Sigma3 diagrams are of the form:
-    //   R^k(n b, a c), b <= c
-    // where n is core; a, b and c are valence
-
-    std::set<unsigned int>::const_iterator it_c;
-    unsigned int k, kmax;
-
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
-    {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-
-        it_a = valence_states.begin();
-        while(it_a != valence_states.end())
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-            // (n, a) -> limits on k
-            k = abs(int(n.L()) - int(a.L()));
-            if(abs(int(n.TwoJ()) - int(a.TwoJ())) > 2 * k)
-                k += 2;
-
-            kmax = n.TwoJ() + a.TwoJ();
-
-            while(k <= kmax)
-            {
-                it_c = valence_states.begin();
-                while(it_c != valence_states.end())
-                {
-                    OrbitalInfo c = reverse_state_index.find(*it_c)->second;
-
-                    unsigned int Lsum = c.L() + k;
-                    unsigned int TwoJmin = abs(int(2*k) - int(c.TwoJ()));
-                    unsigned int TwoJmax = 2*k + c.TwoJ();
-
-                    it_b = valence_states.begin();
-                    while((it_b != valence_states.end()) && (*it_b <= *it_c))
-                    {
-                        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
-
-                        if((b.TwoJ() >= TwoJmin) &&
-                           (b.TwoJ() <= TwoJmax) &&
-                           ((Lsum + b.L())%2 == 0))
-                            size2++;
-
-                        it_b++;
-                    }
-                    it_c++;
-                }
-                k += 2;
-            }
-            it_a++;
-        }
-        it_n++;
-    }
-
-   *logstream << "Num two-electron integrals: " << size2 << std::endl;
-
-    return (size2 + sizesms);
-}
-
-void Sigma3Integrals::UpdateOneElectronIntegrals()
-{
-    unsigned int key;
-    double value;
-
-    StateIntegrator SI(core.GetLattice());
-
-    // SMS integrals: need all < n | p | b > and < a | p | b >
-    // where n is core; a and b are valence
-
-    // k == 1
-    // triangle(k, j1, j2) -> j1 + j2 >= 1 (always satisfied)
-    //                     -> |j1 - j2| <= 1
-    // (l1 + l2 + 1)%2 == 0
-
-    std::set<unsigned int>::const_iterator it_n, it_a, it_b;
-    pOrbitalConst sn, sa, sb;
-
-    it_b = valence_states.begin();
-    while(it_b != valence_states.end())
-    {
-        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
-        sb = excited.GetState(b);
-
-        it_n = core_states.begin();
-        while(it_n != core_states.end())
-        {
-            OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-
-            if((abs(b.TwoJ() - n.TwoJ()) <= 2) &&
-               ((n.L() + b.L() + 1)%2 == 0))
-            {
-                sn = core.GetState(n);
-
-                key = *it_n * NumStates + *it_b;
-                value = -SI.IsotopeShiftIntegral(*sb, *sn);
-                if(SMSIntegrals.find(key) != SMSIntegrals.end())
-                    *outstream << "sms overwrite" << std::endl;
-                SMSIntegrals.insert(std::pair<unsigned int, double>(key, value));
-            }
-
-            it_n++;
-        }
-
-        it_a = valence_states.begin();
-        while((it_a != valence_states.end()) && (*it_a <= *it_b))
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-
-            if((abs(b.TwoJ() - a.TwoJ()) <= 2) &&
-               ((a.L() + b.L() + 1)%2 == 0))
-            {
-                sa = excited.GetState(a);
-
-                key = *it_a * NumStates + *it_b;
-                value = -SI.IsotopeShiftIntegral(*sb, *sa);
-
-                if(SMSIntegrals.find(key) != SMSIntegrals.end())
-                    *outstream << "sms overwrite" << std::endl;
-                SMSIntegrals.insert(std::pair<unsigned int, double>(key, value));
-            }
-
-            it_a++;
-        }
-
-        it_b++;
-    }
-}
-
-void Sigma3Integrals::UpdateTwoElectronIntegrals()
-{
-    LongKey key;
-    double value;
-
-    MathConstant* constants = MathConstant::Instance();
-    CoulombIntegrator CI(core.GetLattice());
-    std::vector<double> density(core.GetHFPotential().size());
-    std::vector<double> potential(core.GetHFPotential().size());
-    const double* dR = core.GetLattice()->dR();
-    unsigned int p;  // just a counter
-
-    // Two-electron Slater integrals for Sigma3 diagrams are of the form:
-    //   R^k(n b, a c), b <= c
-    // where n is core; a, b and c are valence
-
-    std::set<unsigned int>::const_iterator it_n, it_a, it_b, it_c;
-    pOrbitalConst sn;
-    pOrbitalConst sa, sb, sc;
-    unsigned int k, kmax;
-
-    it_n = core_states.begin();
-    while(it_n != core_states.end())
-    {
-        OrbitalInfo n = reverse_state_index.find(*it_n)->second;
-        sn = core.GetState(n);
-
-        it_a = valence_states.begin();
-        while(it_a != valence_states.end())
-        {
-            OrbitalInfo a = reverse_state_index.find(*it_a)->second;
-            sa = excited.GetState(a);
-
-            // (n, a) -> limits on k
-            k = abs(int(n.L()) - int(a.L()));
-            if(abs(int(n.TwoJ()) - int(a.TwoJ())) > 2 * k)
-                k += 2;
-
-            kmax = n.TwoJ() + a.TwoJ();
-
-            // Get density
-            if(k <= kmax)
-            {   for(p=0; p < mmin(sn->size(), sa->size()); p++)
-                {   density[p] = sn->f[p] * sa->f[p] + sn->g[p] * sa->g[p];
-                }
-            }
-
-            while(k <= kmax)
-            {
-                // n, a, k -> potential
-                CI.FastCoulombIntegrate(density, potential, k, mmin(sn->size(), sa->size()));
-
-                it_c = valence_states.begin();
-                while(it_c != valence_states.end())
-                {
-                    OrbitalInfo c = reverse_state_index.find(*it_c)->second;
-                    sc = excited.GetState(c);
-
-                    unsigned int Lsum = c.L() + k;
-                    unsigned int TwoJmin = abs(int(2*k) - int(c.TwoJ()));
-                    unsigned int TwoJmax = 2*k + c.TwoJ();
-
-                    it_b = valence_states.begin();
-                    while((it_b != valence_states.end()) && (*it_b <= *it_c))
-                    {
-                        OrbitalInfo b = reverse_state_index.find(*it_b)->second;
-                        sb = excited.GetState(b);
-
-                        if((b.TwoJ() >= TwoJmin) &&
-                           (b.TwoJ() <= TwoJmax) &&
-                           ((Lsum + b.L())%2 == 0))
-                        {
-                            // Ordering should be correct
-                            key = k     * NumStates*NumStates*NumStates*NumStates +
-                                  *it_n * NumStates*NumStates*NumStates +
-                                  *it_b * NumStates*NumStates +
-                                  *it_a * NumStates +
-                                  *it_c;
-
-                            value = 0.;
-                            unsigned int limit = mmin(sb->size(), sc->size());
-                            limit = mmin(limit, potential.size());
-                            for(p=0; p<limit; p++)
-                            {
-                                value += (sb->f[p] * sc->f[p] + sb->g[p] * sc->g[p])
-                                         * potential[p] * dR[p];
-                            }
-
-                            value = value * constants->Electron3j(n.TwoJ(), a.TwoJ(), k)
-                                          * constants->Electron3j(b.TwoJ(), c.TwoJ(), k)
-                                    * sqrt(double(n.MaxNumElectrons() * a.MaxNumElectrons() *
-                                                  b.MaxNumElectrons() * c.MaxNumElectrons()));
-                                    
-
-                            TwoElectronIntegrals.insert(std::pair<LongKey, double>(key, value));
-                        }
-                        it_b++;
-                    }
-                    it_c++;
-                }
-                k += 2;
-            }
-            it_a++;
-        }
-        it_n++;
-    }
-}
-
-double Sigma3Integrals::GetTwoElectronIntegral(unsigned int k, const OrbitalInfo& s1, const OrbitalInfo& s2, const OrbitalInfo& s3, const OrbitalInfo& s4) const
-{
-    unsigned int i1 = state_index.find(s1)->second;
-    unsigned int i2 = state_index.find(s2)->second;
-    unsigned int i3 = state_index.find(s3)->second;
-    unsigned int i4 = state_index.find(s4)->second;
-
-    bool sms_sign = true;
-
-    // Ordering of indices, assuming i1 is core, others are valence, and therefore i1 is smallest:
-    // (i2 <= i4)
-    // therefore (i1 <= i2 <= i4) and (i1 <= i3)
-    if(i4 < i2)
-    {   swap(i4, i2);
-        sms_sign = false;
-    }
-
-    LongKey key = k  * NumStates*NumStates*NumStates*NumStates +
-                  i1 * NumStates*NumStates*NumStates +
-                  i2 * NumStates*NumStates +
-                  i3 * NumStates +
-                  i4;
-
-    double radial = 0.;
-
-    if(TwoElectronIntegrals.find(key) != TwoElectronIntegrals.end())
-    {
-        radial = TwoElectronIntegrals.find(key)->second;
-    }
-    else
-    {   *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
-                   << "\n  key = " << key << "  num_states = " << NumStates 
-                   << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
-                   << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
-    }
-
-    if(include_valence_sms && (k == 1))
-    {   double SMS = GetNuclearInverseMass();
-        if(SMS)
-        {   SMS = SMS * SMSIntegrals.find(i1*NumStates + i3)->second * SMSIntegrals.find(i2*NumStates + i4)->second;
-            if(!sms_sign)
-                SMS = -SMS;
-            radial = radial - SMS;
-        }
-    }
-
-    return radial;
-}
-
-Sigma3Calculator::Sigma3Calculator(pLattice lattice, pCoreConst atom_core, pExcitedStatesConst excited_states):
-    MBPTCalculator(lattice, atom_core, excited_states), integrals(NULL)
+Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals), two_body(two_body), include_valence(include_valence),
+    deep(orbitals->deep), high(orbitals->high)
 {}
 
 Sigma3Calculator::~Sigma3Calculator(void)
 {
-    if(integrals)
-        delete integrals;
+    two_body->clear();
 }
 
-unsigned int Sigma3Calculator::GetStorageSize(pExcitedStatesConst valence_states)
+unsigned int Sigma3Calculator::GetStorageSize()
 {
-    if(!integrals)
-        integrals = new Sigma3Integrals(excited);
- 
-    return integrals->GetStorageSize(*valence_states);
+    unsigned int total = two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence, true);
+    if(include_valence)
+        total += two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high, true);
+
+    return total;
 }
 
-void Sigma3Calculator::UpdateIntegrals(pExcitedStatesConst valence_states)
+void Sigma3Calculator::UpdateIntegrals()
 {
     SetValenceEnergies();
-    if(integrals)
-        delete integrals;
 
-    integrals = new Sigma3Integrals(excited);
-    integrals->Update(*valence_states);
+    two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence);
+    if(include_valence)
+        two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high);
+}
 
-    // Get maximum value of twoJ in core
-    core_maxTwoJ = 0;
-    ConstStateIterator it = core->GetConstStateIterator();
-    while(!it.AtEnd())
-    {
-        if(core_maxTwoJ < it.GetState()->TwoJ())
-            core_maxTwoJ = it.GetState()->TwoJ();
-        it.Next();
-    }
+double Sigma3Calculator::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
+                                          const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
+{
+    double value = 0.;
+
+    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2 ||
+       (e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM()))
+        return value;
+
+    // There are no sign changes, since there are the same number
+    // of permutations on both sides
+
+    value = GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6) +
+            GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4) +
+            GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5) +
+            GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4) +
+            GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6) +
+            GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
+
+    return value;
 }
 
 double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6)
+           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
 {
     // core state limits
     int two_mn = e1.TwoM() + e2.TwoM() - e4.TwoM();
-    if(core_maxTwoJ < abs(two_mn))
-        return 0.;
 
     // k1 limits
     int q1 = (e1.TwoM() - e4.TwoM())/2;
-    unsigned int k1min = kmin(e1, e4);
+    int k1min = kmin(e1, e4);
     while(k1min < abs(q1))
         k1min += 2;
-    unsigned int k1max = kmax(e1, e4);
+    int k1max = kmax(e1, e4);
 
     // k2 limits
     int q2 = (e6.TwoM() - e3.TwoM())/2;
-    unsigned int k2min = kmin(e3, e6);
+    int k2min = kmin(e3, e6);
     while(k2min < abs(q2))
         k2min += 2;
-    unsigned int k2max = kmax(e3, e6);
+    int k2max = kmax(e3, e6);
 
     if((k1min > k1max) || (k2min > k2max))
         return 0.;
@@ -409,62 +79,100 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
     const double ValenceEnergy = ValenceEnergies.find(e2.Kappa())->second;
 
     double total = 0.;
-    unsigned int k1, k2;
+    int k1, k2;
     MathConstant* constants = MathConstant::Instance();
 
     // Summation over k1
     for(k1 = k1min; k1 <= k1max; k1+=2)
     {
-        double coeff14 = constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1, -e1.TwoM(), e4.TwoM());
+        double coeff14 = constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1, -e1.TwoM(), e4.TwoM()) *
+                         constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1);
 
         if(coeff14)
         {
             // Summation over k2
             for(k2 = k2min; k2 <= k2max; k2+=2)
             {
-                double coeff36 = constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2, -e3.TwoM(), e6.TwoM());
+                double coeff36 = constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2, -e3.TwoM(), e6.TwoM()) *
+                                 constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2);
 
                 if(coeff36)
                 {
                     // Summation over core state 'n'
-                    ConstStateIterator itn = core->GetConstStateIterator();
-                    while(!itn.AtEnd())
+                    auto it_n = deep->begin();
+                    while(it_n != deep->end())
                     {
-                        const OrbitalInfo sn = itn.GetOrbitalInfo();
-                        unsigned int two_Jn = sn.TwoJ();
+                        const OrbitalInfo& sn = it_n->first;
+                        int two_Jn = sn.TwoJ();
 
                         if((two_Jn >= abs(two_mn)) && (sn.L()%2 == ln_parity))
                         {
-                            const double En = itn.GetState()->Energy();
+                            const double En = it_n->second->Energy();
 
-                            double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn)
-                                * constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM())
-                                * coeff14 * coeff36 /(En - ValenceEnergy + delta);
+                            double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn) *
+                                           constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM());
 
                             if(coeff)
                             {
-                                // R1 = R_k1 (12, 4n) * (j1   j4  k1) * (j2   jn  k1) * sqrt[j1, j2, j4, jn]
-                                //                      (1/2 -1/2  0) * (1/2 -1/2  0)
-                                //    = R_k1 (n4, 21) * (jn   j2  k1) * (j4   j1  k1) * sqrt[jn, j4, j2, j1]
-                                //                      (1/2 -1/2  0) * (1/2 -1/2  0)
-                                double R1 = integrals->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
+                                coeff *= constants->Electron3j(e2.TwoJ(), two_Jn, k1) *
+                                         constants->Electron3j(two_Jn, e5.TwoJ(), k2) *
+                                         coeff14 * coeff36 /(En - ValenceEnergy + delta);
 
-                                // R2 = R_k2 (n3, 56) * (jn   j5  k2) * (j3   j6  k2) * sqrt[jn, j3, j5, j6]
-                                //                      (1/2 -1/2  0) * (1/2 -1/2  0)
-                                double R2 = integrals->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
+                                coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
+                                              e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
+                                         * double(two_Jn + 1);
 
-                                total += coeff * R1 * R2;
+                                double R1 = two_body->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
+                                double R2 = two_body->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
+
+                                total -= coeff * R1 * R2;
                             }
                         }
-                        itn.Next();
+                        ++it_n;
+                    }
+
+                    if(include_valence)
+                    {
+                        // Summation over excited state 'alpha'
+                        auto it_alpha = high->begin();
+                        while(it_alpha != high->end())
+                        {
+                            const OrbitalInfo& salpha = it_alpha->first;
+                            int two_Jalpha = salpha.TwoJ();
+
+                            if((two_Jalpha >= abs(two_mn)) && (salpha.L()%2 == ln_parity))
+                            {
+                                const double Ealpha = it_alpha->second->Energy();
+
+                                double coeff = constants->Electron3j(e2.TwoJ(), two_Jalpha, k1, -e2.TwoM(), two_mn) *
+                                constants->Electron3j(two_Jalpha, e5.TwoJ(), k2, -two_mn, e5.TwoM());
+
+                                if(coeff)
+                                {
+                                    coeff *= constants->Electron3j(e2.TwoJ(), two_Jalpha, k1) *
+                                             constants->Electron3j(two_Jalpha, e5.TwoJ(), k2) *
+                                             coeff14 * coeff36 /(ValenceEnergy - Ealpha + delta);
+
+                                    coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
+                                                  e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
+                                            * double(two_Jalpha + 1);
+
+                                    double R1 = two_body->GetTwoElectronIntegral(k1, e1, e2, e4, salpha);
+                                    double R2 = two_body->GetTwoElectronIntegral(k2, e3, salpha, e6, e5);
+
+                                    total += coeff * R1 * R2;
+                                }
+                            }
+                            ++it_alpha;
+                        }
                     }
                 }
             }
         }
     }
 
-    // phase = -1 * (-1)^(m2 + m3 + m4 + m5) = -1 * (-1)^(m1 - m6)
-    if((abs(e1.TwoM() - e6.TwoM())/2)%2 == 0)
+    // phase = (-1)^(m2 + m3 + m4 + m5) = (-1)^(m1 - m6)
+    if((abs(e1.TwoM() - e6.TwoM())/2)%2)
         total = - total;
 
     return total;
