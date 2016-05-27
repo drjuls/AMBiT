@@ -20,7 +20,7 @@
 class Sigma3Calculator : public MBPTCalculator
 {
 public:
-    Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence = false);
+    Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence = false, const std::string& fermi_orbitals = "");
     virtual ~Sigma3Calculator();
 
     virtual unsigned int GetStorageSize() override;

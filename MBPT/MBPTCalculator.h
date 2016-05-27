@@ -12,7 +12,11 @@ class MBPTCalculator
         kept constant in the energy denominator (this ensures that the operator is hermitian).
      */
 public:
-    MBPTCalculator(pOrbitalManagerConst pOrbitals);
+    /** Optional: fermi_orbitals are the orbitals used for energy denominators of MBPT.
+            Denote using a basis-style string, e.g. 5sp4df.
+            Any unspecified angular momentum defaults to first orbital above fermi level.
+     */
+    MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals = "");
     virtual ~MBPTCalculator(void);
 
     virtual unsigned int GetStorageSize() = 0;
@@ -77,6 +81,9 @@ protected:
 
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;
+
+    /** Choose orbitals used to create ValenceEnergies for energy denominators of MBPT. */
+    std::string fermi_orbitals;
     void SetValenceEnergies();
 
     double delta;   // Shift in the energy denominator.

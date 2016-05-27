@@ -9,8 +9,8 @@
 class ValenceMBPTCalculator : public MBPTCalculator
 {
 public:
-    ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body);
-    ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body);
+    ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals = "");
+    ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, const std::string& fermi_orbitals = "");
     virtual ~ValenceMBPTCalculator();
 
     /** No storage yet. */

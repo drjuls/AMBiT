@@ -131,7 +131,7 @@ TEST(HyperfineTester, Na)
     brueckner->IncludeLower(false);
 
     pOrbital brueckner_target(new Orbital(*s));
-    brueckner->CalculateSigma(brueckner_target->Kappa(), orbitals, basis_generator.GetHartreeY(), hf);
+    brueckner->CalculateSigma(brueckner_target->Kappa(), orbitals, basis_generator.GetHartreeY(), "", hf);
 
     double brueckner_matrix_element = brueckner->GetMatrixElement(*brueckner_target, *brueckner_target);
     *logstream << "Brueckner:  " << brueckner_matrix_element * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;

@@ -4,8 +4,8 @@
 #include <mpi.h>
 #endif
 
-BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body):
-    MBPTCalculator(orbitals), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
+BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 
 void BruecknerSigmaCalculator::GetSecondOrderSigma(int kappa, SigmaPotential& sigma)

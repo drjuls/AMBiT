@@ -27,15 +27,15 @@ void BruecknerDecorator::CalculateSigma(int kappa, pBruecknerSigmaCalculator bru
     }
 }
 
-void BruecknerDecorator::CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, pSpinorOperatorConst bare_hf)
+void BruecknerDecorator::CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, const std::string& fermi_orbitals, pSpinorOperatorConst bare_hf)
 {
     if(sigmas.find(kappa) == sigmas.end())
     {
         pBruecknerSigmaCalculator calculator;
         if(bare_hf)
-            calculator.reset(new BruecknerSigmaCalculator(orbitals, bare_hf, hartreeY));
+            calculator.reset(new BruecknerSigmaCalculator(orbitals, bare_hf, hartreeY, fermi_orbitals));
         else
-            calculator.reset(new BruecknerSigmaCalculator(orbitals, wrapped, hartreeY));
+            calculator.reset(new BruecknerSigmaCalculator(orbitals, wrapped, hartreeY, fermi_orbitals));
 
         CalculateSigma(kappa, calculator);
     }

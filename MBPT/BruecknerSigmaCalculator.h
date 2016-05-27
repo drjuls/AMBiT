@@ -8,7 +8,7 @@
 class BruecknerSigmaCalculator : public MBPTCalculator
 {
 public:
-    BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body);
+    BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body, const std::string& fermi_orbitals = "");
     virtual ~BruecknerSigmaCalculator() {}
 
     virtual unsigned int GetStorageSize() override { return 0; }

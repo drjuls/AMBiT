@@ -38,7 +38,10 @@ public:
     /** Calculate sigma for given kappa if it does not already exist.
         If bare_hf is not given, then use decorated HFOperator.
      */
-    void CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, pSpinorOperatorConst bare_hf = nullptr);
+    void CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, const std::string& fermi_orbitals = "", pSpinorOperatorConst bare_hf = nullptr);
+    inline void CalculateSigma(int kappa, pOrbitalManagerConst orbitals, pHartreeY hartreeY, pSpinorOperatorConst bare_hf)
+    {   CalculateSigma(kappa, orbitals, hartreeY, "", bare_hf);
+    }
 
     /** Set the scaling parameter for given kappa. */
     void SetSigmaScaling(int kappa, double sigma_amount) { lambda[kappa] = sigma_amount; }

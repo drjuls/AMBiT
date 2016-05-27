@@ -33,8 +33,11 @@ void Atom::MakeMBPTIntegrals()
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
     pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsMap>(orbitals, hartreeY);
-    pCoreMBPTCalculator core_mbpt = std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
-    pValenceMBPTCalculator val_mbpt = std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals);
+
+    // MBPT calculators
+    std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
+    pCoreMBPTCalculator core_mbpt = std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals, fermi_orbitals);
+    pValenceMBPTCalculator val_mbpt = std::make_shared<ValenceMBPTCalculator>(orbitals, bare_one_body_integrals, bare_two_body_integrals, fermi_orbitals);
 
     auto& valence = orbitals->valence;
 
@@ -171,7 +174,10 @@ void Atom::MakeIntegrals()
         two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
 
     if(three_body_mbpt)
-        threebody_electron = std::make_shared<Sigma3Calculator>(orbitals, two_body_integrals, user_input.search("MBPT/--use-valence"));
+    {   bool use_valence = user_input.search("MBPT/--use-valence");
+        std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
+        threebody_electron = std::make_shared<Sigma3Calculator>(orbitals, two_body_integrals, use_valence, fermi_orbitals);
+    }
 
     auto& valence = orbitals->valence;
 

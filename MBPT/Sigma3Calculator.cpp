@@ -2,8 +2,8 @@
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
 
-Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence):
-    MBPTCalculator(orbitals), two_body(two_body), include_valence(include_valence),
+Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals), two_body(two_body), include_valence(include_valence),
     deep(orbitals->deep), high(orbitals->high)
 {}
 
