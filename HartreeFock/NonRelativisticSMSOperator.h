@@ -18,23 +18,17 @@
     One can also use it as a normal SpinorOperator by not using SetInverseMass or SetParameters, which
     default to 1 and hence \f$ P^1 = p_{ab} \f$.
  */
-class NonRelativisticSMSOperator : public HartreeYDecorator
+class NonRelativisticSMSOperator : public HartreeYDecorator<HartreeYBasicDecorator, NonRelativisticSMSOperator>
 {
 public:
     NonRelativisticSMSOperator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
-        HartreeYDecorator(wrapped, integration_strategy), lambda(0.0), p_cd(0.0)
+        BaseDecorator(wrapped, integration_strategy), lambda(0.0), p_cd(0.0)
     {   two_body_reverse_symmetry_exists = false;
     }
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
     double GetInverseMass() const { return lambda; }
-
-    /** Deep copy of the HartreeY object, including wrapped objects. */
-    virtual NonRelativisticSMSOperator* Clone() const override
-    {   pHartreeY wrapped_clone(component->Clone());
-        return new NonRelativisticSMSOperator(wrapped_clone, integrator);
-    }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const override;

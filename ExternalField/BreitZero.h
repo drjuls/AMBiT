@@ -5,18 +5,12 @@
 
 /** Reduced two-body operator for frequency-independent Breit interaction, following Johnson book p. 203.
  */
-class BreitZero : public HartreeYDecorator
+class BreitZero : public HartreeYDecorator<HartreeYBasicDecorator, BreitZero>
 {
 public:
     BreitZero(pHartreeY wrapped, pIntegrator integration_strategy, pCoulombOperator coulomb):
-        HartreeYDecorator(wrapped, integration_strategy), coulomb(coulomb)
+        BaseDecorator(wrapped, integration_strategy), coulomb(coulomb)
     {   two_body_reverse_symmetry_exists = false;
-    }
-
-    /** Deep copy of the HartreeY object, including wrapped objects. */
-    virtual HartreeYDecorator* Clone() const override
-    {   pHartreeY wrapped_clone(component->Clone());
-        return new BreitZero(wrapped_clone, integrator, coulomb);
     }
 
     /** < b | t | a > for an operator t. */

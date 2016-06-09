@@ -16,7 +16,7 @@ public:
         BaseDecorator(wrapped_hf), breit_operator(breit_operator)
     {}
     BreitHFDecorator(const BreitHFDecorator& other):
-        HFOperatorDecorator(other), breit_operator(other.breit_operator)
+        BaseDecorator(other), breit_operator(other.breit_operator)
     {}
 
     virtual void Alert() override;

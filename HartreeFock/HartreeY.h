@@ -28,7 +28,7 @@
  */
 class HartreeYBase : public std::enable_shared_from_this<HartreeYBase>
 {
-    friend class HartreeYDecorator;
+    friend class HartreeYBasicDecorator;
 public:
     HartreeYBase(pIntegrator integration_strategy = nullptr): K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), parent(nullptr) {}
     virtual ~HartreeYBase() {}
@@ -89,12 +89,8 @@ public:
     {   return integrator;
     }
 
-    /** Deep copy of the HartreeY object, particularly including wrapped objects.
-        The caller must take responsibility for deallocating the clone. A typical idiom would be
-        to wrap the pointer immediately with a shared pointer, e.g.:
-            pHartreeY cloned(old_hartreeY.Clone())
-     */
-    virtual HartreeYBase* Clone() const { return new HartreeYBase(integrator); }
+    /** Deep copy of the HartreeY object, particularly including wrapped objects. */
+    virtual std::shared_ptr<HartreeYBase> Clone() const { return std::make_shared<HartreeYBase>(*this); }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const
@@ -120,6 +116,8 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const
     {   return SpinorFunction(kappa_b);
     }
+
+    void SetParent(std::shared_ptr<HartreeYBase> new_parent) { parent = new_parent.get(); }
 
 protected:
     pIntegrator integrator;
@@ -195,7 +193,7 @@ public:
     /** Deep copy of this HartreeY object.
         NB: uses the same integrator and coulomb operator.
      */
-    virtual HartreeY* Clone() const override;
+    virtual pHartreeY Clone() const override { return std::make_shared<HartreeY>(*this); }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override;
@@ -211,6 +209,9 @@ protected:
 };
 
 /** HartreeYDecorators add additional terms to \f$ Y^k_{cd} \f$.
+    Derive classes from it using the HartreeYDecorator template below:
+        class MyDecorator : public HartreeYDecorator<HartreeYBasicDecorator, MyDecorator>
+
     Decorator writers should set two_body_reverse_symmetry_exists to the appropriate value for that operator.
     Functions that need to be overridden:
         SetLocalParameters(k, c, d)
@@ -218,10 +219,10 @@ protected:
         GetLocalMinK()   - for current c, d
         GetLocalMaxK()   - for current c, d
  */
-class HartreeYDecorator : public HartreeYBase
+class HartreeYBasicDecorator : public HartreeYBase
 {
 public:
-    HartreeYDecorator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
+    HartreeYBasicDecorator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
         HartreeYBase(integration_strategy)
     {   component = wrapped;
         component->parent = this;
@@ -229,7 +230,7 @@ public:
             integrator = component->GetIntegrator();
     }
 
-    virtual ~HartreeYDecorator()
+    virtual ~HartreeYBasicDecorator()
     {   component->parent = nullptr;
     }
 
@@ -329,9 +330,12 @@ public:
     }
 
     /** Deep copy of the HartreeY object, including wrapped objects. */
-    virtual HartreeYDecorator* Clone() const override
-    {   pHartreeY wrapped_clone(component->Clone());
-        return new HartreeYDecorator(wrapped_clone);
+    virtual pHartreeY Clone() const override
+    {
+        std::shared_ptr<HartreeYBasicDecorator> ret(std::make_shared<HartreeYBasicDecorator>(*this));
+        ret->component = component->Clone();
+        ret->component->SetParent(ret);
+        return ret;
     }
 
     /** < b | t | a > for an operator t. */
@@ -366,6 +370,33 @@ protected:
     }
 
     pHartreeY component;
+};
+
+/** HartreeYDecorator is a base class for HartreeY decorators.
+    It follows the curiously recurring template pattern to provide Clone() function.
+    When deriving from it use the syntax
+        class MyDecorator : public HartreeYDecorator<BaseDecorator, MyDecorator>
+ */
+template <typename Base, typename Derived>
+class HartreeYDecorator : public Base
+{
+public:
+    using Base::Base;
+
+    HartreeYDecorator(const Derived& other):
+        Base(other)
+    {}
+
+    virtual pHartreeY Clone() const override
+    {
+        std::shared_ptr<Derived> ret = std::make_shared<Derived>(static_cast<Derived const &>(*this));
+        ret->component = this->component->Clone();
+        ret->component->SetParent(ret);
+        return ret;
+    }
+
+protected:
+    typedef HartreeYDecorator<Base, Derived> BaseDecorator;
 };
 
 #endif

@@ -74,17 +74,6 @@ int HartreeY::GetMaxK() const
     return maxK;
 }
 
-HartreeY* HartreeY::Clone() const
-{
-    HartreeY* copy = new HartreeY(integrator, coulomb);
-    copy->K = K;
-    copy->c = c;
-    copy->d = d;
-    copy->potential = potential;
-
-    return copy;
-}
-
 void HartreeY::Alert()
 {
     if(isZero())
