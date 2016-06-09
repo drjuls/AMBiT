@@ -1,11 +1,11 @@
 #include "MassShiftDecorator.h"
 #include "gtest/gtest.h"
-#include "Core.h"
+#include "HartreeFock/Core.h"
 #include "Include.h"
-#include "ODESolver.h"
+#include "HartreeFock/ODESolver.h"
 #include "Universal/PhysicalConstant.h"
-#include "HartreeFocker.h"
-#include "ConfigurationParser.h"
+#include "HartreeFock/HartreeFocker.h"
+#include "HartreeFock/ConfigurationParser.h"
 
 TEST(MassShiftDecoratorTester, CaII)
 {

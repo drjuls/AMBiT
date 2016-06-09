@@ -1,7 +1,7 @@
 #ifndef MASS_SHIFT_DECORATOR
 #define MASS_SHIFT_DECORATOR
 
-#include "HFOperator.h"
+#include "HartreeFock/HFOperator.h"
 
 /** Add non-relativistic specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
     \f{eqnarray*}{

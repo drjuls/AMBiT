@@ -1,7 +1,7 @@
 #ifndef NONRELATIVISTIC_SMS_OPERATOR_H
 #define NONRELATIVISTIC_SMS_OPERATOR_H
 
-#include "HartreeY.h"
+#include "HartreeFock/HartreeY.h"
 
 /** Non-relativistic specific mass shift operator [Berengut et al. PRA 68, 022502 (2003)].
     \f[

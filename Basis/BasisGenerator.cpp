@@ -4,8 +4,8 @@
 #include "HartreeFock/Integrator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/NucleusDecorator.h"
-#include "HartreeFock/MassShiftDecorator.h"
-#include "HartreeFock/NonRelativisticSMSOperator.h"
+#include "ExternalField/MassShiftDecorator.h"
+#include "ExternalField/NonRelativisticSMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
 
