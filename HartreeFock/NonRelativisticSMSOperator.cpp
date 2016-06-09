@@ -19,10 +19,27 @@ bool NonRelativisticSMSOperator::SetLocalParameters(int new_K, pSpinorFunctionCo
     return (p_cd != 0.0);
 }
 
-bool NonRelativisticSMSOperator::isZero() const
+bool NonRelativisticSMSOperator::isZeroLocal() const
 {
-    bool ret = HartreeYDecorator::isZero();
-    return ret && (p_cd * lambda == 0);
+    return (K != 1 || p_cd * lambda == 0);
+}
+
+int NonRelativisticSMSOperator::GetLocalMinK() const
+{
+    if((c->Kappa() == -d->Kappa()) ||
+       (abs(c->Kappa() - d->Kappa()) == 1))
+        return 1;
+    else
+        return -1;
+}
+
+int NonRelativisticSMSOperator::GetLocalMaxK() const
+{
+    if((c->Kappa() == -d->Kappa()) ||
+       (abs(c->Kappa() - d->Kappa()) == 1))
+        return 1;
+    else
+        return -1;
 }
 
 /** < b | t | a > for an operator t. */

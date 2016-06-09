@@ -2,59 +2,19 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
-int BreitZero::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
+bool BreitZero::isZeroLocal() const
 {
-    c = new_c;
-    d = new_d;
-
-    K = abs(c->TwoJ() - d->TwoJ());
-    if(K == 0)
-    {
-        if(component->SetParameters(0, c, d))
-        {   return K;
-        }
-        else
-            K = 1;
-    }
-
-    int maxK = GetMaxK();
-    while(K <= maxK)
-    {
-        bool non_zero = SetLocalParameters(K, c, d);
-        bool component_non_zero = component->SetParameters(K, c, d);
-
-        if(non_zero || component_non_zero)
-            return K;
-
-        K++;
-    }
-
-    return -1;
+    return (!pot_Q_Kplus.size() && !pot_V_K.size());
 }
 
-int BreitZero::NextK()
+int BreitZero::GetLocalMinK() const
 {
-    bool ret = false;
-    if(K != -1 && c && d)
-    {
-        while(ret == false && K < GetMaxK())
-        {   K++;
-            ret = SetK(K);
-        }
-    }
-
-    if(ret == false)
-        K = -1;
-
-    return K;
+    return mmax(abs(c->TwoJ() - d->TwoJ())/2, 1);
 }
 
-int BreitZero::GetMaxK() const
+int BreitZero::GetLocalMaxK() const
 {
-    if(c && d)
-        return (c->TwoJ() + d->TwoJ())/2;
-    else
-        return -1;
+    return (c->TwoJ() + d->TwoJ())/2;
 }
 
 bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
@@ -112,10 +72,6 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
 
     jc_plus_jd_even = (((c->TwoJ() + d->TwoJ())/2)%2 == 0);
     return (pot_Q_Kplus.size() || pot_V_K.size());
-}
-
-bool BreitZero::isZero() const
-{   return (!pot_Q_Kplus.size() && !pot_V_K.size() && component->isZero());
 }
 
 double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const

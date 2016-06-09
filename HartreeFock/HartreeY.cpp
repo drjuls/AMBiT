@@ -32,14 +32,21 @@ int HartreeY::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d
 {
     c = new_c;
     d = new_d;
-    K = abs(c->TwoJ() - d->TwoJ())/2;
-    if((K + c->L() + d->L())%2 == 1)
-        K++;
 
-    if(SetParameters(K, c, d))
-        return K;
-    else
-        return -1;
+    K = GetMinK();
+    if((K != -1) && (parent == nullptr))
+        SetK(K);
+
+    return K;
+}
+
+int HartreeY::GetMinK() const
+{
+    int Knew = abs(c->TwoJ() - d->TwoJ())/2;
+    if((Knew + c->L() + d->L())%2 == 1)
+        Knew++;
+
+    return Knew;
 }
 
 int HartreeY::NextK()
@@ -62,8 +69,6 @@ int HartreeY::GetMaxK() const
         maxK = (c->TwoJ() + d->TwoJ())/2;
         if((maxK + c->L() + d->L())%2 == 1)
             maxK--;
-        if(maxK < abs(c->TwoJ() - d->TwoJ())/2)
-            maxK = -1;
     }
 
     return maxK;

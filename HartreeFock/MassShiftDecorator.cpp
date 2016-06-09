@@ -66,7 +66,7 @@ SpinorFunction MassShiftDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
     ta -= CalculateExtraExchange(a);
-    
+
     return ta;
 }
 
@@ -75,16 +75,21 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     bool NON_REL_SCALING = true;
 
     SpinorFunction exchange(s.Kappa());
-    exchange.resize(s.size());
+
+    if(lambda == 0)
+        return exchange;
 
     pHartreeY zero(new HartreeYBase());
-    pHartreeY sms(new NonRelativisticSMSOperator(zero, integrator));
+    pNonRelativisticSMSOperator sms(new NonRelativisticSMSOperator(zero, integrator));
+    sms->SetInverseMass(lambda);
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
-    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
+    if(core->GetState(OrbitalInfo(current_in_core)) == nullptr)
         current_in_core = NULL;
-    
+
+    pSpinorFunctionConst p_s(s.shared_from_this());
+
     // Sum over all core states
     auto cs = core->begin();
     while(cs != core->end())
@@ -92,8 +97,10 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
         pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
+        int k = sms->SetOrbitals(p_s, core_orbital);
+
         // Sum over all k
-        for(unsigned int k = abs((int)core_orbital->L() - (int)s.L()); k <= (core_orbital->L() + s.L()); k+=2)
+        while(k != -1)
         {
             double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), core_orbital->TwoJ(), k);
             coefficient = (2 * abs(core_orbital->Kappa())) * coefficient * coefficient;
@@ -130,21 +137,16 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
                     else if(k)
                         ex = (other_occupancy - 1.)/double(2 * (abs(core_orbital->Kappa())) - 1);
                 }
-                
+
                 coefficient = coefficient * ex;
             }
 
-            if(lambda && (k == 1))
-            {
-                SpinorFunction sms_core = sms->ApplyTo(*core_orbital, s.Kappa());
-                double sms_value = integrator->GetInnerProduct(s, sms_core);
+            exchange += sms->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
 
-                exchange += sms_core * coefficient * lambda * sms_value;
-            }
-
+            k = sms->NextK();
         }
         cs++;
     }
-    
+
     return exchange;
 }

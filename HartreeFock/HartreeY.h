@@ -26,10 +26,11 @@
     The boolean two_body_reverse_symmetry_exists contains this information, which is
     accessible via the function ReverseSymmetryExists().
  */
-class HartreeYBase
+class HartreeYBase : public std::enable_shared_from_this<HartreeYBase>
 {
+    friend class HartreeYDecorator;
 public:
-    HartreeYBase(pIntegrator integration_strategy = nullptr): K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true) {}
+    HartreeYBase(pIntegrator integration_strategy = nullptr): K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), parent(nullptr) {}
     virtual ~HartreeYBase() {}
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
@@ -63,21 +64,19 @@ public:
         return false;
     }
 
-    /** Using previously set orbitals, set k to its smallest value with non-zero potential.
-        Return resulting k, or -1 if there is no such k.
-     */
-    virtual int SetMinK() { return -1; }
+    /** Return smallest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMinK() const { return -1; }
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMaxK() const { return -1; };
 
     /** Increment k to next value with non-zero potential using current orbitals.
         Return resulting k, or -1 if there is no such k.
      */
-    virtual int NextK() { return false; }
-
-    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
-    virtual int GetMaxK() const { return -1; }
+    virtual int NextK() { return -1; }
 
     /** Get multipolarity K for this operator. */
-    virtual int GetK() const
+    int GetK() const
     {   return K;
     }
 
@@ -86,7 +85,7 @@ public:
     {   return (K%2? Parity::odd: Parity::even);
     }
 
-    virtual pIntegrator GetIntegrator() const
+    pIntegrator GetIntegrator() const
     {   return integrator;
     }
 
@@ -98,11 +97,7 @@ public:
     virtual HartreeYBase* Clone() const { return new HartreeYBase(integrator); }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const
-    {   return GetMatrixElement(b, a, false);
-    }
-
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const
     {   SpinorFunction ta = ApplyTo(a, b.Kappa(), reverse);
         if(ta.size())
         {   if(!integrator)
@@ -122,15 +117,16 @@ public:
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
         i.e. t | a > has kappa == kappa_b.
      */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b) const { return ApplyTo(a, kappa_b, false); }
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const
     {   return SpinorFunction(kappa_b);
     }
 
 protected:
     pIntegrator integrator;
-    int K;
     bool two_body_reverse_symmetry_exists;
+    HartreeYBase* parent;   //!< Pointer to parent decorator, or null if this is the top-level HartreeY.
+
+    int K;
     pSpinorFunctionConst c;
     pSpinorFunctionConst d;
 };
@@ -185,18 +181,16 @@ public:
     {   return SetParameters(new_K, c, d);
     }
 
-    /** Using previously set orbitals, set k to its smallest value with non-zero potential.
-        Return resulting k, or -1 if there is no such k.
-     */
-    virtual int SetMinK() override { return SetOrbitals(c, d); }
+    /** Return smallest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMinK() const override;
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMaxK() const override;
 
     /** Increment k to next value with non-zero potential using current orbitals.
         Return resulting k, or -1 if there is no such k.
      */
     virtual int NextK() override;
-
-    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
-    virtual int GetMaxK() const override;
 
     /** Deep copy of this HartreeY object.
         NB: uses the same integrator and coulomb operator.
@@ -216,14 +210,27 @@ protected:
     RadialFunction potential;
 };
 
+/** HartreeYDecorators add additional terms to \f$ Y^k_{cd} \f$.
+    Decorator writers should set two_body_reverse_symmetry_exists to the appropriate value for that operator.
+    Functions that need to be overridden:
+        SetLocalParameters(k, c, d)
+        isZeroLocal()    - for current K, c, d
+        GetLocalMinK()   - for current c, d
+        GetLocalMaxK()   - for current c, d
+ */
 class HartreeYDecorator : public HartreeYBase
 {
 public:
     HartreeYDecorator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
         HartreeYBase(integration_strategy)
     {   component = wrapped;
+        component->parent = this;
         if(!integrator)
             integrator = component->GetIntegrator();
+    }
+
+    virtual ~HartreeYDecorator()
+    {   component->parent = nullptr;
     }
 
     virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override
@@ -233,8 +240,38 @@ public:
     }
 
     /** Should be overwritten to take boolean AND of all wrapped objects. */
-    virtual bool isZero() const override
-    {   return component->isZero();
+    virtual bool isZero() const override final
+    {   return isZeroLocal() && component->isZero();
+    }
+
+    /** Return smallest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMinK() const override final
+    {
+        if(c && d)
+        {   int Kmin = GetLocalMinK();
+            int otherKmin = component->GetMinK();
+            if(otherKmin == -1)
+                return Kmin;
+            else
+                return mmin(Kmin, otherKmin);
+        }
+        else
+            return component->GetMinK();
+    }
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetMaxK() const override final
+    {
+        if(c && d)
+        {   int Kmax = GetLocalMaxK();
+            int otherKmax = component->GetMaxK();
+            if(otherKmax == -1)
+                return Kmax;
+            else
+                return mmax(Kmax, otherKmax);
+        }
+        else
+            return component->GetMaxK();
     }
 
     /** Whether this is "reversible" in the sense \f$ Y^k_{cd} = Y^k_{dc} \f$,
@@ -244,9 +281,23 @@ public:
     {   return two_body_reverse_symmetry_exists && component->ReverseSymmetryExists();
     }
 
-    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override
-    {   int new_K = component->SetOrbitals(new_c, new_d);
-        SetLocalParameters(new_K, new_c, new_d);
+    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override final
+    {
+        c = new_c;
+        d = new_d;
+        int myKmin = GetMinK();
+        int belowKmin = component->SetOrbitals(new_c, new_d);
+
+        if(myKmin == -1)
+            K = belowKmin;
+        else if(belowKmin == -1)
+            K = myKmin;
+        else
+            K = mmin(myKmin, belowKmin);
+
+        if((K != -1) && (parent == nullptr))
+            SetK(K);
+
         return K;
     }
 
@@ -255,22 +306,28 @@ public:
         return component->SetK(new_K) || ret;
     }
 
-    virtual int SetMinK() override { return SetOrbitals(c, d); }
+    virtual int NextK() override final
+    {
+        // Only the top-level decorator does this.
+        if((K != -1) && (parent == nullptr))
+        {
+            int maxK = GetMaxK();
 
-    virtual int NextK() override
-    {   int ret = component->NextK();
-        if(ret != -1)
-            SetLocalParameters(component->GetK(), c, d);
-        else
-            K = -1;
+            bool nonzero = true;
+            do
+            {   K++;
+                if(K > maxK)
+                {   K = -1;
+                }
+                else
+                {   nonzero = SetK(K);
+                }
+            }while(K != -1 && !nonzero);
+        }
 
-        return ret;
+        return K;
     }
 
-    virtual int GetMaxK() const override
-    {   return component->GetMaxK();
-    }
-    
     /** Deep copy of the HartreeY object, including wrapped objects. */
     virtual HartreeYDecorator* Clone() const override
     {   pHartreeY wrapped_clone(component->Clone());
@@ -278,11 +335,11 @@ public:
     }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const override
     {   return component->GetMatrixElement(b, a, reverse);
     }
 
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const override
     {   return component->ApplyTo(a, kappa_b, reverse);
     }
 
@@ -291,6 +348,21 @@ protected:
     virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
     {   K = new_K; c = new_c; d = new_d;
         return false;
+    }
+
+    /** Should be overwritten to take boolean AND of all wrapped objects. */
+    virtual bool isZeroLocal() const
+    {   return true;
+    }
+
+    /** Return smallest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetLocalMinK() const
+    {   return -1;
+    }
+
+    /** Return largest possible value of k giving a non-zero potential with current orbitals, or -1 if there is no such k. */
+    virtual int GetLocalMaxK() const
+    {   return -1;
     }
 
     pHartreeY component;

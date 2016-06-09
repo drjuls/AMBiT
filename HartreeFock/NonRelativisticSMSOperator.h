@@ -22,12 +22,9 @@ class NonRelativisticSMSOperator : public HartreeYDecorator
 {
 public:
     NonRelativisticSMSOperator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
-        HartreeYDecorator(wrapped, integration_strategy), lambda(1.0), p_cd(1.0)
-    {   K = 1;
-        two_body_reverse_symmetry_exists = false;
+        HartreeYDecorator(wrapped, integration_strategy), lambda(0.0), p_cd(0.0)
+    {   two_body_reverse_symmetry_exists = false;
     }
-
-    virtual bool isZero() const override;
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
@@ -40,15 +37,18 @@ public:
     }
 
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const override;
 
     /** Potential = t | a > for an operator t such that the resulting Potential.Kappa() == kappa_b.
-     i.e. t | a > has kappa == kappa_b.
+        i.e. t | a > has kappa == kappa_b.
      */
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const override;
 
 protected:
     virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+    virtual bool isZeroLocal() const override;
+    virtual int GetLocalMinK() const override;
+    virtual int GetLocalMaxK() const override;
 
     /** Returns \f$ \hat p f_a \f$. */
     SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const;
@@ -57,5 +57,7 @@ protected:
     double lambda;
     double p_cd;
 };
+
+typedef std::shared_ptr<NonRelativisticSMSOperator> pNonRelativisticSMSOperator;
 
 #endif

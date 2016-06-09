@@ -10,9 +10,9 @@
 class RadialFunction;
 
 /** SpinorFunction is the radial part of a Dirac function of the form
-      psi = ( f(r) Omega_{kappa m} )
-            (ig(r) Omega_{-kappa m})
-    where Omega_{kappa m} contains the angular and spin variables.
+    \f[ \psi = {1 \over r} \left({ f(r) \Omega_{\kappa m} \atop
+                                  ig(r) \Omega_{-\kappa m} }\right) \f]
+    where \f$ \Omega_{\kappa m} \f$ contains the angular and spin variables.
  */
 class SpinorFunction : public std::enable_shared_from_this<SpinorFunction>
 {
