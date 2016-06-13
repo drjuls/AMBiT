@@ -1,5 +1,4 @@
 #include "NonRelativisticSMSOperator.h"
-#include "Universal/Interpolator.h"
 
 bool NonRelativisticSMSOperator::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
 {
@@ -42,11 +41,12 @@ int NonRelativisticSMSOperator::GetLocalMaxK() const
         return -1;
 }
 
-/** < b | t | a > for an operator t. */
 double NonRelativisticSMSOperator::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     if(!integrator)
-        throw "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found.";
+    {   *errstream << "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found." << std::endl;
+        exit(1);
+    }
 
     SpinorFunction ta = ApplyTo(a, b.Kappa(), reverse);
     return integrator->GetInnerProduct(ta, b);
@@ -54,19 +54,26 @@ double NonRelativisticSMSOperator::GetMatrixElement(const Orbital& b, const Orbi
 
 SpinorFunction NonRelativisticSMSOperator::ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
 {
-    SpinorFunction ret = ApplyOperator(a, kappa_b) * lambda * p_cd;
-    if(reverse)
-        ret = ret * (-1.0);
+    if(K == 1 && p_cd && lambda)
+    {
+        SpinorFunction ret = ApplyOperator(a, kappa_b) * lambda * p_cd;
+        if(reverse)
+            ret = ret * (-1.0);
 
-    ret += HartreeYDecorator::ApplyTo(a, kappa_b, reverse);
+        ret += component->ApplyTo(a, kappa_b, reverse);
 
-    return ret;
+        return ret;
+    }
+    else
+        return component->ApplyTo(a, kappa_b, reverse);
 }
 
 SpinorFunction NonRelativisticSMSOperator::ApplyOperator(const SpinorFunction& a, int kappa_b) const
 {
     if(!integrator)
-        throw "NonRelativisticSMSOperator::GetMatrixElement(): no integrator found.";
+    {   *errstream << "NonRelativisticSMSOperator::ApplyOperator(): no integrator found." << std::endl;
+        exit(1);
+    }
 
     int l_b = kappa_b;
     if(kappa_b < 0)
@@ -93,8 +100,7 @@ SpinorFunction NonRelativisticSMSOperator::ApplyOperator(const SpinorFunction& a
     }
 
     // Get derivative of p->f
-    Interpolator I(lattice);
-    I.GetDerivative(a.dfdr, p.dfdr, 6);  // First term
+    interp.GetDerivative(a.dfdr, p.dfdr);  // First term
     // Second term
     for(i = 0; i < p.size(); i++)
         p.dfdr[i] += coeff_fa/R[i] * (a.dfdr[i] - a.f[i]/R[i]);

@@ -6,6 +6,7 @@
 #include "HartreeFock/NucleusDecorator.h"
 #include "ExternalField/MassShiftDecorator.h"
 #include "ExternalField/NonRelativisticSMSOperator.h"
+#include "ExternalField/RelativisticSMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
 
@@ -89,13 +90,30 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     // Add additional operators
     double NuclearInverseMass = user_input("NuclearInverseMass", 0.0);
     if(NuclearInverseMass)
-    {   pMassShiftDecorator sms_op(new MassShiftDecorator(hf));
+    {
+        bool include_nms = user_input.search("--include-nms");
+        bool no_sms = user_input.search("--no-sms");
+        bool relativistic = user_input.search("--relativistic-mass-shift");
+
+        pMassShiftDecorator sms_op = std::make_shared<MassShiftDecorator>(hf, relativistic, include_nms, !no_sms);
         sms_op->SetInverseMass(NuclearInverseMass);
         sms_op->SetCore(open_core);
         hf = sms_op;
 
-        pHartreeY dressed(new NonRelativisticSMSOperator(hartreeY));
-        hartreeY = dressed;
+        if(!no_sms)
+        {
+            pSMSOperator Ysms;
+            if(relativistic)
+            {
+                double Zalpha = Z * physical_constant->GetAlpha();
+                Ysms = std::make_shared<RelativisticSMSOperator>(hartreeY, Zalpha);
+            }
+            else
+                Ysms = std::make_shared<NonRelativisticSMSOperator>(hartreeY);
+
+            Ysms->SetInverseMass(NuclearInverseMass);
+            hartreeY = Ysms;
+        }
     }
 
     if(user_input.search("HF/--breit"))

@@ -1,4 +1,5 @@
 #include "MathConstant.h"
+#include "FornbergDifferentiator.h"
 #include "Include.h"
 #include "gtest/gtest.h"
 
@@ -71,4 +72,35 @@ TEST(ConstantTester, Wigner6j)
     EXPECT_DOUBLE_EQ(-0.1, MathConstant::Instance()->Wigner6j(2.5, 1.5, 2., 1.5, 1.5, 2.));
     EXPECT_DOUBLE_EQ(-std::sqrt(2./7.)/5., MathConstant::Instance()->Wigner6j(2.5, 1.5, 2., 1.5, 1.5, 3.));
     EXPECT_DOUBLE_EQ(0.0, MathConstant::Instance()->Wigner6j(2.5, 1.5, 2., 1.5, 2.5, 4.));
+}
+
+TEST(FornbergTester, Sine)
+{
+    pLattice lattice = std::make_shared<Lattice>(1000, 1.e-6, 50);
+    FornbergDifferentiator diff(lattice, 7, true);
+    const double* R = lattice->R();
+
+    std::vector<double> sine(1000);
+    std::vector<double> cos(1000);
+    for(int i = 0; i < sine.size(); i++)
+    {
+        sine[i] = std::sin(R[i]);
+        cos[i] = std::cos(R[i]);
+    }
+
+    // First derivative
+    std::vector<double> dsine(1000);
+    diff.GetDerivative(sine, dsine);
+    for(int i = 0; i < sine.size(); i++)
+    {
+        EXPECT_NEAR(cos[i], dsine[i], 1.e-6);
+    }
+
+    std::vector<double> d2sine(1000);
+    diff.GetSecondDerivative(sine, d2sine);
+
+    for(int i = 0; i < sine.size(); i++)
+    {
+        EXPECT_NEAR(-sine[i], d2sine[i], 2.e-5);
+    }
 }

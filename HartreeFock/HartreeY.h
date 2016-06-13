@@ -97,7 +97,9 @@ public:
     {   SpinorFunction ta = ApplyTo(a, b.Kappa(), reverse);
         if(ta.size())
         {   if(!integrator)
-                throw "HartreeYBase::GetMatrixElement(): no integrator found.";
+            {   *errstream << "HartreeYBase::GetMatrixElement(): no integrator found." << std::endl;
+                exit(1);
+            }
             return integrator->GetInnerProduct(ta, b);
         }
         else

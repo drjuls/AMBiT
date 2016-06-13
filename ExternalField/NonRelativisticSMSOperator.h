@@ -2,6 +2,7 @@
 #define NONRELATIVISTIC_SMS_OPERATOR_H
 
 #include "HartreeFock/HartreeY.h"
+#include "Universal/FornbergDifferentiator.h"
 
 /** Non-relativistic specific mass shift operator [Berengut et al. PRA 68, 022502 (2003)].
     \f[
@@ -14,15 +15,12 @@
                = - p_{ba}
     \f]
     Multipolarity K == 1.
-
-    One can also use it as a normal SpinorOperator by not using SetInverseMass or SetParameters, which
-    default to 1 and hence \f$ P^1 = p_{ab} \f$.
  */
 class NonRelativisticSMSOperator : public HartreeYDecorator<HartreeYBasicDecorator, NonRelativisticSMSOperator>
 {
 public:
     NonRelativisticSMSOperator(pHartreeY wrapped, pIntegrator integration_strategy = nullptr):
-        BaseDecorator(wrapped, integration_strategy), lambda(0.0), p_cd(0.0)
+        BaseDecorator(wrapped, integration_strategy), lambda(0.0), p_cd(0.0), interp(integrator->GetLattice())
     {   two_body_reverse_symmetry_exists = false;
     }
 
@@ -50,8 +48,9 @@ protected:
 protected:
     double lambda;
     double p_cd;
+    FornbergDifferentiator interp;
 };
 
-typedef std::shared_ptr<NonRelativisticSMSOperator> pNonRelativisticSMSOperator;
+typedef std::shared_ptr<NonRelativisticSMSOperator> pSMSOperator;
 
 #endif

@@ -1,9 +1,29 @@
 #include "MassShiftDecorator.h"
 #include "NonRelativisticSMSOperator.h"
+#include "RelativisticSMSOperator.h"
 #include "Include.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/Interpolator.h"
+
+MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, bool relativistic_version, bool include_NMS, bool include_SMS):
+    BaseDecorator(wrapped_hf), lambda(0.0), include_nms(include_NMS)
+{
+    include_relativistic_nms = include_nms && relativistic_version;
+
+    if(include_SMS)
+    {
+        pHartreeY zero = std::make_shared<HartreeYBase>();
+        if(relativistic_version)
+        {
+            double Zalpha = Z * physicalConstant->GetAlpha();
+            sms_operator = std::make_shared<RelativisticSMSOperator>(zero, Zalpha, integrator);
+        }
+        else
+            sms_operator = std::make_shared<NonRelativisticSMSOperator>(zero, integrator);
+
+        sms_operator->SetInverseMass(lambda);
+    }
+}
 
 void MassShiftDecorator::Alert()
 {
@@ -79,10 +99,6 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
     if(lambda == 0)
         return exchange;
 
-    pHartreeY zero(new HartreeYBase());
-    pNonRelativisticSMSOperator sms(new NonRelativisticSMSOperator(zero, integrator));
-    sms->SetInverseMass(lambda);
-
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
     if(core->GetState(OrbitalInfo(current_in_core)) == nullptr)
@@ -97,7 +113,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
         pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
-        int k = sms->SetOrbitals(p_s, core_orbital);
+        int k = sms_operator->SetOrbitals(p_s, core_orbital);
 
         // Sum over all k
         while(k != -1)
@@ -141,9 +157,9 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
                 coefficient = coefficient * ex;
             }
 
-            exchange += sms->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
+            exchange += sms_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
 
-            k = sms->NextK();
+            k = sms_operator->NextK();
         }
         cs++;
     }

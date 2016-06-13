@@ -27,7 +27,7 @@ Interpolator::Interpolator(const std::vector<double>& R_points, const std::vecto
     R(R_points), dR(dR_points), lattice(pLattice())
 {}
 
-void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue, double& yvalue, double& derivative, unsigned int order)
+void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue, double& yvalue, double& derivative, unsigned int order) const
 {
     // This routine uses Aitken method of interpolation.
     // (Lagrange interpolating polynomial)
@@ -54,9 +54,10 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     else
         start_point = left - mid + 1;
 
-    std::vector<double> f(order);
-    std::vector<double> df(order);
-    std::vector<double> x(order);
+    static std::vector<double> f, df, x;
+    f.resize(order);
+    df.resize(order);
+    x.resize(order);
 
     unsigned int k;
     for(k = 0; k < order; k++)
@@ -68,8 +69,9 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
             x[k] = R[start_point+k];
     }
 
-    std::vector<double> fnext(order);
-    std::vector<double> dfnext(order);
+    static std::vector<double> fnext, dfnext;
+    fnext.resize(order);
+    dfnext.resize(order);
 
     for(unsigned int j = 1; j < order; j++)
     {    
@@ -89,7 +91,7 @@ void Interpolator::Interpolate(const std::vector<double>& yvalues, double xvalue
     derivative = df[order - 1];
 }
 
-void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<double>& dydr, unsigned int order)
+void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<double>& dydr, unsigned int order) const
 {
     if(lattice)
     {   const double* R = lattice->R();
@@ -109,7 +111,7 @@ void Interpolator::GetDerivative(const std::vector<double>& y, std::vector<doubl
     }
 }
 
-double Interpolator::FindExtremum(const std::vector<double>& function, unsigned int zero_point, double& x)
+double Interpolator::FindExtremum(const std::vector<double>& function, unsigned int zero_point, double& x) const
 {
     // TODO: change order
     double f1 = function[zero_point-1];
