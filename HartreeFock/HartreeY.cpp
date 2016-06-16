@@ -16,10 +16,13 @@ bool HartreeY::SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunct
        (abs(c->TwoJ() - d->TwoJ()) <= 2 * K) &&
        (2 * K <= c->TwoJ() + d->TwoJ()))
     {
-        RadialFunction density = c->GetDensity(*d);
-        density.resize(integrator->GetLattice()->size());
+        if(!lightweight_mode)
+        {
+            RadialFunction density = c->GetDensity(*d);
+            density.resize(integrator->GetLattice()->size());
 
-        coulomb->GetPotential(K, density, potential);
+            coulomb->GetPotential(K, density, potential);
+        }
         return true;
     }
     else
@@ -34,7 +37,7 @@ int HartreeY::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d
     d = new_d;
 
     K = GetMinK();
-    if((K != -1) && (parent == nullptr))
+    if((K != -1) && (parent == nullptr) && !lightweight_mode)
         SetK(K);
 
     return K;
@@ -76,7 +79,7 @@ int HartreeY::GetMaxK() const
 
 void HartreeY::Alert()
 {
-    if(isZero())
+    if(isZero() || lightweight_mode)
         return;
 
     unsigned int i = potential.size();
@@ -100,7 +103,7 @@ void HartreeY::Alert()
 
 double HartreeY::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
-    if(!isZero() &&
+    if(!isZero() && !lightweight_mode &&
        ((K + a.L() + b.L())%2 == 0) &&
        (abs(a.TwoJ() - b.TwoJ()) <= 2 * K) &&
        (2 * K <= a.TwoJ() + b.TwoJ()))
@@ -115,7 +118,7 @@ SpinorFunction HartreeY::ApplyTo(const SpinorFunction& a, int kappa_b, bool reve
 {
     SpinorFunction ret(kappa_b);
 
-    if(!isZero() &&
+    if(!isZero() && !lightweight_mode &&
        ((K + a.L() + ret.L())%2 == 0) &&
        (abs(a.TwoJ() - ret.TwoJ()) <= 2 * K) &&
        (2 * K <= a.TwoJ() + ret.TwoJ()))

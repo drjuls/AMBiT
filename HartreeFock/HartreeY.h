@@ -30,8 +30,21 @@ class HartreeYBase : public std::enable_shared_from_this<HartreeYBase>
 {
     friend class HartreeYBasicDecorator;
 public:
-    HartreeYBase(pIntegrator integration_strategy = nullptr): K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), parent(nullptr) {}
+    HartreeYBase(pIntegrator integration_strategy = nullptr):
+        K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), parent(nullptr), lightweight_mode(false)
+    {}
     virtual ~HartreeYBase() {}
+
+    /** Whether this is "reversible" in the sense \f$ Y^k_{cd} = Y^k_{dc} \f$,
+        i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
+     */
+    virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
+
+    /** Set lightweight_mode, used for getting K values and --check-sizes.
+        Warning: It prevents long calculations, but if set then GetMatrixElement() and ApplyTo() will not function.
+     */
+    virtual void SetLightWeightMode(bool setting) { lightweight_mode = setting; }
+    bool GetLightWeightMode() const { return lightweight_mode; }
 
     /** Set k and SpinorFunctions c and d according to definition \f$ Y^k_{cd} \f$.
         PRE: new_c and new_d must point to valid objects.
@@ -44,11 +57,6 @@ public:
 
     /** Check whether the potential Y^k_{cd} is zero. (e.g. angular momentum conditions not satisfied). */
     virtual bool isZero() const { return true; }
-
-    /** Whether this is "reversible" in the sense \f$ Y^k_{cd} = Y^k_{dc} \f$,
-        i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
-     */
-    virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
 
     /** Call SetParameters(k, c, d) with k set to its smallest value with non-zero potential.
         PRE: new_c and new_d must point to valid objects.
@@ -129,6 +137,8 @@ protected:
     int K;
     pSpinorFunctionConst c;
     pSpinorFunctionConst d;
+
+    bool lightweight_mode;  //!< Prevents long calculations, only used for getting K
 };
 
 typedef std::shared_ptr<HartreeYBase> pHartreeY;
@@ -236,8 +246,14 @@ public:
     {   component->parent = nullptr;
     }
 
+    virtual void SetLightWeightMode(bool setting) override final
+    {   lightweight_mode = setting;
+        component->SetLightWeightMode(setting);
+    }
+
     virtual bool SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override
-    {   bool comp_ret = component->SetParameters(new_K, new_c, new_d);
+    {
+        bool comp_ret = component->SetParameters(new_K, new_c, new_d);
         bool ret = SetLocalParameters(new_K, new_c, new_d);
         return comp_ret || ret;
     }
@@ -288,7 +304,7 @@ public:
     {
         c = new_c;
         d = new_d;
-        int myKmin = GetMinK();
+        int myKmin = GetLocalMinK();
         int belowKmin = component->SetOrbitals(new_c, new_d);
 
         if(myKmin == -1)

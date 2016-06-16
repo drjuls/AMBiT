@@ -6,10 +6,15 @@ bool NonRelativisticSMSOperator::SetLocalParameters(int new_K, pSpinorFunctionCo
     c = new_c;
     d = new_d;
 
-    if(K == 1)
+    if(K == 1 && lambda)
     {
-        SpinorFunction td = ApplyOperator(*new_d, new_c->Kappa());
-        p_cd = integrator->GetInnerProduct(td, *new_c);
+        if(!lightweight_mode)
+        {
+            SpinorFunction td = ApplyOperator(*new_d, new_c->Kappa());
+            p_cd = integrator->GetInnerProduct(td, *new_c) * (-lambda);
+        }
+        else
+            p_cd = 1.0;
     }
     else
     {   p_cd = 0.0;
@@ -20,7 +25,7 @@ bool NonRelativisticSMSOperator::SetLocalParameters(int new_K, pSpinorFunctionCo
 
 bool NonRelativisticSMSOperator::isZeroLocal() const
 {
-    return (K != 1 || p_cd * lambda == 0);
+    return (K != 1 || p_cd == 0);
 }
 
 int NonRelativisticSMSOperator::GetLocalMinK() const
@@ -54,9 +59,9 @@ double NonRelativisticSMSOperator::GetMatrixElement(const Orbital& b, const Orbi
 
 SpinorFunction NonRelativisticSMSOperator::ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
 {
-    if(K == 1 && p_cd && lambda)
+    if(K == 1 && p_cd && !lightweight_mode)
     {
-        SpinorFunction ret = ApplyOperator(a, kappa_b) * lambda * p_cd;
+        SpinorFunction ret = ApplyOperator(a, kappa_b) * p_cd;
         if(reverse)
             ret = ret * (-1.0);
 

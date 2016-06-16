@@ -157,7 +157,7 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
                 coefficient = coefficient * ex;
             }
 
-            exchange += sms_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
+            exchange -= sms_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
 
             k = sms_operator->NextK();
         }
