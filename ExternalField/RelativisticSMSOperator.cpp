@@ -85,7 +85,7 @@ SpinorFunction RelativisticSMSOperator::ApplyOperator(const SpinorFunction& a, i
         r.dgdr[i] = zeta_ga/R[i] * (a.dfdr[i] - a.f[i]/R[i]);
     }
 
-    r *= Zalpha;
+    r *= (0.5 * Zalpha);
 
     return (p + r);
 }

@@ -43,7 +43,7 @@ protected:
     virtual int GetLocalMaxK() const override;
 
     /** Returns \f$ \hat p f_a \f$. */
-    SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const;
+    virtual SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const;
 
 protected:
     double lambda;

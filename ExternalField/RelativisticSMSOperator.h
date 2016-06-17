@@ -9,7 +9,7 @@
     \f]
     where
     \f[
-        p^{(r)} = \vec{p} - \frac{\alpha Z}{r} \left( \vec{\alpha} + (\vec{\alpha}\cdot\hat{r})\hat{r} \right)
+        p^{(r)} = \vec{p} - \frac{\alpha Z}{2r} \left( \vec{\alpha} + (\vec{\alpha}\cdot\hat{r})\hat{r} \right)
     \f]
     Multipolarity K == 1.
  */
@@ -25,7 +25,8 @@ public:
 
 protected:
     /** Returns \f$ p^{(r)} \psi_a \f$. */
-    SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const;
+    virtual SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const override;
+
     double Zalpha;
 };
 
