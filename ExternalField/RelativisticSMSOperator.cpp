@@ -61,31 +61,34 @@ SpinorFunction RelativisticSMSOperator::ApplyOperator(const SpinorFunction& a, i
         p.dgdr[i] += eta_ga/R[i] * (a.dgdr[i] - a.g[i]/R[i]);
     }
 
-    // Relativistic part
-    auto zeta = [](int kappa_i, int kappa_j)
+    if(include_rel)
     {
-        if(kappa_i == -kappa_j)
-            return 2 * kappa_j + 1;
-        else if(kappa_i == kappa_j - 1)
-            return 2;
-        else
-            return 0;
-    };
+        // Relativistic part
+        auto zeta = [](int kappa_i, int kappa_j)
+        {
+            if(kappa_i == -kappa_j)
+                return 2 * kappa_j + 1;
+            else if(kappa_i == kappa_j - 1)
+                return 2;
+            else
+                return 0;
+        };
 
-    double zeta_fa = zeta(kappa_b, a.Kappa()) + 1;
-    double zeta_ga = zeta(-kappa_b, -a.Kappa()) + 1;
+        double zeta_fa = zeta(kappa_b, a.Kappa()) + 1;
+        double zeta_ga = zeta(-kappa_b, -a.Kappa()) + 1;
 
-    SpinorFunction r(kappa_b, a.size());
+        SpinorFunction r(kappa_b, a.size());
 
-    for(i = 0; i < a.size(); i++)
-    {
-        r.f[i] = - zeta_fa/R[i] * a.g[i];
-        r.dfdr[i] = - zeta_fa/R[i] * (a.dgdr[i] - a.g[i]/R[i]);
-        r.g[i] = zeta_ga/R[i] * a.f[i];
-        r.dgdr[i] = zeta_ga/R[i] * (a.dfdr[i] - a.f[i]/R[i]);
+        for(unsigned int i = 0; i < a.size(); i++)
+        {
+            r.f[i] = - zeta_fa/R[i] * a.g[i];
+            r.dfdr[i] = - zeta_fa/R[i] * (a.dgdr[i] - a.g[i]/R[i]);
+            r.g[i] = zeta_ga/R[i] * a.f[i];
+            r.dgdr[i] = zeta_ga/R[i] * (a.dfdr[i] - a.f[i]/R[i]);
+        }
+
+        p += r * (0.5 * Zalpha);
     }
 
-    r *= (0.5 * Zalpha);
-
-    return (p + r);
+    return p;
 }

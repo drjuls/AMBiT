@@ -16,8 +16,8 @@
 class RelativisticSMSOperator : public HartreeYDecorator<NonRelativisticSMSOperator, RelativisticSMSOperator>
 {
 public:
-    RelativisticSMSOperator(pHartreeY wrapped, double Zalpha, pIntegrator integration_strategy = nullptr):
-        BaseDecorator(wrapped, integration_strategy), Zalpha(Zalpha)
+    RelativisticSMSOperator(pHartreeY wrapped, double Zalpha, bool include_rel = true, pIntegrator integration_strategy = nullptr):
+        BaseDecorator(wrapped, integration_strategy), Zalpha(Zalpha), include_rel(include_rel)
     {}
 
     /** < b | t | a > for an operator t. */
@@ -27,6 +27,7 @@ protected:
     /** Returns \f$ p^{(r)} \psi_a \f$. */
     virtual SpinorFunction ApplyOperator(const SpinorFunction& a, int kappa_b) const override;
 
+    bool include_rel;
     double Zalpha;
 };
 

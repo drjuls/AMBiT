@@ -57,4 +57,6 @@ protected:
     Eigen::MatrixXd second_derivative;
 };
 
+typedef std::shared_ptr<FornbergDifferentiator> pFornbergDifferentiator;
+
 #endif

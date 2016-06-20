@@ -3,6 +3,7 @@
 
 #include "HartreeFock/HFOperator.h"
 #include "NonRelativisticSMSOperator.h"
+#include "Universal/FornbergDifferentiator.h"
 
 /** Add non-relativistic specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
     \f{eqnarray*}{
@@ -18,12 +19,14 @@
 class MassShiftDecorator : public HFOperatorDecorator<HFBasicDecorator, MassShiftDecorator>
 {
 public:
-    MassShiftDecorator(pHFOperator wrapped_hf, bool relativistic_version = false, bool include_NMS = false, bool include_SMS = true);
+    MassShiftDecorator(pHFOperator wrapped_hf, bool include_sms = true, bool include_nms = false, bool nonrel = false, bool only_rel_nms = false, bool include_lower_sms = true);
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass)
-    {   lambda = InverseNuclearMass;
-        sms_operator->SetInverseMass(InverseNuclearMass);
+    {
+        lambda = InverseNuclearMass;
+        if(sms_operator)
+            sms_operator->SetInverseMass(InverseNuclearMass);
     }
 
     double GetInverseMass() const { return lambda; }
@@ -49,9 +52,11 @@ protected:
 
 protected:
     double lambda;
-    bool include_nms;
-    bool include_relativistic_nms;
+    bool do_rel_nms;
+    bool do_nonrel_nms;
+
     pSMSOperator sms_operator;
+    pFornbergDifferentiator differentiator;
 };
 
 typedef std::shared_ptr<MassShiftDecorator> pMassShiftDecorator;

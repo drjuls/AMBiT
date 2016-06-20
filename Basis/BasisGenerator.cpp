@@ -91,25 +91,34 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     double NuclearInverseMass = user_input("NuclearInverseMass", 0.0);
     if(NuclearInverseMass)
     {
-        bool include_nms = user_input.search("--include-nms");
-        bool no_sms = user_input.search("--no-sms");
-        bool relativistic = user_input.search("--relativistic-mass-shift");
+        bool do_nms = user_input.search("HF/--nms");
+        bool do_sms = user_input.search("HF/--sms");
+        bool nonrel_ms = user_input.search("HF/--nonrelativistic-mass-shift");
+        bool relativistic_nms = user_input.search("HF/--relativistic-nms");
+        bool lower_sms = user_input.search("HF/--include-lower-sms");
 
-        pMassShiftDecorator sms_op = std::make_shared<MassShiftDecorator>(hf, relativistic, include_nms, !no_sms);
+        // Default: do specific mass shift
+        if(!do_nms && !do_sms && !relativistic_nms)
+            do_sms = true;
+
+        pMassShiftDecorator sms_op = std::make_shared<MassShiftDecorator>(hf, do_sms, do_nms || relativistic_nms, nonrel_ms, relativistic_nms, lower_sms);
+
         sms_op->SetInverseMass(NuclearInverseMass);
         sms_op->SetCore(open_core);
         hf = sms_op;
 
-        if(!no_sms)
+        if(do_sms)
         {
             pSMSOperator Ysms;
-            if(relativistic)
+            if(nonrel_ms && !lower_sms)
             {
-                double Zalpha = Z * physical_constant->GetAlpha();
-                Ysms = std::make_shared<RelativisticSMSOperator>(hartreeY, Zalpha);
+                Ysms = std::make_shared<NonRelativisticSMSOperator>(hartreeY);
             }
             else
-                Ysms = std::make_shared<NonRelativisticSMSOperator>(hartreeY);
+            {
+                double Zalpha = Z * physical_constant->GetAlpha();
+                Ysms = std::make_shared<RelativisticSMSOperator>(hartreeY, Zalpha, !nonrel_ms);
+            }
 
             Ysms->SetInverseMass(NuclearInverseMass);
             hartreeY = Ysms;
