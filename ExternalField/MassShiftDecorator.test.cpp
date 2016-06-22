@@ -70,7 +70,7 @@ TEST(MassShiftDecoratorTester, SrIISlow)
     HartreeFocker HF_Solver(ode_solver);
 
     pHFOperator hf(new HFOperator(Z, core, physical_constant, integrator, coulomb));
-    pMassShiftDecorator t(new MassShiftDecorator(hf));
+    pMassShiftDecorator t(new MassShiftDecorator(hf, true, false, true, false, false));
 
     HF_Solver.StartCore(core, hf);
     HF_Solver.SolveCore(core, t);

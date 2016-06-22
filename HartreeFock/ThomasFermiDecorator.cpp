@@ -1,7 +1,6 @@
 #include "ThomasFermiDecorator.h"
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/Interpolator.h"
 
 void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
 {
@@ -37,8 +36,7 @@ void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
             directPotential.f[i] = mmax(directPotential.f[i], C/R[i]);
     }
 
-    Interpolator I(lattice);
-    I.GetDerivative(directPotential.f, directPotential.dfdr, 6);
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 RadialFunction ThomasFermiDecorator::GetDirectPotential() const
@@ -125,9 +123,8 @@ SpinorFunction ThomasFermiDecorator::ApplyTo(const SpinorFunction& a) const
 
     std::vector<double> d2fdr2(a.size());
     std::vector<double> d2gdr2(a.size());
-    Interpolator I(lattice);
-    I.GetDerivative(a.dfdr, d2fdr2, 6);
-    I.GetDerivative(a.dgdr, d2gdr2, 6);
+    differentiator->GetDerivative(a.dfdr, d2fdr2);
+    differentiator->GetDerivative(a.dgdr, d2gdr2);
 
     for(unsigned int i = 0; i < ta.size(); i++)
     {

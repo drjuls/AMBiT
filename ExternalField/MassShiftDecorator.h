@@ -3,7 +3,6 @@
 
 #include "HartreeFock/HFOperator.h"
 #include "NonRelativisticSMSOperator.h"
-#include "Universal/FornbergDifferentiator.h"
 
 /** Add non-relativistic specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
     \f{eqnarray*}{
@@ -56,7 +55,6 @@ protected:
     bool do_nonrel_nms;
 
     pSMSOperator sms_operator;
-    pFornbergDifferentiator differentiator;
 };
 
 typedef std::shared_ptr<MassShiftDecorator> pMassShiftDecorator;

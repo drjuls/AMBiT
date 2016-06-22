@@ -26,11 +26,6 @@ MassShiftDecorator::MassShiftDecorator(pHFOperator wrapped_hf, bool include_sms,
 
         sms_operator->SetInverseMass(lambda);
     }
-
-    if(do_nonrel_nms || do_rel_nms)
-    {
-        differentiator = std::make_shared<FornbergDifferentiator>(lattice, 5, true);
-    }
 }
 
 void MassShiftDecorator::Alert()

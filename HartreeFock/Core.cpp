@@ -1,7 +1,6 @@
 #include "Include.h"
 #include "Core.h"
 #include "Universal/MathConstant.h"
-#include "Universal/Interpolator.h"
 #include "ConfigurationParser.h"
 
 Core::Core(pLattice lat, const std::string& filling): OrbitalMap(lat)
