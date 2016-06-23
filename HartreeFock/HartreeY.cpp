@@ -16,10 +16,13 @@ bool HartreeY::SetParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunct
        (abs(c->TwoJ() - d->TwoJ()) <= 2 * K) &&
        (2 * K <= c->TwoJ() + d->TwoJ()))
     {
-        RadialFunction density = c->GetDensity(*d);
-        density.resize(integrator->GetLattice()->size());
+        if(!lightweight_mode)
+        {
+            RadialFunction density = c->GetDensity(*d);
+            density.resize(integrator->GetLattice()->size());
 
-        coulomb->GetPotential(K, density, potential);
+            coulomb->GetPotential(K, density, potential);
+        }
         return true;
     }
     else
@@ -32,14 +35,21 @@ int HartreeY::SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d
 {
     c = new_c;
     d = new_d;
-    K = abs(c->TwoJ() - d->TwoJ())/2;
-    if((K + c->L() + d->L())%2 == 1)
-        K++;
 
-    if(SetParameters(K, c, d))
-        return K;
-    else
-        return -1;
+    K = GetMinK();
+    if((K != -1) && (parent == nullptr) && !lightweight_mode)
+        SetK(K);
+
+    return K;
+}
+
+int HartreeY::GetMinK() const
+{
+    int Knew = abs(c->TwoJ() - d->TwoJ())/2;
+    if((Knew + c->L() + d->L())%2 == 1)
+        Knew++;
+
+    return Knew;
 }
 
 int HartreeY::NextK()
@@ -62,27 +72,14 @@ int HartreeY::GetMaxK() const
         maxK = (c->TwoJ() + d->TwoJ())/2;
         if((maxK + c->L() + d->L())%2 == 1)
             maxK--;
-        if(maxK < abs(c->TwoJ() - d->TwoJ())/2)
-            maxK = -1;
     }
 
     return maxK;
 }
 
-HartreeY* HartreeY::Clone() const
-{
-    HartreeY* copy = new HartreeY(integrator, coulomb);
-    copy->K = K;
-    copy->c = c;
-    copy->d = d;
-    copy->potential = potential;
-
-    return copy;
-}
-
 void HartreeY::Alert()
 {
-    if(isZero())
+    if(isZero() || lightweight_mode)
         return;
 
     unsigned int i = potential.size();
@@ -106,7 +103,7 @@ void HartreeY::Alert()
 
 double HartreeY::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
-    if(!isZero() &&
+    if(!isZero() && !lightweight_mode &&
        ((K + a.L() + b.L())%2 == 0) &&
        (abs(a.TwoJ() - b.TwoJ()) <= 2 * K) &&
        (2 * K <= a.TwoJ() + b.TwoJ()))
@@ -121,7 +118,7 @@ SpinorFunction HartreeY::ApplyTo(const SpinorFunction& a, int kappa_b, bool reve
 {
     SpinorFunction ret(kappa_b);
 
-    if(!isZero() &&
+    if(!isZero() && !lightweight_mode &&
        ((K + a.L() + ret.L())%2 == 0) &&
        (abs(a.TwoJ() - ret.TwoJ()) <= 2 * K) &&
        (2 * K <= a.TwoJ() + ret.TwoJ()))

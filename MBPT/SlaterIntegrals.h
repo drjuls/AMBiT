@@ -125,12 +125,6 @@ protected:
 
     ExpandedKeyType ReverseKey(KeyType num_states, KeyType key);
 
-    inline void swap(unsigned int& i1, unsigned int& i2) const
-    {   unsigned int temp = i1;
-        i1 = i2;
-        i2 = temp;
-    }
-
     template<typename U = MapType>
     typename boost::enable_if_c<std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
     {   TwoElectronIntegrals.set_empty_key(-1LL);

@@ -75,7 +75,7 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 protected:
-    virtual SpinorFunction CalculateExtraNonlocal(const SpinorFunction& s, bool include_derivative) const;
+    virtual SpinorFunction CalculateExtraNonlocal(const SpinorFunction& s) const;
 
 protected:
     std::map<int, pSigmaPotential> sigmas;  //!< Map kappa to Sigma

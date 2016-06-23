@@ -1,6 +1,5 @@
 #include "Include.h"
 #include "SpinorFunction.h"
-#include "Interpolator.h"
 
 SpinorFunction::SpinorFunction(int kappa, unsigned int size):
     kappa(kappa)

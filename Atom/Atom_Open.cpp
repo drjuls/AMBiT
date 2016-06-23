@@ -87,12 +87,12 @@ void Atom::MakeMBPTIntegrals()
 
     if(two_body_mbpt || check_sizes)
     {
-        unsigned int num_limits = user_input.vector_variable_size("MBPT/TwoElectronStorageLimits");
+        unsigned int num_limits = user_input.vector_variable_size("MBPT/TwoBody/StorageLimits");
         if(num_limits)
         {
             for(unsigned int i = 0; i < mmin(num_limits, 4); i++)
             {
-                int max_pqn = user_input("MBPT/TwoElectronStorageLimits", 0, i);
+                int max_pqn = user_input("MBPT/TwoBody/StorageLimits", 0, i);
 
                 if(max_pqn)
                 {   // Change orbital
@@ -200,7 +200,24 @@ void Atom::MakeIntegrals()
 
         // Add stored MBPT integrals
         if(one_body_mbpt)
-            hf_electron->Read(identifier + ".one.int");
+        {
+            unsigned int scaling_length = user_input.vector_variable_size("MBPT/OneBody/Scaling");
+            if(scaling_length)
+            {
+                std::map<int, double> scaling;
+                for(int i = 0; i < scaling_length-1; i+=2)
+                {
+                    int kappa = user_input("MBPT/OneBody/Scaling", 0, i);
+                    double lambda = user_input("MBPT/OneBody/Scaling", 0.0, i+1);
+
+                    scaling[kappa] = lambda;
+                }
+
+                hf_electron->Read(identifier + ".one.int", scaling);
+            }
+            else
+                hf_electron->Read(identifier + ".one.int");
+        }
         if(two_body_mbpt)
             two_body_integrals->Read(identifier + ".two.int");
 

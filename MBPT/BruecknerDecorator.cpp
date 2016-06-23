@@ -1,5 +1,4 @@
 #include "BruecknerDecorator.h"
-#include "Universal/Interpolator.h"
 
 BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy)
@@ -96,7 +95,7 @@ void BruecknerDecorator::Alert()
 void BruecknerDecorator::SetODEParameters(const Orbital& approximation)
 {
     HFOperatorDecorator::SetODEParameters(approximation);
-    currentExchangePotential = CalculateExtraNonlocal(approximation, true);
+    currentExchangePotential = CalculateExtraNonlocal(approximation);
 }
 
 /** Get exchange (nonlocal) potential. */
@@ -107,7 +106,7 @@ SpinorFunction BruecknerDecorator::GetExchange(pOrbitalConst approximation) cons
     if(approximation == NULL)
         ret += currentExchangePotential;
     else
-        ret += CalculateExtraNonlocal(*approximation, true);
+        ret += CalculateExtraNonlocal(*approximation);
 
     return ret;
 }
@@ -148,12 +147,12 @@ void BruecknerDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorF
 SpinorFunction BruecknerDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
-    ta -= CalculateExtraNonlocal(a, false);
+    ta -= CalculateExtraNonlocal(a);
 
     return ta;
 }
 
-SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& s, bool include_derivative) const
+SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& s) const
 {
     SpinorFunction ret(s.Kappa());
 
@@ -172,12 +171,8 @@ SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& 
         double scaling = GetSigmaScaling(s.Kappa());
         ret *= (-scaling);  // Remember we are storing HF potential -V (that is, V > 0)
 
-        if(include_derivative)
-        {
-            Interpolator interp(lattice);
-            interp.GetDerivative(ret.f, ret.dfdr, 6);
-            interp.GetDerivative(ret.g, ret.dgdr, 6);
-        }
+        differentiator->GetDerivative(ret.f, ret.dfdr);
+        differentiator->GetDerivative(ret.g, ret.dgdr);
     }
 
     return ret;

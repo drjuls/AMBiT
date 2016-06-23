@@ -6,6 +6,7 @@
 #include "Core.h"
 #include "CoulombOperator.h"
 #include "Universal/PhysicalConstant.h"
+#include "Universal/FornbergDifferentiator.h"
 
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     \f[
@@ -20,7 +21,6 @@ class HFOperator : public SpinorOperator, public SpinorODE
 {
 public:
     HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb);
-    HFOperator(const HFOperator& other);
     virtual ~HFOperator();
 
 protected:
@@ -37,6 +37,7 @@ public:
     virtual double GetCharge() const { return charge; } //!< Get ion charge.
 
     virtual pPhysicalConstant GetPhysicalConstant() const { return physicalConstant; } //!< Get physical constants.
+    virtual pFornbergDifferentiator GetDifferentiator() const { return differentiator; }
 
     /** Deep copy of the HFOperator object, particularly including wrapped objects (but not the core or physical constants). */
     virtual std::shared_ptr<HFOperator> Clone() const { return std::shared_ptr<HFOperator>(new HFOperator(Z, *this)); }
@@ -135,6 +136,7 @@ protected:
     pCoreConst core;
     pCoulombOperator coulombSolver;
     pPhysicalConstant physicalConstant;
+    pFornbergDifferentiator differentiator;
 
     RadialFunction directPotential;
     SpinorFunction currentExchangePotential;
@@ -161,6 +163,7 @@ public:
 
         core = decorated_object->GetCore();
         charge = Z - double(core->NumElectrons());
+        differentiator = wrapped->GetDifferentiator();
         IncludeExchange(wrapped->IncludeExchange());
     }
     HFBasicDecorator(const HFBasicDecorator& other):

@@ -1,5 +1,7 @@
 cxxobjects = BreitHFDecorator.o BreitZero.o EJOperator.o Hyperfine.o \
-             RadiativePotential.o RPAOrbital.o RPASolver.o Transitions.o
+             NormalMassShiftDecorator.o RadiativePotential.o \
+             RPAOrbital.o RPASolver.o SpecificMassShiftDecorator.o \
+             Transitions.o TwoBodySMSOperator.o
 cobjects =
 fobjects =
 

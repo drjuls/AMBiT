@@ -1,6 +1,5 @@
 #include "RadiativePotential.h"
 #include "Include.h"
-#include "Universal/Interpolator.h"
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_sf_expint.h>
@@ -127,8 +126,7 @@ void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 void UehlingDecorator::GenerateUehling(const RadialFunction& density)
@@ -215,8 +213,7 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
@@ -385,8 +382,7 @@ void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(magnetic.f, magnetic.dfdr, 6);
+    differentiator->GetDerivative(magnetic.f, magnetic.dfdr);
 }
 
 void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density)
@@ -500,8 +496,7 @@ void MagneticSelfEnergyDecorator::GenerateMagnetic(const RadialFunction& density
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(magnetic.f, magnetic.dfdr, 6);
+    differentiator->GetDerivative(magnetic.f, magnetic.dfdr);
 }
 
 ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term, pIntegrator integration_strategy):
@@ -675,8 +670,7 @@ void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
@@ -774,8 +768,7 @@ void ElectricSelfEnergyDecorator::GenerateEhigh(const RadialFunction& density)
                    << cumulative_error << " out of " << V_integrated << std::endl;
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(directPotential.f, directPotential.dfdr, 6);
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 /** Generate low-frequency electric part of self-energy with nuclear_rms_radius (fm). */
@@ -843,8 +836,7 @@ void ElectricSelfEnergyDecorator::GenerateElow(const RadialFunction& density)
     Elow.resize(mmin(i+1, lattice->size()));
 
     // Get derivative
-    Interpolator interp(lattice);
-    interp.GetDerivative(Elow.f, Elow.dfdr, 6);
+    differentiator->GetDerivative(Elow.f, Elow.dfdr);
 
     directPotential += Elow * BfitSP;
     potDWave += Elow * BfitD;

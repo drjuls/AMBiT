@@ -80,7 +80,8 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
         // Sum over all k
-        for(unsigned int k = abs(core_orbital->TwoJ() - a.TwoJ())/2; k <= (core_orbital->TwoJ() + a.TwoJ())/2; k++)
+        int k = breit_operator->SetOrbitals(core_orbital, p_a);
+        while(k != -1)
         {
             double coefficient = -1./(2. * abs(a.Kappa()));
             coefficient *= MathConstant::Instance()->minus_one_to_the_power((a.TwoJ() - core_orbital->TwoJ())/2 + k);
@@ -121,8 +122,9 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
                 coefficient = coefficient * ex;
             }
 
-            breit_operator->SetParameters(k, core_orbital, p_a);
             value += breit_operator->GetMatrixElement(b, *core_orbital) * coefficient;
+
+            k = breit_operator->NextK();
         }
 
         cs++;
@@ -161,7 +163,8 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
         // Sum over all k
-        for(unsigned int k = abs(core_orbital->TwoJ() - s.TwoJ())/2; k <= (core_orbital->TwoJ() + s.TwoJ())/2; k++)
+        int k = breit_operator->SetOrbitals(core_orbital, p_s);
+        while(k != -1)
         {
             double coefficient = 1./(2. * abs(s.Kappa()));
             coefficient *= MathConstant::Instance()->minus_one_to_the_power((s.TwoJ() - core_orbital->TwoJ())/2 + k);
@@ -202,8 +205,9 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
                 coefficient = coefficient * ex;
             }
 
-            breit_operator->SetParameters(k, core_orbital, p_s);
             exchange += breit_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
+
+            k = breit_operator->NextK();
         }
 
         cs++;

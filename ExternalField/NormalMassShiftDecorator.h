@@ -1,29 +1,27 @@
-#ifndef BREIT_HF_DECORATOR_H
-#define BREIT_HF_DECORATOR_H
+#ifndef NORMAL_MASS_SHIFT_DECORATOR
+#define NORMAL_MASS_SHIFT_DECORATOR
 
 #include "HartreeFock/HFOperator.h"
-#include "BreitZero.h"
 
-/** As defined by Johnson
-        \f$ (B_HF)_{ij} = Sum_b \left( b_{ibjb} - b_{ibbj} \right) \f$,
-    where \f$ b_{ijkl} \f$ is the Breit operator.
-    The direct part \f$ b_{ibjb} \f$ is zero, so only the exchange part contributes.
+/** Add normal mass shift to exchange part of operator.
+    The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
+    Typical values of inverse mass (1/M) are of order 0.00001 or even smaller.
  */
-class BreitHFDecorator : public HFOperatorDecorator<HFBasicDecorator, BreitHFDecorator>
+class NormalMassShiftDecorator : public HFOperatorDecorator<HFBasicDecorator, NormalMassShiftDecorator>
 {
 public:
-    BreitHFDecorator(pHFOperator wrapped_hf, pHartreeY breit_operator):
-        BaseDecorator(wrapped_hf), breit_operator(breit_operator)
-    {}
-    BreitHFDecorator(const BreitHFDecorator& other):
-        BaseDecorator(other), breit_operator(other.breit_operator)
-    {}
+    NormalMassShiftDecorator(pHFOperator wrapped_hf, bool only_rel_nms = false, bool nonrel = false);
 
+    /** Set the inverse nuclear mass: 1/M. */
+    void SetInverseMass(double InverseNuclearMass) { lambda = InverseNuclearMass; }
+    double GetInverseMass() const { return lambda; }
+
+public:
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const Orbital& approximation) override;
-
+    
     /** Get exchange (nonlocal) potential. */
     virtual SpinorFunction GetExchange(pOrbitalConst approximation) const override;
 
@@ -32,12 +30,18 @@ public:
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
 
 public:
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 protected:
     virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const;
-    pHartreeY breit_operator;
+
+protected:
+    double lambda;
+    bool do_rel_nms;
+    bool do_nonrel_nms;
 };
+
+typedef std::shared_ptr<NormalMassShiftDecorator> pNormalMassShiftDecorator;
+typedef std::shared_ptr<const NormalMassShiftDecorator> pNormalMassShiftDecoratorConst;
 
 #endif

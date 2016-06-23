@@ -124,6 +124,13 @@ public:
 
     /** Read integrals, adding to existing keys or creating new ones. */
     virtual void Read(const std::string& filename);
+
+    /** Read integrals and scale them, adding to existing keys or creating new ones.
+        Scaling should map from kappa -> scale value.
+     */
+    template <class MapType>
+    void Read(const std::string& filename, const MapType& scaling);
+
     virtual void Write(const std::string& filename) const;
 
     /** Get the spinor operator. */
@@ -284,6 +291,54 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
         unsigned int new_key = GetKey(i1, i2);
+
+        auto it = integrals.find(new_key);
+        if(it == integrals.end())
+            integrals[new_key] = value;
+        else
+            it->second += value;
+    }
+
+    fclose(fp);
+}
+
+template <bool IsHermitianZeroOperator>
+template <class MapType>
+void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& filename, const MapType& scaling)
+{
+    FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+    {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
+        return;
+    }
+
+    OrbitalIndex old_state_index;
+    ReadOrbitalIndexes(old_state_index, fp);
+    unsigned int old_num_states = old_state_index.size();
+
+    unsigned int num_integrals;
+    unsigned int old_key;
+    double value;
+
+    fread(&num_integrals, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < num_integrals; i++)
+    {
+        fread(&old_key, sizeof(unsigned int), 1, fp);
+        fread(&value, sizeof(double), 1, fp);
+
+        unsigned int i1 = old_key/old_num_states;
+        unsigned int i2 = old_key - i1 * old_num_states;
+        unsigned int new_key = GetKey(i1, i2);
+
+        // Scale value
+        int kappa = orbitals->reverse_state_index.find(i1)->second.Kappa();
+        if(kappa == orbitals->reverse_state_index.find(i2)->second.Kappa())
+        {
+            auto it = scaling.find(kappa);
+            if(it != scaling.end())
+                value *= it->second;
+        }
 
         auto it = integrals.find(new_key);
         if(it == integrals.end())

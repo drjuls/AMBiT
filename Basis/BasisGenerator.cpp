@@ -4,8 +4,9 @@
 #include "HartreeFock/Integrator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/NucleusDecorator.h"
-#include "HartreeFock/MassShiftDecorator.h"
-#include "HartreeFock/NonRelativisticSMSOperator.h"
+#include "ExternalField/NormalMassShiftDecorator.h"
+#include "ExternalField/SpecificMassShiftDecorator.h"
+#include "ExternalField/TwoBodySMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
 
@@ -89,13 +90,48 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     // Add additional operators
     double NuclearInverseMass = user_input("NuclearInverseMass", 0.0);
     if(NuclearInverseMass)
-    {   pMassShiftDecorator sms_op(new MassShiftDecorator(hf));
-        sms_op->SetInverseMass(NuclearInverseMass);
-        sms_op->SetCore(open_core);
-        hf = sms_op;
+    {
+        bool do_nms = user_input.search("HF/--nms");
+        bool do_sms = user_input.search("HF/--sms");
+        bool nonrel_ms = user_input.search("HF/--nonrelativistic-mass-shift");
+        bool relativistic_nms = user_input.search("HF/--only-relativistic-nms");
+        bool lower_sms = user_input.search("HF/--include-lower-sms");
 
-        pHartreeY dressed(new NonRelativisticSMSOperator(hartreeY));
-        hartreeY = dressed;
+        // Default: do specific mass shift
+        if(!do_nms && !do_sms && !relativistic_nms)
+            do_sms = true;
+
+        if(do_nms)
+        {
+            pNormalMassShiftDecorator nms_op = std::make_shared<NormalMassShiftDecorator>(hf, relativistic_nms, nonrel_ms);
+            nms_op->SetInverseMass(NuclearInverseMass);
+            nms_op->SetCore(open_core);
+            hf = nms_op;
+        }
+
+        if(do_sms)
+        {
+            // HF decorator
+            pSpecificMassShiftDecorator sms_op = std::make_shared<SpecificMassShiftDecorator>(hf, nonrel_ms, lower_sms);
+            sms_op->SetInverseMass(NuclearInverseMass);
+            sms_op->SetCore(open_core);
+            hf = sms_op;
+
+            // HartreeY decorator
+            pSMSOperator Ysms;
+            if(nonrel_ms)
+            {
+                Ysms = std::make_shared<TwoBodySMSOperator>(hartreeY, lower_sms);
+            }
+            else
+            {
+                double Zalpha = Z * physical_constant->GetAlpha();
+                Ysms = std::make_shared<TwoBodySMSOperator>(hartreeY, Zalpha);
+            }
+
+            Ysms->SetInverseMass(NuclearInverseMass);
+            hartreeY = Ysms;
+        }
     }
 
     if(user_input.search("HF/--breit"))

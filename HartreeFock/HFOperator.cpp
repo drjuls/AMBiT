@@ -1,21 +1,14 @@
 #include "HFOperator.h"
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/Interpolator.h"
 #include "Universal/MathConstant.h"
 
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb) :
     SpinorOperator(0, integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
 {
     this->Z = Z;
+    differentiator = std::make_shared<FornbergDifferentiator>(lattice, 7, true);
     SetCore(hf_core);
-}
-
-HFOperator::HFOperator(const HFOperator& other):
-    SpinorOperator(0, other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
-{
-    Z = other.Z;
-    SetCore(other.GetCore());
 }
 
 HFOperator::HFOperator(double Z, const HFOperator& other):
@@ -23,6 +16,7 @@ HFOperator::HFOperator(double Z, const HFOperator& other):
 {
     this->Z = Z;
     charge = other.charge;
+    differentiator = other.differentiator;
     directPotential = other.directPotential;
     currentExchangePotential = other.currentExchangePotential;
     currentEnergy = other.currentEnergy;
@@ -324,9 +318,8 @@ SpinorFunction HFOperator::ApplyTo(const SpinorFunction& a) const
 
     std::vector<double> d2fdr2(a.size());
     std::vector<double> d2gdr2(a.size());
-    Interpolator I(lattice);
-    I.GetDerivative(a.dfdr, d2fdr2, 6);
-    I.GetDerivative(a.dgdr, d2gdr2, 6);
+    differentiator->GetDerivative(a.dfdr, d2fdr2);
+    differentiator->GetDerivative(a.dgdr, d2gdr2);
 
     for(unsigned int i = 0; i < ta.size(); i++)
     {

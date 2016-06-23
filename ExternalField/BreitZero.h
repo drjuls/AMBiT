@@ -5,33 +5,24 @@
 
 /** Reduced two-body operator for frequency-independent Breit interaction, following Johnson book p. 203.
  */
-class BreitZero : public HartreeYDecorator
+class BreitZero : public HartreeYDecorator<HartreeYBasicDecorator, BreitZero>
 {
 public:
     BreitZero(pHartreeY wrapped, pIntegrator integration_strategy, pCoulombOperator coulomb):
-        HartreeYDecorator(wrapped, integration_strategy), coulomb(coulomb)
+        BaseDecorator(wrapped, integration_strategy), coulomb(coulomb)
     {   two_body_reverse_symmetry_exists = false;
     }
 
-    virtual bool isZero() const override;
-
-    virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
-    virtual int NextK() override;
-    virtual int GetMaxK() const override;
-
-    /** Deep copy of the HartreeY object, including wrapped objects. */
-    virtual HartreeYDecorator* Clone() const override
-    {   pHartreeY wrapped_clone(component->Clone());
-        return new BreitZero(wrapped_clone, integrator, coulomb);
-    }
-
     /** < b | t | a > for an operator t. */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override;
+    virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse = false) const override;
 
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const override;
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const override;
 
 protected:
     virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
+    virtual bool isZeroLocal() const override;
+    virtual int GetLocalMinK() const override;
+    virtual int GetLocalMaxK() const override;
 
     /** P_{ik}(r) for current value of K. */
     SpinorFunction P(const SpinorFunction& k, int kappa_i) const;

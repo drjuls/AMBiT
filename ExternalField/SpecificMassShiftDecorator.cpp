@@ -1,25 +1,41 @@
-#include "MassShiftDecorator.h"
-#include "NonRelativisticSMSOperator.h"
+#include "SpecificMassShiftDecorator.h"
+#include "TwoBodySMSOperator.h"
 #include "Include.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Universal/Interpolator.h"
 
-void MassShiftDecorator::Alert()
+SpecificMassShiftDecorator::SpecificMassShiftDecorator(pHFOperator wrapped_hf, bool nonrel, bool nonrel_include_lower):
+    BaseDecorator(wrapped_hf), sms_operator(nullptr)
+{
+    pHartreeY zero = std::make_shared<HartreeYBase>();
+    if(nonrel)
+    {
+        sms_operator = std::make_shared<TwoBodySMSOperator>(zero, nonrel_include_lower, integrator);
+    }
+    else
+    {
+        double Zalpha = Z * physicalConstant->GetAlpha();
+        sms_operator = std::make_shared<TwoBodySMSOperator>(zero, Zalpha, integrator);
+    }
+
+    sms_operator->SetInverseMass(0.0);
+}
+
+void SpecificMassShiftDecorator::Alert()
 {
     if(currentExchangePotential.size() > lattice->size())
         currentExchangePotential.resize(lattice->size());
 }
 
 /** Set exchange (nonlocal) potential and energy for ODE routines. */
-void MassShiftDecorator::SetODEParameters(const Orbital& approximation)
+void SpecificMassShiftDecorator::SetODEParameters(const Orbital& approximation)
 {
     HFOperatorDecorator::SetODEParameters(approximation);
     currentExchangePotential = CalculateExtraExchange(approximation);
 }
 
 /** Get exchange (nonlocal) potential. */
-SpinorFunction MassShiftDecorator::GetExchange(pOrbitalConst approximation) const
+SpinorFunction SpecificMassShiftDecorator::GetExchange(pOrbitalConst approximation) const
 {
     SpinorFunction ret = wrapped->GetExchange(approximation);
 
@@ -31,7 +47,7 @@ SpinorFunction MassShiftDecorator::GetExchange(pOrbitalConst approximation) cons
     return ret;
 }
 
-void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
+void SpecificMassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
 {
     wrapped->GetODEFunction(latticepoint, fg, w);
 
@@ -41,7 +57,7 @@ void MassShiftDecorator::GetODEFunction(unsigned int latticepoint, const SpinorF
         w[1] -= alpha * currentExchangePotential.f[latticepoint];
     }
 }
-void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
+void SpecificMassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
 {
     wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
 
@@ -51,7 +67,7 @@ void MassShiftDecorator::GetODECoefficients(unsigned int latticepoint, const Spi
         w_const[1] -= alpha * currentExchangePotential.f[latticepoint];
     }
 }
-void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
+void SpecificMassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
 {
     wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
 
@@ -62,29 +78,30 @@ void MassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorF
     }
 }
 
-SpinorFunction MassShiftDecorator::ApplyTo(const SpinorFunction& a) const
+SpinorFunction SpecificMassShiftDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
     ta -= CalculateExtraExchange(a);
-    
+
     return ta;
 }
 
-SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& s) const
+SpinorFunction SpecificMassShiftDecorator::CalculateExtraExchange(const SpinorFunction& s) const
 {
     bool NON_REL_SCALING = true;
 
     SpinorFunction exchange(s.Kappa());
-    exchange.resize(s.size());
 
-    pHartreeY zero(new HartreeYBase());
-    pHartreeY sms(new NonRelativisticSMSOperator(zero, integrator));
+    if(sms_operator->GetInverseMass() == 0)
+        return exchange;
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
-    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
+    if(core->GetState(OrbitalInfo(current_in_core)) == nullptr)
         current_in_core = NULL;
-    
+
+    pSpinorFunctionConst p_s(s.shared_from_this());
+
     // Sum over all core states
     auto cs = core->begin();
     while(cs != core->end())
@@ -92,8 +109,10 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
         pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
 
+        int k = sms_operator->SetOrbitals(p_s, core_orbital);
+
         // Sum over all k
-        for(unsigned int k = abs((int)core_orbital->L() - (int)s.L()); k <= (core_orbital->L() + s.L()); k+=2)
+        while(k != -1)
         {
             double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), core_orbital->TwoJ(), k);
             coefficient = (2 * abs(core_orbital->Kappa())) * coefficient * coefficient;
@@ -130,21 +149,16 @@ SpinorFunction MassShiftDecorator::CalculateExtraExchange(const SpinorFunction& 
                     else if(k)
                         ex = (other_occupancy - 1.)/double(2 * (abs(core_orbital->Kappa())) - 1);
                 }
-                
+
                 coefficient = coefficient * ex;
             }
 
-            if(lambda && (k == 1))
-            {
-                SpinorFunction sms_core = sms->ApplyTo(*core_orbital, s.Kappa());
-                double sms_value = integrator->GetInnerProduct(s, sms_core);
+            exchange -= sms_operator->ApplyTo(*core_orbital, s.Kappa()) * coefficient;
 
-                exchange += sms_core * coefficient * lambda * sms_value;
-            }
-
+            k = sms_operator->NextK();
         }
         cs++;
     }
-    
+
     return exchange;
 }

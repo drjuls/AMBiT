@@ -35,10 +35,12 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     // on the assumption that i1 and i2 are smaller.
 
     unsigned int i1, i2, i3, i4;
-    int k, kmax;
+    int k;
     pOrbitalConst s1, s2, s3, s4;
 
     std::set<KeyType> found_keys;   // For check_size_only
+    if(check_size_only)
+        hartreeY_operator->SetLightWeightMode(true);
 
     // Get Y^k_{31}
     auto it_1 = orbital_map_1->begin();
@@ -59,23 +61,10 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
             s3 = it_3->second;
 
             // Limits on k
-            k = abs(s1->L() - s3->L());
-            if(abs(s1->TwoJ() - s3->TwoJ()) > 2 * k)
-                k += 2;
+            k = hartreeY_operator->SetOrbitals(s3, s1);
 
-            kmax = s1->L() + s3->L();
-            if(s1->TwoJ() + s3->TwoJ() <  2 * kmax)
-                kmax -= 2;
-
-            while(k <= kmax)
+            while(k != -1)
             {
-                // Get Pot31
-                if(!check_size_only)
-                {   hartreeY_operator->SetParameters(k, s3, s1);
-                    if(hartreeY_operator->isZero())
-                        break;
-                }
-
                 auto it_2 = orbital_map_2->begin();
                 while(it_2 != orbital_map_2->end())
                 {
@@ -90,9 +79,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
                         // Check max_pqn conditions and k conditions
                         if(((s2->L() + s4->L() + k)%2 == 0) &&
-                           (k >= abs(s2->L() - s4->L())) &&
                            (2 * k >= abs(s2->TwoJ() - s4->TwoJ())) &&
-                           (k <= s2->L() + s4->L()) &&
                            (2 * k <= s2->TwoJ() + s4->TwoJ()))
                         {
                             KeyType key = GetKey(k, i1, i2, i3, i4);
@@ -112,7 +99,8 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                     }
                     it_2++;
                 }
-                k+=2;
+
+                k = hartreeY_operator->NextK();
             }
             it_3++;
         }
@@ -120,7 +108,9 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     }
 
     if(check_size_only)
+    {   hartreeY_operator->SetLightWeightMode(false);
         return found_keys.size();
+    }
     else
         return TwoElectronIntegrals.size();
 }
@@ -133,15 +123,15 @@ auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned 
         // (i1 <= i3) && (i2 <= i4) && (i1 <= i2) && (if i1 == i2, then (i3 <= i4))
         // therefore (i1 <= i2 <= i4) and (i1 <= i3)
         if(i3 < i1)
-            swap(i3, i1);
+            std::swap(i3, i1);
         if(i4 < i2)
-            swap(i4, i2);
+            std::swap(i4, i2);
         if(i2 < i1)
-        {   swap(i2, i1);
-            swap(i3, i4);
+        {   std::swap(i2, i1);
+            std::swap(i3, i4);
         }
         if((i1 == i2) && (i4 < i3))
-            swap(i3, i4);
+            std::swap(i3, i4);
     }
     else
     {   // Ordering of indices:
@@ -151,21 +141,21 @@ auto SlaterIntegrals<MapType>::GetKey(unsigned int k, unsigned int i1, unsigned 
 
         // Assert one of i1, i3 is smallest
         if(mmin(i1, i3) > mmin(i2, i4))
-        {   swap(i1, i2);
-            swap(i3, i4);
+        {   std::swap(i1, i2);
+            std::swap(i3, i4);
         }
         // Assert i1 <= i3
         if(i1 > i3)
-        {   swap(i1, i3);
-            swap(i2, i4);
+        {   std::swap(i1, i3);
+            std::swap(i2, i4);
         }
 
         if((i1 == i2) && (i4 < i3))
-            swap(i3, i4);
+            std::swap(i3, i4);
         if((i1 == i3) && (i4 < i2))
-            swap(i2, i4);
+            std::swap(i2, i4);
         if((i1 == i4) && (i3 < i2))
-            swap(i2, i3);
+            std::swap(i2, i3);
     }
 
     KeyType key = k  * NumStates*NumStates*NumStates*NumStates +
@@ -193,16 +183,17 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     KeyType key = GetKey(k, i1, i2, i3, i4);
     double radial = 0.;
 
-    if(TwoElectronIntegrals.find(key) != TwoElectronIntegrals.end())
+    auto it = TwoElectronIntegrals.find(key);
+    if(it != TwoElectronIntegrals.end())
     {
-        radial = TwoElectronIntegrals.find(key)->second;
+        radial = it->second;
     }
     else if((s1.L() + s3.L() + k) == 0)
     {   // Only print error if requested integral has correct parity rules
         *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
-                   << "\n  key = " << key << "  num_states = " << NumStates 
                    << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
-                   << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
+                   << ", " << s3.Name() << " " << s4.Name() << "):  key = "
+                   << key << "  num_states = " << NumStates << "\n";
     }
 
     return radial;

@@ -28,6 +28,7 @@ void CoreMBPTCalculator::UpdateIntegrals()
     one_body->CalculateOneElectronIntegrals(core, excited);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, core);
+    two_body->CalculateTwoElectronIntegrals(core, core, excited, valence);
 }
 
 double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const
