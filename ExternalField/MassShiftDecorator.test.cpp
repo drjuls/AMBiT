@@ -1,4 +1,4 @@
-#include "MassShiftDecorator.h"
+#include "SpecificMassShiftDecorator.h"
 #include "gtest/gtest.h"
 #include "HartreeFock/Core.h"
 #include "Include.h"
@@ -38,7 +38,7 @@ TEST(MassShiftDecoratorTester, CaII)
     new_4s->SetEnergy(-0.4);
 
     // Construct operator, check nothing is broken with lambda = 0
-    pMassShiftDecorator t(new MassShiftDecorator(hf));
+    pSpecificMassShiftDecorator t(new SpecificMassShiftDecorator(hf));
     HF_Solver.CalculateExcitedState(new_4s, t);
 
     EXPECT_NEAR(new_4s->Energy(), -0.41663154, 1.e-6 * 0.41663154);
@@ -70,7 +70,7 @@ TEST(MassShiftDecoratorTester, SrIISlow)
     HartreeFocker HF_Solver(ode_solver);
 
     pHFOperator hf(new HFOperator(Z, core, physical_constant, integrator, coulomb));
-    pMassShiftDecorator t(new MassShiftDecorator(hf, true, false, true, false, false));
+    pSpecificMassShiftDecorator t(new SpecificMassShiftDecorator(hf, true, false));
 
     HF_Solver.StartCore(core, hf);
     HF_Solver.SolveCore(core, t);

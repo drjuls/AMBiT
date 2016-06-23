@@ -2,33 +2,30 @@
 #define MASS_SHIFT_DECORATOR
 
 #include "HartreeFock/HFOperator.h"
-#include "NonRelativisticSMSOperator.h"
+#include "TwoBodySMSOperator.h"
 
-/** Add non-relativistic specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
+/** Add specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
     \f{eqnarray*}{
         P &=& p_{an}p_{na} \quad \textrm{where} \\
         p_{ab} &=& \int f_a \left( \frac{d}{dr} - \frac{l_a}{r} \right) f_b dr . \delta_{l_a, l_b+1}
                    + \int f_a \left( \frac{d}{dr} + \frac{l_b}{r} \right) f_b dr . \delta_{l_a, l_b-1} \\
                &=& - p_{ba}
     \f}
-    \f$p_{ab}\f$ is calculated using NonRelativisticSMSOperator.
+    \f$p_{ab}\f$ is calculated using TwoBodySMSOperator.
     The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
     Typical values of inverse mass (1/M) are of order 0.001.
  */
-class MassShiftDecorator : public HFOperatorDecorator<HFBasicDecorator, MassShiftDecorator>
+class SpecificMassShiftDecorator : public HFOperatorDecorator<HFBasicDecorator, SpecificMassShiftDecorator>
 {
 public:
-    MassShiftDecorator(pHFOperator wrapped_hf, bool include_sms = true, bool include_nms = false, bool nonrel = false, bool only_rel_nms = false, bool include_lower_sms = true);
+    SpecificMassShiftDecorator(pHFOperator wrapped_hf, bool nonrel = false, bool nonrel_include_lower = true);
 
     /** Set the inverse nuclear mass: 1/M. */
     void SetInverseMass(double InverseNuclearMass)
-    {
-        lambda = InverseNuclearMass;
-        if(sms_operator)
-            sms_operator->SetInverseMass(InverseNuclearMass);
+    {   sms_operator->SetInverseMass(InverseNuclearMass);
     }
 
-    double GetInverseMass() const { return lambda; }
+    double GetInverseMass() const { return sms_operator->GetInverseMass(); }
 
 public:
     virtual void Alert() override;
@@ -50,14 +47,10 @@ protected:
     virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const;
 
 protected:
-    double lambda;
-    bool do_rel_nms;
-    bool do_nonrel_nms;
-
     pSMSOperator sms_operator;
 };
 
-typedef std::shared_ptr<MassShiftDecorator> pMassShiftDecorator;
-typedef std::shared_ptr<const MassShiftDecorator> pMassShiftDecoratorConst;
+typedef std::shared_ptr<SpecificMassShiftDecorator> pSpecificMassShiftDecorator;
+typedef std::shared_ptr<const SpecificMassShiftDecorator> pSpecificMassShiftDecoratorConst;
 
 #endif
