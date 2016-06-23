@@ -14,9 +14,18 @@ CoreMBPTCalculator::~CoreMBPTCalculator()
 
 unsigned int CoreMBPTCalculator::GetStorageSize()
 {
-    unsigned int total = two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited, true);
-    total += two_body->CalculateTwoElectronIntegrals(core, valence, excited, core, true);
-    total += one_body->CalculateOneElectronIntegrals(core, excited, true);
+    pOrbitalMap excited_valence = std::make_shared<OrbitalMap>(*excited);
+    excited_valence->AddStates(*valence);
+
+    unsigned int total = one_body->CalculateOneElectronIntegrals(core, excited_valence, true);
+    total += two_body->CalculateTwoElectronIntegrals(core, valence, excited_valence, excited_valence, true);
+    total += two_body->CalculateTwoElectronIntegrals(core, valence, excited_valence, core, true);
+
+    if(!two_body->ReverseSymmetryExists())
+    {
+        total += two_body->CalculateTwoElectronIntegrals(core, valence, core, excited_valence, true);
+        total += two_body->CalculateTwoElectronIntegrals(core, core, excited_valence, excited_valence, true);
+    }
 
     return total;
 }
@@ -26,9 +35,12 @@ void CoreMBPTCalculator::UpdateIntegrals()
     SetValenceEnergies();
 
     one_body->CalculateOneElectronIntegrals(core, excited);
+    one_body->CalculateOneElectronIntegrals(core, valence);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, core);
+    two_body->CalculateTwoElectronIntegrals(core, valence, core, excited);
     two_body->CalculateTwoElectronIntegrals(core, core, excited, valence);
+    two_body->CalculateTwoElectronIntegrals(core, core, valence, valence);
 }
 
 double CoreMBPTCalculator::GetOneElectronDiagrams(const OrbitalInfo& s1, const OrbitalInfo& s2) const

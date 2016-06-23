@@ -5,7 +5,7 @@
 
 template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
-    SlaterIntegralsInterface(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
+    SlaterIntegralsInterface(orbitals, two_body_reverse_symmetry_exists)
 {
     NumStates = orbitals->size();
     SetUpMap();
@@ -13,7 +13,7 @@ SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool tw
 
 template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op, bool two_body_reverse_symmetry_exists):
-SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
+    SlaterIntegralsInterface(orbitals, two_body_reverse_symmetry_exists), hartreeY_operator(hartreeY_op)
 {
     NumStates = orbitals->size();
     SetUpMap();
@@ -21,7 +21,7 @@ SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_rev
 
 template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, pHartreeY hartreeY_op):
-    SlaterIntegralsInterface(orbitals), hartreeY_operator(hartreeY_op), two_body_reverse_symmetry(hartreeY_op->ReverseSymmetryExists())
+    SlaterIntegralsInterface(orbitals, hartreeY_op->ReverseSymmetryExists()), hartreeY_operator(hartreeY_op)
 {
     NumStates = orbitals->size();
     SetUpMap();
@@ -50,7 +50,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
         s1 = it_1->second;
 
         auto it_3 = orbital_map_3->begin();
-        if(orbital_map_1 == orbital_map_3)
+        if(two_body_reverse_symmetry && orbital_map_1 == orbital_map_3)
         {   it_3 = it_1;
             i3 = i1;
         }

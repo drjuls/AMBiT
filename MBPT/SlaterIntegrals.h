@@ -19,7 +19,9 @@
 class SlaterIntegralsInterface
 {
 public:
-    SlaterIntegralsInterface(pOrbitalManagerConst orbitals): orbitals(orbitals) {}
+    SlaterIntegralsInterface(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
+        orbitals(orbitals), two_body_reverse_symmetry(two_body_reverse_symmetry_exists)
+    {}
     virtual ~SlaterIntegralsInterface() {}
 
     /** Calculate two-electron Slater integrals, \f$ R^k(12,34) \f$, and return number of integrals that will be stored.
@@ -39,6 +41,10 @@ public:
     /** Number of stored integrals. */
     virtual unsigned int size() const = 0;
 
+    /** Whether this is "reversible" in the sense \f$ R_k(12, 34) = R_k(14, 32) \f$.
+     */
+    virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry; }
+
     /** GetTwoElectronIntegral(k, 1, 2, 3, 4) = R_k(12, 34): 1->3, 2->4
         PRE: s1, s2, s3, and s4 are all in orbital manager and conform to a orbital type pattern that has been
              calculated using CalculateTwoElectronIntegrals.
@@ -56,6 +62,7 @@ public:
     virtual void Write(const std::string& filename) const = 0;
 
 protected:
+    bool two_body_reverse_symmetry;
     pOrbitalManagerConst orbitals;
 };
 
@@ -136,7 +143,6 @@ protected:
 
 protected:
     pHartreeY hartreeY_operator;
-    bool two_body_reverse_symmetry;
     KeyType NumStates;
 
     // TwoElectronIntegrals(k, i, j, l, m) = R_k(ij, lm): i->l, j->m
