@@ -48,6 +48,51 @@ void LocalPotentialDecorator::GetODEJacobian(unsigned int latticepoint, const Sp
     }
 }
 
+void LocalPotentialDecorator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
+{
+    RadialFunction V(wrapped->GetDirectPotential());
+    V += directPotential * scale;
+
+    const int start_point = 0;
+    const double alpha = physicalConstant->GetAlpha();
+
+    double correction = 0.;
+    if(s.size() >= numpoints)
+        correction = s.f[start_point];
+    else
+        s.resize(numpoints);
+
+    unsigned int i;
+    for(i=start_point; i<start_point+numpoints; i++)
+    {
+        if(s.Kappa() < 0)
+        {   s.f[i] = pow(lattice->R(i), -s.Kappa());
+            s.g[i] = alpha * s.f[i] * lattice->R(i) * V.f[i] / (2 * s.Kappa() - 1);
+            s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
+            s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
+        }
+        else
+        {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
+            s.f[i] = s.g[i] * lattice->R(i) * alpha * V.f[i] / (2 * s.Kappa() + 1);
+            s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
+            s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
+        }
+    }
+
+    // Determine an appropriate scaling to make the norm close to unit.
+    if(correction)
+        correction = correction/s.f[start_point];
+    else
+        correction = Z * Z;
+
+    for(i=start_point; i<start_point+numpoints; i++)
+    {   s.f[i] = s.f[i] * correction;
+        s.g[i] = s.g[i] * correction;
+        s.dfdr[i] = s.dfdr[i] * correction;
+        s.dgdr[i] = s.dgdr[i] * correction;
+    }
+}
+
 SpinorFunction LocalPotentialDecorator::ApplyTo(const SpinorFunction& a) const
 {
     SpinorFunction ta = wrapped->ApplyTo(a);
@@ -89,8 +134,8 @@ ImportedPotentialDecorator::ImportedPotentialDecorator(pHFOperator wrapped_hf, c
         interp.Interpolate(pot, R[i], directPotential.f[i], directPotential.dfdr[i], 6);
 }
 
-LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, double x_alpha, pIntegrator integration_strategy):
-    BaseDecorator(wrapped_hf, integration_strategy), Xalpha(x_alpha)
+LocalExchangeApproximation::LocalExchangeApproximation(pHFOperator wrapped_hf, pCoulombOperator coulomb, double x_alpha, pIntegrator integration_strategy):
+    BaseDecorator(wrapped_hf, integration_strategy), coulombSolver(coulomb), Xalpha(x_alpha)
 {}
 
 void LocalExchangeApproximation::SetCore(pCoreConst hf_core)

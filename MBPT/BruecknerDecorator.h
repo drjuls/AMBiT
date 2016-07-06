@@ -1,7 +1,7 @@
 #ifndef BRUECKNER_DECORATOR_H
 #define BRUECKNER_DECORATOR_H
 
-#include "HartreeFock/HFOperator.h"
+#include "HartreeFock/ExchangeDecorator.h"
 #include "SigmaPotential.h"
 #include "BruecknerSigmaCalculator.h"
 
@@ -11,15 +11,10 @@
 
     The sigma potential is non-local, so it is added with the exchange part.
  */
-class BruecknerDecorator : public HFOperatorDecorator<HFBasicDecorator, BruecknerDecorator>
+class BruecknerDecorator : public HFOperatorDecorator<ExchangeDecorator, BruecknerDecorator>
 {
 public:
     BruecknerDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = nullptr);
-    BruecknerDecorator(const BruecknerDecorator& other):
-        BaseDecorator(other), sigmas(other.sigmas), lambda(other.lambda),
-        use_fg(other.use_fg), use_gg(other.use_gg), matrix_stride(other.matrix_stride),
-        matrix_start(other.matrix_start), matrix_end(other.matrix_end)
-    {}
 
     /** Set parameters for new sigma matrices: matrix size = (start_i - end_i)/stride
         where start = lattice->R[start_i] etc.
@@ -58,24 +53,8 @@ public:
     /** Write all sigmas; filenames "identifier.[kappa].sigma". */
     void Write(const std::string& identifier) const;
 
-public:
-    virtual void Alert() override;
-
-    /** Set exchange (nonlocal) potential and energy for ODE routines. */
-    virtual void SetODEParameters(const Orbital& approximation) override;
-
-    /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pOrbitalConst approximation) const override;
-
-    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
-    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
-    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
-
-public:
-    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
-
 protected:
-    virtual SpinorFunction CalculateExtraNonlocal(const SpinorFunction& s) const;
+    virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const override;
 
 protected:
     std::map<int, pSigmaPotential> sigmas;  //!< Map kappa to Sigma

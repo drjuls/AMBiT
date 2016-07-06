@@ -1,4 +1,5 @@
-cxxobjects = ConfigurationParser.o Core.o CoulombOperator.o GreensMethodODE.o \
+cxxobjects = ConfigurationParser.o Core.o CoulombOperator.o ExchangeDecorator.o \
+             GreensMethodODE.o \
              HartreeFocker.o HartreeY.o HFOperator.o LocalPotentialDecorator.o \
              NucleusDecorator.o Integrator.o Orbital.o OrbitalInfo.o \
              OrbitalMap.o ODESolver.o SpinorODE.o ThomasFermiDecorator.o

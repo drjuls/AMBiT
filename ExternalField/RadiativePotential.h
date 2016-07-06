@@ -93,7 +93,9 @@ protected:
     double BfitD;   //!< Fitting function for Elow term for d-waves.
     double Ra;      //!< Cutoff radius for offmass term.
     bool integrate_offmass_term;    //!< Integrate offmass term in GenerateStepEhigh.
-    RadialFunction potDWave;
+
+    RadialFunction directPotential; //!< Potential for s and p waves
+    RadialFunction potDWave;        //!< Potential for d waves
 };
 
 typedef std::shared_ptr<UehlingDecorator> pUehlingDecorator;

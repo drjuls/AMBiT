@@ -4,14 +4,14 @@
 #include "HFOperator.h"
 
 /** Add an extra local potential to a HF operator.
-    Extra local potential should be stored in directPotential (inherited from HF operator) and
+    Extra local potential should be stored in directPotential and
     must be set by subclasses via SetCore() and/or SetODEParameters().
     Note sign is for normal electrostatic potential: V_nucleus(r) > 0.
  */
 class LocalPotentialDecorator : public HFOperatorDecorator<HFBasicDecorator, LocalPotentialDecorator>
 {
 public:
-    LocalPotentialDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = pIntegrator()):
+    LocalPotentialDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = nullptr):
         BaseDecorator(wrapped_hf, integration_strategy), scale(1.)
     {}
 
@@ -27,17 +27,14 @@ public:
     virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
     virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
     virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
-
-    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override
-    {   // HFOperator uses GetDirectPotential() which will use the correct potential.
-        HFOperator::EstimateOrbitalNearOrigin(numpoints, s);
-    }
+    virtual void EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const override;
 
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 protected:
     double scale;
+    RadialFunction directPotential; // Additional direct potential
 };
 
 /** Import a potential from a file.
@@ -49,8 +46,6 @@ class ImportedPotentialDecorator : public HFOperatorDecorator<LocalPotentialDeco
 {
 public:
     ImportedPotentialDecorator(pHFOperator wrapped_hf, const std::string& filename, pIntegrator integration_strategy = pIntegrator());
-    ImportedPotentialDecorator(const ImportedPotentialDecorator& other):
-        BaseDecorator(other) {}
 };
 
 typedef std::shared_ptr<ImportedPotentialDecorator> pImportedPotentialDecorator;
@@ -70,10 +65,7 @@ typedef std::shared_ptr<const ImportedPotentialDecorator> pImportedPotentialDeco
 class LocalExchangeApproximation : public HFOperatorDecorator<LocalPotentialDecorator, LocalExchangeApproximation>
 {
 public:
-    LocalExchangeApproximation(pHFOperator wrapped_hf, double Xalpha = 1.0, pIntegrator integration_strategy = pIntegrator());
-    LocalExchangeApproximation(const LocalExchangeApproximation& other):
-        BaseDecorator(other), Xalpha(other.Xalpha)
-    {}
+    LocalExchangeApproximation(pHFOperator wrapped_hf, pCoulombOperator coulomb, double Xalpha = 1.0, pIntegrator integration_strategy = nullptr);
 
     void SetXalpha(double x_alpha) { Xalpha = x_alpha; }
     double GetXalpha() const { return Xalpha; }
@@ -83,6 +75,7 @@ public:
 
 protected:
     double Xalpha;
+    pCoulombOperator coulombSolver;
 };
 
 typedef std::shared_ptr<LocalExchangeApproximation> pLocalExchangeApproximation;

@@ -84,75 +84,7 @@ void BruecknerDecorator::Write(const std::string& identifier) const
     }
 }
 
-void BruecknerDecorator::Alert()
-{
-    // Don't even try to change the size of the Sigma matrices.
-    if(currentExchangePotential.size() > lattice->size())
-        currentExchangePotential.resize(lattice->size());
-}
-
-/** Set exchange (nonlocal) potential and energy for ODE routines. */
-void BruecknerDecorator::SetODEParameters(const Orbital& approximation)
-{
-    HFOperatorDecorator::SetODEParameters(approximation);
-    currentExchangePotential = CalculateExtraNonlocal(approximation);
-}
-
-/** Get exchange (nonlocal) potential. */
-SpinorFunction BruecknerDecorator::GetExchange(pOrbitalConst approximation) const
-{
-    SpinorFunction ret = wrapped->GetExchange(approximation);
-
-    if(approximation == NULL)
-        ret += currentExchangePotential;
-    else
-        ret += CalculateExtraNonlocal(*approximation);
-
-    return ret;
-}
-
-void BruecknerDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
-{
-    wrapped->GetODEFunction(latticepoint, fg, w);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        w[0] += alpha * currentExchangePotential.g[latticepoint];
-        w[1] -= alpha * currentExchangePotential.f[latticepoint];
-    }
-}
-
-void BruecknerDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
-{
-    wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        w_const[0] += alpha * currentExchangePotential.g[latticepoint];
-        w_const[1] -= alpha * currentExchangePotential.f[latticepoint];
-    }
-}
-
-void BruecknerDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
-{
-    wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        dwdr[0] += alpha * currentExchangePotential.dgdr[latticepoint];
-        dwdr[1] -= alpha * currentExchangePotential.dfdr[latticepoint];
-    }
-}
-
-SpinorFunction BruecknerDecorator::ApplyTo(const SpinorFunction& a) const
-{
-    SpinorFunction ta = wrapped->ApplyTo(a);
-    ta -= CalculateExtraNonlocal(a);
-
-    return ta;
-}
-
-SpinorFunction BruecknerDecorator::CalculateExtraNonlocal(const SpinorFunction& s) const
+SpinorFunction BruecknerDecorator::CalculateExtraExchange(const SpinorFunction& s) const
 {
     SpinorFunction ret(s.Kappa());
 

@@ -132,7 +132,7 @@ TEST(HartreeFockerTester, AuContinuum)
     pHFOperator t(new HFOperator(Z, core, physical_constant, integrator, coulomb));
     HartreeFocker HF_Solver(ode_solver);
 
-    pNucleusDecorator nuc(new NucleusDecorator(t));
+    pNucleusDecorator nuc(new NucleusDecorator(t, coulomb));
     nuc->SetFermiParameters(6.5544);
     t = nuc;
 

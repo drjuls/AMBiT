@@ -66,8 +66,9 @@ void HartreeFocker::StartCore(pCore core, pHFOperator hf)
         return;
 
     // Wrap hf with local exchange approximation and Thomas-Fermi potential.
-    pHFOperator hf_local_exch(new LocalExchangeApproximation(hf));
-    pThomasFermiDecorator thomas_fermi(new ThomasFermiDecorator(hf_local_exch));
+    pCoulombOperator coulomb = std::make_shared<CoulombOperator>(hf->GetLattice(), odesolver);
+    pHFOperator hf_local_exch = std::make_shared<LocalExchangeApproximation>(hf, coulomb);
+    pThomasFermiDecorator thomas_fermi = std::make_shared<ThomasFermiDecorator>(hf_local_exch);
 
     thomas_fermi->SetCore(core);
 

@@ -924,58 +924,57 @@ void ElectricSelfEnergyDecorator::GetODEJacobian(unsigned int latticepoint, cons
 }
 void ElectricSelfEnergyDecorator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
 {
+    RadialFunction V(wrapped->GetDirectPotential());
+
     switch(s.L())
     {
         case 0:
         case 1:
-            // HFOperator uses GetDirectPotential() which will use the correct potential.
-            HFOperator::EstimateOrbitalNearOrigin(numpoints, s);
+            V += directPotential;
             break;
         case 2:
-        {
-            RadialFunction V(wrapped->GetDirectPotential());
             V += potDWave;
-
-            const int start_point = 0;
-            const double alpha = physicalConstant->GetAlpha();
-
-            double correction = 0.;
-            if(s.size() >= numpoints)
-                correction = s.f[start_point];
-            else
-                s.resize(numpoints);
-
-            unsigned int i;
-            for(i=start_point; i<start_point+numpoints; i++)
-            {   if(s.Kappa() < 0)
-            {   s.f[i] = pow(lattice->R(i), -s.Kappa());
-                s.g[i] = alpha * s.f[i] * lattice->R(i) * V.f[i] / (2 * s.Kappa() - 1);
-                s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
-                s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
-            }
-            else
-            {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
-                s.f[i] = s.g[i] * lattice->R(i) * alpha * V.f[i] / (2 * s.Kappa() + 1);
-                s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
-                s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
-            }
-            }
-
-            // Determine an appropriate scaling to make the norm close to unit.
-            if(correction)
-                correction = correction/s.f[start_point];
-            else
-                correction = Z * Z;
-
-            for(i=start_point; i<start_point+numpoints; i++)
-            {   s.f[i] = s.f[i] * correction;
-                s.g[i] = s.g[i] * correction;
-                s.dfdr[i] = s.dfdr[i] * correction;
-                s.dgdr[i] = s.dgdr[i] * correction;
-            }
-        }
+            break;
         default:
             break;
+    }
+
+    const int start_point = 0;
+    const double alpha = physicalConstant->GetAlpha();
+
+    double correction = 0.;
+    if(s.size() >= numpoints)
+        correction = s.f[start_point];
+    else
+        s.resize(numpoints);
+
+    unsigned int i;
+    for(i=start_point; i<start_point+numpoints; i++)
+    {   if(s.Kappa() < 0)
+    {   s.f[i] = pow(lattice->R(i), -s.Kappa());
+        s.g[i] = alpha * s.f[i] * lattice->R(i) * V.f[i] / (2 * s.Kappa() - 1);
+        s.dfdr[i] = - s.Kappa() * s.f[i] / lattice->R(i);
+        s.dgdr[i] = ( - s.Kappa() + 1.) * s.g[i] / lattice->R(i);
+    }
+    else
+    {   s.g[i] = alpha * pow(lattice->R(i), s.Kappa());
+        s.f[i] = s.g[i] * lattice->R(i) * alpha * V.f[i] / (2 * s.Kappa() + 1);
+        s.dgdr[i] = s.Kappa() * s.g[i] / lattice->R(i);
+        s.dfdr[i] = (s.Kappa() + 1.) * s.f[i] / lattice->R(i);
+    }
+    }
+
+    // Determine an appropriate scaling to make the norm close to unit.
+    if(correction)
+        correction = correction/s.f[start_point];
+    else
+        correction = Z * Z;
+
+    for(i=start_point; i<start_point+numpoints; i++)
+    {   s.f[i] = s.f[i] * correction;
+        s.g[i] = s.g[i] * correction;
+        s.dfdr[i] = s.dfdr[i] * correction;
+        s.dgdr[i] = s.dgdr[i] * correction;
     }
 }
 
