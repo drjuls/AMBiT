@@ -55,7 +55,7 @@ TEST(MassShiftDecoratorTester, SrIISlow)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     DebugOptions.LogHFIterations(true);
-    
+
     // SrII
     unsigned int Z = 38;
     int Charge = 2;
@@ -81,7 +81,7 @@ TEST(MassShiftDecoratorTester, SrIISlow)
 
     HF_Solver.CalculateExcitedState(new_5s, t);
     new_5s->CheckSize(lattice, 1.e-10);
-    
+
     // Test that gradient of SMS operator is correct (compared to old values)
     t->SetInverseMass(0.001);
     HF_Solver.SolveCore(core, t);

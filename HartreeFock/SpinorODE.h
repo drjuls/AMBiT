@@ -19,7 +19,6 @@ class SpinorODE : public LatticeObserver
 {
 public:
     SpinorODE(pLattice lattice);
-    SpinorODE(const SpinorODE& other);
     virtual ~SpinorODE() {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */

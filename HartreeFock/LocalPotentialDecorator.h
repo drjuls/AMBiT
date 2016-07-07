@@ -15,10 +15,6 @@ public:
         BaseDecorator(wrapped_hf, integration_strategy), scale(1.)
     {}
 
-    LocalPotentialDecorator(const LocalPotentialDecorator& other):
-        BaseDecorator(other), scale(other.scale)
-    {}
-
     void SetScale(double factor) { scale = factor; }
     double GetScale() const { return scale; }
 

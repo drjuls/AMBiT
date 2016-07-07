@@ -2,7 +2,7 @@
 #include "HartreeFock/ConfigurationParser.h"
 
 MBPTCalculator::MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals):
-    orbitals(pOrbitals), valence(pOrbitals->valence), fermi_orbitals(fermi_orbitals)
+    orbitals(pOrbitals), valence(pOrbitals->valence), fermi_orbitals(fermi_orbitals), delta(0.0)
 {
     SetValenceEnergies();
 }

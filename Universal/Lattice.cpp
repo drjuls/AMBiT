@@ -2,10 +2,6 @@
 #include "Lattice.h"
 #include <fstream>
 
-Lattice::Lattice(const Lattice& other):
-    r(other.dr), dr(other.dr), beta(other.beta), num_points(other.num_points), original_size(other.original_size), rmin(other.rmin), h(other.h), r_power(other.r_power)
-{}
-
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), num_points(numpoints), original_size(numpoints), rmin(r_min)
 {

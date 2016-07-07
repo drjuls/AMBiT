@@ -23,7 +23,6 @@ class Lattice
 {
 public:
     Lattice(unsigned int numpoints, double r_min, double r_max);
-    Lattice(const Lattice& other);
     Lattice(FILE* binary_infile);
     virtual ~Lattice() {}
 
@@ -123,6 +122,10 @@ public:
     LatticeObserver(pLattice lattice): lattice(lattice)
     {   lattice->Subscribe(this);
     }
+    /** Need to include non-default copy constructor: the new LatticeObserver needs to subscribe. */
+    LatticeObserver(const LatticeObserver& other):
+        LatticeObserver(other.lattice)
+    {}
     virtual ~LatticeObserver()
     {   lattice->Unsubscribe(this);
     }
