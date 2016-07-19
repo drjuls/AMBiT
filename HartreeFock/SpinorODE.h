@@ -19,7 +19,6 @@ class SpinorODE : public LatticeObserver
 {
 public:
     SpinorODE(pLattice lattice);
-    SpinorODE(const SpinorODE& other);
     virtual ~SpinorODE() {}
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
@@ -29,7 +28,7 @@ public:
     virtual void SetODEParameters(const Orbital& approximation) = 0;
 
     /** Get exchange (nonlocal) potential. */
-    virtual SpinorFunction GetExchange(pOrbitalConst approximation = pOrbitalConst()) const = 0;
+    virtual SpinorFunction GetExchange(pOrbitalConst approximation = nullptr) const = 0;
 
     /** Tell SpinorODE whether to include the nonlocal (w_const) terms in GetODEFunction, GetODECoefficients, and GetODEJacobian. */
     virtual void IncludeExchange(bool include_exchange);

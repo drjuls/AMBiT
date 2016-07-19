@@ -75,7 +75,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     double nuclear_radius = user_input("NuclearRadius", 0.0);
     if(nuclear_radius)
     {
-        nucleus.reset(new NucleusDecorator(hf));
+        nucleus = std::make_shared<NucleusDecorator>(hf, coulomb, integrator);
         double nuclear_thickness = user_input("NuclearThickness", 2.3);
         nucleus->SetFermiParameters(nuclear_radius, nuclear_thickness);
         nucleus->SetCore(open_core);
@@ -183,7 +183,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     if(user_input.search("HF/--local-exchange"))
     {
         double xalpha = user_input("HF/Xalpha", 1.0);
-        pHFOperator localexch(new LocalExchangeApproximation(hf, xalpha));
+        pHFOperator localexch = std::make_shared<LocalExchangeApproximation>(hf, coulomb, xalpha);
         localexch->SetCore(open_core);
         hf = localexch;
         hf->IncludeExchange(false);

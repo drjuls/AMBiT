@@ -1,29 +1,9 @@
 #include "HFOperator.h"
 #include "Include.h"
-#include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb) :
-    SpinorOperator(0, integration_strategy), SpinorODE(hf_core->GetLattice()), physicalConstant(physical_constant), coulombSolver(coulomb), currentExchangePotential(-1)
-{
-    this->Z = Z;
-    differentiator = std::make_shared<FornbergDifferentiator>(lattice, 7, true);
-    SetCore(hf_core);
-}
-
-HFOperator::HFOperator(double Z, const HFOperator& other):
-    SpinorOperator(0, other.integrator), SpinorODE(other), physicalConstant(other.physicalConstant), coulombSolver(other.coulombSolver), currentExchangePotential(-1)
-{
-    this->Z = Z;
-    charge = other.charge;
-    differentiator = other.differentiator;
-    directPotential = other.directPotential;
-    currentExchangePotential = other.currentExchangePotential;
-    currentEnergy = other.currentEnergy;
-    currentKappa = other.currentKappa;
-}
-
-HFOperator::~HFOperator()
+    HFOperatorBase(Z, hf_core, physical_constant, integration_strategy), coulombSolver(coulomb), currentExchangePotential(-1)
 {}
 
 void HFOperator::SetCore(pCoreConst hf_core)
@@ -63,11 +43,6 @@ void HFOperator::SetCore(pCoreConst hf_core)
         directPotential.dfdr[i] = -charge/(R[i]*R[i]);
         i++;
     }
-}
-
-pCoreConst HFOperator::GetCore() const
-{
-    return core;
 }
 
 RadialFunction HFOperator::GetDirectPotential() const
@@ -183,7 +158,7 @@ void HFOperator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction&
 
 void HFOperator::EstimateOrbitalNearOrigin(unsigned int numpoints, SpinorFunction& s) const
 {
-    RadialFunction V(GetDirectPotential());
+    const RadialFunction& V = directPotential;
 
     const int start_point = 0;
     const double alpha = physicalConstant->GetAlpha();

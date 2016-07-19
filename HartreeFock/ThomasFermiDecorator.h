@@ -28,6 +28,9 @@ public:
 
 public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+
+protected:
+    RadialFunction directPotential;
 };
 
 typedef std::shared_ptr<ThomasFermiDecorator> pThomasFermiDecorator;

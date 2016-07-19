@@ -77,14 +77,14 @@ TEST(HyperfineTester, Na)
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator);
+    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator, basis_generator.GetNuclearRMSRadius());
 
     MathConstant* math = MathConstant::Instance();
     pOrbital s = orbitals->valence->GetState(OrbitalInfo(3, -1));
     double g_I = 2.2176/1.5;
     double MHz = math->AtomicFrequencyMHz();
 
-    EXPECT_NEAR(623.64, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(623.64, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.2);
 
     // p-wave
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
@@ -102,7 +102,7 @@ TEST(HyperfineTester, Na)
     rpa_solver.SolveRPACore(hf, rpa);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
-    EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.5);
+    EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.2);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
     EXPECT_NEAR(82.33, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);

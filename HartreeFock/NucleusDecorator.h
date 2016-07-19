@@ -15,10 +15,7 @@
 class NucleusDecorator: public HFOperatorDecorator<LocalPotentialDecorator, NucleusDecorator>
 {
 public:
-    NucleusDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy = pIntegrator());
-    NucleusDecorator(const NucleusDecorator& other):
-        BaseDecorator(other), nuclear_radius(other.nuclear_radius), nuclear_thickness(other.nuclear_thickness)
-    {}
+    NucleusDecorator(pHFOperator wrapped_hf, pCoulombOperator coulomb, pIntegrator integration_strategy = nullptr);
 
     /** Set parameters of proton distribution (in Fermi). */
     virtual void SetFermiParameters(double radius, double thickness = 2.3);
@@ -31,12 +28,13 @@ public:
     /** Calculate nuclear RMS radius for the distribution used. */
     virtual double CalculateNuclearRMSRadius() const;
 
-protected:
-    virtual RadialFunction CalculateNuclearDensity(double radius, double thickness) const;
+    /** Calculate the nuclear density as a radial function. */
+    RadialFunction CalculateNuclearDensity(double radius, double thickness) const;
 
 protected:
     double nuclear_radius;      //!< In Fermi
     double nuclear_thickness;   //!< In Fermi
+    pCoulombOperator coulombSolver;
 };
 
 typedef std::shared_ptr<NucleusDecorator> pNucleusDecorator;

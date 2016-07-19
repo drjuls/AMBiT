@@ -1,62 +1,5 @@
 #include "BreitHFDecorator.h"
 
-void BreitHFDecorator::Alert()
-{
-    if(currentExchangePotential.size() > lattice->size())
-        currentExchangePotential.resize(lattice->size());
-}
-
-/** Set exchange (nonlocal) potential and energy for ODE routines. */
-void BreitHFDecorator::SetODEParameters(const Orbital& approximation)
-{
-    HFOperatorDecorator::SetODEParameters(approximation);
-    currentExchangePotential = CalculateExtraExchange(approximation);
-}
-
-/** Get exchange (nonlocal) potential. */
-SpinorFunction BreitHFDecorator::GetExchange(pOrbitalConst approximation) const
-{
-    SpinorFunction ret = wrapped->GetExchange(approximation);
-
-    if(approximation == NULL)
-        ret += currentExchangePotential;
-    else
-        ret += CalculateExtraExchange(*approximation);
-
-    return ret;
-}
-
-void BreitHFDecorator::GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const
-{
-    wrapped->GetODEFunction(latticepoint, fg, w);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        w[0] += alpha * currentExchangePotential.g[latticepoint];
-        w[1] -= alpha * currentExchangePotential.f[latticepoint];
-    }
-}
-void BreitHFDecorator::GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const
-{
-    wrapped->GetODECoefficients(latticepoint, fg, w_f, w_g, w_const);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        w_const[0] += alpha * currentExchangePotential.g[latticepoint];
-        w_const[1] -= alpha * currentExchangePotential.f[latticepoint];
-    }
-}
-void BreitHFDecorator::GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const
-{
-    wrapped->GetODEJacobian(latticepoint, fg, jacobian, dwdr);
-
-    if(include_nonlocal && latticepoint < currentExchangePotential.size())
-    {   double alpha = physicalConstant->GetAlpha();
-        dwdr[0] += alpha * currentExchangePotential.dgdr[latticepoint];
-        dwdr[1] -= alpha * currentExchangePotential.dfdr[latticepoint];
-    }
-}
-
 double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double value = wrapped->GetMatrixElement(b, a);
@@ -131,14 +74,6 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
     }
     
     return value;
-}
-
-SpinorFunction BreitHFDecorator::ApplyTo(const SpinorFunction& a) const
-{
-    SpinorFunction ta = wrapped->ApplyTo(a);
-    ta -= CalculateExtraExchange(a);
-
-    return ta;
 }
 
 SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s) const
