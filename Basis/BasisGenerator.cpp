@@ -141,39 +141,44 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         hf = breit_hf;
     }
 
-    if(user_input.search("HF/--uehling"))
+    if(user_input.search("HF/QED/--uehling"))
     {
-        if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
         }
         else
-        {   double nuclear_rms_radius = GetNuclearRMSRadius();
+        {   double nuclear_rms_radius = user_input("HF/QED/NuclearRMSRadius", -1.0);
+            if(nuclear_rms_radius < 0.0)
+                nuclear_rms_radius = GetNuclearRMSRadius();
             uehling.reset(new UehlingDecorator(hf, nuclear_rms_radius));
         }
 
         hf = uehling;
     }
 
-    if(user_input.search("HF/--self-energy"))
+    if(user_input.search("HF/QED/--self-energy"))
     {
-        if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {
-            if(!user_input.search("HF/--no-magnetic-QED"))
+            if(!user_input.search("HF/QED/--no-magnetic"))
             {   magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                 hf = magneticQED;
             }
-            if(!user_input.search("HF/--no-electric-QED"))
+            if(!user_input.search("HF/QED/--no-electric"))
             {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                 hf = electricQED;
             }
         }
         else
-        {   double nuclear_rms_radius = GetNuclearRMSRadius();
-            if(!user_input.search("HF/--no-magnetic-QED"))
+        {   double nuclear_rms_radius = user_input("HF/QED/NuclearRMSRadius", -1.0);
+            if(nuclear_rms_radius < 0.0)
+                nuclear_rms_radius = GetNuclearRMSRadius();
+
+            if(!user_input.search("HF/QED/--no-magnetic"))
             {   magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nuclear_rms_radius));
                 hf = magneticQED;
             }
-            if(!user_input.search("HF/--no-electric-QED"))
+            if(!user_input.search("HF/QED/--no-electric"))
             {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius));
                 hf = electricQED;
             }
@@ -301,9 +306,9 @@ void BasisGenerator::SetOrbitalMaps()
 
 void BasisGenerator::UpdateNonSelfConsistentOperators()
 {
-    if(user_input.search("HF/--use-electron-screening-QED"))
+    if(user_input.search("HF/QED/--use-electron-screening"))
     {
-        if(nucleus == nullptr || !user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus == nullptr || !user_input.search("HF/QED/--use-nuclear-density"))
         {
             *logstream << "Cannot have screened Uehling without finite sized nucleus." << std::endl;
             return;

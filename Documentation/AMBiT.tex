@@ -173,13 +173,19 @@ Default is a lattice that starts exponential at small $r$ and then becomes const
 
 \option{-{}-breit} Include Breit interaction in HF operator.
 
-\option{-{}-uehling} Include Uehling potential in HF operator.
+\option{QED/-{}-uehling} Include Uehling potential in HF operator.
 
-\option{-{}-self-energy} Include QED self-energy radiative potential in HF operator.
+\option{QED/-{}-self-energy} Include QED self-energy radiative potential in HF operator.
 
-\option{-{}-hard-sphere-QED} Use hard sphere instead of nuclear distribution for QED operators (Uehling and self-energy).
+\option{QED/NuclearRMSRadius} Set the RMS radius of the hard sphere (i.e. $\sqrt{2/5}$ of the sphere radius). Default is to use the RMS radius of the nuclear distribution.
 
-\option{-{}-include-QED-screening} Include core electron screening when calculating QED operators. Cannot be used with \code{-{}-hard-sphere-QED}.
+\option{QED/-{}-use-nuclear-density} Use nuclear distribution for QED operators (Uehling and self-energy) instead of the usual hard sphere approximation.
+
+\option{QED/-{}-no-magnetic} Do not include magnetic part of self energy.
+
+\option{QED/-{}-no-electric} Do not include electric part of self energy.
+
+\option{QED/-{}-use-electron-screening} Include core electron screening when calculating QED operators. Can only be used with \code{-{}-use-nuclear-density}.
 
 \option{-{}-local-exchange} Use local exchange approximation $x_\alpha \left(\frac{81}{32\pi^2} \frac{\rho(r)}{r^2}\right)^{1/3}$, where $\rho(r)$ is the electron density. The value $x_\alpha$ can be set using \code{HF/Xalpha} [default = 1.0].
 

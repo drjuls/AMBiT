@@ -9,6 +9,7 @@
 #include "ExternalField/EJOperator.h"
 #include "ExternalField/Hyperfine.h"
 #include "ExternalField/FieldShift.h"
+#include "ExternalField/RadiativePotential.h"
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
@@ -355,6 +356,7 @@ void Ambit::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
     RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
     RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
+    RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
 
     user_input.set_prefix("");
 
