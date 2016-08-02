@@ -15,7 +15,7 @@ ValenceMBPTCalculator::~ValenceMBPTCalculator()
 
 unsigned int ValenceMBPTCalculator::GetStorageSize()
 {
-    unsigned int total = one_body->CalculateOneElectronIntegrals(valence, high, true);
+    unsigned int total = one_body->CalculateOneElectronIntegrals(high, valence, true);
     total += two_body->CalculateTwoElectronIntegrals(valence, valence, excited, high, true);
     total += two_body->CalculateTwoElectronIntegrals(valence, valence, orbitals->hole, high, true);
 
@@ -26,7 +26,7 @@ void ValenceMBPTCalculator::UpdateIntegrals()
 {
     SetValenceEnergies();
 
-    one_body->CalculateOneElectronIntegrals(valence, high);
+    one_body->CalculateOneElectronIntegrals(high, valence);
     two_body->CalculateTwoElectronIntegrals(valence, valence, excited, high);
     two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high);
 }

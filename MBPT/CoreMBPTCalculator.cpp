@@ -17,7 +17,7 @@ unsigned int CoreMBPTCalculator::GetStorageSize()
     pOrbitalMap excited_valence = std::make_shared<OrbitalMap>(*excited);
     excited_valence->AddStates(*valence);
 
-    unsigned int total = one_body->CalculateOneElectronIntegrals(core, excited_valence, true);
+    unsigned int total = one_body->CalculateOneElectronIntegrals(excited_valence, core, true);
     total += two_body->CalculateTwoElectronIntegrals(core, valence, excited_valence, excited_valence, true);
     total += two_body->CalculateTwoElectronIntegrals(core, valence, excited_valence, core, true);
 
@@ -34,8 +34,8 @@ void CoreMBPTCalculator::UpdateIntegrals()
 {
     SetValenceEnergies();
 
-    one_body->CalculateOneElectronIntegrals(core, excited);
-    one_body->CalculateOneElectronIntegrals(core, valence);
+    one_body->CalculateOneElectronIntegrals(excited, core);
+    one_body->CalculateOneElectronIntegrals(valence, core);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, excited);
     two_body->CalculateTwoElectronIntegrals(core, valence, excited, core);
     two_body->CalculateTwoElectronIntegrals(core, valence, core, excited);

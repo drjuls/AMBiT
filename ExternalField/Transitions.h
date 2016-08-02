@@ -30,7 +30,7 @@ class TransitionCalculator
 {
 public:
     TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr)
+        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), frequency_dependent_op(false)
     {}
     TransitionCalculator(MultirunOptions& user_input, Atom& atom):
         TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
@@ -105,6 +105,7 @@ protected:
     pOrbitalManagerConst orbitals;
     pLevelStore levels;
     pSpinorMatrixElement op;
+    bool frequency_dependent_op;
 
     pTransitionIntegrals integrals;     // One-electron integrals
     std::map<TransitionID, double> matrix_elements;

@@ -140,7 +140,7 @@ void Atom::Autoionization(pLevelConst target)
                 pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
                 pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
                 one_body_integrals->clear();
-                one_body_integrals->CalculateOneElectronIntegrals(valence, continuum_map);
+                one_body_integrals->CalculateOneElectronIntegrals(continuum_map, valence);
                 two_body_integrals->clear();
                 two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
@@ -277,7 +277,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
     pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
     one_body_integrals->clear();
-    one_body_integrals->CalculateOneElectronIntegrals(valence, continuum_map);
+    one_body_integrals->CalculateOneElectronIntegrals(continuum_map, valence);
     two_body_integrals->clear();
     two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 

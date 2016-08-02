@@ -2,6 +2,7 @@
 #include "Include.h"
 #include "Atom/HamiltonianTypes.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "TimeDependentSpinorOperator.h"
 #include "ExternalField/RPASolver.h"
 
 std::string Name(const LevelID& levelid)
@@ -171,32 +172,65 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 return 0.;
             }
 
-            // Get transition integrals
-            if(integrals == nullptr)
+            pTimeDependentSpinorOperator tdop = nullptr;
+            if(frequency_dependent_op && (tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op)))
             {
-                // Create new TransitionIntegrals object and calculate integrals
-                integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
-                integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-            }
+                // Clear integrals if frequency has changed
+                const Level& left_level = *left_levels[left.second];
+                const Level& right_level = *right_levels[right.second];
+                double freq = fabs(left_level.GetEnergy() - right_level.GetEnergy());
 
-            ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
-
-            // Get matrix elements for all transitions with same HamiltonianIDs
-            std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
-
-            // Add to matrix_elements map
-            auto value_iterator = values.begin();
-            for(int i = 0; i < left_levels.size(); i++)
-            {
-                for(int j = 0; j < right_levels.size(); j++)
+                if(fabs(tdop->GetFrequency() - freq) > 1.e-6)
                 {
-                    TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
-                    matrix_elements.insert(std::make_pair(current_id, *value_iterator));
-                    value_iterator++;
-                }
-            }
+                    tdop->SetFrequency(freq);
 
-            return_value = matrix_elements[id];
+                    if(integrals == nullptr)
+                    {
+                        // Create new TransitionIntegrals object and calculate integrals
+                        integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                    }
+
+                    integrals->clear();
+                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+                }
+
+                ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
+
+                // Get matrix elements for all transitions with same HamiltonianIDs
+                double value = many_body_operator.GetMatrixElement(left_level, right_level);
+
+                // Add to matrix_elements map
+                matrix_elements[id] = value;
+                return_value = value;
+            }
+            else
+            {   // Get transition integrals
+                if(integrals == nullptr)
+                {
+                    // Create new TransitionIntegrals object and calculate integrals
+                    integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+                }
+
+                ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
+
+                // Get matrix elements for all transitions with same HamiltonianIDs
+                std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
+
+                // Add to matrix_elements map
+                auto value_iterator = values.begin();
+                for(int i = 0; i < left_levels.size(); i++)
+                {
+                    for(int j = 0; j < right_levels.size(); j++)
+                    {
+                        TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
+                        matrix_elements.insert(std::make_pair(current_id, *value_iterator));
+                        value_iterator++;
+                    }
+                }
+
+                return_value = matrix_elements[id];
+            }
         }
     }
 

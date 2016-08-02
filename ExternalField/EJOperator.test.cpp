@@ -44,15 +44,19 @@ TEST(EJOperatorTester, LiTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
 
+    E1.SetFrequency(s.Energy() - p1.Energy());
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
     EXPECT_NEAR(3.3644, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+
+    E1.SetFrequency(p3.Energy() - s.Energy());
     EXPECT_NEAR(4.7580, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 
     E1.SetGauge(TransitionGauge::Velocity);
 
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(3.4301, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
     EXPECT_NEAR(4.8510, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
+    E1.SetFrequency(s.Energy() - p1.Energy());
+    EXPECT_NEAR(3.4301, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
 }
 
 TEST(EJOperatorTester, NaTransitions)
@@ -87,14 +91,17 @@ TEST(EJOperatorTester, NaTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(3, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(3, -2));
 
+    E1.SetFrequency(s.Energy() - p3.Energy());
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(3.6906, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
     EXPECT_NEAR(5.2188, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
+    E1.SetFrequency(s.Energy() - p1.Energy());
+    EXPECT_NEAR(3.6906, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
 
     E1.SetGauge(TransitionGauge::Velocity);
 
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
     EXPECT_NEAR(3.6516, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    E1.SetFrequency(p3.Energy() - s.Energy());
     EXPECT_NEAR(5.1632, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
 }
 
@@ -129,6 +136,7 @@ TEST(MJOperatorTester, LiTransitions)
     const Orbital& p1 = *orbitals->valence->GetState(OrbitalInfo(2, 1));
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(2, -2));
 
+    M1.SetFrequency(p1.Energy() - p3.Energy());
     EXPECT_NEAR(fabs(M1.GetReducedMatrixElement(p3, p1)), fabs(M1.GetReducedMatrixElement(p1, p3)), 1.e-4);
     EXPECT_NEAR(2./sqrt(3.), fabs(M1.GetReducedMatrixElement(p3, p1)), 0.0003);
 }
@@ -214,27 +222,35 @@ TEST(EJOperatorTester, HeTransitions)
 
     // Calculate transition
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorMatrixElement E1(new EJOperator(1, integrator, TransitionGauge::Length));
+    pTimeDependentSpinorOperator E1(new EJOperator(1, integrator, TransitionGauge::Length));
     pTransitionIntegrals E1_matrix_elements(new TransitionIntegrals(orbitals, E1));
-    E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
 
+    E1->SetFrequency(ground_state_energy - excited_state_energy);
+    E1_matrix_elements->clear();
+    E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     double matrix_element = E1_many_body.GetMatrixElement(*ground_state, *singlet_P);
     double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
-    *logstream << "1s2 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
+    *logstream << "1s2 -> 1s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *ground_state);
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
-    *logstream << "2s2p 1P1 -> 1s2: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
+    *logstream << "1s2p 1P1 -> 1s2: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(0.5311, reduced_matrix_element * reduced_matrix_element, 0.05);
 
+    E1->SetFrequency(singlet_S->GetEnergy() - excited_state_energy);
+    E1_matrix_elements->clear();
+    E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     matrix_element = E1_many_body.GetMatrixElement(*singlet_S, *singlet_P);
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
-    *logstream << "1s2s 1S0 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
+    *logstream << "1s2s 1S0 -> 1s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *singlet_S);
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
-    *logstream << "2s2p 1P1 -> 1s2s 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
+    *logstream << "1s2p 1P1 -> 1s2s 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(25.52, reduced_matrix_element * reduced_matrix_element, 2.5);
 
+    E1->SetFrequency(triplet_P->GetEnergy() - ground_state_energy);
+    E1_matrix_elements->clear();
+    E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     matrix_element = E1_many_body.GetMatrixElement(*triplet_P, *ground_state);
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2p 3P1 -> 1s2 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
@@ -302,7 +318,8 @@ TEST(MJOperatorTester, HolesVsElectrons)
         LevelVector levels = H.SolveMatrix(key, 3);
 
         // Calculate transition
-        pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, hf->GetIntegrator());
+        pTimeDependentSpinorOperator M1 = std::make_shared<MJOperator>(1, hf->GetIntegrator());
+        M1->SetFrequency(levels[2]->GetEnergy() - levels[1]->GetEnergy());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
@@ -365,7 +382,8 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         // Calculate transition
         pIntegrator integrator(new SimpsonsIntegrator(lattice));
-        pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, integrator);
+        pTimeDependentSpinorOperator M1 = std::make_shared<MJOperator>(1, integrator);
+        M1->SetFrequency(levels[2]->GetEnergy() - levels[1]->GetEnergy());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);

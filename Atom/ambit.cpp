@@ -344,7 +344,7 @@ void Ambit::TransitionCalculations()
         if(user_input.SectionExists(user_string))
         {
             user_input.set_prefix(user_string);
-            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom.GetBasis(), atom.GetLevels(), atom.GetHFOperator()->GetIntegrator()));
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom));
 
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
