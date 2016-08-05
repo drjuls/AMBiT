@@ -3,6 +3,7 @@
 #include "Atom/HamiltonianTypes.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "TimeDependentSpinorOperator.h"
+#include "ExternalField/RPAOperator.h"
 #include "ExternalField/RPASolver.h"
 
 std::string Name(const LevelID& levelid)
@@ -122,9 +123,7 @@ void TransitionCalculator::PrintIntegrals()
 
 pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const
 {
-    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hartreeY);
-
-    // Get BSplineBasis parameters
+    // Get BSplineBasis parameters and make RPA solver
     int N = user_input("RPA/BSpline/N", 40);
     int K = user_input("RPA/BSpline/K", 7);
     double Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
@@ -137,8 +136,11 @@ pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator externa
     if(user_input.search("RPA/--no-negative-states"))
         use_negative_states = false;
 
-    RPASolver rpa_solver(basis_maker, use_negative_states);
-    rpa_solver.SolveRPACore(hf, rpa);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(basis_maker, use_negative_states);
+
+    // Make RPA operator
+    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
+    rpa->SolveRPA();
 
     return rpa;
 }

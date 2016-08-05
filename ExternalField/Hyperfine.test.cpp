@@ -10,7 +10,7 @@
 #include "MBPT/SlaterIntegrals.h"
 #include "MBPT/BruecknerDecorator.h"
 #include "MBPT/CoreMBPTCalculator.h"
-#include "RPASolver.h"
+#include "RPAOperator.h"
 
 TEST(HyperfineTester, Rb)
 {
@@ -95,11 +95,11 @@ TEST(HyperfineTester, Na)
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, basis_generator.GetHartreeY());
-    RPASolver rpa_solver(core);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(core);
+    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, hf, basis_generator.GetHartreeY(), rpa_solver);
 
     DebugOptions.LogHFIterations(true);
-    rpa_solver.SolveRPACore(hf, rpa);
+    rpa->SolveRPA();
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
     EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.2);
@@ -192,13 +192,13 @@ TEST(HyperfineTester, CsRPA)
 
     // Get HF+HFS operator
     pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, basis_generator.GetHartreeY());
-    RPASolver rpa_solver(core);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(core);
+    pRPAOperator rpa = std::make_shared<RPAOperator>(HFS, hf, basis_generator.GetHartreeY(), rpa_solver);
 
     DebugOptions.LogHFIterations(true);
-    rpa_solver.SolveRPACore(hf, rpa);
+    rpa->SolveRPA();
 
     pRPAOrbital ext = std::make_shared<RPAOrbital>(*s);
-    double deltaE = rpa_solver.CalculateRPAExcited(ext, rpa);
+    double deltaE = rpa_solver->CalculateRPAExcited(ext, rpa);
     EXPECT_NEAR(57.31, stretched_state * deltaE * g_I/s->J() * kCm, 0.01);
 }

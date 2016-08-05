@@ -15,3 +15,21 @@ pDeltaOrbital DeltaOrbital::CloneWithNewParent(std::shared_ptr<RPAOrbital> new_p
     ret->parent = new_parent;
     return ret;
 }
+
+auto RPAOrbital::GetDeltaPsi(int kappa) -> decltype(deltapsi)::iterator
+{
+    auto compare_kappas = [&kappa](const std::pair<pDeltaOrbital, pDeltaOrbital>& item)
+        {   return item.first->Kappa() == kappa;
+        };
+
+    return std::find_if(deltapsi.begin(), deltapsi.end(), compare_kappas);
+}
+
+auto RPAOrbital::GetDeltaPsi(int kappa) const -> decltype(deltapsi)::const_iterator
+{
+    auto compare_kappas = [&kappa](const std::pair<pDeltaOrbital, pDeltaOrbital>& item)
+    {   return item.first->Kappa() == kappa;
+    };
+
+    return std::find_if(deltapsi.begin(), deltapsi.end(), compare_kappas);
+}

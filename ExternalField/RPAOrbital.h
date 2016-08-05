@@ -2,7 +2,6 @@
 #define RPA_ORBITAL_H
 
 #include "HartreeFock/Orbital.h"
-#include <map>
 
 class RPAOrbital;
 
@@ -65,14 +64,19 @@ public:
 
         for(const auto& pair: deltapsi)
         {
-            pDeltaOrbital clone = pair.second->CloneWithNewParent(ret);
-            ret->deltapsi[pair.first] = clone;
+            pDeltaOrbital first_clone = (pair.first? pair.first->CloneWithNewParent(ret): nullptr);
+            pDeltaOrbital second_clone = (pair.second? pair.second->CloneWithNewParent(ret): nullptr);
+            ret->deltapsi.emplace_back(std::make_pair(first_clone, second_clone));
         }
         return ret;
     }
 
-    /** Map from kappa to orbital contribution. */
-    std::map<int, pDeltaOrbital> deltapsi;
+    /** Orbital contributions for different kappas: pair<dPsi(+), dPsi(-)>. */
+    std::vector<std::pair<pDeltaOrbital, pDeltaOrbital>> deltapsi;
+
+    /** Search deltaPsi for pair with given kappa. Returns deltapsi.end() if none found. */
+    auto GetDeltaPsi(int kappa) -> decltype(deltapsi)::iterator;
+    auto GetDeltaPsi(int kappa) const -> decltype(deltapsi)::const_iterator;
 };
 
 typedef std::shared_ptr<RPAOrbital> pRPAOrbital;
