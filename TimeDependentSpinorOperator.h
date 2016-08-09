@@ -22,6 +22,13 @@ public:
     virtual void SetFrequency(double frequency) { omega = fabs(frequency); }
     double GetFrequency() const { return omega; }
 
+    /** Return f^{\dagger}||a> */
+    virtual SpinorFunction ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+    {
+        // Default is that the operator is Hermitian.
+        return ReducedApplyTo(a, kappa_b);
+    }
+
 protected:
     double omega;   //!< Current value of transition frequency (energy in Hartree units) being calculated
 };

@@ -19,8 +19,11 @@ public:
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
     virtual double GetReducedMatrixElement(const Orbital& b, const Orbital& a) const override;
 
-    /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
+    /** E(J) || a > for our operator E(J). */
     virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
+
+    /** E(J)^{\dagger} || a > for our operator E(J). */
+    virtual SpinorFunction ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
 protected:
     TransitionGauge gauge;
@@ -33,10 +36,10 @@ public:
         TimeDependentSpinorOperator(J, (J%2? Parity::even: Parity::odd), integration_strategy)
     {}
 
-    /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
+    /** Reduced matrix element < b || M(J) || a > for our operator M(J). */
     virtual double GetReducedMatrixElement(const Orbital& b, const Orbital& a) const override;
 
-    /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
+    /** M(J) || a > for our operator M(J). */
     virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 };
 

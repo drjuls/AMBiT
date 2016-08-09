@@ -3,7 +3,7 @@
 
 RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY, pRPASolver rpa_solver):
     TimeDependentSpinorOperator(external->GetK(), external->GetParity(), external->GetIntegrator()),
-    external(external), hf(hf), hartreeY(hartreeY), core(nullptr), solver(rpa_solver)
+    external(external), hf(hf), hartreeY(hartreeY), core(nullptr), solver(rpa_solver), scale(1.0)
 {
     // Check if static RPA
     pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
@@ -45,25 +45,59 @@ void RPAOperator::SolveRPA()
 {
     // Solve RPA core.
     if(static_rpa)
+    {   omega = 0.;
         solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
+    }
     else
-    {   pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
+    {   pTimeDependentSpinorOperator tdop = std::static_pointer_cast<TimeDependentSpinorOperator>(external);
         SetFrequency(tdop->GetFrequency());
     }
 }
 
 void RPAOperator::SetFrequency(double frequency)
 {
-    omega = fabs(frequency);
+    if(!static_rpa)
+    {
+        omega = fabs(frequency);
 
-    pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
-    if(tdop)
-    {   tdop->SetFrequency(omega);
-        solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
+        pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
+        if(tdop)
+        {   tdop->SetFrequency(omega);
+            solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
+        }
+    }
+}
+
+void RPAOperator::ClearRPACore()
+{
+    for(auto& orb: *core)
+    {
+        pRPAOrbital rpa_orb = std::make_shared<RPAOrbital>(*orb.second);
+        for(auto& pair: rpa_orb->deltapsi)
+        {
+            if(pair.first)
+            {   pair.first->Clear();
+                pair.first->SetDeltaEnergy(0.0);
+            }
+            if(pair.second)
+            {   pair.second->Clear();
+                pair.second->SetDeltaEnergy(0.0);
+            }
+        }
     }
 }
 
 SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    return ReducedApplyTo(a, kappa_b, false);
+}
+
+SpinorFunction RPAOperator::ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    return ReducedApplyTo(a, kappa_b, !static_rpa);
+}
+
+SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const
 {
     SpinorFunction ret(kappa_b);
     MathConstant* math = MathConstant::Instance();
@@ -77,7 +111,10 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b)
     pSpinorFunctionConst pa = a.shared_from_this();
 
     // First term: <kappa || f || parent>
-    ret = external->ReducedApplyTo(a, kappa_alph);
+    if(conjugate)
+        ret = std::static_pointer_cast<TimeDependentSpinorOperator>(external)->ConjugateReducedApplyTo(a, kappa_alph) * scale;
+    else
+        ret = external->ReducedApplyTo(a, kappa_alph) * scale;
 
     // Second term: <kappa || deltaV || parent>
     // Sum deltaV for all core states. Core states are `b', delta is `beta'.
@@ -90,7 +127,19 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b)
         // Sum over beta
         for(const auto& cs_delta: b->deltapsi)
         {
-            pDeltaOrbitalConst beta = cs_delta.first;
+            pDeltaOrbitalConst beta, betaplus;
+
+            if(static_rpa || conjugate == false)
+            {
+                beta = cs_delta.first;
+                betaplus = cs_delta.second;
+            }
+            else
+            {
+                beta = cs_delta.second;
+                betaplus = cs_delta.first;
+            }
+
             double occupancy_factor = (a.TwoJ()+1) * (b->TwoJ()+1) * (alph_TwoJ+1) * (beta->TwoJ()+1);
             occupancy_factor = sqrt(occupancy_factor);
             // TODO: Open shells need to be scaled
@@ -98,15 +147,26 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b)
             // Direct term: a -> alph, b -> beta
             if((alph_L + a.L() + K)%2 == 0 && (b->L() + beta->L() + K)%2 == 0)
             {
-                double coeff = 2./(2. * K + 1.) * math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + 1);
+                double coeff = 1./(2. * K + 1.) * math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + 1);
                 coeff *= math->Electron3j(alph_TwoJ, a.TwoJ(), K) * math->Electron3j(b->TwoJ(), beta->TwoJ(), K);
 
                 if(coeff)
                 {
                     coeff *= occupancy_factor;
 
-                    hartreeY->SetParameters(K, b, beta);
-                    ret += hartreeY->ApplyTo(a, ret.Kappa()) * coeff;
+                    if(static_rpa)
+                    {
+                        hartreeY->SetParameters(K, b, beta);
+                        ret += hartreeY->ApplyTo(a, ret.Kappa()) * coeff * 2.;
+                    }
+                    else
+                    {
+                        hartreeY->SetParameters(K, b, beta);
+                        ret += hartreeY->ApplyTo(a, ret.Kappa()) * coeff;
+
+                        hartreeY->SetParameters(K, betaplus, b);
+                        ret += hartreeY->ApplyTo(a, ret.Kappa()) * coeff;
+                    }
                 }
             }
 
@@ -126,8 +186,16 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b)
                     {
                         coeff *= occupancy_factor;
 
-                        hartreeY->SetParameters(k, beta, pa);
-                        ret += hartreeY->ApplyTo(*b, ret.Kappa()) * coeff;
+                        if(static_rpa)
+                        {
+                            hartreeY->SetParameters(k, beta, pa);
+                            ret += hartreeY->ApplyTo(*b, ret.Kappa()) * coeff;
+                        }
+                        else
+                        {
+                            hartreeY->SetParameters(k, betaplus, pa);
+                            ret += hartreeY->ApplyTo(*b, ret.Kappa()) * coeff;
+                        }
                     }
                 }
             }

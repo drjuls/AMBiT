@@ -31,6 +31,16 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
                     else
                         spline_basis = basis_maker->GeneratePositiveBasis(hf, kappa);
 
+                    // Remove core orbitals (these effects should cancel anyway)
+                    auto it = spline_basis->begin();
+                    while(it != spline_basis->end())
+                    {
+                        if(rpa_core->GetOccupancy(it->first))
+                            it = spline_basis->erase(it);
+                        else
+                            ++it;
+                    }
+
                     basis[kappa] = spline_basis;
                 }
             }
@@ -48,6 +58,8 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
     double deltaE, max_deltaE;
     double max_norm;
     unsigned int loop = 0;
+
+    bool is_static = rpa->IsStaticRPA();
 
     do
     {   loop++;
@@ -69,55 +81,24 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
                 for(auto deltapsi: rpa_orbital->deltapsi)
                 {
                     pDeltaOrbital orbital = deltapsi.first;
-
                     double old_energy = orbital->DeltaEnergy();
-                    deltaE = IterateDeltaOrbital(orbital, rpa);
+
+                    if(is_static)
+                        deltaE = IterateDeltaOrbital(orbital, rpa);
+                    else
+                        deltaE = IterateDeltaOrbital(deltapsi, rpa);
 
                     double norm = orbital->Norm(integrator);
                     max_norm = mmax(norm, max_norm);
+                    max_deltaE = mmax(fabs(deltaE), max_deltaE);
 
-                    if(orbital->Kappa() == rpa_orbital->Kappa())
-                    {
-                        max_deltaE = mmax(fabs(deltaE), max_deltaE);
-                        if(debug)
-                            *logstream << "    kappa = " << std::setw(3) << orbital->Kappa()
-                                       << "  DE = " << std::setprecision(12) << old_energy
-                                       << "  deltaDE = " << std::setprecision(4) << deltaE
-                                       << "  size: (" << orbital->size()
-                                       << ") " << lattice->R(orbital->size())
-                                       << "  norm = " << orbital->Norm(integrator) << std::endl;
-                    }
-                    else if(debug)
-                    {   *logstream << "    kappa = " << std::setw(3) << orbital->Kappa()
+                    if(debug)
+                        *logstream << "    kappa = " << std::setw(3) << orbital->Kappa()
+                                   << "  DE = " << std::setprecision(12) << old_energy
+                                   << "  deltaDE = " << std::setprecision(4) << deltaE
                                    << "  size: (" << orbital->size()
                                    << ") " << lattice->R(orbital->size())
                                    << "  norm = " << orbital->Norm(integrator) << std::endl;
-                    }
-                }
-            }
-        }
-
-        // Try to remove spin-orbit partner from basis if DeltaOrbitals are growing out of control
-        if(!remove_spin_orbit_partner && (max_norm > 0.1))
-        {
-            remove_spin_orbit_partner = true;
-
-            // Start again
-            if(debug)
-                *logstream << "\nRestarting RPA, removing spin-orbit partners." << std::endl;
-
-            loop = 0;
-            for(auto pair: *next_states)
-            {
-                pRPAOrbital rpa_orbital = std::dynamic_pointer_cast<RPAOrbital>(pair.second);
-                if(rpa_orbital)
-                {
-                    for(auto deltapsi: rpa_orbital->deltapsi)
-                    {
-                        pDeltaOrbital orbital = deltapsi.second;
-                        orbital->Clear();
-                        orbital->SetDeltaEnergy(0.0);
-                    }
                 }
             }
         }
@@ -226,8 +207,7 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
     {
         // Remove parent from basis if necessary since deltaOrbital must be orthogonal to parent
         if((parent_info.PQN() != basis_pair.first.PQN()) ||
-           (remove_spin_orbit_partner && (parent_info.L() != basis_pair.first.L())) ||
-           (!remove_spin_orbit_partner && (parent_info.Kappa() != basis_pair.first.Kappa())))
+           (parent_info.Kappa() != basis_pair.first.Kappa()))
         {
             pOrbitalConst beta = basis_pair.second;
 
@@ -237,6 +217,69 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
             (*orbital) += (*beta) * coeff;
         }
     }
+
+    return delta_DE;
+}
+
+double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& orbitals, pRPAOperatorConst rpa) const
+{
+    pDeltaOrbital alpha = orbitals.first;
+    pDeltaOrbital alphaplus = orbitals.second;
+
+    int kappa = alpha->Kappa();
+    double start_DE = alpha->DeltaEnergy();
+    double delta_DE = 0.;
+
+    pRPAOrbital parent = alpha->GetParent();
+    double parent_energy = parent->Energy();
+    OrbitalInfo parent_info = OrbitalInfo(parent.get());
+
+    pIntegrator integrator = rpa->GetIntegrator();
+
+    // Apply (f + deltaV)||a>
+    SpinorFunction X_a = rpa->ReducedApplyTo(*parent, kappa);
+    SpinorFunction Y_a = rpa->ConjugateReducedApplyTo(*parent, kappa);
+
+    // Apply deltaEnergy term if kappa == parent->Kappa()
+    double new_DE = 0.;
+
+    // Get new deltaEnergy
+    if(kappa == parent->Kappa())
+    {
+        new_DE = integrator->GetInnerProduct(*parent, X_a);
+    }
+
+    alpha->Clear();
+    alphaplus->Clear();
+
+    double omega = rpa->GetFrequency();
+
+    for(const auto& basis_pair: *basis.at(kappa))
+    {
+        // Remove parent from basis if necessary since deltaOrbital must be orthogonal to parent
+        if((parent_info.PQN() != basis_pair.first.PQN()) ||
+           (parent_info.Kappa() != basis_pair.first.Kappa()))
+        {
+            pOrbitalConst beta = basis_pair.second;
+
+            double coeff = integrator->GetInnerProduct(*beta, X_a);
+            coeff = -coeff/(beta->Energy() - parent_energy - omega);
+            (*alpha) += (*beta) * coeff;
+
+            double coeffplus = integrator->GetInnerProduct(*beta, Y_a);
+            coeffplus = -coeffplus/(beta->Energy() - parent_energy + omega);
+            (*alphaplus) += (*beta) * coeffplus;
+
+            // Get new deltaEnergy
+            if(kappa != parent->Kappa())
+            {
+                new_DE += beta->Energy() * coeff * coeff;
+            }
+        }
+    }
+
+    alpha->SetDeltaEnergy(new_DE);
+    delta_DE = new_DE - start_DE;
 
     return delta_DE;
 }

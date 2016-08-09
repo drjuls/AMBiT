@@ -102,7 +102,7 @@ TEST(HyperfineTester, Na)
     rpa->SolveRPA();
 
     s = orbitals->valence->GetState(OrbitalInfo(3, -1));
-    EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.2);
+    EXPECT_NEAR(767.24, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.3);
 
     s = orbitals->valence->GetState(OrbitalInfo(3, 1));
     EXPECT_NEAR(82.33, rpa->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.01);

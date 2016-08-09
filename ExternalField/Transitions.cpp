@@ -121,7 +121,7 @@ void TransitionCalculator::PrintIntegrals()
     }
 }
 
-pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const
+pSpinorMatrixElement TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY)
 {
     // Get BSplineBasis parameters and make RPA solver
     int N = user_input("RPA/BSpline/N", 40);
@@ -140,7 +140,23 @@ pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator externa
 
     // Make RPA operator
     pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
-    rpa->SolveRPA();
+
+    DebugOptions.LogHFIterations(true);
+    if(rpa->IsStaticRPA())
+    {   rpa->SolveRPA();
+        frequency_dependent_op = false;
+    }
+    else
+    {
+        double omega = user_input("RPA/Frequency", -1.0);
+        if(omega >= 0.0)
+        {   rpa->SetFrequency(omega);
+            frequency_dependent_op = false;
+        }
+        else
+        {   frequency_dependent_op = true;
+        }
+    }
 
     return rpa;
 }

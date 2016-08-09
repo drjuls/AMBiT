@@ -17,10 +17,10 @@ class RPASolver
 {
 public:
     RPASolver(pBSplineBasis basis_maker, bool include_negative_basis = true):
-        basis_maker(basis_maker), remove_spin_orbit_partner(false), include_dirac_sea(include_negative_basis), hf0(nullptr)
+        basis_maker(basis_maker), include_dirac_sea(include_negative_basis), hf0(nullptr)
     {}
     RPASolver(pLattice lattice, double rmax = 50., bool include_negative_basis = true):
-        remove_spin_orbit_partner(false), include_dirac_sea(include_negative_basis), hf0(nullptr)
+        include_dirac_sea(include_negative_basis), hf0(nullptr)
     {
         basis_maker = std::make_shared<BSplineBasis>(lattice, 40, 7, rmax);
     }
@@ -48,6 +48,11 @@ public:
      */
     double IterateDeltaOrbital(pDeltaOrbital orbital, std::shared_ptr<const RPAOperator> rpa) const;
 
+    /** Iterate a pair of deltaOrbitals (for frequency-dependent RPA).
+        Return change in deltaEnergy of first orbital.
+     */
+    double IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& orbitals, std::shared_ptr<const RPAOperator> rpa) const;
+
     double EnergyTolerance = 1.e-14;
 
 protected:
@@ -56,7 +61,6 @@ protected:
     bool include_dirac_sea;
     std::map<int, pOrbitalMap> basis;   //!< DeltaOrbital basis for each kappa
 
-    bool remove_spin_orbit_partner;     //!< Remove spin-orbit partner from basis (small energy denominators can be fatal)
     unsigned int MaxRPAIterations = 100;
 };
 

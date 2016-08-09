@@ -176,6 +176,15 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
     return ret;
 }
 
+SpinorFunction EJOperator::ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    SpinorFunction ret = ReducedApplyTo(a, kappa_b);
+    if(gauge == TransitionGauge::Velocity)
+        ret *= -1.;
+
+    return ret;
+}
+
 double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double matrix_element = 0.0;
@@ -304,6 +313,8 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
         op = std::make_shared<MJOperator>(J, hf->GetIntegrator());
 
     frequency_dependent_op = true;
+    if(user_input.search("--rpa"))
+        op = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
 }
 
 void EMCalculator::PrintHeader() const
