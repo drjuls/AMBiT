@@ -102,12 +102,12 @@ ifeq ($(MACHINE), katana)
   EIGEN_INCLUDE_DIR = /srv/scratch/ambit/
 
   LINK      = mpiCC #icpc
-  LINKFLAGS = 
-  LIBDIR    = $(MKLROOT)/lib/intel64/
-  LIBOBJ    = 
-  LIBS      = gsl mkl_scalapack_lp64 mkl_intel_lp64 mkl_core mkl_sequential mkl_blacs_intelmpi_lp64 boost_filesystem boost_system pthread m
+  LINKFLAGS = -openmp
+  LIBDIR    = ${MKLROOT}/lib/intel64/
+  LIBOBJ    = ${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_blacs_openmpi_lp64.a -Wl,--end-group
+  LIBS      = gsl gslcblas boost_filesystem boost_system pthread m dl
 
-  INCLUDE  += /share/apps/sparsehash/2.0.2/include
+  INCLUDE  += ${MKLROOT}/include /share/apps/sparsehash/2.0.2/include
 
   ifdef debug
     BUILD     = Debug
