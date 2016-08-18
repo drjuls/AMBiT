@@ -440,3 +440,50 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
     EXPECT_NEAR(m1_hole, m1_electron, 1.e-6 * fabs(m1_hole));
 }
+
+TEST(EJOperatorTester, Screening)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // Ne
+    std::string user_input_string = std::string() +
+        "NuclearRadius = 3.5\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 10\n" +
+        "[HF]\n" +
+        "N = 10\n" +
+        "Configuration = '1s2 2s2 2p6'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 3sp\n" +
+        "BSpline/Rmax = 50.0\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    pCore core = basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pSpinorOperator pE1 = std::make_shared<EJOperator>(1, integrator);
+
+    DebugOptions.LogHFIterations(true);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
+    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
+    rpa->SetFrequency(0.0);
+
+    pOrbital s = std::make_shared<Orbital>(-1);
+    s->resize(1000);
+    s->f = std::vector<double>(1000, 1.);
+    s->dfdr = std::vector<double>(1000, 0.);
+    s->g = s->dfdr;
+    s->dgdr = s->dfdr;
+
+    SpinorFunction fs = pE1->ApplyTo(*s, 1);
+    SpinorFunction dVs = rpa->ApplyTo(*s, 1);
+
+    // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
+    EXPECT_NEAR(0., dVs.f[0]/fs.f[0], 1.e-4);
+}

@@ -110,6 +110,7 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
             }
 
             ret = a * bessel * coeff;
+            ret.SetKappa(kappa_b);
         }
         else
         {

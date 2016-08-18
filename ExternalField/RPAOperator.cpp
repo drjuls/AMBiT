@@ -66,6 +66,8 @@ void RPAOperator::SetFrequency(double frequency)
             solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
         }
     }
+    else
+        SolveRPA();
 }
 
 void RPAOperator::ClearRPACore()
