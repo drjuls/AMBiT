@@ -232,14 +232,13 @@ std::vector<pBSpline> BSplineBasis::MakeSplines(int kappa, pPhysicalConstant con
     int nderiv = 2;     // Get zeroth, first and second derivatives of splines
 
     gsl_matrix* dB = gsl_matrix_alloc(n, nderiv+1);
-    gsl_bspline_deriv_workspace* deriv_workspace = gsl_bspline_deriv_alloc(K);
 
     const double alpha = constants->GetAlpha();
 
     for(int i = 0; i < lattice_size; i++)
     {
         const double& x = R[i];
-        gsl_bspline_deriv_eval(x, nderiv, dB, gsl_workspace, deriv_workspace);
+        gsl_bspline_deriv_eval(x, nderiv, dB, gsl_workspace);
 
         for(int s = 0; s < n; s++)
         {
@@ -296,7 +295,6 @@ std::vector<pBSpline> BSplineBasis::MakeSplines(int kappa, pPhysicalConstant con
 
     gsl_matrix_free(dB);
     gsl_bspline_free(gsl_workspace);
-    gsl_bspline_deriv_free(deriv_workspace);
 
     if(splines.size() != 2 * N)
     {   *errstream << "BSplineBasis::MakeSplines: Number of splines (" << splines.size() << ") does not equal 2N = " << 2 * N << std::endl;
