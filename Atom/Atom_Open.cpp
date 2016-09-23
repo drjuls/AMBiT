@@ -223,7 +223,7 @@ void Atom::MakeIntegrals()
 
         bool include_box = two_body_mbpt && !user_input.search("MBPT/--no-extra-box");
         bool include_off_parity = include_box || hartreeY->OffParityExists();
-        twobody_electron = std::make_shared<TwoElectronCoulombOperator<pSlaterIntegrals>>(two_body_integrals, include_off_parity);
+        twobody_electron = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals, include_off_parity);
 
         // Calculate integrals for sigma3
         if(three_body_mbpt)

@@ -63,7 +63,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     // Generate matrix and configurations
     relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
-    pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+    pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
     HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();
 
@@ -139,7 +139,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         for(auto sym : symmetries)
@@ -195,7 +195,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         for(auto sym : symmetries)
@@ -284,7 +284,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
@@ -341,7 +341,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
@@ -429,7 +429,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
@@ -484,7 +484,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
@@ -577,7 +577,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 
         for(auto sym : symmetries)
         {
@@ -630,8 +630,8 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        pTwoElectronCoulombOperator twobody_electron(new TwoElectronCoulombOperator<pSlaterIntegrals>(integrals));
-        
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
+
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
