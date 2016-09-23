@@ -136,9 +136,12 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     if(user_input.search("HF/--breit"))
     {
-        pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
-        pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
+        pHartreeY breit = std::make_shared<BreitZero>(std::make_shared<HartreeYBase>(), integrator, coulomb);
+        pHFOperator breit_hf = std::make_shared<BreitHFDecorator>(hf, breit);
         hf = breit_hf;
+
+        // Decorate HartreeY function
+        hartreeY = std::make_shared<BreitZero>(hartreeY, integrator, coulomb);
     }
 
     if(user_input.search("HF/--uehling"))

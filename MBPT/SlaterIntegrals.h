@@ -45,6 +45,11 @@ public:
      */
     virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry; }
 
+    /** Whether any off-parity radial integrals are non-zero, i.e. \f$ (l_1 + l_3 + k) \f$ is odd.
+        The total parity must still hold: \f$(l_1 + l_2 + l_3 + l_4)\f$ is even.
+     */
+    virtual bool OffParityExists() const { return false; }
+
     /** GetTwoElectronIntegral(k, 1, 2, 3, 4) = R_k(12, 34): 1->3, 2->4
         PRE: s1, s2, s3, and s4 are all in orbital manager and conform to a orbital type pattern that has been
              calculated using CalculateTwoElectronIntegrals.
@@ -112,6 +117,9 @@ public:
 
     /** Number of stored integrals. */
     virtual unsigned int size() const override { return TwoElectronIntegrals.size(); }
+
+    /** Whether any off-parity radial integrals are non-zero. */
+    virtual bool OffParityExists() const override { return hartreeY_operator->OffParityExists(); }
 
     /** GetTwoElectronIntegral(k, 1, 2, 3, 4) = R_k(12, 34): 1->3, 2->4
         PRE: s1, s2, s3, and s4 are all in orbital manager and conform to a orbital type pattern that has been

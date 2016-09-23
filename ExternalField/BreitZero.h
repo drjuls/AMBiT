@@ -11,6 +11,7 @@ public:
     BreitZero(pHartreeY wrapped, pIntegrator integration_strategy, pCoulombOperator coulomb):
         BaseDecorator(wrapped, integration_strategy), coulomb(coulomb)
     {   two_body_reverse_symmetry_exists = false;
+        off_parity_exists = true;
     }
 
     /** < b | t | a > for an operator t. */

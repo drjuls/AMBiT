@@ -9,16 +9,21 @@
 #include "MBPT/SlaterIntegrals.h"
 
 /** Holds two-electron radial integrals (which may have MBPT) and adds angular part to give two-body matrix elements.
-    Option include_extra_box_diagrams will include "off-parity" matrix elements if they are found in the radial integrals
-    (these diagams are found in MBPT).
+    Option include_off_parity will include "off-parity" matrix elements if they are found in the radial integrals
+    (these diagams are found in MBPT and Breit interactions).
  */
 template <class pTwoElectronIntegralType>
 class TwoElectronCoulombOperator
 {
 public:
-    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals, bool include_box = false):
-        integrals(ci_integrals), include_extra_box_diagrams(include_box)
+    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals, bool include_off_parity):
+        integrals(ci_integrals), include_off_parity(include_off_parity)
     {}
+
+    TwoElectronCoulombOperator(pTwoElectronIntegralType ci_integrals):
+        integrals(ci_integrals)
+    {   include_off_parity = ci_integrals->OffParityExists();
+    }
 
     double GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const;
 
@@ -29,7 +34,7 @@ public:
     double GetReducedMatrixElement(int k, const OrbitalInfo& e1, const OrbitalInfo& e2, const OrbitalInfo& e3, const OrbitalInfo& e4) const;
 
 protected:
-    bool include_extra_box_diagrams;
+    bool include_off_parity;
     pTwoElectronIntegralType integrals;
 };
 
@@ -56,6 +61,8 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
     double q = double(two_q)/2.;
 
     double total = 0.;
+    double sqrt_multiplicity = sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
+                                           e3.MaxNumElectrons() * e4.MaxNumElectrons()));
 
     MathConstant* constants = MathConstant::Instance();
 
@@ -75,19 +82,16 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
             if(((two_q - e1.TwoM() - e2.TwoM())/2 + 1)%2)
                 coeff = - coeff;
 
-            coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
-                                        e3.MaxNumElectrons() * e4.MaxNumElectrons()));
-
             double radial = integrals->GetTwoElectronIntegral(k, e1, e2, e3, e4);
 
-            total += coeff * radial;
+            total += coeff * radial * sqrt_multiplicity;
         }
 
         k = k+2;
     }
 
     // Include the box diagrams with "wrong" parity.
-    if(include_extra_box_diagrams)
+    if(include_off_parity)
     {
         k = mmax(abs(e1.L() - e3.L()), abs(e2.L() - e4.L())) + 1;
         kmax = mmin(e1.L() + e3.L(), e2.L() + e4.L()) - 1;
@@ -112,10 +116,7 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetMatrixElement(con
                     if(((two_q - e1.TwoM() - e2.TwoM())/2 + 1)%2)
                         coeff = - coeff;
 
-                    coeff = coeff * sqrt(double(e1.MaxNumElectrons() * e2.MaxNumElectrons() *
-                                                e3.MaxNumElectrons() * e4.MaxNumElectrons()));
-
-                    total += coeff * radial;
+                    total += coeff * radial * sqrt_multiplicity;
                 }
             }
 
@@ -131,7 +132,7 @@ double TwoElectronCoulombOperator<TwoElectronIntegralType>::GetReducedMatrixElem
 {
     MathConstant* math = MathConstant::Instance();
 
-    if(!include_extra_box_diagrams)
+    if(!include_off_parity)
     {
         if(!math->sum_is_even(e1.L(), e3.L(), k) || !math->sum_is_even(e2.L(), e4.L(), k))
             return 0.0;

@@ -31,7 +31,7 @@ class HartreeYBase : public std::enable_shared_from_this<HartreeYBase>
     friend class HartreeYBasicDecorator;
 public:
     HartreeYBase(pIntegrator integration_strategy = nullptr):
-        K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), parent(nullptr), lightweight_mode(false)
+        K(-1), integrator(integration_strategy), two_body_reverse_symmetry_exists(true), off_parity_exists(false), parent(nullptr), lightweight_mode(false)
     {}
     virtual ~HartreeYBase() {}
 
@@ -39,6 +39,11 @@ public:
         i.e. SetParameters(k, c, d) == SetParameters(k, d, c).
      */
     virtual bool ReverseSymmetryExists() const { return two_body_reverse_symmetry_exists; }
+
+    /** Whether any off-parity radial integrals are non-zero, i.e. \f$ (l_1 + l_3 + k) \f$ is odd.
+        The total parity must still hold: \f$(l_1 + l_2 + l_3 + l_4)\f$ is even.
+     */
+    virtual bool OffParityExists() const { return off_parity_exists; }
 
     /** Set lightweight_mode, used for getting K values and --check-sizes.
         Warning: It prevents long calculations, but if set then GetMatrixElement() and ApplyTo() will not function.
@@ -132,6 +137,7 @@ public:
 protected:
     pIntegrator integrator;
     bool two_body_reverse_symmetry_exists;
+    bool off_parity_exists;
     HartreeYBase* parent;   //!< Pointer to parent decorator, or null if this is the top-level HartreeY.
 
     int K;
@@ -298,6 +304,10 @@ public:
      */
     virtual bool ReverseSymmetryExists() const override final
     {   return two_body_reverse_symmetry_exists && component->ReverseSymmetryExists();
+    }
+
+    virtual bool OffParityExists() const override final
+    {   return off_parity_exists || component->OffParityExists();
     }
 
     virtual int SetOrbitals(pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override final
