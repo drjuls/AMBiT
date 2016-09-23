@@ -169,7 +169,7 @@ void EMCalculator::PrintHeader() const
     // Print the appropriate header for the type of transitions we're printing:
     // either reduced matrix elements of transition line strengths (the
     // default)
-    if(user_input.search("--reduced-ME")){
+    if(user_input.search("--ReducedMatrixElems")){
       *outstream << Name(type) << J << " reduced matrix elements (T):" 
           << std::endl;
     } else {
@@ -188,7 +188,7 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
 
     // Read over the user input to see if we need to print the reduced matrix
     // elements or the transition line strengths
-    if(user_input.search("--reduced-ME")){
+    if(user_input.search("--ReducedMatrixElems")){ 
       *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(6) << value << std::endl;
     } else {
