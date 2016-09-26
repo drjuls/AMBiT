@@ -420,6 +420,16 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     {   user_input.search("Basis/--bspline-basis"); // Just to clear UFO from user_input.
         excited = GenerateBSplines(max_pqn_per_l);
     }
+    bool reorth = user_input.search("Basis/--reorthogonalise");
+
+    // Inject any special orbitals from another basis, and push the old ones to higher pqn
+    int number_injected = user_input.vector_variable_size("Basis/InjectOrbitals");
+    for(int i = 0; i < number_injected; i++)
+    {
+        std::string inject_string = user_input("Basis/InjectOrbitals", "", i);
+        InjectOrbitals(inject_string, excited);
+        reorth = true;
+    }
 
     // Place all orbitals in orbitals->all.
     // Finally create orbitals->all and the state index
@@ -432,6 +442,12 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     // Organise orbitals
     SetOrbitalMaps();
 
+    if(reorth)
+    {
+        for(auto excited_orbital_pair: *orbitals->excited)
+            Orthogonalise(excited_orbital_pair.second);
+    }
+
     if(DebugOptions.OutputHFExcited())
     {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
         double orth = TestOrthogonality(max_i, max_j);
@@ -439,6 +455,79 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     }
 
     return orbitals;
+}
+
+void BasisGenerator::InjectOrbitals(const std::string& input, pOrbitalMap excited) const
+{
+    std::string inputfile;
+    std::string origin;
+    std::string target;
+    size_t colon_pos = input.find(':');
+    size_t arrow_pos = input.find("->");
+
+    if(colon_pos == std::string::npos || arrow_pos == std::string::npos)
+    {
+        *errstream << "Basis/InjectOrbitals incorrectly specified." << std::endl;
+        exit(1);
+    }
+
+    inputfile = input.substr(0, colon_pos);
+    origin = input.substr(colon_pos+1, arrow_pos);
+    target = input.substr(arrow_pos+2, input.size());
+
+    // Remove whitespace from inputfile; import orbitals
+    inputfile.erase(std::remove_if(inputfile.begin(), inputfile.end(), isspace), inputfile.end());
+    pOrbitalManager imported_orbitals = std::make_shared<OrbitalManager>(inputfile);
+
+    NonRelInfo nonrelorigin = ConfigurationParser::ParseOrbital(origin);
+    NonRelInfo nonreltarget = ConfigurationParser::ParseOrbital(target);
+
+    for(int step = 1; step <= (nonreltarget.L()? 2: 1); step++)
+    {
+        // Get injected orbital
+        pOrbital inject;
+        if(step == 1)
+        {   inject = imported_orbitals->all->GetState(nonrelorigin.GetFirstRelativisticInfo());
+            inject->SetKappa(nonreltarget.GetFirstRelativisticInfo().Kappa());
+        }
+        else
+        {   inject = imported_orbitals->all->GetState(nonrelorigin.GetSecondRelativisticInfo());
+            inject->SetKappa(nonreltarget.GetSecondRelativisticInfo().Kappa());
+        }
+        inject->SetPQN(nonreltarget.PQN());
+
+        // Move all orbitals with higher PQN out
+        std::vector<pOrbital> moved_orbitals;
+        int max_moved_pqn = 0;
+        auto it = excited->begin();
+        while(it != excited->end())
+        {
+            if((it->first.Kappa() == inject->Kappa()) &&
+               (it->first.PQN() >= inject->PQN()))
+            {
+                pOrbital moved = it->second;
+
+                // Increment the PQN
+                moved->SetPQN(it->first.PQN() + 1);
+                max_moved_pqn = mmax(max_moved_pqn, moved->PQN());
+                moved_orbitals.push_back(moved);
+
+                it = excited->erase(it);
+            }
+            else
+                ++it;
+        }
+
+        // Inject new orbital
+        excited->AddState(inject);
+
+        // Move other orbitals back
+        for(auto orbital: moved_orbitals)
+        {
+            if(orbital->PQN() != max_moved_pqn)
+                excited->AddState(orbital);
+        }
+    }
 }
 
 void BasisGenerator::Orthogonalise(pOrbital current) const

@@ -22,6 +22,9 @@ public:
     /** Split non-relativistic configurations from string according to occupancy weighting. */
     static OccupationMap ParseFractionalConfiguration(const std::string& configuration);
 
+    /** Return NonRelInfo from orbital string. */
+    static NonRelInfo ParseOrbital(const std::string& orbital);
+
     /** Set num_states[L] to highest pqn. 0 indicates that the L wasn't specified in the string.
         e.g. "6sp5d4f" -> [6, 6, 5, 4]
      */

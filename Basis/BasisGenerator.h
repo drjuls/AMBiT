@@ -99,6 +99,13 @@ protected:
     /** When generating excited states, assume that states below Fermi level in "orbitals" are good to go. */
     virtual pOrbitalMap GenerateHFExcited(const std::vector<int>& max_pqn);
 
+    /** Inject orbitals from another basis file, push the old ones to higher pqn, and orthogonalise.
+        Example usage:
+            Basis/InjectOrbitals = 'OtherID_0.basis:4f -> 5f'
+        which makes the 4f orbitals from OtherID_0.basis the new 5f orbitals (after orthogonalising).
+     */
+    void InjectOrbitals(const std::string& input, pOrbitalMap excited) const;
+
     /** Orthogonalise to all states that have the same kappa and principal quantum number
         less than current (both in core and in excited states).
         PRE: all states with smaller pqn must already be orthogonal

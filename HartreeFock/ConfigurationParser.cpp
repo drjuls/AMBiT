@@ -35,6 +35,28 @@ OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::strin
     return ret;
 }
 
+NonRelInfo ConfigurationParser::ParseOrbital(const std::string& orbital)
+{
+    unsigned int p = 0;
+    int L = -1;
+
+    const char* basis_def = orbital.c_str();
+
+    int pqn = atoi(basis_def + p);
+    while(basis_def[p] && (isdigit(basis_def[p]) || isblank(basis_def[p])))
+        p++;
+    if(basis_def[p] && !isdigit(basis_def[p]) && !isblank(basis_def[p]))
+    {
+        L = MathConstant::Instance()->GetL(tolower(basis_def[p]));
+    }
+    if(L < 0)
+    {   *errstream << "ConfigurationParser::ParseOrbital() bad string: " << orbital << std::endl;
+        exit(1);
+    }
+
+    return NonRelInfo(pqn, L);
+}
+
 std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
 {
     unsigned int p = 0;

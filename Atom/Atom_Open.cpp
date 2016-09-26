@@ -57,6 +57,10 @@ void Atom::MakeMBPTIntegrals()
         max_pqn_in_core = mmax(max_pqn_in_core, pair.first.PQN());
     }
 
+    // We can always force subtraction diagrams, and it's always a good idea if there have been injected orbitals
+    if(user_input.search("MBPT/--use-subtraction") || user_input.vector_variable_size("Basis/InjectOrbitals"))
+        is_open_shell = true;
+
     bool use_box = !user_input.search("MBPT/--no-extra-box");
     bool include_core = !user_input.search("MBPT/--no-core");
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
