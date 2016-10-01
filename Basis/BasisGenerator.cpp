@@ -144,7 +144,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         hartreeY = std::make_shared<BreitZero>(hartreeY, integrator, coulomb);
     }
 
-    if(user_input.search("HF/--uehling"))
+    if(user_input.search("HF/--uehling") || user_input.search("HF/--qed"))
     {
         if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
         {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
@@ -157,7 +157,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         hf = uehling;
     }
 
-    if(user_input.search("HF/--self-energy"))
+    if(user_input.search("HF/--self-energy") || user_input.search("HF/--qed"))
     {
         if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
         {

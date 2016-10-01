@@ -3,7 +3,9 @@
 
 #include "HartreeFock/HartreeY.h"
 
-/** Reduced two-body operator for frequency-independent Breit interaction, following Johnson book p. 203.
+/** Two-body operator for frequency-independent Breit interaction, following Johnson book p. 203.
+    Note that here the reduced spherical tensor matrix elements (prefactors in Johnson's book) are
+    removed: we are calculating the equivalent of HartreeY operators.
  */
 class BreitZero : public HartreeYDecorator<HartreeYBasicDecorator, BreitZero>
 {
@@ -25,7 +27,9 @@ protected:
     virtual int GetLocalMinK() const override;
     virtual int GetLocalMaxK() const override;
 
-    /** P_{ik}(r) for current value of K. */
+    /** P_{ik}(r) for current value of K.
+        PRE: K > 0.
+     */
     SpinorFunction P(const SpinorFunction& k, int kappa_i) const;
     RadialFunction P(const SpinorFunction& i, const SpinorFunction& k) const;
 
@@ -38,7 +42,7 @@ protected:
 
     /* Integral of the form
                              r< ^L
-          I(r) = Integral[ ---------.P_cd(r').dr' ] . <kappa_c || C^L || kappa_d>
+          I(r) = Integral[ ---------.P_cd(r').dr' ]
                            r> ^(L+1)
        with L = K+1. Others are similar.
      */
@@ -47,8 +51,6 @@ protected:
     RadialFunction pot_Q_Kplus;
     RadialFunction pot_Q_Kminus;
     RadialFunction pot_V_K;
-
-    bool jc_plus_jd_even;
 };
 
 #endif

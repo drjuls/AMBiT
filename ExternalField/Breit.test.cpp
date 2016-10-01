@@ -55,7 +55,8 @@ TEST(BreitTester, LiLikeNe)
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitZero for N term
     breit->SetParameters(1, s_core, s);
-    double value = integrator->GetInnerProduct(*s, breit->ApplyTo(*s_core, s->Kappa()))/2.0;
+    double coeff = -2.0 * gsl_pow_2(MathConstant::Instance()->Electron3j(1, 1, 1));
+    double value = integrator->GetInnerProduct(*s, breit->ApplyTo(*s_core, s->Kappa())) * coeff;
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 
     // Check p-wave against Johnson
@@ -65,8 +66,8 @@ TEST(BreitTester, LiLikeNe)
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitZero for M and O terms
     breit->SetParameters(1, s_core, p1);
-    matrix_element = breit->GetMatrixElement(*p1, *s_core)/2.0;
-    value = integrator->GetInnerProduct(*p1, breit->ApplyTo(*s_core, p1->Kappa()))/2.0;
+    matrix_element = breit->GetMatrixElement(*p1, *s_core);
+    value = integrator->GetInnerProduct(*p1, breit->ApplyTo(*s_core, p1->Kappa()));
     EXPECT_NEAR(matrix_element, value, 1.e-7);
 
     // Check p_3/2-wave against Johnson
@@ -132,54 +133,4 @@ TEST(BreitTester, HgSlow)
     matrix_element = breit_hf->GetMatrixElement(six_s, six_s);
     matrix_element -= hf->GetMatrixElement(six_s, six_s);
     EXPECT_NEAR(0.001547, matrix_element, 0.001);
-}
-
-TEST(BreitTester, IrSixteenPlusSlow)
-{
-    pLattice lattice(new Lattice(1000, 1.e-6, 20.));
-    DebugOptions.LogHFIterations(true);
-    DebugOptions.OutputHFExcited(true);
-
-    //Ir16+ - comparison with Borschevsky
-    std::string user_input_string = std::string() +
-        "NuclearRadius = 6.0\n" +
-        "NuclearThickness = 2.3\n" +
-        "Z = 77\n" +
-        "[HF]\n" +
-        "N = 60\n" +
-        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14'\n" +
-        "[Basis]\n" +
-        "--bspline-basis\n" +
-        "ValenceBasis = 5sp\n" +
-        "BSpline/Rmax = 20.0\n";
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
-    // Get core and excited basis
-    BasisGenerator basis_generator(lattice, userInput);
-    pCore core = basis_generator.GenerateHFCore();
-    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-    pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
-
-    pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pODESolver ode_solver(new AdamsSolver(integrator));
-    pCoulombOperator coulomb(new CoulombOperator(lattice, ode_solver));
-
-    const Orbital s_hf = *orbitals->valence->GetState(OrbitalInfo(5, -1));
-    const Orbital p1_hf = *orbitals->valence->GetState(OrbitalInfo(5, 1));
-    const Orbital p3_hf = *orbitals->valence->GetState(OrbitalInfo(5, -2));
-
-    pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
-    pHFOperator hf = basis_generator.GetClosedHFOperator();
-    pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
-
-    HartreeFocker hf_solver(ode_solver);
-    hf_solver.SolveCore(core, breit_hf);
-
-    const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(5, -1));
-    const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(5, -2));
-
-    double energy = hf->GetMatrixElement(p3, p3) - hf->GetMatrixElement(s, s);
-    *logstream << "s->p3: Energy = " << energy << ", breit (%) = " << ((breit_hf->GetMatrixElement(p3, p3) - breit_hf->GetMatrixElement(s, s))/energy -1.) * 100. << std::endl;
 }

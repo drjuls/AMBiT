@@ -10,14 +10,13 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
 
     // Find out whether a is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&a);
-    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
-        current_in_core = NULL;
+    if(core->GetState(OrbitalInfo(current_in_core)) == nullptr)
+        current_in_core = nullptr;
 
     pSpinorFunctionConst p_a(a.shared_from_this());
 
     // Sum over all core states
-    auto cs = core->begin();
-    while(cs != core->end())
+    for(auto cs = core->begin(); cs != core->end(); ++cs)
     {
         pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
@@ -26,8 +25,8 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
         int k = breit_operator->SetOrbitals(core_orbital, p_a);
         while(k != -1)
         {
-            double coefficient = -1./(2. * abs(a.Kappa()));
-            coefficient *= MathConstant::Instance()->minus_one_to_the_power((a.TwoJ() - core_orbital->TwoJ())/2 + k);
+            double coefficient = MathConstant::Instance()->Electron3j(a.TwoJ(), core_orbital->TwoJ(), k);
+            coefficient = (2 * abs(core_orbital->Kappa())) * coefficient * coefficient;
 
             // Open shells need to be scaled
             if(other_occupancy != double(2 * abs(core_orbital->Kappa())))
@@ -65,12 +64,11 @@ double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) co
                 coefficient = coefficient * ex;
             }
 
-            value += breit_operator->GetMatrixElement(b, *core_orbital) * coefficient;
+            // In HFOperators, the potential is positive
+            value -= breit_operator->GetMatrixElement(b, *core_orbital) * coefficient;
 
             k = breit_operator->NextK();
         }
-
-        cs++;
     }
     
     return value;
@@ -85,14 +83,13 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
 
     // Find out whether s is in the core
     const Orbital* current_in_core = dynamic_cast<const Orbital*>(&s);
-    if(core->GetState(OrbitalInfo(current_in_core)) == NULL)
-        current_in_core = NULL;
+    if(core->GetState(OrbitalInfo(current_in_core)) == nullptr)
+        current_in_core = nullptr;
 
     pSpinorFunctionConst p_s(s.shared_from_this());
 
     // Sum over all core states
-    auto cs = core->begin();
-    while(cs != core->end())
+    for(auto cs = core->begin(); cs != core->end(); ++cs)
     {
         pOrbitalConst core_orbital = cs->second;
         double other_occupancy = core->GetOccupancy(OrbitalInfo(core_orbital));
@@ -101,8 +98,8 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
         int k = breit_operator->SetOrbitals(core_orbital, p_s);
         while(k != -1)
         {
-            double coefficient = 1./(2. * abs(s.Kappa()));
-            coefficient *= MathConstant::Instance()->minus_one_to_the_power((s.TwoJ() - core_orbital->TwoJ())/2 + k);
+            double coefficient = MathConstant::Instance()->Electron3j(s.TwoJ(), core_orbital->TwoJ(), k);
+            coefficient = (2 * abs(core_orbital->Kappa())) * coefficient * coefficient;
 
             // Open shells need to be scaled
             if(other_occupancy != double(2 * abs(core_orbital->Kappa())))
@@ -144,8 +141,6 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
 
             k = breit_operator->NextK();
         }
-
-        cs++;
     }
     
     return exchange;
