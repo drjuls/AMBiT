@@ -31,6 +31,10 @@ protected:
     void CalculateCorrelation2(int kappa, SigmaPotential& sigma);
     void CalculateCorrelation4(int kappa, SigmaPotential& sigma);
 
+    /** Parity check returns true if (a.L() + b.L() + k)%2 == 0 or include_off_parity. */
+    using MBPTCalculator::ParityCheck;
+    inline bool ParityCheck(const int& La, const int& Lb, const int& k) const;
+
 protected:
     pSpinorOperatorConst hf;
     pHartreeY hartreeY;
@@ -38,6 +42,11 @@ protected:
     pOrbitalMapConst core;
     pOrbitalMapConst excited;
 };
+
+inline bool BruecknerSigmaCalculator::ParityCheck(const int& La, const int& Lb, const int& k) const
+{
+    return (include_off_parity || (La + Lb + k)%2 == 0);
+}
 
 typedef std::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
 

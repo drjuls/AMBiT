@@ -16,7 +16,7 @@ public:
             Denote using a basis-style string, e.g. 5sp4df.
             Any unspecified angular momentum defaults to first orbital above fermi level.
      */
-    MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals = "");
+    MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals = "", bool include_off_parity = false);
     virtual ~MBPTCalculator(void);
 
     virtual unsigned int GetStorageSize() = 0;
@@ -49,6 +49,9 @@ protected:
     /** Return absolute value of the difference of two unsigned integers. */
     inline int absdiff(int i, int j) const;
 
+    /** Parity check returns true if (a.L() + b.L() + k)%2 == 0 or include_off_parity. */
+    inline bool ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k) const;
+
     /** Return minimum value of k connecting two states a and b, satisfying:
           triangle(a.J(), b.J(), kmin)
           eps(a.L() + b.L() + kmin)
@@ -74,10 +77,16 @@ protected:
           triangle(c.J(), d.J(), kmax)
     */
     inline int kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
-    
+
 protected:
     pOrbitalManagerConst orbitals;
     pOrbitalMapConst valence;
+
+    /** Two-body radial integrals may include off-parity k: (l1 + l2 + k) is odd.
+        Set kstep to one to include these.
+     */
+    const bool include_off_parity;
+    const int kstep;
 
     /** Valence energies for Brillouin-Wigner MBPT. */
     std::map<int, double> ValenceEnergies;
@@ -94,16 +103,21 @@ inline int MBPTCalculator::absdiff(int i, int j) const
     return abs(i - j);
 }
 
+inline bool MBPTCalculator::ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k) const
+{
+    return (include_off_parity || ((a.L() + b.L() + k)%2 == 0));
+}
+
 inline int MBPTCalculator::kmin(const OrbitalInfo& a, const OrbitalInfo& b) const
 {
-    // ensure eps(a.L() + b.L() + kmin)
-    int ret = absdiff(a.L(), b.L());
-
     // ensure triangle(a.J(), b.J(), kmin)
-    if(absdiff(a.TwoJ(), b.TwoJ()) > 2 * ret)
-        ret += 2;
+    int k = absdiff(a.TwoJ(), b.TwoJ())/2;
 
-    return ret;
+    // ensure eps(a.L() + b.L() + kmin)
+    if(!ParityCheck(a, b, k))
+        k++;
+
+    return k;
 }
 
 inline int MBPTCalculator::kmin(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const

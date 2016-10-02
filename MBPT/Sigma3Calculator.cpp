@@ -3,7 +3,7 @@
 #include "Universal/PhysicalConstant.h"
 
 Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence, const std::string& fermi_orbitals):
-    MBPTCalculator(orbitals, fermi_orbitals), two_body(two_body), include_valence(include_valence),
+    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), two_body(two_body), include_valence(include_valence),
     deep(orbitals->deep), high(orbitals->high)
 {}
 
@@ -62,20 +62,19 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
     int q1 = (e1.TwoM() - e4.TwoM())/2;
     int k1min = kmin(e1, e4);
     while(k1min < abs(q1))
-        k1min += 2;
+        k1min += kstep;
     int k1max = kmax(e1, e4);
 
     // k2 limits
     int q2 = (e6.TwoM() - e3.TwoM())/2;
     int k2min = kmin(e3, e6);
     while(k2min < abs(q2))
-        k2min += 2;
+        k2min += kstep;
     int k2max = kmax(e3, e6);
 
     if((k1min > k1max) || (k2min > k2max))
         return 0.;
 
-    int ln_parity = (k1min + e2.L())%2;
     const double ValenceEnergy = ValenceEnergies.find(e2.Kappa())->second;
 
     double total = 0.;
@@ -83,7 +82,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
     MathConstant* constants = MathConstant::Instance();
 
     // Summation over k1
-    for(k1 = k1min; k1 <= k1max; k1+=2)
+    for(k1 = k1min; k1 <= k1max; k1 += kstep)
     {
         double coeff14 = constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1, -e1.TwoM(), e4.TwoM()) *
                          constants->Electron3j(e1.TwoJ(), e4.TwoJ(), k1);
@@ -91,7 +90,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
         if(coeff14)
         {
             // Summation over k2
-            for(k2 = k2min; k2 <= k2max; k2+=2)
+            for(k2 = k2min; k2 <= k2max; k2 += kstep)
             {
                 double coeff36 = constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2, -e3.TwoM(), e6.TwoM()) *
                                  constants->Electron3j(e3.TwoJ(), e6.TwoJ(), k2);
@@ -105,7 +104,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                         const OrbitalInfo& sn = it_n->first;
                         int two_Jn = sn.TwoJ();
 
-                        if((two_Jn >= abs(two_mn)) && (sn.L()%2 == ln_parity))
+                        if((two_Jn >= abs(two_mn)) && ParityCheck(e2, sn, k1))
                         {
                             const double En = it_n->second->Energy();
 
@@ -140,7 +139,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                             const OrbitalInfo& salpha = it_alpha->first;
                             int two_Jalpha = salpha.TwoJ();
 
-                            if((two_Jalpha >= abs(two_mn)) && (salpha.L()%2 == ln_parity))
+                            if((two_Jalpha >= abs(two_mn)) && ParityCheck(salpha, e2, k1))
                             {
                                 const double Ealpha = it_alpha->second->Energy();
 

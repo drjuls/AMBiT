@@ -60,6 +60,8 @@ void Atom::MakeMBPTIntegrals()
     // We can always force subtraction diagrams, and it's always a good idea if there have been injected orbitals
     if(user_input.search("MBPT/--use-subtraction") || user_input.vector_variable_size("Basis/InjectOrbitals"))
         is_open_shell = true;
+    if(user_input.search("MBPT/--no-subtraction"))
+        is_open_shell = false;
 
     bool use_box = !user_input.search("MBPT/--no-extra-box");
     bool include_core = !user_input.search("MBPT/--no-core");

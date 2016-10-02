@@ -4,7 +4,7 @@
 #include "Universal/PhysicalConstant.h"
 
 ValenceMBPTCalculator::ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
-    MBPTCalculator(orbitals, fermi_orbitals), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
+    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
 {}
 
 ValenceMBPTCalculator::~ValenceMBPTCalculator()
@@ -115,8 +115,8 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
             const double Ebeta = it_beta->second->Energy();
 
             if(InQSpace(salpha, sbeta) &&
-               (sa.L() + salpha.L())%2 == (sb.L() + sbeta.L())%2 &&
-               (salpha.L() + sc.L())%2 == (sbeta.L() + sd.L())%2)
+               ((sa.L() + salpha.L() + sb.L() + sbeta.L())%2 == 0) &&
+               ((salpha.L() + sc.L() + sbeta.L() + sd.L())%2 == 0))
             {
                 double coeff_alphabeta = salpha.MaxNumElectrons() * sbeta.MaxNumElectrons() * (2 * k + 1);
 
@@ -160,11 +160,11 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                                 energy += R1 * R2 * coeff;
                             }
 
-                            k2 += 2;
+                            k2 += kstep;
                         }
                     }
 
-                    k1 += 2;
+                    k1 += kstep;
                 }
             }
             it_beta++;
