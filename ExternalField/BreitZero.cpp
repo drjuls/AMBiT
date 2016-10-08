@@ -36,16 +36,21 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
         return false;
     }
 
+    int pot_size = integrator->GetLattice()->size();
     // M_K(ijkl) and O_K(ijkl)
     if(math.sum_is_even(c->L(), d->L(), K))
     {
         RadialFunction Qcd = Q(*c, *d);
+        pot_Q_Kplus.resize(pot_size);
         coulomb->GetPotential(K+1, Qcd, pot_Q_Kplus);
 
         RadialFunction Pcd = P(*c, *d);
+        pot_P_Kminus.resize(pot_size);
         coulomb->GetPotential(K-1, Pcd, pot_P_Kminus);
 
         // Additional for O_K(ijkl)
+        pot_Q_Kminus.resize(pot_size);
+        pot_P_Kplus.resize(pot_size);
         coulomb->GetPotential(K-1, Qcd, pot_Q_Kminus);
         coulomb->GetPotential(K+1, Pcd, pot_P_Kplus);
     }
@@ -58,13 +63,14 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
             Vcd.dfdr[i] = c->f[i] * d->dgdr[i] + c->dfdr[i] * d->g[i] + c->g[i] * d->dfdr[i] + c->dgdr[i] * d->f[i];
         }
 
+        pot_V_K.resize(pot_size);
         coulomb->GetPotential(K, Vcd, pot_V_K);
-        pot_V_K *= (c->Kappa() + d->Kappa());
+        pot_V_K *= double(c->Kappa() + d->Kappa());
     }
 
     return (pot_Q_Kplus.size() || pot_V_K.size());
 }
-
+/*
 double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     double value = component->GetMatrixElement(b, a, reverse);
@@ -130,7 +136,7 @@ double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reve
 
     return (value + M + N + O);
 }
-
+*/
 SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
 {
     SpinorFunction ret = component->ApplyTo(a, kappa_b, reverse);
@@ -177,10 +183,8 @@ SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool rev
             ret += PP_minus * (double(K*K)/double((2 * K + 1) * (2 * K - 1)) * O_coeff);
 
             double QP_coeff = double(K * (K+1))/double(4 * K + 2) * O_coeff;
-            ret += Qa * pot_P_Kminus * QP_coeff;
-            ret += Qa * pot_P_Kplus * -QP_coeff;
-            ret += Pa * pot_Q_Kminus * QP_coeff;
-            ret += Pa * pot_Q_Kplus * -QP_coeff;
+            ret += Qa * (pot_P_Kminus - pot_P_Kplus) * QP_coeff;
+            ret += Pa * (pot_Q_Kminus - pot_Q_Kplus) * QP_coeff;
         }
     }
     else if(pot_V_K.size())

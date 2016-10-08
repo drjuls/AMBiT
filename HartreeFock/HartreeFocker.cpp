@@ -555,7 +555,6 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
     pLattice lattice = hf->GetLattice();
     const double alpha = hf->GetPhysicalConstant()->GetAlpha();
     pIntegrator integrator = hf->GetIntegrator();
-    const SpinorFunction& ex(*exchange);
 
     orbital->ReNormalise(integrator);
     orbital->CheckSize(lattice, WavefunctionTolerance);
@@ -563,20 +562,28 @@ double HartreeFocker::IterateOrbital(pOrbital orbital, pHFOperator hf, pSpinorFu
     // Get solutions to homogenous equation (no exchange)
     hf->SetODEParameters(orbital->Kappa(), orbital->Energy());
     hf->IncludeExchange(false);
+
+    pCoulombOperator coulomb = std::make_shared<CoulombOperator>(hf->GetLattice(), odesolver);
+    pLocalExchangeApproximation hfsl = std::make_shared<LocalExchangeApproximation>(hf, coulomb);
     Orbital originregular(*orbital);
     Orbital infinityregular(*orbital);
-    odesolver->IntegrateBackwards(hf, &infinityregular);
-    odesolver->IntegrateForwards(hf, &originregular);
+    odesolver->IntegrateBackwards(hfsl, &infinityregular);
+    odesolver->IntegrateForwards(hfsl, &originregular);
 
+    // Get source term and use Green's method to get coefficients of solution to inhomogenous equation
     GreensMethodODE greens(lattice);
     greens.SetHomogenousSolutions(originregular, infinityregular);
 
     RadialFunction G0(orbital->size());
     RadialFunction GInf(orbital->size());
 
-    greens.SetSourceTerm(ex * alpha, true);
+    SpinorFunction source(*exchange);
+    source += (*orbital) * (hf->GetDirectPotential() - hfsl->GetDirectPotential());
+    source *= alpha;
+
+    greens.SetSourceTerm(source, true);
     odesolver->IntegrateForwards(&greens, &G0);
-    greens.SetSourceTerm(ex * alpha, false);
+    greens.SetSourceTerm(source, false);
     odesolver->IntegrateBackwards(&greens, &GInf);
 
     *orbital = originregular * GInf - infinityregular * G0;
