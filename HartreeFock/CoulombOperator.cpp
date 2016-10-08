@@ -1,4 +1,5 @@
 #include "CoulombOperator.h"
+#include <gsl/gsl_math.h>
 
 CoulombOperator::CoulombOperator(pLattice lattice, pODESolver ode):
     OneDimensionalODE(lattice), fwd_direction(true), ode_solver(ode)
@@ -155,12 +156,15 @@ void CoulombOperator::EstimateSolutionNearOrigin(unsigned int numpoints, RadialF
     // Use trapezoidal rule for integrand
     for(unsigned int i = 0; i < numpoints; i++)
     {
-        integrand += 0.5 * pow(lattice->R(i), k) * rho.f[i] * lattice->dR(i);
-        f.f[i] = 1./pow(lattice->R(i), k+1) * integrand;
+        double rhof = 0.;
+        if(i < rho.size())
+            rhof = rho.f[i];
+        integrand += 0.5 * gsl_pow_int(lattice->R(i), k) * rhof * lattice->dR(i);
+        f.f[i] = 1./gsl_pow_int(lattice->R(i), k+1) * integrand;
 
         GetODEFunction(i, f, &w);
         f.dfdr[i] = w;
-        integrand +=  0.5 * pow(lattice->R(i), k) * rho.f[i] * lattice->dR(i);
+        integrand +=  0.5 * gsl_pow_int(lattice->R(i), k) * rhof * lattice->dR(i);
     }
 }
 
@@ -172,11 +176,14 @@ void CoulombOperator::EstimateSolutionNearInfinity(unsigned int numpoints, Radia
 
     for(unsigned int i = f.size() - 1; i >= f.size() - numpoints; i--)
     {
-        integrand += 0.5 * 1./pow(lattice->R(i), k+1) * rho.f[i] * lattice->dR(i);
-        f.f[i] = pow(lattice->R(i), k) * integrand;
+        double rhof = 0.;
+        if(i < rho.size())
+            rhof = rho.f[i];
+        integrand += 0.5 * 1./gsl_pow_int(lattice->R(i), k+1) * rhof * lattice->dR(i);
+        f.f[i] = gsl_pow_int(lattice->R(i), k) * integrand;
 
         GetODEFunction(i, f, &w);
-        f.dfdr[i] = (-double(k+1) * f.f[i] + rho.f[i])/lattice->R(i);
-        integrand += 0.5 * 1./pow(lattice->R(i), k+1) * rho.f[i] * lattice->dR(i);
+        f.dfdr[i] = (-double(k+1) * f.f[i] + rhof)/lattice->R(i);
+        integrand += 0.5 * 1./gsl_pow_int(lattice->R(i), k+1) * rhof * lattice->dR(i);
     }
 }
