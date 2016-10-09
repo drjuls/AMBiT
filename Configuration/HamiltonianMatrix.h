@@ -24,8 +24,10 @@ class HamiltonianMatrix : public Matrix
 public:
     /** Hamiltonian with one and two-body operators. */
     HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
+    /** "Non-square" Hamiltonian with dimensions (Nsmall, N) where part of the N*N matrix is zero. */
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configsubsetend);
     /** Hamiltonian with additional effective three-body operator. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configsubsetend = 0);
     virtual ~HamiltonianMatrix();
 
     virtual void MatrixMultiply(int m, double* b, double* c) const;
@@ -67,23 +69,26 @@ protected:
     pConfigListConst leading_configs;           //!< Leading configs for sigma3
     pThreeBodyHamiltonianOperator H_three_body; //!< Three-body operator is null if sigma3 not used
 
+    unsigned int Nsmall;            //!< For non-square CI, the smaller matrix size
+    unsigned int configsubsetend;   //!< End of smaller RelativisticConfigList
+
 protected:
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrix;
 
-    /** MatrixChunk is a rectangular section of the HamiltonianMatrix.
-        The top left corner of the section is on the diagonal at (start_row, start_row).
-        The number of rows is num_rows, and the section goes to column N (the right edge of the Hamiltonian matrix).
+    /** MatrixChunk is a rectangular section of the lower triangular part of the HamiltonianMatrix.
+        The top left corner of the section is at (start_row, 0).
+        The number of rows is num_rows, and the section goes to the diagonal of the Hamiltonian matrix (or Nsmall if chunk is in the extra part).
         The rows correspond to a number of RelativisticConfigurations in configs, as distributed by GenerateMatrix().
         RelativisticConfigurations included are [config_indices.first, config_indices.second).
      */
     class MatrixChunk
     {
     public:
-        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int N):
+        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall):
             start_row(row_start), num_rows(num_rows)
         {   config_indices.first = config_index_start;
             config_indices.second = config_index_end;
-            chunk = RowMajorMatrix::Zero(num_rows, N-start_row);
+            chunk = RowMajorMatrix::Zero(num_rows, mmin(start_row + num_rows, Nsmall));
         }
 
         std::pair<unsigned int, unsigned int> config_indices;
@@ -91,12 +96,15 @@ protected:
         unsigned int num_rows;
         RowMajorMatrix chunk;
 
-        /** Make lower triangle part of the matrix chunk match the upper. */
+        /** Make upper triangle part of the matrix chunk match the lower. */
         void Symmetrize()
         {
-            for(unsigned int i = 1; i < num_rows; i++)
-                for(unsigned int j = 0; j < i; j++)
-                    chunk(i, j) = chunk(j, i);
+            if(start_row < chunk.cols())
+            {
+                for(unsigned int i = 0; i < num_rows-1; i++)
+                    for(unsigned int j = i+start_row+1; j < chunk.cols(); j++)
+                        chunk(i, j) = chunk(j - start_row, i + start_row);
+            }
         }
     };
 

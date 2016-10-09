@@ -15,15 +15,12 @@
 // and ScaLAPACK is available.
 #define MANY_LEVELS_LIM   50
 
-// Include this define for the box diagrams of "wrong" parity.
-//#define INCLUDE_EXTRA_BOX_DIAGRAMS
-
-// Include this define to only include sigma3 when both states are leading configurations
-// (instead of just one).
-//#define SIGMA3_AND
-
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
-    H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
+    HamiltonianMatrix(hf, coulomb, relconfigs, 0)
+{}
+
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configsubsetend):
+    H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0), configsubsetend(configsubsetend)
 {
     // Set up Hamiltonian operator
     H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(hf, coulomb);
@@ -31,12 +28,28 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     // Set up matrix
     N = configs->NumCSFs();
 
-    *logstream << " " << N << " " << std::flush;
-    *outstream << " Number of CSFs = " << N << std::flush;
+    if(configsubsetend)
+    {
+        Nsmall = 0;
+        const auto it_end = (*relconfigs)[configsubsetend];
+        for(auto it = relconfigs->begin(); it != it_end; ++it)
+        {
+            Nsmall += it->NumCSFs();
+        }
+
+        *logstream << " " << N << "x" << Nsmall << std::flush;
+        *outstream << " Number of CSFs = " << N << " x " << Nsmall << std::flush;
+    }
+    else
+    {
+        Nsmall = N;
+        *logstream << " " << N << " " << std::flush;
+        *outstream << " Number of CSFs = " << N << std::flush;
+    }
 }
 
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
-    HamiltonianMatrix(hf, coulomb, relconfigs)
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configsubsetend):
+    HamiltonianMatrix(hf, coulomb, relconfigs, configsubsetend)
 {
     // Set up three-body operator
     H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
@@ -81,7 +94,7 @@ void HamiltonianMatrix::GenerateMatrix()
 
         // Make chunk
         if(chunk_index%NumProcessors == ProcessorRank)
-            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, N);
+            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, Nsmall);
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
@@ -89,6 +102,12 @@ void HamiltonianMatrix::GenerateMatrix()
     }
 
     // Loop through my chunks
+    RelativisticConfigList::const_iterator configsubsetend_it = configs->end();
+    if(Nsmall < N)
+        configsubsetend_it = (*configs)[configsubsetend];
+    else
+        configsubsetend = configs->size();
+
     for(auto& current_chunk: chunks)
     {
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
@@ -103,8 +122,16 @@ void HamiltonianMatrix::GenerateMatrix()
             bool leading_config_i = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_it));
 
             // Loop through the rest of the configs
-            auto config_jt = config_it;
-            while(config_jt != configs->end())
+            auto config_jt = configs->begin();
+            RelativisticConfigList::const_iterator config_jend;
+            if(config_index < configsubsetend)
+            {   config_jend = config_it;
+                ++config_jend;
+            }
+            else
+                config_jend = configsubsetend_it;
+
+            while(config_jt != config_jend)
             {
                 bool leading_config_j = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_jt));
 
@@ -144,17 +171,17 @@ void HamiltonianMatrix::GenerateMatrix()
                                     for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                                     {
                                         // See notes for an explanation
-                                        int i = coeff_i.index() - current_chunk.start_row;
-                                        int j = coeff_j.index() - current_chunk.start_row;
+                                        int i = coeff_i.index();
+                                        int j = coeff_j.index();
 
-                                        if(i < j)
-                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(i > j)
-                                            M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                                        if(i > j)
+                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                        else if(i < j)
+                                            M(j - current_chunk.start_row, i) += operatorH * (*coeff_i) * (*coeff_j);
                                         else if(proj_it == proj_jt)
-                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
                                         else
-                                            M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                            M(i - current_chunk.start_row, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
                                     }
                                 }
                             }
@@ -439,16 +466,13 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
     {
         unsigned int start = matrix_section.start_row;
 
-        // Upper triangular part
-        c_mapped.middleRows(start, matrix_section.num_rows).noalias()
-            += matrix_section.chunk * b_mapped.bottomRows(N-start);
-
         // Lower triangular part
-        unsigned int lower_start = start + matrix_section.num_rows;
-        if(lower_start < N)
-        {   c_mapped.bottomRows(N - lower_start).noalias()
-                += matrix_section.chunk.rightCols(N - lower_start).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
-        }
+        c_mapped.middleRows(start, matrix_section.num_rows)
+            += matrix_section.chunk * b_mapped.topRows(start + matrix_section.num_rows);
+
+        // Upper triangular part
+        c_mapped.topRows(start)
+            += matrix_section.chunk.leftCols(start).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
     }
 }
 
@@ -461,139 +485,6 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
     for(const auto& matrix_section: chunks)
     {
         diag_mapped.segment(matrix_section.start_row, matrix_section.num_rows).noalias()
-            = matrix_section.chunk.diagonal();
+            = matrix_section.chunk.rightCols(matrix_section.num_rows).diagonal();
     }
 }
-
-//double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
-//{
-//    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
-//
-//#ifdef SIGMA3_AND
-//    // Check that first AND second are leading configurations
-//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) ||
-//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-//        return 0.;
-//#else
-//    // Check that first OR second is a leading configuration
-//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) &&
-//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-//        return 0.;
-//#endif
-//
-//    unsigned int diff[6];
-//    int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
-//
-//    int sign;
-//    if(numdiff >= 0)
-//        sign = 1;
-//    else
-//        sign = -1;
-//
-//    double value = 0.;
-//
-//    if(numdiff == 0)
-//    {
-//        // Sum(i < j < k) Sigma3(ijk, ijk)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            for(unsigned int j=i+1; j<first.size(); j++)
-//            {
-//                for(unsigned int k=j+1; k<first.size(); k++)
-//                {
-//                    value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
-//                }
-//            }
-//        }
-//    }
-//    else if(abs(numdiff) == 1)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//
-//        // Sum(i < j) Sigma3(aij, bij)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            for(unsigned int j=i+1; j<first.size(); j++)
-//            {
-//                if((i != diff[0]) && (j != diff[0]))
-//                {
-//                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
-//                }
-//            }
-//        }
-//    }
-//    else if(abs(numdiff) == 2)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//        const ElectronInfo& f2 = first[diff[2]];
-//        const ElectronInfo& s2 = second[diff[3]];
-//
-//        // Sum(i) Sigma3(abi, cdi)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            if((i != diff[0]) && (i != diff[2]))
-//               value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);
-//        }
-//    }
-//    else if(abs(numdiff) == 3)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//        const ElectronInfo& f2 = first[diff[2]];
-//        const ElectronInfo& s2 = second[diff[3]];
-//        const ElectronInfo& f3 = first[diff[4]];
-//        const ElectronInfo& s3 = second[diff[5]];
-//
-//        // Sigma3(abc, def)
-//        value = sign * Sigma3(f1, f2, f3, s1, s2, s3);
-//    }
-//
-//    return value;
-//}
-//
-//double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-//{
-//    // Check momentum projections
-//    if(e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM())
-//        return 0.;
-//
-//    // Check parity
-//    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2)
-//        return 0.;
-//
-//    double value = 0.;
-//
-//    // The sign changes for odd permutations
-//    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
-//            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
-//            + Sigma3LinePermutations(e1, e2, e3, e6, e4, e5)
-//            - Sigma3LinePermutations(e1, e2, e3, e5, e4, e6)
-//            - Sigma3LinePermutations(e1, e2, e3, e6, e5, e4)
-//            - Sigma3LinePermutations(e1, e2, e3, e4, e6, e5);
-//
-//    return value;
-//}
-//
-///** This function does the line permutations, putting the pairs on different levels
-//    of the three-body interaction.
-//    */
-//inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-//{
-//    double value = 0.;
-//
-//    // There are no sign changes, since there are the same number
-//    // of permutations on both sides
-//
-//    value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
-//            + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
-//            + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)
-//            + sigma3calc->GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4)
-//            + sigma3calc->GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6)
-//            + sigma3calc->GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
-//
-//    return value;
-//}
