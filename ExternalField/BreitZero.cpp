@@ -25,11 +25,11 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
 
     MathConstant& math = *MathConstant::Instance();
 
-    pot_P_Kplus.Clear();
     pot_P_Kminus.Clear();
     pot_Q_Kplus.Clear();
-    pot_Q_Kminus.Clear();
     pot_V_K.Clear();
+    pot_P_fwd.Clear();
+    pot_Q_back.Clear();
 
     if(K == 0 || !math.triangular_condition(c->TwoJ(), d->TwoJ(), 2*K))
     {
@@ -37,6 +37,7 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
     }
 
     int pot_size = integrator->GetLattice()->size();
+
     // M_K(ijkl) and O_K(ijkl)
     if(math.sum_is_even(c->L(), d->L(), K))
     {
@@ -49,10 +50,16 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
         coulomb->GetPotential(K-1, Pcd, pot_P_Kminus);
 
         // Additional for O_K(ijkl)
-        pot_Q_Kminus.resize(pot_size);
-        pot_P_Kplus.resize(pot_size);
-        coulomb->GetPotential(K-1, Qcd, pot_Q_Kminus);
-        coulomb->GetPotential(K+1, Pcd, pot_P_Kplus);
+        pot_P_fwd.resize(pot_size);
+        pot_Q_back.resize(pot_size);
+        RadialFunction temp(pot_size);
+        coulomb->GetForwardPotential(K-1, Pcd, pot_P_fwd);
+        coulomb->GetForwardPotential(K+1, Pcd, temp);
+        pot_P_fwd -= temp;
+
+        coulomb->GetBackwardPotential(K-1, Qcd, pot_Q_back);
+        coulomb->GetBackwardPotential(K+1, Qcd, temp);
+        pot_Q_back -= temp;
     }
     else // N_K(ijkl)
     {
@@ -70,7 +77,7 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
 
     return (pot_Q_Kplus.size() || pot_V_K.size());
 }
-/*
+
 double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     double value = component->GetMatrixElement(b, a, reverse);
@@ -85,11 +92,11 @@ double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reve
     {
         RadialFunction Qba, Pba;
 
-        if(pot_Q_Kplus.size() || pot_P_Kminus.size() || pot_P_Kplus.size())
+        if(pot_Q_Kplus.size() || pot_P_Kminus.size() || pot_P_fwd.size())
         {
             Qba = Q(b, a);
         }
-        if(pot_P_Kminus.size() || pot_Q_Kplus.size() || pot_Q_Kminus.size())
+        if(pot_P_Kminus.size() || pot_Q_Kplus.size() || pot_Q_back.size())
         {
             Pba = P(b, a);
         }
@@ -105,15 +112,13 @@ double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reve
 
             // O_K(bcad)
             O = - double((K+1)*(K+1))/double((2 * K + 1) * (2 * K + 3)) * QQ_plus;
-
-            double QP_minus = integrator->GetInnerProduct(Qba, pot_P_Kminus);
-            double QP_plus  = integrator->GetInnerProduct(Qba, pot_P_Kplus);
-
-            double PQ_minus = integrator->GetInnerProduct(Pba, pot_Q_Kminus);
-            double PQ_plus  = integrator->GetInnerProduct(Pba, pot_Q_Kplus);
-
             O -= double(K*K)/double((2 * K + 1) * (2 * K - 1)) * PP_minus;
-            O -= double(K * (K+1))/double(4 * K + 2) * (QP_minus - QP_plus + PQ_minus - PQ_plus);
+
+
+            double QP_fwd = integrator->GetInnerProduct(Qba, pot_P_fwd);
+            double PQ_back = integrator->GetInnerProduct(Pba, pot_Q_back);
+
+            O -= double(K * (K+1))/double(4 * K + 2) * (QP_fwd + PQ_back);
 
             if(reverse)
             {   M = -M;
@@ -136,7 +141,7 @@ double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reve
 
     return (value + M + N + O);
 }
-*/
+
 SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse) const
 {
     SpinorFunction ret = component->ApplyTo(a, kappa_b, reverse);
@@ -152,11 +157,11 @@ SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool rev
     {
         SpinorFunction Qa(kappa_b), Pa(kappa_b);
 
-        if(pot_Q_Kplus.size() || pot_P_Kminus.size() || pot_P_Kplus.size())
+        if(pot_Q_Kplus.size() || pot_P_Kminus.size() || pot_P_fwd.size())
         {
             Qa = Q(a, kappa_b);
         }
-        if(pot_P_Kminus.size() || pot_Q_Kplus.size() || pot_Q_Kminus.size())
+        if(pot_P_Kminus.size() || pot_Q_Kplus.size() || pot_Q_back.size())
         {
             Pa = P(a, kappa_b);
         }
@@ -166,8 +171,8 @@ SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool rev
             SpinorFunction QQ_plus = Qa * pot_Q_Kplus;
             SpinorFunction PP_minus = Pa * pot_P_Kminus;
 
-            double M_coeff = 1.;
-            double O_coeff = -1.;
+            int M_coeff = 1;
+            int O_coeff = -1;
 
             if(reverse)
             {   M_coeff = -M_coeff;
@@ -183,8 +188,8 @@ SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool rev
             ret += PP_minus * (double(K*K)/double((2 * K + 1) * (2 * K - 1)) * O_coeff);
 
             double QP_coeff = double(K * (K+1))/double(4 * K + 2) * O_coeff;
-            ret += Qa * (pot_P_Kminus - pot_P_Kplus) * QP_coeff;
-            ret += Pa * (pot_Q_Kminus - pot_Q_Kplus) * QP_coeff;
+            ret += Qa * pot_P_fwd * QP_coeff;
+            ret += Pa * pot_Q_back * QP_coeff;
         }
     }
     else if(pot_V_K.size())

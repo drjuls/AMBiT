@@ -33,6 +33,13 @@ public:
     void GetPotential(RadialFunction& density, RadialFunction& pot, double charge, pODESolver ode = pODESolver());
 
 public:
+    /** Get forward part of potential I1(r), as defined above. */
+    void GetForwardPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
+
+    /** Get backward part of potential I2(r), as defined above. */
+    void GetBackwardPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode = pODESolver());
+
+public:
     /** Get df/dr = w[0] given point r, f.
         PRE: w should be an allocated double.
      */

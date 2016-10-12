@@ -85,6 +85,52 @@ void CoulombOperator::GetPotential(RadialFunction& density, RadialFunction& pot,
     pot += I2;
 }
 
+void CoulombOperator::GetForwardPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode)
+{
+    SetK(k);
+    SetDensity(density);
+
+    pODESolver ode_to_use;
+    if(ode)
+        ode_to_use = ode;
+    else if (ode_solver)
+        ode_to_use = ode_solver;
+    else
+    {   pIntegrator integrator(new SimpsonsIntegrator(lattice));
+        ode_to_use = pODESolver(new AdamsSolver(integrator));
+    }
+
+    if(pot.size() < density.size())
+        pot.resize(density.size());
+
+    // Integrate forwards to obtain I1
+    fwd_direction = true;
+    ode_to_use->IntegrateForwards(this, &pot);
+}
+
+void CoulombOperator::GetBackwardPotential(int k, const RadialFunction& density, RadialFunction& pot, pODESolver ode)
+{
+    SetK(k);
+    SetDensity(density);
+
+    pODESolver ode_to_use;
+    if(ode)
+        ode_to_use = ode;
+    else if (ode_solver)
+        ode_to_use = ode_solver;
+    else
+    {   pIntegrator integrator(new SimpsonsIntegrator(lattice));
+        ode_to_use = pODESolver(new AdamsSolver(integrator));
+    }
+
+    if(pot.size() < density.size())
+        pot.resize(density.size());
+
+    // Integrate backwards to obtain I2
+    fwd_direction = false;
+    ode_to_use->IntegrateBackwards(this, &pot);
+}
+
 void CoulombOperator::GetODEFunction(unsigned int latticepoint, const RadialFunction& f, double* w) const
 {
     double r = lattice->R(latticepoint);
