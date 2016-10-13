@@ -41,25 +41,28 @@ bool BreitZero::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpino
     // M_K(ijkl) and O_K(ijkl)
     if(math.sum_is_even(c->L(), d->L(), K))
     {
+        // Q potentials
         RadialFunction Qcd = Q(*c, *d);
         pot_Q_Kplus.resize(pot_size);
-        coulomb->GetPotential(K+1, Qcd, pot_Q_Kplus);
-
-        RadialFunction Pcd = P(*c, *d);
-        pot_P_Kminus.resize(pot_size);
-        coulomb->GetPotential(K-1, Pcd, pot_P_Kminus);
-
-        // Additional for O_K(ijkl)
-        pot_P_fwd.resize(pot_size);
         pot_Q_back.resize(pot_size);
         RadialFunction temp(pot_size);
+        coulomb->GetBackwardPotential(K+1, Qcd, pot_Q_back);
+        coulomb->GetForwardPotential(K+1, Qcd, pot_Q_Kplus);
+        pot_Q_Kplus += pot_Q_back;
+
+        coulomb->GetBackwardPotential(K-1, Qcd, temp);
+        pot_Q_back = temp - pot_Q_back;
+
+        // P potentials
+        RadialFunction Pcd = P(*c, *d);
+        pot_P_Kminus.resize(pot_size);
+        pot_P_fwd.resize(pot_size);
         coulomb->GetForwardPotential(K-1, Pcd, pot_P_fwd);
+        coulomb->GetBackwardPotential(K-1, Pcd, pot_P_Kminus);
+        pot_P_Kminus += pot_P_fwd;
+
         coulomb->GetForwardPotential(K+1, Pcd, temp);
         pot_P_fwd -= temp;
-
-        coulomb->GetBackwardPotential(K-1, Qcd, pot_Q_back);
-        coulomb->GetBackwardPotential(K+1, Qcd, temp);
-        pot_Q_back -= temp;
     }
     else // N_K(ijkl)
     {
