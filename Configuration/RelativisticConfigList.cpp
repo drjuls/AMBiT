@@ -11,22 +11,34 @@ unsigned int RelativisticConfigList::NumCSFs() const
     return total;
 }
 
+unsigned int RelativisticConfigList::NumCSFsSmall() const
+{
+    unsigned int total = 0;
+    for(auto it = begin(); it != small_end(); ++it)
+    {
+        total += it->NumCSFs();
+    }
+
+    return total;
+}
+
+RelativisticConfigList::iterator RelativisticConfigList::erase(iterator position)
+{
+    auto it = m_list.erase(position.base());
+    if(it - m_list.begin() < Nsmall)
+        Nsmall--;
+
+    return iterator(it);
+}
+
 RelativisticConfigList::iterator RelativisticConfigList::operator[](unsigned int i)
 {
-    iterator it = begin();
-    for(unsigned int j = 0; j < i; j++)
-        it++;
-
-    return it;
+    return std::next(begin(), i);
 }
 
 RelativisticConfigList::const_iterator RelativisticConfigList::operator[](unsigned int i) const
 {
-    const_iterator it = begin();
-    for(unsigned int j = 0; j < i; j++)
-        it++;
-
-    return it;
+    return std::next(begin(), i);
 }
 
 RelativisticConfigList::const_projection_iterator RelativisticConfigList::projection_begin() const
@@ -64,7 +76,11 @@ unsigned int RelativisticConfigList::projection_size() const
 
 void RelativisticConfigList::unique()
 {
-    m_list.erase(std::unique(m_list.begin(), m_list.end()), m_list.end());
+    auto itsmall = std::next(m_list.begin(), Nsmall);
+    itsmall = m_list.erase(std::unique(m_list.begin(), itsmall), itsmall);
+
+    m_list.erase(std::unique(itsmall, m_list.end()), m_list.end());
+    Nsmall = itsmall - m_list.begin();
 }
 
 void RelativisticConfigList::Read(FILE* fp)

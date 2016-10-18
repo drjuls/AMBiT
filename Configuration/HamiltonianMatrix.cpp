@@ -16,40 +16,29 @@
 #define MANY_LEVELS_LIM   50
 
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
-    HamiltonianMatrix(hf, coulomb, relconfigs, 0)
-{}
-
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configsubsetend):
-    H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0), configsubsetend(configsubsetend)
+    H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
     H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(hf, coulomb);
 
     // Set up matrix
     N = configs->NumCSFs();
+    Nsmall = configs->NumCSFsSmall();
 
-    if(configsubsetend)
+    if(Nsmall != N)
     {
-        Nsmall = 0;
-        const auto it_end = (*relconfigs)[configsubsetend];
-        for(auto it = relconfigs->begin(); it != it_end; ++it)
-        {
-            Nsmall += it->NumCSFs();
-        }
-
         *logstream << " " << N << "x" << Nsmall << std::flush;
         *outstream << " Number of CSFs = " << N << " x " << Nsmall << std::flush;
     }
     else
     {
-        Nsmall = N;
         *logstream << " " << N << " " << std::flush;
         *outstream << " Number of CSFs = " << N << std::flush;
     }
 }
 
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configsubsetend):
-    HamiltonianMatrix(hf, coulomb, relconfigs, configsubsetend)
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
+    HamiltonianMatrix(hf, coulomb, relconfigs)
 {
     // Set up three-body operator
     H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
@@ -102,11 +91,8 @@ void HamiltonianMatrix::GenerateMatrix()
     }
 
     // Loop through my chunks
-    RelativisticConfigList::const_iterator configsubsetend_it = configs->end();
-    if(Nsmall < N)
-        configsubsetend_it = (*configs)[configsubsetend];
-    else
-        configsubsetend = configs->size();
+    RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
+    unsigned int configsubsetend = configs->small_size();
 
     for(auto& current_chunk: chunks)
     {
@@ -213,7 +199,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         *outstream << "\nNo solutions" << std::endl;
     }
     else
-    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
+    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
         {
             *outstream << "; Finding solutions using Eigen..." << std::endl;
             levels.reserve(NumSolutions);
@@ -228,7 +214,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             }
         }
     #ifdef AMBIT_USE_SCALAPACK
-        else if(NumSolutions > MANY_LEVELS_LIM)
+        else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
         {
             levels = SolveMatrixScalapack(hID, NumSolutions, false);
         }
@@ -340,11 +326,13 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
         // Each row separately
         for(unsigned int row = 0; row < matrix_section.num_rows; row++)
         {
-            // Leading zeros
-            stream << Eigen::VectorXd::Zero(matrix_section.start_row + row).transpose() << " ";
+            int cols = mmin(matrix_section.start_row + row + 1, matrix.Nsmall);
 
-            // Upper triangular matrix part of row
-            stream << matrix_section.chunk.block(row, row, 1, matrix_section.chunk.cols() - row) << "\n";
+            // Lower triangular matrix part of row
+            stream << matrix_section.chunk.block(row, 0, 1, cols) << " ";
+
+            // Trailing zeros
+            stream << Eigen::VectorXd::Zero(matrix.Nsmall - cols).transpose() << "\n";
         }
     }
     stream.flush();
@@ -364,13 +352,14 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         // Write size of matrix.
         fp = fopen(filename.c_str(), "wb");
         fwrite(&N, sizeof(unsigned int), 1, fp);
+        fwrite(&Nsmall, sizeof(unsigned int), 1, fp);
         const double* pbuf;
 
     #ifdef AMBIT_USE_MPI
-        double buf[N * most_chunk_rows];
+        double buf[Nsmall * most_chunk_rows];
     #endif
 
-        unsigned int row = 0;
+        int row = 0;
         while(row < N)
         {
             int num_rows = 0;
@@ -389,13 +378,18 @@ void HamiltonianMatrix::Write(const std::string& filename) const
 
                 // Receive chunk
                 MPI_Status status;
-                MPI_Recv(&buf, N*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
+                MPI_Recv(&buf, Nsmall*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
 
                 // Get number of rows in chunk
-                MPI_Get_count(&status, MPI_DOUBLE, &num_rows);
-                if(num_rows%(N-row))
-                    *errstream << "HamiltonianMatrix::Write: received chunk size not a multiple of (N - row)." << std::endl;
-                num_rows = num_rows/(N-row);
+                int data_count;
+                MPI_Get_count(&status, MPI_DOUBLE, &data_count);
+                if(data_count >= int(Nsmall) * (int(Nsmall) - row))
+                    num_rows = data_count/Nsmall;
+                else
+                    num_rows = (-row + sqrt(row * row + 4 * data_count))/2;
+
+                if(num_rows * mmin(row + num_rows, Nsmall) != data_count)
+                    *errstream << "HamiltonianMatrix::Write: received incorrect chunk size." << std::endl;
 
                 pbuf = buf;
             }
@@ -403,8 +397,8 @@ void HamiltonianMatrix::Write(const std::string& filename) const
 
             for(int i = 0; i < num_rows; i++)
             {
-                fwrite(pbuf, sizeof(double), N - row - i, fp);
-                pbuf += (N - row + 1);  // Move one more column and one more row along
+                fwrite(pbuf, sizeof(double), row + i + 1, fp);
+                pbuf += mmin(row + num_rows, Nsmall);   // Move to next row
             }
 
             row += num_rows;
@@ -429,7 +423,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
             // If it is our row, send chunk
             if(chunk_it != chunks.end() && row == chunk_it->start_row)
             {
-                MPI_Send(chunk_it->chunk.data(), (N - row) * chunk_it->num_rows, MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
+                MPI_Send(chunk_it->chunk.data(), chunk_it->chunk.size(), MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
                 chunk_it++;
             }
         }
@@ -465,14 +459,26 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
     for(const auto& matrix_section: chunks)
     {
         unsigned int start = matrix_section.start_row;
+        unsigned int cols = matrix_section.chunk.cols();
 
         // Lower triangular part
         c_mapped.middleRows(start, matrix_section.num_rows)
-            += matrix_section.chunk * b_mapped.topRows(start + matrix_section.num_rows);
+            += matrix_section.chunk * b_mapped.topRows(cols);
 
         // Upper triangular part
-        c_mapped.topRows(start)
-            += matrix_section.chunk.leftCols(start).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        unsigned int upper1_rows = mmin(start, Nsmall);
+        c_mapped.topRows(upper1_rows)
+            += matrix_section.chunk.leftCols(upper1_rows).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+
+        // Extra upper part
+        if(start < Nsmall && Nsmall < (start + matrix_section.num_rows))
+        {
+            unsigned int upper2_cols = start + matrix_section.num_rows - Nsmall;
+
+            c_mapped.middleRows(start, Nsmall - start)
+                += matrix_section.chunk.block(Nsmall, start, upper2_cols, Nsmall - start).transpose()
+                    * b_mapped.middleRows(Nsmall, upper2_cols);
+        }
     }
 }
 

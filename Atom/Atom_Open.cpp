@@ -314,7 +314,8 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+        unsigned int Nsmall;
+        nrconfigs = gen.GenerateNonRelConfigurations(Nsmall, hf, hartreeY);
         leading_configs = gen.GetLeadingConfigs();
 
         ChooseHamiltonians(nrconfigs);
@@ -442,7 +443,8 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
-    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+    unsigned int nrsmall;
+    nrconfigs = gen.GenerateNonRelConfigurations(nrsmall, hf, hartreeY);
     leading_configs = gen.GetLeadingConfigs();
 
     // CI integrals
@@ -459,11 +461,11 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
         if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
         {
             pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
-            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrsmall, nrid->GetSymmetry());
         }
         else
         {
-            configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(nrconfigs, nrsmall, key->GetSymmetry());
         }
 
         key->SetRelativisticConfigList(configs);

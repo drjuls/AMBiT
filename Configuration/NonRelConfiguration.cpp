@@ -74,7 +74,7 @@ std::string NonRelConfiguration::NameNoSpaces() const
 
 pRelativisticConfigList NonRelConfiguration::GenerateRelativisticConfigs()
 {
-    relconfiglist.reset(new RelativisticConfigList());
+    relconfiglist = std::make_shared<RelativisticConfigList>();
     RelativisticConfiguration rconfig;
     SplitNonRelInfo(begin(), rconfig);
 
@@ -197,9 +197,23 @@ std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
     return stream;
 }
 
-void SortAndUnique(ConfigList& config_list)
+void SortAndUnique(pConfigList& config_list)
 {
-    std::sort(config_list.begin(), config_list.end());
-    auto last = std::unique(config_list.begin(), config_list.end());
-    config_list.erase(last, config_list.end());
+    unsigned int size = config_list->size();
+    SortAndUnique(config_list, size);
+}
+
+void SortAndUnique(pConfigList& config_list, unsigned int& Nsmall)
+{
+    // Sort 0 -> Nsmall
+    ConfigList::iterator itsmall = std::next(config_list->begin(), Nsmall);
+    std::sort(config_list->begin(), itsmall);
+    auto last = std::unique(config_list->begin(), itsmall);
+    itsmall = config_list->erase(last, itsmall);
+    Nsmall = itsmall - config_list->begin();
+
+    // Sort Nsmall -> config_list.end()
+    std::sort(itsmall, config_list->end());
+    last = std::unique(itsmall, config_list->end());
+    config_list->erase(last, config_list->end());
 }

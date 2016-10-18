@@ -19,15 +19,18 @@ typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator, pSigma3Calculator> ThreeBodyHamiltonianOperator;
 typedef std::shared_ptr<ThreeBodyHamiltonianOperator> pThreeBodyHamiltonianOperator;
 
+/** The dimensions of HamiltonianMatrix is set by the RelativisticConfigList.
+    It is generally size N * N, where N = relconfigs->NumCSFs(), however it also supports a "non-square" matrix
+    with dimensions (Nsmall, N) where Nsmall = relconfigs->NumCSFsSmall(). In this case it stores a trapezoid,
+    rather than a triangle, because the lower right (N-Nsmall) square is zero (except on the diagonal).
+ */
 class HamiltonianMatrix : public Matrix
 {
 public:
     /** Hamiltonian with one and two-body operators. */
     HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
-    /** "Non-square" Hamiltonian with dimensions (Nsmall, N) where part of the N*N matrix is zero. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configsubsetend);
     /** Hamiltonian with additional effective three-body operator. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configsubsetend = 0);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void MatrixMultiply(int m, double* b, double* c) const;
@@ -70,7 +73,6 @@ protected:
     pThreeBodyHamiltonianOperator H_three_body; //!< Three-body operator is null if sigma3 not used
 
     unsigned int Nsmall;            //!< For non-square CI, the smaller matrix size
-    unsigned int configsubsetend;   //!< End of smaller RelativisticConfigList
 
 protected:
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrix;
@@ -101,7 +103,7 @@ protected:
         {
             if(start_row < chunk.cols())
             {
-                for(unsigned int i = 0; i < num_rows-1; i++)
+                for(unsigned int i = 0; i < chunk.cols() - start_row - 1; i++)
                     for(unsigned int j = i+start_row+1; j < chunk.cols(); j++)
                         chunk(i, j) = chunk(j - start_row, i + start_row);
             }

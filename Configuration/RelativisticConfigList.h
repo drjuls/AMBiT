@@ -17,6 +17,9 @@ class FewestProjectionsFirstComparator;
 
     To facilitate multithreading over individual RelativisticConfigurations, a "random access"
     operator[] is provided that returns the RelativisticConfiguration iterator and the CSF offset.
+
+    Besides begin() and end() RelativisticConfigList also has an iterator small_end() that demarks the
+    end of the small section of the Nsmall * N Hamiltonian matrix.
  */
 class RelativisticConfigList
 {
@@ -24,11 +27,9 @@ protected:
     typedef std::vector<RelativisticConfiguration> BaseList;
 
 public:
-    RelativisticConfigList() {}
-    RelativisticConfigList(const RelativisticConfigList& other): m_list(other.m_list) {}
-    RelativisticConfigList(RelativisticConfigList&& other): m_list(other.m_list) {}
+    template<typename... Args>
+        RelativisticConfigList(Args... args): m_list(args...) {}    //!< Use vector constructors
     RelativisticConfigList(const RelativisticConfiguration& val): m_list(1, val) {}
-    RelativisticConfigList(RelativisticConfiguration&& val) { m_list.push_back(val); }
     virtual ~RelativisticConfigList() {}
 
 public: // Define iterators
@@ -171,20 +172,13 @@ public:
     iterator end() { return iterator(m_list.end()); }
     const_iterator end() const { return const_iterator(m_list.end()); }
 
-    iterator erase(iterator position) { return iterator(m_list.erase(position.base())); }
+    iterator small_end() { return iterator(std::next(m_list.begin(), Nsmall)); }
+    const_iterator small_end() const { return const_iterator(std::next(m_list.begin(), Nsmall)); }
+
+    iterator erase(iterator position);
 
     RelativisticConfiguration& front() { return m_list.front(); }
     const RelativisticConfiguration& front() const { return m_list.front(); }
-
-    const RelativisticConfigList& operator=(const RelativisticConfigList& other)
-    {   m_list = other.m_list;
-        return *this;
-    }
-    
-    RelativisticConfigList& operator=(RelativisticConfigList&& other)
-    {   m_list = other.m_list;
-        return *this;
-    }
 
     /** Get iterator for the ith RelativisticConfiguration (with correct CSF offset).
         PRE: i < size().
@@ -200,21 +194,29 @@ public:
     void push_back(RelativisticConfiguration&& val) { m_list.push_back(val); }
 
     unsigned int size() const { return m_list.size(); }
+    unsigned int small_size() const { return Nsmall; }
 
+    /** Sort list by comparator, preserving the separation between the first Nsmall configs and the rest. */
     template<class Comparator = FewestProjectionsFirstComparator>
-        void sort(Comparator comp);
+        void sort(Comparator comp = Comparator());
 
-    /** Remove consecutive duplicates. Sort the list first to get real uniqueness. */
+    /** Remove consecutive duplicates, preserving Nsmall.
+        PRE: list is sorted using sort.
+     */
     void unique();
 
 public:
     unsigned int NumCSFs() const;   //!< Total number of CSFs stored in entire list
+    unsigned int NumCSFsSmall() const;  //!< Number of CSFs stored in subset [0, Nsmall)
+
+    void SetSmallSize(unsigned int Nsmall_configs) { Nsmall = Nsmall_configs; }
 
     void Read(FILE* fp);            //!< Read configurations
     void Write(FILE* fp) const;     //!< Write configurations
 
 protected:
     BaseList m_list;
+    unsigned int Nsmall;
 };
 
 class MostCSFsFirstComparator
@@ -248,7 +250,9 @@ public:
 template<class Comparator>
 void RelativisticConfigList::sort(Comparator comp)
 {
-    std::sort(m_list.begin(), m_list.end(), comp);
+    auto itsmall = std::next(m_list.begin(), Nsmall);
+    std::sort(m_list.begin(), itsmall, comp);
+    std::sort(itsmall, m_list.end(), comp);
 }
 
 typedef std::shared_ptr<RelativisticConfigList> pRelativisticConfigList;

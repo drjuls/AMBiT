@@ -35,6 +35,11 @@ public:
      */
     pConfigList GenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
 
+    /** Generate non-relativistic configurations for an Nsmall by N matrix.
+        POST: 0 < small_size <= (returned ConfigList)->size().
+     */
+    pConfigList GenerateNonRelConfigurations(unsigned int& small_size, pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
         PRE: nrlist should be unique.
@@ -46,6 +51,7 @@ public:
         If angular_library is supplied, returned list includes projections and CSFs with M = J.
      */
     pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, pAngularDataLibrary angular_library = nullptr) const;
+    pRelativisticConfigList GenerateRelativisticConfigurations(pConfigList nrlist, unsigned int& small_size, const Symmetry& sym, pAngularDataLibrary angular_library = nullptr) const;
 
     /** Generate non-relativistic and then relativistic configurations based on the input file.
         If angular_library is supplied, returned list includes projections and CSFs with M = J.
@@ -66,6 +72,12 @@ public:
     }
 
 protected:
+    /** Generate non-relativistic configs based on the current input file section.
+        This may include limiting the non-relativistic configurations based on configuration average energies,
+        provided one_body and two_body operators are provided.
+     */
+    pConfigList ParseAndGenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
      */

@@ -67,9 +67,15 @@ protected:
 typedef std::vector<NonRelConfiguration> ConfigList;
 std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
 
-void SortAndUnique(ConfigList& config_list);
-
 typedef std::shared_ptr<ConfigList> pConfigList;
 typedef std::shared_ptr<const ConfigList> pConfigListConst;
+
+/** Sort config_list and remove duplicates. */
+void SortAndUnique(pConfigList& config_list);
+
+/** Preserve separation between (0 -> Nsmall) and (Nsmall -> config_list->size()).
+    Nsmall may change if elements are removed.
+ */
+void SortAndUnique(pConfigList& config_list, unsigned int& Nsmall);
 
 #endif
