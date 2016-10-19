@@ -314,8 +314,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        unsigned int Nsmall;
-        nrconfigs = gen.GenerateNonRelConfigurations(Nsmall, hf, hartreeY);
+        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
         leading_configs = gen.GetLeadingConfigs();
 
         ChooseHamiltonians(nrconfigs);
@@ -350,7 +349,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
         if(user_input.search("CI/--all-symmetries"))
         {
             // Populate levels with all symmetries
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 int maxTwoJ = nrconfig.GetTwiceMaxProjection();
                 for(int two_j = maxTwoJ%2; two_j <= maxTwoJ; two_j += 2)
@@ -362,7 +361,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
         }
         else
         {   // Populate levels with symmetries found in sets.
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 Parity P = nrconfig.GetParity();
                 int maxTwoJ = nrconfig.GetTwiceMaxProjection();
@@ -397,7 +396,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
             int max_twoJ_even = -1;
             int max_twoJ_odd = -1;
 
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 if(nrconfig.GetParity() == Parity::even)
                     max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
@@ -443,8 +442,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
-    unsigned int nrsmall;
-    nrconfigs = gen.GenerateNonRelConfigurations(nrsmall, hf, hartreeY);
+    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
     leading_configs = gen.GetLeadingConfigs();
 
     // CI integrals
@@ -460,12 +458,14 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
         if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
         {
-            pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
-            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrsmall, nrid->GetSymmetry());
+            pConfigList nrconfiglist = std::make_shared<ConfigList>();
+            nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
+            nrconfiglist->second = 1;
+            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
         }
         else
         {
-            configs = gen.GenerateRelativisticConfigurations(nrconfigs, nrsmall, key->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
         }
 
         key->SetRelativisticConfigList(configs);
@@ -551,7 +551,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
             {
-                pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
+                pConfigList nrconfiglist = std::make_shared<ConfigList>();
+                nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
+                nrconfiglist->second = 1;
                 configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry(), angular_library);
             }
             else

@@ -66,13 +66,12 @@ interpolatedOrbitals={Interpolation[{r,#[[1]]}\[Transpose]],Interpolation[{r,#[[
 Return[{energies,interpolatedOrbitals}];
 ]
 
-AmbitReadHamiltonian[filename_]:=Module[{matrixFileStream,dim,Nsmall,hamiltonian},
+AmbitReadHamiltonian[filename_]:=Module[{matrixFileStream,dim,hamiltonian},
 matrixFileStream=OpenRead[filename,BinaryFormat->True];
-(* First two integers are size *)
+(* First integer is size *)
 dim=BinaryRead[matrixFileStream,"Integer32"];
-Nsmall=BinaryRead[matrixFileStream,"Integer32"];
 (* Read lower triangle *)
-hamiltonian=Table[BinaryReadList[matrixFileStream,"Real64",Min[i+1,Nsmall]],{i,0,dim-1}];
+hamiltonian=Table[BinaryReadList[matrixFileStream,"Real64",i],{i,1,dim}];
 Close[matrixFileStream];
 hamiltonian=PadRight[hamiltonian,{dim,dim}];
 (* Return symmetric square matrix *)

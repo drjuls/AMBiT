@@ -520,7 +520,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
 
     // Loop over all non-relativistic configurations
-    for(auto& nrconfig: *nrconfigs)
+    for(auto& nrconfig: nrconfigs->first)
     {
         // Subtract target from non-rel configurations to get non-rel differences
         NonRelConfiguration nrdiff = nrconfig - nrtarget;

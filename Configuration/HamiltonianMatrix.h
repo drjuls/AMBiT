@@ -82,21 +82,29 @@ protected:
         The number of rows is num_rows, and the section goes to the diagonal of the Hamiltonian matrix (or Nsmall if chunk is in the extra part).
         The rows correspond to a number of RelativisticConfigurations in configs, as distributed by GenerateMatrix().
         RelativisticConfigurations included are [config_indices.first, config_indices.second).
+        The matrix section "diagonal" is a square on the diagonal of the Hamiltonian that is outside Nsmall.
      */
     class MatrixChunk
     {
     public:
         MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall):
             start_row(row_start), num_rows(num_rows)
-        {   config_indices.first = config_index_start;
+        {
+            config_indices.first = config_index_start;
             config_indices.second = config_index_end;
             chunk = RowMajorMatrix::Zero(num_rows, mmin(start_row + num_rows, Nsmall));
+
+            if(Nsmall < start_row + num_rows)
+            {   unsigned int diagonal_size = mmin(num_rows, start_row + num_rows - Nsmall);
+                diagonal = RowMajorMatrix::Zero(diagonal_size, diagonal_size);
+            }
         }
 
         std::pair<unsigned int, unsigned int> config_indices;
         unsigned int start_row;
         unsigned int num_rows;
         RowMajorMatrix chunk;
+        RowMajorMatrix diagonal;
 
         /** Make upper triangle part of the matrix chunk match the lower. */
         void Symmetrize()
@@ -106,6 +114,13 @@ protected:
                 for(unsigned int i = 0; i < chunk.cols() - start_row - 1; i++)
                     for(unsigned int j = i+start_row+1; j < chunk.cols(); j++)
                         chunk(i, j) = chunk(j - start_row, i + start_row);
+            }
+
+            if(diagonal.size())
+            {
+                for(unsigned int i = 0; i < diagonal.rows() - 1; i++)
+                    for(unsigned int j = i + 1; j < diagonal.cols(); j++)
+                        diagonal(i, j) = diagonal(j, i);
             }
         }
     };

@@ -191,7 +191,7 @@ int NonRelConfiguration::GetNumberOfLevels()
 
 std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
 {
-    for(auto& config: config_list)
+    for(auto& config: config_list.first)
     {   stream << config.Name() << ",";
     }
     return stream;
@@ -199,21 +199,15 @@ std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
 
 void SortAndUnique(pConfigList& config_list)
 {
-    unsigned int size = config_list->size();
-    SortAndUnique(config_list, size);
-}
-
-void SortAndUnique(pConfigList& config_list, unsigned int& Nsmall)
-{
     // Sort 0 -> Nsmall
-    ConfigList::iterator itsmall = std::next(config_list->begin(), Nsmall);
-    std::sort(config_list->begin(), itsmall);
-    auto last = std::unique(config_list->begin(), itsmall);
-    itsmall = config_list->erase(last, itsmall);
-    Nsmall = itsmall - config_list->begin();
+    auto itsmall = std::next(config_list->first.begin(), config_list->second);
+    std::sort(config_list->first.begin(), itsmall);
+    auto last = std::unique(config_list->first.begin(), itsmall);
+    itsmall = config_list->first.erase(last, itsmall);
+    config_list->second = itsmall - config_list->first.begin();
 
     // Sort Nsmall -> config_list.end()
-    std::sort(itsmall, config_list->end());
-    last = std::unique(itsmall, config_list->end());
-    config_list->erase(last, config_list->end());
+    std::sort(itsmall, config_list->first.end());
+    last = std::unique(itsmall, config_list->first.end());
+    config_list->first.resize(last-config_list->first.begin());
 }

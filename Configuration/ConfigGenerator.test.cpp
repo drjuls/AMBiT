@@ -45,7 +45,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
-    total_non_rel += nonrelconfigs->size();
+    total_non_rel += nonrelconfigs->first.size();
     total_rel += relconfigs->size();
 
     relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::odd));
@@ -113,7 +113,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
 
     pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
-    unsigned int non_rel = nonrelconfigs->size();
+    unsigned int non_rel = nonrelconfigs->first.size();
     unsigned int rel = relconfigs->size();
 
     // CuII - using holes now
@@ -147,7 +147,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     pConfigList holes_nonrelconfigs = holes_gen.GenerateNonRelConfigurations();
     pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(holes_nonrelconfigs, Symmetry(0, Parity::even));
 
-    EXPECT_EQ(non_rel, holes_nonrelconfigs->size());
+    EXPECT_EQ(non_rel, holes_nonrelconfigs->first.size());
     EXPECT_EQ(rel, holes_relconfigs->size());
 }
 
@@ -187,10 +187,9 @@ TEST(ConfigGeneratorTester, NonSquare)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
     ConfigGenerator gen(orbitals, userInput);
 
-    unsigned int Nsmall_nonrel = 0;
-    pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations(Nsmall_nonrel);
+    pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
-    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Nsmall_nonrel, Symmetry(0, Parity::even), angular_library);
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even), angular_library);
     unsigned int N = relconfigs->NumCSFs();
     unsigned int Nsmall = relconfigs->NumCSFsSmall();
 
