@@ -48,11 +48,9 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 HamiltonianMatrix::~HamiltonianMatrix()
 {}
 
-void HamiltonianMatrix::GenerateMatrix()
+void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 {
     chunks.clear();
-
-    unsigned int configs_per_chunk = 4;
 
     if(N <= SMALL_MATRIX_LIM)
     {

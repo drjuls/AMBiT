@@ -37,7 +37,7 @@ public:
     virtual void GetDiagonal(double* diag) const;
 
     /** Generate Hamiltonian matrix. */
-    virtual void GenerateMatrix();
+    virtual void GenerateMatrix(unsigned int configs_per_chunk = 4);
 
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
