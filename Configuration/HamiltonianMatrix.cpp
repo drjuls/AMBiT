@@ -403,7 +403,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         fwrite(&N, sizeof(unsigned int), 1, fp);
         const double* pbuf;
         const double* pdiag;
-        const std::vector<const double> zeros(N-Nsmall, 0.);
+        std::vector<double> zeros(N-Nsmall, 0.);
 
     #ifdef AMBIT_USE_MPI
         double buf[Nsmall * most_chunk_rows];
@@ -443,20 +443,26 @@ void HamiltonianMatrix::Write(const std::string& filename) const
                     num_rows = (-row + sqrt(row * row + 4 * data_count))/2;
 
                 if(num_rows * mmin(row + num_rows, Nsmall) != data_count)
-                    *errstream << "HamiltonianMatrix::Write: received incorrect chunk size." << std::endl;
+                {   *errstream << "HamiltonianMatrix::Write: received incorrect chunk size." << std::endl;
+                    exit(1);
+                }
 
                 pbuf = buf;
 
                 // Receive diagonal
                 if(row + num_rows > Nsmall)
                 {
-                    MPI_Recv(&pdiag, most_chunk_rows*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row+1, MPI_COMM_WORLD, &status);
+                    MPI_Recv(&diagbuf, most_chunk_rows*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row+1, MPI_COMM_WORLD, &status);
 
                     // Check diagonal size
-                    diag_rows = row + num_rows - Nsmall;
+                    diag_rows = mmin(num_rows, row + num_rows - Nsmall);
                     MPI_Get_count(&status, MPI_DOUBLE, &data_count);
                     if(diag_rows * diag_rows != data_count)
-                        *errstream << "HamiltonianMatrix::Write: received incorrect diagonal chunk size." << std::endl;
+                    {   *errstream << "HamiltonianMatrix::Write: received incorrect diagonal chunk size." << std::endl;
+                        exit(1);
+                    }
+
+                    pdiag = diagbuf;
                 }
             }
         #endif
@@ -504,7 +510,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
                 MPI_Send(chunk_it->chunk.data(), chunk_it->chunk.size(), MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
 
                 // Send diagonal if it exists
-                if(chunk_it->diagonal.data())
+                if(chunk_it->diagonal.size())
                     MPI_Send(chunk_it->diagonal.data(), chunk_it->diagonal.size(), MPI_DOUBLE, 0, row+1, MPI_COMM_WORLD);
 
                 chunk_it++;
@@ -549,9 +555,11 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
             += matrix_section.chunk * b_mapped.topRows(cols);
 
         // Upper triangular part
-        unsigned int upper1_rows = mmin(start, Nsmall);
-        c_mapped.topRows(upper1_rows)
-            += matrix_section.chunk.leftCols(upper1_rows).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        if(start > 0)
+        {   unsigned int upper1_rows = mmin(start, Nsmall);
+            c_mapped.topRows(upper1_rows)
+                += matrix_section.chunk.leftCols(upper1_rows).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        }
 
         // Extra upper part
         if(start < Nsmall && Nsmall < (start + matrix_section.num_rows))
