@@ -19,14 +19,14 @@ public:
 
 public:
     /** Read symmetric matrix from stored triangle.
-        Upper triangles should be stored by row, which is identical to
-        lower triangles stored by column.
+        Upper triangle is stored by row, which is imported as a
+        lower triangle stored by column.
      */
-    virtual void ReadTriangle(const std::string& filename);
+    virtual void ReadUpperTriangle(const std::string& filename);
 
     /** Read lower part of symmetric matrix from stored triangle.
-        This is the same as ReadTriangle(), but only stores the lower half,
-        the upper half is set to zero.
+        Lower triangle is stored by row, which is imported as an
+        upper triangle stored by column.
      */
     virtual void ReadLowerTriangle(const std::string& filename);
 
@@ -65,6 +65,7 @@ protected:
 
 protected:
     double* M;  // Pointer to local array
+    bool upper_triangle;
 
     // Descriptors for local array within global array
     unsigned int M_rows, M_cols;    // Size parameters

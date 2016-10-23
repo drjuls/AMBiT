@@ -195,7 +195,7 @@ void ScalapackMatrix::GetDiagonal(double* diag) const
 {
 }
 
-void ScalapackMatrix::ReadTriangle(const std::string& filename)
+void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rb");
     if(!fp)
@@ -275,6 +275,7 @@ void ScalapackMatrix::ReadTriangle(const std::string& filename)
     }
 
     delete[] buffer;
+    upper_triangle = false;
 }
 
 void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
@@ -297,44 +298,44 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
 
     // Read line by line and store our parts.
     unsigned int i, j;      // Position in global array
-    unsigned int j_end;     // End of current block in global array
-    unsigned int M_i, M_j;  // Position of start of line local array
-    double* M_pos;          // Running position in local array
+    unsigned int M_i, M_j;  // Position of end of line local array
 
     double* buffer = new double[N];
 
     i = 0; M_i = 0; M_j = 0;
-    while((i < N) && (M_i < M_rows) && (M_j < M_cols))
+    while((i < N) && (M_j < M_cols))
     {
-        fread(buffer+i, sizeof(double), N-i, fp);
+        fread(buffer, sizeof(double), i+1, fp);
+
+        if(M_i < M_rows && M_row_numbers[M_i] == i)
+            M_i++;
 
         // Copy column
         if(M_col_numbers[M_j] == i)
         {
             // Get first start/end point
-            j = M_row_numbers[M_i];
-            j_end = mmin((j/MB + 1)*MB, N);
+            j = M_row_numbers[0];
+            unsigned int j_end = (M_i < M_rows? M_row_numbers[M_i]: N); // End of current line
+            unsigned int j_current_end = mmin(j + MB, j_end);   // End of current block in global array
 
-            M_pos = &M[M_j*M_rows + M_i];
+            double* M_pos = &M[M_j*M_rows + 0]; // Running position in local array
 
-            while(j < j_end)
+            while(j < j_current_end)
             {
-                memcpy(M_pos, &buffer[j], sizeof(double) * (j_end - j));
-                M_pos += (j_end - j);
-                j = j_end + (num_proc_rows - 1) * MB;
-                j_end = mmin((j + MB), N);
+                memcpy(M_pos, &buffer[j], sizeof(double) * (j_current_end - j));
+                M_pos += (j_current_end - j);
+                j = j_current_end + (num_proc_rows - 1) * MB;
+                j_current_end = mmin(j + MB, j_end);
             }
 
             M_j++;
         }
 
-        if(M_row_numbers[M_i] == i)
-            M_i++;
-
         i++;
     }
 
     delete[] buffer;
+    upper_triangle = true;
 }
 
 void ScalapackMatrix::WriteToFile(const std::string& filename) const
@@ -346,11 +347,10 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
     FILE* fp;
     if(ProcessorRank == 0)
     {
-        fp = fopen(filename.c_str(), "wt");
+        fp = fopen(filename.c_str(), "wb");
 
         // Write size of matrix.
         fwrite(&N, sizeof(unsigned int), 1, fp);
-        //fprintf(fp, "%i\n", N);
         writebuf = new double[N];
     }
 
@@ -383,19 +383,14 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
                 i_end = mmin((i + MB), N);
             }
 
-            M_i++;
+            M_j++;
         }
 
         comm_world.Reduce(buffer, writebuf, N, MPI::DOUBLE, MPI::SUM, 0);
 
         if(ProcessorRank == 0)
         {   fwrite(writebuf, sizeof(double), N, fp);
-            //for(int count=0; count<N; count++)
-            //        fprintf(fp, "%11.3e", writebuf[count]);
-            //fprintf(fp, "\n");
         }
-
-        M_j++;
     }
 
     delete[] buffer;
@@ -409,6 +404,8 @@ void ScalapackMatrix::Diagonalise(double* eigenvalues)
 {
     char jobz = 'V';
     char uplo = 'L';    // Use upper or lower part of matrix: 'U' or 'L'
+    if(upper_triangle)
+        uplo = 'U';
     int size = N;
     int IA = 1;         // Start position of submatrix
     int ierr;
@@ -457,7 +454,7 @@ void ScalapackMatrix::Diagonalise(double* eigenvalues)
 
     if(DebugOptions.LogScalapack())
     {   // Restore matrix and test eigenvalues.
-        ReadTriangle("temp.matrix");
+        ReadLowerTriangle("temp.matrix");
         TestEigenvalues(eigenvalues, V);
     }
 

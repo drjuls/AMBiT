@@ -321,7 +321,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         Clear();
 
         ScalapackMatrix SM(N);
-        SM.ReadTriangle(filename);
+        SM.ReadLowerTriangle(filename);
 
         // Diagonalise
         double* E = new double[N];  // All eigenvalues
