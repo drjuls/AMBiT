@@ -151,8 +151,6 @@ void ScalapackMatrix::Clear()
 */
 void ScalapackMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
-
     double* buffer = new double[N];
 
     // Loop over columns of b
@@ -187,12 +185,39 @@ void ScalapackMatrix::MatrixMultiply(int m, double* b, double* c) const
 
         }
 
-        comm_world.Allreduce(buffer, &c[k * N], N, MPI::DOUBLE, MPI::SUM);
+        MPI_Allreduce(buffer, &c[k * N], N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     }
 }
 
 void ScalapackMatrix::GetDiagonal(double* diag) const
 {
+    double* buffer = new double[N];
+    memset(buffer, 0, sizeof(double) * N);
+    memset(diag, 0, sizeof(double) * N);
+
+    unsigned int M_i = 0;
+    unsigned int M_j = 0;
+
+    unsigned int i = 0;
+    while(i < N && M_i < M_rows && M_j < M_cols)
+    {
+        if(M_row_numbers[M_i] == i)
+        {
+            if(M_col_numbers[M_j] == i)
+                buffer[i] = M[M_j * M_rows + M_i];
+
+            M_i++;
+        }
+
+        if(M_col_numbers[M_j] == i)
+            M_j++;
+
+        i++;
+    }
+
+    MPI_Allreduce(buffer, diag, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    delete[] buffer;
 }
 
 void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
@@ -354,8 +379,6 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
         writebuf = new double[N];
     }
 
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
-
     unsigned int i, j;
     unsigned int i_end;
     unsigned int M_i, M_j;
@@ -386,7 +409,7 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
             M_j++;
         }
 
-        comm_world.Reduce(buffer, writebuf, N, MPI::DOUBLE, MPI::SUM, 0);
+        MPI_Reduce(buffer, writebuf, N, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
         if(ProcessorRank == 0)
         {   fwrite(writebuf, sizeof(double), N, fp);
@@ -471,8 +494,6 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
 
     double* buffer = new double[N];
 
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
-
     unsigned int i, j;
     unsigned int M_i, M_j;
 
@@ -501,7 +522,7 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
         }
     }
 
-    comm_world.Allreduce(buffer, row, N, MPI::DOUBLE, MPI::SUM);
+    MPI_Allreduce(buffer, row, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     delete[] buffer;
 }
@@ -512,8 +533,6 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
         return;
 
     double* buffer = new double[N];
-
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     unsigned int i, j;
     unsigned int i_end;
@@ -547,7 +566,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
         }
     }
 
-    comm_world.Allreduce(buffer, col, N, MPI::DOUBLE, MPI::SUM);
+    MPI_Allreduce(buffer, col, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     delete[] buffer;
 }
@@ -559,8 +578,6 @@ void ScalapackMatrix::GetColumns(unsigned int col_begin, unsigned int col_end, d
 
     int num_cols = col_end - col_begin;
     double* buffer = new double[N * num_cols];
-
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     unsigned int i, j;
     unsigned int i_end;
@@ -610,7 +627,7 @@ void ScalapackMatrix::GetColumns(unsigned int col_begin, unsigned int col_end, d
     if(DebugOptions.LogScalapack())
         *logstream << std::endl;
 
-    comm_world.Allreduce(buffer, cols, N * num_cols, MPI::DOUBLE, MPI::SUM);
+    MPI_Allreduce(buffer, cols, N * num_cols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     delete[] buffer;
 }
@@ -621,8 +638,6 @@ void ScalapackMatrix::TestEigenvalues(const double* eigenvalues, const double* V
     double* buffer = new double[N];
     double* column = new double[N];
     double* MtimesV = new double[N];
-
-    MPI::Intracomm& comm_world = MPI::COMM_WORLD;
 
     for(unsigned int j = 0; j < N; j++)
     {
@@ -657,7 +672,7 @@ void ScalapackMatrix::TestEigenvalues(const double* eigenvalues, const double* V
             }
         }
 
-        comm_world.Allreduce(buffer, column, N, MPI::DOUBLE, MPI::SUM);
+        MPI_Allreduce(buffer, column, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
         // Mulitiply by M
         memset(MtimesV, 0, sizeof(double) * N);
