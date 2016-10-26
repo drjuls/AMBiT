@@ -65,10 +65,11 @@ public:
     virtual void EstimateOrbitalNearInfinity(unsigned int numpoints, Orbital& s) const = 0;
 
     /** Get df/dr and dg/dr given (f, g).
-        POST: This function can call SetODEParameters(), changing exchange and include_exchange.
+        If set_parameters is true, this function will call SetODEParameters(), changing exchange and include_exchange.
      */
-    virtual void GetDerivative(Orbital& fg);
-    
+    virtual void GetDerivative(Orbital& fg, bool set_parameters);
+    virtual void GetDerivative(Orbital& fg) const;
+
 protected:
     bool include_nonlocal;
 };

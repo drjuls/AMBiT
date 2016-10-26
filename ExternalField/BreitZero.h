@@ -46,11 +46,22 @@ protected:
                            r> ^(L+1)
        with L = K+1. Others are similar.
      */
-    RadialFunction pot_P_Kplus;
     RadialFunction pot_P_Kminus;
     RadialFunction pot_Q_Kplus;
-    RadialFunction pot_Q_Kminus;
     RadialFunction pot_V_K;
+
+    /* Integral of the form
+                          r< ^(K-1)   r< ^(K+1)
+        I1(r) = Integral[ --------- - --------- .P_cd(r').dr', {r', 0, r} ]
+                            r> ^K     r> ^(K+2)
+     */
+    RadialFunction pot_P_fwd;
+    /* Integral of the form
+                          r< ^(K-1)   r< ^(K+1)
+        I2(r) = Integral[ --------- - --------- .Q_cd(r').dr', {r', r, Infinity} ]
+                            r> ^K     r> ^(K+2)
+     */
+    RadialFunction pot_Q_back;
 };
 
 #endif

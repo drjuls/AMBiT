@@ -62,7 +62,7 @@ TEST(BreitTester, LiLikeNe)
     // Check p-wave against Johnson
     matrix_element = breit_hf->GetMatrixElement(*p1, *p1);
     matrix_element -= hf->GetMatrixElement(*p1, *p1);
-    EXPECT_NEAR(0.00160, matrix_element, 1.e-4);
+    EXPECT_NEAR(0.00160, matrix_element, 1.e-5);
 
     // Check that ApplyTo and GetMatrixElement are equivalent in BreitZero for M and O terms
     breit->SetParameters(1, s_core, p1);
@@ -111,7 +111,7 @@ TEST(BreitTester, HgSlow)
 
     const Orbital& one_s = *orbitals->core->GetState(OrbitalInfo(1, -1));
     const Orbital& four_d5 = *orbitals->core->GetState(OrbitalInfo(4, -3));
-    const Orbital& four_f7 = *orbitals->core->GetState(OrbitalInfo(4, 3));
+    const Orbital& four_f7 = *orbitals->core->GetState(OrbitalInfo(4, -4));
     const Orbital& six_s = *orbitals->core->GetState(OrbitalInfo(6, -1));
 
     pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
@@ -120,17 +120,17 @@ TEST(BreitTester, HgSlow)
 
     double matrix_element = breit_hf->GetMatrixElement(one_s, one_s);
     matrix_element -= hf->GetMatrixElement(one_s, one_s);
-    EXPECT_NEAR(11.61, matrix_element, 0.1);
+    EXPECT_NEAR(11.61, matrix_element, 0.01);
 
     matrix_element = breit_hf->GetMatrixElement(four_d5, four_d5);
     matrix_element -= hf->GetMatrixElement(four_d5, four_d5);
-    EXPECT_NEAR(0.04968, matrix_element, 0.01);
+    EXPECT_NEAR(0.04968, matrix_element, 1.e-5);
 
     matrix_element = breit_hf->GetMatrixElement(four_f7, four_f7);
     matrix_element -= hf->GetMatrixElement(four_f7, four_f7);
-    EXPECT_NEAR(0.02200, matrix_element, 0.01);
+    EXPECT_NEAR(0.02200, matrix_element, 1.e-5);
 
     matrix_element = breit_hf->GetMatrixElement(six_s, six_s);
     matrix_element -= hf->GetMatrixElement(six_s, six_s);
-    EXPECT_NEAR(0.001547, matrix_element, 0.001);
+    EXPECT_NEAR(0.001547, matrix_element, 1.e-5);
 }

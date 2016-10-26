@@ -22,6 +22,14 @@ public:
     virtual void Alert() override;
 
     /** Set exchange (nonlocal) potential and energy for ODE routines. */
+    virtual void SetODEParameters(int kappa, double energy, const SpinorFunction* exchange = NULL) override
+    {   wrapped->SetODEParameters(kappa, energy, exchange);
+        currentEnergy = energy;
+        currentKappa = kappa;
+        currentExchangePotential.Clear();   // Exchange is carried by the base HFOperator only.
+    }
+
+    /** Set exchange (nonlocal) potential and energy for ODE routines. */
     virtual void SetODEParameters(const Orbital& approximation) override;
     
     /** Get exchange (nonlocal) potential. */
