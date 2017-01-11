@@ -121,7 +121,26 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                 double coeff_alphabeta = salpha.MaxNumElectrons() * sbeta.MaxNumElectrons() * (2 * k + 1);
 
                 coeff_alphabeta = coeff_alphabeta/(coeff_ac * coeff_bd);
-                coeff_alphabeta = coeff_alphabeta/(ValenceEnergy - Ealpha - Ebeta + delta);
+                double EnergyDenominator = (ValenceEnergy - Ealpha - Ebeta +
+                    delta); 
+
+                // Log if the energy denominator is too small
+                if(fabs(EnergyDenominator) < 1e-4){
+                  *errstream <<
+                  "ValenceMBPTCalculator::CalculateTwoElectronValence(): \
+energy denominator is too small!\n" 
+                  << "ValenceEnergy - Ealpha - Ebeta + delta = "
+                  << EnergyDenominator << std::endl;
+
+                  *errstream << "Problem orbitals:\n" 
+                  << "Valence a: " << sa.Name()
+                  << "\nValence b: " << sb.Name()
+                  << "\nalpha: " << salpha.Name()
+                  << "\nbeta: " << sbeta.Name()
+                  << std::endl << std::endl;
+                }
+
+                coeff_alphabeta = coeff_alphabeta/EnergyDenominator;
 
                 int exponent = (sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + salpha.TwoJ() + sbeta.TwoJ())/2;
                 coeff_alphabeta *= constants->minus_one_to_the_power(exponent + k + 1);
