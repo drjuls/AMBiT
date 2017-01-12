@@ -105,8 +105,11 @@ protected:
     void SetValenceEnergies();
 
     double delta;   // Shift in the energy denominator.
-    double denom_floor; // Sets the lowest value the energy denominator
-                              // can takea, to void non-perturbative terms
+
+    /* Sets the lowest value the energy denominator can take. Exists to void 
+     * non-perturbative terms*/
+    double denom_floor; 
+
 };
 
 inline int MBPTCalculator::absdiff(int i, int j) const

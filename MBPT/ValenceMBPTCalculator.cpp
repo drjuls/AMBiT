@@ -165,18 +165,17 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
 
                                 double R2 = two_body->GetTwoElectronIntegral(k2, salpha, sbeta, sc, sd);
 
-                                // If the term is still no-perturbative after
+                                // If the term is still non-perturbative after
                                 // flooring the denominator, then complain,
                                 // because we've got a serious problem
                                 if((fabs(R1*R2*coeff) > fabs(energy_denominator))){
-                                  *errstream << 
-                                  "ValenceMBPTCalculator::CalculateTwoElectron\
-Valence(): non-perturbative energy denominator" 
-                                   "\nR1*R2*coeff/EnergyDenominator  =" 
+                                  *outstream << 
+                                  "Warning: non-perturbative diagram in ValenceMBPTCalculator::CalculateTwoElectronValence()\n" 
+                                   << "Delta E  =" 
                                    << R1 * R2 * coeff/energy_denominator
                                    << std::endl;
 
-                                  *errstream << "Problem orbitals:\n" 
+                                  *outstream << "Problem orbitals:\n" 
                                   << "Valence a: " << sa.Name()
                                   << "\nValence b: " << sb.Name()
                                   << "\nValence c: " << sc.Name()
