@@ -121,26 +121,15 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                 double coeff_alphabeta = salpha.MaxNumElectrons() * sbeta.MaxNumElectrons() * (2 * k + 1);
 
                 coeff_alphabeta = coeff_alphabeta/(coeff_ac * coeff_bd);
-                double EnergyDenominator = (ValenceEnergy - Ealpha - Ebeta +
+                double energy_denominator = (ValenceEnergy - Ealpha - Ebeta +
                     delta); 
 
-                // Log if the energy denominator is too small
-                if(fabs(EnergyDenominator) < 1e-4){
-                  *errstream <<
-                  "ValenceMBPTCalculator::CalculateTwoElectronValence(): \
-energy denominator is too small!\n" 
-                  << "ValenceEnergy - Ealpha - Ebeta + delta = "
-                  << EnergyDenominator << std::endl;
-
-                  *errstream << "Problem orbitals:\n" 
-                  << "Valence a: " << sa.Name()
-                  << "\nValence b: " << sb.Name()
-                  << "\nalpha: " << salpha.Name()
-                  << "\nbeta: " << sbeta.Name()
-                  << std::endl << std::endl;
+                // Set a floor for the denominator if it gets too small
+                // (remember to preserve the sign of the denominator)
+                if(fabs(energy_denominator) < denom_floor){
+                    energy_denominator = copysign(denom_floor,
+                        energy_denominator);
                 }
-
-                coeff_alphabeta = coeff_alphabeta/EnergyDenominator;
 
                 int exponent = (sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + salpha.TwoJ() + sbeta.TwoJ())/2;
                 coeff_alphabeta *= constants->minus_one_to_the_power(exponent + k + 1);
@@ -176,7 +165,27 @@ energy denominator is too small!\n"
 
                                 double R2 = two_body->GetTwoElectronIntegral(k2, salpha, sbeta, sc, sd);
 
-                                energy += R1 * R2 * coeff;
+                                // If the term is still no-perturbative after
+                                // flooring the denominator, then complain,
+                                // because we've got a serious problem
+                                if((fabs(R1*R2*coeff) > fabs(energy_denominator))){
+                                  *errstream << 
+                                  "ValenceMBPTCalculator::CalculateTwoElectron\
+Valence(): non-perturbative energy denominator" 
+                                   "\nR1*R2*coeff/EnergyDenominator  =" 
+                                   << R1 * R2 * coeff/energy_denominator
+                                   << std::endl;
+
+                                  *errstream << "Problem orbitals:\n" 
+                                  << "Valence a: " << sa.Name()
+                                  << "\nValence b: " << sb.Name()
+                                  << "\nValence c: " << sc.Name()
+                                  << "\nValence d: " << sd.Name()
+                                  << "\nalpha: " << salpha.Name()
+                                  << "\nbeta: " << sbeta.Name()
+                                  << std::endl << std::endl;
+                                }
+                                energy += R1 * R2 * coeff/energy_denominator;
                             }
 
                             k2 += kstep;

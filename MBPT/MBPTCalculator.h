@@ -33,6 +33,15 @@ public:
     {   delta = energy_shift;
     }
 
+    /* Add a floor to the energy denominator in two-body valence-valence 
+     * diagrams. This is to help catch pathological cases where a particular
+     * contribution can't be treated perturbatively and must instead be treated
+     * by CI
+     */
+    void SetEnergyFloor(double energy_denom_floor)
+    {   denom_floor = energy_denom_floor;
+    }
+
     /** Return true if one of the orbital info arguments is not in the valence set. */
     template <typename... OrbitalTypes>
     inline bool InQSpace(const OrbitalInfo& orb, const OrbitalTypes&... orbitals) const
@@ -96,6 +105,8 @@ protected:
     void SetValenceEnergies();
 
     double delta;   // Shift in the energy denominator.
+    double denom_floor; // Sets the lowest value the energy denominator
+                              // can takea, to void non-perturbative terms
 };
 
 inline int MBPTCalculator::absdiff(int i, int j) const
