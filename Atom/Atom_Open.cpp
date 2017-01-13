@@ -80,7 +80,8 @@ void Atom::MakeMBPTIntegrals()
     // Also set a floor for the valence-MBPT energy denominators
     double energy_denom_floor = user_input("MBPT/EnergyDenomFloor",
         0.01);
-    *logstream << "energy_denom_floor = " << energy_denom_floor << std::endl;
+    *logstream << "Using valence MBPT denominator floor of " 
+    << energy_denom_floor << std::endl;
     core_mbpt->SetEnergyFloor(energy_denom_floor);
     val_mbpt->SetEnergyFloor(energy_denom_floor);
 

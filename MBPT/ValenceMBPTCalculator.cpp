@@ -126,9 +126,10 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
 
                 // Set a floor for the denominator if it gets too small
                 // (remember to preserve the sign of the denominator)
-                if(fabs(energy_denominator) < denom_floor){
+                if(fabs(energy_denominator) < denom_floor)
+                {
                     energy_denominator = copysign(denom_floor,
-                        energy_denominator);
+                            energy_denominator);
                 }
 
                 int exponent = (sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + salpha.TwoJ() + sbeta.TwoJ())/2;
@@ -166,23 +167,26 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                                 double R2 = two_body->GetTwoElectronIntegral(k2, salpha, sbeta, sc, sd);
 
                                 // If the term is still non-perturbative after
-                                // flooring the denominator, then complain,
+                                // flooring the denominator, then complain
                                 // because we've got a serious problem
-                                if((fabs(R1*R2*coeff) > fabs(energy_denominator))){
-                                  *outstream << 
-                                  "Warning: non-perturbative diagram in ValenceMBPTCalculator::CalculateTwoElectronValence()\n" 
-                                   << "Delta E  =" 
-                                   << R1 * R2 * coeff/energy_denominator
-                                   << std::endl;
+                                if((fabs(R1*R2*coeff) > 
+                                        fabs(energy_denominator)))
+                                {
+                                    *outstream << 
+                                    "WARNING: found non-perturbative \
+two-electron valence MBPT diagram\n"
+                                    << "Delta E = " 
+                                    << R1 * R2 * coeff/energy_denominator
+                                    << std::endl;
 
-                                  *outstream << "Problem orbitals:\n" 
-                                  << "Valence a: " << sa.Name()
-                                  << "\nValence b: " << sb.Name()
-                                  << "\nValence c: " << sc.Name()
-                                  << "\nValence d: " << sd.Name()
-                                  << "\nalpha: " << salpha.Name()
-                                  << "\nbeta: " << sbeta.Name()
-                                  << std::endl << std::endl;
+                                    *outstream << "Problem orbitals:\n" 
+                                    << "a = " << sa.Name()
+                                    << ", b = " << sb.Name()
+                                    << ", c = " << sc.Name()
+                                    << ", d = " << sd.Name()
+                                    << "\nalpha = " << salpha.Name()
+                                    << ", beta = " << sbeta.Name()
+                                    << std::endl << std::endl;
                                 }
                                 energy += R1 * R2 * coeff/energy_denominator;
                             }
