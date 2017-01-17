@@ -53,7 +53,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
         auto itsmall = std::next(joined->first.begin(), joined->second);
 
         auto last = std::set_difference(biglist->first.begin(), biglist->first.end(), sublist->first.begin(), sublist->first.end(), itsmall);
-        joined->first.resize(last - joined->first.begin());
+        joined->first.resize(std::distance(joined->first.begin(), last));
         biglist = joined;
     }
 
@@ -119,7 +119,6 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
     int numValenceElectrons = 0;
     
     int num_configs = user_input.vector_variable_size("LeadingConfigurations");
-    leading_configs->first.reserve(num_configs);
     for(int i = 0; i < num_configs; i++)
     {
         const std::string name = user_input("LeadingConfigurations", "", i);
@@ -214,21 +213,18 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
         double lower_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 0);
         double upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
 
-        auto it = nrlist->first.begin();
-        while(it != nrlist->first.end())
-        {
-            double energy = it->CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
-            if(energy < lower_energy || energy > upper_energy)
-                it = nrlist->first.erase(it);
-            else
-                it++;
-        }
+        auto it = std::remove_if(nrlist->first.begin(), nrlist->first.end(), [&](NonRelConfiguration& nrconfig)
+                    {
+                        double energy = nrconfig.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
+                        return (energy < lower_energy || energy > upper_energy);
+                    });
+        nrlist->first.erase(it, nrlist->first.end());
+        nrlist->second = nrlist->first.size();
     }
 
     // Add extra configurations not to be considered leading configurations.
     // These are added regardless of ConfigurationAverageEnergyRange
     int num_extra_configs = user_input.vector_variable_size("ExtraConfigurations");
-    nrlist->first.reserve(nrlist->first.size() + num_extra_configs);
     for(int i = 0; i < num_extra_configs; i++)
     {
         const std::string extraname = user_input("ExtraConfigurations", "", i);
@@ -262,9 +258,9 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
         *outstream << "\nConfiguration average energies:" << std::endl;
         for(auto& config: nrlist->first)
         {
-            *outstream << config << ": "
+            *outstream << config << ": " << std::setprecision(6)
                        << config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body)
-                       << std::endl;
+                       << " (" << config.GetNumberOfLevels() << " levels)" << std::endl;
         }
     }
 

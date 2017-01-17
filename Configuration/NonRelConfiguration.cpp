@@ -199,15 +199,19 @@ std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list)
 
 void SortAndUnique(pConfigList& config_list)
 {
+    // Protect Nsmall
+    config_list->second = mmin(config_list->second, config_list->first.size());
+
     // Sort 0 -> Nsmall
+    std::list<NonRelConfiguration> smallside;
     auto itsmall = std::next(config_list->first.begin(), config_list->second);
-    std::sort(config_list->first.begin(), itsmall);
-    auto last = std::unique(config_list->first.begin(), itsmall);
-    itsmall = config_list->first.erase(last, itsmall);
-    config_list->second = itsmall - config_list->first.begin();
+    smallside.splice(smallside.begin(), config_list->first, config_list->first.begin(), itsmall);
+    smallside.sort();
+    smallside.unique();
 
     // Sort Nsmall -> config_list.end()
-    std::sort(itsmall, config_list->first.end());
-    last = std::unique(itsmall, config_list->first.end());
-    config_list->first.resize(last-config_list->first.begin());
+    config_list->first.sort();
+    config_list->first.unique();
+    config_list->second = smallside.size();
+    config_list->first.splice(config_list->first.begin(), smallside);
 }

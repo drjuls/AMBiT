@@ -65,7 +65,7 @@ protected:
 };
 
 /** ConfigList has a list and an unsigned int to indicate a small cut-off (Nsmall). */
-typedef std::pair<std::vector<NonRelConfiguration>, unsigned int> ConfigList;
+typedef std::pair<std::list<NonRelConfiguration>, unsigned int> ConfigList;
 std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
 
 typedef std::shared_ptr<ConfigList> pConfigList;
