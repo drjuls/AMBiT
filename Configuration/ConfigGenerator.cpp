@@ -332,11 +332,10 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(cons
 
 void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const
 {
-    ConfigList old_list(*configlist);
-
     // Go through the set of initial configurations
-    auto config_it = old_list.first.begin();
-    while(config_it != old_list.first.end())
+    auto config_it = configlist->first.begin();
+    int old_size = configlist->first.size();
+    for(int i = 0; i < old_size; i++)
     {
         // Move electrons and holes:
         // For each single particle state in the configuration
