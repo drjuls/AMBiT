@@ -4,9 +4,10 @@
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
 #include "LimitApplicabilityWrapper.h"
+#include "Transitions.h"
 
 /** Uehling potential decorator.
-    Uses step potential from Ginges & Berengut.
+    Uses step potential from Ginges & Berengut, J. Phys. B 49, 095001 (2016).
  */
 class UehlingDecorator: public HFOperatorDecorator<LocalPotentialDecorator, UehlingDecorator>
 {
@@ -24,6 +25,7 @@ public:
 
 /** Radiative potential decorator for magnetic part of self-energy.
     Includes potential for step density and variable density.
+    [Ginges & Berengut, Phys. Rev. A 93, 052509 (2016)]
  */
 class MagneticSelfEnergyDecorator: public HFOperatorDecorator<HFBasicDecorator, MagneticSelfEnergyDecorator>
 {
@@ -54,6 +56,7 @@ protected:
     Includes potential for step density and variable density.
     Implementation: s and p-wave potential is stored in directPotential (following LocalPotentialDecorator),
                     d-wave potential is stored in potDWave.
+    [Ginges & Berengut, Phys. Rev. A 93, 052509 (2016)]
  */
 class ElectricSelfEnergyDecorator: public HFOperatorDecorator<HFBasicDecorator, ElectricSelfEnergyDecorator>
 {
@@ -101,5 +104,14 @@ protected:
 typedef std::shared_ptr<UehlingDecorator> pUehlingDecorator;
 typedef std::shared_ptr<MagneticSelfEnergyDecorator> pMagneticSelfEnergyDecorator;
 typedef std::shared_ptr<ElectricSelfEnergyDecorator> pElectricSelfEnergyDecorator;
+
+class QEDCalculator : public TransitionCalculator
+{
+public:
+    QEDCalculator(MultirunOptions& user_input, Atom& atom);
+
+    virtual void PrintHeader() const override;
+    virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
+};
 
 #endif

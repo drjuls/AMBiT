@@ -1012,3 +1012,65 @@ void ElectricSelfEnergyDecorator::Initialize()
     BfitSP = 0.074 + 0.35 * Za;
     BfitD  = 0.056 + 0.050 * Za + 0.195 * Za2;
 }
+
+QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom):
+    TransitionCalculator(user_input, atom)
+{
+    pHFOperatorConst hf = atom.GetHFOperator();
+    pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
+    pNucleusDecorator nucleus = atom.GetNucleusDecorator();
+
+    double nuclear_rms_radius = user_input("NuclearRMSRadius", -1.0);
+    if(nuclear_rms_radius < 0.0)
+    {   if(nucleus)
+            nuclear_rms_radius = nucleus->CalculateNuclearRMSRadius();
+        else
+            nuclear_rms_radius = 0.0;
+    }
+
+    pHFOperator qed = zero;
+
+    if(user_input.search("--uehling"))
+    {
+        if(nucleus && user_input.search("--use-nuclear-density"))
+            qed = std::make_shared<UehlingDecorator>(qed, nucleus->GetNuclearDensity());
+        else
+            qed = std::make_shared<UehlingDecorator>(qed, nuclear_rms_radius);
+    }
+
+    if(user_input.search("--self-energy"))
+    {
+        if(nucleus && user_input.search("--use-nuclear-density"))
+        {
+            if(!user_input.search("--no-magnetic"))
+                qed = std::make_shared<MagneticSelfEnergyDecorator>(qed, nucleus->GetNuclearDensity());
+            if(!user_input.search("--no-electric"))
+                qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nucleus->GetNuclearDensity());
+        }
+        else
+        {
+            if(!user_input.search("--no-magnetic"))
+                qed = std::make_shared<MagneticSelfEnergyDecorator>(qed, nuclear_rms_radius);
+            if(!user_input.search("--no-electric"))
+                qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nuclear_rms_radius);
+        }
+    }
+
+    if(user_input.search("--rpa"))
+        op = MakeStaticRPA(qed, hf, atom.GetHartreeY());
+    else
+        op = qed;
+}
+
+void QEDCalculator::PrintHeader() const
+{
+    *outstream << "QED shift in 1/cm: " << std::endl;
+}
+
+void QEDCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
+{
+    double value = matrix_element * MathConstant::Instance()->HartreeEnergyInInvCm();
+
+    *outstream << "  " << Name(left) << " -> " << Name(right)
+               << " = " << std::setprecision(12) << value << std::endl;
+}
