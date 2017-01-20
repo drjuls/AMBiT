@@ -6,8 +6,8 @@
 #include "HartreeFock/NonRelInfo.h"
 #include "RelativisticConfigList.h"
 #include "HartreeFock/OrbitalMap.h"
-#include "HartreeFock/HFOperator.h"
-#include "HartreeFock/HartreeY.h"
+#include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/SlaterIntegrals.h"
 #include "SortedList.h"
 #include <set>
 
@@ -40,7 +40,7 @@ public:
     pRelativisticConfigList GenerateRelativisticConfigs();
 
     /** Calculate configuration average energy using relconfiglist. */
-    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body);
+    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body);
 
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;

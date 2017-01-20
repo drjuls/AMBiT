@@ -131,7 +131,7 @@ void NonRelConfiguration::SplitNonRelInfo(NonRelConfiguration::const_iterator cu
     }
 }
 
-double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body)
+double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     if(std::isnan(config_average_energy))
     {

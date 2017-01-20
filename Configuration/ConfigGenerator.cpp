@@ -31,7 +31,7 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 {   return leading_configs;
 }
 
-pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, pHartreeY two_body)
+pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     // Do sublist first since leading_configs should come from CI, rather than CI/SmallSide
     pConfigList sublist = nullptr;
@@ -62,7 +62,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
     return biglist;
 }
 
-pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator one_body, pHartreeY two_body)
+pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     pConfigList nrlist = std::make_shared<ConfigList>();
 

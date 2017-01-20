@@ -4,8 +4,8 @@
 #include "HartreeFock/OrbitalInfo.h"
 #include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Configuration.h"
-#include "HartreeFock/HFOperator.h"
-#include "HartreeFock/HartreeY.h"
+#include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/SlaterIntegrals.h"
 #include "Projection.h"
 #include "AngularData.h"
 #include "SortedList.h"
@@ -51,7 +51,7 @@ public:
     int GetNumberOfLevels() const;
 
     /** Calculate configuration average energy. */
-    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body) const;
+    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body) const;
 
     /** Return 2J if angular data has been set using GetProjections(), otherwise return -1. */
     int GetTwoJ() const
@@ -153,7 +153,7 @@ protected:
 
 /** Calculate configuration average energy. */
 template<class OccupancyType>
-double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, OccupancyType>& config, pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body)
+double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, OccupancyType>& config, pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     MathConstant* math = MathConstant::Instance();
     double energy = 0.;
@@ -161,9 +161,8 @@ double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, Occu
     auto it_a = config.begin();
     while(it_a != config.end())
     {
-        pOrbitalConst orbital_a = orbitals->GetState(it_a->first);
         // one body: n_a E_a
-        energy += it_a->second * one_body->GetMatrixElement(*orbital_a, *orbital_a);
+        energy += it_a->second * one_body->GetMatrixElement(it_a->first, it_a->first);
 
         auto it_b = it_a;
         while(it_b != config.end())
@@ -180,30 +179,26 @@ double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, Occu
 
             if(weight)
             {
-                pOrbitalConst orbital_b = orbitals->GetState(it_b->first);
-
                 // R^0_abab
-                two_body->SetParameters(0, orbital_b, orbital_b);
-                double U_ab = two_body->GetMatrixElement(*orbital_a, *orbital_a);
+                double U_ab = two_body->GetTwoElectronIntegral(0, it_a->first, it_b->first, it_a->first, it_b->first);
 
                 // Sum_l R^k_abba (j_a  j_b k)^2 \xi(l_a + l_b + k)
                 //                (1/2 -1/2 0)
-                int k = two_body->SetOrbitals(orbital_b, orbital_a);
-                while(k != -1)
+                int k = (it_a->first.L() + it_b->first.L())%2;
+                int kmax = (it_a->first.TwoJ() + it_b->first.TwoJ())/2;
+                while(k <= kmax)
                 {
-                    if(math->sum_is_even(orbital_a->L(), orbital_b->L(), k))
-                    {
-                        double threej = math->Electron3j(orbital_a->TwoJ(), orbital_b->TwoJ(), k);
-                        U_ab -= threej * threej * two_body->GetMatrixElement(*orbital_a, *orbital_b);
-                    }
-                    k = two_body->NextK();
+                    double threej = math->Electron3j(it_a->first.TwoJ(), it_b->first.TwoJ(), k);
+                    U_ab -= threej * threej * two_body->GetTwoElectronIntegral(k, it_a->first, it_b->first, it_b->first, it_a->first);
+
+                    k += 2;
                 }
 
                 energy += weight * U_ab;
             }
-            it_b++;
+            ++it_b;
         }
-        it_a++;
+        ++it_a;
     }
 
     return energy;

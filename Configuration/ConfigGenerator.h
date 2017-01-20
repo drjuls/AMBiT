@@ -8,7 +8,8 @@
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Symmetry.h"
-#include <set>
+#include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/TwoElectronCoulombOperator.h"
 
 typedef std::set<NonRelInfo> NonRelInfoSet;
 
@@ -33,7 +34,7 @@ public:
         This may include limiting the non-relativistic configurations based on configuration average energies,
         provided one_body and two_body operators are provided.
      */
-    pConfigList GenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+    pConfigList GenerateNonRelConfigurations(pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
@@ -70,7 +71,7 @@ protected:
         This may include limiting the non-relativistic configurations based on configuration average energies,
         provided one_body and two_body operators are provided.
      */
-    pConfigList ParseAndGenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+    pConfigList ParseAndGenerateNonRelConfigurations(pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
 
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
