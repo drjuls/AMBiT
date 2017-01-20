@@ -21,14 +21,9 @@ public:
     NonRelConfiguration() {}
     NonRelConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
     NonRelConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
-    NonRelConfiguration(const NonRelConfiguration& other): BaseConfiguration(other) {}
-    NonRelConfiguration(NonRelConfiguration&& other): BaseConfiguration(other) {}
     NonRelConfiguration(const RelativisticConfiguration& other);
     NonRelConfiguration(const std::string& name);
     virtual ~NonRelConfiguration() {}
-
-    NonRelConfiguration& operator=(const NonRelConfiguration& other) { BaseConfiguration::operator=(other); return *this; }
-    NonRelConfiguration& operator=(NonRelConfiguration&& other) { BaseConfiguration::operator=(other); return *this; }
 
 public:
     /** Return success. */
@@ -55,13 +50,16 @@ public:
     int GetNumberOfLevels();
 
 public:
-    pRelativisticConfigList relconfiglist;
+    pRelativisticConfigList relconfiglist = nullptr;
 
 protected:
     /** Split the current NonRelInfo of config. Recursively split the rest.
         When at end(), add it to relconfiglist.
      */
     void SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig);
+
+    double config_average_energy = std::numeric_limits<double>::quiet_NaN();
+    unsigned int num_levels = 0;    //!< Number of levels including all magnetic sublevels.
 };
 
 /** ConfigList has a list and an unsigned int to indicate a small cut-off (Nsmall). */
