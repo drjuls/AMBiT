@@ -256,12 +256,17 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFIntegrals o
     if(one_body && two_body && user_input.search("--print-configuration-average-energy"))
     {
         *outstream << "\nConfiguration average energies:" << std::endl;
+        unsigned int total_num_levels = 0;
         for(auto& config: nrlist->first)
         {
-            *outstream << config << ": " << std::setprecision(6)
-                       << config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body)
-                       << " (" << config.GetNumberOfLevels() << " levels)" << std::endl;
+            double CAenergy = config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
+            unsigned int nlevels = config.GetNumberOfLevels();
+            total_num_levels += nlevels;
+
+            *outstream << config << ": " << std::setprecision(6) << CAenergy
+                       << " (" << nlevels << " levels)" << '\n';
         }
+        *outstream << "Total number of levels = " << total_num_levels << std::endl;
     }
 
     nrlist->second = nrlist->first.size();
