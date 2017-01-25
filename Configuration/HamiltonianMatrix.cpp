@@ -516,6 +516,10 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         }
     #endif
     }
+
+#ifdef AMBIT_USE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
 }
 
 double HamiltonianMatrix::PollMatrix(double epsilon) const
