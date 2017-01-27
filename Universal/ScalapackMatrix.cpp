@@ -299,6 +299,7 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
         i++;
     }
 
+    fclose(fp);
     delete[] buffer;
     upper_triangle = false;
 }
@@ -359,6 +360,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
         i++;
     }
 
+    fclose(fp);
     delete[] buffer;
     upper_triangle = true;
 }
