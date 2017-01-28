@@ -166,14 +166,14 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         if(coeff)
                         {
                             coeff = coeff * coeff * C_nalpha * sbeta.MaxNumElectrons();
-                            coeff = coeff/(ValenceEnergy + En - Ebeta - Ealpha + delta);
+                            double energy_denominator = ValenceEnergy + En - Ebeta - Ealpha + delta;
 
                             // R1 = R_k1 (a n, beta alpha)
                             // R2 = R_k1 (b n, beta alpha)
                             double R1 = two_body->GetTwoElectronIntegral(k1, sa, sn, sbeta, salpha);
                             double R2 = two_body->GetTwoElectronIntegral(k1, sb, sn, sbeta, salpha);
 
-                            energy1 += R1 * R2 * coeff;
+                            energy1 += TermRatio(R1 * R2 * coeff, energy_denominator, sa, sn, sbeta, salpha);
                         }
                         it_beta++;
                     }
@@ -194,14 +194,14 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         if(coeff)
                         {
                             coeff = coeff * coeff * C_nalpha * sm.MaxNumElectrons();
-                            coeff = coeff/(ValenceEnergy + Ealpha - En - Em - delta);
+                            double energy_denominator = ValenceEnergy + Ealpha - En - Em - delta;
 
                             // R1 = R_k1 (a alpha, m n)
                             // R2 = R_k1 (b alpha, m n)
                             double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sm, sn);
                             double R2 = two_body->GetTwoElectronIntegral(k1, sb, salpha, sm, sn);
 
-                            energy3 += R1 * R2 * coeff;
+                            energy3 += TermRatio(R1 * R2 * coeff, energy_denominator, sa, salpha, sn, sm);
                         }
                         it_m++;
                     }
@@ -271,7 +271,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                         if(C_abeta && ((sa.L() + salpha.L() + sn.L() + sbeta.L())%2 == 0))
                         {
                             C_abeta = C_abeta * sbeta.MaxNumElectrons();
-                            C_abeta = C_abeta/(ValenceEnergy + En - Ebeta - Ealpha + delta);
+                            double energy_denominator = ValenceEnergy + En - Ebeta - Ealpha + delta;
 
                             k2 = kmin(sn, sbeta, sa, salpha);
                             k2max = kmax(sn, sbeta, sa, salpha);
@@ -296,7 +296,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (n b, beta alpha)
                                     double R2 = two_body->GetTwoElectronIntegral(k2, sn, sb, sbeta, salpha);
 
-                                    energy += R1 * R2 * coeff;
+                                    energy += TermRatio(R1 * R2 * coeff, energy_denominator, sa, sn, sbeta, salpha);
                                 }
                                 k2 += kstep;
                             }
@@ -368,7 +368,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                         if(C_am && ((sa.L() + sn.L() + sm.L() + salpha.L())%2 == 0))
                         {
                             C_am = C_am * sm.MaxNumElectrons();
-                            C_am = C_am/(ValenceEnergy + Ealpha - En - Em - delta);
+                            double energy_denominator = ValenceEnergy + Ealpha - En - Em - delta;
 
                             k2 = kmin(sm, salpha, sa, sn);
                             k2max = kmax(sm, salpha, sa, sn);
@@ -391,7 +391,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                                     // R2 = R_k2 (m n, alpha b)
                                     double R2 = two_body->GetTwoElectronIntegral(k2, sm, sn, salpha, sb);
 
-                                    energy += R1 * R2 * coeff;
+                                    energy += TermRatio(R1 * R2 * coeff, energy_denominator, sa, salpha, sn, sm);
                                 }
                                 k2 += kstep;
                             }
@@ -436,8 +436,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
             {
                 double coeff = one_body->GetMatrixElement(sn, salpha);
                 coeff = coeff * sn.MaxNumElectrons();
-
-                coeff = coeff/(En - Ealpha + delta);
+                double energy_denominator = En - Ealpha + delta;
 
                 // R1 = R_0 (a n, b alpha)
                 double R1 = two_body->GetTwoElectronIntegral(0, sa, sn, sb, salpha);
@@ -445,7 +444,7 @@ double CoreMBPTCalculator::CalculateSubtraction1(const OrbitalInfo& sa, const Or
                 // Factor of 2 from identical mirror diagram:
                 //   R_0 (a n, b alpha) = R_0 (a alpha, b n)
                 // and no SMS since k == 0.
-                energy += 2. * R1 * coeff;
+                energy += 2. * TermRatio(R1 * coeff, energy_denominator, sn, salpha);
             }
             it_alpha++;
         }
@@ -483,7 +482,7 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
             {
                 double C_nalpha = one_body->GetMatrixElement(sn, salpha);
                 C_nalpha = C_nalpha * sn.MaxNumElectrons();
-                C_nalpha = C_nalpha/(En - Ealpha + delta);
+                double energy_denominator = En - Ealpha + delta;
 
                 k1 = kmin(sa, sn);
                 k1max = kmax(sa, sn);
@@ -499,7 +498,8 @@ double CoreMBPTCalculator::CalculateSubtraction2(const OrbitalInfo& sa, const Or
                         double R1 = two_body->GetTwoElectronIntegral(k1, sa, salpha, sn, sb);
                         double R2 = two_body->GetTwoElectronIntegral(k1, sa, sn, salpha, sb);
 
-                        energy += (R1 + R2) * coeff;
+                        energy += TermRatio(R1 * coeff, energy_denominator, sn, salpha);
+                        energy += TermRatio(R2 * coeff, energy_denominator, sn, salpha);
                     }
                     k1 += kstep;
                 }
@@ -533,9 +533,9 @@ double CoreMBPTCalculator::CalculateSubtraction3(const OrbitalInfo& sa, const Or
         if(sn.Kappa() == sa.Kappa() && InQSpace(sn))
         {
             double term = one_body->GetMatrixElement(sa, sn) * one_body->GetMatrixElement(sn, sb);
-            term = term/(En - ValenceEnergy + delta);
+            double energy_denominator = En - ValenceEnergy + delta;
 
-            energy = energy - term;
+            energy -= TermRatio(term, energy_denominator, sn, sa);
         }
         it_n++;
     }
@@ -577,7 +577,6 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
                 coeff = coeff * coeff * sn.MaxNumElectrons() * salpha.MaxNumElectrons()
                                         / (2. * k + 1.);
                 double energy_denominator = (En - Ealpha + delta);
-                //coeff = coeff/(En - Ealpha + delta);
 
                 // There are two diagrams:
                 //  1. R_k(a n, c alpha) * R_k(alpha b, n d)
@@ -587,24 +586,8 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
                 double R2 = two_body->GetTwoElectronIntegral(k, sa, salpha, sc, sn)
                             * two_body->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
 
-                // Check that the denominator doesn't make this
-                // non-perturbative
-                if((R1 + R2)*coeff > fabs(energy_denominator))
-                {
-                    *errstream << "WARNING: Found non-perturbative diagram in \
-CoreMBPTCalculator::CalculateTwoElectron1" << std::endl;
-                    *errstream << "Delta E = " << (R1 +
-                    R2)*coeff/energy_denominator << std::endl;
-
-                    *errstream << "Problem orbitals:\n"
-                    << "sa = " << sa.Name() 
-                    << ", sb = " << sb.Name()
-                    << ", sc = " << sc.Name()
-                    << ", sd = " << sd.Name()
-                    << "\nsn = " << sn.Name()
-                    << std::endl;
-                }
-                energy += (R1 + R2) * coeff/energy_denominator;
+                energy += TermRatio(R1 * coeff, energy_denominator, sn, salpha);
+                energy += TermRatio(R2 * coeff, energy_denominator, sn, salpha);
             }
             it_alpha++;
         }
@@ -652,8 +635,6 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                 C_nalpha = C_nalpha * sn.MaxNumElectrons() * salpha.MaxNumElectrons();
                 double energy_denominator = En - Ealpha + delta;
 
-                //C_nalpha = C_nalpha/(En - Ealpha + delta);
-
                 k1 = kmin(sa, sn, salpha, sc);
                 k1max = kmax(sa, sn, salpha, sc);
 
@@ -674,22 +655,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
                         // R2 = R_k (n b, alpha d)
                         double R2 = two_body->GetTwoElectronIntegral(k, sn, sb, salpha, sd);
 
-                        if(fabs(R1*R2*coeff) > fabs(energy_denominator))
-                        {
-                            *errstream << "WARNING: found non-perturbative \
-diagram in CoreMBPTCalculator::CalculateTwoElectron2\n"
-                            << "Delta E = " << R1*R2*coeff/energy_denominator 
-                            << std::endl;
-
-                            *errstream << "Problem orbitals:\n"
-                            << "sa = " << sa.Name() 
-                            << ", sb = " << sb.Name()
-                            << ", sc = " << sc.Name()
-                            << ", sd = " << sd.Name()
-                            << "\nsn = " << sn.Name()
-                            << std::endl; 
-                        }
-                        energy += R1 * R2 * coeff/energy_denominator;
+                        energy += TermRatio(R1 * R2 * coeff, energy_denominator, sn, salpha);
                     }
                     k1 += kstep;
                 }
@@ -714,21 +680,8 @@ diagram in CoreMBPTCalculator::CalculateTwoElectron2\n"
 
                         // R2 = R_k (a n, c alpha)
                         double R2 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, salpha);
-                        if(fabs(R1*R2*coeff) > fabs(energy_denominator))
-                        {
-                            *errstream << "WARNING: found non-perturbative \
-diagram in CoreMBPTCalculator::CalculateTwoElectron2 (mirror diagram)\n"
-                            << "Delta E = " << R1*R2*coeff/energy_denominator 
-                            << std::endl;
-                            *errstream << "Problem orbitals:\n"
-                            << "sa = " << sa.Name() 
-                            << ", sb = " << sb.Name()
-                            << ", sc = " << sc.Name()
-                            << ", sd = " << sd.Name()
-                            << "\nsn = " << sn.Name()
-                            << std::endl; 
-                        }
-                        energy += R1 * R2 * coeff/energy_denominator;
+
+                        energy += TermRatio(R1 * R2 * coeff, energy_denominator, sn, salpha);
                     }
                     k1 += kstep;
                 }
@@ -785,8 +738,8 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
             if(C_nalpha)
             {
                 C_nalpha = C_nalpha/(coeff_ac*coeff_bd);
-                double energy_denominator = En - Ealpha + delta; 
-                //C_nalpha = C_nalpha/(En - Ealpha + delta);
+                double energy_denominator = En - Ealpha + delta;
+
                 unsigned int phase = (unsigned int)(sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + sn.TwoJ() + salpha.TwoJ())/2;
                 if(phase%2)
                     C_nalpha = -C_nalpha;
@@ -821,22 +774,8 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
 
                                 // R2 = R_k2 (2b, c4)
                                 double R2 = two_body->GetTwoElectronIntegral(k2, sn, sb, sc, salpha);
-                                if(fabs(R1*R2*coeff) >
-                                        fabs(energy_denominator))
-                                {
-                                    *errstream << "WARNING: found non-perturbative \
-diagram in CoreMBPTCalculator::CalculateTwoElectron4 (mirror diagram)\n"
-                                    << "Delta E = " << R1*R2*coeff/energy_denominator 
-                                    << std::endl;
-                                    *errstream << "Problem orbitals:\n"
-                                    << "sa = " << sa.Name() 
-                                    << ", sb = " << sb.Name()
-                                    << ", sc = " << sc.Name()
-                                    << ", sd = " << sd.Name()
-                                    << "\nsn = " << sn.Name()
-                                    << std::endl; 
-                                }
-                                energy += R1 * R2 * coeff/energy_denominator;
+
+                                energy += TermRatio(R1 * R2 * coeff, energy_denominator, sn, salpha);
                             }
                             k2 += kstep;
                         }
@@ -899,7 +838,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
             {
                 coeff_mn = coeff_mn/(coeff_ac*coeff_bd);
                 double energy_denominator = Em + En - ValenceEnergy + delta;
-                //coeff_mn = coeff_mn/(Em + En - ValenceEnergy + delta);
+
                 unsigned int phase = (unsigned int)(sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + sm.TwoJ() + sn.TwoJ())/2;
                 if((phase + k + 1)%2)
                     coeff_mn = -coeff_mn;
@@ -937,23 +876,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
                                 // R2 = R_k2 (mn, cd)
                                 double R2 = two_body->GetTwoElectronIntegral(k2, sm, sn, sc, sd);
 
-                                if(fabs(R1*R2*coeff) >
-                                        fabs(energy_denominator))
-                                {
-                                    *errstream << "WARNING: found non-perturbative \
-        diagram in CoreMBPTCalculator::CalculateTwoElectron6\n"
-                                    << "Delta E = " << R1*R2*coeff/energy_denominator 
-                                    << std::endl;
-                                    *errstream << "Problem orbitals:\n"
-                                    << "sa = " << sa.Name() 
-                                    << ", sb = " << sb.Name()
-                                    << ", sc = " << sc.Name()
-                                    << ", sd = " << sd.Name()
-                                    << "\nsn = " << sn.Name()
-                                    << std::endl; 
-        
-                                }
-                                energy += R1 * R2 * coeff;
+                                energy += TermRatio(R1 * R2 * coeff, energy_denominator, sm, sn, sa, sb);
                             }
                             k2 += kstep;
                         }
@@ -999,79 +922,35 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
                 double R1 = two_body->GetTwoElectronIntegral(k, sn, sb, sc, sd);
                 double R2 = one_body->GetMatrixElement(sa, sn);
                 double energy_denominator = (En - Ea + delta);
-                if(fabs(R1*R2) > fabs(energy_denominator))
-                {
-                    *errstream << "WARNING: found non-perturbative diagram in \
-CoreMBPTCalculator::CalculateTwoElectronSub\n"
-                    << "Delta E = " << R1*R2/energy_denominator
-                    << std::endl;
 
-                    *errstream << "Problem orbitals:\n"
-                    << "sa = " << sa.Name()
-                    << ", sn = " << sn.Name()
-                    << std::endl;
-                }
-                energy -= R1 *  R2 / energy_denominator;
+                energy -= TermRatio(R1 * R2, energy_denominator, sn, sa);
             }
 
             if(sn.Kappa() == sc.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sn, sd);
                 double R2 = one_body->GetMatrixElement(sn, sc);
-                double energy_denominator = (En - Ec + delta); 
-                if(fabs(R1*R2) > fabs(energy_denominator))
-                {
-                    *errstream << "WARNING: found non-perturbative diagram in \
-CoreMBPTCalculator::CalculateTwoElectronSub\n"
-                    << "Delta E = " << R1*R2/energy_denominator
-                    << std::endl;
+                double energy_denominator = (En - Ec + delta);
 
-                    *errstream << "Problem orbitals:\n"
-                    << "sc = " << sc.Name()
-                    << ", sn = " << sn.Name()
-                    << std::endl;
-                }
-                energy -= R1 *  R2 / energy_denominator; 
+                energy -= TermRatio(R1 * R2, energy_denominator, sn, sc);
             }
 
             if(sn.Kappa() == sb.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sn, sc, sd);
                 double R2 = one_body->GetMatrixElement(sb, sn);
-                double energy_denominator = (En - Eb + delta); 
-                if(fabs(R1*R2) > fabs(energy_denominator))
-                {
-                    *errstream << "WARNING: found non-perturbative diagram in \
-CoreMBPTCalculator::CalculateTwoElectronSub\n"
-                    << "Delta E = " << R1*R2/energy_denominator
-                    << std::endl;
+                double energy_denominator = (En - Eb + delta);
 
-                    *errstream << "Problem orbitals:\n"
-                    << "sb = " << sb.Name()
-                    << ", sn = " << sn.Name()
-                    << std::endl;
-                }
-                energy -= R1 * R2 / energy_denominator;
+                energy -= TermRatio(R1 * R2, energy_denominator, sn, sb);
             }
 
             if(sn.Kappa() == sd.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, sn);
                 double R2 = one_body->GetMatrixElement(sn, sd);
-                double energy_denominator = (En - Ed + delta); 
-                if(fabs(R1*R2) > fabs(energy_denominator))
-               {
-                    *errstream << "WARNING: found non-perturbative diagram in \
-CoreMBPTCalculator::CalculateTwoElectronSub\n"
-                    << "Delta E = " << R1*R2/energy_denominator
-                    << std::endl;
+                double energy_denominator = (En - Ed + delta);
 
-                    *errstream << "Problem orbitals:\n"
-                    << "sd = " << sd.Name()
-                    << ", sn = " << sn.Name()
-                    << std::endl;
-                } 
-                energy -= R1 * R2 / energy_denominator;
+                energy -= TermRatio(R1 * R2, energy_denominator, sn, sd);
             }
         }
         it_n++;

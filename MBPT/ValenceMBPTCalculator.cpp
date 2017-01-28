@@ -73,7 +73,8 @@ double ValenceMBPTCalculator::CalculateOneElectronSub(const OrbitalInfo& sa, con
         if(InQSpace(salpha) && (sa.Kappa() == salpha.Kappa()))
         {
             double term = one_body->GetMatrixElement(sa, salpha) * one_body->GetMatrixElement(salpha, sb);
-            energy += term/(ValenceEnergy - Ealpha + delta);
+            double energy_denominator = ValenceEnergy - Ealpha + delta;
+            energy += TermRatio(term, energy_denominator, sa, salpha);
         }
 
         it_alpha++;
@@ -121,16 +122,7 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                 double coeff_alphabeta = salpha.MaxNumElectrons() * sbeta.MaxNumElectrons() * (2 * k + 1);
 
                 coeff_alphabeta = coeff_alphabeta/(coeff_ac * coeff_bd);
-                double energy_denominator = (ValenceEnergy - Ealpha - Ebeta +
-                    delta); 
-
-                // Set a floor for the denominator if it gets too small
-                // (remember to preserve the sign of the denominator)
-                if(fabs(energy_denominator) < denom_floor)
-                {
-                    energy_denominator = copysign(denom_floor,
-                            energy_denominator);
-                }
+                double energy_denominator = (ValenceEnergy - Ealpha - Ebeta + delta);
 
                 int exponent = (sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + salpha.TwoJ() + sbeta.TwoJ())/2;
                 coeff_alphabeta *= constants->minus_one_to_the_power(exponent + k + 1);
@@ -165,36 +157,13 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                                     coeff = -coeff;
 
                                 double R2 = two_body->GetTwoElectronIntegral(k2, salpha, sbeta, sc, sd);
+                                double numerator = R1 * R2 * coeff;
 
-                                // If the term is still non-perturbative after
-                                // flooring the denominator, then complain
-                                // because we've got a serious problem
-                                if((fabs(R1*R2*coeff) > 
-                                        fabs(energy_denominator)))
-                                {
-                                    *outstream << 
-                                    "WARNING: found non-perturbative \
-two-electron valence MBPT diagram\n"
-                                    << "Delta E = " 
-                                    << R1 * R2 * coeff/energy_denominator
-                                    << std::endl;
-
-                                    *outstream << "Problem orbitals:\n" 
-                                    << "a = " << sa.Name()
-                                    << ", b = " << sb.Name()
-                                    << ", c = " << sc.Name()
-                                    << ", d = " << sd.Name()
-                                    << "\nalpha = " << salpha.Name()
-                                    << ", beta = " << sbeta.Name()
-                                    << std::endl << std::endl;
-                                }
-                                energy += R1 * R2 * coeff/energy_denominator;
+                                energy += TermRatio(numerator, energy_denominator, sa, sb, salpha, sbeta);
                             }
-
                             k2 += kstep;
                         }
                     }
-
                     k1 += kstep;
                 }
             }
@@ -234,25 +203,29 @@ double ValenceMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbi
             if(sa.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, salpha, sb, sc, sd);
-                energy += R1 * one_body->GetMatrixElement(sa, salpha)/(Ea - Ealpha + delta);
+                double energy_denominator = Ea - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(sa, salpha), energy_denominator, sa, salpha);
             }
 
             if(sc.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, salpha, sd);
-                energy += R1 * one_body->GetMatrixElement(salpha, sc)/(Ec - Ealpha + delta);
+                double energy_denominator = Ec - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(salpha, sc), energy_denominator, sc, salpha);
             }
 
             if(sb.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, salpha, sc, sd);
-                energy += R1 * one_body->GetMatrixElement(sb, salpha)/(Eb - Ealpha + delta);
+                double energy_denominator = Eb - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(sb, salpha), energy_denominator, sb, salpha);
             }
 
             if(sd.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, salpha);
-                energy += R1 * one_body->GetMatrixElement(salpha, sd)/(Ed - Ealpha + delta);
+                double energy_denominator = Ed - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(salpha, sd), energy_denominator, sd, salpha);
             }
         }
         it_alpha++;

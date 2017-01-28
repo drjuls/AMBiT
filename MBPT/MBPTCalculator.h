@@ -33,10 +33,9 @@ public:
     {   delta = energy_shift;
     }
 
-    /* Add a floor to the energy denominator in two-body valence-valence 
-     * diagrams. This is to help catch pathological cases where a particular
-     * contribution can't be treated perturbatively and must instead be treated
-     * by CI
+    /** Add a floor to the energy denominator in two-body valence-valence diagrams.
+        This is to help catch pathological cases where a particular contribution
+        can't be treated perturbatively and must instead be treated by CI
      */
     void SetEnergyFloor(double energy_denom_floor)
     {   denom_floor = energy_denom_floor;
@@ -87,6 +86,15 @@ protected:
     */
     inline int kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const;
 
+    template<typename... Args>
+    inline double GetMatrixElement(Args&... args) { return 0.; }
+
+    /** Calculate term ratio numerator/energy_denominator, respecting denom_floor and
+        printing warning messages for problematic terms.
+     */
+    template<typename... OrbitalInfos>
+    inline double TermRatio(const double& numerator, const double& energy_denominator, const OrbitalInfos&... args) const;
+
 protected:
     pOrbitalManagerConst orbitals;
     pOrbitalMapConst valence;
@@ -104,12 +112,12 @@ protected:
     std::string fermi_orbitals;
     void SetValenceEnergies();
 
-    double delta;   // Shift in the energy denominator.
+    double delta = 0.0; //!< Shift in the energy denominator.
 
-    /* Sets the lowest value the energy denominator can take. Exists to void 
-     * non-perturbative terms*/
-    double denom_floor; 
-
+    /** Sets the lowest value the energy denominator can take. Exists to void
+        non-perturbative terms.
+     */
+    double denom_floor = 0.01;
 };
 
 inline int MBPTCalculator::absdiff(int i, int j) const
@@ -150,6 +158,42 @@ inline int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b) cons
 inline int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const
 {
     return mmin(a.TwoJ() + b.TwoJ(), c.TwoJ() + d.TwoJ())/2;
+}
+
+template<typename... OrbitalInfos>
+double MBPTCalculator::TermRatio(const double& numerator, const double& energy_denominator, const OrbitalInfos&... args) const
+{
+    double ret = 0.;
+
+    // Check if the term is non-perturbative.
+    if(fabs(numerator) > mmax(fabs(energy_denominator), denom_floor))
+    {
+        std::array<const OrbitalInfo, sizeof...(OrbitalInfos)> orbinfos = {args...};
+
+        *outstream << "WARNING: found non-perturbative MBPT diagram (skipping)\n"
+                   << std::setprecision(6)
+                   << "  term = " << numerator << "/" << energy_denominator << '\n';
+
+        if(orbinfos.size())
+        {
+            auto it = orbinfos.begin();
+            *outstream << "  orbitals = " << (it++)->Name();
+            while(it != orbinfos.end())
+            {
+                *outstream << ", " << (it++)->Name();
+            }
+
+            if(delta)
+                *outstream << " (delta = " << delta << ")";
+
+            *outstream << "\n" << std::endl;
+        }
+    }
+    else if(fabs(energy_denominator) >= denom_floor)
+        ret = numerator/energy_denominator;
+    // else skip terms with (energy_denominator < denom_floor)
+
+    return ret;
 }
 
 #endif
