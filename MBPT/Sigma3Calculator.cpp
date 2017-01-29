@@ -115,7 +115,8 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                             {
                                 coeff *= constants->Electron3j(e2.TwoJ(), two_Jn, k1) *
                                          constants->Electron3j(two_Jn, e5.TwoJ(), k2) *
-                                         coeff14 * coeff36 /(En - ValenceEnergy + delta);
+                                         coeff14 * coeff36;
+                                double energy_denominator = En - ValenceEnergy + delta;
 
                                 coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
                                               e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
@@ -124,7 +125,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                                 double R1 = two_body->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
                                 double R2 = two_body->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
 
-                                total -= coeff * R1 * R2;
+                                total -= TermRatio(coeff * R1 * R2, energy_denominator, sn, e2);
                             }
                         }
                         ++it_n;
@@ -150,7 +151,8 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                                 {
                                     coeff *= constants->Electron3j(e2.TwoJ(), two_Jalpha, k1) *
                                              constants->Electron3j(two_Jalpha, e5.TwoJ(), k2) *
-                                             coeff14 * coeff36 /(ValenceEnergy - Ealpha + delta);
+                                             coeff14 * coeff36;
+                                    double energy_denominator = ValenceEnergy - Ealpha + delta;
 
                                     coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
                                                   e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
@@ -159,7 +161,7 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
                                     double R1 = two_body->GetTwoElectronIntegral(k1, e1, e2, e4, salpha);
                                     double R2 = two_body->GetTwoElectronIntegral(k2, e3, salpha, e6, e5);
 
-                                    total += coeff * R1 * R2;
+                                    total += TermRatio(coeff * R1 * R2, energy_denominator, e2, salpha);
                                 }
                             }
                             ++it_alpha;

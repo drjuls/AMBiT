@@ -77,6 +77,12 @@ void Atom::MakeMBPTIntegrals()
     core_mbpt->SetEnergyShift(delta);
     val_mbpt->SetEnergyShift(delta);
 
+    // Also set a floor for the valence-MBPT energy denominators
+    double energy_denom_floor = user_input("MBPT/EnergyDenomFloor", 0.01);
+    *logstream << "MBPT denominator floor = " << energy_denom_floor << std::endl;
+    core_mbpt->SetEnergyFloor(energy_denom_floor);
+    val_mbpt->SetEnergyFloor(energy_denom_floor);
+
     // Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
     // Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.
     // For two electron integrals:
