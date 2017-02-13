@@ -145,7 +145,7 @@ void Atom::Autoionization(pLevelConst target)
                 two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
                 // Create operator for autoionization
-                pTwoElectronCoulombOperator two_body_operator(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
+                pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
                 ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
                 // Couple target and epsilon; start with maximum target M
@@ -282,7 +282,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
     // Create operator for autoionization
-    pTwoElectronCoulombOperator two_body_operator(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
+    pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
     ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
     // Create copies of target_configs with different two_M
@@ -520,7 +520,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
 
     // Loop over all non-relativistic configurations
-    for(auto& nrconfig: *nrconfigs)
+    for(auto& nrconfig: nrconfigs->first)
     {
         // Subtract target from non-rel configurations to get non-rel differences
         NonRelConfiguration nrdiff = nrconfig - nrtarget;
@@ -632,7 +632,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                     two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
                     // Create operator for autoionization
-                    pTwoElectronCoulombOperator two_body_operator(new TwoElectronCoulombOperator<pSlaterIntegrals>(two_body_integrals));
+                    pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
 
                     // Sum_k1 < a, b || V^k1 || h, eps > * multiplier
                     // multiplier = < a, b || V^k1 || h, eps > / (2k1 + 1)

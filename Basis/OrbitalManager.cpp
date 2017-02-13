@@ -106,6 +106,10 @@ void OrbitalManager::MakeStateIndexes()
 void OrbitalManager::Read(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rb");
+    if(!fp)
+    {   *errstream << "OrbitalManager::Read unable to open file \'" << filename << '\'' << std::endl;
+        exit(1);
+    }
 
     lattice = pLattice(new Lattice(fp));
     all = pOrbitalMap(new OrbitalMap(lattice));
@@ -128,6 +132,10 @@ void OrbitalManager::Read(const std::string& filename)
 void OrbitalManager::Write(const std::string& filename) const
 {
     FILE* fp = fopen(filename.c_str(), "wb");
+    if(!fp)
+    {   *errstream << "OrbitalManager::Write unable to open file \'" << filename << '\'' << std::endl;
+        exit(1);
+    }
 
     lattice->Write(fp);
     all->Write(fp);

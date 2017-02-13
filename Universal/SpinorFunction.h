@@ -34,6 +34,7 @@ public:
     virtual void resize(unsigned int size);
     virtual void Clear();
 
+    virtual void SetKappa(int new_kappa) { kappa = new_kappa; }
     virtual void swap(SpinorFunction& other);
 
     /** Multiply all points of all vectors (f, g, df, dg) by the scale factor. */

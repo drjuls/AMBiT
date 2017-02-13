@@ -78,7 +78,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                         s4 = it_4->second;
 
                         // Check max_pqn conditions and k conditions
-                        if(((s2->L() + s4->L() + k)%2 == 0) &&
+                        if(((s1->L() + s2->L() + s3->L() + s4->L())%2 == 0) &&
                            (2 * k >= abs(s2->TwoJ() - s4->TwoJ())) &&
                            (2 * k <= s2->TwoJ() + s4->TwoJ()))
                         {

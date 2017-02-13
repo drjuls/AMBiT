@@ -64,12 +64,17 @@ protected:
     void SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig);
 };
 
-typedef std::vector<NonRelConfiguration> ConfigList;
+/** ConfigList has a list and an unsigned int to indicate a small cut-off (Nsmall). */
+typedef std::pair<std::vector<NonRelConfiguration>, unsigned int> ConfigList;
 std::ostream& operator<<(std::ostream& stream, const ConfigList& config_list);
-
-void SortAndUnique(ConfigList& config_list);
 
 typedef std::shared_ptr<ConfigList> pConfigList;
 typedef std::shared_ptr<const ConfigList> pConfigListConst;
+
+/** Sort config_list and remove duplicates.
+    Preserve separation between (0 -> Nsmall) and (Nsmall -> config_list->size()).
+    Nsmall may change if elements are removed.
+ */
+void SortAndUnique(pConfigList& config_list);
 
 #endif

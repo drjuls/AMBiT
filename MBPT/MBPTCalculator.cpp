@@ -1,8 +1,9 @@
 #include "MBPTCalculator.h"
 #include "HartreeFock/ConfigurationParser.h"
 
-MBPTCalculator::MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals):
-    orbitals(pOrbitals), valence(pOrbitals->valence), fermi_orbitals(fermi_orbitals), delta(0.0)
+MBPTCalculator::MBPTCalculator(pOrbitalManagerConst pOrbitals, const std::string& fermi_orbitals, bool include_off_parity):
+    orbitals(pOrbitals), valence(pOrbitals->valence), fermi_orbitals(fermi_orbitals), delta(0.0), include_off_parity(include_off_parity),
+    kstep(include_off_parity? 1: 2)
 {
     SetValenceEnergies();
 }

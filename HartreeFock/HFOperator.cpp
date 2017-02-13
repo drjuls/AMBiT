@@ -376,7 +376,7 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
             }
 
             // Integrate density to get (1/r)Y(ab,r)
-            RadialFunction potential;
+            RadialFunction potential(mmax(density.size(), core_orbital->size()));
             coulombSolver->GetPotential(k, density, potential);
 
             exchange += (*core_orbital) * potential * coefficient;

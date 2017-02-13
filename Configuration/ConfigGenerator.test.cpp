@@ -45,7 +45,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
-    total_non_rel += nonrelconfigs->size();
+    total_non_rel += nonrelconfigs->first.size();
     total_rel += relconfigs->size();
 
     relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::odd));
@@ -113,7 +113,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
 
     pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even));
-    unsigned int non_rel = nonrelconfigs->size();
+    unsigned int non_rel = nonrelconfigs->first.size();
     unsigned int rel = relconfigs->size();
 
     // CuII - using holes now
@@ -147,6 +147,52 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     pConfigList holes_nonrelconfigs = holes_gen.GenerateNonRelConfigurations();
     pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(holes_nonrelconfigs, Symmetry(0, Parity::even));
 
-    EXPECT_EQ(non_rel, holes_nonrelconfigs->size());
+    EXPECT_EQ(non_rel, holes_nonrelconfigs->first.size());
     EXPECT_EQ(rel, holes_relconfigs->size());
+}
+
+TEST(ConfigGeneratorTester, NonSquare)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // CuIII
+    std::string user_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 29\n" +
+        "[HF]\n" +
+        "N = 28\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 5spd\n" +
+        "FrozenCore = 2sp\n" +
+        "BSpline/Rmax = 50.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3d-2'\n" +
+        "ElectronExcitations = 2\n" +
+        "HoleExcitations = 2\n" +
+        "NumSolutions = 1\n" +
+        "[CI/SmallSide]\n" +
+        "LeadingConfigurations = '3d-2'\n" +
+        "ElectronExcitations = '1, 4spd'\n" +
+        "HoleExcitations = '1, 4spd'\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+    ConfigGenerator gen(orbitals, userInput);
+
+    pConfigList nonrelconfigs = gen.GenerateNonRelConfigurations();
+    pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+    pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(nonrelconfigs, Symmetry(0, Parity::even), angular_library);
+    unsigned int N = relconfigs->NumCSFs();
+    unsigned int Nsmall = relconfigs->NumCSFsSmall();
+
+    EXPECT_EQ(5322, N);
+    EXPECT_EQ(43, Nsmall);
 }

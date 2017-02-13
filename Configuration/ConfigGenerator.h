@@ -66,6 +66,12 @@ public:
     }
 
 protected:
+    /** Generate non-relativistic configs based on the current input file section.
+        This may include limiting the non-relativistic configurations based on configuration average energies,
+        provided one_body and two_body operators are provided.
+     */
+    pConfigList ParseAndGenerateNonRelConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+
     /** Generate all non-relativistic configurations possible by exciting one electron
         of the original list. Append the new configurations to the list.
      */

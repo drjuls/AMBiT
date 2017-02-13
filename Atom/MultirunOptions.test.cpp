@@ -48,6 +48,8 @@ TEST(MultirunOptionsTester, SearchTest)
     // Check search works
     EXPECT_EQ(true, opt.search("-c"));
     EXPECT_EQ(false, opt.search("--simply-false"));
+
+    EXPECT_EQ(true, opt.VariableExists("NuclearRadius"));
 }
 
 TEST(MultirunOptionsTester, VectorTest)

@@ -46,7 +46,6 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
         }
     }
 
-    bool reorth = user_input.search("Basis/BSpline/--reorthogonalise");
     pIntegrator integrator = hf->GetIntegrator();
 
     // Make splines and store
@@ -86,10 +85,7 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
                     }
                 }
                 else
-                {   if(reorth)
-                        Orthogonalise(ds);
-
-                    if(debug)
+                {   if(debug)
                     {   *logstream << "  " << ds->Name() << " en: " << std::setprecision(8) << ds->Energy()
                                    << " norm: " << ds->Norm(integrator) - 1. << std::endl;
                     }

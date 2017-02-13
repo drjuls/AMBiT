@@ -70,9 +70,10 @@ AmbitReadHamiltonian[filename_]:=Module[{matrixFileStream,dim,hamiltonian},
 matrixFileStream=OpenRead[filename,BinaryFormat->True];
 (* First integer is size *)
 dim=BinaryRead[matrixFileStream,"Integer32"];
-(* Read upper triangle *)
-hamiltonian=Table[Join[ConstantArray[0,i],BinaryReadList[matrixFileStream,"Real64",dim-i]],{i,0,dim-1}];
+(* Read lower triangle *)
+hamiltonian=Table[BinaryReadList[matrixFileStream,"Real64",i],{i,1,dim}];
 Close[matrixFileStream];
+hamiltonian=PadRight[hamiltonian,{dim,dim}];
 (* Return symmetric square matrix *)
 Return[hamiltonian+hamiltonian\[Transpose]-DiagonalMatrix[Diagonal[hamiltonian]]];
 ]

@@ -57,6 +57,12 @@ void Atom::MakeMBPTIntegrals()
         max_pqn_in_core = mmax(max_pqn_in_core, pair.first.PQN());
     }
 
+    // We can always force subtraction diagrams, and it's always a good idea if there have been injected orbitals
+    if(user_input.search("MBPT/--use-subtraction") || user_input.vector_variable_size("Basis/InjectOrbitals"))
+        is_open_shell = true;
+    if(user_input.search("MBPT/--no-subtraction"))
+        is_open_shell = false;
+
     bool use_box = !user_input.search("MBPT/--no-extra-box");
     bool include_core = !user_input.search("MBPT/--no-core");
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
@@ -70,6 +76,12 @@ void Atom::MakeMBPTIntegrals()
     double delta = user_input("MBPT/Delta", 0.0);
     core_mbpt->SetEnergyShift(delta);
     val_mbpt->SetEnergyShift(delta);
+
+    // Also set a floor for the valence-MBPT energy denominators
+    double energy_denom_floor = user_input("MBPT/EnergyDenomFloor", 0.01);
+    *logstream << "MBPT denominator floor = " << energy_denom_floor << std::endl;
+    core_mbpt->SetEnergyFloor(energy_denom_floor);
+    val_mbpt->SetEnergyFloor(energy_denom_floor);
 
     // Calculate two electron integrals on valence orbitals with limits on the PQNs of the orbitals.
     // Use max_pqn_1, max_pqn_2 and max_pqn_3 to keep size down.
@@ -222,7 +234,8 @@ void Atom::MakeIntegrals()
             two_body_integrals->Read(identifier + ".two.int");
 
         bool include_box = two_body_mbpt && !user_input.search("MBPT/--no-extra-box");
-        twobody_electron = std::make_shared<TwoElectronCoulombOperator<pSlaterIntegrals>>(two_body_integrals, include_box);
+        bool include_off_parity = include_box || hartreeY->OffParityExists();
+        twobody_electron = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals, include_off_parity);
 
         // Calculate integrals for sigma3
         if(three_body_mbpt)
@@ -342,7 +355,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
         if(user_input.search("CI/--all-symmetries"))
         {
             // Populate levels with all symmetries
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 int maxTwoJ = nrconfig.GetTwiceMaxProjection();
                 for(int two_j = maxTwoJ%2; two_j <= maxTwoJ; two_j += 2)
@@ -354,7 +367,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
         }
         else
         {   // Populate levels with symmetries found in sets.
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 Parity P = nrconfig.GetParity();
                 int maxTwoJ = nrconfig.GetTwiceMaxProjection();
@@ -389,7 +402,7 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
             int max_twoJ_even = -1;
             int max_twoJ_odd = -1;
 
-            for(auto& nrconfig: *nrlist)
+            for(auto& nrconfig: nrlist->first)
             {
                 if(nrconfig.GetParity() == Parity::even)
                     max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
@@ -451,7 +464,9 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
         if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
         {
-            pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
+            pConfigList nrconfiglist = std::make_shared<ConfigList>();
+            nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
+            nrconfiglist->second = 1;
             configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
         }
         else
@@ -475,15 +490,22 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     {
         const Symmetry& sym = pair.first;
         *outstream << "J(P) = " << sym.GetJ() << "(" << ShortName(sym.GetParity()) << "): "
-                   << std::setw(6) << std::right << pair.second->size() << " rel. configurations; "
-                   << std::flush;
+                   << std::setw(6) << std::right << pair.second->size();
+        if(pair.second->small_size() < pair.second->size())
+            *outstream << " x " << std::setw(6) << pair.second->small_size();
+        *outstream << " rel. configurations; " << std::flush;
 
         // Generate all projections for this symmetry and write
         gen.GenerateProjections(pair.second, sym, sym.GetTwoJ(), angular_library);
 
-        *outstream << pair.second->NumCSFs() <<  " CSFs." << std::endl;
+        *outstream << pair.second->NumCSFs();
+        if(pair.second->small_size() < pair.second->size())
+            *outstream << " x " << pair.second->NumCSFsSmall();
+        *outstream << " CSFs." << std::endl;
+
         total_levels += pair.second->NumCSFs();
     }
+
     *outstream << "\nTotal number of levels (all symmetries included) = " << total_levels << std::endl;
 
     // Get Hamiltonian sizes
@@ -542,7 +564,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             if(NonRelID* nrid = dynamic_cast<NonRelID*>(key.get()))
             {
-                pConfigList nrconfiglist = std::make_shared<ConfigList>(1, nrid->GetNonRelConfiguration());
+                pConfigList nrconfiglist = std::make_shared<ConfigList>();
+                nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
+                nrconfiglist->second = 1;
                 configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry(), angular_library);
             }
             else
@@ -573,7 +597,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             else
                 H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
 
-            H->GenerateMatrix();
+            H->GenerateMatrix(user_input("CI/ChunkSize", 4));
             //H->PollMatrix();
 
             if(user_input.search("--write-hamiltonian"))
@@ -603,6 +627,21 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << "Matrix Before:\n" << *H << std::endl;
             }
 
+            #ifdef AMBIT_USE_SCALAPACK
+            if(user_input.search("CI/--scalapack") || user_input.VariableExists("CI/MaxEnergy"))
+            {
+                if(user_input.VariableExists("CI/MaxEnergy"))
+                {
+                    double max_energy = user_input("CI/MaxEnergy", 0.0);
+                    levelvec = H->SolveMatrixScalapack(key, max_energy);
+                }
+                else
+                {
+                    levelvec = H->SolveMatrixScalapack(key, num_solutions, false);
+                }
+            }
+            else
+            #endif
             levelvec = H->SolveMatrix(key, num_solutions);
 
             // Check if gfactor overrides are present, otherwise decide on course of action

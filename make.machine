@@ -9,11 +9,8 @@ HOSTNAME = $(shell hostname)
 
 MACHINE = default
 
-ifeq ($(findstring vayu, $(HOSTNAME)), vayu)
-  MACHINE = ncixe
-endif
-ifeq ($(findstring xe, $(HOSTNAME)), xe)
-  MACHINE = ncixe
+ifeq ($(findstring raijin, $(HOSTNAME)), raijin)
+  MACHINE = nci
 endif
 ifeq ($(findstring katana, $(HOSTNAME)), katana)
   MACHINE = katana
@@ -62,19 +59,21 @@ ifeq ($(MACHINE), default)
   DEPFLAG = -MM
 endif
 
-ifeq ($(MACHINE), ncixe)
-  CC  = icc
-  CXX = mpiCC
+ifeq ($(MACHINE), nci)
+  CC  = mpic++
+  CXX = mpic++ -std=c++11
   F77 = ifort
 
-  LINK      = mpiCC
-  LINKFLAGS = 
-  LIBDIR    = $(MKL)/lib/em64t
-  LIBOBJ    = $(MKL)/lib/em64t/libmkl_scalapack_lp64.a \
-              $(MKL)/lib/em64t/libmkl_blacs_openmpi_lp64.a
-  LIBS      = mkl_intel_lp64 mkl_intel_thread mkl_core mkl_em64t guide pthread
+  EIGEN_INCLUDE_DIR =
+  ANGULAR_DATA_DIRECTORY = /short/gx16/ambit/AngularData
 
-  INCLUDE  +=
+  LINK      = mpic++
+  LINKFLAGS = -openmp 
+  LIBDIR    = $(MKL)/lib/intel64
+  LIBOBJ    = 
+  LIBS      = gsl boost_filesystem boost_system mkl_scalapack_lp64 mkl_intel_lp64 mkl_blacs_openmpi_lp64 mkl_intel_thread mkl_core pthread m dl
+
+  INCLUDE  += /short/gx16/ambit/sparsehash/src
 
   ifdef debug
     BUILD     = Debug
@@ -82,14 +81,14 @@ ifeq ($(MACHINE), ncixe)
     CXXFLAGS += -g
   else
     BUILD     = Release
-    CFLAGS   += -O2
-    CXXFLAGS += -O2
+    CFLAGS   += -O3
+    CXXFLAGS += -O3
     F77FLAGS += -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -DAMBIT_USE_MPI #-DAMBIT_USE_SCALAPACK
+  CXXFLAGS += -wd1125 -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
 
-  CCDEP   = gcc
+  CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
 endif
 
