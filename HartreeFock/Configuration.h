@@ -21,16 +21,11 @@ protected:
     typedef std::map<OrbitalType, OccupancyType> ConfigurationMapType;
 
 public:
-    Configuration() {}
-    Configuration(const Configuration<OrbitalType, OccupancyType>& other): m_config(other.m_config) {}
-    Configuration(Configuration<OrbitalType, OccupancyType>&& other): m_config(other.m_config) {}
-    virtual ~Configuration() {}
+    Configuration() = default;
+    virtual ~Configuration() = default;
 
     typedef typename std::map<OrbitalType, OccupancyType>::iterator iterator;
     typedef typename std::map<OrbitalType, OccupancyType>::const_iterator const_iterator;
-
-    const BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
-    BaseConfiguration& operator=(BaseConfiguration&& other) { m_config.swap(other.m_config); return *this; }
 
     /** Add occupancies of other configuration. */
     template<typename U>

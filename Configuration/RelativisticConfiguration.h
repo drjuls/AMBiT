@@ -24,15 +24,10 @@ protected:
     friend class RelativisticConfigList;
 
 public:
-    RelativisticConfiguration() {}
+    RelativisticConfiguration() = default;
     RelativisticConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
     RelativisticConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
-    RelativisticConfiguration(const RelativisticConfiguration& other);
-    RelativisticConfiguration(RelativisticConfiguration&& other);
-    virtual ~RelativisticConfiguration() {}
-
-    const RelativisticConfiguration& operator=(const RelativisticConfiguration& other);
-    RelativisticConfiguration& operator=(RelativisticConfiguration&& other);
+    virtual ~RelativisticConfiguration() = default;
 
     typedef indexed_iterator<const double*> const_CSF_iterator;
 

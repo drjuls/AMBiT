@@ -53,22 +53,15 @@ public:
      */
     inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon = nullptr) const;
 
-    /** Returns <left | O | right>.
-        If eplsion != nullptr, we want
-            < proj_left | O | {proj_right, epsilon} >
-        where proj_left is one electron larger than proj_right.
-     */
-    inline double GetMatrixElement(const Level& left, const Level& right, const ElectronInfo* epsilon = nullptr) const;
-
-    /** Equivalent to GetMatrixElement(level, level). */
-    inline double GetMatrixElement(const Level& level) const;
-
-    /** Equivalent to calculating GetMatrixElement(level) for each level in vector.
+    /** Equivalent to calculating GetMatrixElement(level, level) for each level in vector.
         Return vector of matrix elements.
      */
     inline std::vector<double> GetMatrixElement(const LevelVector& levels) const;
 
-    /** Equivalent to calculating GetMatrixElement(left, right, epsilon) for each pair of levels in their respective vectors.
+    /** Returns <left | O | right> for each pair of levels in their respective vectors.
+        If eplsion != nullptr, we want
+            < left | O | {right, epsilon} >
+        where <left| is one electron larger than |right>.
         Return array of matrix elements indexed by left_index * (num_right) + right_index.
      */
     inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon = nullptr) const;
@@ -499,85 +492,12 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
 }
 
 template<typename... pElectronOperators>
-double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& level) const
-{
-    double total = 0.;
-    const auto& configs = level.GetRelativisticConfigList();
-    const auto& eigenvector = level.GetEigenvector();
-
-    auto config_it = configs->begin();
-    int config_index = 0;
-    while(config_it != configs->end())
-    {
-        if(IsMyJob(config_index))
-        {
-            auto config_jt = config_it;
-            while(config_jt != configs->end())
-            {
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
-                {
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
-                    {
-                        RelativisticConfiguration::const_projection_iterator proj_jt;
-                        if(config_it == config_jt)
-                            proj_jt = proj_it;
-                        else
-                            proj_jt = config_jt.projection_begin();
-
-                        while(proj_jt != config_jt.projection_end())
-                        {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-
-                            if(matrix_element)
-                            {
-                                // Summation over CSFs
-                                double coeff = 0.;
-
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                {
-                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                    {
-                                        coeff += (*coeff_i) * (*coeff_j)
-                                                * eigenvector[coeff_i.index()]
-                                                * eigenvector[coeff_j.index()];
-                                    }
-                                }
-
-                                // If the projections are different, count twice
-                                if(proj_it != proj_jt)
-                                    coeff *= 2.;
-
-                                total += coeff * matrix_element;
-                            }
-                            proj_jt++;
-                        }
-                        proj_it++;
-                    }
-                }
-                config_jt++;
-            }
-        }
-        config_it++;
-        config_index++;
-    }
-
-#ifdef AMBIT_USE_MPI
-    double reduced_total = 0.;
-    MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    return reduced_total;
-#else
-    return total;
-#endif
-}
-
-template<typename... pElectronOperators>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levels) const
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levelvec) const
 {
     std::vector<const double*> eigenvector;
+
+    auto& configs = levelvec.configs;
+    auto& levels = levelvec.levels;
 
     eigenvector.reserve(levels.size());
     for(auto it = levels.begin(); it != levels.end(); it++)
@@ -586,7 +506,6 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     if(eigenvector.empty())
         return std::vector<double>();
 
-    pRelativisticConfigListConst configs = levels.front()->GetRelativisticConfigList();
     std::vector<double> total(eigenvector.size(), 0.);
 
     unsigned int solution = 0;
@@ -664,78 +583,15 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 }
 
 template<typename... pElectronOperators>
-double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Level& left, const Level& right, const ElectronInfo* epsilon) const
-{
-    double total = 0.;
-    const auto& configs_left = left.GetRelativisticConfigList();
-    const auto& configs_right = right.GetRelativisticConfigList();
-    const auto& eigenvector_left = left.GetEigenvector();
-    const auto& eigenvector_right = right.GetEigenvector();
-
-    auto config_it = configs_left->begin();
-    int config_index = 0;
-    while(config_it != configs_left->end())
-    {
-        if(IsMyJob(config_index))
-        {
-            auto config_jt = configs_right->begin();
-            while(config_jt != configs_right->end())
-            {
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
-                {
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
-                    {
-                        auto proj_jt = config_jt.projection_begin();
-                        while(proj_jt != config_jt.projection_end())
-                        {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
-
-                            if(matrix_element)
-                            {
-                                // Summation over CSFs
-                                double coeff = 0.;
-
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                {
-                                    for(auto coeff_j = proj_jt.CSF_begin(); coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                    {
-                                        coeff += (*coeff_i) * (*coeff_j)
-                                                * eigenvector_left[coeff_i.index()]
-                                                * eigenvector_right[coeff_j.index()];
-                                    }
-                                }
-
-                                total += coeff * matrix_element;
-                            }
-                            proj_jt++;
-                        }
-                        proj_it++;
-                    }
-                }
-                config_jt++;
-            }
-        }
-
-        config_it++;
-        config_index++;
-    }
-
-#ifdef AMBIT_USE_MPI
-    double reduced_total = 0.;
-    MPI_Allreduce(&total, &reduced_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    return reduced_total;
-#else
-    return total;
-#endif
-}
-
-template<typename... pElectronOperators>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon) const
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, const ElectronInfo* epsilon) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
+
+    auto& left_levels = left_levelvec.levels;
+    auto& right_levels = right_levelvec.levels;
+    auto& configs_left = left_levelvec.configs;
+    auto& configs_right = right_levelvec.configs;
 
     left_eigenvector.reserve(left_levels.size());
     for(auto it = left_levels.begin(); it != left_levels.end(); it++)
@@ -749,8 +605,6 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     if(return_size == 0)
         return std::vector<double>();
 
-    pRelativisticConfigListConst configs_left = left_levels.front()->GetRelativisticConfigList();
-    pRelativisticConfigListConst configs_right = right_levels.front()->GetRelativisticConfigList();
     std::vector<double> total(return_size, 0.);
 
     unsigned int solution = 0;

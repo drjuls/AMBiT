@@ -43,13 +43,13 @@ public: // Define iterators
     {
     private:
         struct enabler {};
-        
+
     public:
         relconfiglist_iterator(): relconfiglist_iterator::iterator_adaptor_(), m_csf_index(0) {}
-        
+
         explicit relconfiglist_iterator(Base p, int start_index = 0):
         relconfiglist_iterator::iterator_adaptor_(p), m_csf_index(start_index) {}
-        
+
         template <class OtherBase>
         relconfiglist_iterator(relconfiglist_iterator<OtherBase> const& other,
                                typename boost::enable_if<boost::is_convertible<OtherBase,Base>, enabler>::type = enabler()):
@@ -61,14 +61,14 @@ public: // Define iterators
             const Base& base = this->base_reference();
             return RelativisticConfiguration::const_projection_iterator(base->projections.begin(), base->angular_data, m_csf_index);
         }
-        
+
         /** Get end() of the projection list of the current RelativisticConfiguration. */
         RelativisticConfiguration::const_projection_iterator projection_end() const
         {
             const Base& base = this->base_reference();
             return RelativisticConfiguration::const_projection_iterator(base->projections.end());
         }
-        
+
         /** Number of projections in the current RelativisticConfiguration. */
         unsigned int projection_size() const
         {
@@ -78,31 +78,31 @@ public: // Define iterators
             
             return angular_data->projection_size();
         }
-        
+
         /** Start index of current CSFs (i.e. those from current RelativisticConfiguration) in the complete RelativisticConfigList. */
         int csf_offset() const { return m_csf_index; }
-        
+
     private:
         friend class boost::iterator_core_access;
         int m_csf_index;
-        
+
         void increment()
         {   m_csf_index += this->base_reference()->NumCSFs();
             this->base_reference()++;
         }
-        
+
         void decrement()
         {   this->base_reference()--;
             m_csf_index -= this->base_reference()->NumCSFs();
         }
     };
-    
+
     typedef relconfiglist_iterator<BaseList::const_iterator> const_iterator;
     typedef relconfiglist_iterator<BaseList::iterator> iterator;
 
     // Functions for const_projection_iterator
     typedef RelativisticConfiguration::const_CSF_iterator const_CSF_iterator;
-    
+
     class const_projection_iterator : public boost::iterator_adaptor<
         const_projection_iterator,
         RelativisticConfiguration::const_projection_iterator,
@@ -113,11 +113,11 @@ public: // Define iterators
         const_projection_iterator():
         const_projection_iterator::iterator_adaptor_(), m_csf_index(0), m_configlist_it(), m_configlist_end()
         {}
-        
+
         explicit const_projection_iterator(const RelativisticConfigList* list, RelativisticConfiguration::const_projection_iterator proj_it, RelativisticConfigList::const_iterator list_it, int start_csf_index):
         const_projection_iterator::iterator_adaptor_(proj_it), m_configlist_it(list_it), m_configlist_end(list->end()), m_csf_index(start_csf_index)
         {}
-        
+
         /** Iterator points to start of list. */
         const_projection_iterator(const RelativisticConfigList* list):
         const_projection_iterator::iterator_adaptor_(), m_configlist_it(list->begin()), m_configlist_end(list->end()), m_csf_index(0)
@@ -130,15 +130,15 @@ public: // Define iterators
                 advance_to_next_projection();
             }
         }
-        
+
         const_projection_iterator(const const_projection_iterator& other):
         const_projection_iterator::iterator_adaptor_(other.base_reference()), m_configlist_it(other.m_configlist_it), m_configlist_end(other.m_configlist_end), m_csf_index(other.m_csf_index)
         {}
-        
+
         const_CSF_iterator CSF_begin() const { return this->base_reference().CSF_begin(); }
         const_CSF_iterator CSF_end() const { return this->base_reference().CSF_end(); }
         unsigned int NumCSFs() const { return this->base_reference().NumCSFs(); }
-        
+
     protected:
         void increment() { this->base_reference()++; advance_to_next_projection(); }
         void advance_to_next_projection()
@@ -154,7 +154,7 @@ public: // Define iterators
                     this->base_reference() = m_configlist_it.projection_begin();
             }
         }
-        
+
     private:
         friend class boost::iterator_core_access;
         RelativisticConfigList::const_iterator m_configlist_it;         //!< Current relativistic configuration
@@ -163,7 +163,8 @@ public: // Define iterators
     };
 
 public:
-    void append(const RelativisticConfigList& other)                    //!< Add all elements of other list to end of this list
+    /** Add all elements of other list to end of this list. Nsmall is unchanged. */
+    void append(const RelativisticConfigList& other)
     {   m_list.insert(m_list.end(), other.m_list.begin(), other.m_list.end()); }
 
     iterator begin() { return iterator(m_list.begin(), 0); }
@@ -190,6 +191,7 @@ public:
     const_projection_iterator projection_end() const;
     unsigned int projection_size() const;   //!< Total number of projections stored in entire list
 
+    /** Add element to end of this list. Nsmall is unchanged. */
     void push_back(const RelativisticConfiguration& val) { m_list.push_back(val); }
     void push_back(RelativisticConfiguration&& val) { m_list.push_back(val); }
 
@@ -198,7 +200,7 @@ public:
 
     /** Sort list by comparator, preserving the separation between the first Nsmall configs and the rest. */
     template<class Comparator = FewestProjectionsFirstComparator>
-        void sort(Comparator comp = Comparator());
+    void sort(Comparator comp = Comparator());
 
     /** Remove consecutive duplicates, preserving Nsmall.
         PRE: list is sorted using sort.

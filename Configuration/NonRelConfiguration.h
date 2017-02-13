@@ -18,17 +18,12 @@
 class NonRelConfiguration: public Configuration<NonRelInfo, int>
 {
 public:
-    NonRelConfiguration() {}
+    NonRelConfiguration() = default;
     NonRelConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
     NonRelConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
-    NonRelConfiguration(const NonRelConfiguration& other): BaseConfiguration(other) {}
-    NonRelConfiguration(NonRelConfiguration&& other): BaseConfiguration(other) {}
     NonRelConfiguration(const RelativisticConfiguration& other);
     NonRelConfiguration(const std::string& name);
-    virtual ~NonRelConfiguration() {}
-
-    NonRelConfiguration& operator=(const NonRelConfiguration& other) { BaseConfiguration::operator=(other); return *this; }
-    NonRelConfiguration& operator=(NonRelConfiguration&& other) { BaseConfiguration::operator=(other); return *this; }
+    virtual ~NonRelConfiguration() = default;
 
 public:
     /** Return success. */
@@ -53,6 +48,9 @@ public:
     /** Calculate number of levels (all symmetries and relativistic configurations) corresponding to this configuration.
      */
     int GetNumberOfLevels();
+
+    void Read(FILE* fp);        //!< Read configuration
+    void Write(FILE* fp) const; //!< Write configuration only
 
 public:
     pRelativisticConfigList relconfiglist;

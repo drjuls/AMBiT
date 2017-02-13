@@ -8,20 +8,39 @@
 #include <map>
 #include <boost/filesystem.hpp>
 
-/** All levels in LevelVector should come from the same Hamiltonian, although this is not enforced. */
-typedef std::vector<pLevel> LevelVector;
+/** LevelVector consists of Hamiltonian that levels come from,
+    common relativistic config list, and vector of levels.
+ */
+class LevelVector
+{
+public:
+    LevelVector() = default;
+    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level) {}
 
-/** Print levels to outstream. min_percentages outside of the range (0, 100] will switch off the printing of configurations. */
-void Print(const LevelVector& levels, double min_percentage = 1.0);
-void Print(const LevelVector& levels, double min_percentage, double max_energy);
+    pHamiltonianID hID {nullptr};
+    pRelativisticConfigList configs {nullptr};
+    std::vector<pLevel> levels;
 
-/** Print one line per level: J, P, index, E, g, Largest configuration, HamiltonianID. */
-void PrintInline(const LevelVector& levels, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ");
-void PrintInline(const LevelVector& levels, double max_energy, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ");
+    /** Print levels to outstream. min_percentages outside of the range (0, 100] will switch off the printing of configurations. */
+    void Print(double min_percentage = 1.0) const;
+    void Print(double min_percentage, double max_energy) const;
 
-struct pHamiltonianIDComparator {
-    bool operator() (const pHamiltonianIDConst& lhs, const pHamiltonianIDConst& rhs) const
-    {   return *lhs < *rhs; }
+    /** Print one line per level: J, P, index, E, g, Largest configuration, HamiltonianID. */
+    void PrintInline(bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
+    void PrintInline(double max_energy, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
+
+protected:
+    /** Print LevelVector to outstream, with all possible options for printing.
+        All other print functions call this one.
+     */
+    void Print(double min_percentage, bool use_max_energy, double max_energy) const;
+    void PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ") const;
+};
+
+template <class Value>
+struct DereferenceComparator
+{
+    bool operator()(const Value& first, const Value& second) const { return (*first < *second); }
 };
 
 /** LevelStore consists of
@@ -32,63 +51,45 @@ struct pHamiltonianIDComparator {
 class LevelStore
 {
 protected:
-    class symmetry_match_predicate;
+    struct symmetry_match_predicate
+    {
+        Symmetry m_sym;
+        symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
+
+        bool operator()(const pHamiltonianID& val) { return m_sym == val->GetSymmetry(); }
+    };
 
 public:
-    typedef std::vector<pHamiltonianID> KeyLibrary;
+    LevelStore() = default;
 
-    LevelStore() {}
+    /** Set of all keys, whether associated with LevelVector or not. */
+    std::set<pHamiltonianID, DereferenceComparator<pHamiltonianID>> keys;
 
-    // Iterators over key library
-    typedef KeyLibrary::const_iterator const_iterator;
+    /** LevelStore has begin() and end() functions over keys. */
+    auto begin() -> decltype(keys)::const_iterator
+    {   return keys.begin();
+    }
 
-    const_iterator begin() const { return m_lib.begin(); }
-    unsigned int count(const pHamiltonianIDConst& key) const; //!< Test for existence of key in key library.
-    bool empty() const { return m_lib.empty(); }
-    const_iterator end() const { return m_lib.end(); }
-    const_iterator find(const pHamiltonianIDConst& key) const;
-    unsigned int size() const { return m_lib.size(); }
+    auto end() -> decltype(keys)::const_iterator
+    {   return keys.end();
+    }
 
     /** Symmetry filter iterator over key library: matches all keys with correct symmetry. */
-    typedef boost::filter_iterator<symmetry_match_predicate, const_iterator> const_symmetry_iterator;
+    using const_symmetry_iterator = boost::filter_iterator<symmetry_match_predicate, decltype(keys)::const_iterator>;
+
     const_symmetry_iterator begin(const Symmetry& sym) const
-    {   return const_symmetry_iterator(symmetry_match_predicate(sym), begin(), end());
-    }
-    const_symmetry_iterator end(const Symmetry& sym) const
-    {   return const_symmetry_iterator(symmetry_match_predicate(sym), end(), end());
+    {   return const_symmetry_iterator(symmetry_match_predicate(sym), keys.begin(), keys.end());
     }
 
-    /** Insert into key library.
-        Copy RelativisticConfigList from key into library if key already exists.
-        Return iterator to key in library.
-     */
-    virtual const_iterator insert(pHamiltonianID key);
+    const_symmetry_iterator end(const Symmetry& sym) const
+    {   return const_symmetry_iterator(symmetry_match_predicate(sym), keys.end(), keys.end());
+    }
 
     /** Get LevelVector corresponding to key. */
     virtual LevelVector GetLevels(pHamiltonianID key) = 0;
 
     /** Store LevelVector (and generally write to file, although this is implementation dependent). */
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) = 0;
-
-protected:
-    KeyLibrary m_lib;
-
-protected:
-    class symmetry_match_predicate
-    {
-    public:
-        symmetry_match_predicate(const Symmetry& sym): m_sym(sym) {}
-        symmetry_match_predicate(const symmetry_match_predicate& other): m_sym(other.m_sym) {}
-        ~symmetry_match_predicate() {}
-        
-        symmetry_match_predicate operator=(const symmetry_match_predicate& other)
-        {   m_sym = other.m_sym; return *this;
-        }
-        
-        bool operator()(const pHamiltonianID& val) { return m_sym == val->GetSymmetry(); }
-    protected:
-        Symmetry m_sym;
-    };
 };
 
 typedef std::shared_ptr<LevelStore> pLevelStore;
@@ -96,7 +97,7 @@ typedef std::shared_ptr<LevelStore> pLevelStore;
 /** Implementation of LevelStore for when all levels can be stored simultaneously in memory. */
 class LevelMap : public LevelStore
 {
-    typedef std::map<pHamiltonianID, LevelVector, pHamiltonianIDComparator> MapType;
+    typedef std::map<pHamiltonianID, LevelVector, DereferenceComparator<pHamiltonianID>> MapType;
 
 public:
     /** Construct LevelMap with no read/write capacity. */
@@ -123,7 +124,6 @@ protected:
     pAngularDataLibrary angular_library;
 
     MapType m_map;
-
 };
 
 /** Implementation of LevelStore that writes everything to files and stores almost nothing.
@@ -146,11 +146,5 @@ protected:
     std::string filename_prefix;
     pAngularDataLibrary angular_library;
 };
-
-/** Print LevelVector to outstream, with all possible options for printing.
-    All other print functions call this one.
- */
-void Print(const LevelVector& levels, double min_percentage, bool use_max_energy, double max_energy);
-void PrintInline(const LevelVector& levels, bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ");
 
 #endif

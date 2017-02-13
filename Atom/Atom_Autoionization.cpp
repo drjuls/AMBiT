@@ -8,7 +8,7 @@
 #include <mpi.h>
 #endif
 
-void Atom::Autoionization(pLevelConst target)
+void Atom::Autoionization(const LevelVector& target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     double energy_limit = user_input("DR/EnergyLimit", -1.0);   // Default no limit
@@ -23,7 +23,7 @@ void Atom::Autoionization(pLevelConst target)
     // Select orbitals in target wavefunction
     std::set<OrbitalInfo> target_info_set;
     pOrbitalMap target_map(new OrbitalMap(lattice));
-    for(const auto& rconfig: *target->GetRelativisticConfigList())
+    for(const auto& rconfig: *target.configs)
     {
         for(const auto& orb_pair: rconfig)
             target_info_set.insert(orb_pair.first);
@@ -36,15 +36,15 @@ void Atom::Autoionization(pLevelConst target)
     target_map->AddStates(*orbitals->hole);
 
     // Target information
-    Symmetry target_symmetry(target->GetTwoJ(), target->GetParity());
-    pLevel target_copy = std::make_shared<Level>(*target);
+    Symmetry target_symmetry(target.hID->GetSymmetry());
+    LevelVector target_copy(target.configs, target.levels[0]);
 
     // Create copies of target_configs with different two_M
     std::vector<pRelativisticConfigList> target_configs;
     target_configs.reserve(2 * target_symmetry.GetTwoJ() + 1);
     for(int two_m = target_symmetry.GetTwoJ(); two_m >= -target_symmetry.GetTwoJ(); two_m -= 2)
     {
-        pRelativisticConfigList ptarget_config = std::make_shared<RelativisticConfigList>(*target->GetRelativisticConfigList());
+        pRelativisticConfigList ptarget_config = std::make_shared<RelativisticConfigList>(*target.configs);
         target_configs.push_back(ptarget_config);
         gen.GenerateProjections(ptarget_config, target_symmetry, two_m, angular_library);
     }
@@ -73,15 +73,22 @@ void Atom::Autoionization(pLevelConst target)
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns);
 
     // Loop over all HamiltonianIDs
-    for(auto& key: *levels)
+    for(auto& key: levels->keys)
     {
         Symmetry sym = key->GetSymmetry();
-        LevelVector levelvec = levels->GetLevels(key);
+        auto levelvec = levels->GetLevels(key);
+
+        // Compound target
+        LevelVector levelvec_single(levelvec.configs, levelvec.levels[0]);
+        levelvec_single.hID = key;
 
         // Loop over all levels
         int level_index = 0;
-        for(auto level_it = levelvec.begin(); level_it != levelvec.end(); level_it++)
+        for(auto level_it = levelvec.levels.begin(); level_it != levelvec.levels.end(); level_it++)
         {
+            // Create target
+            levelvec_single.levels[0] = *level_it;
+
             // Build continuum
             double eps_energy = (*level_it)->GetEnergy() - ionization_energy;
             if(eps_energy <= 0.)
@@ -159,13 +166,13 @@ void Atom::Autoionization(pLevelConst target)
                         break;
                     ElectronInfo eps_info(100, eps_kappa, eps_twoM);
 
-                    target_copy->SetRelativisticConfigList(*target_config_it);
+                    target_copy.configs = *target_config_it;
 
                     // Coupling constant for |(eps_jlm; target_jlm) JJ >
                     double coupling = math->Wigner3j(eps_twoJ, target_symmetry.GetTwoJ(), sym.GetTwoJ(), eps_twoM, target_twoM);
                     coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_symmetry.GetTwoJ() + eps_twoM + target_twoM)/2);
 
-                    partial += coupling * H.GetMatrixElement(**level_it, *target_copy, &eps_info);
+                    partial += coupling * H.GetMatrixElement(levelvec_single, target_copy, &eps_info)[0];
                     target_config_it++;
                 }
 
@@ -183,7 +190,7 @@ void Atom::Autoionization(pLevelConst target)
     }
 }
 
-void Atom::AutoionizationEnergyGrid(pLevelConst target)
+void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
     double energy_limit = user_input("DR/EnergyLimit", -1.0);     // Default no limit
@@ -208,7 +215,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     // Select orbitals in target wavefunction
     std::set<OrbitalInfo> target_info_set;
     pOrbitalMap target_map(new OrbitalMap(lattice));
-    for(const auto& rconfig: *target->GetRelativisticConfigList())
+    for(const auto& rconfig: *target.configs)
     {
         for(const auto& orb_pair: rconfig)
             target_info_set.insert(orb_pair.first);
@@ -221,9 +228,8 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     target_map->AddStates(*orbitals->hole);
 
     // Target information
-    Symmetry target_symmetry(target->GetTwoJ(), target->GetParity());
-    LevelVector target_levelvector;
-    target_levelvector.push_back(std::make_shared<Level>(*target));
+    Symmetry target_symmetry(target.hID->GetSymmetry());
+    LevelVector target_levelvector(target);
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
@@ -290,23 +296,23 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     target_configs.reserve(2 * target_symmetry.GetTwoJ() + 1);
     for(int two_m = target_symmetry.GetTwoJ(); two_m >= -target_symmetry.GetTwoJ(); two_m -= 2)
     {
-        pRelativisticConfigList ptarget_config = std::make_shared<RelativisticConfigList>(*target->GetRelativisticConfigList());
+        pRelativisticConfigList ptarget_config = std::make_shared<RelativisticConfigList>(*target.configs);
         target_configs.push_back(ptarget_config);
         gen.GenerateProjections(ptarget_config, target_symmetry, two_m, angular_library);
     }
 
     // Loop over all HamiltonianIDs
-    for(auto& key: *levels)
+    for(auto& key: levels->keys)
     {
         Symmetry sym = key->GetSymmetry();
         LevelVector levelvec = levels->GetLevels(key);
 
         // Group levels that use the same continuum energy
-        auto level_it = levelvec.begin();
+        auto level_it = levelvec.levels.begin();
         unsigned int level_index = 0;
         for(int energy_grid_point = 0; energy_grid_point < energy_grid.size(); energy_grid_point++)
         {
-            if(level_it == levelvec.end() ||
+            if(level_it == levelvec.levels.end() ||
                (energy_limit > 0.0 && (*level_it)->GetEnergy() > energy_limit + ionization_energy))
                 break;
             pqn = pqn_offset + energy_grid_point;
@@ -314,7 +320,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
             // Get levels in the energy range
             auto level_end_of_energy_range = level_it;
             if((energy_grid_point == energy_grid.size() - 1) && (energy_limit <= 0.0)) // Last point and no energy limit
-                level_end_of_energy_range = levelvec.end();
+                level_end_of_energy_range = levelvec.levels.end();
             else
             {   double max_energy;
                 if(energy_grid_point == energy_grid.size() - 1)
@@ -322,7 +328,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                 else
                     max_energy = 0.5 * (energy_grid[energy_grid_point] + energy_grid[energy_grid_point+1]) + ionization_energy;
 
-                while(level_end_of_energy_range != levelvec.end()
+                while(level_end_of_energy_range != levelvec.levels.end()
                       && (*level_end_of_energy_range)->GetEnergy() < max_energy)
                 {
                     level_end_of_energy_range++;
@@ -332,7 +338,11 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
             unsigned int num_levels = level_end_of_energy_range - level_it;
             if(num_levels != 0)
             {
-                LevelVector level_subset(level_it, level_end_of_energy_range);
+                LevelVector level_subset;
+                level_subset.hID = levelvec.hID;
+                level_subset.configs = levelvec.configs;
+                level_subset.levels.insert(level_subset.levels.begin(), level_it, level_end_of_energy_range);
+
                 unsigned int solution;
                 std::vector<double> rate(num_levels, 0.0);
 
@@ -379,7 +389,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                             break;
                         ElectronInfo eps_info(pqn, eps_kappa, eps_twoM);
 
-                        target_levelvector[0]->SetRelativisticConfigList(*target_config_it);
+                        target_levelvector.configs = *target_config_it;
 
                         // Coupling constant for |(eps_jlm; target_jlm) JJ >
                         double coupling = math->Wigner3j(eps_twoJ, target_symmetry.GetTwoJ(), sym.GetTwoJ(), eps_twoM, target_twoM);
@@ -402,7 +412,7 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
                     char sep = ' ';
                     for(solution = 0; solution < num_levels; solution++)
                     {
-                        double eps_energy = level_subset[solution]->GetEnergy() - ionization_energy;
+                        double eps_energy = level_subset.levels[solution]->GetEnergy() - ionization_energy;
                         *outstream << std::setprecision(5);
                         *outstream << eps_energy * energy_unit_conversion << sep
                                    << rate[solution] * rate_unit_conversion << sep
@@ -418,14 +428,14 @@ void Atom::AutoionizationEnergyGrid(pLevelConst target)
     }
 }
 
-void Atom::AutoionizationConfigurationAveraged(pLevelConst target)
+void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
 {
     // Get fractional occupations of target orbitals
     OccupationMap target_occ;
 
-    const std::vector<double>& eigenvector = target->GetEigenvector();
+    const std::vector<double>& eigenvector = target.levels[0]->GetEigenvector();
     const double* eigenvector_csf = eigenvector.data();
-    for(auto& rconfig: *target->GetRelativisticConfigList())
+    for(auto& rconfig: *target.configs)
     {
         double contribution = 0.0;
         for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)

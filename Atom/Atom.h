@@ -99,17 +99,17 @@ public:
     /** For all levels requested, create continuum wave and calculate autoionization width.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
-    void Autoionization(pLevelConst target);
+    void Autoionization(const LevelVector& target);
 
     /** Use continuum energy grid for autoionisation.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
-    void AutoionizationEnergyGrid(pLevelConst target);
+    void AutoionizationEnergyGrid(const LevelVector& target);
 
     /** Configuration averaged autoionisation strength S.
         PRE: Have to have nrconfigs.
      */
-    void AutoionizationConfigurationAveraged(pLevelConst target);
+    void AutoionizationConfigurationAveraged(const LevelVector& target);
     void AutoionizationConfigurationAveraged(const OccupationMap& target);
 
 protected:

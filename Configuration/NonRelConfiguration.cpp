@@ -72,6 +72,48 @@ std::string NonRelConfiguration::NameNoSpaces() const
     return name;
 }
 
+void NonRelConfiguration::Write(FILE* fp) const
+{
+    // Write config
+    unsigned int config_size = m_config.size();
+    fwrite(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: *this)
+    {
+        int pqn = pair.first.PQN();
+        int kappa = pair.first.Kappa();
+        int occupancy = pair.second;
+
+        // Write PQN, Kappa, occupancy
+        fwrite(&pqn, sizeof(int), 1, fp);
+        fwrite(&kappa, sizeof(int), 1, fp);
+        fwrite(&occupancy, sizeof(int), 1, fp);
+    }
+}
+
+void NonRelConfiguration::Read(FILE* fp)
+{
+    // Clear the current configuration
+    clear();
+
+    unsigned int config_size;
+    fread(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < config_size; i++)
+    {
+        int pqn;
+        int kappa;
+        int occupancy;
+
+        // Read PQN, Kappa, occupancy
+        fread(&pqn, sizeof(int), 1, fp);
+        fread(&kappa, sizeof(int), 1, fp);
+        fread(&occupancy, sizeof(int), 1, fp);
+
+        m_config[NonRelInfo(pqn, kappa)] = occupancy;
+    }
+}
+
 pRelativisticConfigList NonRelConfiguration::GenerateRelativisticConfigs()
 {
     relconfiglist = std::make_shared<RelativisticConfigList>();

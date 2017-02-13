@@ -12,7 +12,6 @@ class SingleOrbitalID : public HamiltonianID
 public:
     SingleOrbitalID(): HamiltonianID(), pqn(0) {}
     SingleOrbitalID(const OrbitalInfo& info): HamiltonianID(Symmetry(info)), pqn(info.PQN()) {}
-    SingleOrbitalID(const SingleOrbitalID& other): HamiltonianID(other), pqn(other.pqn) {}
 
     virtual bool operator<(const HamiltonianID& other) const override
     {
@@ -49,10 +48,16 @@ public:
     {   return GetOrbitalInfo().Name();
     }
 
+    virtual void Write(FILE* fp) const override
+    {
+        HamiltonianID::Write(fp);
+        fwrite(&pqn, sizeof(int), 1, fp);
+    }
+
     virtual void Read(FILE* fp) override
     {
         HamiltonianID::Read(fp);
-        pqn = configs->front().begin()->first.PQN();
+        fread(&pqn, sizeof(int), 1, fp);
     }
     
     virtual pHamiltonianID Clone() const override
@@ -70,9 +75,8 @@ class NonRelID : public HamiltonianID
 {
 public:
     NonRelID(): HamiltonianID() {}
-    NonRelID(const NonRelConfiguration& config, int two_j, pRelativisticConfigList rconfigs = nullptr):
-        HamiltonianID(two_j, config.GetParity(), rconfigs), nrconfig(config) {}
-    NonRelID(const NonRelID& other): HamiltonianID(other), nrconfig(other.nrconfig) {}
+    NonRelID(const NonRelConfiguration& config, int two_j):
+        HamiltonianID(two_j, config.GetParity()), nrconfig(config) {}
 
     virtual bool operator<(const HamiltonianID& other) const override
     {
@@ -109,9 +113,16 @@ public:
     {   return nrconfig.Name() + " " + HamiltonianID::Print();
     }
 
+    virtual void Write(FILE* fp) const override
+    {
+        HamiltonianID::Write(fp);
+        nrconfig.Write(fp);
+    }
+
     virtual void Read(FILE* fp) override
-    {   HamiltonianID::Read(fp);
-        nrconfig = NonRelConfiguration(configs->front());
+    {
+        HamiltonianID::Read(fp);
+        nrconfig.Read(fp);
     }
 
     virtual pHamiltonianID Clone() const override
