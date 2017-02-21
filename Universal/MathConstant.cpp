@@ -35,6 +35,7 @@ double MathConstant::AtomicFrequencySI() const    { return 4.0 * Pi() * RydbergC
 double MathConstant::AtomicFrequencyMHz() const   { return RydbergConstantSI() * SpeedOfLightSI() * 2.e-6; }
 double MathConstant::NuclearMagneton() const      { return 1.987131e-6; }
 double MathConstant::Barn() const                 { return 1.e-28/(BohrRadiusSI() * BohrRadiusSI()); }
+constexpr double MathConstant::ElectronMassInEV;
 
 char MathConstant::GetSpectroscopicNotation(unsigned int l)  const
 {
