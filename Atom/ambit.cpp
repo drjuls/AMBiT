@@ -264,8 +264,19 @@ void Ambit::EnergyCalculations()
         if(index != first_run_index)
             atoms[index].MakeBasis(hf_open_core);
 
-    // Print basis only option
-//    if(user_input.search(2, "--print-basis", "-p"))
+    // Print basis option
+    if(user_input.search(2, "--print-basis", "-p"))
+    {
+        auto fp = fopen("Orbitals.txt", "wt");
+
+        auto lattice = atoms[first_run_index].GetLattice();
+        for(auto& var: *atoms[first_run_index].GetBasis()->all)
+        {
+            // Print pqn, kappa, Energy, number of points
+            fprintf(fp, "  %i %i %12.6f %i\n", var.first.PQN(), var.first.Kappa(), var.second->Energy(), var.second->size());
+            var.second->Print(fp, lattice, true);
+        }
+    }
 //    {   // Check follower for option
 //        std::string print_option = user_input.next("");
 //        if(print_option == "Cowan")
