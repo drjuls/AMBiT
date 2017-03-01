@@ -9,6 +9,7 @@
 #include "ExternalField/TwoBodySMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
+#include "ExternalField/YukawaPotential.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
     hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
@@ -186,6 +187,21 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
                 hf = electricQED;
             }
         }
+    }
+
+    if(user_input.SectionExists("HF/Yukawa"))
+    {
+        double mass = 0.;
+        if(user_input.VariableExists("HF/Yukawa/Mass"))
+            mass = user_input("HF/Yukawa/Mass", 1.0);
+        else if(user_input.VariableExists("HF/Yukawa/MassEV"))
+            mass = user_input("HF/Yukawa/MassEV", 1.0)/MathConstant::Instance()->ElectronMassInEV;
+        else if(user_input.VariableExists("HF/Yukawa/Rc"))
+            mass = 1./(physical_constant->GetAlpha() * user_input("HF/Yukawa/Rc", 1.0));
+
+        double scale = user_input("HF/Yukawa/Scale", 1.);
+
+        hf = std::make_shared<YukawaDecorator>(hf, mass, scale);
     }
 
     if(user_input.search("HF/--local-exchange"))

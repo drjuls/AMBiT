@@ -98,22 +98,35 @@ bool OrbitalBase::Print(const std::string& filename, pLattice lattice) const
         return false;
 }
 
-bool OrbitalBase::Print(FILE* fp, pLattice lattice) const
+bool OrbitalBase::Print(FILE* fp, pLattice lattice, bool jacobian) const
 {
     unsigned int i;
     if(lattice)
-        for(i = 0; i < size(); i++)
-        {
-            fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
-                    f[i], g[i], dfdr[i], dgdr[i]);
+    {
+        if(jacobian)
+        {   for(i = 0; i < size(); i++)
+            {
+                fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",
+                        lattice->R(i), lattice->dR(i),
+                        f[i], g[i], dfdr[i], dgdr[i]);
+            }
         }
+        else
+        {   for(i = 0; i < size(); i++)
+            {
+                fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e\n", lattice->R(i),
+                        f[i], g[i], dfdr[i], dgdr[i]);
+            }
+        }
+    }
     else
-        for(i = 0; i < size(); i++)
+    {   for(i = 0; i < size(); i++)
         {
             fprintf(fp, "%d %12.6e %12.6e %12.6e %12.6e\n", i,
                     f[i], g[i], dfdr[i], dgdr[i]);
         }
-    
+    }
+
     return true;
 }
 
