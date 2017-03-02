@@ -2,6 +2,7 @@
 #define YUKAWA_POTENTIAL_H
 
 #include "HartreeFock/LocalPotentialDecorator.h"
+#include "Transitions.h"
 
 /** Yukawa decorator adds the potential
         V(r) = alpha.exp(-mr)/r
@@ -19,6 +20,18 @@ public:
 protected:
     double mass; // mass (units of m_e)
     virtual void Alert() override;
+};
+
+class YukawaCalculator : public TransitionCalculator
+{
+public:
+    YukawaCalculator(MultirunOptions& user_input, Atom& atom);
+
+    virtual void PrintHeader() const override;
+    virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
+
+protected:
+    double mass;
 };
 
 #endif

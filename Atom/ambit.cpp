@@ -10,6 +10,7 @@
 #include "ExternalField/Hyperfine.h"
 #include "ExternalField/FieldShift.h"
 #include "ExternalField/RadiativePotential.h"
+#include "ExternalField/YukawaPotential.h"
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
@@ -368,6 +369,7 @@ void Ambit::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
     RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
     RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
+    RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
 
     user_input.set_prefix("");
 
