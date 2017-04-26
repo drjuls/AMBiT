@@ -107,7 +107,7 @@ class OrbitalMap:
   get_overlap - Returns the overlap between two stored orbitals.
 
   """
-  def __init__(self, basisFileName):
+  def __init__(self, basisFileName, silent = False):
     """ Reads the binary orbtials file (basisFileName) and creates a map of all the stored orbitals
     
     Initialising an instance of orbital map reads the AMBiT basis file with the filename 
@@ -164,8 +164,9 @@ class OrbitalMap:
         kappa = int(header['kappa'])
         self.__orbitals[orb.label] = orb
 
-      # Finally, print out the number of orbitals we successfully read
-      self.list_orbitals()
+      # Finally, print out the number of orbitals we successfully read (if we're in verbose mode)
+      if(not silent):
+        self.list_orbitals()
  
   def __getitem__(self, label):
     """ Return the orbital object indexed by the given spectroscopic label (e.g. 1s, 4d+)."""
@@ -197,7 +198,7 @@ class OrbitalMap:
 
       lattice = self.r[:target.size]
 
-      plot.plot(lattice, target.g, label='{}: f(r)'.format(label)) 
+      plot.plot(lattice, target.f, label='{}: f(r)'.format(label)) 
     
     plot.xlabel('r (arb. units)')
     plot.ylabel("Radial Wavefunction")
