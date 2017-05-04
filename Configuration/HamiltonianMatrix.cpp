@@ -8,6 +8,9 @@
 #include <mpi.h>
 #endif
 
+#include<omp.h>
+#define AMBIT_USE_OPENMP
+
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
 
@@ -98,12 +101,17 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& D = current_chunk.diagonal;
 
         // Loop through configs for this chunk
+        unsigned int config_index;
 #ifdef AMBIT_USE_OPENMP
-        #pragma omp parallel for private(config_it)
+        #pragma omp parallel for private(config_index, config_it) schedule(dynamic, 5)
 #endif
-        config_it = (*configs)[current_chunk.config_indices.first];
-        for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
+        for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
+            
+            // Get config_it from the current confg_index (necessary to flatten the original code into a
+            // single, parallelisable for loop
+            config_it = (*configs)[config_index];
+
             bool leading_config_i = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_it));
 
             // Loop through the rest of the configs
@@ -140,10 +148,13 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                         {
                             double operatorH;
                             if(do_three_body)
+                            {
                                 operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                            }
                             else
+                            {
                                 operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
+                            }
                             if(fabs(operatorH) > 1.e-15)
                             {
                                 for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
@@ -225,7 +236,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 }
             }
 
-            config_it++;
+            //config_it++;
         } // Configs in chunk
     } // Chunks
 
