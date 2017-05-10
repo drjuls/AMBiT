@@ -76,6 +76,11 @@ public:
 protected:
     std::tuple<pElectronOperators...> pOperators;
 
+    // NB: These are class members to prevent memory (de)allocation and ensure thread safety
+    mutable IndirectProjection left, right;
+    mutable IndirectProjection diff1, diff2;
+    mutable IndirectProjection sorted_p1, sorted_p2;
+
     // There is always a one-body operator
     inline double OneBodyMatrixElements(const ElectronInfo& la, const ElectronInfo& ra) const
     {
@@ -132,9 +137,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 {
     int num_diffs = 0;
 
-    // NB: These are static for speed: to prevent memory (de)allocation
-    static ManyBodyOperator<>::IndirectProjection left, right;
-    make_indirect_projection(proj_left, left);
+    make_indirect_projection(proj_left, left); 
 
     // Skip this for same projection
     if(&proj_left != &proj_right)
@@ -295,11 +298,8 @@ template<typename... pElectronOperators>
 template<int max_diffs>
 int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2, const ElectronInfo* skipped_p2_electron) const
 {
-    // NB: These are static for speed: to prevent memory (de)allocation
-    static IndirectProjection diff1, diff2;
     diff1.clear();
     diff2.clear();
-    static IndirectProjection sorted_p1, sorted_p2;
     sorted_p1.clear();
     sorted_p2.clear();
 

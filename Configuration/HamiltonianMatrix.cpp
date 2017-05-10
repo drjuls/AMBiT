@@ -8,8 +8,9 @@
 #include <mpi.h>
 #endif
 
+#ifdef AMBIT_USE_OPENMP
 #include<omp.h>
-#define AMBIT_USE_OPENMP
+#endif
 
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
@@ -69,7 +70,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     unsigned int csf_start = 0;
     for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
     {
-        // Get chunk num_rows and number of configs
+        // Get chunk num_rows and number of configs. This only initialises and allocates resources for the chunks
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
         while(config_it != configs->end() && current_num_configs < configs_per_chunk)
@@ -103,13 +104,17 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         // Loop through configs for this chunk
         unsigned int config_index;
 #ifdef AMBIT_USE_OPENMP
-        #pragma omp parallel for private(config_index, config_it) schedule(dynamic, 5)
+        #pragma omp parallel for private(config_index, config_it) schedule(static)
 #endif
         for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
             
-            // Get config_it from the current confg_index (necessary to flatten the original code into a
-            // single, parallelisable for loop
+            // The two- and three-body operators are slightly stateful, so each OpenMP thread needs its own copy to avoid race conditions
+#ifdef AMBIT_USE_OPENMP
+            auto H_two_body_copy = std::make_shared<TwoBodyHamiltonianOperator>(*H_two_body);
+            printf("Thread %d of %d entering parallel region...\n", omp_get_thread_num(), omp_get_num_threads());
+#endif
+            // Get config_it from the current confg_index (this is slow(ish) but thread-safe)
             config_it = (*configs)[config_index];
 
             bool leading_config_i = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_it));
@@ -149,11 +154,22 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                             double operatorH;
                             if(do_three_body)
                             {
+                                // NB - Only use the copy of the operator if we're in OMP mode
+                                #ifdef AMBIT_USE_OPENMP
+                                auto H_three_body_copy = std::make_shared<ThreeBodyHamiltonianOperator>(*H_three_body);
+                                operatorH = H_three_body_copy->GetMatrixElement(*proj_it, *proj_jt);
+                                #else
                                 operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                                #endif
                             }
                             else
                             {
+                                #ifdef AMBIT_USE_OPENMP
+                                operatorH = H_two_body_copy->GetMatrixElement(*proj_it, *proj_jt);
+                                #else
                                 operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+                                #endif
+
                             }
                             if(fabs(operatorH) > 1.e-15)
                             {
@@ -202,7 +218,11 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
                     while(proj_jt != config_it.projection_end())
                     {
+                        #ifdef AMBIT_USE_OPENMP
+                        double operatorH = H_two_body_copy->GetMatrixElement(*proj_it, *proj_jt);
+                        #else
                         double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+                        #endif
 
                         if(fabs(operatorH) > 1.e-15)
                         {
@@ -554,7 +574,7 @@ double HamiltonianMatrix::PollMatrix(double epsilon) const
 void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     Eigen::Map<Eigen::MatrixXd> b_mapped(b, N, m);
-    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m);
+    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m); 
     c_mapped = Eigen::MatrixXd::Zero(N, m);
 
     // Multiply each chunk
