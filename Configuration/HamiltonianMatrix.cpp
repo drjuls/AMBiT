@@ -104,6 +104,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         // Loop through configs for this chunk
         unsigned int config_index;
 #ifdef AMBIT_USE_OPENMP
+        // Note: our load balancing works when the matrix into chunks (so we get exactly one config per OMP thread here), so use static scheduling
         #pragma omp parallel for private(config_index, config_it) schedule(static)
 #endif
         for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
@@ -112,7 +113,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             // The two- and three-body operators are slightly stateful, so each OpenMP thread needs its own copy to avoid race conditions
 #ifdef AMBIT_USE_OPENMP
             auto H_two_body_copy = std::make_shared<TwoBodyHamiltonianOperator>(*H_two_body);
-            printf("Thread %d of %d entering parallel region...\n", omp_get_thread_num(), omp_get_num_threads());
 #endif
             // Get config_it from the current confg_index (this is slow(ish) but thread-safe)
             config_it = (*configs)[config_index];
