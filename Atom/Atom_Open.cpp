@@ -1,6 +1,11 @@
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
+
+#ifdef AMBIT_USE_OPENMP
+#include<omp.h>
+#endif
+
 #include "Include.h"
 #include "Atom.h"
 #include "Universal/Enums.h"
@@ -597,7 +602,13 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             else
                 H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
 
-            H->GenerateMatrix(user_input("CI/ChunkSize", 4));
+            // If we're using OpenMP then the chunksize should be a multiple of the number of threads
+            int default_chunksize = 4;
+            #ifdef AMBIT_USE_OPENMP
+            default_chunksize = omp_get_num_threads();
+            #endif
+
+            H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));
             //H->PollMatrix();
 
             if(user_input.search("--write-hamiltonian"))
