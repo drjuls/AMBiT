@@ -605,7 +605,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             // If we're using OpenMP then the chunksize should be a multiple of the number of threads
             int default_chunksize = 4;
             #ifdef AMBIT_USE_OPENMP
-            default_chunksize = omp_get_num_threads();
+            default_chunksize = omp_get_max_threads();
             #endif
 
             H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));

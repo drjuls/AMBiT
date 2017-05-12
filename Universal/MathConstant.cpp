@@ -74,7 +74,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     if(m1 + m2 + m3 != 0.)
         return 0.;
 
-    static double test[9];
+    double test[9];
     test[0] = j1 + j2 - j3;
     test[1] = j3 + j1 - j2;
     test[2] = j2 + j3 - j1;
@@ -86,7 +86,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     test[8] = j3 - m3;
 
     // Numerator terms and denominator terms of outer part.
-    static std::vector<unsigned int> outer_num(9), outer_den(9);
+    std::vector<unsigned int> outer_num(9), outer_den(9);
 
     // Check that all test[] are non-negative integers. Save the integers.
     unsigned int i;
@@ -106,7 +106,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     z[2] = j1 - j3 + m2;
 
     // Check that all y[] and z[] are integers. Save the integers.
-    static std::vector<int> ma(3), na(3);
+    std::vector<int> ma(3), na(3);
     for(i=0; i<3; i++)
     {   if(y[i] != floor(y[i]))
             return 0.;
@@ -140,7 +140,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
 
     double outer = 0.;
     for(j=0; j<9; j++)
-    {   outer += LogFactorialFraction(outer_num[j], outer_den[j]);
+    {outer += LogFactorialFraction(outer_num[j], outer_den[j]);   
     }
     outer = outer/2;    // Outer part is to the power 1/2.
 
@@ -168,18 +168,18 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
     if((j1 < 0.) || (j2 < 0.) || (j3 < 0.) || (j4 < 0.) || (j5 < 0.) || (j6 < 0.))
         return 0.;
 
-    static double test[4];
+    double test[4];
     test[0] = j1 + j2 + j3;
     test[1] = j1 + j5 + j6;
     test[2] = j4 + j2 + j6;
     test[3] = j4 + j5 + j3;
 
-    static double y[3];
+    double y[3];
     y[0] = j1 + j2 + j4 + j5;
     y[1] = j2 + j3 + j5 + j6;
     y[2] = j3 + j1 + j6 + j4;
 
-    static std::vector<unsigned int> ma(4), na(3);
+    std::vector<unsigned int> ma(4), na(3);
     unsigned int i;
     for(i=0; i<4; i++)
     {   if(test[i] != floor(test[i]))
@@ -212,7 +212,7 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
     x[10] = j4 - j5 + j3;
     x[11] = - j4 + j5 + j3;
 
-    static std::vector<unsigned int> outer_den(13), outer_num(13);
+    std::vector<unsigned int> outer_den(13), outer_num(13);
     unsigned int j;
     for(j=0; j<12; j++)
     {   if((x[j] < 0.) || (x[j] != floor(x[j])))
@@ -339,7 +339,11 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     else
     {   double q = double(- twom1 - twom2)/2.;
         double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+
+        #pragma omp atomic write
         Symbols3j[key] = value;
+        
+
         if(sign)
             return value;
         else
