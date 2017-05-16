@@ -33,8 +33,8 @@ GTEST_LIBS_DIR    = $(SRCDIR)/gtest
 INCLUDE = $(SRCDIR) $(EIGEN_INCLUDE_DIR)
 
 ifeq ($(MACHINE), default)
-  CC  = gcc 
-  CXX = g++ -std=c++11 -Wno-deprecated-register -Wno-unused-result 
+  CC  = gcc -fopenmp
+  CXX = g++ -std=c++11 -Wno-deprecated-register -Wno-unused-result -fopenmp
   F77 = gfortran
 
   LINK      = g++
@@ -50,8 +50,8 @@ ifeq ($(MACHINE), default)
     CFLAGS    = -g
   else
     BUILD     = Release
-    CXXFLAGS  = -O3 -DAMBIT_USE_OPENMP
-    CFLAGS    = -O3
+    CXXFLAGS  = -O3 -DAMBIT_USE_OPENMP 
+    CFLAGS    = -O3 
     F77FLAGS  = -O2
   endif
 
@@ -93,8 +93,8 @@ ifeq ($(MACHINE), nci)
 endif
 
 ifeq ($(MACHINE), katana)
-  CC  = mpiCC
-  CXX = mpiCC -std=c++11 
+  CC  = mpiCC -openmp
+  CXX = mpiCC -std=c++11 -openmp
   F77 = ifort
 
   ANGULAR_DATA_DIRECTORY = /srv/scratch/ambit/AngularData
