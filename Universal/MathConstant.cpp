@@ -2,12 +2,24 @@
 #include "MathConstant.h"
 #include <vector>
 #include <algorithm>
-#include<gsl/gsl_sf_coupling.h>
+#include <gsl/gsl_sf_coupling.h>
+
+#ifdef AMBIT_USE_OPENMP
+#include <omp.h>
+#endif
 
 MathConstant* MathConstant::Instance()
 {
+
+#ifdef AMBIT_USE_OPENMP
+    // In order to maintain thread safety when caching Wigner3j values, each OpenMP thread should get its own instance of MathConstant.
+    static MathConstant* instances = new MathConstant[omp_get_max_threads()];
+    return &(instances[omp_get_thread_num()]);
+#else
+    // Obviously only return one instance if we're not using OpenMP
     static MathConstant instance;
     return &instance;
+#endif
 }
 
 MathConstant::MathConstant():
@@ -253,9 +265,6 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     else
     {   
         double value = gsl_sf_coupling_3j(twoj1, twoj2, 2*k, twom1, twom2, twoq);
-#ifdef AMBIT_USE_OPENMP
-        #pragma omp critical(STORE3J)
-#endif
         Symbols3j[key] = value;
         
         if(sign)
@@ -379,9 +388,6 @@ double MathConstant::Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int tw
     }
     else
     {   double value = gsl_sf_coupling_3j(twoj1, twoj2, twoj3, twom1, twom2, twom3);
-#ifdef AMBIT_USE_OPENMP
-        #pragma omp critical(STORE3J)
-#endif
         Symbols3j[key] = value;
         
         if(sign)
