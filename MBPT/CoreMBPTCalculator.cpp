@@ -625,7 +625,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
 
     int nn;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn) reduction(+:energy)
+    #pragma omp parallel for private(nn, k1, k1max) reduction(+:energy)
 #endif
     for(nn = 0; nn < core->size(); ++nn)
     {
@@ -732,7 +732,7 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
 
     int nn;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn) reduction(+:energy)
+    #pragma omp parallel for private(nn, k1, k1max, k2, k2max) reduction(+:energy)
 #endif
     for(nn = 0; nn < core->size(); ++nn)
     {
@@ -836,7 +836,7 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
 
     int mm;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(mm) reduction(+:energy)
+    #pragma omp parallel for private(mm, k1, k1max, k2, k2max) reduction(+:energy)
 #endif
     for(mm = 0; mm < core->size(); ++mm)
     {
