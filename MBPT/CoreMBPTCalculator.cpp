@@ -931,9 +931,14 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     const double Ed = ValenceEnergies.find(sd.Kappa())->second;
 
     // Hole line is attached to sa or sc
-    auto it_n = core->begin();
-    while(it_n != core->end())
+    int nn;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(nn) reduction(+:energy)
+#endif
+    for(nn = 0; nn < core->size(); ++nn)
     {
+        auto it_n = core->begin();
+        std::advance(it_n, nn);
         const OrbitalInfo& sn = it_n->first;
         if(InQSpace(sn))
         {
@@ -975,7 +980,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
                 energy -= TermRatio(R1 * R2, energy_denominator, sn, sd);
             }
         }
-        it_n++;
     }
 
     if(debug)
