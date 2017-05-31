@@ -13,7 +13,7 @@ MathConstant* MathConstant::Instance()
 
 #ifdef AMBIT_USE_OPENMP
     // In order to maintain thread safety when caching Wigner3j values, each OpenMP thread should get its own instance of MathConstant.
-    static MathConstant* instances = new MathConstant[omp_get_max_threads()];
+    static std::unique_ptr<MathConstant[]> instances (new MathConstant[omp_get_max_threads()]());
     return &(instances[omp_get_thread_num()]);
 #else
     // Obviously only return one instance if we're not using OpenMP
