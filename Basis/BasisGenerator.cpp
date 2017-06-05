@@ -9,6 +9,7 @@
 #include "ExternalField/TwoBodySMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
+#include "ExternalField/YukawaPotential.h"
 
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
     hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
@@ -136,48 +137,71 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     if(user_input.search("HF/--breit"))
     {
-        pHartreeY breit(new BreitZero(pHartreeY(new HartreeYBase()), integrator, coulomb));
-        pHFOperator breit_hf(new BreitHFDecorator(hf, breit));
+        pHartreeY breit = std::make_shared<BreitZero>(std::make_shared<HartreeYBase>(), integrator, coulomb);
+        pHFOperator breit_hf = std::make_shared<BreitHFDecorator>(hf, breit);
         hf = breit_hf;
+
+        // Decorate HartreeY function
+        hartreeY = std::make_shared<BreitZero>(hartreeY, integrator, coulomb);
     }
 
-    if(user_input.search("HF/--uehling"))
+    if(user_input.search("HF/QED/--uehling"))
     {
-        if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
         }
         else
-        {   double nuclear_rms_radius = GetNuclearRMSRadius();
+        {   double nuclear_rms_radius = user_input("HF/QED/NuclearRMSRadius", -1.0);
+            if(nuclear_rms_radius < 0.0)
+                nuclear_rms_radius = GetNuclearRMSRadius();
             uehling.reset(new UehlingDecorator(hf, nuclear_rms_radius));
         }
 
         hf = uehling;
     }
 
-    if(user_input.search("HF/--self-energy"))
+    if(user_input.search("HF/QED/--self-energy"))
     {
-        if(nucleus && user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {
-            if(!user_input.search("HF/--no-magnetic-QED"))
+            if(!user_input.search("HF/QED/--no-magnetic"))
             {   magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                 hf = magneticQED;
             }
-            if(!user_input.search("HF/--no-electric-QED"))
+            if(!user_input.search("HF/QED/--no-electric"))
             {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                 hf = electricQED;
             }
         }
         else
-        {   double nuclear_rms_radius = GetNuclearRMSRadius();
-            if(!user_input.search("HF/--no-magnetic-QED"))
+        {   double nuclear_rms_radius = user_input("HF/QED/NuclearRMSRadius", -1.0);
+            if(nuclear_rms_radius < 0.0)
+                nuclear_rms_radius = GetNuclearRMSRadius();
+
+            if(!user_input.search("HF/QED/--no-magnetic"))
             {   magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nuclear_rms_radius));
                 hf = magneticQED;
             }
-            if(!user_input.search("HF/--no-electric-QED"))
+            if(!user_input.search("HF/QED/--no-electric"))
             {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius));
                 hf = electricQED;
             }
         }
+    }
+
+    if(user_input.SectionExists("HF/Yukawa"))
+    {
+        double mass = 0.;
+        if(user_input.VariableExists("HF/Yukawa/Mass"))
+            mass = user_input("HF/Yukawa/Mass", 1.0);
+        else if(user_input.VariableExists("HF/Yukawa/MassEV"))
+            mass = user_input("HF/Yukawa/MassEV", 1.0)/MathConstant::Instance()->ElectronMassInEV;
+        else if(user_input.VariableExists("HF/Yukawa/Rc"))
+            mass = 1./(physical_constant->GetAlpha() * user_input("HF/Yukawa/Rc", 1.0));
+
+        double scale = user_input("HF/Yukawa/Scale", 1.);
+
+        hf = std::make_shared<YukawaDecorator>(hf, mass, scale);
     }
 
     if(user_input.search("HF/--local-exchange"))
@@ -301,9 +325,9 @@ void BasisGenerator::SetOrbitalMaps()
 
 void BasisGenerator::UpdateNonSelfConsistentOperators()
 {
-    if(user_input.search("HF/--use-electron-screening-QED"))
+    if(user_input.search("HF/QED/--use-electron-screening"))
     {
-        if(nucleus == nullptr || !user_input.search("HF/--use-nuclear-density-QED"))
+        if(nucleus == nullptr || !user_input.search("HF/QED/--use-nuclear-density"))
         {
             *logstream << "Cannot have screened Uehling without finite sized nucleus." << std::endl;
             return;
@@ -417,6 +441,16 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     {   user_input.search("Basis/--bspline-basis"); // Just to clear UFO from user_input.
         excited = GenerateBSplines(max_pqn_per_l);
     }
+    bool reorth = user_input.search("Basis/--reorthogonalise");
+
+    // Inject any special orbitals from another basis, and push the old ones to higher pqn
+    int number_injected = user_input.vector_variable_size("Basis/InjectOrbitals");
+    for(int i = 0; i < number_injected; i++)
+    {
+        std::string inject_string = user_input("Basis/InjectOrbitals", "", i);
+        InjectOrbitals(inject_string, excited);
+        reorth = true;
+    }
 
     // Place all orbitals in orbitals->all.
     // Finally create orbitals->all and the state index
@@ -429,6 +463,12 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     // Organise orbitals
     SetOrbitalMaps();
 
+    if(reorth)
+    {
+        for(auto excited_orbital_pair: *orbitals->excited)
+            Orthogonalise(excited_orbital_pair.second);
+    }
+
     if(DebugOptions.OutputHFExcited())
     {   OrbitalInfo max_i(-1, 1), max_j(-1, 1);
         double orth = TestOrthogonality(max_i, max_j);
@@ -436,6 +476,79 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     }
 
     return orbitals;
+}
+
+void BasisGenerator::InjectOrbitals(const std::string& input, pOrbitalMap excited) const
+{
+    std::string inputfile;
+    std::string origin;
+    std::string target;
+    size_t colon_pos = input.find(':');
+    size_t arrow_pos = input.find("->");
+
+    if(colon_pos == std::string::npos || arrow_pos == std::string::npos)
+    {
+        *errstream << "Basis/InjectOrbitals incorrectly specified." << std::endl;
+        exit(1);
+    }
+
+    inputfile = input.substr(0, colon_pos);
+    origin = input.substr(colon_pos+1, arrow_pos);
+    target = input.substr(arrow_pos+2, input.size());
+
+    // Remove whitespace from inputfile; import orbitals
+    inputfile.erase(std::remove_if(inputfile.begin(), inputfile.end(), isspace), inputfile.end());
+    pOrbitalManager imported_orbitals = std::make_shared<OrbitalManager>(inputfile);
+
+    NonRelInfo nonrelorigin = ConfigurationParser::ParseOrbital(origin);
+    NonRelInfo nonreltarget = ConfigurationParser::ParseOrbital(target);
+
+    for(int step = 1; step <= (nonreltarget.L()? 2: 1); step++)
+    {
+        // Get injected orbital
+        pOrbital inject;
+        if(step == 1)
+        {   inject = imported_orbitals->all->GetState(nonrelorigin.GetFirstRelativisticInfo());
+            inject->SetKappa(nonreltarget.GetFirstRelativisticInfo().Kappa());
+        }
+        else
+        {   inject = imported_orbitals->all->GetState(nonrelorigin.GetSecondRelativisticInfo());
+            inject->SetKappa(nonreltarget.GetSecondRelativisticInfo().Kappa());
+        }
+        inject->SetPQN(nonreltarget.PQN());
+
+        // Move all orbitals with higher PQN out
+        std::vector<pOrbital> moved_orbitals;
+        int max_moved_pqn = 0;
+        auto it = excited->begin();
+        while(it != excited->end())
+        {
+            if((it->first.Kappa() == inject->Kappa()) &&
+               (it->first.PQN() >= inject->PQN()))
+            {
+                pOrbital moved = it->second;
+
+                // Increment the PQN
+                moved->SetPQN(it->first.PQN() + 1);
+                max_moved_pqn = mmax(max_moved_pqn, moved->PQN());
+                moved_orbitals.push_back(moved);
+
+                it = excited->erase(it);
+            }
+            else
+                ++it;
+        }
+
+        // Inject new orbital
+        excited->AddState(inject);
+
+        // Move other orbitals back
+        for(auto orbital: moved_orbitals)
+        {
+            if(orbital->PQN() != max_moved_pqn)
+                excited->AddState(orbital);
+        }
+    }
 }
 
 void BasisGenerator::Orthogonalise(pOrbital current) const

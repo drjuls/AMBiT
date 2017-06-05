@@ -19,6 +19,11 @@ typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator, pSigma3Calculator> ThreeBodyHamiltonianOperator;
 typedef std::shared_ptr<ThreeBodyHamiltonianOperator> pThreeBodyHamiltonianOperator;
 
+/** The dimensions of HamiltonianMatrix is set by the RelativisticConfigList.
+    It is generally size N * N, where N = relconfigs->NumCSFs(), however it also supports a "non-square" matrix
+    with dimensions (Nsmall, N) where Nsmall = relconfigs->NumCSFsSmall(). In this case it stores a trapezoid,
+    rather than a triangle, because the lower right (N-Nsmall) square is zero (except on the diagonal).
+ */
 class HamiltonianMatrix : public Matrix
 {
 public:
@@ -32,7 +37,7 @@ public:
     virtual void GetDiagonal(double* diag) const;
 
     /** Generate Hamiltonian matrix. */
-    virtual void GenerateMatrix();
+    virtual void GenerateMatrix(unsigned int configs_per_chunk = 4);
 
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
@@ -67,36 +72,56 @@ protected:
     pConfigListConst leading_configs;           //!< Leading configs for sigma3
     pThreeBodyHamiltonianOperator H_three_body; //!< Three-body operator is null if sigma3 not used
 
+    unsigned int Nsmall;            //!< For non-square CI, the smaller matrix size
+
 protected:
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrix;
 
-    /** MatrixChunk is a rectangular section of the HamiltonianMatrix.
-        The top left corner of the section is on the diagonal at (start_row, start_row).
-        The number of rows is num_rows, and the section goes to column N (the right edge of the Hamiltonian matrix).
+    /** MatrixChunk is a rectangular section of the lower triangular part of the HamiltonianMatrix.
+        The top left corner of the section is at (start_row, 0).
+        The number of rows is num_rows, and the section goes to the diagonal of the Hamiltonian matrix (or Nsmall if chunk is in the extra part).
         The rows correspond to a number of RelativisticConfigurations in configs, as distributed by GenerateMatrix().
         RelativisticConfigurations included are [config_indices.first, config_indices.second).
+        The matrix section "diagonal" is a square on the diagonal of the Hamiltonian that is outside Nsmall.
      */
     class MatrixChunk
     {
     public:
-        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int N):
+        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall):
             start_row(row_start), num_rows(num_rows)
-        {   config_indices.first = config_index_start;
+        {
+            config_indices.first = config_index_start;
             config_indices.second = config_index_end;
-            chunk = RowMajorMatrix::Zero(num_rows, N-start_row);
+            chunk = RowMajorMatrix::Zero(num_rows, mmin(start_row + num_rows, Nsmall));
+
+            if(Nsmall < start_row + num_rows)
+            {   unsigned int diagonal_size = mmin(num_rows, start_row + num_rows - Nsmall);
+                diagonal = RowMajorMatrix::Zero(diagonal_size, diagonal_size);
+            }
         }
 
         std::pair<unsigned int, unsigned int> config_indices;
         unsigned int start_row;
         unsigned int num_rows;
         RowMajorMatrix chunk;
+        RowMajorMatrix diagonal;
 
-        /** Make lower triangle part of the matrix chunk match the upper. */
+        /** Make upper triangle part of the matrix chunk match the lower. */
         void Symmetrize()
         {
-            for(unsigned int i = 1; i < num_rows; i++)
-                for(unsigned int j = 0; j < i; j++)
-                    chunk(i, j) = chunk(j, i);
+            if(start_row < chunk.cols())
+            {
+                for(unsigned int i = 0; i < chunk.cols() - start_row - 1; i++)
+                    for(unsigned int j = i+start_row+1; j < chunk.cols(); j++)
+                        chunk(i, j) = chunk(j - start_row, i + start_row);
+            }
+
+            if(diagonal.size())
+            {
+                for(unsigned int i = 0; i < diagonal.rows() - 1; i++)
+                    for(unsigned int j = i + 1; j < diagonal.cols(); j++)
+                        diagonal(i, j) = diagonal(j, i);
+            }
         }
     };
 

@@ -4,7 +4,7 @@
 #include "Universal/PhysicalConstant.h"
 
 ValenceMBPTCalculator::ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
-    MBPTCalculator(orbitals, fermi_orbitals), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
+    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
 {}
 
 ValenceMBPTCalculator::~ValenceMBPTCalculator()
@@ -73,7 +73,8 @@ double ValenceMBPTCalculator::CalculateOneElectronSub(const OrbitalInfo& sa, con
         if(InQSpace(salpha) && (sa.Kappa() == salpha.Kappa()))
         {
             double term = one_body->GetMatrixElement(sa, salpha) * one_body->GetMatrixElement(salpha, sb);
-            energy += term/(ValenceEnergy - Ealpha + delta);
+            double energy_denominator = ValenceEnergy - Ealpha + delta;
+            energy += TermRatio(term, energy_denominator, sa, salpha);
         }
 
         it_alpha++;
@@ -115,13 +116,13 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
             const double Ebeta = it_beta->second->Energy();
 
             if(InQSpace(salpha, sbeta) &&
-               (sa.L() + salpha.L())%2 == (sb.L() + sbeta.L())%2 &&
-               (salpha.L() + sc.L())%2 == (sbeta.L() + sd.L())%2)
+               ((sa.L() + salpha.L() + sb.L() + sbeta.L())%2 == 0) &&
+               ((salpha.L() + sc.L() + sbeta.L() + sd.L())%2 == 0))
             {
                 double coeff_alphabeta = salpha.MaxNumElectrons() * sbeta.MaxNumElectrons() * (2 * k + 1);
 
                 coeff_alphabeta = coeff_alphabeta/(coeff_ac * coeff_bd);
-                coeff_alphabeta = coeff_alphabeta/(ValenceEnergy - Ealpha - Ebeta + delta);
+                double energy_denominator = (ValenceEnergy - Ealpha - Ebeta + delta);
 
                 int exponent = (sa.TwoJ() + sb.TwoJ() + sc.TwoJ() + sd.TwoJ() + salpha.TwoJ() + sbeta.TwoJ())/2;
                 coeff_alphabeta *= constants->minus_one_to_the_power(exponent + k + 1);
@@ -156,15 +157,14 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
                                     coeff = -coeff;
 
                                 double R2 = two_body->GetTwoElectronIntegral(k2, salpha, sbeta, sc, sd);
+                                double numerator = R1 * R2 * coeff;
 
-                                energy += R1 * R2 * coeff;
+                                energy += TermRatio(numerator, energy_denominator, sa, sb, salpha, sbeta);
                             }
-
-                            k2 += 2;
+                            k2 += kstep;
                         }
                     }
-
-                    k1 += 2;
+                    k1 += kstep;
                 }
             }
             it_beta++;
@@ -203,25 +203,29 @@ double ValenceMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbi
             if(sa.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, salpha, sb, sc, sd);
-                energy += R1 * one_body->GetMatrixElement(sa, salpha)/(Ea - Ealpha + delta);
+                double energy_denominator = Ea - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(sa, salpha), energy_denominator, sa, salpha);
             }
 
             if(sc.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, salpha, sd);
-                energy += R1 * one_body->GetMatrixElement(salpha, sc)/(Ec - Ealpha + delta);
+                double energy_denominator = Ec - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(salpha, sc), energy_denominator, sc, salpha);
             }
 
             if(sb.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, salpha, sc, sd);
-                energy += R1 * one_body->GetMatrixElement(sb, salpha)/(Eb - Ealpha + delta);
+                double energy_denominator = Eb - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(sb, salpha), energy_denominator, sb, salpha);
             }
 
             if(sd.Kappa() == salpha.Kappa())
             {
                 double R1 = two_body->GetTwoElectronIntegral(k, sa, sb, sc, salpha);
-                energy += R1 * one_body->GetMatrixElement(salpha, sd)/(Ed - Ealpha + delta);
+                double energy_denominator = Ed - Ealpha + delta;
+                energy += TermRatio(R1 * one_body->GetMatrixElement(salpha, sd), energy_denominator, sd, salpha);
             }
         }
         it_alpha++;

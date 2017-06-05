@@ -66,6 +66,7 @@ protected:
     inline bool TransitionExists(const Symmetry& left, const Symmetry& right) const
     {
         return ((abs(left.GetTwoJ() - right.GetTwoJ()) <= 2 * op->GetK()) &&
+                (left.GetTwoJ() + right.GetTwoJ() >= 2 * op->GetK()) &&
                 (left.GetParity() * right.GetParity() == op->GetParity()));
     }
 

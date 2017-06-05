@@ -24,7 +24,6 @@ class MultirunOptions : private GetPot
 {
 public:
     inline MultirunOptions();
-    inline MultirunOptions(const MultirunOptions&);
     inline MultirunOptions(const int argc_, char** argv_,
                            const char* FieldSeparator=0x0);
     inline MultirunOptions(const char* FileName,
@@ -34,8 +33,6 @@ public:
                            const char* CommentStart=0x0, const char* CommentEnd=0x0,
                            const char* FieldSeparator=0x0);
     inline ~MultirunOptions() {}
-
-    inline MultirunOptions& operator=(const MultirunOptions& other);
 
     /** (*) absorbing contents of another MultirunOptions object */
     inline void absorb(const MultirunOptions& That);
@@ -90,11 +87,6 @@ protected:
 inline MultirunOptions::MultirunOptions(): GetPot(), num_runs(1), current_run_index(0)
 {}
 
-inline MultirunOptions::MultirunOptions(const MultirunOptions& other): GetPot()
-{
-    MultirunOptions::operator=(other);
-}
-
 inline MultirunOptions::MultirunOptions(const int argc_, char** argv_, const char* FieldSeparator):
     GetPot(argc_, argv_, FieldSeparator), num_runs(1), current_run_index(0)
 {   ParseMultirun();
@@ -126,17 +118,6 @@ MultirunOptions::MultirunOptions(std::istream& InputStream,
     __parse_argument_vector(_apriori_argv);
 
     ParseMultirun();
-}
-
-inline MultirunOptions& MultirunOptions::operator=(const MultirunOptions& other)
-{
-    GetPot::operator=(other);
-    multirun_keys = other.multirun_keys;
-    multirun_values = other.multirun_values;
-    num_runs = other.num_runs;
-    current_run_index = other.current_run_index;
-
-    return *this;
 }
 
 inline void MultirunOptions::absorb(const MultirunOptions& other)

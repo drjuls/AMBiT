@@ -5,7 +5,7 @@
 #endif
 
 BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body, const std::string& fermi_orbitals):
-    MBPTCalculator(orbitals, fermi_orbitals), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
+    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
 
 void BruecknerSigmaCalculator::GetSecondOrderSigma(int kappa, SigmaPotential& sigma)
@@ -34,7 +34,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
     MathConstant* constants = MathConstant::Instance()->Instance();
     unsigned int sigma_size = sigma.size();
 
-    unsigned int k1, k1max;
+    int k1;
 
 #ifdef AMBIT_USE_MPI
     SigmaPotential new_sigma(sigma);
@@ -61,13 +61,9 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                 }
             }
 
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
+            k1 = hartreeY->SetOrbitals(it_n->second, it_alpha->second);
 
-            k1max = kmax(it_n->first, it_alpha->first);
-
-            while(k1 <= k1max)
+            while(k1 != -1)
             {
                 #ifdef AMBIT_USE_MPI
                 if(proc == ProcessorRank)
@@ -75,9 +71,8 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                 #endif
 
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY->SetParameters(k1, it_n->second, it_alpha->second);
 
-                if(C_nalpha && !hartreeY->isZero())
+                if(C_nalpha)
                 {
                     C_nalpha = C_nalpha * C_nalpha * it_n->first.MaxNumElectrons() * it_alpha->first.MaxNumElectrons()
                                                 / (2. * k1 + 1.);
@@ -89,7 +84,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                         const Orbital& sbeta = *(it_beta->second);
 
                         double coeff;
-                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && (external_L + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && ParityCheck(external_L, sbeta.L(), k1))
                             coeff = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -121,7 +116,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                         const Orbital& sm = *(it_m->second);
 
                         double coeff;
-                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && (external_L + sm.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && ParityCheck(external_L, sm.L(), k1))
                             coeff =  constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -153,7 +148,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation1and3(int kappa, SigmaPotenti
                     proc = 0;
                 #endif
 
-                k1 += 2;
+                k1 = hartreeY->NextK();
             }
             it_alpha++;
         }
@@ -195,8 +190,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
     MathConstant* constants = MathConstant::Instance();
     unsigned int sigma_size = sigma.size();
 
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
+    int k1, k2;
 
     pHartreeY hartreeY1(hartreeY->Clone());
     pHartreeY hartreeY2(hartreeY->Clone());
@@ -225,12 +219,9 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                 }
             }
 
-            k1 = absdiff(sn.L(), salpha.L());
-            if(absdiff(sn.TwoJ(), salpha.TwoJ()) > 2 * k1)
-                k1 += 2;
-            k1max = (sn.TwoJ() + salpha.TwoJ())/2;
+            k1 = hartreeY1->SetOrbitals(it_n->second, it_alpha->second);
 
-            while(k1 <= k1max)
+            while(k1 != -1)
             {
                 #ifdef AMBIT_USE_MPI
                 if(proc == ProcessorRank)
@@ -238,7 +229,6 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                 #endif
 
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, it_n->second, it_alpha->second);
 
                 if(C_nalpha && !hartreeY1->isZero())
                 {
@@ -250,7 +240,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                         const Orbital& sbeta = *(it_beta->second);
 
                         double C_abeta;
-                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && (external_L + sbeta.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sbeta)) && ParityCheck(external_L, sbeta.L(), k1))
                             C_abeta = constants->Electron3j(external_twoJ, sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
@@ -264,26 +254,20 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                             SpinorFunction Y1 = hartreeY1->ApplyTo(sbeta, kappa);
                             Y1.resize(sigma_size);
 
-                            k2 = absdiff(sn.L(), sbeta.L());
-                            if(absdiff(sn.TwoJ(), sbeta.TwoJ()) > 2 * k2)
-                                k2 += 2;
-                            k2max = (sn.TwoJ() + sbeta.TwoJ())/2;
+                            k2 = hartreeY2->SetOrbitals(it_n->second, it_beta->second);
 
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_abeta = -C_abeta;
-
-                            while(k2 <= k2max)
+                            while(k2 != -1)
                             {
                                 double coeff
                                 = C_abeta * C_nalpha * constants->Electron3j(external_twoJ, salpha.TwoJ(), k2)
-                                * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
-                                * constants->Wigner6j(external_J, sbeta.J(), k1, sn.J(), salpha.J(), k2);
-                                // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
+                                    * constants->Electron3j(sbeta.TwoJ(), sn.TwoJ(), k2)
+                                    * constants->Wigner6j(external_J, sbeta.J(), k1, sn.J(), salpha.J(), k2);
+                                    // Note: The 6j symbol is given incorrectly in Berengut et al. PRA 73, 012504 (2006)
 
                                 if(coeff)
-                                {
-                                    hartreeY2->SetParameters(k2, it_n->second, it_beta->second);
+                                {   // Sign
+                                    if((k1 + k2)%2)
+                                        coeff = -coeff;
 
                                     // R2 = R_k2 (beta alpha, n b) = R_k2 (b n, alpha beta)
                                     SpinorFunction Y2 = hartreeY2->ApplyTo(salpha, kappa);
@@ -298,7 +282,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                                         #endif
                                     }
                                 }
-                                k2 += 2;
+                                k2 = hartreeY2->NextK();
                             }
                         }
                         it_beta++;
@@ -312,7 +296,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation2(int kappa, SigmaPotential& 
                     proc = 0;
                 #endif
 
-                k1 += 2;
+                k1 = hartreeY1->NextK();
             }
             it_alpha++;
         }
@@ -354,8 +338,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
     MathConstant* constants = MathConstant::Instance();
     unsigned int sigma_size = sigma.size();
 
-    unsigned int k1, k1max;
-    unsigned int k2, k2max;
+    int k1, k2;
 
     pHartreeY hartreeY1(hartreeY->Clone());
     pHartreeY hartreeY2(hartreeY->Clone());
@@ -386,10 +369,9 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                 }
             }
 
-            k1 = kmin(info_n, info_alpha);
-            k1max = kmax(info_n, info_alpha);
+            k1 = hartreeY1->SetOrbitals(it_alpha->second, it_n->second);
 
-            while(k1 <= k1max)
+            while(k1 != -1)
             {
                 #ifdef AMBIT_USE_MPI
                 if(proc == ProcessorRank)
@@ -397,7 +379,6 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                 #endif
 
                 double C_nalpha = constants->Electron3j(sn.TwoJ(), salpha.TwoJ(), k1);
-                hartreeY1->SetParameters(k1, it_alpha->second, it_n->second);
 
                 if(C_nalpha && !hartreeY1->isZero())
                 {
@@ -410,7 +391,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                         const Orbital& sm = *(it_m->second);
 
                         double C_am;
-                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && (external_L + sm.L() + k1)%2 == 0)
+                        if(InQSpace(OrbitalInfo(sn), OrbitalInfo(salpha), OrbitalInfo(sm)) && ParityCheck(external_L, sm.L(), k1))
                             C_am = constants->Electron3j(external_twoJ, sm.TwoJ(), k1);
                         else
                             C_am = 0.;
@@ -424,15 +405,9 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                             SpinorFunction Y1 = hartreeY1->ApplyTo(sm, kappa);
                             Y1.resize(sigma_size);
 
-                            // Note: we can rely on HartreeY to check triangle and parity for (k2, n, b)
-                            k2 = kmin(info_m, info_alpha);
-                            k2max = kmax(info_m, info_alpha);
+                            k2 = hartreeY2->SetOrbitals(it_alpha->second, it_m->second);
 
-                            // Sign
-                            if((k1 + k2)%2)
-                                C_am = -C_am;
-
-                            while(k2 <= k2max)
+                            while(k2 != -1)
                             {
                                 double coeff
                                 = C_am * C_nalpha * constants->Electron3j(external_twoJ, sn.TwoJ(), k2)
@@ -441,7 +416,9 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
 
                                 if(coeff)
                                 {
-                                    hartreeY2->SetParameters(k2, it_alpha->second, it_m->second);
+                                    // Sign
+                                    if((k1 + k2)%2)
+                                        coeff = -coeff;
 
                                     // R2 = R_k2 (m n, alpha b) = R_k2 (b alpha, n m)
                                     SpinorFunction Y2 = hartreeY2->ApplyTo(sn, kappa);
@@ -456,7 +433,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                                         #endif
                                     }
                                 }
-                                k2 += 2;
+                                k2 = hartreeY2->NextK();
                             }
                         }
                         it_m++;
@@ -470,7 +447,7 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
                     proc = 0;
                 #endif
 
-                k1 += 2;
+                k1 = hartreeY1->NextK();
             }
             it_alpha++;
         }

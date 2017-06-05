@@ -28,6 +28,8 @@ public:
 
     virtual ~CoreValenceIntegrals();
 
+    virtual bool OffParityExists() const override { return include_core_extra_box || include_valence_extra_box; }
+
     /** Calculate two-electron requested MBPT. Write to file.
         PRE: OrbitalMaps should only include a subset of valence orbitals.
      */

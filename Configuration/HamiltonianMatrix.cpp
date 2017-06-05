@@ -15,13 +15,6 @@
 // and ScaLAPACK is available.
 #define MANY_LEVELS_LIM   50
 
-// Include this define for the box diagrams of "wrong" parity.
-//#define INCLUDE_EXTRA_BOX_DIAGRAMS
-
-// Include this define to only include sigma3 when both states are leading configurations
-// (instead of just one).
-//#define SIGMA3_AND
-
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
@@ -30,9 +23,18 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 
     // Set up matrix
     N = configs->NumCSFs();
+    Nsmall = configs->NumCSFsSmall();
 
-    *logstream << " " << N << " " << std::flush;
-    *outstream << " Number of CSFs = " << N << std::flush;
+    if(Nsmall != N)
+    {
+        *logstream << " " << N << "x" << Nsmall << std::flush;
+        *outstream << " Number of CSFs = " << N << " x " << Nsmall << std::flush;
+    }
+    else
+    {
+        *logstream << " " << N << " " << std::flush;
+        *outstream << " Number of CSFs = " << N << std::flush;
+    }
 }
 
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
@@ -46,11 +48,9 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 HamiltonianMatrix::~HamiltonianMatrix()
 {}
 
-void HamiltonianMatrix::GenerateMatrix()
+void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 {
     chunks.clear();
-
-    unsigned int configs_per_chunk = 4;
 
     if(N <= SMALL_MATRIX_LIM)
     {
@@ -81,7 +81,7 @@ void HamiltonianMatrix::GenerateMatrix()
 
         // Make chunk
         if(chunk_index%NumProcessors == ProcessorRank)
-            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, N);
+            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, Nsmall);
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
@@ -89,9 +89,13 @@ void HamiltonianMatrix::GenerateMatrix()
     }
 
     // Loop through my chunks
+    RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
+    unsigned int configsubsetend = configs->small_size();
+
     for(auto& current_chunk: chunks)
     {
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
+        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& D = current_chunk.diagonal;
 
         // Loop through configs for this chunk
 #ifdef AMBIT_USE_OPENMP
@@ -100,13 +104,21 @@ void HamiltonianMatrix::GenerateMatrix()
         config_it = (*configs)[current_chunk.config_indices.first];
         for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
-            bool leading_config_i = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_it));
+            bool leading_config_i = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_it));
 
             // Loop through the rest of the configs
-            auto config_jt = config_it;
-            while(config_jt != configs->end())
+            auto config_jt = configs->begin();
+            RelativisticConfigList::const_iterator config_jend;
+            if(config_index < configsubsetend)
+            {   config_jend = config_it;
+                ++config_jend;
+            }
+            else
+                config_jend = configsubsetend_it;
+
+            while(config_jt != config_jend)
             {
-                bool leading_config_j = H_three_body && std::binary_search(leading_configs->begin(), leading_configs->end(), NonRelConfiguration(*config_jt));
+                bool leading_config_j = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_jt));
 
                 int config_diff_num = config_it->GetConfigDifferencesCount(*config_jt);
                 bool do_three_body = (leading_config_i || leading_config_j) && (config_diff_num <= 3);
@@ -144,17 +156,17 @@ void HamiltonianMatrix::GenerateMatrix()
                                     for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                                     {
                                         // See notes for an explanation
-                                        int i = coeff_i.index() - current_chunk.start_row;
-                                        int j = coeff_j.index() - current_chunk.start_row;
+                                        int i = coeff_i.index();
+                                        int j = coeff_j.index();
 
-                                        if(i < j)
-                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(i > j)
-                                            M(j, i) += operatorH * (*coeff_i) * (*coeff_j);
+                                        if(i > j)
+                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                        else if(i < j)
+                                            M(j - current_chunk.start_row, i) += operatorH * (*coeff_i) * (*coeff_j);
                                         else if(proj_it == proj_jt)
-                                            M(i, j) += operatorH * (*coeff_i) * (*coeff_j);
+                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
                                         else
-                                            M(i, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                            M(i - current_chunk.start_row, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
                                     }
                                 }
                             }
@@ -165,6 +177,54 @@ void HamiltonianMatrix::GenerateMatrix()
                 }
                 config_jt++;
             }
+
+            // Diagonal
+            if(config_index >= configs->small_size())
+            {
+                int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
+
+                // Loop through projections
+                auto proj_it = config_it.projection_begin();
+                while(proj_it != config_it.projection_end())
+                {
+                    RelativisticConfiguration::const_projection_iterator proj_jt = proj_it;
+
+                    while(proj_jt != config_it.projection_end())
+                    {
+                        double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                        if(fabs(operatorH) > 1.e-15)
+                        {
+                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
+                            {
+                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                                if(proj_it == proj_jt)
+                                    start_j = coeff_i;
+
+                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
+                                {
+                                    // See notes for an explanation
+                                    int i = coeff_i.index();
+                                    int j = coeff_j.index();
+
+                                    if(i > j)
+                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else if(i < j)
+                                        D(j - diag_offset, i - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else if(proj_it == proj_jt)
+                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
+                                    else
+                                        D(i - diag_offset, j - diag_offset) += 2. * operatorH * (*coeff_i) * (*coeff_j);
+                                }
+                            }
+                        }
+                        proj_jt++;
+                    }
+                    proj_it++;
+                }
+            }
+
             config_it++;
         } // Configs in chunk
     } // Chunks
@@ -186,7 +246,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         *outstream << "\nNo solutions" << std::endl;
     }
     else
-    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1)
+    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
         {
             *outstream << "; Finding solutions using Eigen..." << std::endl;
             levels.reserve(NumSolutions);
@@ -201,7 +261,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             }
         }
     #ifdef AMBIT_USE_SCALAPACK
-        else if(NumSolutions > MANY_LEVELS_LIM)
+        else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
         {
             levels = SolveMatrixScalapack(hID, NumSolutions, false);
         }
@@ -261,7 +321,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         Clear();
 
         ScalapackMatrix SM(N);
-        SM.ReadTriangle(filename);
+        SM.ReadLowerTriangle(filename);
 
         // Diagonalise
         double* E = new double[N];  // All eigenvalues
@@ -313,11 +373,13 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
         // Each row separately
         for(unsigned int row = 0; row < matrix_section.num_rows; row++)
         {
-            // Leading zeros
-            stream << Eigen::VectorXd::Zero(matrix_section.start_row + row).transpose() << " ";
+            int cols = mmin(matrix_section.start_row + row + 1, matrix.Nsmall);
 
-            // Upper triangular matrix part of row
-            stream << matrix_section.chunk.block(row, row, 1, matrix_section.chunk.cols() - row) << "\n";
+            // Lower triangular matrix part of row
+            stream << matrix_section.chunk.block(row, 0, 1, cols) << " ";
+
+            // Trailing zeros
+            stream << Eigen::VectorXd::Zero(matrix.Nsmall - cols).transpose() << "\n";
         }
     }
     stream.flush();
@@ -338,21 +400,27 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         fp = fopen(filename.c_str(), "wb");
         fwrite(&N, sizeof(unsigned int), 1, fp);
         const double* pbuf;
+        const double* pdiag;
+        std::vector<double> zeros(N-Nsmall, 0.);
 
     #ifdef AMBIT_USE_MPI
-        double buf[N * most_chunk_rows];
+        double buf[Nsmall * most_chunk_rows];
+        double diagbuf[most_chunk_rows * most_chunk_rows];
     #endif
 
-        unsigned int row = 0;
+        int row = 0;
         while(row < N)
         {
             int num_rows = 0;
+            int diag_rows = 0;
 
             // My chunk!
             if(row == chunk_it->start_row)
             {
-                pbuf = chunk_it->chunk.data();
                 num_rows = chunk_it->num_rows;
+                pbuf = chunk_it->chunk.data();
+                diag_rows = chunk_it->diagonal.rows();
+                pdiag = chunk_it->diagonal.data();
                 chunk_it++;
             }
         #ifdef AMBIT_USE_MPI
@@ -362,22 +430,57 @@ void HamiltonianMatrix::Write(const std::string& filename) const
 
                 // Receive chunk
                 MPI_Status status;
-                MPI_Recv(&buf, N*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
+                MPI_Recv(&buf, Nsmall*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
 
                 // Get number of rows in chunk
-                MPI_Get_count(&status, MPI_DOUBLE, &num_rows);
-                if(num_rows%(N-row))
-                    *errstream << "HamiltonianMatrix::Write: received chunk size not a multiple of (N - row)." << std::endl;
-                num_rows = num_rows/(N-row);
+                int data_count;
+                MPI_Get_count(&status, MPI_DOUBLE, &data_count);
+                if(data_count >= int(Nsmall) * (int(Nsmall) - row))
+                    num_rows = data_count/Nsmall;
+                else
+                    num_rows = (-row + sqrt(row * row + 4 * data_count))/2;
+
+                if(num_rows * mmin(row + num_rows, Nsmall) != data_count)
+                {   *errstream << "HamiltonianMatrix::Write: received incorrect chunk size." << std::endl;
+                    exit(1);
+                }
 
                 pbuf = buf;
+
+                // Receive diagonal
+                if(row + num_rows > Nsmall)
+                {
+                    MPI_Recv(&diagbuf, most_chunk_rows*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row+1, MPI_COMM_WORLD, &status);
+
+                    // Check diagonal size
+                    diag_rows = mmin(num_rows, row + num_rows - Nsmall);
+                    MPI_Get_count(&status, MPI_DOUBLE, &data_count);
+                    if(diag_rows * diag_rows != data_count)
+                    {   *errstream << "HamiltonianMatrix::Write: received incorrect diagonal chunk size." << std::endl;
+                        exit(1);
+                    }
+
+                    pdiag = diagbuf;
+                }
             }
         #endif
 
+            int gap = mmax(row - int(Nsmall), 0);
+
             for(int i = 0; i < num_rows; i++)
             {
-                fwrite(pbuf, sizeof(double), N - row - i, fp);
-                pbuf += (N - row + 1);  // Move one more column and one more row along
+                // Write chunk
+                fwrite(pbuf, sizeof(double), mmin(row + i + 1, Nsmall), fp);
+                pbuf += mmin(row + num_rows, Nsmall);   // Move to next row
+
+                // Write diagonal
+                if(diag_rows && row + i >= Nsmall)
+                {
+                    if(gap)
+                        fwrite(zeros.data(), sizeof(double), gap, fp);
+                    fwrite(pdiag, sizeof(double), row + i + 1 - Nsmall - gap, fp);
+                    pdiag += diag_rows;
+                }
             }
 
             row += num_rows;
@@ -402,12 +505,21 @@ void HamiltonianMatrix::Write(const std::string& filename) const
             // If it is our row, send chunk
             if(chunk_it != chunks.end() && row == chunk_it->start_row)
             {
-                MPI_Send(chunk_it->chunk.data(), (N - row) * chunk_it->num_rows, MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
+                MPI_Send(chunk_it->chunk.data(), chunk_it->chunk.size(), MPI_DOUBLE, 0, row, MPI_COMM_WORLD);
+
+                // Send diagonal if it exists
+                if(chunk_it->diagonal.size())
+                    MPI_Send(chunk_it->diagonal.data(), chunk_it->diagonal.size(), MPI_DOUBLE, 0, row+1, MPI_COMM_WORLD);
+
                 chunk_it++;
             }
         }
     #endif
     }
+
+#ifdef AMBIT_USE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
 }
 
 double HamiltonianMatrix::PollMatrix(double epsilon) const
@@ -438,16 +550,36 @@ void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
     for(const auto& matrix_section: chunks)
     {
         unsigned int start = matrix_section.start_row;
-
-        // Upper triangular part
-        c_mapped.middleRows(start, matrix_section.num_rows).noalias()
-            += matrix_section.chunk * b_mapped.bottomRows(N-start);
+        unsigned int cols = matrix_section.chunk.cols();
 
         // Lower triangular part
-        unsigned int lower_start = start + matrix_section.num_rows;
-        if(lower_start < N)
-        {   c_mapped.bottomRows(N - lower_start).noalias()
-                += matrix_section.chunk.rightCols(N - lower_start).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        c_mapped.middleRows(start, matrix_section.num_rows)
+            += matrix_section.chunk * b_mapped.topRows(cols);
+
+        // Upper triangular part
+        if(start > 0)
+        {   unsigned int upper1_rows = mmin(start, Nsmall);
+            c_mapped.topRows(upper1_rows)
+                += matrix_section.chunk.leftCols(upper1_rows).transpose() * b_mapped.middleRows(start, matrix_section.num_rows);
+        }
+
+        // Extra upper part
+        if(start < Nsmall && Nsmall < (start + matrix_section.num_rows))
+        {
+            unsigned int upper2_cols = start + matrix_section.num_rows - Nsmall;
+
+            c_mapped.middleRows(start, Nsmall - start)
+                += matrix_section.chunk.block(Nsmall - start, start, upper2_cols, Nsmall - start).transpose()
+                    * b_mapped.middleRows(Nsmall, upper2_cols);
+        }
+
+        // Diagonal part
+        if(matrix_section.diagonal.rows())
+        {
+            unsigned int diag_rows  = matrix_section.diagonal.rows();
+            unsigned int diag_start = matrix_section.start_row + matrix_section.num_rows - diag_rows;
+            c_mapped.middleRows(diag_start, diag_rows)
+                += matrix_section.diagonal * b_mapped.middleRows(diag_start, diag_rows);
         }
     }
 }
@@ -460,140 +592,18 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
 
     for(const auto& matrix_section: chunks)
     {
-        diag_mapped.segment(matrix_section.start_row, matrix_section.num_rows).noalias()
-            = matrix_section.chunk.diagonal();
+        if(matrix_section.start_row < Nsmall)
+        {
+            unsigned int length = mmin(matrix_section.num_rows, Nsmall - matrix_section.start_row);
+            diag_mapped.segment(matrix_section.start_row, length).noalias()
+                = matrix_section.chunk.rightCols(length).diagonal();
+        }
+
+        if(Nsmall < matrix_section.start_row + matrix_section.num_rows)
+        {
+            unsigned int start = matrix_section.start_row + matrix_section.num_rows - matrix_section.diagonal.rows();
+            diag_mapped.segment(start, matrix_section.diagonal.rows())
+                = matrix_section.diagonal.diagonal();
+        }
     }
 }
-
-//double HamiltonianMatrix::GetSigma3(const Projection& first, const Projection& second) const
-//{
-//    const std::set<Configuration>* leading_configs = confgen->GetLeadingConfigs();
-//
-//#ifdef SIGMA3_AND
-//    // Check that first AND second are leading configurations
-//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) ||
-//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-//        return 0.;
-//#else
-//    // Check that first OR second is a leading configuration
-//    if((leading_configs->find(first.GetNonRelConfiguration()) == leading_configs->end()) &&
-//       (leading_configs->find(second.GetNonRelConfiguration()) == leading_configs->end()))
-//        return 0.;
-//#endif
-//
-//    unsigned int diff[6];
-//    int numdiff = Projection::GetProjectionDifferences3(first, second, diff);
-//
-//    int sign;
-//    if(numdiff >= 0)
-//        sign = 1;
-//    else
-//        sign = -1;
-//
-//    double value = 0.;
-//
-//    if(numdiff == 0)
-//    {
-//        // Sum(i < j < k) Sigma3(ijk, ijk)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            for(unsigned int j=i+1; j<first.size(); j++)
-//            {
-//                for(unsigned int k=j+1; k<first.size(); k++)
-//                {
-//                    value += Sigma3(first[i], first[j], first[k], first[i], first[j], first[k]);
-//                }
-//            }
-//        }
-//    }
-//    else if(abs(numdiff) == 1)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//
-//        // Sum(i < j) Sigma3(aij, bij)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            for(unsigned int j=i+1; j<first.size(); j++)
-//            {
-//                if((i != diff[0]) && (j != diff[0]))
-//                {
-//                    value += sign * Sigma3(f1, first[i], first[j], s1, first[i], first[j]);
-//                }
-//            }
-//        }
-//    }
-//    else if(abs(numdiff) == 2)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//        const ElectronInfo& f2 = first[diff[2]];
-//        const ElectronInfo& s2 = second[diff[3]];
-//
-//        // Sum(i) Sigma3(abi, cdi)
-//        for(unsigned int i=0; i<first.size(); i++)
-//        {
-//            if((i != diff[0]) && (i != diff[2]))
-//               value += sign * Sigma3(f1, f2, first[i], s1, s2, first[i]);
-//        }
-//    }
-//    else if(abs(numdiff) == 3)
-//    {
-//        const ElectronInfo& f1 = first[diff[0]];
-//        const ElectronInfo& s1 = second[diff[1]];
-//        const ElectronInfo& f2 = first[diff[2]];
-//        const ElectronInfo& s2 = second[diff[3]];
-//        const ElectronInfo& f3 = first[diff[4]];
-//        const ElectronInfo& s3 = second[diff[5]];
-//
-//        // Sigma3(abc, def)
-//        value = sign * Sigma3(f1, f2, f3, s1, s2, s3);
-//    }
-//
-//    return value;
-//}
-//
-//double HamiltonianMatrix::Sigma3(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-//{
-//    // Check momentum projections
-//    if(e1.TwoM() + e2.TwoM() + e3.TwoM() != e4.TwoM() + e5.TwoM() + e6.TwoM())
-//        return 0.;
-//
-//    // Check parity
-//    if((e1.L() + e2.L() + e3.L() + e4.L() + e5.L() + e6.L())%2)
-//        return 0.;
-//
-//    double value = 0.;
-//
-//    // The sign changes for odd permutations
-//    value =   Sigma3LinePermutations(e1, e2, e3, e4, e5, e6)
-//            + Sigma3LinePermutations(e1, e2, e3, e5, e6, e4)
-//            + Sigma3LinePermutations(e1, e2, e3, e6, e4, e5)
-//            - Sigma3LinePermutations(e1, e2, e3, e5, e4, e6)
-//            - Sigma3LinePermutations(e1, e2, e3, e6, e5, e4)
-//            - Sigma3LinePermutations(e1, e2, e3, e4, e6, e5);
-//
-//    return value;
-//}
-//
-///** This function does the line permutations, putting the pairs on different levels
-//    of the three-body interaction.
-//    */
-//inline double HamiltonianMatrix::Sigma3LinePermutations(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3,
-//           const ElectronInfo& e4, const ElectronInfo& e5, const ElectronInfo& e6) const
-//{
-//    double value = 0.;
-//
-//    // There are no sign changes, since there are the same number
-//    // of permutations on both sides
-//
-//    value =   sigma3calc->GetSecondOrderSigma3(e1, e2, e3, e4, e5, e6)
-//            + sigma3calc->GetSecondOrderSigma3(e2, e3, e1, e5, e6, e4)
-//            + sigma3calc->GetSecondOrderSigma3(e3, e1, e2, e6, e4, e5)
-//            + sigma3calc->GetSecondOrderSigma3(e3, e2, e1, e6, e5, e4)
-//            + sigma3calc->GetSecondOrderSigma3(e2, e1, e3, e5, e4, e6)
-//            + sigma3calc->GetSecondOrderSigma3(e1, e3, e2, e4, e6, e5);
-//
-//    return value;
-//}

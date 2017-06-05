@@ -35,6 +35,7 @@ public:
     double AtomicFrequencyMHz() const;    //!< Atomic frequency in MHz.
     double NuclearMagneton() const;       //!< Nuclear magneton 1/(2 m_p c) in atomic units.
     double Barn() const;                  //!< 1 barn = 10^(-24) cm^2 in atomic units (square Bohr radius)
+    constexpr static double ElectronMassInEV {510998.9461};
 
     char GetSpectroscopicNotation(unsigned int l) const;    //!< Returns 0 if not found
     int GetL(char spectroscopic_notation) const;            //!< Returns -1 if not found

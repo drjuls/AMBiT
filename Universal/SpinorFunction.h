@@ -30,12 +30,11 @@ public:
     int TwoJ() const;
     inline Parity GetParity() const;
 
-    void SetKappa(int new_kappa) { kappa = new_kappa; }
-
     /** Resize the functions. Pad with zeros if necessary. */
     virtual void resize(unsigned int size);
     virtual void Clear();
 
+    virtual void SetKappa(int new_kappa) { kappa = new_kappa; }
     virtual void swap(SpinorFunction& other);
 
     /** Multiply all points of all vectors (f, g, df, dg) by the scale factor. */

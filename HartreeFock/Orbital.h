@@ -52,8 +52,8 @@ public:
 
     /** Print state to file, optionally printing lattice. Return success. */
     virtual bool Print(pLattice lattice = pLattice()) const;
-    virtual bool Print(const std::string& filename, pLattice lattice = pLattice()) const;
-    virtual bool Print(FILE* fp, pLattice lattice = pLattice()) const;
+    virtual bool Print(const std::string& filename, pLattice lattice = nullptr) const;
+    virtual bool Print(FILE* fp, pLattice lattice = nullptr, bool jacobian = false) const;
 
 public: // These functions assume that the orbital is explicitly bounded
     /** Check that the ratio
