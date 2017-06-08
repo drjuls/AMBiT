@@ -51,6 +51,8 @@ public:
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
 
+    virtual std::string Name() const;
+
 protected:
     MultipolarityType type;
     int J;

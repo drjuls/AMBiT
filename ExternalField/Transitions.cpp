@@ -148,7 +148,7 @@ pSpinorMatrixElement TransitionCalculator::MakeRPA(pSpinorOperator external, pHF
     }
     else
     {
-        double omega = user_input("RPA/Frequency", -1.0);
+        double omega = user_input("Frequency", -1.0);
         if(omega >= 0.0)
         {   rpa->SetFrequency(omega);
             frequency_dependent_op = false;
@@ -190,15 +190,15 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 return 0.;
             }
 
-            pTimeDependentSpinorOperator tdop = nullptr;
-            if(frequency_dependent_op && (tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op)))
+            pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op);
+            if(frequency_dependent_op && tdop)
             {
                 // Clear integrals if frequency has changed
                 const Level& left_level = *left_levels[left.second];
                 const Level& right_level = *right_levels[right.second];
                 double freq = fabs(left_level.GetEnergy() - right_level.GetEnergy());
 
-                if(fabs(tdop->GetFrequency() - freq) > 1.e-6)
+                if(fabs(tdop->GetFrequency() - freq) > 1.e-6 || integrals == nullptr)
                 {
                     tdop->SetFrequency(freq);
 
@@ -225,6 +225,13 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
             {   // Get transition integrals
                 if(integrals == nullptr)
                 {
+                    if(tdop)
+                    {
+                        double omega = user_input("Frequency", -1.0);
+                        if(omega >= 0.0)
+                            tdop->SetFrequency(omega);
+                    }
+
                     // Create new TransitionIntegrals object and calculate integrals
                     integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
                     integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
@@ -361,7 +368,6 @@ LevelID TransitionCalculator::make_LevelID(const std::string& name)
         ret.first = std::make_shared<HamiltonianID>(twoJ, P);
         ret.second = index;
     }
-
 
     return ret;
 }

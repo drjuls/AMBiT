@@ -316,6 +316,17 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
     frequency_dependent_op = true;
     if(user_input.search("--rpa"))
         op = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
+    else
+    {
+        double omega = user_input("Frequency", -1.0);
+        if(omega >= 0.0)
+        {   std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
+            frequency_dependent_op = false;
+        }
+        else
+        {   frequency_dependent_op = true;
+        }
+    }
 }
 
 void EMCalculator::PrintHeader() const
@@ -324,10 +335,10 @@ void EMCalculator::PrintHeader() const
     // either reduced matrix elements of transition line strengths (the
     // default)
     if(user_input.search("--reduced-elements")){
-      *outstream << Name(type) << J << " reduced matrix elements (T):" 
+      *outstream << Name() << " reduced matrix elements (T):"
           << std::endl;
     } else {
-      *outstream << Name(type) << J << " transition strengths (S):" 
+      *outstream << Name() << " transition strengths (S):"
           << std::endl;
     }
 }
@@ -342,12 +353,20 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
 
     // Read over the user input to see if we need to print the reduced matrix
     // elements or the transition line strengths
-    if(user_input.search("--reduced-elements")){ 
-      *outstream << "  " << Name(left) << " -> " << Name(right)
-               << " = " << std::setprecision(6) << value << std::endl;
-    } else {
-      *outstream << "  " << Name(left) << " -> " << Name(right)
-               << " = " << std::setprecision(6) << value * value << std::endl;
+    if(user_input.search("--reduced-elements"))
+    {
+        *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
+                   << " = " << std::setprecision(6) << value << std::endl;
+    }
+    else
+    {
+        *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
+                   << " = " << std::setprecision(6) << value * value << std::endl;
 
     }
+}
+
+std::string EMCalculator::Name() const
+{
+    return ::Name(type) + itoa(J);
 }

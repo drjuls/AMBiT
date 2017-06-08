@@ -329,9 +329,9 @@ do { \
   if(user_input.SectionExists(prefix)) \
   { \
     user_input.set_prefix(prefix); \
-    std::unique_ptr<TRANSITION_CALCULATOR_TYPE> calculon(new TRANSITION_CALCULATOR_TYPE(user_input, atom)); \
-    calculon->CalculateAndPrint(); \
-    calculators.push_back(std::move(calculon)); \
+    TRANSITION_CALCULATOR_TYPE calculon(user_input, atom); \
+    calculon.CalculateAndPrint(); \
+    calculon.PrintAll(); \
   } \
 } while(0)
 
@@ -348,7 +348,7 @@ void Ambit::TransitionCalculations()
             std::make_tuple("E3", MultipolarityType::E, 3),
            };
 
-    std::vector<std::unique_ptr<TransitionCalculator>> calculators;
+    std::vector<std::unique_ptr<EMCalculator>> calculators;
 
     for(const auto& types: EM_transition_types)
     {
@@ -364,6 +364,13 @@ void Ambit::TransitionCalculations()
         }
     }
 
+    // Print all EM transitions
+    for(auto& calc: calculators)
+    {
+        user_input.set_prefix(std::string("Transitions/") + calc->Name());
+        calc->PrintAll();
+    }
+
     // Other operators
     RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
     RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
@@ -372,11 +379,6 @@ void Ambit::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
 
     user_input.set_prefix("");
-
-    for(auto& calc: calculators)
-    {
-        calc->PrintAll();
-    }
 }
 
 #undef RUN_AND_STORE_TRANSITION
