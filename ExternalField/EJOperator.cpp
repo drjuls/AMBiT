@@ -68,7 +68,6 @@ double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
                     + (b.f[i] * a.g[i] - b.g[i] * a.f[i]) * K * math->sph_bessel(K, pR)/pR;
             }
 
-
             double overlap = integrator->Integrate(integrand);
             matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
         }
@@ -155,8 +154,8 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
                 double jK2 = math->sph_bessel(K+2, pR);
 
                 // Get primes and derivatives by recursion for speed
-                double jKp = K/pR * jK - jK1;                                   //!< j_K'
-                double jKpp = K*(K-1)/(pR*pR) * jK - (2*K+1)/pR * jK1 + jK2;    //!< j_K''
+                double jKp = K/pR * jK - jK1;                                   // j_K'
+                double jKpp = K*(K-1)/(pR*pR) * jK - (2*K+1)/pR * jK1 + jK2;    // j_K''
 
                 double coeff_g = kappa_diff * jKp + (kappa_diff + K) * jK/pR;
                 double coeff_f = kappa_diff * jKp + (kappa_diff - K) * jK/pR;

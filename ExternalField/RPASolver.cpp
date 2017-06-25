@@ -243,14 +243,16 @@ double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& o
     // Apply deltaEnergy term if kappa == parent->Kappa()
     double new_DE = 0.;
 
+    double propnew = 1.;
+
     // Get new deltaEnergy
     if(kappa == parent->Kappa())
     {
         new_DE = integrator->GetInnerProduct(*parent, X_a);
     }
 
-    alpha->Clear();
-    alphaplus->Clear();
+    (*alpha) *= (1.-propnew);
+    (*alphaplus) *= (1.-propnew);
 
     double omega = rpa->GetFrequency();
 
@@ -264,11 +266,11 @@ double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& o
 
             double coeff = integrator->GetInnerProduct(*beta, X_a);
             coeff = -coeff/(beta->Energy() - parent_energy - omega);
-            (*alpha) += (*beta) * coeff;
+            (*alpha) += (*beta) * coeff * propnew;
 
             double coeffplus = integrator->GetInnerProduct(*beta, Y_a);
             coeffplus = -coeffplus/(beta->Energy() - parent_energy + omega);
-            (*alphaplus) += (*beta) * coeffplus;
+            (*alphaplus) += (*beta) * coeffplus * propnew;
 
             // Get new deltaEnergy
             if(kappa != parent->Kappa())

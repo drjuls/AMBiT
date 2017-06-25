@@ -25,7 +25,7 @@ TEST(EJOperatorTester, LiTransitions)
         "N = 2\n" +
         "Configuration = '1s2'\n" +
         "[Basis]\n" +
-        "--bspline-basis\n" +
+        "--hf-basis\n" +
         "ValenceBasis = 2sp\n" +
         "BSpline/Rmax = 50.0\n";
 
@@ -58,13 +58,15 @@ TEST(EJOperatorTester, LiTransitions)
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
     EXPECT_NEAR(4.8510, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0001);
     E1.SetFrequency(s.Energy() - p1.Energy());
-    EXPECT_NEAR(3.4301, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0001);
+    auto applied = E1.ReducedApplyTo(p1, -1);
+    EXPECT_NEAR(3.4301, fabs(integrator->GetInnerProduct(applied, s)), 0.0001);
 
     // RPA - comparison with Walter Johnson book page 240 (Table 8.2)
     DebugOptions.LogHFIterations(true);
     E1.SetGauge(TransitionGauge::Length);
     double scale = 0.001;
-    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
+    pBSplineBasis splines = std::make_shared<BSplineBasis>(lattice, 50, 9, 50.);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(splines);
     pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
     rpa->SetScale(scale);
     rpa->SetFrequency(p1.Energy() - s.Energy());
@@ -141,11 +143,13 @@ TEST(EJOperatorTester, NaTransitions)
     EXPECT_NEAR(5.1578, s_p3_length, 0.0004);
 
 //    DebugOptions.LogHFIterations(true);
+//    double scale = 0.001;
 //    E1.SetGauge(TransitionGauge::Velocity);
+//    rpa->SetScale(scale);
 //    rpa->SetFrequency(p1.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(s, p1)), 1.e-6);
+//    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(s, p1))/scale, 1.e-6);
 //    rpa->SetFrequency(p3.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(s, p3)), 1.e-6);
+//    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(s, p3))/scale, 1.e-6);
 }
 
 TEST(MJOperatorTester, LiTransitions)
