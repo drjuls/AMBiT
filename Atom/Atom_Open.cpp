@@ -186,9 +186,11 @@ void Atom::MakeIntegrals()
         two_body_integrals.reset(new SlaterIntegralsMap(orbitals, hartreeY, false));
 
     if(three_body_mbpt)
-    {   bool use_valence = user_input.search("MBPT/--use-valence");
+    {
         std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
-        threebody_electron = std::make_shared<Sigma3Calculator>(orbitals, two_body_integrals, use_valence, fermi_orbitals);
+        threebody_electron = std::make_shared<Sigma3Calculator>(orbitals, two_body_integrals, fermi_orbitals);
+        threebody_electron->IncludeCore(!user_input.search("MBPT/--no-core"));
+        threebody_electron->IncludeValence(user_input.search("MBPT/--use-valence"));
     }
 
     auto& valence = orbitals->valence;
