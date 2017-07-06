@@ -44,7 +44,6 @@ void TransitionCalculator::CalculateAndPrint()
     while(left_it != levels->end())
     {
         auto right_it = left_it;
-        right_it++;
         while(right_it != levels->end())
         {
             if(TransitionExists((*left_it)->GetSymmetry(), (*right_it)->GetSymmetry()))
