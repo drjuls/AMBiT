@@ -41,6 +41,12 @@ int main(int argc, char* argv[])
         ProcessorRank = 0;
     #endif
 
+    // Set the file permissions so generated files can be read and written to by group, as well as user
+    // N.B. this currently only works on posix systems
+    #ifdef UNIX
+        umask(0003);
+    #endif
+
     OutStreams::InitialiseStreams();
 
     try

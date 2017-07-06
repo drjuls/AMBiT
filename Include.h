@@ -13,6 +13,7 @@
 #include <fstream>
 #include <gsl/gsl_math.h>
 
+
 #include "Atom/Debug.h"
 
 #define string_macro(x) _stringify(x)
@@ -35,6 +36,8 @@
 #else
     #ifndef UNIX
         #define UNIX
+        // Allows us to set file permissions with umask. Only works with UNIX, though
+        #include <sys/stat.h>
     #endif
 
     #ifdef GCC
