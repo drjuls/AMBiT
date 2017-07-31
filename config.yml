@@ -1,85 +1,106 @@
----
-Atom:
-- Atom.cpp
-- Atom_Open.cpp
-- Atom_Autoionization.cpp
-- OutStreams.cpp
-- ambit_recursive.cpp
-- ambit.cpp
+Build Info:
+    Libs: 
+    - gsl
+    - boost_filesystem
+    - boost_system
+    - lapack
+    - blas 
 
-Basis:
-- BasisGenerator.cpp
-- BSplineBasis.cpp
-- HartreeFockBasis.cpp
-- OrbitalManager.cpp
+    Lib path: /usr/local/include
+    AMBiT: &ambit_dir /home/emily/Work/Atoms/Code/ambit
+    Eigen: /usr/local/include/Eigen3
+    Sparsehash: /usr/local/include/sparsehash
+    gtest: *ambit_dir
 
-Configuration:
-- AngularData.cpp
-- ConfigGenerator.cpp
-- ElectronInfo.cpp
-- HamiltonianMatrix.cpp
-- Level.cpp
-- LevelMap.cpp
-- NonRelConfiguration.cpp
-- Projection.cpp
-- RelativisticConfiguration.cpp
-- RelativisticConfigList.cpp
+    Angular data: /home/emily/Work/Atoms/Code/ambit/AngularData
 
-ExternalField:
-- BreitHFDecorator.cpp
-- BreitZero.cpp
-- EJOperator.cpp
-- FieldShift.cpp
-- Hyperfine.cpp
-- NormalMassShiftDecorator.cpp
-- RadiativePotential.cpp
-- RPAOrbital.cpp
-- RPASolver.cpp
-- SpecificMassShiftDecorator.cpp
-- Transitions.cpp
-- TwoBodySMSOperator.cpp
-- YukawaPotential.cpp
+    CXX: mpic++
+    CXXFLAGS: -DAMBIT_USE_MPI
+    CC: mpicc
+    CFLAGS: #-Wall
 
-HartreeFock:
-- ConfigurationParser.cpp
-- Core.cpp
-- CoulombOperator.cpp
-- ExchangeDecorator.cpp
-- GreensMethodODE.cpp
-- HartreeFocker.cpp
-- HartreeY.cpp
-- HFOperator.cpp
-- LocalPotentialDecorator.cpp
-- NucleusDecorator.cpp
-- Integrator.cpp
-- Orbital.cpp
-- OrbitalInfo.cpp
-- OrbitalMap.cpp
-- ODESolver.cpp
-- SpinorODE.cpp
-- ThomasFermiDecorator.cpp
+Modules:
+    Atom:
+    - Atom.cpp
+    - Atom_Open.cpp
+    - Atom_Autoionization.cpp
+    - OutStreams.cpp
+    - ambit_recursive.cpp
+    - ambit.cpp
 
-MBPT:
-- BruecknerDecorator.cpp
-- BruecknerSigmaCalculator.cpp
-- CoreMBPTCalculator.cpp
-- MBPTCalculator.cpp
-- OneElectronMBPT.cpp
-- Sigma3Calculator.cpp
-- SigmaPotential.cpp
-- TwoElectronCoulombOperator.cpp
-- ValenceMBPTCalculator.cpp
+    Basis:
+    - BasisGenerator.cpp
+    - BSplineBasis.cpp
+    - HartreeFockBasis.cpp
+    - OrbitalManager.cpp
 
-Universal:
-- Eigensolver.cpp
-- ExpLattice.cpp
-- FornbergDifferentiator.cpp
-- Function.cpp
-- Include.cpp
-- Interpolator.cpp
-- Lattice.cpp
-- MathConstant.cpp
-- PhysicalConstant.cpp
-- ScalapackMatrix.cpp
-- SpinorFunction.cpp
-- Davidson.f
+    Configuration:
+    - AngularData.cpp
+    - ConfigGenerator.cpp
+    - ElectronInfo.cpp
+    - HamiltonianMatrix.cpp
+    - Level.cpp
+    - LevelMap.cpp
+    - NonRelConfiguration.cpp
+    - Projection.cpp
+    - RelativisticConfiguration.cpp
+    - RelativisticConfigList.cpp
+
+    ExternalField:
+    - BreitHFDecorator.cpp
+    - BreitZero.cpp
+    - EJOperator.cpp
+    - FieldShift.cpp
+    - Hyperfine.cpp
+    - NormalMassShiftDecorator.cpp
+    - RadiativePotential.cpp
+    - RPAOrbital.cpp
+    - RPASolver.cpp
+    - SpecificMassShiftDecorator.cpp
+    - Transitions.cpp
+    - TwoBodySMSOperator.cpp
+    - YukawaPotential.cpp
+
+    HartreeFock:
+    - ConfigurationParser.cpp
+    - Core.cpp
+    - CoulombOperator.cpp
+    - ExchangeDecorator.cpp
+    - GreensMethodODE.cpp
+    - HartreeFocker.cpp
+    - HartreeY.cpp
+    - HFOperator.cpp
+    - LocalPotentialDecorator.cpp
+    - NucleusDecorator.cpp
+    - Integrator.cpp
+    - Orbital.cpp
+    - OrbitalInfo.cpp
+    - OrbitalMap.cpp
+    - ODESolver.cpp
+    - SpinorODE.cpp
+    - ThomasFermiDecorator.cpp
+
+    MBPT:
+    - BruecknerDecorator.cpp
+    - BruecknerSigmaCalculator.cpp
+    - CoreMBPTCalculator.cpp
+    - MBPTCalculator.cpp
+    - OneElectronMBPT.cpp
+    - Sigma3Calculator.cpp
+    - SigmaPotential.cpp
+    - TwoElectronCoulombOperator.cpp
+    - ValenceMBPTCalculator.cpp
+
+    Universal:
+    - Eigensolver.cpp
+    - ExpLattice.cpp
+    - FornbergDifferentiator.cpp
+    - Function.cpp
+    - Include.cpp
+    - Interpolator.cpp
+    - Lattice.cpp
+    - MathConstant.cpp
+    - PhysicalConstant.cpp
+    - ScalapackMatrix.cpp
+    - SpinorFunction.cpp
+    - Davidson.f

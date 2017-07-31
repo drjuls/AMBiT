@@ -31,7 +31,7 @@ def get_build_target(src, module, build):
 ### Begin SCons commands ###
 
 # Before we construct anything, make sure to update the gitinfo header file
-with open("gitinfo.h", 'w') as fp:
+with open("gitInfo.h", 'w') as fp:
     subprocess.call("./getGitInfo.sh", stdout=fp)
 
 # First, grab the type of build from the command line and set up the compiler environment (cc and cflags 
@@ -50,22 +50,44 @@ else:
 # can only read basic Python data structures from the config file so we (hopefully) don't get owned if 
 # someone supplies a dodgy yaml file
 with open("config.yml", 'r') as fp:
-    modules = ordered_load(fp)
+    conf = ordered_load(fp)
 
-# Now list the external libraries we need to link to, as well as their path
-eigen_dir = ['/usr/local/include/Eigen3']
-gtest_libs_dir = ['./gtest']
-sparsehash_dir = ['/usr/local/include/sparsehash']
-ambit_dir = ['/home/emily/Work/Atoms/Code/ambit']
+modules = conf['Modules']
+build_info = conf['Build Info']
 
-libs = ['gsl', 'boost_filesystem', 'boost_system', 'lapack', 'blas']
-lib_path = ['/usr/local/include'] 
-header_path =  ambit_dir + eigen_dir + gtest_libs_dir + sparsehash_dir
+# Now grab the external libraries we need to link to, as well as their path
+ambit_dir = build_info["AMBiT"]
+gtest_libs_dir = build_info["gtest"]
+eigen_dir = build_info["Eigen"]
+sparsehash_dir = build_info["Sparsehash"]
+
+libs = build_info["Libs"]
+lib_path = build_info["Lib path"]
+header_path =  [ambit_dir, eigen_dir , gtest_libs_dir , sparsehash_dir]
+angular_data_dir= build_info["Angular data"]
+env.Append(CXXFLAGS = '-DANGULAR_DATA_DIRECTORY={}'.format(angular_data_dir))
 
 # And append the paths to the current compilation environment
 env.Append(CPPPATH=header_path)
 env.Append(LIBPATH=lib_path)
 env.Append(LIBS=libs)
+
+# Now grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
+# exist
+custom_cxx_flags = build_info["CXXFLAGS"]
+env.Append(CXXFLAGS = custom_cxx_flags)
+
+custom_c_flags = build_info["CFLAGS"]
+env.Append(CFLAGS = custom_c_flags)
+
+# Only replace the default compiler if the user has specified an alternative
+custom_cxx = build_info["CXX"]
+if custom_cxx:
+    env.Replace(CXX = custom_cxx)
+
+custom_cc = build_info["CC"]
+if custom_cc:
+    env.Replace(CC = custom_cc)
 
 # And build all of our common libraries
 common_libs = []
@@ -73,12 +95,14 @@ for module, files in modules.items():
 
     # First, compile all the object files for our module
     srcs = [module + '/' + item for item in files]
-    module_lib_dir = module + '/' + build
+    module_lib_target = module + '/' + build + '/' + module
+    
+    # Compile the object files
     objs = [env.Object(target = get_build_target(src, module, build), source = src) 
             for src in srcs]
     
     # Now link them all into one library
-    common_libs.append(Library(target = module_lib_dir + '/', source = objs))
+    common_libs.append(Library(target = module_lib_target, source = objs))
 
 # Finally, put it all together in one executable (note that debug and release both alias to the ambit 
 # executable. Eventually I'll add a test target in as well)
