@@ -276,7 +276,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     if(user_input.search("--configuration-average"))
     {
         ConfigGenerator gen(orbitals, user_input);
-        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+        allconfigs = gen.GenerateConfigurations(hf, hartreeY);
 
         // Create empty level set
         levels = std::make_shared<LevelMap>(identifier, nullptr);
@@ -322,16 +322,16 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+        allconfigs = gen.GenerateConfigurations(hf, hartreeY);
         leading_configs = gen.GetLeadingConfigs();
 
-        ChooseHamiltonians(nrconfigs);
+        ChooseHamiltonians(allconfigs);
     }
 
     return levels;
 }
 
-pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
+pLevelStore Atom::ChooseHamiltonians(pRelativisticConfigList rlist)
 {
     std::vector<int> even_symmetries;
     std::vector<int> odd_symmetries;
@@ -354,6 +354,9 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
     // Single configuration CI: each Hamiltonian only uses one non-rel configuration
     if(user_input.search(2, "CI/--single-configuration-ci", "CI/--single-configuration-CI"))
     {
+        ConfigGenerator gen(orbitals, user_input);
+        pConfigList nrlist = gen.GenerateNonRelConfigurations(rlist);
+
         if(user_input.search("CI/--all-symmetries"))
         {
             // Populate levels with all symmetries
@@ -385,18 +388,16 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
                 }
                 else
                 {   for(int& two_j: odd_symmetries)
-                        if(two_j <= maxTwoJ)
-                        {
-                            key = std::make_shared<NonRelID>(nrconfig, two_j);
-                            levels->insert(key);
-                        }
+                    if(two_j <= maxTwoJ)
+                    {
+                        key = std::make_shared<NonRelID>(nrconfig, two_j);
+                        levels->insert(key);
+                    }
                 }
-
             }
-
         }
     }
-    // Standard CI: all non-rel configs together
+    // Standard CI: all configs together
     else
     {   // Get symmetries
         if(user_input.search("CI/--all-symmetries"))
@@ -404,12 +405,12 @@ pLevelStore Atom::ChooseHamiltonians(pConfigList nrlist)
             int max_twoJ_even = -1;
             int max_twoJ_odd = -1;
 
-            for(auto& nrconfig: nrlist->first)
+            for(auto& config: *rlist)
             {
-                if(nrconfig.GetParity() == Parity::even)
-                    max_twoJ_even = mmax(max_twoJ_even, nrconfig.GetTwiceMaxProjection());
+                if(config.GetParity() == Parity::even)
+                    max_twoJ_even = mmax(max_twoJ_even, config.GetTwiceMaxProjection());
                 else
-                    max_twoJ_odd = mmax(max_twoJ_odd, nrconfig.GetTwiceMaxProjection());
+                    max_twoJ_odd = mmax(max_twoJ_odd, config.GetTwiceMaxProjection());
             }
 
             for(int twoJ = mmax(max_twoJ_even%2, 0); twoJ <= max_twoJ_even; twoJ+=2)
@@ -450,12 +451,12 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
-    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
+    allconfigs = gen.GenerateConfigurations(hf, hartreeY);
     leading_configs = gen.GetLeadingConfigs();
 
     // CI integrals
     MakeIntegrals();
-    ChooseHamiltonians(nrconfigs);
+    ChooseHamiltonians(allconfigs);
 
     // Get complete list of relativistic configs for all symmetries
     std::map<Symmetry, pRelativisticConfigList> all_relconfigs;
@@ -469,11 +470,12 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
             pConfigList nrconfiglist = std::make_shared<ConfigList>();
             nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
             nrconfiglist->second = 1;
-            configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(nrconfiglist);
+            configs = gen.GenerateRelativisticConfigurations(configs, nrid->GetSymmetry());
         }
         else
         {
-            configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(allconfigs, nrid->GetSymmetry());
         }
 
         key->SetRelativisticConfigList(configs);
@@ -569,16 +571,19 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 pConfigList nrconfiglist = std::make_shared<ConfigList>();
                 nrconfiglist->first.emplace_back(nrid->GetNonRelConfiguration());
                 nrconfiglist->second = 1;
-                configs = gen.GenerateRelativisticConfigurations(nrconfiglist, nrid->GetSymmetry(), angular_library);
+                configs = gen.GenerateRelativisticConfigurations(nrconfiglist);
+                configs = gen.GenerateRelativisticConfigurations(configs, nrid->GetSymmetry(), angular_library);
             }
             else
             {
-                if(nrconfigs == nullptr)
+                if(configs == nullptr)
                 {
-                    nrconfigs = gen.GenerateNonRelConfigurations(hf, hartreeY);
-                    leading_configs = gen.GetLeadingConfigs();
+                    if(allconfigs == nullptr)
+                    {   allconfigs = gen.GenerateConfigurations(hf, hartreeY);
+                        leading_configs = gen.GetLeadingConfigs();
+                    }
                 }
-                configs = gen.GenerateRelativisticConfigurations(nrconfigs, key->GetSymmetry(), angular_library);
+                configs = gen.GenerateRelativisticConfigurations(allconfigs, key->GetSymmetry(), angular_library);
             }
 
             key->SetRelativisticConfigList(configs);

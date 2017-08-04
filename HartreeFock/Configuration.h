@@ -137,7 +137,7 @@ public:
             return Parity::odd;
     }
 
-    virtual std::string Name() const;
+    virtual std::string Name(char sep = ' ') const;
     friend std::ostream& operator<<(std::ostream& stream, const BaseConfiguration& config) { return stream << config.Name(); }
 
     /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */
@@ -357,7 +357,7 @@ bool Configuration<OrbitalType, OccupancyType>::AddSingleParticle(const OrbitalT
 }
 
 template <class OrbitalType, class OccupancyType>
-std::string Configuration<OrbitalType, OccupancyType>::Name() const
+std::string Configuration<OrbitalType, OccupancyType>::Name(char sep) const
 {
     std::stringstream buffer;
     auto it = m_config.begin();
@@ -369,7 +369,7 @@ std::string Configuration<OrbitalType, OccupancyType>::Name() const
         buffer << "0";
 
     while(it != m_config.end())
-    {   buffer << " " << it->first.Name() << it->second;
+    {   buffer << sep << it->first.Name() << it->second;
         it++;
     }
     return buffer.str();

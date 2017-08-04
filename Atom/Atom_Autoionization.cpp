@@ -448,7 +448,6 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
     double grid_min = user_input("DR/EnergyGrid/Min", 0.003675);  // Default 0.1eV
     bool use_single_particle_energy = user_input.search("DR/--single-particle-energy");
-    bool print_relativistic_config = user_input.search("DR/--print-relativistic-difference");
 
     auto math = MathConstant::Instance();
 
@@ -457,17 +456,11 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     *outstream << "\nTarget occupancy:\n  " << target.Name() << std::endl;
 
-    // Create non-relativistic target
-    NonRelConfiguration nrtarget;
-    Configuration<NonRelInfo, double> nrfrac_target;
+    // Create relativistic target
+    RelativisticConfiguration rtarget;
     for(const auto& pair: target)
     {
-        double& occupancy = nrfrac_target[NonRelInfo(pair.first)];
-        occupancy += pair.second;
-    }
-    for(const auto& pair: nrfrac_target)
-    {
-        nrtarget[pair.first] = int(std::floor(pair.second + 0.1));
+        rtarget[pair.first] = int(std::floor(target.GetOccupancy(pair.first) + 0.1));
     }
 
     // Select orbitals in target wavefunction
@@ -519,175 +512,166 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     double energy_unit_conversion = math->HartreeEnergyIneV();
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
 
-    // Loop over all non-relativistic configurations
-    for(auto& nrconfig: nrconfigs->first)
+    // Loop over all configurations
+    for(auto& rconfig: *allconfigs)
     {
-        // Subtract target from non-rel configurations to get non-rel differences
-        NonRelConfiguration nrdiff = nrconfig - nrtarget;
+        // Subtract target from configurations to get differences
+        auto rdiff = rconfig - rtarget;
 
         // Check that this nrconfig is a valid double-excitation of target
-        if(nrdiff.ParticleNumber() != 3)
+        if(rdiff.ParticleNumber() != 3)
             continue;
 
-        Parity eps_parity = nrconfig.GetParity() * nrtarget.GetParity();
+        Parity eps_parity = rconfig.GetParity() * rtarget.GetParity();
 
-        // Loop over all relativistic electrons
-        pRelativisticConfigList reldiffs = nrdiff.GenerateRelativisticConfigs();
-
-        for(auto& rdiff: *reldiffs)
+        // Build continuum
+        double eps_energy = 0;
+        if(use_single_particle_energy)
         {
-            // Build continuum
-            double eps_energy = 0;
-            if(use_single_particle_energy)
-            {
-                for(auto& pair: rdiff)
-                    eps_energy += valence->GetState(pair.first)->Energy() * pair.second;
+            for(auto& pair: rdiff)
+                eps_energy += valence->GetState(pair.first)->Energy() * pair.second;
+        }
+        else
+        {   OccupationMap rcompound = target + rdiff;
+            eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) - ionization_energy;
+        }
+
+        if(energy_limit > 0.0 && (eps_energy > energy_limit))
+            continue;
+        double eps_energy_calculated = eps_energy;
+        if(eps_energy_calculated <= grid_min)
+            eps_energy_calculated = grid_min;
+
+        // Get participating electrons:
+        //     a -> h and b -> eps
+        const OrbitalInfo* electrons[2] = {nullptr, nullptr};
+        const OrbitalInfo* h = nullptr;
+
+        bool double_occupancy_excitation = (rdiff.size() == 2);
+
+        auto it = rdiff.begin();
+        while(it != rdiff.end())
+        {
+            if(it->second < 0)
+            {   h = &(it->first);
+                it++;
+            }
+            else if(electrons[0] == nullptr)
+            {   electrons[0] = &(it->first);
+                if(!double_occupancy_excitation) // Do not increase iterator if it->second == 2.
+                    it++;
             }
             else
-            {   OccupationMap rcompound = target + rdiff;
-                eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) - ionization_energy;
+            {   electrons[1] = &(it->first);
+                it++;
             }
+        }
 
-            if(energy_limit > 0.0 && (eps_energy > energy_limit))
-                continue;
-            double eps_energy_calculated = eps_energy;
-            if(eps_energy_calculated <= grid_min)
-                eps_energy_calculated = grid_min;
+        double rate = 0.0;
 
-            // Get participating electrons:
-            //     a -> h and b -> eps
-            const OrbitalInfo* electrons[2] = {nullptr, nullptr};
-            const OrbitalInfo* h = nullptr;
+        for(int choose_electron_a = 0; choose_electron_a < (double_occupancy_excitation? 1: 2); choose_electron_a++)
+        {
+            const OrbitalInfo* a = electrons[choose_electron_a];
+            const OrbitalInfo* b = electrons[1 - choose_electron_a];
 
-            bool double_occupancy_excitation = (rdiff.size() == 2);
+            // Get largest k1 which inform eps_twoJ
+            int max_k1_overall = a->L() + h->L();
+            if(2 * max_k1_overall > a->TwoJ() + h->TwoJ())
+                max_k1_overall -= 2;
 
-            auto it = rdiff.begin();
-            while(it != rdiff.end())
+            // Get epsilon
+            // Minimum L and Parity -> Minimum J
+            int min_eps_twoJ;
+            if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+                min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
+            else
+                min_eps_twoJ = 2 * min_continuum_l + 1;
+
+            min_eps_twoJ = mmax(min_eps_twoJ, b->TwoJ() - 2 * max_k1_overall);
+
+            // Maximum L and Parity -> Maximum J
+            int max_eps_twoJ;
+            if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+                max_eps_twoJ = 2 * max_continuum_l + 1;
+            else
+                max_eps_twoJ = 2 * max_continuum_l - 1;
+
+            max_eps_twoJ = mmin(max_eps_twoJ, b->TwoJ() + 2 * max_k1_overall);
+
+            for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ+=2)
             {
-                if(it->second < 0)
-                {   h = &(it->first);
-                    it++;
-                }
-                else if(electrons[0] == nullptr)
-                {   electrons[0] = &(it->first);
-                    if(!double_occupancy_excitation) // Do not increase iterator if it->second == 2.
-                        it++;
-                }
-                else
-                {   electrons[1] = &(it->first);
-                    it++;
-                }
-            }
+                // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
+                int eps_kappa = (eps_twoJ + 1)/2;
+                eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
 
-            double rate = 0.0;
+                OrbitalInfo eps_info(100, eps_kappa);
+                pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy_calculated));
+                HF_Solver.CalculateContinuumWave(eps, hf_continuum);
 
-            for(int choose_electron_a = 0; choose_electron_a < (double_occupancy_excitation? 1: 2); choose_electron_a++)
-            {
-                const OrbitalInfo* a = electrons[choose_electron_a];
-                const OrbitalInfo* b = electrons[1 - choose_electron_a];
+                // Create two-body integrals
+                pOrbitalMap continuum_map(new OrbitalMap(lattice));
+                continuum_map->AddState(eps);
 
-                // Get largest k1 which inform eps_twoJ
-                int max_k1_overall = a->L() + h->L();
-                if(2 * max_k1_overall > a->TwoJ() + h->TwoJ())
-                    max_k1_overall -= 2;
+                pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
+                all_orbitals->all->AddState(eps);
+                all_orbitals->MakeStateIndexes();
+                pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
+                two_body_integrals->clear();
+                two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
-                // Get epsilon
-                // Minimum L and Parity -> Minimum J
-                int min_eps_twoJ;
-                if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
-                    min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
-                else
-                    min_eps_twoJ = 2 * min_continuum_l + 1;
+                // Create operator for autoionization
+                pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
 
-                min_eps_twoJ = mmax(min_eps_twoJ, b->TwoJ() - 2 * max_k1_overall);
+                // Sum_k1 < a, b || V^k1 || h, eps > * multiplier
+                // multiplier = < a, b || V^k1 || h, eps > / (2k1 + 1)
+                //              - Sum_k2 (-1)^(k1 + k2 + 1) * 6jSym * < a, b || V^k2 || eps, h >
+                // 6jSym = { k1 jb jeps }
+                //         { k2 ja  jh  }
 
-                // Maximum L and Parity -> Maximum J
-                int max_eps_twoJ;
-                if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
-                    max_eps_twoJ = 2 * max_continuum_l + 1;
-                else
-                    max_eps_twoJ = 2 * max_continuum_l - 1;
+                int min_k1 = mmax(abs(b->L() - eps_info.L()), abs(a->L() - h->L()));
+                int max_k1 = mmin(b->L() + eps_info.L(), abs(a->L() + h->L()));
 
-                max_eps_twoJ = mmin(max_eps_twoJ, b->TwoJ() + 2 * max_k1_overall);
-
-                for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ+=2)
+                for(int k1 = min_k1; k1 <= max_k1; k1 += 2)
                 {
-                    // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
-                    int eps_kappa = (eps_twoJ + 1)/2;
-                    eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
+                    double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
 
-                    OrbitalInfo eps_info(100, eps_kappa);
-                    pContinuumWave eps(new ContinuumWave(eps_kappa, 100, eps_energy_calculated));
-                    HF_Solver.CalculateContinuumWave(eps, hf_continuum);
-
-                    // Create two-body integrals
-                    pOrbitalMap continuum_map(new OrbitalMap(lattice));
-                    continuum_map->AddState(eps);
-
-                    pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
-                    all_orbitals->all->AddState(eps);
-                    all_orbitals->MakeStateIndexes();
-                    pSlaterIntegrals two_body_integrals(new SlaterIntegralsDenseHash(all_orbitals, hartreeY));
-                    two_body_integrals->clear();
-                    two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
-
-                    // Create operator for autoionization
-                    pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
-
-                    // Sum_k1 < a, b || V^k1 || h, eps > * multiplier
-                    // multiplier = < a, b || V^k1 || h, eps > / (2k1 + 1)
-                    //              - Sum_k2 (-1)^(k1 + k2 + 1) * 6jSym * < a, b || V^k2 || eps, h >
-                    // 6jSym = { k1 jb jeps }
-                    //         { k2 ja  jh  }
-
-                    int min_k1 = mmax(abs(b->L() - eps_info.L()), abs(a->L() - h->L()));
-                    int max_k1 = mmin(b->L() + eps_info.L(), abs(a->L() + h->L()));
-
-                    for(int k1 = min_k1; k1 <= max_k1; k1 += 2)
+                    if(fabs(Vah) > 1.e-15)
                     {
-                        double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
+                        double multiplier = Vah / (2*k1 + 1);
 
-                        if(fabs(Vah) > 1.e-15)
+                        // Exchange part
+                        int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
+                        int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
+
+                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
                         {
-                            double multiplier = Vah / (2*k1 + 1);
-
-                            // Exchange part
-                            int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
-                            int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
-
-                            for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                            double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
+                            if(partial_k2)
                             {
-                                double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
-                                if(partial_k2)
-                                {
-                                    double Vbh = two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
-                                    partial_k2 *= math->minus_one_to_the_power(k1 + k2) * Vbh;
-                                }
-
-                                multiplier += partial_k2;
+                                double Vbh = two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
+                                partial_k2 *= math->minus_one_to_the_power(k1 + k2) * Vbh;
                             }
 
-                            rate += Vah * multiplier;
+                            multiplier += partial_k2;
                         }
+
+                        rate += Vah * multiplier;
                     }
                 }
             }
+        }
 
-            rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
-                    * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
-                    * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
+        rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
+                * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
+                * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
 
-            if(ProcessorRank == 0)
-            {
-                char sep = ' ';
-                *outstream << std::setprecision(8) << eps_energy * energy_unit_conversion << sep
-                           << rate * rate_unit_conversion << sep;
+        if(ProcessorRank == 0)
+        {
+            char sep = ' ';
+            *outstream << std::setprecision(8) << eps_energy * energy_unit_conversion << sep
+                       << rate * rate_unit_conversion << sep;
 
-                if(print_relativistic_config)
-                    *outstream << rdiff.Name() << std::endl;
-                else
-                    *outstream << nrconfig.NameNoSpaces() << std::endl;
-            }
+            *outstream << rconfig.Name('_') << std::endl;
         }
     }
 }

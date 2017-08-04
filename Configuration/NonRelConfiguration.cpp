@@ -31,9 +31,7 @@ std::string NonRelConfiguration::Name(bool aSpaceFirst) const
 
 std::string NonRelConfiguration::NameNoSpaces() const
 {
-    std::string name = Name(false);
-    std::replace(name.begin(), name.end(), ' ', '-');
-    return name;
+    return BaseConfiguration::Name('_');
 }
 
 pRelativisticConfigList NonRelConfiguration::GenerateRelativisticConfigs()
