@@ -28,7 +28,7 @@ class OrbitalBase : public SpinorFunction
 public:
     OrbitalBase(const OrbitalInfo& info);
     OrbitalBase(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0);
-    virtual ~OrbitalBase() {}
+    virtual ~OrbitalBase() = default;
 
     virtual std::shared_ptr<Orbital> Clone() const = 0;
 

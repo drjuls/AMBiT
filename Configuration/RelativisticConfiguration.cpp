@@ -3,32 +3,6 @@
 #include "ConfigGenerator.h"
 #include "Universal/Eigensolver.h"
 
-RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfiguration& other):
-    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
-{}
-
-RelativisticConfiguration::RelativisticConfiguration(RelativisticConfiguration&& other):
-    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
-{}
-
-const RelativisticConfiguration& RelativisticConfiguration::operator=(const RelativisticConfiguration& other)
-{
-    m_config = other.m_config;
-    angular_data = other.angular_data;
-    projections = other.projections;
-
-    return *this;
-}
-
-RelativisticConfiguration& RelativisticConfiguration::operator=(RelativisticConfiguration&& other)
-{
-    m_config.swap(other.m_config);
-    angular_data = other.angular_data;
-    projections.swap(other.projections);
-
-    return *this;
-}
-
 bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data, const Symmetry& sym, int two_m)
 {
     angular_data = data->GetData(*this, sym, two_m);

@@ -164,7 +164,7 @@ protected:
     pSigma3Calculator threebody_electron;           //!< Three-body Hamiltonian operator
 
     pConfigList leading_configs;
-    pConfigList nrconfigs;
+    pRelativisticConfigList relconfigs;
     pAngularDataLibrary angular_library;
     pLevelStore levels;
 };

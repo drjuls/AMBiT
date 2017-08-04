@@ -176,12 +176,13 @@ public:
     const_iterator small_end() const { return const_iterator(std::next(m_list.begin(), Nsmall)); }
 
     iterator erase(iterator position);
+    iterator erase(const_iterator first, const_iterator last);
 
     RelativisticConfiguration& front() { return m_list.front(); }
     const RelativisticConfiguration& front() const { return m_list.front(); }
 
     /** Get iterator for the ith RelativisticConfiguration (with correct CSF offset).
-        PRE: i < size().
+        PRE: i <= size().
      */
     iterator operator[](unsigned int i);
     const_iterator operator[](unsigned int i) const;
@@ -216,7 +217,7 @@ public:
 
 protected:
     BaseList m_list;
-    unsigned int Nsmall;
+    unsigned int Nsmall {0};
 };
 
 class MostCSFsFirstComparator

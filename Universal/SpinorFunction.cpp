@@ -167,29 +167,19 @@ RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<
 }
 
 RadialFunction::RadialFunction(unsigned int size)
-{   Clear();
+{
     resize(size);
 }
 
-const RadialFunction& RadialFunction::operator=(const RadialFunction& other)
-{   f = other.f;
-    dfdr = other.dfdr;
-    return *this;
-}
-
-RadialFunction& RadialFunction::operator=(RadialFunction&& other)
-{   f.swap(other.f);
-    dfdr.swap(other.dfdr);
-    return *this;
-}
-
 void RadialFunction::resize(unsigned int size)
-{   f.resize(size);
+{
+    f.resize(size);
     dfdr.resize(size);
 }
 
 void RadialFunction::Clear()
-{   f.clear();
+{
+    f.clear();
     dfdr.clear();
 }
 
