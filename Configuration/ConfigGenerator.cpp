@@ -149,6 +149,15 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         SortAndUnique(leading_configs);
     }
 
+    // Get maxenergy
+    bool use_maxenergy = false;
+    double upper_energy = 0.0;
+    if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
+    {
+        use_maxenergy = true;
+        upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
+    }
+
     // Total number of excitation steps
     int total_num_excitations = mmax(electron_excitations, hole_excitations);
 
@@ -210,23 +219,27 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         }
 
         GenerateExcitations(rlist, valence_electrons, valence_holes);
+
+        if(use_maxenergy && excitation_step < total_num_excitations-1)
+        {   auto newend = std::remove_if(rlist->begin(), rlist->end(),
+                            [&](RelativisticConfiguration& item){
+                                return (item.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body) > upper_energy);
+                            });
+            rlist->erase(newend, rlist->end());
+        }
     }
 
     // Trim configurations outside of ConfigurationAverageEnergyRange
     if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
     {
         double lower_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 0);
-        double upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
 
-        auto it = rlist->begin();
-        while(it != rlist->end())
-        {
-            double energy = it->CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
-            if(energy < lower_energy || energy > upper_energy)
-                it = rlist->erase(it);
-            else
-                it++;
-        }
+        auto newend = std::remove_if(rlist->begin(), rlist->end(),
+                        [&](RelativisticConfiguration& item){
+                            double energy = item.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
+                            return (energy < lower_energy || energy > upper_energy);
+                        });
+        rlist->erase(newend, rlist->end());
     }
 
     // Add extra configurations not to be considered leading configurations.
@@ -252,7 +265,6 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         }
 
         rlist->append(*GenerateRelativisticConfigurations(nrlist));
-        rlist->SetSmallSize(rlist->size());
     }
 
     // Add extra relativistic configurations not to be considered leading configurations.
@@ -272,10 +284,9 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
             }
             rlist->push_back(extraconfig);
         }
-
-        rlist->SetSmallSize(rlist->size());
     }
 
+    rlist->SetSmallSize(rlist->size());
     rlist->sort(ConfigurationComparator());
     rlist->unique();
     rlist->SetSmallSize(rlist->size());
@@ -398,6 +409,11 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
                             list.push_back(item);
                         return list;
                     });
+
+    if(user_input.search("CI/--sort-matrix-by-configuration"))
+        returnedlist.sort(ConfigurationComparator());
+    else
+        returnedlist.sort(FewestProjectionsFirstComparator());
 
     if(angular_library)
         GenerateProjections(prlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
