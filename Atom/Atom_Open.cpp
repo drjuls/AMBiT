@@ -475,7 +475,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
         }
         else
         {
-            configs = gen.GenerateRelativisticConfigurations(allconfigs, nrid->GetSymmetry());
+            configs = gen.GenerateRelativisticConfigurations(allconfigs, key->GetSymmetry());
         }
 
         key->SetRelativisticConfigList(configs);

@@ -3,6 +3,7 @@
 
 #include "RelativisticConfiguration.h"
 
+class ConfigurationComparator;
 class MostCSFsFirstComparator;
 class FewestProjectionsFirstComparator;
 
@@ -218,6 +219,15 @@ public:
 protected:
     BaseList m_list;
     unsigned int Nsmall {0};
+};
+
+class ConfigurationComparator
+{
+public:
+    bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        return(first < second);
+    }
 };
 
 class MostCSFsFirstComparator

@@ -2,6 +2,12 @@
 #include "RelativisticConfiguration.h"
 #include "ConfigGenerator.h"
 #include "Universal/Eigensolver.h"
+#include "HartreeFock/ConfigurationParser.h"
+
+RelativisticConfiguration::RelativisticConfiguration(const std::string& name)
+{
+    *this = RelativisticConfiguration(ConfigurationParser::ParseConfiguration<OrbitalInfo, int>(name));
+}
 
 bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data, const Symmetry& sym, int two_m)
 {

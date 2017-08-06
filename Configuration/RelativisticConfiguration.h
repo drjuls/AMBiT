@@ -29,6 +29,7 @@ public:
     RelativisticConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
     RelativisticConfiguration(const RelativisticConfiguration&) = default;
     RelativisticConfiguration(RelativisticConfiguration&&) = default;
+    RelativisticConfiguration(const std::string& name);
     virtual ~RelativisticConfiguration() = default;
 
     RelativisticConfiguration& operator=(const RelativisticConfiguration&) = default;

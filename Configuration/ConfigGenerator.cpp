@@ -120,29 +120,52 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         leading_configs->first.push_back(config);
     }
 
-    if(numValenceElectrons == 0)
-    {   // Add vacuum state: no holes or electrons
-        leading_configs->first.push_back(NonRelConfiguration());
-    }
-
     leading_configs->second = leading_configs->first.size();
     SortAndUnique(leading_configs);
     rlist->append(*GenerateRelativisticConfigurations(leading_configs));
+
+    // Get any leading relativistic configurations
+    num_configs = user_input.vector_variable_size("LeadingRelativisticConfigurations");
+    if(num_configs)
+    {
+        for(int i = 0; i < num_configs; i++)
+        {
+            const std::string name = user_input("LeadingRelativisticConfigurations", "", i);
+            RelativisticConfiguration config(name);
+
+            // Check that the configuration gels with the number of electrons
+            if(leading_configs->first.size() == 0)
+                numValenceElectrons = config.ElectronNumber();
+            else if(config.ElectronNumber() != numValenceElectrons)
+            {   *errstream << "USAGE: LeadingConfiguration " << name
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            rlist->push_back(config);
+            leading_configs->first.push_back(NonRelConfiguration(config));
+        }
+
+        leading_configs->second = leading_configs->first.size();
+        SortAndUnique(leading_configs);
+    }
 
     // Total number of excitation steps
     int total_num_excitations = mmax(electron_excitations, hole_excitations);
 
     for(int excitation_step = 0; excitation_step < total_num_excitations; excitation_step++)
     {
-        OrbitalMap valence_electrons(*orbitals->particle);
-        OrbitalMap valence_holes(*orbitals->hole);
+        OrbitalMap valence_electrons(orbitals->GetLattice());
+        OrbitalMap valence_holes(orbitals->GetLattice());
 
         // Electron subset
         if(excitation_step < electron_excitations)
         {
+            valence_electrons = *orbitals->particle;
+
             if(num_electron_excitation_inputs > 1)
             {
                 std::string CI_basis_string = user_input("ElectronExcitations", "", 2*excitation_step + 1);
+                // Limits here are in the form of ValenceBasis (pqn up to and including limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
 
                 auto valence_it = valence_electrons.begin();
@@ -163,9 +186,12 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         // Holes subset
         if(excitation_step < hole_excitations)
         {
+            valence_holes = *orbitals->hole;
+
             if(num_hole_excitation_inputs > 1)
             {
                 std::string CI_basis_string = user_input("HoleExcitations", "", 2*excitation_step + 1);
+                // Limits here are in the form of FrozenCore (pqn should be bigger than limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
                 
                 auto valence_it = valence_holes.begin();
@@ -175,7 +201,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
                     
                     if(L >= limits.size())
                         valence_it = valence_holes.erase(valence_it);
-                    else if(valence_it->first.PQN() > limits[L])
+                    else if(valence_it->first.PQN() <= limits[L])
                         valence_it = valence_holes.erase(valence_it);
                     else
                         valence_it++;
@@ -229,7 +255,28 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
         rlist->SetSmallSize(rlist->size());
     }
 
-    rlist->sort(FewestProjectionsFirstComparator());
+    // Add extra relativistic configurations not to be considered leading configurations.
+    num_extra_configs = user_input.vector_variable_size("ExtraRelativisticConfigurations");
+    if(num_extra_configs)
+    {
+        for(int i = 0; i < num_extra_configs; i++)
+        {
+            const std::string extraname = user_input("ExtraRelativisticConfigurations", "", i);
+            RelativisticConfiguration extraconfig(extraname);
+
+            if(extraconfig.ElectronNumber() != numValenceElectrons)
+            {
+                *errstream << "USAGE: ExtraConfiguration " << extraname
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            rlist->push_back(extraconfig);
+        }
+
+        rlist->SetSmallSize(rlist->size());
+    }
+
+    rlist->sort(ConfigurationComparator());
     rlist->unique();
     rlist->SetSmallSize(rlist->size());
 
@@ -260,7 +307,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
                                << "; " << config.GetNumberOfLevels() << "\n";
                 }
             }
-            *outstream << std::flush;
+            *outstream << std::endl;
         }
         else
         {
@@ -281,7 +328,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
                     *outstream << config << "; " << config.GetNumberOfLevels() << "\n";
                 }
             }
-            *outstream << std::flush;
+            *outstream << std::endl;
         }
     }
 
@@ -307,7 +354,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
         ++it;
     }
 
-    rlist->sort(FewestProjectionsFirstComparator());
+    rlist->sort(ConfigurationComparator());
     rlist->unique();
     return rlist;
 }
@@ -452,7 +499,7 @@ void ConfigGenerator::GenerateExcitations(pRelativisticConfigList configlist, Or
     }
 
     configlist->SetSmallSize(configlist->size());
-    configlist->sort();
+    configlist->sort(ConfigurationComparator());
     configlist->unique();
 }
 
