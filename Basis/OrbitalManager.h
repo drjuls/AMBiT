@@ -53,7 +53,7 @@ public:
     /** Initialise using Read(). */
     OrbitalManager(const std::string& filename);
 
-    pLattice GetLattice() { return lattice; }
+    pLattice GetLattice() const { return lattice; }
 
     /** Get total number of orbitals stored (for making keys). */
     unsigned int size() const { return all->size(); }

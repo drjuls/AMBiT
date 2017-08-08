@@ -18,24 +18,19 @@
 class NonRelConfiguration: public Configuration<NonRelInfo, int>
 {
 public:
-    NonRelConfiguration() {}
+    NonRelConfiguration() = default;
+    NonRelConfiguration(const NonRelConfiguration&) = default;
+    NonRelConfiguration(NonRelConfiguration&&) = default;
     NonRelConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
     NonRelConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
-    NonRelConfiguration(const NonRelConfiguration& other): BaseConfiguration(other) {}
-    NonRelConfiguration(NonRelConfiguration&& other): BaseConfiguration(other) {}
     NonRelConfiguration(const RelativisticConfiguration& other);
     NonRelConfiguration(const std::string& name);
-    virtual ~NonRelConfiguration() {}
+    virtual ~NonRelConfiguration() = default;
 
-    NonRelConfiguration& operator=(const NonRelConfiguration& other) { BaseConfiguration::operator=(other); return *this; }
-    NonRelConfiguration& operator=(NonRelConfiguration&& other) { BaseConfiguration::operator=(other); return *this; }
+    NonRelConfiguration& operator=(const NonRelConfiguration&) = default;
+    NonRelConfiguration& operator=(NonRelConfiguration&&) = default;
 
 public:
-    /** Return success. */
-    bool RemoveSingleParticle(const NonRelInfo& info);
-    /** Return success. */
-    bool AddSingleParticle(const NonRelInfo& info);
-
     virtual std::string Name(bool aSpaceFirst = true) const;
     virtual std::string NameNoSpaces() const;
 
@@ -55,7 +50,7 @@ public:
     int GetNumberOfLevels();
 
 public:
-    pRelativisticConfigList relconfiglist;
+    pRelativisticConfigList relconfiglist {nullptr};
 
 protected:
     /** Split the current NonRelInfo of config. Recursively split the rest.

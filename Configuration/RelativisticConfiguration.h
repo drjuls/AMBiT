@@ -24,15 +24,16 @@ protected:
     friend class RelativisticConfigList;
 
 public:
-    RelativisticConfiguration() {}
+    RelativisticConfiguration() = default;
     RelativisticConfiguration(const BaseConfiguration& other): BaseConfiguration(other) {}
     RelativisticConfiguration(BaseConfiguration&& other): BaseConfiguration(other) {}
-    RelativisticConfiguration(const RelativisticConfiguration& other);
-    RelativisticConfiguration(RelativisticConfiguration&& other);
-    virtual ~RelativisticConfiguration() {}
+    RelativisticConfiguration(const RelativisticConfiguration&) = default;
+    RelativisticConfiguration(RelativisticConfiguration&&) = default;
+    RelativisticConfiguration(const std::string& name);
+    virtual ~RelativisticConfiguration() = default;
 
-    const RelativisticConfiguration& operator=(const RelativisticConfiguration& other);
-    RelativisticConfiguration& operator=(RelativisticConfiguration&& other);
+    RelativisticConfiguration& operator=(const RelativisticConfiguration&) = default;
+    RelativisticConfiguration& operator=(RelativisticConfiguration&&) = default;
 
     typedef indexed_iterator<const double*> const_CSF_iterator;
 
@@ -145,7 +146,7 @@ public:
 
 protected:
     /** Pointer to angular data (CSFs) for this RelativisticConfiguration. */
-    pAngularData angular_data;
+    pAngularData angular_data {nullptr};
 
     /** Complete list of projections with required M, ordering taken directly from AngularData. */
     ProjectionList projections;

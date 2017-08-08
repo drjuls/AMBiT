@@ -178,7 +178,8 @@ TEST(EJOperatorTester, HeTransitions)
     double ground_state_energy = 0., excited_state_energy = 0.;
 
     // Generate matrix and configurations
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
+    auto allconfigs = config_generator.GenerateConfigurations();
+    relconfigs = config_generator.GenerateRelativisticConfigurations(allconfigs, sym, angular_library);
     pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
     HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();
@@ -193,7 +194,7 @@ TEST(EJOperatorTester, HeTransitions)
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
+    relconfigs = config_generator.GenerateRelativisticConfigurations(allconfigs, sym, angular_library);
     hID = std::make_shared<HamiltonianID>(sym, relconfigs);
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
@@ -296,7 +297,8 @@ TEST(MJOperatorTester, HolesVsElectrons)
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 
         pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-        pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+        auto allconfigs = gen.GenerateConfigurations();
+        pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(allconfigs, sym, angular_library);
         HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
         H.GenerateMatrix();
         LevelVector levels = H.SolveMatrix(key, 3);
@@ -358,7 +360,8 @@ TEST(MJOperatorTester, HolesVsElectrons)
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
         pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-        pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+        auto allconfigs = gen.GenerateConfigurations();
+        pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(allconfigs, sym, angular_library);
         HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
         H.GenerateMatrix();
         LevelVector levels = H.SolveMatrix(key, 3);

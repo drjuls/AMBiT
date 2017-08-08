@@ -18,12 +18,7 @@ class Projection
 {
 public:
     Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& twoMs);
-    Projection(const Projection& other);
-    Projection(Projection&& other);
-    virtual ~Projection(void) {}
-
-    const Projection& operator=(const Projection& other) { config = other.config; return *this; }
-    Projection& operator=(Projection&& other) { config.swap(other.config); return *this; }
+    virtual ~Projection() = default;
 
     typedef std::vector<ElectronInfo>::iterator iterator;
     typedef std::vector<ElectronInfo>::const_iterator const_iterator;

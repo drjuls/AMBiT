@@ -21,16 +21,6 @@ Projection::Projection(const RelativisticConfiguration& relconfig, const std::ve
     config.shrink_to_fit();
 }
 
-Projection::Projection(const Projection& other): config(other.config)
-{
-    config.shrink_to_fit();
-}
-
-Projection::Projection(Projection&& other)
-{
-    config.swap(other.config);
-}
-
 ElectronInfo& Projection::operator[](unsigned int i)
 {
     return config[i];

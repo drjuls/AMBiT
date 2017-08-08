@@ -121,7 +121,7 @@ protected:
     /** Instantiate LevelMap and read from file.
         Get set of requested symmetries from user input.
      */
-    pLevelStore ChooseHamiltonians(pConfigList nrlist);
+    pLevelStore ChooseHamiltonians(pRelativisticConfigList rlist);
 
     /** Get configurations based on single electron configurations with no CI.
         PRE: MakeBasis() must have been run.
@@ -164,7 +164,7 @@ protected:
     pSigma3Calculator threebody_electron;           //!< Three-body Hamiltonian operator
 
     pConfigList leading_configs;
-    pConfigList nrconfigs;
+    pRelativisticConfigList allconfigs;
     pAngularDataLibrary angular_library;
     pLevelStore levels;
 };

@@ -21,16 +21,11 @@ protected:
     typedef std::map<OrbitalType, OccupancyType> ConfigurationMapType;
 
 public:
-    Configuration() {}
-    Configuration(const Configuration<OrbitalType, OccupancyType>& other): m_config(other.m_config) {}
-    Configuration(Configuration<OrbitalType, OccupancyType>&& other): m_config(other.m_config) {}
-    virtual ~Configuration() {}
+    Configuration() = default;
+    virtual ~Configuration() = default;
 
     typedef typename std::map<OrbitalType, OccupancyType>::iterator iterator;
     typedef typename std::map<OrbitalType, OccupancyType>::const_iterator const_iterator;
-
-    const BaseConfiguration& operator=(const BaseConfiguration& other) { m_config = other.m_config; return *this; }
-    BaseConfiguration& operator=(BaseConfiguration&& other) { m_config.swap(other.m_config); return *this; }
 
     /** Add occupancies of other configuration. */
     template<typename U>
@@ -96,6 +91,11 @@ public:
      */
     iterator insert(const std::pair<OrbitalType, OccupancyType>& val);
 
+    /** Return success. */
+    bool RemoveSingleParticle(const OrbitalType& info);
+    /** Return success. */
+    bool AddSingleParticle(const OrbitalType& info);
+
     /** Electron number = number of electrons - number of holes. */
     OccupancyType ElectronNumber() const
     {   OccupancyType ret = OccupancyType(0);
@@ -137,7 +137,7 @@ public:
             return Parity::odd;
     }
 
-    virtual std::string Name() const;
+    virtual std::string Name(char sep = ' ') const;
     friend std::ostream& operator<<(std::ostream& stream, const BaseConfiguration& config) { return stream << config.Name(); }
 
     /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */
@@ -319,7 +319,45 @@ typename Configuration<OrbitalType, OccupancyType>::iterator Configuration<Orbit
 }
 
 template <class OrbitalType, class OccupancyType>
-std::string Configuration<OrbitalType, OccupancyType>::Name() const
+bool Configuration<OrbitalType, OccupancyType>::RemoveSingleParticle(const OrbitalType& info)
+{
+    auto r_it = m_config.find(info);
+    if(r_it != m_config.end())
+    {
+        if(r_it->second <= -info.MaxNumElectrons())
+            return false;
+        else if(r_it->second == 1)
+            m_config.erase(r_it);
+        else
+            r_it->second--;
+    }
+    else
+        m_config[info] = -1;
+
+    return true;
+}
+
+template <class OrbitalType, class OccupancyType>
+bool Configuration<OrbitalType, OccupancyType>::AddSingleParticle(const OrbitalType& info)
+{
+    iterator a_it = m_config.find(info);
+    if(a_it != m_config.end())
+    {
+        if(a_it->second >= info.MaxNumElectrons())
+            return false;
+        else if(a_it->second == -1)
+            m_config.erase(a_it);
+        else
+            a_it->second++;
+    }
+    else
+        m_config[info] = 1;
+
+    return true;
+}
+
+template <class OrbitalType, class OccupancyType>
+std::string Configuration<OrbitalType, OccupancyType>::Name(char sep) const
 {
     std::stringstream buffer;
     auto it = m_config.begin();
@@ -331,7 +369,7 @@ std::string Configuration<OrbitalType, OccupancyType>::Name() const
         buffer << "0";
 
     while(it != m_config.end())
-    {   buffer << " " << it->first.Name() << it->second;
+    {   buffer << sep << it->first.Name() << it->second;
         it++;
     }
     return buffer.str();

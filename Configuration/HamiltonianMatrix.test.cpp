@@ -62,7 +62,8 @@ TEST(HamiltonianMatrixTester, MgILevels)
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
 
     // Generate matrix and configurations
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
+    auto configs = config_generator.GenerateConfigurations();
+    relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
     pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
     HamiltonianMatrix H_even(hf_electron, twobody_electron, relconfigs);
     H_even.GenerateMatrix();
@@ -74,7 +75,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
-    relconfigs = config_generator.GenerateRelativisticConfigurations(sym, angular_library);
+    relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
@@ -142,10 +143,12 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
+        auto configs = gen.GenerateConfigurations();
+
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -198,10 +201,12 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
+        auto configs = gen.GenerateConfigurations();
+
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -288,11 +293,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+        auto configs = gen.GenerateConfigurations();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -345,11 +351,12 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+        auto configs = gen.GenerateConfigurations();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -433,11 +440,12 @@ TEST(HamiltonianMatrixTester, LiPlus)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+        auto configs = gen.GenerateConfigurations();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -488,11 +496,12 @@ TEST(HamiltonianMatrixTester, LiPlus)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
 
         pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+        auto configs = gen.GenerateConfigurations();
 
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -579,10 +588,12 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 
+        auto configs = gen.GenerateConfigurations();
+
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
@@ -632,10 +643,12 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 
+        auto configs = gen.GenerateConfigurations();
+
         for(auto sym : symmetries)
         {
             pHamiltonianID key = std::make_shared<HamiltonianID>(sym);
-            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(sym, angular_library);
+            pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, sym, angular_library);
             HamiltonianMatrix H(hf_electron, twobody_electron, relconfigs);
             H.GenerateMatrix();
             LevelVector levels = H.SolveMatrix(key, 6);
