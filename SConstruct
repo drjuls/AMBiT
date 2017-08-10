@@ -74,20 +74,15 @@ env.Append(LIBS=libs)
 
 # Now grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
 # exist
-custom_cxx_flags = build_info["CXXFLAGS"]
-env.Append(CXXFLAGS = custom_cxx_flags)
+if "CXXFLAGS" in build_info.keys():
+    custom_cxx_flags = build_info["CXXFLAGS"]
+    env.Append(CXXFLAGS = custom_cxx_flags)
 
-custom_c_flags = build_info["CFLAGS"]
-env.Append(CFLAGS = custom_c_flags)
-
-# Only replace the default compiler if the user has specified an alternative
-custom_cxx = build_info["CXX"]
-if custom_cxx:
-    env.Replace(CXX = custom_cxx)
-
-custom_cc = build_info["CC"]
-if custom_cc:
-    env.Replace(CC = custom_cc)
+    # Only replace the default compiler if the user has specified an alternative
+if "CXX" in build_info.keys():
+    custom_cxx = build_info["CXX"]
+    if custom_cxx:
+        env.Replace(CXX = custom_cxx)
 
 # And build all of our common libraries
 common_libs = []

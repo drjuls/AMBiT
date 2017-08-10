@@ -6,18 +6,16 @@ Build Info:
     - lapack
     - blas 
 
-    Lib path: /usr/local/include
-    AMBiT: &ambit_dir /home/emily/Work/Atoms/Code/ambit
-    Eigen: /usr/local/include/Eigen3
-    Sparsehash: /usr/local/include/sparsehash
-    gtest: *ambit_dir
+    Lib path: 
+    AMBiT: 
+    Eigen: 
+    Sparsehash: 
+    gtest: 
 
-    Angular data: /home/emily/Work/Atoms/Code/ambit/AngularData
+    Angular data: 
 
-    CXX: mpic++
-    CXXFLAGS: -DAMBIT_USE_MPI
-    CC: mpicc
-    CFLAGS: #-Wall
+    CXX: 
+    CXXFLAGS: 
 
 Modules:
     Atom:
