@@ -8,6 +8,10 @@
     #include <mpi.h>
 #endif
 
+#ifdef AMBIT_USE_OPENMP
+    #include <omp.h>
+#endif
+
 AngularData::AngularData(int two_m):
     two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
 {}
@@ -484,6 +488,11 @@ void AngularDataLibrary::GenerateCSFs()
 
     // Get CSFs for M = J
 #ifndef AMBIT_USE_MPI
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel
+    {
+    #pragma omp single nowait
+#endif
     for(auto& pair: library)
     {
         Symmetry sym(pair.first[0].first);
@@ -493,12 +502,20 @@ void AngularDataLibrary::GenerateCSFs()
         if(pAng->CSFs_calculated() == false && sym.GetTwoJ() == two_m)
         {
             RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task firstprivate(pAng, rconfig, two_m)
+#endif
             pAng->GenerateCSFs(rconfig, two_m);
 
             // Set write_needed to true;
             file_info[std::make_tuple(GetElectronNumber(pair.first), sym.GetJpi(), two_m)].first = true;
         }
     }
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp taskwait
+    } // End of OpenMP parallel region
+#endif
+
 #else
     // Distribute AngularData objects with lots of projections (large matrix) using MPI
     const unsigned int SHARING_SIZE_LIM = 200;
@@ -529,6 +546,13 @@ void AngularDataLibrary::GenerateCSFs()
     int jobcount = 0;   // jobcount will run from 0 -> 2 * NumProcessors - 1
     int otherRank = 2 * NumProcessors - 1 - ProcessorRank;
 
+    // Split the big CSFs up into OpenMP tasks
+    *outstream << "Generating " << big_library.size() << " large CSFs" << std::endl;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel
+    {
+    #pragma omp single nowait
+#endif
     for(auto& pair: big_library)
     {
         Symmetry sym(pair.first[0].first);
@@ -538,6 +562,9 @@ void AngularDataLibrary::GenerateCSFs()
         {
             RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
             *logstream << "Calculating CSF: N = " << pAng->projection_size() << " " << rconfig << std::endl;
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task
+#endif
             pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
         }
 
@@ -545,6 +572,10 @@ void AngularDataLibrary::GenerateCSFs()
         if(jobcount >= 2 * NumProcessors)
             jobcount = 0;
     }
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp taskwait
+    } // End of OpenMP parallel section
+#endif
 
     // Share CSFs with all processors
     jobcount = 0;
