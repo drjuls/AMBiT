@@ -1,5 +1,9 @@
 #include "Include.h"
 
+#ifdef AMBIT_USE_OPENMP
+    #include <omp.h>
+#endif
+
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
@@ -44,6 +48,11 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
     // Get Y^k_{31}
     auto it_1 = orbital_map_1->begin();
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel
+    {
+    #pragma omp single nowait
+#endif
     while(it_1 != orbital_map_1->end())
     {
         i1 = orbitals->state_index.at(it_1->first);
@@ -90,8 +99,16 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                             {   // Check that this integral doesn't already exist
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
+#ifdef AMBIT_USE_OPENMP
+                                    #pragma omp task firstprivate(s4, s2, key)
+#endif
+                                    {
                                     double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
+#ifdef AMBIT_USE_OPENMP
+                                    #pragma omp critical(TWO_ELECTRON_SLATER)
+#endif
                                     TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
+                                    }
                                 }
                             }
                         }
@@ -106,6 +123,10 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
         }
         it_1++;
     }
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp taskwait
+    }
+#endif
 
     if(check_size_only)
     {   hartreeY_operator->SetLightWeightMode(false);
