@@ -49,6 +49,11 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     // Get Y^k_{31}
     auto it_1 = orbital_map_1->begin();
 #ifdef AMBIT_USE_OPENMP
+    // Make a clone of the HartreeY operator for each OpenMP thread
+    std::vector<pHartreeY> hartreeY_operators;
+    for(int ii = 0; ii < omp_get_max_threads(); ++ii){
+        hartreeY_operators.emplace_back(hartreeY_operator->Clone());
+    }
     #pragma omp parallel
     {
     #pragma omp single nowait
@@ -69,9 +74,14 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
             i3 = orbitals->state_index.at(it_3->first);
             s3 = it_3->second;
 
-            // Limits on k
+            // Limits on k. This is the expensive part to calculate
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task firstprivate(i1, i2, i3, i4, s1, s2, s3, s4, k)
+            {
+            k = hartreeY_operators[omp_get_thread_num()]->SetOrbitals(s3, s1);
+#else
             k = hartreeY_operator->SetOrbitals(s3, s1);
-
+#endif
             while(k != -1)
             {
                 auto it_2 = orbital_map_2->begin();
@@ -100,15 +110,12 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
 #ifdef AMBIT_USE_OPENMP
-                                    #pragma omp task firstprivate(s4, s2, key)
-#endif
-                                    {
-                                    double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
-#ifdef AMBIT_USE_OPENMP
+                                    double radial = hartreeY_operators[omp_get_thread_num()]->GetMatrixElement(*s4, *s2);
                                     #pragma omp critical(TWO_ELECTRON_SLATER)
+#else
+                                    double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
 #endif
                                     TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
-                                    }
                                 }
                             }
                         }
@@ -116,16 +123,21 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                     }
                     it_2++;
                 }
-
+#ifdef AMBIT_USE_OPENMP
+                k = hartreeY_operators[omp_get_thread_num()]->NextK();
+            } // K loop
+            } // OpenMP task
+#else
                 k = hartreeY_operator->NextK();
-            }
+            } // K loop
+#endif
             it_3++;
         }
         it_1++;
     }
 #ifdef AMBIT_USE_OPENMP
     #pragma omp taskwait
-    }
+    } // OpenMP parallel region
 #endif
 
     if(check_size_only)
