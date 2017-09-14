@@ -76,7 +76,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
             // Limits on k. This is the expensive part to calculate
 #ifdef AMBIT_USE_OPENMP
-            #pragma omp task firstprivate(i1, i2, i3, i4, s1, s2, s3, s4, k)
+            #pragma omp task firstprivate(i1, i3, s1, s3) private(k, i2, i4, s2, s4)
             {
             k = hartreeY_operators[omp_get_thread_num()]->SetOrbitals(s3, s1);
 #else
