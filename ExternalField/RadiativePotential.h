@@ -44,6 +44,9 @@ public:
     virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
 
 public:
+    /** Generate magnetic part of self-energy for point-nucleus. */
+    void GeneratePointMagnetic();
+
     /** Generate magnetic part of self-energy with nuclear_rms_radius (fm). */
     void GenerateStepMagnetic(double nuclear_rms_radius);
 
@@ -66,6 +69,9 @@ class ElectricSelfEnergyDecorator: public HFOperatorDecorator<HFBasicDecorator, 
 public:
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, bool integrate_offmass_term = true, pIntegrator integration_strategy = pIntegrator());
     ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy = pIntegrator());
+
+    /** Generate high-frequency electric part of self-energy for point-nucleus. */
+    void GeneratePointEhigh();
 
     /** Generate high-frequency electric part of self-energy with nuclear_rms_radius (fm). */
     void GenerateStepEhigh(double nuclear_rms_radius);

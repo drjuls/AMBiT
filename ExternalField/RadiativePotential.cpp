@@ -41,7 +41,7 @@ void UehlingDecorator::GeneratePointUehling()
 
     parameters.alpha = alpha;
 
-    // Interior integrand: params = {r, r_n (atomic units), alpha}
+    // Integrand: params = {r, alpha}
     gsl_function integrand;
     integrand.params = &parameters;
     integrand.function = [](double t, void* parameters){
@@ -290,7 +290,10 @@ void UehlingDecorator::GenerateUehling(const RadialFunction& density)
 MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
-    GenerateStepMagnetic(nuclear_rms_radius);
+    if(nuclear_rms_radius < 0.1)
+        GeneratePointMagnetic();
+    else
+        GenerateStepMagnetic(nuclear_rms_radius);
 }
 
 MagneticSelfEnergyDecorator::MagneticSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
@@ -350,6 +353,75 @@ SpinorFunction MagneticSelfEnergyDecorator::ApplyTo(const SpinorFunction& a) con
     }
 
     return ta;
+}
+
+void MagneticSelfEnergyDecorator::GeneratePointMagnetic()
+{
+    magnetic.Clear();
+    magnetic.resize(lattice->size());
+
+    MathConstant* math = MathConstant::Instance();
+    const double alpha = physicalConstant->GetAlpha();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    struct integration_parameters_type
+    {   double r;
+        double alpha;
+    } parameters;
+
+    parameters.alpha = alpha;
+
+    // Integrand
+    gsl_function integrand;
+    integrand.params = &parameters;
+    integrand.function = [](double t, void* parameters){
+        const integration_parameters_type* params = static_cast<const integration_parameters_type*>(parameters);
+        double t2 = t * t;
+        double y = 2.0 * t * params->r/params->alpha;
+
+        double part1 = std::sqrt(t2 - 1.0) * gsl_pow_2(y);
+        double part2 = -1./3. * (1. + y) * std::exp(-y);
+        double part3 = 1./3.;
+
+        return (part2 + part3)/part1;
+    };
+
+    size_t sizelimit = 1000;
+    double prefactor = 3. * Z * alpha/math->Pi();
+
+    gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
+    gsl_set_error_handler_off();
+    double cumulative_error = 0.;
+
+    // Get integrals and potential
+    int i = 0;
+    while(i < lattice->size())
+    {
+        parameters.r = R[i];
+        double integral;
+        double abserr;
+
+        int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+        if(ierr)
+            cumulative_error += fabs(prefactor * abserr * dR[i]);
+        magnetic.f[i] = prefactor * integral;
+
+        if(fabs(magnetic.f[i]) < 1.e-15)
+            break;
+        i++;
+    }
+
+    magnetic.resize(mmin(i+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(magnetic);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "MagneticSelfEnergyDecorator::GeneratePointMagnetic() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
+
+    // Get derivative
+    differentiator->GetDerivative(magnetic.f, magnetic.dfdr);
 }
 
 void MagneticSelfEnergyDecorator::GenerateStepMagnetic(double nuclear_rms_radius)
@@ -574,8 +646,13 @@ ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf,
     BaseDecorator(wrapped_hf, integration_strategy), integrate_offmass_term(integrate_offmass_term)
 {
     Initialize();
-    GenerateStepEhigh(nuclear_rms_radius);
+    if(nuclear_rms_radius < 0.1)
+        GeneratePointEhigh();
+    else
+        GenerateStepEhigh(nuclear_rms_radius);
+
     GenerateStepElow(nuclear_rms_radius);
+    potDWave.resize(directPotential.size());
 }
 
 ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
@@ -584,6 +661,86 @@ ElectricSelfEnergyDecorator::ElectricSelfEnergyDecorator(pHFOperator wrapped_hf,
     Initialize();
     GenerateEhigh(density);
     GenerateElow(density);
+    potDWave.resize(directPotential.size());
+}
+
+void ElectricSelfEnergyDecorator::GeneratePointEhigh()
+{
+    directPotential.Clear();
+    directPotential.resize(lattice->size());
+
+    MathConstant* math = MathConstant::Instance();
+    const double alpha = physicalConstant->GetAlpha();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    struct integration_parameters_type
+    {   double r;
+        double alpha;
+        double Z;
+    } parameters;
+
+    parameters.alpha = alpha;
+    parameters.Z = Z;
+
+    auto offmass = [this](double r) {
+        return 1./(1. + Ra/r);
+    };
+
+    // Integrand
+    gsl_function integrand;
+    integrand.params = &parameters;
+    integrand.function = [](double t, void* parameters){
+        const integration_parameters_type* params = static_cast<const integration_parameters_type*>(parameters);
+        double t2 = t * t;
+
+        double part1 = std::sqrt(t2 - 1.0);
+        double part2 = (1. - 0.5/t2) * (std::log(t2-1) + 4.*log(1./params->Z/params->alpha + 0.5)) - 1.5 + 1./t2;
+        double part3 = 2./3. * std::exp(-2.0 * t * params->r/params->alpha);
+
+        return (part2 * part3)/part1;
+    };
+
+    size_t sizelimit = 1000;
+    double prefactor = -AfitSP * 3. * Z * alpha / (2. * math->Pi());
+
+    gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
+    gsl_set_error_handler_off();
+    double cumulative_error = 0.;
+
+    // Get potential
+    int i = 0;
+    while(R[i] < lattice->size())
+    {
+        parameters.r = R[i];
+        double integral;
+        double abserr;
+
+        int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+        if(ierr)
+            cumulative_error += fabs(prefactor/parameters.r * abserr * dR[i]);
+
+        directPotential.f[i] = prefactor/parameters.r * integral;
+
+        if(fabs(directPotential.f[i]) < 1.e-15)
+            break;
+        i++;
+    }
+
+    directPotential.resize(mmin(i+1, lattice->size()));
+
+    // Add offmass correction
+    for(i = 0; i < directPotential.size(); i++)
+        directPotential.f[i] *= offmass(R[i]);
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "ElectricSelfEnergyDecorator::GeneratePointEhigh() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
+
+    // Get derivative
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 void ElectricSelfEnergyDecorator::GenerateStepEhigh(double nuclear_rms_radius)
@@ -873,7 +1030,6 @@ void ElectricSelfEnergyDecorator::GenerateStepElow(double nuclear_rms_radius)
 /** Generate low-frequency electric part from given density. */
 void ElectricSelfEnergyDecorator::GenerateElow(const RadialFunction& density)
 {
-    // Use point-like here
     RadialFunction Elow(lattice->size());
 
     double alpha = physicalConstant->GetAlpha();
