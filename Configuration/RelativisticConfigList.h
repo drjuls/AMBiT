@@ -177,7 +177,7 @@ public:
     const_iterator small_end() const { return const_iterator(std::next(m_list.begin(), Nsmall)); }
 
     iterator erase(iterator position);
-    iterator erase(const_iterator first, const_iterator last);
+    iterator erase(iterator first, iterator last);
 
     RelativisticConfiguration& front() { return m_list.front(); }
     const RelativisticConfiguration& front() const { return m_list.front(); }
