@@ -12,13 +12,84 @@
 UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
-    GenerateStepUehling(nuclear_rms_radius);
+    if(nuclear_rms_radius < 0.1)
+        GeneratePointUehling();
+    else
+        GenerateStepUehling(nuclear_rms_radius);
 }
 
 UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
     GenerateUehling(density);
+}
+
+void UehlingDecorator::GeneratePointUehling()
+{
+    directPotential.Clear();
+    directPotential.resize(lattice->size());
+
+    MathConstant* math = MathConstant::Instance();
+    double alpha = physicalConstant->GetAlpha();
+    const double* R = lattice->R();
+    const double* dR = lattice->dR();
+
+    struct integration_parameters_type
+    {   double r;
+        double alpha;
+    } parameters;
+
+    parameters.alpha = alpha;
+
+    // Interior integrand: params = {r, r_n (atomic units), alpha}
+    gsl_function integrand;
+    integrand.params = &parameters;
+    integrand.function = [](double t, void* parameters){
+        const integration_parameters_type* params = static_cast<const integration_parameters_type*>(parameters);
+        double t2 = t * t;
+        double t4 = t2 * t2;
+
+        double part1 = std::sqrt(t2 - 1.0) * (1.0/t2 + 0.5/t4);
+        double part2 = std::exp(-2.0 * t * params->r/params->alpha);
+
+        return part1 * part2;
+    };
+
+    size_t sizelimit = 1000;
+    double prefactor = alpha * Z/math->Pi();
+
+    gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(sizelimit);
+    gsl_set_error_handler_off();
+    double cumulative_error = 0.;
+
+    // Get integrals and potential
+    int i = 0;
+    while(i < lattice->size())
+    {
+        parameters.r = R[i];
+        double integral;
+        double abserr;
+
+        int ierr = gsl_integration_qagiu(&integrand, 1.0, accuracy_abs, accuracy_rel, sizelimit, workspace, &integral, &abserr);
+        if(ierr)
+            cumulative_error += fabs(prefactor/parameters.r * abserr * dR[i]);
+        directPotential.f[i] = prefactor/parameters.r * integral;
+
+        if(fabs(directPotential.f[i]) < 1.e-15)
+            break;
+        i++;
+    }
+
+    directPotential.resize(mmin(i+1, lattice->size()));
+
+    // Print uncertainty
+    double V_integrated = integrator->Integrate(directPotential);
+    if(fabs(cumulative_error/V_integrated) > accuracy_rel)
+        *logstream << std::setprecision(6) << "UehlingDecorator::GeneratePointUehling() error: "
+                   << cumulative_error << " out of " << V_integrated << std::endl;
+
+    // Get derivative
+    differentiator->GetDerivative(directPotential.f, directPotential.dfdr);
 }
 
 void UehlingDecorator::GenerateStepUehling(double nuclear_rms_radius)

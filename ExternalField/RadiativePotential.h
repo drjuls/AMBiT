@@ -16,6 +16,9 @@ public:
     UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy = pIntegrator());
     UehlingDecorator(pHFOperator wrapped_hf, const RadialFunction& density, pIntegrator integration_strategy = pIntegrator());
 
+    /** Set local direct_potential to point-nucleus Uehling potential. */
+    void GeneratePointUehling();
+
     /** Set local direct_potential to Uehling potential with nuclear_rms_radius (fm). */
     void GenerateStepUehling(double nuclear_rms_radius);
 
