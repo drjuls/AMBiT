@@ -50,7 +50,7 @@ void UehlingDecorator::GeneratePointUehling()
         double t4 = t2 * t2;
 
         double part1 = std::sqrt(t2 - 1.0) * (1.0/t2 + 0.5/t4);
-        double part2 = std::exp(-2.0 * t * params->r/params->alpha);
+        double part2 = 2./3. * std::exp(-2.0 * t * params->r/params->alpha);
 
         return part1 * part2;
     };
