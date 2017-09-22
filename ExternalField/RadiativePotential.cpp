@@ -1279,7 +1279,9 @@ QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom):
             if(!user_input.search("--no-magnetic"))
                 qed = std::make_shared<MagneticSelfEnergyDecorator>(qed, nuclear_rms_radius);
             if(!user_input.search("--no-electric"))
-                qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nuclear_rms_radius);
+            {   bool skip_offmass = user_input.search("--skip-offmass");
+                qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nuclear_rms_radius, !skip_offmass);
+            }
         }
     }
 
