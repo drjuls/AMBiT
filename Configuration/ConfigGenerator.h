@@ -8,7 +8,8 @@
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
 #include "Symmetry.h"
-#include <set>
+#include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/TwoElectronCoulombOperator.h"
 
 /** ConfigGenerator makes the set of projections for use in CI method.
     This includes a bunch of routines to create a set of
@@ -30,7 +31,7 @@ public:
         This may include limiting the configurations based on configuration average energies,
         provided one_body and two_body operators are provided.
      */
-    pRelativisticConfigList GenerateConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+    pRelativisticConfigList GenerateConfigurations(pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
 
     /** Divide electrons between partial waves to create all possible relativistic configurations
         from the set of non-relativistic ones.
@@ -68,7 +69,7 @@ protected:
         This may include limiting the non-relativistic configurations based on configuration average energies,
         provided one_body and two_body operators are provided.
      */
-    pRelativisticConfigList ParseAndGenerateConfigurations(pHFOperator one_body = nullptr, pHartreeY two_body = nullptr);
+    pRelativisticConfigList ParseAndGenerateConfigurations(pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
 
     /** Generate all configurations possible by exciting one electron of the original list.
         Append the new configurations to the list.

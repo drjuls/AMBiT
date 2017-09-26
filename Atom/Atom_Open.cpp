@@ -195,7 +195,10 @@ void Atom::MakeIntegrals()
 
     auto& valence = orbitals->valence;
 
-    if(user_input.search("--check-sizes"))
+    // We don't need the two body integrals if we are just checking sizes and they are not needed by ConfigGenerator.
+    if(user_input.search("--check-sizes")
+       && !(user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
+            || user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum Coulomb integrals: " << size << std::endl;
@@ -210,7 +213,11 @@ void Atom::MakeIntegrals()
 
         // Don't need two body integrals if we're not doing CI
         if(!user_input.search(2, "--no-ci", "--no-CI"))
+        {
             two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+            if(user_input.search("--check-sizes"))
+                *outstream << "\nNum Coulomb integrals: " << two_body_integrals->size() << std::endl;
+        }
 
         // Add stored MBPT integrals
         if(one_body_mbpt)
@@ -241,7 +248,11 @@ void Atom::MakeIntegrals()
 
         // Calculate integrals for sigma3
         if(three_body_mbpt)
+        {
             threebody_electron->UpdateIntegrals();
+            if(user_input.search("--check-sizes"))
+                *outstream << "\nSigma3 Coulomb integrals: " << threebody_electron->GetStorageSize() << std::endl;
+        }
     }
 }
 
@@ -276,7 +287,9 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     if(user_input.search("--configuration-average"))
     {
         ConfigGenerator gen(orbitals, user_input);
-        allconfigs = gen.GenerateConfigurations(hf, hartreeY);
+        if(twobody_electron == nullptr)
+            MakeIntegrals();
+        allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
 
         // Create empty level set
         levels = std::make_shared<LevelMap>(identifier, nullptr);
@@ -322,7 +335,19 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        allconfigs = gen.GenerateConfigurations(hf, hartreeY);
+        if(user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
+           || user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
+           || user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
+           || user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
+        {
+            if(twobody_electron == nullptr)
+                MakeIntegrals();
+
+            allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
+        }
+        else
+            allconfigs = gen.GenerateConfigurations();
+
         leading_configs = gen.GetLeadingConfigs();
 
         ChooseHamiltonians(allconfigs);
@@ -388,11 +413,11 @@ pLevelStore Atom::ChooseHamiltonians(pRelativisticConfigList rlist)
                 }
                 else
                 {   for(int& two_j: odd_symmetries)
-                    if(two_j <= maxTwoJ)
-                    {
-                        key = std::make_shared<NonRelID>(nrconfig, two_j);
-                        levels->insert(key);
-                    }
+                        if(two_j <= maxTwoJ)
+                        {
+                            key = std::make_shared<NonRelID>(nrconfig, two_j);
+                            levels->insert(key);
+                        }
                 }
             }
         }
@@ -449,13 +474,17 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     // Don't read existing levels
     levels = std::make_shared<LevelMap>(identifier, angular_library);
 
-    // Generate configurations again; don't read from disk. */
-    ConfigGenerator gen(orbitals, user_input);
-    allconfigs = gen.GenerateConfigurations(hf, hartreeY);
-    leading_configs = gen.GetLeadingConfigs();
-
     // CI integrals
     MakeIntegrals();
+
+    // Generate configurations again; don't read from disk. */
+    ConfigGenerator gen(orbitals, user_input);
+    if(twobody_electron)
+        allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
+    else
+        allconfigs = gen.GenerateConfigurations();
+    leading_configs = gen.GetLeadingConfigs();
+
     ChooseHamiltonians(allconfigs);
 
     // Get complete list of relativistic configs for all symmetries
@@ -579,7 +608,20 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 if(configs == nullptr)
                 {
                     if(allconfigs == nullptr)
-                    {   allconfigs = gen.GenerateConfigurations(hf, hartreeY);
+                    {
+                        if(user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
+                           || user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
+                           || user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
+                           || user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
+                        {
+                            if(twobody_electron == nullptr)
+                                MakeIntegrals();
+
+                            allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
+                        }
+                        else
+                            allconfigs = gen.GenerateConfigurations();
+
                         leading_configs = gen.GetLeadingConfigs();
                     }
                 }

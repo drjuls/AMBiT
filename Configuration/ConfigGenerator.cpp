@@ -17,7 +17,7 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 {   return leading_configs;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFOperator one_body, pHartreeY two_body)
+pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     // Do sublist first since leading_configs should come from CI, rather than CI/SmallSide
     pRelativisticConfigList sublist = nullptr;
@@ -46,7 +46,7 @@ pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFOperator one_
     return biglist;
 }
 
-pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOperator one_body, pHartreeY two_body)
+pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
 
@@ -208,9 +208,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFOpera
                 {
                     int L = valence_it->first.L();
                     
-                    if(L >= limits.size())
-                        valence_it = valence_holes.erase(valence_it);
-                    else if(valence_it->first.PQN() <= limits[L])
+                    if(L < limits.size() && valence_it->first.PQN() <= limits[L])
                         valence_it = valence_holes.erase(valence_it);
                     else
                         valence_it++;

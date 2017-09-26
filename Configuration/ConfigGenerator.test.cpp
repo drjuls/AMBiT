@@ -177,7 +177,7 @@ TEST(ConfigGeneratorTester, NonSquare)
         "[CI/SmallSide]\n" +
         "LeadingConfigurations = '3d-2'\n" +
         "ElectronExcitations = '1, 4spd'\n" +
-        "HoleExcitations = '1, 4spd'\n";
+        "HoleExcitations = '1, 2sp'\n";
 
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");

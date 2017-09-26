@@ -59,7 +59,7 @@ int RelativisticConfiguration::GetNumberOfLevels() const
     return result;
 }
 
-double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body) const
+double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body) const
 {
     return ::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
 }

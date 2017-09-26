@@ -93,24 +93,29 @@ void NonRelConfiguration::SplitNonRelInfo(NonRelConfiguration::const_iterator cu
     }
 }
 
-double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body)
+double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
-    double energy = 0.;
-    int num_levels = 0;
-
-    if(relconfiglist == nullptr)
-        GenerateRelativisticConfigs();
-
-    for(const auto& rconfig: *relconfiglist)
+    if(std::isnan(config_average_energy))
     {
-        int rconfig_num_levels = rconfig.GetNumberOfLevels();
-        double rconfig_energy = rconfig.CalculateConfigurationAverageEnergy(orbitals, one_body, two_body);
+        double energy = 0.;
+        num_levels = 0;
 
-        energy += rconfig_num_levels * rconfig_energy;
-        num_levels += rconfig_num_levels;
+        if(relconfiglist == nullptr)
+            GenerateRelativisticConfigs();
+
+        for(const auto& rconfig: *relconfiglist)
+        {
+            int rconfig_num_levels = rconfig.GetNumberOfLevels();
+            double rconfig_energy = rconfig.CalculateConfigurationAverageEnergy(orbitals, one_body, two_body);
+
+            energy += rconfig_num_levels * rconfig_energy;
+            num_levels += rconfig_num_levels;
+        }
+
+        config_average_energy = energy/num_levels;
     }
 
-    return energy/num_levels;
+    return config_average_energy;
 }
 
 int NonRelConfiguration::GetTwiceMaxProjection() const
@@ -141,12 +146,14 @@ int NonRelConfiguration::GetTwiceMaxProjection() const
 
 int NonRelConfiguration::GetNumberOfLevels()
 {
-    if(relconfiglist == nullptr)
-        GenerateRelativisticConfigs();
+    if(!num_levels)
+    {
+        if(relconfiglist == nullptr)
+            GenerateRelativisticConfigs();
 
-    int num_levels = 0;
-    for(auto& rconfig: *relconfiglist)
-        num_levels += rconfig.GetNumberOfLevels();
+        for(auto& rconfig: *relconfiglist)
+            num_levels += rconfig.GetNumberOfLevels();
+    }
 
     return num_levels;
 }

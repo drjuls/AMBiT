@@ -533,7 +533,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
         }
         else
         {   OccupationMap rcompound = target + rdiff;
-            eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf, hartreeY) - ionization_energy;
+            eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf_electron, twobody_electron->GetIntegrals()) - ionization_energy;
         }
 
         if(energy_limit > 0.0 && (eps_energy > energy_limit))

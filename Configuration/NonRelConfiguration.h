@@ -6,8 +6,8 @@
 #include "HartreeFock/NonRelInfo.h"
 #include "RelativisticConfigList.h"
 #include "HartreeFock/OrbitalMap.h"
-#include "HartreeFock/HFOperator.h"
-#include "HartreeFock/HartreeY.h"
+#include "MBPT/OneElectronIntegrals.h"
+#include "MBPT/SlaterIntegrals.h"
 #include "SortedList.h"
 #include <set>
 
@@ -40,7 +40,7 @@ public:
     pRelativisticConfigList GenerateRelativisticConfigs();
 
     /** Calculate configuration average energy using relconfiglist. */
-    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body);
+    double CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body);
 
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;
@@ -57,6 +57,9 @@ protected:
         When at end(), add it to relconfiglist.
      */
     void SplitNonRelInfo(NonRelConfiguration::const_iterator current_orbital, RelativisticConfiguration& relconfig);
+
+    double config_average_energy = std::numeric_limits<double>::quiet_NaN();
+    unsigned int num_levels = 0;    //!< Number of levels including all magnetic sublevels.
 };
 
 /** ConfigList has a list and an unsigned int to indicate a small cut-off (Nsmall). */
