@@ -235,9 +235,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
-    LevelVector levels;
-    if(hID->GetRelativisticConfigList() == nullptr)
-        hID->SetRelativisticConfigList(configs);
+    LevelVector levelvec;
+    levelvec.hID = hID;
+    levelvec.configs = configs;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
 
@@ -249,7 +249,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
     {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
         {
             *outstream << "; Finding solutions using Eigen..." << std::endl;
-            levels.reserve(NumSolutions);
+            levelvec.levels.reserve(NumSolutions);
 
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
             const Eigen::VectorXd& E = es.eigenvalues();
@@ -257,18 +257,18 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
             for(unsigned int i = 0; i < NumSolutions; i++)
             {
-                levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
             }
         }
     #ifdef AMBIT_USE_SCALAPACK
         else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
         {
-            levels = SolveMatrixScalapack(hID, NumSolutions, false);
+            levelvec = SolveMatrixScalapack(hID, NumSolutions, false);
         }
     #endif
         else
         {   *outstream << "; Finding solutions using Davidson..." << std::endl;
-            levels.reserve(NumSolutions);
+            levelvec.levels.reserve(NumSolutions);
 
             double* V = new double[NumSolutions * N];
             double* E = new double[NumSolutions];
@@ -282,7 +282,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
             for(unsigned int i = 0; i < NumSolutions; i++)
             {
-                levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
+                levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
             }
 
             delete[] E;
@@ -290,15 +290,15 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         }
     }
 
-    return levels;
+    return levelvec;
 }
 
 #ifdef AMBIT_USE_SCALAPACK
 LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit)
 {
-    LevelVector levels;
-    if(hID->GetRelativisticConfigList() == nullptr)
-        hID->SetRelativisticConfigList(configs);
+    LevelVector levelvec;
+    levelvec.hID = hID;
+    levelvec.configs = configs;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
 
@@ -340,7 +340,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
 
         // Get levels. Using a larger buffer is generally better, so
         // choose something around 1M * 8 bytes (small enough to be "in the noise")
-        levels.reserve(NumSolutions);
+        levelvec.levels.reserve(NumSolutions);
         unsigned int column_begin = 0;
         unsigned int num_columns_per_step = 1000000/N;
         double* V = new double[N * num_columns_per_step];  // Eigenvectors
@@ -352,7 +352,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
 
             double* pV = V;
             while(column_begin < column_end)
-            {   levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
+            {   levelvec.levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
                 column_begin++;
                 pV += N;
             }
@@ -362,7 +362,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         delete[] V;
     }
 
-    return levels;
+    return levelvec;
 }
 #endif
 

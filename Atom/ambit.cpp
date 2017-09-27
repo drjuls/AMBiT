@@ -312,7 +312,7 @@ void Ambit::EnergyCalculations()
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
         }
 
-        for(auto& key: *levels)
+        for(auto& key: levels->keys)
         {
             for(int i = 0; i < run_indexes.size(); i++)
             {
@@ -432,20 +432,24 @@ void Ambit::Recombination()
     // Get target level
     pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
     LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
+
     int target_level_index = user_input("DR/Target/Index", 0);
-    if(target_level_vec.size() <= target_level_index)
+    if(target_level_vec.levels.size() <= target_level_index)
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
-    pLevelConst target_level = target_level_vec[target_level_index];
+
+    auto keep = std::next(target_level_vec.levels.begin(), target_level_index);
+    target_level_vec.levels.erase(target_level_vec.levels.begin(), keep);
+    target_level_vec.levels.resize(1);
 
     // Get widths of current levels
     if(user_input.search("--configuration-average"))
-        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level);
+        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
     else if(user_input.search("DR/--energy-grid"))
-        atoms[first_run_index].AutoionizationEnergyGrid(target_level);
+        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
     else
-        atoms[first_run_index].Autoionization(target_level);
+        atoms[first_run_index].Autoionization(target_level_vec);
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

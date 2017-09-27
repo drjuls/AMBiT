@@ -97,16 +97,16 @@ public:
 
     inline void CalculateGFactors(LevelVector& levels) const
     {
-        if(levels.size() == 0 || levels.front()->GetTwoJ() == 0)
+        if(levels.levels.size() == 0 || levels.hID->GetTwoJ() == 0)
             return;
 
-        double J = double(levels.front()->GetTwoJ())/2.;
+        double J = double(levels.hID->GetTwoJ())/2.;
 
         std::vector<double> total_Sz = Sz.GetMatrixElement(levels);
 
         auto Sz_it = total_Sz.begin();
-        auto it = levels.begin();
-        while(it != levels.end() && Sz_it != total_Sz.end())
+        auto it = levels.levels.begin();
+        while(it != levels.levels.end() && Sz_it != total_Sz.end())
         {
             (*it)->SetgFactor(*Sz_it/J + 1.);
             it++;

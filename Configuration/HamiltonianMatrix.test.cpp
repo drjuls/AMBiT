@@ -70,8 +70,8 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     // Solve matrix
     LevelVector levels = H_even.SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
-    Print(levels);
-    ground_state_energy = levels[0]->GetEnergy();
+    levels.Print();
+    ground_state_energy = levels.levels[0]->GetEnergy();
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
@@ -79,13 +79,13 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
-    levels = H_odd.SolveMatrix(std::make_shared<HamiltonianID>(sym, relconfigs), 3);
+    levels = H_odd.SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
     GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
     g_factors.CalculateGFactors(levels);
-    Print(levels);
-    excited_state_energy = levels[0]->GetEnergy();
+    levels.Print();
+    excited_state_energy = levels.levels[0]->GetEnergy();
 
-    EXPECT_NEAR(1.5, levels[0]->GetgFactor(), 0.001);
+    EXPECT_NEAR(1.5, levels.levels[0]->GetgFactor(), 0.001);
 
     // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
     EXPECT_NEAR(21870, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
@@ -154,7 +154,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
             LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
             electron_levels->Store(key, levels);
-            Print(levels);
+            levels.Print();
         }
     }
 
@@ -212,27 +212,27 @@ TEST(HamiltonianMatrixTester, HolesOnly)
             LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
             hole_levels->Store(key, levels);
-            Print(levels);
+            levels.Print();
         }
     }
 
-    ASSERT_EQ(electron_levels->size(), hole_levels->size());
+    ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
 
-        ASSERT_EQ(elv.size(), hlv.size());
+        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
 
-        for(int i = 0; i < elv.size(); i++)
+        for(int i = 0; i < elv.levels.size(); i++)
         {
-            double e = elv[i]->GetEnergy() - electron_base;
-            double h = hlv[i]->GetEnergy() - hole_base;
+            double e = elv.levels[i]->GetEnergy() - electron_base;
+            double h = hlv.levels[i]->GetEnergy() - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -365,23 +365,23 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         }
     }
 
-    ASSERT_EQ(electron_levels->size(), hole_levels->size());
+    ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
 
-        ASSERT_EQ(elv.size(), hlv.size());
+        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
 
-        for(int i = 0; i < elv.size(); i++)
+        for(int i = 0; i < elv.levels.size(); i++)
         {
-            double e = elv[i]->GetEnergy() - electron_base;
-            double h = hlv[i]->GetEnergy() - hole_base;
+            double e = elv.levels[i]->GetEnergy() - electron_base;
+            double h = hlv.levels[i]->GetEnergy() - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -451,7 +451,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
             LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
             electron_levels->Store(key, levels);
-            Print(levels);
+            levels.Print();
         }
     }
     
@@ -507,27 +507,27 @@ TEST(HamiltonianMatrixTester, LiPlus)
             LevelVector levels = H.SolveMatrix(key, 6);
             g_factors.CalculateGFactors(levels);
             hole_levels->Store(key, levels);
-            Print(levels);
+            levels.Print();
         }
     }
     
-    ASSERT_EQ(electron_levels->size(), hole_levels->size());
+    ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
     
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key)[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key)[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
+    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
         
-        ASSERT_EQ(elv.size(), hlv.size());
+        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
 
-        for(int i = 0; i < elv.size(); i++)
+        for(int i = 0; i < elv.levels.size(); i++)
         {
-            double e = elv[i]->GetEnergy() - electron_base;
-            double h = hlv[i]->GetEnergy() - hole_base;
+            double e = elv.levels[i]->GetEnergy() - electron_base;
+            double h = hlv.levels[i]->GetEnergy() - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -656,17 +656,17 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         }
     }
 
-    ASSERT_EQ(stretched_levels->size(), m_levels->size());
+    ASSERT_EQ(stretched_levels->keys.size(), m_levels->keys.size());
 
     for(auto& key: *stretched_levels)
     {
         LevelVector slv = stretched_levels->GetLevels(key);
         LevelVector mlv = m_levels->GetLevels(key);
 
-        for(int i = 0; i < slv.size(); i++)
+        for(int i = 0; i < slv.levels.size(); i++)
         {
-            double e = slv[i]->GetEnergy();
-            double h = mlv[i]->GetEnergy();
+            double e = slv.levels[i]->GetEnergy();
+            double h = mlv.levels[i]->GetEnergy();
         
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }

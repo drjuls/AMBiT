@@ -185,28 +185,26 @@ TEST(EJOperatorTester, HeTransitions)
     H_even.GenerateMatrix();
 
     // Solve matrix
-    auto hID = std::make_shared<HamiltonianID>(sym, relconfigs);
-    LevelVector levels = H_even.SolveMatrix(hID, 3);
-    Print(levels);
-    pLevel ground_state = levels[0];
-    pLevel singlet_S = levels[1];
-    ground_state_energy = ground_state->GetEnergy();
+    auto hID = std::make_shared<HamiltonianID>(sym);
+    auto Even3 = H_even.SolveMatrix(hID, 3);
+    Even3.Print();
+    ground_state_energy = Even3.levels[0]->GetEnergy();
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
     relconfigs = config_generator.GenerateRelativisticConfigurations(allconfigs, sym, angular_library);
-    hID = std::make_shared<HamiltonianID>(sym, relconfigs);
+    hID = std::make_shared<HamiltonianID>(sym);
 
     HamiltonianMatrix H_odd(hf_electron, twobody_electron, relconfigs);
     H_odd.GenerateMatrix();
-    levels = H_odd.SolveMatrix(hID, 3);
+    auto Odd3 = H_odd.SolveMatrix(hID, 3);
     GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
-    g_factors.CalculateGFactors(levels);
-    Print(levels);
+    g_factors.CalculateGFactors(Odd3);
+    Odd3.Print();
 
-    pLevel singlet_P = levels[1];
-    pLevel triplet_P = levels[0];
-    excited_state_energy = singlet_P->GetEnergy();
+    pLevel singlet_P = Odd3.levels[1];
+    pLevel triplet_P = Odd3.levels[0];
+    excited_state_energy = Odd3.levels[1]->GetEnergy();
     EXPECT_NEAR(1.5, triplet_P->GetgFactor(), 0.001);
     EXPECT_NEAR(1.0, singlet_P->GetgFactor(), 0.001);
 
@@ -220,26 +218,26 @@ TEST(EJOperatorTester, HeTransitions)
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
 
-    double matrix_element = E1_many_body.GetMatrixElement(*ground_state, *singlet_P);
+    double matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[1];
     double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
-    matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *ground_state);
+    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.levels.size() * 1 + 0];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "2s2p 1P1 -> 1s2: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(0.5311, reduced_matrix_element * reduced_matrix_element, 0.05);
 
-    matrix_element = E1_many_body.GetMatrixElement(*singlet_S, *singlet_P);
+    matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[Odd3.levels.size() * 1 + 1];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "1s2s 1S0 -> 2s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
-    matrix_element = E1_many_body.GetMatrixElement(*singlet_P, *singlet_S);
+    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.levels.size() * 1 + 1];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "2s2p 1P1 -> 1s2s 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(25.52, reduced_matrix_element * reduced_matrix_element, 2.5);
 
-    matrix_element = E1_many_body.GetMatrixElement(*triplet_P, *ground_state);
+    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[0];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2p 3P1 -> 1s2 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
-    matrix_element = E1_many_body.GetMatrixElement(*ground_state, *triplet_P);
+    matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[0];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2 1S0 -> 1s2p 3P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(5.4e-8, reduced_matrix_element * reduced_matrix_element, 1.e-4);
@@ -309,7 +307,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
-        m1_electron = M1_many_body.GetMatrixElement(*levels[2], *levels[1]);
+        m1_electron = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 
         // Convert to strength = (reduced matrix element)^2
         m1_electron = m1_electron/math->Electron3j(sym.GetTwoJ(), sym.GetTwoJ(), 1, sym.GetTwoJ(), -sym.GetTwoJ());
@@ -373,7 +371,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
-        m1_hole = M1_many_body.GetMatrixElement(*levels[2], *levels[1]);
+        m1_hole = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 
         // Convert to strength = (reduced matrix element)^2
         m1_hole = m1_hole/math->Electron3j(sym.GetTwoJ(), sym.GetTwoJ(), 1, sym.GetTwoJ(), -sym.GetTwoJ());
