@@ -109,11 +109,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #endif
         for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
-            
-            // The two- and three-body operators are slightly stateful, so each OpenMP thread needs its own copy to avoid race conditions
-#ifdef AMBIT_USE_OPENMP
-            auto H_two_body_copy = std::make_shared<TwoBodyHamiltonianOperator>(*H_two_body);
-#endif
             // Get config_it from the current confg_index (this is slow(ish) but thread-safe)
             config_it = (*configs)[config_index];
 
@@ -154,22 +149,11 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                             double operatorH;
                             if(do_three_body)
                             {
-                                // NB - Only use the copy of the operator if we're in OMP mode
-                                #ifdef AMBIT_USE_OPENMP
-                                auto H_three_body_copy = std::make_shared<ThreeBodyHamiltonianOperator>(*H_three_body);
-                                operatorH = H_three_body_copy->GetMatrixElement(*proj_it, *proj_jt);
-                                #else
                                 operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
-                                #endif
                             }
                             else
                             {
-                                #ifdef AMBIT_USE_OPENMP
-                                operatorH = H_two_body_copy->GetMatrixElement(*proj_it, *proj_jt);
-                                #else
                                 operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-                                #endif
-
                             }
                             if(fabs(operatorH) > 1.e-15)
                             {
@@ -218,11 +202,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
                     while(proj_jt != config_it.projection_end())
                     {
-                        #ifdef AMBIT_USE_OPENMP
-                        double operatorH = H_two_body_copy->GetMatrixElement(*proj_it, *proj_jt);
-                        #else
                         double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-                        #endif
 
                         if(fabs(operatorH) > 1.e-15)
                         {

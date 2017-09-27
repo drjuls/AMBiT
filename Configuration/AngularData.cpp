@@ -532,8 +532,6 @@ void AngularDataLibrary::GenerateCSFs()
     int otherRank = 2 * NumProcessors - 1 - ProcessorRank;
 
     // Split the big CSFs up into OpenMP tasks
-    *outstream << "Generating " << big_library.size() << " large CSFs" << std::endl;
-
     for(auto& pair: big_library)
     {
         Symmetry sym(pair.first[0].first);
