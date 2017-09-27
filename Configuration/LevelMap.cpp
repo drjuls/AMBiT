@@ -18,7 +18,7 @@ LevelVector LevelMap::GetLevels(pHamiltonianID key)
 {
     auto it = m_map.find(key);
     if(it == m_map.end())
-        return LevelVector();
+        return LevelVector(key);
     else
         return it->second;
 }
@@ -26,7 +26,7 @@ LevelVector LevelMap::GetLevels(pHamiltonianID key)
 void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
 {
     keys.insert(key);
-    m_map[key] = level_vector;
+    m_map.insert(std::make_pair(key, level_vector));
 
     if(ProcessorRank == 0 && level_vector.levels.size() && !filename_prefix.empty())
     {
@@ -98,6 +98,8 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 
         // Read configs and recover angular data
         LevelVector& levelvec = m_map[key];
+        if(levelvec.hID == nullptr)
+            levelvec.hID = key;
         levelvec.configs = std::make_shared<RelativisticConfigList>();
         levelvec.configs->Read(fp);
 
@@ -160,7 +162,7 @@ FileSystemLevelStore::FileSystemLevelStore(const std::string& dir_name, const st
 
 LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
 {
-    LevelVector levelvec;
+    LevelVector levelvec(key);
     std::string filename = filename_prefix + "." + key->Name() + ".levels";
     filename = (directory / filename).string();
 

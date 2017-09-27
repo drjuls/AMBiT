@@ -14,8 +14,14 @@
 class LevelVector
 {
 public:
-    LevelVector() = default;
-    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level) {}
+    LevelVector(pHamiltonianID hID = nullptr): hID(hID) {}
+    LevelVector(pHamiltonianID hID, pRelativisticConfigList configs, pLevel level):
+        hID(hID), configs(configs), levels(1, level) {}
+    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level)
+    {
+        if(level)
+            hID = level->GetHamiltonianID();
+    }
 
     pHamiltonianID hID {nullptr};
     pRelativisticConfigList configs {nullptr};

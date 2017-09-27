@@ -235,8 +235,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
-    LevelVector levelvec;
-    levelvec.hID = hID;
+    LevelVector levelvec(hID);
     levelvec.configs = configs;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
