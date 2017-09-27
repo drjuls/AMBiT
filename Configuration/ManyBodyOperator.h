@@ -779,6 +779,13 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
     auto config_it = configs_left->begin();
     int config_index = 0;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel 
+    {
+    // make a vector to hold the total for each thread
+    std::vector<double> my_total(return_size, 0.);
+    #pragma omp single nowait
+#endif
     while(config_it != configs_left->end())
     {
         auto config_jt = configs_right->begin();
@@ -788,6 +795,10 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
             {
                 if(IsMyJob(config_index))
                 {
+#ifdef AMBIT_USE_OPENMP
+                    #pragma omp task firstprivate(config_it, config_jt, config_index, solution) shared(total)
+                    {
+#endif
                     // Iterate over projections
                     auto proj_it = config_it.projection_begin();
                     while(proj_it != config_it.projection_end())
@@ -821,7 +832,12 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                                             for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
                                                 pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
                                             {
+#ifdef AMBIT_USE_OPENMP
+                                                my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+
+#else
                                                 total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+#endif
                                                 coeff_j++;
                                             }
                                             coeff_i++;
@@ -835,13 +851,26 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                         }
                         proj_it++;
                     }
-                }
+#ifdef AMBIT_USE_OPENMP
+                    } // OpenMP task 
+#endif
+                } // MPI work distribution
                 config_index++;
             }
             config_jt++;
         }
         config_it++;
+    } // config_it
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp taskwait
+    // Finally, gather all the thread totals into the final results
+    #pragma omp critical(MAANY_BODY_OP)
+    for(int ii = 0; ii < return_size; ++ii)
+    {
+        total[ii] += my_total[ii];
     }
+    } // OpenMP parallel region
+#endif
 
 #ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(return_size, 0.);
