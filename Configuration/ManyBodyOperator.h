@@ -775,15 +775,25 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     pRelativisticConfigListConst configs_right = right_levels.front()->GetRelativisticConfigList();
     std::vector<double> total(return_size, 0.);
 
+#ifdef AMBIT_USE_OPENMP
+    /* Make a vector to hold the total for each thread. This needs to be static and thread private 
+       so its contents persist across different OpenMP tasks (N.B. this is only here because gcc 
+       and clang differ in how they handle data persistence between tasks)
+    */
+    static std::vector<double> my_total;
+    #pragma omp threadprivate(my_total)
+    
+    // Clear the running totals *before* we enter the parallel region
+    my_total.assign(return_size, 0.);
+#endif
+
     unsigned int solution = 0;
 
     auto config_it = configs_left->begin();
     int config_index = 0;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel 
+    #pragma omp parallel copyin(my_total)
     {
-    // make a vector to hold the total for each thread
-    std::vector<double> my_total(return_size, 0.);
     #pragma omp single nowait
 #endif
     while(config_it != configs_left->end())
@@ -796,7 +806,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                 if(IsMyJob(config_index))
                 {
 #ifdef AMBIT_USE_OPENMP
-                    #pragma omp task firstprivate(config_it, config_jt, config_index, solution) shared(total)
+                    #pragma omp task firstprivate(config_it, config_jt, config_index, solution) 
                     {
 #endif
                     // Iterate over projections
@@ -860,7 +870,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
             config_jt++;
         }
         config_it++;
-    } // config_it
+    } // config_it + OpenMP single construct
 #ifdef AMBIT_USE_OPENMP
     #pragma omp taskwait
     // Finally, gather all the thread totals into the final results
