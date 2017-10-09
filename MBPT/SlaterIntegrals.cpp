@@ -223,6 +223,9 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     }
     else if((s1.L() + s3.L() + k) == 0)
     {   // Only print error if requested integral has correct parity rules
+#ifdef AMBIT_USE_OPENMP
+        #pragma omp critical(ERRSTREAM)
+#endif
         *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
                    << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << "):  key = "
