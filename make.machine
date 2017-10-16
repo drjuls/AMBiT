@@ -46,17 +46,19 @@ ifeq ($(MACHINE), default)
 
   ifdef debug
     BUILD     = Debug
-    CXXFLAGS  = -g -DAMBIT_USE_OPENMP
+    CXXFLAGS  = -g 
     CFLAGS    = -g
   else
     BUILD     = Release
-    CXXFLAGS  = -O3 -DAMBIT_USE_OPENMP 
+    CXXFLAGS  = -O3 
     CFLAGS    = -O3 
     F77FLAGS  = -O2
   endif
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
+
+  CXXFLAGS += -DAMBIT_USE_OPENMP 
 endif
 
 ifeq ($(MACHINE), nci)
