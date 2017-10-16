@@ -39,7 +39,7 @@ public:
 
     typedef std::vector<const ElectronInfo*> IndirectProjection;
 
-    // Bundle all the indirect projections into a struct to allow for one indirect projection per thread
+    // Bundle all the indirect projections into a struct to allow each thread to have its own persistent copy
     struct IndirectProjections {
         IndirectProjection left, right;
         IndirectProjection diff1, diff2;
@@ -156,7 +156,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 
 
 #ifdef AMBIT_USE_OPENMP
-    // Grab the indirect projections for this thread
+    // Get the indirect projections for this thread
     IndirectProjections& my_projections = indirects_list[omp_get_thread_num()];
 #endif
     make_indirect_projection(proj_left, my_projections.left); 
@@ -776,9 +776,10 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     std::vector<double> total(return_size, 0.);
 
 #ifdef AMBIT_USE_OPENMP
-    /* Make a vector to hold the total for each thread. This needs to be static and thread private 
-       so its contents persist across different OpenMP tasks (N.B. this is only here because gcc 
-       and clang differ in how they handle data persistence between tasks)
+    /* Make a vector to hold the running total for each thread. This needs to be static and 
+       threadprivate so its contents persist across different OpenMP tasks (N.B. this is only here 
+       because gcc and clang have different ideas about whether the value of private variables should 
+       persist across tasks executed by the same thread)
     */
     static std::vector<double> my_total;
     #pragma omp threadprivate(my_total)
@@ -792,94 +793,95 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     auto config_it = configs_left->begin();
     int config_index = 0;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel copyin(my_total)
+    // Need to explicitly copyin here to ensure my_total is initialised before use
+    #pragma omp parallel copyin(my_total) 
     {
     #pragma omp single 
 #endif
-    while(config_it != configs_left->end())
-    {
-        auto config_jt = configs_right->begin();
-        while(config_jt != configs_right->end())
+        while(config_it != configs_left->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = configs_right->begin();
+            while(config_jt != configs_right->end())
             {
-                if(IsMyJob(config_index))
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-#ifdef AMBIT_USE_OPENMP
-                    #pragma omp task default(none) firstprivate(config_it, config_jt, config_index, \
+                    if(IsMyJob(config_index))
+                    {
+    #ifdef AMBIT_USE_OPENMP
+                        #pragma omp task default(none) firstprivate(config_it, config_jt, config_index, \
 solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
-                    {
-#endif
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
-                    {
-                        int left_start_CSF_index = proj_it.CSF_begin().index();
-                        int left_end_CSF_index = proj_it.CSF_end().index();
-
-                        auto proj_jt = config_jt.projection_begin();
-                        while(proj_jt != config_jt.projection_end())
                         {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
+    #endif
+                        // Iterate over projections
+                        auto proj_it = config_it.projection_begin();
+                        while(proj_it != config_it.projection_end())
+                        {
+                            int left_start_CSF_index = proj_it.CSF_begin().index();
+                            int left_end_CSF_index = proj_it.CSF_end().index();
 
-                            // coefficients
-                            if(matrix_element)
+                            auto proj_jt = config_jt.projection_begin();
+                            while(proj_jt != config_jt.projection_end())
                             {
-                                int right_start_CSF_index = proj_jt.CSF_begin().index();
-                                int right_end_CSF_index = proj_jt.CSF_end().index();
+                                double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
 
-                                solution = 0;
-                                for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                                // coefficients
+                                if(matrix_element)
                                 {
-                                    for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
-                                    {
-                                        auto coeff_i = proj_it.CSF_begin();
-                                        for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
-                                            pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
-                                        {
-                                            double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
+                                    int right_start_CSF_index = proj_jt.CSF_begin().index();
+                                    int right_end_CSF_index = proj_jt.CSF_end().index();
 
-                                            auto coeff_j = proj_jt.CSF_begin();
-                                            for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
-                                                pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
+                                    solution = 0;
+                                    for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                                    {
+                                        for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
+                                        {
+                                            auto coeff_i = proj_it.CSF_begin();
+                                            for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
+                                                pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
                                             {
+                                                double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
+
+                                                auto coeff_j = proj_jt.CSF_begin();
+                                                for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
+                                                    pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
+                                                {
 #ifdef AMBIT_USE_OPENMP
-                                                my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+                                                    my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
 
 #else
-                                                total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+                                                    total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
 #endif
-                                                coeff_j++;
+                                                    coeff_j++;
+                                                }
+                                                coeff_i++;
                                             }
-                                            coeff_i++;
-                                        }
 
-                                        solution++;
+                                            solution++;
+                                        }
                                     }
                                 }
+                                proj_jt++;
                             }
-                            proj_jt++;
+                            proj_it++;
                         }
-                        proj_it++;
-                    }
-#ifdef AMBIT_USE_OPENMP
-                    } // OpenMP task 
-#endif
-                } // MPI work distribution
-                config_index++;
+    #ifdef AMBIT_USE_OPENMP
+                        } // OpenMP task 
+    #endif
+                    } // MPI work distribution
+                    config_index++;
+                }
+                config_jt++;
             }
-            config_jt++;
+            config_it++;
+        } // config_it + OpenMP single construct
+    #ifdef AMBIT_USE_OPENMP
+        #pragma omp barrier
+        // Finally, gather all the thread totals into the final results
+        #pragma omp critical(MANY_BODY_OP)
+        for(int ii = 0; ii < return_size; ++ii)
+        {
+            total[ii] += my_total[ii];
         }
-        config_it++;
-    } // config_it + OpenMP single construct
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp barrier
-    // Finally, gather all the thread totals into the final results
-    #pragma omp critical(MANY_BODY_OP)
-    for(int ii = 0; ii < return_size; ++ii)
-    {
-        total[ii] += my_total[ii];
-    }
     } // OpenMP parallel region
 #endif
 

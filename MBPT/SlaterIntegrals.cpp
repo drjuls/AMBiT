@@ -49,7 +49,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     // Get Y^k_{31}
     auto it_1 = orbital_map_1->begin();
 #ifdef AMBIT_USE_OPENMP
-    // Make a clone of the HartreeY operator for each OpenMP thread
+    // The HartreeY operator is not thread-safe, so make a separate clone for each thread
     std::vector<pHartreeY> hartreeY_operators;
     for(int ii = 0; ii < omp_get_max_threads(); ++ii){
         hartreeY_operators.emplace_back(hartreeY_operator->Clone());

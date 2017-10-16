@@ -104,7 +104,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         // Loop through configs for this chunk
         unsigned int config_index;
 #ifdef AMBIT_USE_OPENMP
-        // Note: our load balancing works when the matrix into chunks (so we get exactly one config per OMP thread here), so use static scheduling
+        // Note: load balancing is achieved by breaking the matrix into chunks (currently handling one config per OMP thread), so use static scheduling
         #pragma omp parallel for private(config_index, config_it) schedule(static)
 #endif
         for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
