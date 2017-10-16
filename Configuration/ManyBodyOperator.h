@@ -806,7 +806,8 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                 if(IsMyJob(config_index))
                 {
 #ifdef AMBIT_USE_OPENMP
-                    #pragma omp task default(shared) firstprivate(config_it, config_jt, config_index, solution) shared(total)
+                    #pragma omp task default(none) firstprivate(config_it, config_jt, config_index, \
+solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
                     {
 #endif
                     // Iterate over projections
@@ -870,9 +871,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
             config_jt++;
         }
         config_it++;
-    } // config_it + OpenMP single construct. There is an implicit OpenMP barrier here
+    } // config_it + OpenMP single construct
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp taskwait
+    #pragma omp barrier
     // Finally, gather all the thread totals into the final results
     #pragma omp critical(MANY_BODY_OP)
     for(int ii = 0; ii < return_size; ++ii)
