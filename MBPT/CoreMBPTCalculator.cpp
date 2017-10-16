@@ -2,6 +2,10 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 
+#ifdef AMBIT_USE_OPENMP
+#include <omp.h>
+#endif
+
 CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
     MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
@@ -80,13 +84,14 @@ double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalI
                    << ", " << s3.Name() << " " << s4.Name() << ") :" << std::endl;
 
     double term = 0.;
+
     term += CalculateTwoElectron1(k, s1, s2, s3, s4);
     term += CalculateTwoElectron2(k, s1, s2, s3, s4);
     term += CalculateTwoElectron3(k, s1, s2, s3, s4);
     term += CalculateTwoElectron4(k, s1, s2, s3, s4);
     term += CalculateTwoElectron5(k, s1, s2, s3, s4);
     term += CalculateTwoElectron6(k, s1, s2, s3, s4);
-
+    
     return term;
 }
 
@@ -553,10 +558,16 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
         *logstream << "TwoE 1:   ";
 
     double energy = 0.;
-
-    auto it_n = core->begin();
-    while(it_n != core->end())
+    int nn;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(nn) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(int nn = 0; nn < core->size(); ++nn)
     {
+        auto it_n = core->begin();
+        std::advance(it_n, nn);
         const OrbitalInfo& sn = it_n->first;
         const double En = it_n->second->Energy();
 
@@ -591,7 +602,6 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
             }
             it_alpha++;
         }
-        it_n++;
     }
 
     if(debug)
@@ -614,9 +624,16 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
 
     unsigned int k1, k1max;
 
-    auto it_n = core->begin();
-    while(it_n != core->end())
+    int nn;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(nn, k1, k1max) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(nn = 0; nn < core->size(); ++nn)
     {
+        auto it_n = core->begin();
+        std::advance(it_n, nn);
         const OrbitalInfo& sn = it_n->first;
         const double En = it_n->second->Energy();
 
@@ -688,7 +705,6 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
             }
             it_alpha++;
         }
-        it_n++;
     }
 
     if(debug)
@@ -717,9 +733,17 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     unsigned int k1, k1max;
     unsigned int k2, k2max;
 
-    auto it_n = core->begin();
-    while(it_n != core->end())
+    int nn;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(nn, k1, k1max, k2, k2max) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(nn = 0; nn < core->size(); ++nn)
     {
+        auto it_n = core->begin();
+        std::advance(it_n, nn);
+
         const OrbitalInfo& sn = it_n->first;
         const double En = it_n->second->Energy();
 
@@ -785,7 +809,6 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
             }
             it_alpha++;
         }
-        it_n++;
     }
 
     if(debug)
@@ -816,9 +839,16 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     unsigned int k1, k1max;
     unsigned int k2, k2max;
 
-    auto it_m = core->begin();
-    while(it_m != core->end())
+    int mm;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(mm, k1, k1max, k2, k2max) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(mm = 0; mm < core->size(); ++mm)
     {
+        auto it_m = core->begin();
+        std::advance(it_m, mm);
         const OrbitalInfo& sm = it_m->first;
         const double Em = it_m->second->Energy();
 
@@ -886,7 +916,6 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
             }
             it_n++;
         }
-        it_m++;
     }
 
     if(debug)
@@ -909,9 +938,16 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     const double Ed = ValenceEnergies.find(sd.Kappa())->second;
 
     // Hole line is attached to sa or sc
-    auto it_n = core->begin();
-    while(it_n != core->end())
+    int nn;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(nn) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(nn = 0; nn < core->size(); ++nn)
     {
+        auto it_n = core->begin();
+        std::advance(it_n, nn);
         const OrbitalInfo& sn = it_n->first;
         if(InQSpace(sn))
         {
@@ -953,7 +989,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
                 energy -= TermRatio(R1 * R2, energy_denominator, sn, sd);
             }
         }
-        it_n++;
     }
 
     if(debug)

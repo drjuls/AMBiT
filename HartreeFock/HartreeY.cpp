@@ -101,6 +101,14 @@ void HartreeY::Alert()
     }
 }
 
+pHartreeY HartreeY::Clone() const 
+{ 
+    auto clone = std::make_shared<HartreeY>(*this);
+    clone->coulomb = std::make_shared<CoulombOperator>(*coulomb);
+    return(clone);
+}
+
+
 double HartreeY::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     if(!isZero() && !lightweight_mode &&

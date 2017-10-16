@@ -33,30 +33,32 @@ GTEST_LIBS_DIR    = $(SRCDIR)/gtest
 INCLUDE = $(SRCDIR) $(EIGEN_INCLUDE_DIR)
 
 ifeq ($(MACHINE), default)
-  CC  = gcc
-  CXX = g++ -std=c++11 -Wno-deprecated-register -Wno-unused-result
+  CC  = gcc -fopenmp
+  CXX = g++ -std=c++11 -Wno-deprecated-register -Wno-unused-result -fopenmp
   F77 = gfortran
 
   LINK      = g++
-  LINKFLAGS =
+  LINKFLAGS = -fopenmp
   LIBDIR    = /usr/local/lib
-  LIBS      = gsl boost_filesystem boost_system lapack blas
+  LIBS      = gsl boost_filesystem boost_system lapack blas 
 
   INCLUDE  += /usr/local/include
 
   ifdef debug
     BUILD     = Debug
-    CXXFLAGS  = -g
+    CXXFLAGS  = -g 
     CFLAGS    = -g
   else
     BUILD     = Release
-    CXXFLAGS  = -O3
-    CFLAGS    = -O3
+    CXXFLAGS  = -O3 
+    CFLAGS    = -O3 
     F77FLAGS  = -O2
   endif
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
+
+  CXXFLAGS += -DAMBIT_USE_OPENMP 
 endif
 
 ifeq ($(MACHINE), nci)
@@ -93,8 +95,8 @@ ifeq ($(MACHINE), nci)
 endif
 
 ifeq ($(MACHINE), katana)
-  CC  = mpiCC
-  CXX = mpiCC -std=c++11 #-fopenmp
+  CC  = mpiCC -openmp
+  CXX = mpiCC -std=c++11 -openmp
   F77 = ifort
 
   ANGULAR_DATA_DIRECTORY = /srv/scratch/ambit/AngularData
@@ -119,7 +121,7 @@ ifeq ($(MACHINE), katana)
     F77FLAGS  = -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
+  CXXFLAGS += -wd1125 -DEIGEN_USE_MKL_ALL -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK -DAMBIT_USE_OPENMP
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
@@ -188,6 +190,7 @@ ifdef test
   INCLUDE += $(GTEST_INCLUDE_DIR)
   LIBDIR  += $(GTEST_LIBS_DIR)
   LIBS    += gtest pthread
+  CXXFLAGS += -DGTEST_USE_OWN_TR1_TUPLE=0
 endif
 
 CXXFLAGS += $(addprefix -I, $(INCLUDE))

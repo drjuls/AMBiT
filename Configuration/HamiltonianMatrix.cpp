@@ -8,6 +8,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef AMBIT_USE_OPENMP
+#include<omp.h>
+#endif
+
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
 
@@ -66,7 +70,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     unsigned int csf_start = 0;
     for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
     {
-        // Get chunk num_rows and number of configs
+        // Get chunk num_rows and number of configs. This only initialises and allocates resources for the chunks
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
         while(config_it != configs->end() && current_num_configs < configs_per_chunk)
@@ -98,12 +102,16 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& D = current_chunk.diagonal;
 
         // Loop through configs for this chunk
+        unsigned int config_index;
 #ifdef AMBIT_USE_OPENMP
-        #pragma omp parallel for private(config_it)
+        // Note: load balancing is achieved by breaking the matrix into chunks (currently handling one config per OMP thread), so use static scheduling
+        #pragma omp parallel for private(config_index, config_it) schedule(static)
 #endif
-        config_it = (*configs)[current_chunk.config_indices.first];
-        for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
+        for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
+            // Get config_it from the current confg_index (this is slow(ish) but thread-safe)
+            config_it = (*configs)[config_index];
+
             bool leading_config_i = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_it));
 
             // Loop through the rest of the configs
@@ -140,10 +148,13 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                         {
                             double operatorH;
                             if(do_three_body)
+                            {
                                 operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                            }
                             else
+                            {
                                 operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
+                            }
                             if(fabs(operatorH) > 1.e-15)
                             {
                                 for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
@@ -225,7 +236,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 }
             }
 
-            config_it++;
+            //config_it++;
         } // Configs in chunk
     } // Chunks
 
@@ -542,7 +553,7 @@ double HamiltonianMatrix::PollMatrix(double epsilon) const
 void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     Eigen::Map<Eigen::MatrixXd> b_mapped(b, N, m);
-    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m);
+    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m); 
     c_mapped = Eigen::MatrixXd::Zero(N, m);
 
     // Multiply each chunk

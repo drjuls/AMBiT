@@ -108,10 +108,11 @@ public:
 
     /** Return number of combinations of k elements in n slots. */
     unsigned int nChoosek(unsigned int n, unsigned int k) const;
+public:
+    ~MathConstant();
 
 protected:
     MathConstant();
-    ~MathConstant();
 
 protected:
     const std::string SpectroscopicNotation;

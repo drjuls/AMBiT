@@ -10,7 +10,7 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
     ManyBodyOperator<> many_body_operator;
     RelativisticConfiguration config1, config2;
     std::vector<int> TwoM1, TwoM2;
-    ManyBodyOperator<>::IndirectProjection p1, p2;
+    ManyBodyOperator<>::IndirectProjections indirects;
 
     // < h3 e2 | G | h1 e4 >
     {   config1.clear(); config2.clear();
@@ -26,12 +26,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
         Projection proj1(config1, TwoM1);
         Projection proj2(config2, TwoM2);
         *logstream << proj1.Name() << "* <- " << proj2.Name();
-        many_body_operator.make_indirect_projection(proj1, p1);
-        many_body_operator.make_indirect_projection(proj2, p2);
+        many_body_operator.make_indirect_projection(proj1, indirects.left);
+        many_body_operator.make_indirect_projection(proj2, indirects.right);
 
-        int diffs = many_body_operator.GetProjectionDifferences<2>(p1, p2);
-        *logstream << ((diffs > 0)? " = +< ": "= -< ") << p1[0]->Name() << ", " << p1[1]->Name()
-                   << " |g| " << p2[0]->Name() << ", " << p2[1]->Name() << " >" << std::endl;
+        int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
+        *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
+                   << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
     }
 
@@ -50,12 +50,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
         Projection proj1(config1, TwoM1);
         Projection proj2(config2, TwoM2);
         *logstream << proj1.Name() << "* <- " << proj2.Name();
-        many_body_operator.make_indirect_projection(proj1, p1);
-        many_body_operator.make_indirect_projection(proj2, p2);
+        many_body_operator.make_indirect_projection(proj1, indirects.left);
+        many_body_operator.make_indirect_projection(proj2, indirects.right);
 
-        int diffs = many_body_operator.GetProjectionDifferences<2>(p1, p2);
-        *logstream << ((diffs > 0)? " = +< ": "= -< ") << p1[0]->Name() << ", " << p1[1]->Name()
-                   << " |g| " << p2[0]->Name() << ", " << p2[1]->Name() << " >" << std::endl;
+        int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
+        *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
+                   << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
     }
 
@@ -72,12 +72,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
         Projection proj1(config1, TwoM1);
         Projection proj2(config2, TwoM2);
         *logstream << proj1.Name() << "* <- " << proj2.Name();
-        many_body_operator.make_indirect_projection(proj1, p1);
-        many_body_operator.make_indirect_projection(proj2, p2);
+        many_body_operator.make_indirect_projection(proj1, indirects.left);
+        many_body_operator.make_indirect_projection(proj2, indirects.right);
 
-        int diffs = many_body_operator.GetProjectionDifferences<2>(p1, p2);
-        *logstream << ((diffs > 0)? " = +< ": "= -< ") << p1[0]->Name() << ", " << p1[1]->Name()
-                   << " |g| " << p2[0]->Name() << ", " << p2[1]->Name() << " >" << std::endl;
+        int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
+        *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
+                   << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
     }
 
@@ -94,12 +94,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
         Projection proj1(config1, TwoM1);
         Projection proj2(config2, TwoM2);
         *logstream << proj1.Name() << "* <- " << proj2.Name();
-        many_body_operator.make_indirect_projection(proj1, p1);
-        many_body_operator.make_indirect_projection(proj2, p2);
+        many_body_operator.make_indirect_projection(proj1, indirects.left);
+        many_body_operator.make_indirect_projection(proj2, indirects.right);
 
-        int diffs = many_body_operator.GetProjectionDifferences<2>(p1, p2);
-        *logstream << ((diffs > 0)? " = +< ": "= -< ") << p1[0]->Name() << ", " << p1[1]->Name()
-                   << " |g| " << p2[0]->Name() << ", " << p2[1]->Name() << " >" << std::endl;
+        int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
+        *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
+                   << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
     }
 }

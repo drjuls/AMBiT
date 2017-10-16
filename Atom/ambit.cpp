@@ -33,9 +33,24 @@ Debug DebugOptions;
 int main(int argc, char* argv[])
 {
     #ifdef AMBIT_USE_MPI
-        MPI_Init(&argc, &argv);
-        MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
-        MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+        #ifdef AMBIT_USE_OPENMP
+            int MPI_thread_safety;
+            // Tell MPI to use thread-safe functions
+            MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &MPI_thread_safety);
+            MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+            MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+            
+            /* Check if the MPI implementation provides the required level of thread safety (only the master thread needs to make calls to MPI subroutines so this should almost always be supported)
+            */
+            if(MPI_thread_safety != MPI_THREAD_FUNNELED){
+                std::cerr << "Warning: this MPI implementation is incompatible OpenMP." << std::endl;
+                exit(-1);
+            }
+        #else
+            MPI_Init(&argc, &argv);
+            MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+            MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+        #endif
     #else
         NumProcessors = 1;
         ProcessorRank = 0;
@@ -48,7 +63,7 @@ int main(int argc, char* argv[])
     #endif
 
     OutStreams::InitialiseStreams();
-
+    
     try
     {   MultirunOptions lineInput(argc, argv, ",");
 

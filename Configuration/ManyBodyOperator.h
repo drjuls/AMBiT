@@ -32,19 +32,33 @@ class ManyBodyOperator
 public:
     ManyBodyOperator(pElectronOperators... operators): pOperators(operators...)
     {   static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
+#ifdef AMBIT_USE_OPENMP
+        indirects_list.resize(omp_get_max_threads());
+#endif
     }
 
     typedef std::vector<const ElectronInfo*> IndirectProjection;
-    inline void make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const;
 
-    /** Rearrange p1 and p2 so that differences are at the beginning (up to max differences).
-        abs(return value) is number of differences found
-        sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
-        If skipped_p2_electron != nullptr, assume p2 is one electron smaller than p1;
-            the first element of p2 is the skipped electron which we can assume is not present in p1.
+    // Bundle all the indirect projections into a struct to allow each thread to have its own persistent copy
+    struct IndirectProjections {
+        IndirectProjection left, right;
+        IndirectProjection diff1, diff2;
+        IndirectProjection sorted_p1, sorted_p2;
+    };
+
+    /** Rearrange indirects.left and indirects.right so that differences are at the beginning (up to 
+        max differences). abs(return value) is number of differences found sign(return value) 
+        indicates number of permutations (+ve is even number, -ve is odd). 
+        If skipped_right_electron != nullptr, assume indirects.right is one electron smaller than 
+        indirects.left; the first element of indirects.right is the skipped electron which we can 
+        assume is not present in indirects.left.
+        
+        N.B. This must be public to allow unit tests to call it
      */
     template<int max_diffs>
-    inline int GetProjectionDifferences(IndirectProjection& p1, IndirectProjection& p2, const ElectronInfo* skipped_p1_electron = nullptr) const;
+    inline int GetProjectionDifferences(IndirectProjections& indirects, const ElectronInfo* skipped_p2_electron = nullptr) const;
+ 
+    inline void make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const;
 
     /** Matrix element between two projections.
         If eplsion != nullptr, we want
@@ -69,6 +83,14 @@ public:
 protected:
     std::tuple<pElectronOperators...> pOperators;
 
+    
+    // NB: Indirect projections are class members to prevent expensive memory (de)allocations
+#ifdef AMBIT_USE_OPENMP
+    mutable std::vector<IndirectProjections> indirects_list;
+#else
+    mutable IndirectProjections my_projections;
+#endif
+   
     // There is always a one-body operator
     inline double OneBodyMatrixElements(const ElectronInfo& la, const ElectronInfo& ra) const
     {
@@ -125,15 +147,18 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 {
     int num_diffs = 0;
 
-    // NB: These are static for speed: to prevent memory (de)allocation
-    static ManyBodyOperator<>::IndirectProjection left, right;
-    make_indirect_projection(proj_left, left);
+
+#ifdef AMBIT_USE_OPENMP
+    // Get the indirect projections for this thread
+    IndirectProjections& my_projections = indirects_list[omp_get_thread_num()];
+#endif
+    make_indirect_projection(proj_left, my_projections.left); 
 
     // Skip this for same projection
     if(&proj_left != &proj_right)
     {
-        make_indirect_projection(proj_right, right);
-        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(left, right, epsilon);
+        make_indirect_projection(proj_right, my_projections.right);
+        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(my_projections, epsilon);
     }
 
     double matrix_element = 0.0;
@@ -143,7 +168,7 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
         case 1:
             if(num_diffs == 0)
             {
-                for(auto& e: left)
+                for(auto& e: my_projections.left)
                 {
                     int sign = e->IsHole()? -1 : 1;
                     matrix_element += OneBodyMatrixElements(*e, *e) * sign;
@@ -151,14 +176,14 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             }
             else if(abs(num_diffs) == 1)
             {
-                matrix_element += OneBodyMatrixElements(*left[0], *right[0]);
+                matrix_element += OneBodyMatrixElements(*my_projections.left[0], *my_projections.right[0]);
             }
             break;
         case 2:
             if(num_diffs == 0)
             {
-                auto i = boost::make_indirect_iterator(left.begin());
-                auto end = boost::make_indirect_iterator(left.end());
+                auto i = boost::make_indirect_iterator(my_projections.left.begin());
+                auto end = boost::make_indirect_iterator(my_projections.left.end());
                 while(i != end)
                 {
                     int sign = i->IsHole()? -1 : 1;
@@ -176,28 +201,28 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             }
             else if(abs(num_diffs) == 1)
             {
-                matrix_element += OneBodyMatrixElements(*left[0], *right[0]);
+                matrix_element += OneBodyMatrixElements(*my_projections.left[0], *my_projections.right[0]);
 
-                auto i = boost::make_indirect_iterator(left.begin());
-                auto end = boost::make_indirect_iterator(left.end());
+                auto i = boost::make_indirect_iterator(my_projections.left.begin());
+                auto end = boost::make_indirect_iterator(my_projections.left.end());
                 i++;    // Skip first element
                 while(i != end)
                 {
                     int sign = i->IsHole()? -1 : 1;
-                    matrix_element += TwoBodyMatrixElements(*left.front(), *i, *right.front(), *i) * sign;
+                    matrix_element += TwoBodyMatrixElements(*my_projections.left.front(), *i, *my_projections.right.front(), *i) * sign;
                     i++;
                 }
             }
             else if(abs(num_diffs) == 2)
             {
-                matrix_element += TwoBodyMatrixElements(*left[0], *left[1], *right[0], *right[1]);
+                matrix_element += TwoBodyMatrixElements(*my_projections.left[0], *my_projections.left[1], *my_projections.right[0], *my_projections.right[1]);
             }
             break;
         case 3:
             if(num_diffs == 0)
             {
-                auto i = boost::make_indirect_iterator(left.begin());
-                auto end = boost::make_indirect_iterator(left.end());
+                auto i = boost::make_indirect_iterator(my_projections.left.begin());
+                auto end = boost::make_indirect_iterator(my_projections.left.end());
                 while(i != end)
                 {
                     int sign = i->IsHole()? -1 : 1;
@@ -223,21 +248,21 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             }
             else if(abs(num_diffs) == 1)
             {
-                matrix_element += OneBodyMatrixElements(*left[0], *right[0]);
+                matrix_element += OneBodyMatrixElements(*my_projections.left[0], *my_projections.right[0]);
 
-                auto i = boost::make_indirect_iterator(left.begin());
-                auto end = boost::make_indirect_iterator(left.end());
+                auto i = boost::make_indirect_iterator(my_projections.left.begin());
+                auto end = boost::make_indirect_iterator(my_projections.left.end());
                 i++;    // Skip first element
                 while(i != end)
                 {
                     int sign = i->IsHole()? -1 : 1;
-                    matrix_element += TwoBodyMatrixElements(*left.front(), *i, *right.front(), *i) * sign;
+                    matrix_element += TwoBodyMatrixElements(*my_projections.left.front(), *i, *my_projections.right.front(), *i) * sign;
 
                     auto j = std::next(i);
                     while(j != end)
                     {
                         int total_sign = sign * (j->IsHole()? -1 : 1);
-                        matrix_element += ThreeBodyMatrixElements(*left.front(), *i, *j, *right.front(), *i, *j) * total_sign;
+                        matrix_element += ThreeBodyMatrixElements(*my_projections.left.front(), *i, *j, *my_projections.right.front(), *i, *j) * total_sign;
                         j++;
                     }
                     i++;
@@ -245,22 +270,22 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
             }
             else if(abs(num_diffs) == 2)
             {
-                matrix_element += TwoBodyMatrixElements(*left[0], *left[1], *right[0], *right[1]);
+                matrix_element += TwoBodyMatrixElements(*my_projections.left[0], *my_projections.left[1], *my_projections.right[0], *my_projections.right[1]);
 
-                auto i = boost::make_indirect_iterator(left.begin());
-                auto end = boost::make_indirect_iterator(left.end());
+                auto i = boost::make_indirect_iterator(my_projections.left.begin());
+                auto end = boost::make_indirect_iterator(my_projections.left.end());
                 std::advance(i, 2);    // Skip first two elements
                 while(i != end)
                 {
                     int sign = i->IsHole()? -1 : 1;
-                    matrix_element += ThreeBodyMatrixElements(*left[0], *left[1], *i, *right[0], *right[1], *i) * sign;
+                    matrix_element += ThreeBodyMatrixElements(*my_projections.left[0], *my_projections.left[1], *i, *my_projections.right[0], *my_projections.right[1], *i) * sign;
 
                     i++;
                 }
             }
             else if(abs(num_diffs) == 3)
             {
-                matrix_element += ThreeBodyMatrixElements(*left[0], *left[1], *left[2], *right[0], *right[1], *right[2]);
+                matrix_element += ThreeBodyMatrixElements(*my_projections.left[0], *my_projections.left[1], *my_projections.left[2], *my_projections.right[0], *my_projections.right[1], *my_projections.right[2]);
             }
             break;
         default:
@@ -286,18 +311,15 @@ void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Pro
 
 template<typename... pElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOperator<>::IndirectProjection& p1, ManyBodyOperator<>::IndirectProjection& p2, const ElectronInfo* skipped_p2_electron) const
+int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectProjections& indirects, const ElectronInfo* skipped_p2_electron) const
 {
-    // NB: These are static for speed: to prevent memory (de)allocation
-    static IndirectProjection diff1, diff2;
-    diff1.clear();
-    diff2.clear();
-    static IndirectProjection sorted_p1, sorted_p2;
-    sorted_p1.clear();
-    sorted_p2.clear();
+    indirects.diff1.clear();
+    indirects.diff2.clear();
+    indirects.sorted_p1.clear();
+    indirects.sorted_p2.clear();
 
-    auto it1 = p1.begin();
-    auto it2 = p2.begin();
+    auto it1 = indirects.left.begin();
+    auto it2 = indirects.right.begin();
 
     // Number of permutations required to get correct ordering
     int permutations = 0;
@@ -313,19 +335,19 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
 
     if(skipped_p2_electron != nullptr)
     {
-        // Assume first element of p1 was a skipped electron (not hole)
-        diff2.push_back(skipped_p2_electron);
+        // Assume first element of left was a skipped electron (not hole)
+        indirects.diff2.push_back(skipped_p2_electron);
         num_electrons2++;
     }
 
-    while(diff1.size() <= max_diffs && diff2.size() <= max_diffs && it1 != p1.end() && it2 != p2.end())
+    while(indirects.diff1.size() <= max_diffs && indirects.diff2.size() <= max_diffs && it1 != indirects.left.end() && it2 != indirects.right.end())
     {
         const ElectronInfo& e1(**it1);
         const ElectronInfo& e2(**it2);
 
         if(e1 == e2)
-        {   sorted_p1.push_back(*it1++);
-            sorted_p2.push_back(*it2++);
+        {   indirects.sorted_p1.push_back(*it1++);
+            indirects.sorted_p2.push_back(*it2++);
             num_same++;
         }
         else if(e1 < e2)
@@ -333,7 +355,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             permutations += num_same;
             if(e1.IsHole())
             {
-                diff2.push_back(*it1++);
+                indirects.diff2.push_back(*it1++);
 
                 if(num_electrons1)  // There is an electron to combine already on this side
                 {   permutations += num_electrons1;
@@ -347,7 +369,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             }
             else
             {
-                diff1.push_back(*it1++);
+                indirects.diff1.push_back(*it1++);
 
                 if(num_holes1)  // There is a hole to combine already on this side
                 {   permutations += (num_holes1 - 1);
@@ -365,7 +387,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             permutations += num_same;
             if(e2.IsHole())
             {
-                diff1.push_back(*it2++);
+                indirects.diff1.push_back(*it2++);
 
                 if(num_electrons2)  // There is an electron to combine already on this side
                 {   permutations += num_electrons2;
@@ -379,7 +401,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             }
             else
             {
-                diff2.push_back(*it2++);
+                indirects.diff2.push_back(*it2++);
 
                 if(num_holes2)  // There is a hole to combine already on this side
                 {   permutations += (num_holes2 - 1);
@@ -393,12 +415,12 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
             }
         }
     }
-    while(it1 != p1.end() && (diff1.size() <= max_diffs))
+    while(it1 != indirects.left.end() && (indirects.diff1.size() <= max_diffs))
     {
         permutations += num_same;
         if((*it1)->IsHole())
         {
-            diff2.push_back(*it1++);
+            indirects.diff2.push_back(*it1++);
 
             if(num_electrons1)  // There is an electron to combine already on this side
             {   permutations += num_electrons1;
@@ -412,7 +434,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         }
         else
         {
-            diff1.push_back(*it1++);
+            indirects.diff1.push_back(*it1++);
 
             if(num_holes1)  // There is a hole to combine already on this side
             {   permutations += (num_holes1 - 1);
@@ -425,12 +447,12 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
                 num_electrons1++;
         }
     }
-    while(it2 != p2.end() && (diff2.size() <= max_diffs))
+    while(it2 != indirects.right.end() && (indirects.diff2.size() <= max_diffs))
     {
         permutations += num_same;
         if((*it2)->IsHole())
         {
-            diff1.push_back(*it2++);
+            indirects.diff1.push_back(*it2++);
 
             if(num_electrons2)  // There is an electron to combine already on this side
             {   permutations += num_electrons2;
@@ -444,7 +466,7 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         }
         else
         {
-            diff2.push_back(*it2++);
+            indirects.diff2.push_back(*it2++);
 
             if(num_holes2)  // There is a hole to combine already on this side
             {   permutations += (num_holes2 - 1);
@@ -458,18 +480,18 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
         }
     }
 
-    int num_diffs = diff1.size();
+    int num_diffs = indirects.diff1.size();
 
-    if((diff1.size() > max_diffs) || (diff2.size() > max_diffs))
+    if((indirects.diff1.size() > max_diffs) || (indirects.diff2.size() > max_diffs))
         return max_diffs+1;
 
-    else if(diff1.empty() && diff2.empty())
+    else if(indirects.diff1.empty() && indirects.diff2.empty())
         return 0;
 
     // Additional sign changes for holes; add to permutations
-    it1 = diff1.begin();
-    it2 = diff2.begin();
-    while(it1 != diff1.end())
+    it1 = indirects.diff1.begin();
+    it2 = indirects.diff2.begin();
+    while(it1 != indirects.diff1.end())
     {
         if((*it1)->IsHole() || (*it2)->IsHole())
             permutations++;
@@ -479,11 +501,11 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(ManyBodyOp
     }
 
     //Copy differences
-    diff1.insert(diff1.end(), sorted_p1.begin(), sorted_p1.end());
-    diff2.insert(diff2.end(), sorted_p2.begin(), sorted_p2.end());
+    indirects.diff1.insert(indirects.diff1.end(), indirects.sorted_p1.begin(), indirects.sorted_p1.end());
+    indirects.diff2.insert(indirects.diff2.end(), indirects.sorted_p2.begin(), indirects.sorted_p2.end());
 
-    p1 = diff1;
-    p2 = diff2;
+    indirects.left = indirects.diff1;
+    indirects.right = indirects.diff2;
 
     if(permutations%2 == 0)
         return num_diffs;
@@ -607,73 +629,115 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
     std::vector<double> total(return_size, 0.);
 
+#ifdef AMBIT_USE_OPENMP
+    /* Make a vector to hold the running total for each thread. This needs to be static and 
+       threadprivate so its contents persist across different OpenMP tasks (N.B. this is only here 
+       because gcc and clang have different ideas about whether the value of private variables should 
+       persist across tasks executed by the same thread)
+    */
+    static std::vector<double> my_total;
+    #pragma omp threadprivate(my_total)
+    
+    // Clear the running totals *before* we enter the parallel region
+    my_total.assign(return_size, 0.);
+#endif
+
     unsigned int solution = 0;
 
     auto config_it = configs_left->begin();
     int config_index = 0;
-    while(config_it != configs_left->end())
+#ifdef AMBIT_USE_OPENMP
+    // Need to explicitly copyin here to ensure my_total is initialised before use
+    #pragma omp parallel copyin(my_total) 
     {
-        auto config_jt = configs_right->begin();
-        while(config_jt != configs_right->end())
+    #pragma omp single 
+#endif
+        while(config_it != configs_left->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+            auto config_jt = configs_right->begin();
+            while(config_jt != configs_right->end())
             {
-                if(IsMyJob(config_index))
+                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
                 {
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
+                    if(IsMyJob(config_index))
                     {
-                        int left_start_CSF_index = proj_it.CSF_begin().index();
-                        int left_end_CSF_index = proj_it.CSF_end().index();
-
-                        auto proj_jt = config_jt.projection_begin();
-                        while(proj_jt != config_jt.projection_end())
+    #ifdef AMBIT_USE_OPENMP
+                        #pragma omp task default(none) firstprivate(config_it, config_jt, config_index, \
+solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
                         {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
+    #endif
+                        // Iterate over projections
+                        auto proj_it = config_it.projection_begin();
+                        while(proj_it != config_it.projection_end())
+                        {
+                            int left_start_CSF_index = proj_it.CSF_begin().index();
+                            int left_end_CSF_index = proj_it.CSF_end().index();
 
-                            // coefficients
-                            if(matrix_element)
+                            auto proj_jt = config_jt.projection_begin();
+                            while(proj_jt != config_jt.projection_end())
                             {
-                                int right_start_CSF_index = proj_jt.CSF_begin().index();
-                                int right_end_CSF_index = proj_jt.CSF_end().index();
+                                double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
 
-                                solution = 0;
-                                for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
+                                // coefficients
+                                if(matrix_element)
                                 {
-                                    for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
+                                    int right_start_CSF_index = proj_jt.CSF_begin().index();
+                                    int right_end_CSF_index = proj_jt.CSF_end().index();
+
+                                    solution = 0;
+                                    for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
                                     {
-                                        auto coeff_i = proj_it.CSF_begin();
-                                        for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
-                                            pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
+                                        for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
                                         {
-                                            double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
-
-                                            auto coeff_j = proj_jt.CSF_begin();
-                                            for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
-                                                pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
+                                            auto coeff_i = proj_it.CSF_begin();
+                                            for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
+                                                pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
                                             {
-                                                total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
-                                                coeff_j++;
-                                            }
-                                            coeff_i++;
-                                        }
+                                                double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
 
-                                        solution++;
+                                                auto coeff_j = proj_jt.CSF_begin();
+                                                for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
+                                                    pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
+                                                {
+#ifdef AMBIT_USE_OPENMP
+                                                    my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+
+#else
+                                                    total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+#endif
+                                                    coeff_j++;
+                                                }
+                                                coeff_i++;
+                                            }
+
+                                            solution++;
+                                        }
                                     }
                                 }
+                                proj_jt++;
                             }
-                            proj_jt++;
+                            proj_it++;
                         }
-                        proj_it++;
-                    }
+    #ifdef AMBIT_USE_OPENMP
+                        } // OpenMP task 
+    #endif
+                    } // MPI work distribution
+                    config_index++;
                 }
-                config_index++;
+                config_jt++;
             }
-            config_jt++;
+            config_it++;
+        } // config_it + OpenMP single construct
+    #ifdef AMBIT_USE_OPENMP
+        #pragma omp barrier
+        // Finally, gather all the thread totals into the final results
+        #pragma omp critical(MANY_BODY_OP)
+        for(int ii = 0; ii < return_size; ++ii)
+        {
+            total[ii] += my_total[ii];
         }
-        config_it++;
-    }
+    } // OpenMP parallel region
+#endif
 
 #ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(return_size, 0.);

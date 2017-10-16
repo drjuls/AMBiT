@@ -211,7 +211,7 @@ public:
     /** Deep copy of this HartreeY object.
         NB: uses the same integrator and coulomb operator.
      */
-    virtual pHartreeY Clone() const override { return std::make_shared<HartreeY>(*this); }
+    virtual pHartreeY Clone() const override; //{ return std::make_shared<HartreeY>(*this); }
 
     /** < b | t | a > for an operator t. */
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const override;
