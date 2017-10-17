@@ -680,11 +680,11 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 if(user_input.VariableExists("CI/MaxEnergy"))
                 {
                     double max_energy = user_input("CI/MaxEnergy", 0.0);
-                    levelvec = H->SolveMatrixScalapack(key, max_energy);
+                    levelvec = H->SolveMatrixScalapack(hID, max_energy);
                 }
                 else
                 {
-                    levelvec = H->SolveMatrixScalapack(key, num_solutions, false);
+                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, false);
                 }
             }
             else

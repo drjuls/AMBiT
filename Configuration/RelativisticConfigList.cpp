@@ -31,7 +31,7 @@ RelativisticConfigList::iterator RelativisticConfigList::erase(iterator position
     return iterator(it);
 }
 
-RelativisticConfigList::iterator RelativisticConfigList::erase(const_iterator first, const_iterator last)
+RelativisticConfigList::iterator RelativisticConfigList::erase(iterator first, iterator last)
 {
     int start = first.base() - m_list.begin();
     int num_removed = last.base() - first.base();
