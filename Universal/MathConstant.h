@@ -47,7 +47,7 @@ public:
         Assumes m3 = - m1 - m2.
      */
     double Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2);
-    
+
     /** Calculate 3j symbol where j1, j2 are half integer and k is integer.
         Assumes q (projection of k) = - m1 - m2.
         ( j1  j2  k )
@@ -108,11 +108,12 @@ public:
 
     /** Return number of combinations of k elements in n slots. */
     unsigned int nChoosek(unsigned int n, unsigned int k) const;
-public:
-    ~MathConstant();
 
 protected:
     MathConstant();
+
+public:
+    ~MathConstant();
 
 protected:
     const std::string SpectroscopicNotation;
@@ -121,11 +122,6 @@ protected:
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;
     int HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const;
-    
-    /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
-     log( n!/d! )
-     */
-    double LogFactorialFraction(unsigned int num, unsigned int denom) const;
 };
 
 inline int MathConstant::convert_to_kappa(int twoj, Parity P)

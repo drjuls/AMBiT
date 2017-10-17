@@ -91,7 +91,7 @@ double CoreMBPTCalculator::GetTwoElectronDiagrams(unsigned int k, const OrbitalI
     term += CalculateTwoElectron4(k, s1, s2, s3, s4);
     term += CalculateTwoElectron5(k, s1, s2, s3, s4);
     term += CalculateTwoElectron6(k, s1, s2, s3, s4);
-    
+
     return term;
 }
 
@@ -562,9 +562,9 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for private(nn) reduction(+:energy)
 #endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops
     with non-random-access iterators */
-    for(int nn = 0; nn < core->size(); ++nn)
+    for(nn = 0; nn < core->size(); ++nn)
     {
         auto it_n = core->begin();
         std::advance(it_n, nn);

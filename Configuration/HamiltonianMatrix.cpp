@@ -70,7 +70,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     unsigned int csf_start = 0;
     for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
     {
-        // Get chunk num_rows and number of configs. This only initialises and allocates resources for the chunks
+        // Get chunk num_rows and number of configs. Allocates resources for the chunks.
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
         while(config_it != configs->end() && current_num_configs < configs_per_chunk)
@@ -235,8 +235,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                     proj_it++;
                 }
             }
-
-            //config_it++;
         } // Configs in chunk
     } // Chunks
 
@@ -553,7 +551,7 @@ double HamiltonianMatrix::PollMatrix(double epsilon) const
 void HamiltonianMatrix::MatrixMultiply(int m, double* b, double* c) const
 {
     Eigen::Map<Eigen::MatrixXd> b_mapped(b, N, m);
-    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m); 
+    Eigen::Map<Eigen::MatrixXd> c_mapped(c, N, m);
     c_mapped = Eigen::MatrixXd::Zero(N, m);
 
     // Multiply each chunk

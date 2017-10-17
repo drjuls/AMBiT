@@ -34,29 +34,34 @@ public:
     {   static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
 #ifdef AMBIT_USE_OPENMP
         indirects_list.resize(omp_get_max_threads());
+#else
+        indirects_list.resize(1);
 #endif
     }
 
     typedef std::vector<const ElectronInfo*> IndirectProjection;
 
     // Bundle all the indirect projections into a struct to allow each thread to have its own persistent copy
-    struct IndirectProjections {
+    struct IndirectProjectionStruct {
+        // left and right are inputs for GetProjectionDifferences.
         IndirectProjection left, right;
+        // diff1, diff2, sorted_p1, and sorted_p2 are just for internal use by GetProjectionDifferences.
         IndirectProjection diff1, diff2;
         IndirectProjection sorted_p1, sorted_p2;
     };
 
     /** Rearrange indirects.left and indirects.right so that differences are at the beginning (up to 
-        max differences). abs(return value) is number of differences found sign(return value) 
-        indicates number of permutations (+ve is even number, -ve is odd). 
+        max differences).
+        abs(return value) is number of differences found.
+        sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
         If skipped_right_electron != nullptr, assume indirects.right is one electron smaller than 
         indirects.left; the first element of indirects.right is the skipped electron which we can 
         assume is not present in indirects.left.
-        
+
         N.B. This must be public to allow unit tests to call it
      */
     template<int max_diffs>
-    inline int GetProjectionDifferences(IndirectProjections& indirects, const ElectronInfo* skipped_p2_electron = nullptr) const;
+    inline int GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron = nullptr) const;
  
     inline void make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const;
 
@@ -83,14 +88,9 @@ public:
 protected:
     std::tuple<pElectronOperators...> pOperators;
 
-    
     // NB: Indirect projections are class members to prevent expensive memory (de)allocations
-#ifdef AMBIT_USE_OPENMP
-    mutable std::vector<IndirectProjections> indirects_list;
-#else
-    mutable IndirectProjections my_projections;
-#endif
-   
+    mutable std::vector<IndirectProjectionStruct> indirects_list;
+
     // There is always a one-body operator
     inline double OneBodyMatrixElements(const ElectronInfo& la, const ElectronInfo& ra) const
     {
@@ -147,12 +147,13 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
 {
     int num_diffs = 0;
 
-
 #ifdef AMBIT_USE_OPENMP
     // Get the indirect projections for this thread
-    IndirectProjections& my_projections = indirects_list[omp_get_thread_num()];
+    IndirectProjectionStruct& my_projections = indirects_list[omp_get_thread_num()];
+#else
+    IndirectProjectionStruct& my_projections = indirects_list[0];
 #endif
-    make_indirect_projection(proj_left, my_projections.left); 
+    make_indirect_projection(proj_left, my_projections.left);
 
     // Skip this for same projection
     if(&proj_left != &proj_right)
@@ -311,7 +312,7 @@ void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Pro
 
 template<typename... pElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectProjections& indirects, const ElectronInfo* skipped_p2_electron) const
+int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron) const
 {
     indirects.diff1.clear();
     indirects.diff2.clear();
@@ -630,14 +631,14 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     std::vector<double> total(return_size, 0.);
 
 #ifdef AMBIT_USE_OPENMP
-    /* Make a vector to hold the running total for each thread. This needs to be static and 
-       threadprivate so its contents persist across different OpenMP tasks (N.B. this is only here 
-       because gcc and clang have different ideas about whether the value of private variables should 
+    /* Make a vector to hold the running total for each thread. This needs to be static and
+       threadprivate so its contents persist across different OpenMP tasks (N.B. this is only here
+       because gcc and clang have different ideas about whether the value of private variables should
        persist across tasks executed by the same thread)
     */
     static std::vector<double> my_total;
     #pragma omp threadprivate(my_total)
-    
+
     // Clear the running totals *before* we enter the parallel region
     my_total.assign(return_size, 0.);
 #endif
@@ -648,9 +649,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     int config_index = 0;
 #ifdef AMBIT_USE_OPENMP
     // Need to explicitly copyin here to ensure my_total is initialised before use
-    #pragma omp parallel copyin(my_total) 
+    #pragma omp parallel copyin(my_total)
     {
-    #pragma omp single 
+    #pragma omp single
 #endif
         while(config_it != configs_left->end())
         {
@@ -662,8 +663,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     if(IsMyJob(config_index))
                     {
     #ifdef AMBIT_USE_OPENMP
-                        #pragma omp task default(none) firstprivate(config_it, config_jt, config_index, \
-solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
+                        #pragma omp task default(none) \
+                                firstprivate(config_it, config_jt, config_index, solution, epsilon) \
+                                shared(total, left_eigenvector, right_eigenvector)
                         {
     #endif
                         // Iterate over projections
@@ -701,7 +703,6 @@ solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
                                                 {
 #ifdef AMBIT_USE_OPENMP
                                                     my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
-
 #else
                                                     total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
 #endif
@@ -728,7 +729,7 @@ solution, epsilon) shared(total, left_eigenvector, right_eigenvector)
             }
             config_it++;
         } // config_it + OpenMP single construct
-    #ifdef AMBIT_USE_OPENMP
+#ifdef AMBIT_USE_OPENMP
         #pragma omp barrier
         // Finally, gather all the thread totals into the final results
         #pragma omp critical(MANY_BODY_OP)

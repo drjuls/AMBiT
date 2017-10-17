@@ -10,7 +10,6 @@
 
 MathConstant* MathConstant::Instance()
 {
-
 #ifdef AMBIT_USE_OPENMP
     // each OpenMP thread should get its own MathConstant Instance to maintain thread-safety when caching 3j/6j symbol values
     static std::unique_ptr<MathConstant[]> instances (new MathConstant[omp_get_max_threads()]());
@@ -29,7 +28,6 @@ MathConstant::MathConstant():
     // Set by consideration of key.
     MaxStoredTwoJ = 40;
     MSize = 2 * MaxStoredTwoJ + 1;
-
 }
 
 MathConstant::~MathConstant()
@@ -178,23 +176,6 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
     }
 
     return gsl_sf_coupling_6j(int(2*j1), int(2*j2), int(2*j3), int(2*j4), int(2*j5), int(2*j6));
-}
-
-/** Calculate the logarithm of a fraction where the numerator and denominator are factorials
-     log( n!/d! )
- */
-double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom) const
-{
-    double total = 0.;
-    if(num > denom)
-    {   for(unsigned int i=denom+1; i<=num; i++)
-            total = total + log(double(i));
-    }
-    else if(denom > num)
-    {   for(unsigned int i=num+1; i<=denom; i++)
-            total = total - log(double(i));
-    }
-    return total;
 }
 
 int MathConstant::HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const

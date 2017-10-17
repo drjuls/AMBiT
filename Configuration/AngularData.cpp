@@ -499,8 +499,6 @@ void AngularDataLibrary::GenerateCSFs()
             file_info[std::make_tuple(GetElectronNumber(pair.first), sym.GetJpi(), two_m)].first = true;
         }
     }
-
-
 #else
     // Distribute AngularData objects with lots of projections (large matrix) using MPI
     const unsigned int SHARING_SIZE_LIM = 200;
@@ -531,7 +529,6 @@ void AngularDataLibrary::GenerateCSFs()
     int jobcount = 0;   // jobcount will run from 0 -> 2 * NumProcessors - 1
     int otherRank = 2 * NumProcessors - 1 - ProcessorRank;
 
-    // Split the big CSFs up into OpenMP tasks
     for(auto& pair: big_library)
     {
         Symmetry sym(pair.first[0].first);

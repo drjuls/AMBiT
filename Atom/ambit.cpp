@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
             MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &MPI_thread_safety);
             MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
             MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
-            
+
             /* Check if the MPI implementation provides the required level of thread safety (only the master thread needs to make calls to MPI subroutines so this should almost always be supported)
             */
             if(MPI_thread_safety != MPI_THREAD_FUNNELED){
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     #endif
 
     OutStreams::InitialiseStreams();
-    
+
     try
     {   MultirunOptions lineInput(argc, argv, ",");
 

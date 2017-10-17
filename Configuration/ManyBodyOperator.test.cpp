@@ -10,7 +10,7 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
     ManyBodyOperator<> many_body_operator;
     RelativisticConfiguration config1, config2;
     std::vector<int> TwoM1, TwoM2;
-    ManyBodyOperator<>::IndirectProjections indirects;
+    ManyBodyOperator<>::IndirectProjectionStruct indirects;
 
     // < h3 e2 | G | h1 e4 >
     {   config1.clear(); config2.clear();

@@ -108,7 +108,6 @@ pHartreeY HartreeY::Clone() const
     return(clone);
 }
 
-
 double HartreeY::GetMatrixElement(const Orbital& b, const Orbital& a, bool reverse) const
 {
     if(!isZero() && !lightweight_mode &&
