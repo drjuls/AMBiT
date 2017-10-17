@@ -1,23 +1,6 @@
 import subprocess
-#import yaml
 import ConfigParser
-#from collections import OrderedDict
-
-# Function to force yaml to preserve the order we specify in the config file, since that's actually important at the linking stage
-def ordered_load(stream):
-
-    class OrderedLoader(yaml.SafeLoader):
-        # Temporary loader class to pass to yaml.load(), derived from the base yaml loader
-        pass
-
-    def make_ordered_mapping(loader, node):
-        # Converts a yaml node to an ordered dict
-        loader.flatten_mapping(node)
-        return(OrderedDict(loader.construct_pairs(node)))
-
-    # Now feed the ordered mapping converter to the loader object and pass it along to yaml
-    OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, make_ordered_mapping)
-    return(yaml.load(stream, OrderedLoader))
+from collections import OrderedDict
 
 def get_build_target(src, module, build):
     # Constructs the path to the build object for some C++ source file, e.g.: 
@@ -132,7 +115,6 @@ with open("gitInfo.h", 'w') as fp:
     subprocess.call("./getGitInfo.sh", stdout=fp)
 
 # First, grab the type of build from the command line and set up the compiler environment (default is gcc)
-# and such). Default build mode is release
 env = Environment(CXX = 'g++', CC = 'gcc', LINK = 'g++', \
     FORTRAN = 'gfortran', \
     F77FLAGS = '-O2')
@@ -165,6 +147,7 @@ for module, files in modules:
     files = [s.strip() for s in files.split(',')]
 
     # Next, compile all the object files for our module
+
     srcs = [module + '/' + item for item in files]
     module_lib_target = module + '/' + build + '/' + module
     
