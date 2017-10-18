@@ -26,6 +26,11 @@ ambit
 ambit_test
 Eigen
 
+# SCons configuration and temporary file
+config.ini
+.sconsign.dblite
+.sconf_temp
+
 # Auxillary documentation files
 Documentation/*
 *.aux
@@ -33,3 +38,7 @@ Documentation/*
 *.log
 *.pdf
 
+# Python bytecode
+__init__.pyc
+read_basis.pyc
+__pycache__

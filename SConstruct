@@ -1,4 +1,5 @@
 import subprocess
+import os
 import ConfigParser
 from collections import OrderedDict
 
@@ -34,7 +35,13 @@ def configure_environment(env, conf, ambit_conf):
     """
 
     # Now grab the external libraries we need to link to, as well as their path and append to the compilation environment
+    # The AMBiT directory will default to the current working directory if not specified in the config
+    # file
     ambit_dir = conf.get("Build options", "AMBiT path")
+    if not ambit_dir:
+        ambit_dir = dir_path = os.getcwd()
+        print("AMBiT path not specified. Defaulting to {}".format(ambit_dir))
+
     # NOTE: These have their own, specially defined paths because they're usually in lots of places 
     # and don't play nicely with pkg-config and/or SCons builtin configuration checks
     gtest_libs_dir = conf.get("Build options","gtest path")
@@ -43,8 +50,14 @@ def configure_environment(env, conf, ambit_conf):
 
     libs = [s.strip() for s in ambit_conf.get("Dependencies", "Libs").split(',')]
     lib_path = conf.get("Build options", "Lib path")
+    
+    # Angular data should go in the AMBiT directory if not specified in the config file
     angular_data_dir= conf.get("Build options", "Angular data")
+    if not angular_data_dir:
+        angular_data_dir = ambit_dir + "/AngularData"
+        print("Angular data directory not specified. Defaulting to {}".format(ambit_dir))
     env.Append(CXXFLAGS = '-DANGULAR_DATA_DIRECTORY={}'.format(angular_data_dir))
+
     header_path =  [ambit_dir, eigen_dir , gtest_libs_dir , sparsehash_dir]
 
     env.Append(CPPPATH=header_path)
@@ -68,8 +81,9 @@ def configure_environment(env, conf, ambit_conf):
 
     pkgconfig_exists = env_conf.check_pkgconfig()
 
+    # TODO - Also check the fortran compiler works properly
     if not env_conf.CheckCXX():
-        print("Warning: compiler improperly installed/configured. Aborting")
+        print("Error: compiler improperly installed/configured. Aborting")
         exit(-1)
     # Run through the required libs, two approaches to find libraries:
     #   1) Look for it in the path specified in the configuration file
@@ -85,7 +99,7 @@ def configure_environment(env, conf, ambit_conf):
 
     # Finally check for Boost, Eigen and Sparsehash and finish up configuration
     if not env_conf.CheckCXXHeader("boost/version.hpp"):
-        print("Warning: could not find Boost headers. Aborting")
+        print("Warning: could not find Boost headers. Check Lib path in config.ini")
         exit(-1)
 
     if not conf.get("Build options", "Sparsehash path"):
@@ -93,7 +107,7 @@ def configure_environment(env, conf, ambit_conf):
         if env_conf.check_pkg("libsparsehash"):
             env_conf.env.ParseConfig("pkg-config --libs --cflags libsparsehash")
         else:
-            print("Failed to automatically locate Eigen headers. Specify Sparsehash path in config.ini")
+            print("Failed to automatically locate Sparsehash headers. Specify Sparsehash path in config.ini")
             exit(-1)
     if not conf.get("Build options", "Eigen path"):
         print("Eigen directory not specified...")
@@ -128,11 +142,16 @@ else:
 # Now open the ini files containing the user config options, and the AMBiT requirements
 conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 conf.optionxform = str # Necessary to make keys case-sensitive
-conf.read("config.ini")
+if not conf.read("config.ini"):
+    print("Error: could not find configuration file config.ini.")
+    exit(-1)
 
 ambit_conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 ambit_conf.optionxform = str # Necessary to make keys case-sensitive
-ambit_conf.read("ambit_dependencies.ini")
+# Bail out if we can't read config.ini
+if not ambit_conf.read("ambit_dependencies.ini"):
+    print("Error: could not read dependencies file ambit_dependencies.ini. Aborting build.")
+    exit(-1)
 
 # Configure the build environment, but only if we're not cleaning out targets
 if not env.GetOption('clean'):
