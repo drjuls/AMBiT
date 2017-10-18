@@ -63,14 +63,14 @@ endif
 
 ifeq ($(MACHINE), nci)
   CC  = mpic++
-  CXX = mpic++ -std=c++11
+  CXX = mpic++ -std=c++11 -qopenmp
   F77 = ifort
 
   EIGEN_INCLUDE_DIR =
   ANGULAR_DATA_DIRECTORY = /short/gx16/ambit/AngularData
 
   LINK      = mpic++
-  LINKFLAGS = -openmp 
+  LINKFLAGS = -qopenmp 
   LIBDIR    = $(MKL)/lib/intel64
   LIBOBJ    = 
   LIBS      = gsl boost_filesystem boost_system mkl_scalapack_lp64 mkl_intel_lp64 mkl_blacs_openmpi_lp64 mkl_intel_thread mkl_core pthread m dl
@@ -88,7 +88,7 @@ ifeq ($(MACHINE), nci)
     F77FLAGS += -O2 -fpe0 -static -nofor_main
   endif
 
-  CXXFLAGS += -wd1125 -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK
+  CXXFLAGS += -wd1125 -DAMBIT_USE_MPI -DAMBIT_USE_SCALAPACK -DAMBIT_USE_OPENMP -DEIGEN_USE_MKL_ALL
 
   CCDEP   = gcc -std=c++11
   DEPFLAG = -MM
