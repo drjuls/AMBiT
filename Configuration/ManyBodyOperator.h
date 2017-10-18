@@ -636,11 +636,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
        because gcc and clang have different ideas about whether the value of private variables should
        persist across tasks executed by the same thread)
     */
-    static std::vector<double> my_total;
-    #pragma omp threadprivate(my_total)
-
-    // Clear the running totals *before* we enter the parallel region
-    my_total.assign(return_size, 0.);
+    std::vector<double> my_total(return_size * omp_get_max_threads(), 0.);
 #endif
 
     unsigned int solution = 0;
@@ -649,7 +645,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     int config_index = 0;
 #ifdef AMBIT_USE_OPENMP
     // Need to explicitly copyin here to ensure my_total is initialised before use
-    #pragma omp parallel copyin(my_total)
+    #pragma omp parallel shared(my_total)
     {
     #pragma omp single
 #endif
@@ -664,9 +660,10 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     {
     #ifdef AMBIT_USE_OPENMP
                         #pragma omp task default(none) \
-                                firstprivate(config_it, config_jt, config_index, solution, epsilon) \
-                                shared(total, left_eigenvector, right_eigenvector)
+                                firstprivate(config_it, config_jt, config_index, solution) \
+                                shared(my_total, left_eigenvector, right_eigenvector, epsilon, return_size)
                         {
+                        int my_offset = omp_get_thread_num() * return_size;
     #endif
                         // Iterate over projections
                         auto proj_it = config_it.projection_begin();
@@ -702,7 +699,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                                                     pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
                                                 {
 #ifdef AMBIT_USE_OPENMP
-                                                    my_total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
+                                                    my_total[my_offset + solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
 #else
                                                     total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
 #endif
@@ -730,14 +727,14 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
             config_it++;
         } // config_it + OpenMP single construct
 #ifdef AMBIT_USE_OPENMP
-        #pragma omp barrier
-        // Finally, gather all the thread totals into the final results
-        #pragma omp critical(MANY_BODY_OP)
+    } // OpenMP parallel region
+
+    // Gather all the partial sums 
+    for(int proc = 0; proc < omp_get_max_threads(); ++proc)
         for(int ii = 0; ii < return_size; ++ii)
         {
-            total[ii] += my_total[ii];
+            total[ii] += my_total[proc * return_size + ii];
         }
-    } // OpenMP parallel region
 #endif
 
 #ifdef AMBIT_USE_MPI
