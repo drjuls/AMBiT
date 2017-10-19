@@ -53,7 +53,7 @@ def configure_environment(env, conf, ambit_conf):
     lib_path = conf.get("Build options", "Lib path")
     
     # Angular data should go in the AMBiT directory if not specified in the config file
-    angular_data_dir= conf.get("Build options", "Angular data")
+    angular_data_dir = conf.get("Build options", "Angular data")
     if not angular_data_dir:
         angular_data_dir = ambit_dir + "/AngularData"
         print("Angular data directory not specified. Defaulting to {}".format(ambit_dir))
@@ -67,20 +67,32 @@ def configure_environment(env, conf, ambit_conf):
 
     # Also grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
     # exist
-    if conf.get("Build options", "CXXFLAGS"):
+    try:
         custom_cxx_flags = conf.get("Build options", "CXXFLAGS")
         env.Append(CXXFLAGS = custom_cxx_flags)
-
+    except ConfigParser.NoOptionError:
+        pass
         # Only replace the default compiler if the user has specified an alternative
-    if conf.get("Build options", "CXX"):
+    try:
         custom_cxx = conf.get("Build options", "CXX")
+        env.Replace(CXX = custom_cxx)
+    except ConfigParser.NoOptionError:
+        pass
+
+    try: 
+        link = conf.get("Build options", "LINK")
+        env.Replace(LINK = link)
+    except ConfigParser.NoOptionError:
         if custom_cxx:
-            env.Replace(CXX = custom_cxx)
+            env.Replace(LINK = custom_cxx) # Try to fallback to the requested C++ compiler, if possible
+
     # Do the same for the Fortran compiler
-    if conf.get("Build options", "F77"):
+    try:
         custom_F77 = conf.get("Build options", "F77")
         if custom_F77:
             env.Replace(FORTRAN = custom_F77)
+    except ConfigParser.NoOptionError:
+        pass
     # Now check everything works as expected (user options, custom compilers, etc.) and finish configuration
     env_conf = Configure(env, custom_tests = {"check_pkgconfig": check_pkgconfig, 
                                               "check_pkg": check_pkg})
