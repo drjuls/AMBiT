@@ -45,12 +45,16 @@ def configure_environment(env, conf, ambit_conf):
 
     # NOTE: These have their own, specially defined paths because they're usually in lots of places 
     # and don't play nicely with pkg-config and/or SCons builtin configuration checks
-    gtest_libs_dir = conf.get("Build options","gtest path")
+    try:
+        gtest_libs_dir = conf.get("Build options","gtest path")
+    except ConfigParser.NoOptionError:
+        gtest_libs_dir = '' # gtest functionality can be safely left out in release builds
     eigen_dir = conf.get("Build options", "Eigen path")
     sparsehash_dir = conf.get("Build options", "Sparsehash path")
 
     libs = [s.strip() for s in ambit_conf.get("Dependencies", "Libs").split(',')]
     lib_path = conf.get("Build options", "Lib path")
+    custom_include = conf.get("Build options", "Include path")
     
     # Angular data should go in the AMBiT directory if not specified in the config file
     angular_data_dir = conf.get("Build options", "Angular data")
@@ -59,7 +63,7 @@ def configure_environment(env, conf, ambit_conf):
         print("Angular data directory not specified. Defaulting to {}".format(ambit_dir))
     env.Append(CXXFLAGS = '-DANGULAR_DATA_DIRECTORY={}'.format(angular_data_dir))
 
-    header_path =  [ambit_dir, eigen_dir , gtest_libs_dir , sparsehash_dir]
+    header_path =  [ambit_dir, eigen_dir , gtest_libs_dir , sparsehash_dir, custom_include]
 
     env.Append(CPPPATH=header_path)
     env.Append(LIBPATH=lib_path)
@@ -75,16 +79,19 @@ def configure_environment(env, conf, ambit_conf):
         # Only replace the default compiler if the user has specified an alternative
     try:
         custom_cxx = conf.get("Build options", "CXX")
-        env.Replace(CXX = custom_cxx)
+        if custom_cxx:
+            env.Replace(CXX = custom_cxx)
     except ConfigParser.NoOptionError:
         pass
 
     try: 
         link = conf.get("Build options", "LINK")
-        env.Replace(LINK = link)
+        if link:
+            env.Replace(LINK = link)
+        else:
+            env.Replace(LINK = env["CXX"]) # Try to fallback to the requested C++ compiler, if possible
     except ConfigParser.NoOptionError:
-        if custom_cxx:
-            env.Replace(LINK = custom_cxx) # Try to fallback to the requested C++ compiler, if possible
+        env.Replace(LINK = env["CXX"]) 
 
     # Do the same for the Fortran compiler
     try:
