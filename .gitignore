@@ -30,6 +30,7 @@ Eigen
 config.ini
 .sconsign.dblite
 .sconf_temp
+config.log
 
 # Auxillary documentation files
 Documentation/*

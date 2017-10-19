@@ -1,7 +1,7 @@
-import subprocess
-import os
+import subprocess # Required to call ./getGitInfo.sh
+import os # Required to get the current working dir
+import shutil # Required for copying files
 import ConfigParser
-from collections import OrderedDict
 
 def get_build_target(src, module, build):
     # Constructs the path to the build object for some C++ source file, e.g.: 
@@ -27,7 +27,8 @@ def check_pkg(context, lib):
     ret = context.TryAction("pkg-config --exists {}".format(lib))[0]
     context.Result(ret)
     return(ret)
- 
+
+### Overlord configuration function ###
 def configure_environment(env, conf, ambit_conf):
     """ Configures the supplied compilation environment according to the configuration options in conf.
         env - Pre-existing compilation environment, which should already have been initialised
@@ -75,16 +76,25 @@ def configure_environment(env, conf, ambit_conf):
         custom_cxx = conf.get("Build options", "CXX")
         if custom_cxx:
             env.Replace(CXX = custom_cxx)
-
+    # Do the same for the Fortran compiler
+    if conf.get("Build options", "F77"):
+        custom_F77 = conf.get("Build options", "F77")
+        if custom_F77:
+            env.Replace(FORTRAN = custom_F77)
     # Now check everything works as expected (user options, custom compilers, etc.) and finish configuration
-    env_conf = Configure(env, custom_tests = {"check_pkgconfig": check_pkgconfig, "check_pkg": check_pkg})
+    env_conf = Configure(env, custom_tests = {"check_pkgconfig": check_pkgconfig, 
+                                              "check_pkg": check_pkg})
 
     pkgconfig_exists = env_conf.check_pkgconfig()
 
-    # TODO - Also check the fortran compiler works properly
+    # Check the C++ and Fortran compilers exist and are properly configured
     if not env_conf.CheckCXX():
-        print("Error: compiler improperly installed/configured. Aborting")
+        print("Error: C++ compiler improperly installed/configured. Aborting")
         exit(-1)
+    if not env_conf.CheckProg(env_conf.env['FORTRAN']):
+        print("Error: Fortran compiler improperly installed/configured. Aborting.")
+        exit(-1)
+
     # Run through the required libs, two approaches to find libraries:
     #   1) Look for it in the path specified in the configuration file
     #   2) Fallback: Try to find it automatically with pkg-config
@@ -143,8 +153,9 @@ else:
 conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 conf.optionxform = str # Necessary to make keys case-sensitive
 if not conf.read("config.ini"):
-    print("Error: could not find configuration file config.ini.")
-    exit(-1)
+    print("Warning: configuration file config.ini not found. Copying configuration template ...")
+    shutil.copy2("config_template.ini", "config.ini")
+    conf.read("config.ini")
 
 ambit_conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 ambit_conf.optionxform = str # Necessary to make keys case-sensitive
