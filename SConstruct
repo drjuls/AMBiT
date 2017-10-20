@@ -4,14 +4,14 @@ import shutil # Required for copying files
 import re
 import ConfigParser
 
-def get_build_target(src, module, build):
+def get_build_target(src, build):
     # Constructs the path to the build object for some C++ source file, e.g.: 
     # Atom/ambit.cpp -> Atom/$BUILD/ambit.o
 
     # Strip the directory/module name and ".cpp" extension from the file
     basename = src[:src.find("cpp")].split('/')[1]
     obj_filename = basename + 'o'
-    target = "{}/{}/{}".format(module, build, obj_filename)
+    target = "./build/{}/{}".format(build, obj_filename)
     return(target)
     
 def find_omp_flags(env):
@@ -305,6 +305,7 @@ if 'debug' in COMMAND_LINE_TARGETS:
     build = "Debug"
     env.Append(CXXFLAGS = '-std=c++11 -g -Wno-deprecated-register -Wno-unused-result -O0')
 elif 'test' in COMMAND_LINE_TARGETS:
+    build = "Test"
     env.Append(CXXFLAGS = '-std=c++11')
     env.Append(LIBS = ['gtest', 'pthread'])
 else:
@@ -342,21 +343,19 @@ for module, files in modules:
     # Next, compile all the object files for our module
 
     srcs = [module + '/' + item for item in files]
-    module_lib_target = module + '/' + build + '/' + module
+    module_lib_target = './build/' + build + '/' + module
     
     # Compile the object files
-    objs = [env.Object(target = get_build_target(src, module, build), source = src) 
+    objs = [env.Object(target = get_build_target(src, build), source = src) 
             for src in srcs]
 
     # Compile the unit tests into objects if requested
     if 'test' in COMMAND_LINE_TARGETS:
-        test_objs += [env.Object(target = get_build_target(str(src), module, build), source = src) 
+        test_objs += [env.Object(target = get_build_target(str(src), build), source = src) 
             for src in Glob("{}/*.test.cpp".format(module))]
     
     # Now link them all into one library
     common_libs.append(Library(target = module_lib_target, source = objs))
-
-
 
 # Finally, put it all together in one executable (note that debug and release both alias to the ambit 
 # executable. Eventually I'll add a test target in as well)

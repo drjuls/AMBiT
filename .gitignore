@@ -25,6 +25,7 @@ Debug
 ambit
 ambit_test
 Eigen
+build
 
 # SCons configuration and temporary file
 config.ini
