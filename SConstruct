@@ -1,6 +1,7 @@
 import subprocess # Required to call ./getGitInfo.sh
 import os # Required to get the current working dir
 import shutil # Required for copying files
+import re
 import ConfigParser
 
 def get_build_target(src, module, build):
@@ -12,6 +13,56 @@ def get_build_target(src, module, build):
     obj_filename = basename + 'o'
     target = "{}/{}/{}".format(module, build, obj_filename)
     return(target)
+    
+def find_omp_flags(env):
+    """ Searches for OpenMP compiler flags and, if not found, attempts to automatically add them.
+
+    The OpenMP flags are compiler specific, so only certain compilers are supported here:
+
+    gcc               ->      -fopenmp
+    clang (Linux)     ->      -fopenmp=libiomp5
+    Intel             ->      -qopenmp or -openmp
+    Portland          ->      -mp
+    clang (macOS)     ->      Not supported by default under XCode
+    
+    If the OpenMP flags were not directly supplied then the compiler choice is used to make a guess and
+    append the correct set of flags. This is not capable of dealing with MPI compiler wrappers like
+    mpiCC, since they provide no information about the underlying compiler.
+    
+    """
+
+    # This pattern should match all OpenMP flags for gcc, clang, Intel and Portland compilers
+    print("Checking for OpenMP flags...")
+    omp_pattern = re.compile(r"(\-mp|\-openmp|\-qopenmp|\-fopenmp)\b")
+    
+    # Do the checks twice, in case the compiler and linker are different (this is usually unnecessary,
+    # but sometimes NEEDS to happen)
+    for case in ["CXX", "LINK"]:
+        # Search both the compiler and flags, in case CXX or LINK is something like "g++ -fopenmp"
+        match = omp_pattern.search(str(env[case + "FLAGS"]) + " " + str(env[case])) 
+        if match:
+            pass
+
+        else:
+            # If there were no openmp flags supplied, then attempt to deduce the correct one from the 
+            # choice of compiler (note that sometimes the compiler is specified like "g++ -std=c++11", 
+            # use a regular expression here)
+            print("No OpenMP {}FLAGS supplied. Attempting to automatically generate...".format(case))
+            compiler_pattern = re.compile(r"\b(g\+\+|clang\+\+|icpc|pgcc)")
+            omp_flag_choices = {"g++": "-fopenmp", "clang++": "-fopenmp=libiomp5", "icpc": "-qopenmp", 
+                             "pgcc": "-mp"}
+            match = compiler_pattern.search(str(env[case]))
+            if match:
+                omp_flag = omp_flag_choices[match.group(1)]
+                if case == "CXX":
+                    env.AppendUnique(CXXFLAGS = omp_flag)
+                elif case == "LINK":
+                    env.AppendUnique(LINKFLAGS = omp_flag)
+                print("Adding {} to {}FLAGS".format(omp_flag, case))
+            else:
+                print("Warning: could not automatically determine correct OpenMP compiler flags.")
+
+    return(env)
 
 ### Custom configuration/autoconf-like functions for AMBiT ###
 def check_pkgconfig(context):
@@ -78,7 +129,15 @@ def read_config(env, conf, ambit_conf):
         env.Append(CXXFLAGS = custom_cxx_flags)
     except ConfigParser.NoOptionError:
         pass
-        # Only replace the default compiler if the user has specified an alternative
+    # Link flags
+    try:
+        custom_linkflags = conf.get("Compiler options", "LINKFLAGS")
+        env.Append(LINKFLAGS = custom_linkflags)
+    except ConfigParser.NoOptionError:
+        pass
+
+
+    # Only replace the default compilers if the user has specified an alternative
     try:
         custom_cxx = conf.get("Compiler options", "CXX")
         if custom_cxx:
@@ -108,6 +167,7 @@ def read_config(env, conf, ambit_conf):
     # are system dependent, so must be specified in CXX and CXXFLAGS
     try:
         use_openmp = conf.getboolean("HPC options", "Use OpenMP") 
+
     except ValueError:
         use_openmp = False
 
@@ -121,8 +181,10 @@ def read_config(env, conf, ambit_conf):
     except ValueError:
         use_mkl = False
 
+    # TODO: Want to have some automatic checks for compiler flags here
     if use_openmp:
         env.Append(CXXFLAGS = "-DAMBIT_USE_OPENMP")
+        find_omp_flags(env)
     if use_mpi:
         env.Append(CXXFLAGS = "-DAMBIT_USE_MPI")
     if use_mkl:
@@ -165,6 +227,18 @@ def configure_environment(env, conf, ambit_conf):
             else:
                env_conf.env.ParseConfig("pkg-config --libs --cflags {}".format(lib))
 
+    # Check the requested HPC libraries exist
+    # TODO: This also needs to check for MKL
+    if "-DAMBIT_USE_OPENMP" in env_conf.env["CXXFLAGS"]:
+        if not env_conf.CheckCXXHeader("omp.h"):
+            print("Warning: failed to locate OpenMP headers. Aborting.")
+            exit(-1)
+
+    if "-DAMBIT_USE_MPI" in env_conf.env["CXXFLAGS"]:
+        if not env_conf.CheckCXXHeader("mpi.h"):
+            print("Warning: failed to locate MPI headers. Aborting.")
+            exit(-1)
+
     # Finally check for Boost, Eigen and Sparsehash and finish up configuration
     if not env_conf.CheckCXXHeader("boost/version.hpp"):
         print("Warning: could not find Boost headers. Check Lib path in config.ini")
@@ -186,6 +260,7 @@ def configure_environment(env, conf, ambit_conf):
             exit(-1)
             
     env = env_conf.Finish()
+    print("Finished configuring build environment.\n")
     return(env)
 
 
