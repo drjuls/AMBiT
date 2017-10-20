@@ -181,14 +181,26 @@ def read_config(env, conf, ambit_conf):
     except ValueError:
         use_mkl = False
 
-    # TODO: Want to have some automatic checks for compiler flags here
     if use_openmp:
         env.Append(CXXFLAGS = "-DAMBIT_USE_OPENMP")
-        find_omp_flags(env)
+        find_omp_flags(env) # Look for OpenMP flags/try to automagically infer them
     if use_mpi:
         env.Append(CXXFLAGS = "-DAMBIT_USE_MPI")
     if use_mkl:
         env.Append(CXXFLAGS = "-DEIGEN_USE_MKL_ALL")
+        # Also read and parse the MKL link flags. These can just be of the form: -l<whatever> -I<path>
+        try:
+            mkl_flags = conf.get("HPC options", "MKL flags")
+            if mkl_flags:
+                env.MergeFlags(mkl_flags)
+                
+            else:
+                print("Error: MKL flags must be explicitly defined in config.ini to use MKL")
+                exit(-1)
+
+        except ConfigParser.NoOptionError:
+            print("Error: MKL flags must be explicitly defined in config.ini to use MKL")
+            exit(-1)
 
     return(env)
 
@@ -222,13 +234,12 @@ def configure_environment(env, conf, ambit_conf):
     for lib in [l for l in env["LIBS"] if l.find("boost") == -1]:
         if not env_conf.CheckLib(lib): # Can't find in current path
             if(not pkgconfig_exists or not env_conf.check_pkg(lib)):
-                print("Warning: could not find library {}. Check Lib path in config.ini".format(lib))
+                print("Warning: could not find library {}. Check [Dependency paths] in config.ini".format(lib))
                 exit(-1)
             else:
                env_conf.env.ParseConfig("pkg-config --libs --cflags {}".format(lib))
 
     # Check the requested HPC libraries exist
-    # TODO: This also needs to check for MKL
     if "-DAMBIT_USE_OPENMP" in env_conf.env["CXXFLAGS"]:
         if not env_conf.CheckCXXHeader("omp.h"):
             print("Warning: failed to locate OpenMP headers. Aborting.")
@@ -241,7 +252,7 @@ def configure_environment(env, conf, ambit_conf):
 
     # Finally check for Boost, Eigen and Sparsehash and finish up configuration
     if not env_conf.CheckCXXHeader("boost/version.hpp"):
-        print("Warning: could not find Boost headers. Check Lib path in config.ini")
+        print("Warning: could not find Boost headers. Check [Dependency paths] in config.ini")
         exit(-1)
 
     if not conf.get("Dependency paths", "Sparsehash path"):
