@@ -106,14 +106,14 @@ def read_config(env, conf, ambit_conf):
     # NOTE: These have their own, specially defined paths because they're usually in lots of places 
     # and don't play nicely with pkg-config and/or SCons builtin configuration checks
     try:
-        gtest_libs_dir = conf.get("Dependency paths","gtest path")
+        gtest_libs_dir = conf.get("Dependency paths","gtest include path")
     except ConfigParser.NoOptionError:
         gtest_libs_dir = '' # gtest functionality can be safely left out in release builds
     eigen_dir = conf.get("Dependency paths", "Eigen path")
     sparsehash_dir = conf.get("Dependency paths", "Sparsehash path")
 
     libs = [s.strip() for s in ambit_conf.get("Dependencies", "Libs").split(',')]
-    lib_path = conf.get("Dependency paths", "Lib path")
+    lib_path = conf.get("Dependency paths", "Lib path") + gtest_libs_dir
     custom_include = conf.get("Dependency paths", "Include path")
     
     # Angular data should go in the AMBiT directory if not specified in the config file
@@ -123,7 +123,7 @@ def read_config(env, conf, ambit_conf):
         print("Angular data directory not specified. Defaulting to {}".format(ambit_dir))
     env.Append(CXXFLAGS = '-DANGULAR_DATA_DIRECTORY={}'.format(angular_data_dir))
 
-    header_path =  [ambit_dir, eigen_dir , gtest_libs_dir , sparsehash_dir, custom_include]
+    header_path =  [ambit_dir, eigen_dir, sparsehash_dir, custom_include]
 
     env.Append(CPPPATH=header_path)
     env.Append(LIBPATH=lib_path)
@@ -174,7 +174,6 @@ def read_config(env, conf, ambit_conf):
     # are system dependent, so must be specified in CXX and CXXFLAGS
     try:
         use_openmp = conf.getboolean("HPC options", "Use OpenMP") 
-
     except ValueError:
         use_openmp = False
 
@@ -299,11 +298,16 @@ with open("gitInfo.h", 'w') as fp:
 env = Environment(CXX = 'g++', CC = 'gcc', LINK = 'g++', \
     FORTRAN = 'gfortran', \
     F77FLAGS = '-O2')
+
+build = "Release" # Default build target (i.e. don't do debug unless specifically asked for it)
+
 if 'debug' in COMMAND_LINE_TARGETS:
     build = "Debug"
     env.Append(CXXFLAGS = '-std=c++11 -g -Wno-deprecated-register -Wno-unused-result -O0')
+elif 'test' in COMMAND_LINE_TARGETS:
+    env.Append(CXXFLAGS = '-std=c++11')
+    env.Append(LIBS = ['gtest', 'pthread'])
 else:
-    build = "Release"
     env.Append(CXXFLAGS = '-std=c++11 -O3')
 
 # Now open the ini files containing the user config options, and the AMBiT requirements
@@ -329,6 +333,7 @@ if not env.GetOption('clean'):
 # And build all of our common libraries/modules
 modules = ambit_conf.items("Modules")
 common_libs = []
+test_objs = []
 for module, files in modules:
 
     # First, split the comma separated list of files and strip out whitespace
@@ -342,12 +347,22 @@ for module, files in modules:
     # Compile the object files
     objs = [env.Object(target = get_build_target(src, module, build), source = src) 
             for src in srcs]
+
+    # Compile the unit tests into objects if requested
+    if 'test' in COMMAND_LINE_TARGETS:
+        test_objs += [env.Object(target = get_build_target(str(src), module, build), source = src) 
+            for src in Glob("{}/*.test.cpp".format(module))]
     
     # Now link them all into one library
     common_libs.append(Library(target = module_lib_target, source = objs))
 
+
+
 # Finally, put it all together in one executable (note that debug and release both alias to the ambit 
 # executable. Eventually I'll add a test target in as well)
+if 'test' in COMMAND_LINE_TARGETS:
+    env.Program(target = 'ambit_test', source = test_objs + common_libs)
 env.Program(target = 'ambit', source = common_libs)
 env.Alias('release', 'ambit')
 env.Alias('debug', 'ambit')
+env.Alias('test', 'ambit_test')
