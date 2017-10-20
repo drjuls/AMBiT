@@ -79,6 +79,13 @@ def check_pkg(context, lib):
     context.Result(ret)
     return(ret)
 
+def check_pkg_version(context, lib, version):
+    # Checks the specified package is at the specified version or above
+    context.Message("Checking {} is at least version {}...".format(lib, version))
+    ret = context.TryAction("pkg-config --atleast-version={} {}".format(version, lib))
+    context.Result(ret)
+    return(ret)
+
 ### Configuration functions ###
 def read_config(env, conf, ambit_conf):
     """ Configures the supplied compilation environment according to the configuration options in conf.
@@ -215,7 +222,8 @@ def configure_environment(env, conf, ambit_conf):
 
 
     env_conf = Configure(env, custom_tests = {"check_pkgconfig": check_pkgconfig, 
-                                              "check_pkg": check_pkg})
+                                              "check_pkg": check_pkg,
+                                              "check_pkg_version": check_pkg_version})
 
     pkgconfig_exists = env_conf.check_pkgconfig()
 
@@ -250,7 +258,7 @@ def configure_environment(env, conf, ambit_conf):
             print("Warning: failed to locate MPI headers. Aborting.")
             exit(-1)
 
-    # Finally check for Boost, Eigen and Sparsehash and finish up configuration
+    # Check for Boost, Eigen and Sparsehash (these don't follow the nice pkg-config conventions)
     if not env_conf.CheckCXXHeader("boost/version.hpp"):
         print("Warning: could not find Boost headers. Check [Dependency paths] in config.ini")
         exit(-1)
@@ -269,6 +277,11 @@ def configure_environment(env, conf, ambit_conf):
         else:
             print("Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
             exit(-1)
+
+    # Also check the version of Eigen is at least 3.2 and gsl is version 2.x (or above) 
+    if pkgconfig_exists:
+        env_conf.check_pkg_version("gsl", "2.0")
+        env_conf.check_pkg_version("eigen3", "3.2.0")
             
     env = env_conf.Finish()
     print("Finished configuring build environment.\n")
