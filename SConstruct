@@ -239,9 +239,12 @@ def configure_environment(env, conf, ambit_conf):
     if not env_conf.CheckCXX():
         print("Error: C++ compiler improperly installed/configured. Aborting")
         exit(-1)
-    if not env_conf.CheckProg(env_conf.env['FORTRAN']):
-        print("Error: Fortran compiler improperly installed/configured. Aborting.")
-        exit(-1)
+    try:
+      if not env_conf.CheckProg(env_conf.env['FORTRAN']):
+          print("Error: Fortran compiler improperly installed/configured. Aborting.")
+          exit(-1)
+    except AttributeError: # Skip this check if we're using an old version of SCons
+      pass
 
     # Run through the required libs, two approaches to find libraries:
     #   1) Look for it in the path specified in the configuration file
