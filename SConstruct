@@ -148,7 +148,7 @@ def read_config(env, conf, ambit_conf):
     # Link flags
     try:
         custom_linkflags = conf.get("Compiler options", "LINKFLAGS")
-        env.MergeFlags(custom_linkflags)
+        env.Append(LINKFLAGS=custom_linkflags)
     except ConfigParser.NoOptionError:
         pass
 
