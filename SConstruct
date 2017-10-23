@@ -82,7 +82,7 @@ def check_pkg(context, lib):
 def check_pkg_version(context, lib, version):
     # Checks the specified package is at the specified version or above
     context.Message("Checking {} is at least version {}...".format(lib, version))
-    ret = context.TryAction("pkg-config --atleast-version={} {}".format(version, lib))
+    ret = context.TryAction("pkg-config --atleast-version={} {}".format(version, lib))[0]
     context.Result(ret)
     return(ret)
 
@@ -113,7 +113,7 @@ def read_config(env, conf, ambit_conf):
     sparsehash_dir = conf.get("Dependency paths", "Sparsehash path")
 
     libs = [s.strip() for s in ambit_conf.get("Dependencies", "Libs").split(',')]
-    lib_path = conf.get("Dependency paths", "Lib path") + gtest_libs_dir
+    lib_path = conf.get("Dependency paths", "Lib path")
     custom_include = conf.get("Dependency paths", "Include path")
     
     # Angular data should go in the AMBiT directory if not specified in the config file
@@ -127,6 +127,7 @@ def read_config(env, conf, ambit_conf):
 
     env.Append(CPPPATH=header_path)
     env.Append(LIBPATH=lib_path)
+    env.Append(LIBPATH=gtest_libs_dir)
     env.Append(LIBS=libs)
 
     # Also grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
@@ -295,9 +296,12 @@ with open("gitInfo.h", 'w') as fp:
     subprocess.call("./getGitInfo.sh", stdout=fp)
 
 # First, grab the type of build from the command line and set up the compiler environment (default is gcc)
+# NOTE: We need to explicitly import the shell (bash) from the environment so compiler checks work
 env = Environment(CXX = 'g++', CC = 'gcc', LINK = 'g++', \
     FORTRAN = 'gfortran', \
-    F77FLAGS = '-O2')
+    F77FLAGS = '-O2',
+    SHELL = "/bin/bash",
+    ENV = os.environ)
 
 build = "Release" # Default build target (i.e. don't do debug unless specifically asked for it)
 
