@@ -61,6 +61,13 @@ int main(int argc, char* argv[])
     #ifdef UNIX
         umask(0003);
     #endif
+    
+    // Check whether the environment variable OMP_NUM_THREADS has been explicitly set - OpenMP threading
+    // should only be used if explicitly requested by the user
+    #ifdef AMBIT_USE_OPENMP
+        if(!std::getenv("OMP_NUM_THREADS"))
+            omp_set_num_threads(1);
+    #endif
 
     OutStreams::InitialiseStreams();
 
