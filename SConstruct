@@ -64,6 +64,37 @@ def find_omp_flags(env):
 
     return(env)
 
+def expand_flags(env, flags):
+    """ Expands environment variables in supplied linker flags and passes them into the compilation env.
+    
+    """
+    
+    # Split the string of flags so we can parse each individually
+    flags = flags.split()
+    
+    # Regex pattern: matches environment variables like ${FOO} or $FOO
+    var_pattern = re.compile(r"(\$\{\w+\}|\$\w+\b)")
+    expanded_flags = []
+    for flag in flags:
+        match = var_pattern.search(flag)
+        
+        if match:
+
+            # Get the substring containing the variable and remove the $ and {} surrounding it
+            span = match.span()
+            stripped_var = match.group(0).strip("${}")
+            try:
+                flag = flag[:span[0]] + env["ENV"][stripped_var] + flag[span[1]:]
+                expanded_flags.append(flag)
+            except KeyError:
+                flag = flag[:span[0]] + flag[span[1]:] # Remove the variable if it's not defined
+                expanded_flags.append(flag)
+        else:
+            expanded_flags.append(flag)
+
+    return(expanded_flags)
+
+
 ### Custom configuration/autoconf-like functions for AMBiT ###
 def check_pkgconfig(context):
     # Checks that pkg-config exists and is configured
@@ -121,8 +152,10 @@ def read_config(env, conf, ambit_conf):
         sparsehash_dir = ''
 
     libs = [s.strip() for s in conf.get("Dependencies", "Libs").split(',')]
-    lib_path = conf.get("Dependency paths", "Lib path") + gtest_libs_dir
-    custom_include = conf.get("Dependency paths", "Include path")
+    
+    # Make sure to expand any environment variables in the paths
+    lib_path = expand_flags(env, conf.get("Dependency paths", "Lib path"))
+    custom_include = expand_flags(env, conf.get("Dependency paths", "Include path"))
     
     # Angular data should go in the AMBiT directory if not specified in the config file
     angular_data_dir = conf.get("AMBiT options", "Angular data")
@@ -207,6 +240,7 @@ def read_config(env, conf, ambit_conf):
         try:
             mkl_flags = conf.get("HPC options", "MKL flags")
             if mkl_flags:
+                mkl_flags = expand_flags(env, mkl_flags)
                 env.MergeFlags(mkl_flags)
                 
             else:
