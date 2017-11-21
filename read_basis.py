@@ -172,6 +172,10 @@ class OrbitalMap:
     """ Return the orbital object indexed by the given spectroscopic label (e.g. 1s, 4d+)."""
     return(self.__orbitals[label])
 
+  def __setitem__(self, label, orb):
+    """ Stores the given orbital object using the supplied key/label. """
+    self.__orbitals[label] = orb
+
   def list_orbitals(self):
     """ Prints the spectroscopic label and energy of all stored orbitals."""
     print("{} basis orbitals stored:\n#Orbital  Energy".format(self.numOrbitals))
