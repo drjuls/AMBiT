@@ -54,7 +54,7 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     for(int ii = 0; ii < omp_get_max_threads(); ++ii){
         hartreeY_operators.emplace_back(hartreeY_operator->Clone());
     }
-    #pragma omp parallel
+    #pragma omp parallel if(!check_size_only)
     {
     #pragma omp single nowait
 #endif
@@ -105,9 +105,6 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
                             if(check_size_only)
                             {
-#ifdef AMBIT_USE_OPENMP
-                                #pragma omp critical(TWO_ELECTRON_SLATER)
-#endif
                                 found_keys.insert(key);
                             }
                             else
