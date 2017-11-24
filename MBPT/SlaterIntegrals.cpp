@@ -104,7 +104,12 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                             KeyType key = GetKey(k, i1, i2, i3, i4);
 
                             if(check_size_only)
+                            {
+#ifdef AMBIT_USE_OPENMP
+                                #pragma omp critical(TWO_ELECTRON_SLATER)
+#endif
                                 found_keys.insert(key);
+                            }
                             else
                             {   // Check that this integral doesn't already exist
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
