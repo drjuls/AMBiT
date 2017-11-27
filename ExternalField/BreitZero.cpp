@@ -2,6 +2,15 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
+pHartreeY BreitZero::Clone() const
+{
+    auto ret(std::make_shared<BreitZero>(*this));
+    ret->component = component->Clone();
+    ret->component->SetParent(ret);
+    ret->coulomb = std::make_shared<CoulombOperator>(*coulomb);
+    return ret;
+}
+
 bool BreitZero::isZeroLocal() const
 {
     return (!pot_Q_Kplus.size() && !pot_V_K.size());
