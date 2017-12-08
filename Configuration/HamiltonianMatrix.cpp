@@ -95,23 +95,22 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
-
-    for(auto& current_chunk: chunks)
+    
+    unsigned int chunk_index;
+#ifdef AMBIT_USE_OPENMP
+    //#pragma omp parallel for private(chunk_index, config_it) shared(num_chunks, configsubsetend, configsubsetend_it, chunks) schedule(dynamic)
+    #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
+#endif
+    for(chunk_index = 0; chunk_index < num_chunks; chunk_index++)
     {
+        auto& current_chunk = chunks[chunk_index];
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& D = current_chunk.diagonal;
 
         // Loop through configs for this chunk
-        unsigned int config_index;
-#ifdef AMBIT_USE_OPENMP
-        // Note: load balancing is achieved by breaking the matrix into chunks (currently handling one config per OMP thread), so use static scheduling
-        #pragma omp parallel for private(config_index, config_it) schedule(static)
-#endif
-        for(config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
+        config_it = (*configs)[current_chunk.config_indices.first];
+        for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
-            // Get config_it from the current confg_index (this is slow(ish) but thread-safe)
-            config_it = (*configs)[config_index];
-
             bool leading_config_i = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_it));
 
             // Loop through the rest of the configs
@@ -235,13 +234,14 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                     proj_it++;
                 }
             }
+            config_it++;
         } // Configs in chunk
     } // Chunks
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
-}
 
+}
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
     LevelVector levelvec(hID);
