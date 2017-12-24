@@ -95,7 +95,8 @@ double BreitZero::GetMatrixElement(const Orbital& b, const Orbital& a, bool reve
     double value = component->GetMatrixElement(b, a, reverse);
 
     MathConstant& math = *MathConstant::Instance();
-    if(K == 0 || isZero() || !math.triangular_condition(a.TwoJ(), b.TwoJ(), 2*K))
+    if(K == 0 || isZero() || !math.triangular_condition(a.TwoJ(), b.TwoJ(), 2*K) ||
+       (a.L() + b.L() + c->L() + d->L())%2)
         return value;
 
     double M = 0., N = 0., O = 0.;
@@ -162,7 +163,8 @@ SpinorFunction BreitZero::ApplyTo(const SpinorFunction& a, int kappa_b, bool rev
     int b_twoJ = 2 * abs(kappa_b) - 1;
     int b_L = (kappa_b > 0? kappa_b: -kappa_b-1);
 
-    if(K == 0 || isZero() || !math.triangular_condition(a.TwoJ(), b_twoJ, 2*K))
+    if(K == 0 || isZero() || !math.triangular_condition(a.TwoJ(), b_twoJ, 2*K) ||
+       (a.L() + b_L + c->L() + d->L())%2)
         return ret;
 
     if(math.sum_is_even(a.L(), b_L, K))

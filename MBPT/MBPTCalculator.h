@@ -60,6 +60,9 @@ protected:
     /** Parity check returns true if (a.L() + b.L() + k)%2 == 0 or include_off_parity. */
     inline bool ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k) const;
 
+    /** Parity check returns true if (a.L() + b.L() + k)%2 == 0 or include_off_parity && (a.L() + b.L())%2 == (c.L() + d.L())%2. */
+    inline bool ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k, const OrbitalInfo& c, const OrbitalInfo& d) const;
+
     /** Return minimum value of k connecting two states a and b, satisfying:
           triangle(a.J(), b.J(), kmin)
           eps(a.L() + b.L() + kmin)
@@ -128,6 +131,14 @@ inline int MBPTCalculator::absdiff(int i, int j) const
 inline bool MBPTCalculator::ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k) const
 {
     return (include_off_parity || ((a.L() + b.L() + k)%2 == 0));
+}
+
+inline bool MBPTCalculator::ParityCheck(const OrbitalInfo& a, const OrbitalInfo& b, const int& k, const OrbitalInfo& c, const OrbitalInfo& d) const
+{
+    if(include_off_parity)
+        return (a.L() + b.L() + c.L() + d.L())%2 == 0;
+    else
+        return (a.L() + b.L() + k)%2 == 0;
 }
 
 inline int MBPTCalculator::kmin(const OrbitalInfo& a, const OrbitalInfo& b) const

@@ -163,7 +163,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Ebeta = it_beta->second->Energy();
 
                         double coeff;
-                        if(InQSpace(sn, salpha, sbeta) && ParityCheck(sa, sbeta, k1))
+                        if(InQSpace(sn, salpha, sbeta) && ParityCheck(sa, sbeta, k1, sn, salpha))
                             coeff = constants->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -191,7 +191,7 @@ double CoreMBPTCalculator::CalculateCorrelation1and3(const OrbitalInfo& sa, cons
                         const double Em = it_m->second->Energy();
 
                         double coeff;
-                        if(InQSpace(sn, salpha, sm) && ParityCheck(sa, sm, k1))
+                        if(InQSpace(sn, salpha, sm) && ParityCheck(sa, sm, k1, sn, salpha))
                             coeff =  constants->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             coeff = 0.;
@@ -268,7 +268,7 @@ double CoreMBPTCalculator::CalculateCorrelation2(const OrbitalInfo& sa, const Or
                         const double Ebeta = it_beta->second->Energy();
 
                         double C_abeta;
-                        if(InQSpace(sn, salpha, sbeta) && ParityCheck(sa, sbeta, k1))
+                        if(InQSpace(sn, salpha, sbeta) && ParityCheck(sa, sbeta, k1, sn, salpha))
                             C_abeta = MathConstant::Instance()->Electron3j(sa.TwoJ(), sbeta.TwoJ(), k1);
                         else
                             C_abeta = 0.;
@@ -365,7 +365,7 @@ double CoreMBPTCalculator::CalculateCorrelation4(const OrbitalInfo& sa, const Or
                         const double Em = it_m->second->Energy();
 
                         double C_am;
-                        if(InQSpace(sn, salpha, sm) && ParityCheck(sa, sm, k1))
+                        if(InQSpace(sn, salpha, sm) && ParityCheck(sa, sm, k1, sn, salpha))
                             C_am = MathConstant::Instance()->Electron3j(sa.TwoJ(), sm.TwoJ(), k1);
                         else
                             C_am = 0.;
@@ -578,7 +578,7 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
             const double Ealpha = it_alpha->second->Energy();
 
             double coeff;
-            if(InQSpace(sn, salpha) && ParityCheck(sn, salpha, k))
+            if(InQSpace(sn, salpha) && ParityCheck(sn, salpha, k, sa, sc))
                 coeff = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
             else
                 coeff = 0.;
@@ -644,7 +644,7 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
             const double Ealpha = it_alpha->second->Energy();
 
             double C_nalpha = 0.;
-            if(InQSpace(sn, salpha) && ParityCheck(sn, salpha, k))
+            if(InQSpace(sn, salpha) && ParityCheck(sn, salpha, k, sb, sd))
                 C_nalpha = MathConstant::Instance()->Electron3j(sn.TwoJ(), salpha.TwoJ(), k);
 
             if(C_nalpha)

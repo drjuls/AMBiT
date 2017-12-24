@@ -223,7 +223,7 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     {
         radial = it->second;
     }
-    else if((s1.L() + s3.L() + k) == 0)
+    else if((s1.L() + s3.L() + k)%2 == 0 && (s2.L() + s4.L() + k)%2 == 0)
     {   // Only print error if requested integral has correct parity rules
 #ifdef AMBIT_USE_OPENMP
         #pragma omp critical(ERRSTREAM)
