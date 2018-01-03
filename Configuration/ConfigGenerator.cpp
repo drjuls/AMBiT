@@ -285,7 +285,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     }
 
     rlist->SetSmallSize(rlist->size());
-    rlist->sort(ConfigurationComparator());
+    rlist->sort(MostProjectionsFirstComparator());
     rlist->unique();
     rlist->SetSmallSize(rlist->size());
 
@@ -363,7 +363,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
         ++it;
     }
 
-    rlist->sort(ConfigurationComparator());
+    rlist->sort(MostProjectionsFirstComparator());
     rlist->unique();
     return rlist;
 }
@@ -419,13 +419,13 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
         it++;
     }
 
+    if(angular_library)
+        GenerateProjections(prlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
+
     if(user_input.search("CI/--sort-matrix-by-configuration"))
         returnedlist.sort(ConfigurationComparator());
     else
-        returnedlist.sort(FewestProjectionsFirstComparator());
-
-    if(angular_library)
-        GenerateProjections(prlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
+        returnedlist.sort(MostProjectionsFirstComparator());
 
     return prlist;
 }
@@ -524,7 +524,7 @@ void ConfigGenerator::GenerateExcitations(pRelativisticConfigList configlist, Or
     }
 
     configlist->SetSmallSize(configlist->size());
-    configlist->sort(ConfigurationComparator());
+    configlist->sort(MostProjectionsFirstComparator());
     configlist->unique();
 }
 
