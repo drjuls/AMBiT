@@ -183,7 +183,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
                 hf = magneticQED;
             }
             if(!user_input.search("HF/QED/--no-electric"))
-            {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius));
+            {   bool skip_offmass = user_input.search("HF/QED/--skip-offmass");
+                electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius, !skip_offmass));
                 hf = electricQED;
             }
         }
