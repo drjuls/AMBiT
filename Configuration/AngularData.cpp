@@ -7,6 +7,8 @@
 #ifdef AMBIT_USE_MPI
     #include <mpi.h>
 #endif
+#include<chrono>
+#include<thread>
 
 AngularData::AngularData(int two_m):
     two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
@@ -665,7 +667,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         // Key
         int key_size = 0;
         // Wait between reads to make timing write-conflicts less tricky
-        sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&key_size, sizeof(int), 1, fp);
 
         KeyType key;    // vector of pair(kappa, num particles)
@@ -684,27 +686,27 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
 
         // Projections
         int num_projections = 0;
-        sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&num_projections, sizeof(int), 1, fp);
 
         int particle_number = 0;
-        sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&particle_number, sizeof(int), 1, fp);
         int projection_array[particle_number];
 
         for(int i = 0; i < num_projections; i++)
         {
-            sleep(2);
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             fread(projection_array, sizeof(int), particle_number, fp);
             ang->projections.push_back(std::vector<int>(projection_array, projection_array + particle_number));
         }
 
         // CSFs
-        sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&ang->num_CSFs, sizeof(int), 1, fp);
         if(ang->num_CSFs)
         {   ang->CSFs = new double[num_projections * ang->num_CSFs];
-            sleep(2);
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
         }
         ang->have_CSFs = true;
@@ -757,6 +759,7 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
           exit(EXIT_FAILURE);
         }
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
         // Count number of elements with same symmetry
         int num_angular_data_objects = 0;
         auto symmetry_pair = std::make_pair(sym.GetJpi(), two_m);
