@@ -649,6 +649,12 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     if(!fp)
         return;
 
+    // Turn off buffering for the stream to make it easier to find write-conflicts
+    if(setvbuf(fp, NULL, _IONBF, 6) != 0){
+      perror("setvbuf: ");
+      exit(EXIT_FAILURE);
+    }
+
     int num_angular_data_objects = 0;
     fread(&num_angular_data_objects, sizeof(int), 1, fp);
 
@@ -658,6 +664,8 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     {
         // Key
         int key_size = 0;
+        // Wait between reads to make timing write-conflicts less tricky
+        sleep(2);
         fread(&key_size, sizeof(int), 1, fp);
 
         KeyType key;    // vector of pair(kappa, num particles)
@@ -676,22 +684,27 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
 
         // Projections
         int num_projections = 0;
+        sleep(2);
         fread(&num_projections, sizeof(int), 1, fp);
 
         int particle_number = 0;
+        sleep(2);
         fread(&particle_number, sizeof(int), 1, fp);
         int projection_array[particle_number];
 
         for(int i = 0; i < num_projections; i++)
         {
+            sleep(2);
             fread(projection_array, sizeof(int), particle_number, fp);
             ang->projections.push_back(std::vector<int>(projection_array, projection_array + particle_number));
         }
 
         // CSFs
+        sleep(2);
         fread(&ang->num_CSFs, sizeof(int), 1, fp);
         if(ang->num_CSFs)
         {   ang->CSFs = new double[num_projections * ang->num_CSFs];
+            sleep(2);
             fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
         }
         ang->have_CSFs = true;
@@ -736,6 +749,12 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
         if(!fp)
         {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
             return;
+        }
+
+        // Turn off buffering for the stream to make it easier to find write-conflicts
+        if(setvbuf(fp, NULL, _IONBF, 6) != 0){
+          perror("setvbuf: ");
+          exit(EXIT_FAILURE);
         }
 
         // Count number of elements with same symmetry
