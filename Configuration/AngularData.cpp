@@ -3,12 +3,13 @@
 #include "RelativisticConfiguration.h"
 #include <Eigen/Eigen>
 #include "ManyBodyOperator.h"
+#include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/interprocess/sync/sharable_lock.hpp>
 #include <numeric>
 #ifdef AMBIT_USE_MPI
     #include <mpi.h>
 #endif
-#include<chrono>
-#include<thread>
 
 AngularData::AngularData(int two_m):
     two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
@@ -645,17 +646,19 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         std::string filename = itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
 
         filepath = directory / filename;
-    }
+    } 
+    
+    // Only try to get a shared file lock if the file actually exists, otherwise there's no point
+    // reading
+    if(!boost::filesystem::exists(filedata.second.c_str()))
+        return;
+
+    boost::interprocess::file_lock f_lock(filedata.second.c_str());
+    boost::interprocess::sharable_lock<boost::interprocess::file_lock> shlock(f_lock);
 
     FILE* fp = fopen(filepath.string().c_str(), "rb");
     if(!fp)
         return;
-
-    // Turn off buffering for the stream to make it easier to find write-conflicts
-    if(setvbuf(fp, NULL, _IONBF, 6) != 0){
-      perror("setvbuf: ");
-      exit(EXIT_FAILURE);
-    }
 
     int num_angular_data_objects = 0;
     fread(&num_angular_data_objects, sizeof(int), 1, fp);
@@ -666,8 +669,6 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     {
         // Key
         int key_size = 0;
-        // Wait between reads to make timing write-conflicts less tricky
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&key_size, sizeof(int), 1, fp);
 
         KeyType key;    // vector of pair(kappa, num particles)
@@ -686,27 +687,22 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
 
         // Projections
         int num_projections = 0;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&num_projections, sizeof(int), 1, fp);
 
         int particle_number = 0;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&particle_number, sizeof(int), 1, fp);
         int projection_array[particle_number];
 
         for(int i = 0; i < num_projections; i++)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             fread(projection_array, sizeof(int), particle_number, fp);
             ang->projections.push_back(std::vector<int>(projection_array, projection_array + particle_number));
         }
 
         // CSFs
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         fread(&ang->num_CSFs, sizeof(int), 1, fp);
         if(ang->num_CSFs)
         {   ang->CSFs = new double[num_projections * ang->num_CSFs];
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
         }
         ang->have_CSFs = true;
@@ -746,20 +742,31 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
         if(filedata.second.empty())
             Read(electron_number, sym, two_m);
 
+        FILE* fp = nullptr;
+        // Create the AngularData file if it doesn't already exist
+        if(!boost::filesystem::exists(filedata.second.c_str()))
+        {
+            fp = fopen(filedata.second.c_str(), "wb");
+            if(!fp)
+            {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
+                return;
+            }
+        }
+
+        // Wait for exclusive file lock
+        boost::interprocess::file_lock f_lock(filedata.second.c_str());
+        boost::interprocess::scoped_lock<boost::interprocess::file_lock> shylock(f_lock);
+
         // Open file
-        FILE* fp = fopen(filedata.second.c_str(), "wb");
         if(!fp)
-        {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
-            return;
+        {
+            fp = fopen(filedata.second.c_str(), "wb");
+            if(!fp)
+            {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
+                return;
+            }
         }
 
-        // Turn off buffering for the stream to make it easier to find write-conflicts
-        if(setvbuf(fp, NULL, _IONBF, 6) != 0){
-          perror("setvbuf: ");
-          exit(EXIT_FAILURE);
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
         // Count number of elements with same symmetry
         int num_angular_data_objects = 0;
         auto symmetry_pair = std::make_pair(sym.GetJpi(), two_m);
