@@ -390,23 +390,34 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
         return (rconfig.GetParity() == sym.GetParity() && sym.GetTwoJ() <= rconfig.GetTwiceMaxProjection());
     };
 
-    // [0, small_size)
-    returnedlist = std::accumulate(rlist->begin(), rlist->small_end(), returnedlist,
-                    [&check_symmetry](RelativisticConfigList& list, const RelativisticConfiguration& item) {
-                        if(check_symmetry(item))
-                            list.push_back(item);
-                        return list;
-                    });
+    /* Select the configurations from the main list with the desired parity
+     * NOTE: we write this loop out by hand rather than using std::accumulate since accumulate casts its
+     * arguments to const, which causes lots of copy allocations (even when passing arguments by 
+     * reference). This drastically reduces performance when rlist is large. 
+     */
+    //[0, small_size)
+    auto it = rlist->begin();
+    while(it != rlist->small_end())
+    {
+        if(check_symmetry(*it))
+        {
+            returnedlist.push_back(*it);
+        }
+        it++;
+    }
 
     returnedlist.SetSmallSize(returnedlist.size());
 
     // [small_size, end)
-    returnedlist = std::accumulate(rlist->small_end(), rlist->end(), returnedlist,
-                    [&check_symmetry](RelativisticConfigList& list, const RelativisticConfiguration& item) {
-                        if(check_symmetry(item))
-                            list.push_back(item);
-                        return list;
-                    });
+    it = rlist->small_end();
+    while(it != rlist->end())
+    {
+        if(check_symmetry(*it))
+        {
+            returnedlist.push_back(*it);
+        }
+        it++;
+    }
 
     if(user_input.search("CI/--sort-matrix-by-configuration"))
         returnedlist.sort(ConfigurationComparator());
