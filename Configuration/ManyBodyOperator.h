@@ -542,8 +542,22 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
     unsigned int solution = 0;
 
+    // Compare the 99.9th %ile number of projections for both the small-side and large side, using
+    // whichever is larger as our threshold for large configs. We'll split the problem domain into two
+    // levels of parallelism based on this limit                               
+    int small_offset = configs->small_size() * 0.001;                          
+    auto small_it = configs->begin();
+    std::advance(small_it, small_offset);
+                                                                               
+    int large_offset = configs->small_size() + (configs->size() - configs->small_size()) * 0.001;
+    auto large_it = configs->begin();
+    std::advance(large_it, small_offset);
+                                                                               
+    int big_config_limit = std::max(small_it->projection_size(), large_it->projection_size());
+
     auto config_it = configs->begin();
     int config_index = 0;
+
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel shared(my_total)
     {
@@ -559,11 +573,13 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     if(IsMyJob(config_index))
                     {
 #ifdef AMBIT_USE_OPENMP
+                        if (config_it->projection_size() < big_config_limit || 
+                            config_jt->projection_size() < big_config_limit)
                         #pragma omp task default(none) \
                                 firstprivate(config_it, config_jt, config_index, solution) \
-                                shared(my_total, eigenvector)
+                                shared(my_total, eigenvector, big_config_limit)
                         {
-                        int my_offset = omp_get_thread_num() * eigenvector.size();
+                        
 #endif
                         // Iterate over projections
                         auto proj_it = config_it.projection_begin();
@@ -577,6 +593,19 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
                             while(proj_jt != config_jt.projection_end())
                             {
+#ifdef AMBIT_USE_OPENMP
+                                if (config_it->projection_size() >= big_config_limit && 
+                                    config_jt->projection_size() >= big_config_limit)
+                                #pragma omp task default(none) \
+                                        firstprivate(config_it, config_jt, config_index, solution, \
+                                        proj_it, proj_jt) \
+                                        shared(my_total, eigenvector, big_config_limit)
+                                {
+#endif
+
+                                // This thread's running total will get stored at this offset
+                                int my_offset = omp_get_thread_num() * eigenvector.size();
+
                                 double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
 
                                 // coefficients
@@ -610,12 +639,15 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                                         }
                                     }
                                 }
+#ifdef AMBIT_USE_OPENMP
+                                } // OpenMP task - big configurations
+#endif
                                 proj_jt++;
                             }
                             proj_it++;
                         }
 #ifdef AMBIT_USE_OPENMP
-                    } // OpenMP Task
+                    } // OpenMP Task - small configurations
 #endif
                     } // MPI work distribution
                     config_index++;
