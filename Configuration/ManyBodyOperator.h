@@ -542,211 +542,96 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     std::vector<double> my_total(eigenvector.size() * omp_get_max_threads(), 0.);
 #endif
 
-    unsigned int solution = 0;
-
-    /* Now estimate which configurations are going to be responsible for most of our workload imbalance.
-     * We use the total number of projections in the config pair (i.e. Nproj_i*Nproj_j) as a rough 
-     * heuristic for how long their contribution will take to calculate. If any pair of configurations 
-     * results in a run-time longer than some fraction of the total estimated run-time then we break it 
-     * up into finer-grained tasks.
-     */
-    std::uint64_t estimated_walltime = 0.0; // This is in totally arbitrary time units
-    #pragma omp parallel for reduction(+:estimated_walltime) default(none) shared(configs) schedule(dynamic)
-    //for(auto config_i : *configs)
-    for(int ii=0; ii < configs->size(); ii++)
-    {
-        // This is a really sub-optimal way of looping over the configs, but OpenMP doesn't support
-        // range-based for-loops, while using iterators is a pain because GCC doesn't allow you to use
-        // != as the test condition in a for-loop, for some reason presumably known only to RMS himself
-        auto config_i = (*configs)[ii];
-        for(auto config_j : *configs)
-        {
-            estimated_walltime += config_i.projection_size() * config_j.projection_size();
-        }
-    }
-    
-    // Assume we split the workload evenly between threads + processes. This is dodgy, but it should 
-    // serve as a decent, order-of-magnitude heuristic for the total walltime
-    estimated_walltime = estimated_walltime/(omp_get_max_threads()*NumProcessors);
-
-    // Cut-off the ``big'' configs if they exceed some percentage of the total walltime. This
-    // tolerance is completely based on empirical testing - it needs to balance the finite overhead of
-    // OpenMP parallelism with ensuring a properly balanced workload
-    double tol = 0.01/(1+0.01); // <-- implies that tasklen > 0.011*(walltime - tasklen)
-
-    // Lastly make a container to hold all of our big config pairs
-    std::vector<std::pair<RelativisticConfigList::iterator, RelativisticConfigList::iterator> > big_configs;
-    auto config_it = configs->begin();
     int config_index = 0;
     
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel shared(my_total)
+    #pragma omp parallel for default(none) \
+                             shared(my_total, configs, eigenvector, config_index) \
+                             schedule(dynamic)
+#endif
+    for(int ii = 0; ii < configs->size(); ii++)
     {
-    #pragma omp single
-#endif
-        while(config_it != configs->end())
+        // Increment config_it to bring it up to our loop variable. This isn't a great approach, but
+        // OpenMP doesn't play nicely with non-random-access iterators
+        auto config_it = configs->begin();
+        for(int n = 0; n < ii; n++)
         {
-            auto config_jt = config_it;
-            while(config_jt != configs->end())
+            config_it++;
+        }
+
+        auto config_jt = config_it;
+        while(config_jt != configs->end())
+        {
+            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
-                if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
+                if(IsMyJob(config_index))
                 {
-                    int tasklen = config_it->projection_size()*config_jt->projection_size();
-                    if(tasklen < (tol*(estimated_walltime))) // Defer big configurations
+                    // Iterate over projections
+                    auto proj_it = config_it.projection_begin();
+                    while(proj_it != config_it.projection_end())
                     {
-                        if(IsMyJob(config_index))
+                        RelativisticConfiguration::const_projection_iterator proj_jt;
+                        if(config_it == config_jt)
+                            proj_jt = proj_it;
+                        else
+                            proj_jt = config_jt.projection_begin();
+
+                        while(proj_jt != config_jt.projection_end())
                         {
-#ifdef AMBIT_USE_OPENMP
-                            #pragma omp task default(none) \
-                                    firstprivate(config_it, config_jt, config_index, solution) \
-                                    shared(my_total, eigenvector)
-                            {
-#endif
-                            // Iterate over projections
-                            auto proj_it = config_it.projection_begin();
-                            while(proj_it != config_it.projection_end())
-                            {
-                                RelativisticConfiguration::const_projection_iterator proj_jt;
-                                if(config_it == config_jt)
-                                    proj_jt = proj_it;
-                                else
-                                    proj_jt = config_jt.projection_begin();
+                            // This thread's running total will get stored at this offset
+                            int my_offset = omp_get_thread_num() * eigenvector.size();
 
-                                while(proj_jt != config_jt.projection_end())
+                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
+
+                            // coefficients
+                            if(matrix_element)
+                            {
+                                // If the projections are different, count twice
+                                if(proj_it != proj_jt)
+                                {   matrix_element *= 2.;
+                                }
+
+                                for(int solution = 0; solution < eigenvector.size(); solution++)
                                 {
-                                    // This thread's running total will get stored at this offset
-                                    int my_offset = omp_get_thread_num() * eigenvector.size();
-
-                                    double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-
-                                    // coefficients
-                                    if(matrix_element)
+                                    for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
                                     {
-                                        // If the projections are different, count twice
-                                        if(proj_it != proj_jt)
-                                        {   matrix_element *= 2.;
-                                        }
+                                        double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * eigenvector[solution][coeff_i.index()];
 
-                                        for(solution = 0; solution < eigenvector.size(); solution++)
+                                        RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+
+                                        const double* pright = &eigenvector[solution][start_j.index()];
+                                        for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
                                         {
-                                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                            {
-                                                double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * eigenvector[solution][coeff_i.index()];
-
-                                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                                const double* pright = &eigenvector[solution][start_j.index()];
-                                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                                {
-    #ifdef AMBIT_USE_OPENMP
-                                                    my_total[my_offset + solution] += left_coeff_and_matrix_element
-                                                                        * (*coeff_j) * (*pright);
-    #else
-                                                    total[solution] += left_coeff_and_matrix_element
-                                                                        * (*coeff_j) * (*pright);
-    #endif
-                                                    pright++;
-                                                }
-                                            }
+#ifdef AMBIT_USE_OPENMP
+                                            my_total[my_offset + solution] += left_coeff_and_matrix_element
+                                                                * (*coeff_j) * (*pright);
+#else
+                                            total[solution] += left_coeff_and_matrix_element
+                                                                * (*coeff_j) * (*pright);
+#endif
+                                            pright++;
                                         }
                                     }
-                                    proj_jt++;
-                                }
-                                proj_it++;
-                            }
-    #ifdef AMBIT_USE_OPENMP
-                        } // OpenMP task
-    #endif
-                        } // MPI work distribution
-                    } 
-                    else // Big configurations get deferred to later
-                    {
-                        big_configs.push_back(std::make_pair(config_it, config_jt));
-                    }
-                    config_index++;
-                }
-                config_jt++;
-            }
-            config_it++;
-        } // config_it + OpenMP single region
-#ifdef AMBIT_USE_OPENMP
-    } // OpenMP parallel region
-#endif
-    
-    // Now iterate over the config list again, this time only calculating the contribution from the "big"
-    // configuration pairs
-    config_index = 0;
-    for(auto pair : big_configs)
-    {
-        config_it = pair.first;
-        auto config_jt = pair.second;
-        if(IsMyJob(config_index))
-        {
-            /* Iterate over projections. OpenMP doesn't handle loops over non-random-access 
-             * iterators and tasking has too much overhead here, so we need to manually advance the
-             * projection iterators according to the values of the loop variables. Yes, this is an
-             * ugly hack, but let's see you do better.
-             */
-#ifdef AMBIT_USE_OPENMP
-            #pragma omp parallel for default(none) \
-                                     shared(config_it, config_jt, my_total, eigenvector) \
-                                     private(solution) \
-                                     collapse(2) schedule(dynamic, 64)
-#endif
-            for(int ii = 0; ii < config_it->projection_size(); ii++)
-            {
-                for(int jj = 0; jj < config_jt->projection_size(); jj++)
-                {
-                    auto proj_it = config_it.projection_begin();
-                    auto proj_jt = config_jt.projection_begin();
-                    // Advance the projection iterators by the value of the loop variable
-                    for(int n = 0; n < ii; n++){
-                        proj_it++;
-                    }
-                    for(int n = 0; n < jj; n++){
-                        proj_jt++;
-                    }
-
-                    // This thread's running total will get stored at this offset
-                    int my_offset = omp_get_thread_num() * eigenvector.size();
-
-                    double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-
-                    // coefficients
-                    if(matrix_element)
-                    {
-                        for(solution = 0; solution < eigenvector.size(); solution++)
-                        {
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                            {
-                                double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * eigenvector[solution][coeff_i.index()];
-
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                const double* pright = &eigenvector[solution][start_j.index()];
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                {
-#ifdef AMBIT_USE_OPENMP
-                                    my_total[my_offset + solution] += left_coeff_and_matrix_element
-                                                        * (*coeff_j) * (*pright);
-#else
-                                    total[solution] += left_coeff_and_matrix_element
-                                                        * (*coeff_j) * (*pright);
-#endif
-                                    pright++;
                                 }
                             }
+                            proj_jt++;
                         }
+                    proj_it++;
                     }
-                } // jj - proj_jt
-            } // ii - proj_it
-
-        } // MPI work distribution
-        config_index++;
-    } // config_it + OpenMP single region
-
-
+                } // MPI work distribution
 #ifdef AMBIT_USE_OPENMP
+                // This operation is consistent across threads for the moment. OMP atomic is
+                // much faster than using a critical section, since it directly uses CPU atomic 
+                // operations. This produces an overhead of <2% from my tests
+                #pragma omp atomic
+#endif
+                config_index++;
+            }
+            config_jt++;
+        }
+    } // config_it + OpenMP single region
+#ifdef AMBIT_USE_OPENMP
+
     // Gather all the partial sums 
     for(int proc = 0; proc < omp_get_max_threads(); ++proc)
         for(int ii = 0; ii < eigenvector.size(); ++ii)
