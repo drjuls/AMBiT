@@ -627,7 +627,8 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         // Only continue if we don't have enough levels
         int num_solutions = user_input("CI/NumSolutions", 6);
         num_solutions = (num_solutions? mmin(num_solutions, configs->NumCSFs()): configs->NumCSFs());
-        if(levelvec.levels.size() < num_solutions)
+        bool do_CI = (levelvec.levels.size() < num_solutions);
+        if(do_CI)
         {
             if(twobody_electron == nullptr)
                 MakeIntegrals();
@@ -690,28 +691,29 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             else
             #endif
             levelvec = H->SolveMatrix(hID, num_solutions);
-
-            // Check if gfactor overrides are present, otherwise decide on course of action
-            bool get_gfactor;
-            if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
-                get_gfactor = false;
-            else if(user_input.search("CI/--gfactors"))
-                get_gfactor = true;
-            else
-            {   if(nrID || num_solutions > 50)
-                    get_gfactor = false;
-                else
-                    get_gfactor = true;
-            }
-
-            if(get_gfactor)
-            {
-                GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
-                g_factors.CalculateGFactors(levelvec);
-            }
-
-            levels->Store(hID, levelvec);
         }
+
+        // Check if gfactor overrides are present, otherwise decide on course of action
+        bool get_gfactor;
+        if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
+            get_gfactor = false;
+        else if(user_input.search("CI/--gfactors"))
+            get_gfactor = true;
+        else
+        {   if(nrID || num_solutions > 50)
+                get_gfactor = false;
+            else
+                get_gfactor = true;
+        }
+
+        if(get_gfactor)
+        {
+            GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
+            g_factors.CalculateGFactors(levelvec);
+        }
+
+        if(do_CI || get_gfactor)
+            levels->Store(hID, levelvec);
     }
 
     // Set up output options
