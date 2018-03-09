@@ -691,6 +691,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             else
             #endif
             levelvec = H->SolveMatrix(hID, num_solutions);
+            levels->Store(hID, levelvec);
         }
 
         // Check if gfactor overrides are present, otherwise decide on course of action
@@ -710,10 +711,8 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         {
             GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
             g_factors.CalculateGFactors(levelvec);
-        }
-
-        if(do_CI || get_gfactor)
             levels->Store(hID, levelvec);
+        }
     }
 
     // Set up output options
