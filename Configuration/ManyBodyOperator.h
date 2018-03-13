@@ -11,8 +11,6 @@
 #include <mpi.h>
 #endif
 
-#include<cstdint>
-
 class ZeroOperator
 {
 public:
@@ -542,7 +540,6 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     std::vector<double> my_total(eigenvector.size() * omp_get_max_threads(), 0.);
 #endif
 
-    
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(none) \
                              shared(my_total, configs, eigenvector) \
@@ -553,10 +550,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         // Increment config_it to bring it up to our loop variable. This isn't a great approach, but
         // OpenMP doesn't play nicely with non-random-access iterators
         auto config_it = configs->begin();
-        for(int n = 0; n < ii; n++)
-        {
-            config_it++;
-        }
+        std::advance(config_it, ii);
 
         int config_index = ii * configs->size();
 
@@ -628,8 +622,8 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
             config_jt++;
         }
     } // config_it + OpenMP single region
-#ifdef AMBIT_USE_OPENMP
 
+#ifdef AMBIT_USE_OPENMP
     // Gather all the partial sums 
     for(int proc = 0; proc < omp_get_max_threads(); ++proc)
         for(int ii = 0; ii < eigenvector.size(); ++ii)
@@ -691,10 +685,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         // approach, but OpenMP doesn't play nicely with non-random-access iterators so we don't
         // have much of a choice
         auto config_it = configs_left->begin();
-        for(int n = 0; n < ii; n++)
-        {
-            config_it++;
-        }
+        std::advance(config_it, ii);
 
         int config_index = ii * configs_left->size();
 

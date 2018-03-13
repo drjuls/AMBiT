@@ -267,19 +267,14 @@ public:
     bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
     {
         if(first.projection_size() > second.projection_size())
-        {
             return true;
-        }
         else if(first.projection_size() < second.projection_size())
-        {
             return false;
-        }
         else
-        {
             return(first < second);
-        }
     }
 };
+
 template<class Comparator>
 void RelativisticConfigList::sort(Comparator comp)
 {

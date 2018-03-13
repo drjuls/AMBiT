@@ -95,10 +95,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
-    
+
     unsigned int chunk_index;
 #ifdef AMBIT_USE_OPENMP
-    //#pragma omp parallel for private(chunk_index, config_it) shared(num_chunks, configsubsetend, configsubsetend_it, chunks) schedule(dynamic)
     #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
 #endif
     for(chunk_index = 0; chunk_index < num_chunks; chunk_index++)
@@ -240,8 +239,8 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
-
 }
+
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
     LevelVector levelvec(hID);

@@ -646,10 +646,9 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         std::string filename = itoa(abs(electron_number)) + holelike + "." + sym.GetString() + "." + itoa(two_m) + ".angular";
 
         filepath = directory / filename;
-    } 
-    
-    // Only try to get a shared file lock if the file actually exists, otherwise there's no point
-    // reading
+    }
+
+    // Only try to get a shared file lock if the file actually exists, otherwise there's no point reading
     if(!boost::filesystem::exists(filedata.second.c_str()))
         return;
 
