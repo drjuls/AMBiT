@@ -542,11 +542,10 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
     std::vector<double> my_total(eigenvector.size() * omp_get_max_threads(), 0.);
 #endif
 
-    int config_index = 0;
     
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(none) \
-                             shared(my_total, configs, eigenvector, config_index) \
+                             shared(my_total, configs, eigenvector) \
                              schedule(dynamic)
 #endif
     for(int ii = 0; ii < configs->size(); ii++)
@@ -558,6 +557,8 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         {
             config_it++;
         }
+
+        int config_index = ii * configs->size();
 
         auto config_jt = config_it;
         while(config_jt != configs->end())
@@ -621,12 +622,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     proj_it++;
                     }
                 } // MPI work distribution
-#ifdef AMBIT_USE_OPENMP
-                // This operation is consistent across threads for the moment. OMP atomic is
-                // much faster than using a critical section, since it directly uses CPU atomic 
-                // operations. This produces an overhead of <2% from my tests
-                #pragma omp atomic
-#endif
+
                 config_index++;
             }
             config_jt++;
@@ -683,15 +679,10 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
      * persist across tasks executed by the same thread)
     */
     std::vector<double> my_total(return_size * omp_get_max_threads(), 0.);
-#endif
 
-
-    int config_index = 0;
-    
-#ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(none) \
                              shared(my_total, configs_left, configs_right, left_eigenvector, \
-                                    right_eigenvector, config_index, epsilon, return_size)\
+                                    right_eigenvector, epsilon, return_size)\
                              schedule(dynamic)
 #endif
     for(int ii = 0; ii < configs_left->size(); ii++)
@@ -704,6 +695,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         {
             config_it++;
         }
+
+        int config_index = ii * configs_left->size();
+
         auto config_jt = configs_right->begin();
         while(config_jt != configs_right->end())
         {
@@ -767,12 +761,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                     }
 
                 } // MPI work distribution
-#ifdef AMBIT_USE_OPENMP
-                // This operation is consistent across threads for the moment. OMP atomic is
-                // much faster than using a critical section, since it directly uses CPU atomic 
-                // operations
-                #pragma omp critical
-#endif
+
                 config_index++;
             }
             config_jt++;
