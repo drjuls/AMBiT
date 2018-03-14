@@ -6,7 +6,7 @@
 #include "HartreeFock/Core.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Configuration/Level.h"
+#include "Configuration/LevelMap.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "MBPT/Sigma3Calculator.h"
 

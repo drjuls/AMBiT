@@ -27,7 +27,6 @@ public:
 
 public:
     virtual std::string Name(bool aSpaceFirst = true) const;
-    virtual std::string NameNoSpaces() const;
 
     /** Generate RelativisticConfigurations by distributing electrons among relativistic orbitals.
         Returns public member relconfiglist.

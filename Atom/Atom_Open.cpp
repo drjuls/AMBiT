@@ -725,6 +725,8 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
     {   ShowPercentages = false;
     }
 
+    bool ShowRelConfigPercentages = user_input.search("CI/Output/--print-relativistic-configurations");
+
     if(user_input.search("CI/Output/--print-inline"))
     {
         std::string sep = user_input("CI/Output/Separator", " ");
@@ -732,24 +734,37 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         if(user_input.search("CI/Output/MaxDisplayedEnergy"))
         {   // Truncate display at max energy
             double max_energy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
-            levelvec.PrintInline(max_energy, ShowPercentages, ShowgFactors, sep);
+            if(ShowRelConfigPercentages)
+                levelvec.PrintInline<RelativisticConfiguration>(max_energy, ShowPercentages, ShowgFactors, sep);
+            else
+                levelvec.PrintInline(max_energy, ShowPercentages, ShowgFactors, sep);
         }
         else
-            levelvec.PrintInline(ShowPercentages, ShowgFactors, sep);
+        {   if(ShowRelConfigPercentages)
+                levelvec.PrintInline<RelativisticConfiguration>(ShowPercentages, ShowgFactors, sep);
+            else
+                levelvec.PrintInline(ShowPercentages, ShowgFactors, sep);
+        }
     }
     else
     {   double min_percent_displayed = 101.;
         if(ShowPercentages)
-        {   min_percent_displayed = user_input("CI/Output/MinimumDisplayedPercentage", 1.);
-        }
+            min_percent_displayed = user_input("CI/Output/MinimumDisplayedPercentage", 1.);
 
         if(user_input.search("CI/Output/MaxDisplayedEnergy"))
         {   // Truncate display at max energy
             double DavidsonMaxEnergy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
-            levelvec.Print(min_percent_displayed, DavidsonMaxEnergy);
+            if(ShowRelConfigPercentages)
+                levelvec.Print<RelativisticConfiguration>(min_percent_displayed, DavidsonMaxEnergy);
+            else
+                levelvec.Print(min_percent_displayed, DavidsonMaxEnergy);
         }
         else
-            levelvec.Print(min_percent_displayed);
+        {   if(ShowRelConfigPercentages)
+                levelvec.Print<RelativisticConfiguration>(min_percent_displayed);
+            else
+                levelvec.Print(min_percent_displayed);
+        }
     }
 
     return levelvec;

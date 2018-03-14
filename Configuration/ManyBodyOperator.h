@@ -2,7 +2,7 @@
 #define MANY_BODY_OPERATOR_H
 
 #include "Projection.h"
-#include "LevelMap.h"
+#include "LevelVector.h"
 #include <tuple>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/iterator/indirect_iterator.hpp>

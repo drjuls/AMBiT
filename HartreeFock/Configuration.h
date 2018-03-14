@@ -138,6 +138,10 @@ public:
     }
 
     virtual std::string Name(char sep = ' ') const;
+    virtual std::string NameNoSpaces() const
+    {   return BaseConfiguration::Name('_');
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const BaseConfiguration& config) { return stream << config.Name(); }
 
     /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */

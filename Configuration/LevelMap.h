@@ -2,46 +2,11 @@
 #define LEVEL_MAP_H
 
 #include "Level.h"
-#include "Include.h"
+#include "LevelVector.h"
 #include "NonRelConfiguration.h"
 #include <vector>
 #include <map>
 #include <boost/filesystem.hpp>
-
-/** LevelVector consists of Hamiltonian that levels come from,
-    common relativistic config list, and vector of levels.
- */
-class LevelVector
-{
-public:
-    LevelVector(pHamiltonianID hID = nullptr): hID(hID) {}
-    LevelVector(pHamiltonianID hID, pRelativisticConfigList configs, pLevel level):
-        hID(hID), configs(configs), levels(1, level) {}
-    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level)
-    {
-        if(level)
-            hID = level->GetHamiltonianID();
-    }
-
-    pHamiltonianID hID {nullptr};
-    pRelativisticConfigList configs {nullptr};
-    std::vector<pLevel> levels;
-
-    /** Print levels to outstream. min_percentages outside of the range (0, 100] will switch off the printing of configurations. */
-    void Print(double min_percentage = 1.0) const;
-    void Print(double min_percentage, double max_energy) const;
-
-    /** Print one line per level: J, P, index, E, g, Largest configuration, HamiltonianID. */
-    void PrintInline(bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
-    void PrintInline(double max_energy, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
-
-protected:
-    /** Print LevelVector to outstream, with all possible options for printing.
-        All other print functions call this one.
-     */
-    void Print(double min_percentage, bool use_max_energy, double max_energy) const;
-    void PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ") const;
-};
 
 template <class Value>
 struct DereferenceComparator

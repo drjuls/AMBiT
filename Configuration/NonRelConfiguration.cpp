@@ -29,11 +29,6 @@ std::string NonRelConfiguration::Name(bool aSpaceFirst) const
     return name;
 }
 
-std::string NonRelConfiguration::NameNoSpaces() const
-{
-    return BaseConfiguration::Name('_');
-}
-
 void NonRelConfiguration::Write(FILE* fp) const
 {
     // Write config
