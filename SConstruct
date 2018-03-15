@@ -390,7 +390,7 @@ ambit_conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 ambit_conf.optionxform = str # Necessary to make keys case-sensitive
 # Bail out if we can't read config.ini
 if not ambit_conf.read("ambit_modules.ini"):
-    print("Error: could not read dependencies file ambit_dependencies.ini. Aborting build.")
+    print("Error: could not read dependencies file ambit_modules.ini. Aborting build.")
     exit(-1)
 
 # Configure the build environment and run autoconf-like checks, but only if not cleaning targets

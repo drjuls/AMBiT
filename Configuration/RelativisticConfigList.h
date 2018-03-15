@@ -6,6 +6,7 @@
 class ConfigurationComparator;
 class MostCSFsFirstComparator;
 class FewestProjectionsFirstComparator;
+class MostProjectionsFirstComparator;
 
 /** RelativisticConfigList includes projection and CSF information over the whole list.
     There are two types of iterators provided:
@@ -201,7 +202,7 @@ public:
     unsigned int small_size() const { return Nsmall; }
 
     /** Sort list by comparator, preserving the separation between the first Nsmall configs and the rest. */
-    template<class Comparator = FewestProjectionsFirstComparator>
+    template<class Comparator = MostProjectionsFirstComparator>
     void sort(Comparator comp = Comparator());
 
     /** Remove consecutive duplicates, preserving Nsmall.
@@ -254,6 +255,20 @@ public:
         if(first.projection_size() < second.projection_size())
             return true;
         else if(first.projection_size() > second.projection_size())
+            return false;
+        else
+            return(first < second);
+    }
+};
+
+class MostProjectionsFirstComparator
+{
+public:
+    bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        if(first.projection_size() > second.projection_size())
+            return true;
+        else if(first.projection_size() < second.projection_size())
             return false;
         else
             return(first < second);
