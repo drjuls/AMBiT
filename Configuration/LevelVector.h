@@ -3,6 +3,7 @@
 
 #include "Level.h"
 #include "NonRelConfiguration.h"
+#include <iostream>
 
 /** LevelVector consists of Hamiltonian that levels come from,
     common relativistic config list, and vector of levels.
@@ -48,17 +49,17 @@ protected:
     inline void PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ") const;
 };
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::Print(double min_percentage) const
 {   Print<ConfigPrintType>(min_percentage, false, 0.0);
 }
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::Print(double min_percentage, double max_energy) const
 {   Print<ConfigPrintType>(min_percentage, true, max_energy);
 }
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::Print(double min_percentage, bool use_max_energy, double max_energy) const
 {
     if(levels.size() == 0 || ProcessorRank != 0)
@@ -131,17 +132,17 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
     }
 }
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::PrintInline(bool print_leading_configuration, bool print_gfactors, std::string separator) const
 {   PrintInline<ConfigPrintType>(false, 0.0, print_leading_configuration, print_gfactors, separator);
 }
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::PrintInline(double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator) const
 {   PrintInline<ConfigPrintType>(true, max_energy, print_leading_configuration, print_gfactors, separator);
 }
 
-template<typename ConfigPrintType = NonRelConfiguration>
+template<typename ConfigPrintType>
 void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator) const
 {
     if(levels.size() == 0 || ProcessorRank != 0)
