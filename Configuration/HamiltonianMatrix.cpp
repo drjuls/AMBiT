@@ -62,13 +62,13 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     }
 
     // Total number of chunks = ceiling(number of configs/configs_per_chunk)
-    unsigned int num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
+    unsigned int total_num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
 
     // Divide up chunks
     auto config_it = configs->begin();
     unsigned int config_index = 0;
     unsigned int csf_start = 0;
-    for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
+    for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
     {
         // Get chunk num_rows and number of configs. Allocates resources for the chunks.
         unsigned int current_num_rows = 0;
@@ -100,7 +100,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
 #endif
-    for(chunk_index = 0; chunk_index < num_chunks; chunk_index++)
+    for(chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
     {
         auto& current_chunk = chunks[chunk_index];
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
