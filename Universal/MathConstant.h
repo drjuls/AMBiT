@@ -3,6 +3,7 @@
 
 #include <map>
 #include <stdlib.h>
+#include <memory>
 #include <boost/math/special_functions.hpp>
 #include "Enums.h"
 

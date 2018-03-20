@@ -116,7 +116,7 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
                     *outstream << std::setw(20) << pair.first.Name() << "  "
                                << pair.second << "%\n";
             }
-            *outstream << std::defaultfloat;
+            outstream->unsetf(std::ios_base::floatfield);
         }
 
         if(hID->GetTwoJ() != 0)
