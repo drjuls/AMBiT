@@ -420,7 +420,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
     }
 
     if(angular_library)
-        GenerateProjections(prlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
+        GenerateProjections(prlist, sym, sym.GetTwoJ(), angular_library);
 
     if(user_input.search("CI/--sort-matrix-by-configuration"))
         returnedlist.sort(ConfigurationComparator());
