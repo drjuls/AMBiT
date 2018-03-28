@@ -137,10 +137,11 @@ def read_config(env, conf, ambit_conf):
     # NOTE: These have their own, specially defined paths because they're usually in lots of places 
     # and don't play nicely with pkg-config and/or SCons builtin configuration checks
     try:
-        gtest_libs_dir = conf.get("Dependency paths","gtest include path")
+        gtest_libs_dir = conf.get("Dependency paths","gtest lib path")
+        gtest_header_dir = conf.get("Dependency paths","gtest header path")
     except ConfigParser.NoOptionError:
         gtest_libs_dir = '' # gtest functionality can be safely left out in release builds
-
+        gtest_header_dir = ''
     try:
         eigen_dir = conf.get("Dependency paths", "Eigen path")
     except ConfigParser.NoOptionError:
@@ -164,7 +165,7 @@ def read_config(env, conf, ambit_conf):
         print("Angular data directory not specified. Defaulting to {}".format(ambit_dir))
     env.Append(CXXFLAGS = '-DANGULAR_DATA_DIRECTORY={}'.format(angular_data_dir))
 
-    header_path =  [ambit_dir, eigen_dir, sparsehash_dir, custom_include]
+    header_path = [ambit_dir, eigen_dir, sparsehash_dir, custom_include, gtest_header_dir]
 
     env.Append(CPPPATH=header_path)
     env.Append(LIBPATH=lib_path)

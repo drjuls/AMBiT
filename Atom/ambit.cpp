@@ -142,20 +142,12 @@ int main(int argc, char* argv[])
         }
 
         Ambit ambit(fileInput, identifier);
+        ambit.EnergyCalculations();
 
-        if(fileInput.search("--recursive-build"))
+        if(!fileInput.search("--check-sizes"))
         {
-            ambit.Recursive();
-        }
-        else
-        {
-            ambit.EnergyCalculations();
-
-            if(!fileInput.search("--check-sizes"))
-            {
-                ambit.TransitionCalculations();
-                ambit.Recombination();
-            }
+            ambit.TransitionCalculations();
+            ambit.Recombination();
         }
     }
     catch(std::bad_alloc& ba)
