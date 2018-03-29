@@ -450,7 +450,7 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
             prev_kappa = it->first;
         }
 
-        rconfig[OrbitalInfo(pqn, it->first)] = it->second;
+        rconfig.insert(std::make_pair(OrbitalInfo(pqn, it->first), it->second));
         it++;
     }
 

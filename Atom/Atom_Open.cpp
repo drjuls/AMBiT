@@ -623,6 +623,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             angular_library->RemoveUnused();
         }
+        angular_library->PrintKeys();
 
         // Only continue if we don't have enough levels
         int num_solutions = user_input("CI/NumSolutions", 6);

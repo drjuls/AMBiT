@@ -102,7 +102,7 @@ void RelativisticConfiguration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);
         fread(&occupancy, sizeof(int), 1, fp);
 
-        m_config[OrbitalInfo(pqn, kappa)] = occupancy;
+        insert(std::make_pair(OrbitalInfo(pqn, kappa), occupancy));
     }
 }
 
