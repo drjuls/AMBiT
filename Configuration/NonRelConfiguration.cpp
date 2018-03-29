@@ -13,7 +13,8 @@ NonRelConfiguration::NonRelConfiguration(const RelativisticConfiguration& other)
 {
     for(auto& element: other)
     {
-        insert(std::make_pair(NonRelInfo(element.first), element.second));
+        int prev_occ = GetOccupancy(element.first);
+        insert(std::make_pair(NonRelInfo(element.first), prev_occ+element.second));
     }
 }
 

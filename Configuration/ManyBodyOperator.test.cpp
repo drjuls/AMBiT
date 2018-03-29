@@ -14,10 +14,10 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
 
     // < h3 e2 | G | h1 e4 >
     {   config1.clear(); config2.clear();
-        config1[OrbitalInfo(4, 1)] = 1;
-        config1[OrbitalInfo(3, -2)] = -1;
-        config2[OrbitalInfo(3, -1)] = -1;
-        config2[OrbitalInfo(4, -3)] = 1;
+        config1.insert(std::make_pair(OrbitalInfo(4, 1), 1));
+        config1.insert(std::make_pair(OrbitalInfo(3, -2), -1));
+        config2.insert(std::make_pair(OrbitalInfo(3, -1), -1));
+        config2.insert(std::make_pair(OrbitalInfo(4, -3), 1));
 
         TwoM1.clear(); TwoM2.clear();
         TwoM1.push_back(-1); TwoM1.push_back(3);
@@ -35,13 +35,13 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
         EXPECT_EQ(2, diffs);
     }
 
-    // < e1 | G | e2 h2 e3>
+    // < e1 | G | e1 h2 e3>
     {   config1.clear(); config2.clear();
-        config1[OrbitalInfo(4, -1)] = 1;
+        config1.insert(std::make_pair(OrbitalInfo(4, -1), 1));
 
-        config2[OrbitalInfo(4, -1)] = 1;
-        config2[OrbitalInfo(3, -2)] = 1;
-        config2[OrbitalInfo(4, -3)] = -1;
+        config2.insert(std::make_pair(OrbitalInfo(4, -1), 1));
+        config2.insert(std::make_pair(OrbitalInfo(3, -2), 1));
+        config2.insert(std::make_pair(OrbitalInfo(4, -3), -1));
 
         TwoM1.clear(); TwoM2.clear();
         TwoM1.push_back(1);
@@ -61,10 +61,10 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
 
     // < e1 h1 h2 e2 | G | 0 >
     {   config1.clear(); config2.clear();
-        config1[OrbitalInfo(4, -1)] = 1;
-        config1[OrbitalInfo(3, -2)] = -1;
-        config1[OrbitalInfo(4, -3)] = -1;
-        config1[OrbitalInfo(4, -4)] = 1;
+        config1.insert(std::make_pair(OrbitalInfo(4, -1), 1));
+        config1.insert(std::make_pair(OrbitalInfo(3, -2), -1));
+        config1.insert(std::make_pair(OrbitalInfo(4, -3), -1));
+        config1.insert(std::make_pair(OrbitalInfo(4, -4), 1));
 
         TwoM1.clear(); TwoM2.clear();
         TwoM1.push_back(1); TwoM1.push_back(1); TwoM1.push_back(1); TwoM1.push_back(1);
@@ -83,10 +83,10 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesPhase)
 
     // < 0 | G | h1 e1 h2 e2 >
     {   config1.clear(); config2.clear();
-        config2[OrbitalInfo(4, -1)] = -1;
-        config2[OrbitalInfo(3, -2)] = 1;
-        config2[OrbitalInfo(4, -3)] = -1;
-        config2[OrbitalInfo(4, -4)] = 1;
+        config2.insert(std::make_pair(OrbitalInfo(4, -1), -1));
+        config2.insert(std::make_pair(OrbitalInfo(3, -2), 1));
+        config2.insert(std::make_pair(OrbitalInfo(4, -3), -1));
+        config2.insert(std::make_pair(OrbitalInfo(4, -4), 1));
 
         TwoM1.clear(); TwoM2.clear();
         TwoM2.push_back(1); TwoM2.push_back(1); TwoM2.push_back(1); TwoM2.push_back(1);

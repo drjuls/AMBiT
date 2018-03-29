@@ -100,18 +100,22 @@ public:
     }
 
     /** Particle number = number of electrons + number of holes. */
-    OccupancyType ParticleNumber() const
-    {
-        OccupancyType ret = OccupancyType(0);
-        std::for_each(m_config.begin(), m_config.begin()+num_hole_configs, [&ret](PairType pair)
-        {
-            ret -= pair.second;
-        });
-        std::for_each(m_config.begin()+num_hole_configs, m_config.end(), [&ret](PairType pair)
-        {
-            ret += pair.second;
-        });
+    template<typename U = OccupancyType>
+    typename boost::enable_if<boost::is_integral<U>, OccupancyType>::type
+        ParticleNumber() const
+    {   OccupancyType ret = OccupancyType(0);
+        for(auto& pair: m_config)
+            ret += abs(pair.second);
+        return ret;
+    }
 
+    /** Particle number = number of electrons + number of holes. */
+    template<typename U = OccupancyType>
+    typename boost::lazy_enable_if<boost::is_floating_point<U>, OccupancyType>::type
+        ParticleNumber() const
+    {   OccupancyType ret = OccupancyType(0);
+        for(auto& pair: m_config)
+            ret += fabs(pair.second);
         return ret;
     }
 
@@ -138,45 +142,8 @@ public:
 
     /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */
     template<typename U = OccupancyType>
-    inline typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
-        GetConfigDifferencesCount(const BaseConfiguration& other) const
-    {
-        unsigned int diff_count = abs(ElectronNumber() - other.ElectronNumber());
-        auto it1 = begin();
-        auto it2 = other.begin();
-
-        // Note: assumes first and second are sorted
-        while(it1 != end() && it2 != other.end())
-        {
-            if(it1->first < it2->first)
-            {
-                diff_count += abs(it1->second);
-                it1++;
-            }
-            else if(it2->first < it1->first)
-            {
-                diff_count += abs(it2->second);
-                it2++;
-            }
-            else
-            {   diff_count += abs(it1->second - it2->second);
-                it1++; it2++;
-            }
-        }
-
-        while(it1 != end())
-        {   diff_count += abs(it1->second);
-            it1++;
-        }
-
-        while(it2 != other.end())
-        {   diff_count += abs(it2->second);
-            it2++;
-        }
-
-        // Each promotion of electrons or holes makes two changes, so divide by two.
-        return diff_count/2;
-    }
+    typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
+        GetConfigDifferencesCount(const BaseConfiguration& other) const;
 
 protected:
     std::vector<PairType> m_config;
@@ -383,6 +350,8 @@ OccupancyType Configuration<OrbitalType, OccupancyType>::GetOccupancy(const Orbi
     it = LocateInElectrons(info);
     if(it != end() && it->first == info)
         return it->second;
+
+    return 0;
 }
 
 template <class OrbitalType, class OccupancyType>
@@ -461,7 +430,9 @@ bool Configuration<OrbitalType, OccupancyType>::AddSingleParticle(const OrbitalT
         if(it->second >= info.MaxNumElectrons())
             return false;
         else if(it->second == -1)
-            m_config.erase(it);
+        {   m_config.erase(it);
+            num_hole_configs--;
+        }
         else
             it->second++;
     }
@@ -490,6 +461,57 @@ std::string Configuration<OrbitalType, OccupancyType>::Name(char sep) const
         it++;
     }
     return buffer.str();
+}
+
+/** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */
+template <class OrbitalType, class OccupancyType>
+template <typename U>
+typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
+Configuration<OrbitalType, OccupancyType>::GetConfigDifferencesCount(const BaseConfiguration& other) const
+{
+    unsigned int diff_count = abs(ElectronNumber() - other.ElectronNumber());
+    auto it1 = begin();
+    auto it2 = other.begin();
+
+    auto pairless = [](const PairType& left, const PairType& right)
+    {
+        if(left.second * right.second < 0)
+            return (left.second < 0);
+        else
+            return (left.first < right.first);
+    };
+
+    // Note: assumes first and second are sorted
+    while(it1 != end() && it2 != other.end())
+    {
+        if(pairless(*it1, *it2))
+        {
+            diff_count += abs(it1->second);
+            it1++;
+        }
+        else if(pairless(*it2, *it1))
+        {
+            diff_count += abs(it2->second);
+            it2++;
+        }
+        else
+        {   diff_count += abs(it1->second - it2->second);
+            it1++; it2++;
+        }
+    }
+
+    while(it1 != end())
+    {   diff_count += abs(it1->second);
+        it1++;
+    }
+
+    while(it2 != other.end())
+    {   diff_count += abs(it2->second);
+        it2++;
+    }
+
+    // Each promotion of electrons or holes makes two changes, so divide by two.
+    return diff_count/2;
 }
 
 #endif
