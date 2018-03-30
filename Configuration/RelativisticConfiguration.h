@@ -185,7 +185,9 @@ double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, Occu
 
                 // Sum_l R^k_abba (j_a  j_b k)^2 \xi(l_a + l_b + k)
                 //                (1/2 -1/2 0)
-                int k = (it_a->first.L() + it_b->first.L())%2;
+                int k = abs(it_a->first.TwoJ() - it_b->first.TwoJ())/2;
+                if((it_a->first.L() + it_b->first.L() + k)%2)
+                    k++;
                 int kmax = (it_a->first.TwoJ() + it_b->first.TwoJ())/2;
                 while(k <= kmax)
                 {

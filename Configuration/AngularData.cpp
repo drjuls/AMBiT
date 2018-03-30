@@ -435,7 +435,6 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 {
     // Create equivalent RelativisticConfiguration and use it.
     RelativisticConfiguration rconfig;
-    int prev_kappa = 0;
     int pqn = 1;
 
     auto it = key.begin();
