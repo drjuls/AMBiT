@@ -443,8 +443,7 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
             eigenvector_csf++;
         }
 
-        for(auto& pair: rconfig)
-            target_occ[pair.first] += contribution * pair.second;
+        target_occ += rconfig * contribution;
     }
 
     AutoionizationConfigurationAveraged(target_occ);
@@ -470,7 +469,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     RelativisticConfiguration rtarget;
     for(const auto& pair: target)
     {
-        rtarget[pair.first] = int(std::floor(target.GetOccupancy(pair.first) + 0.1));
+        rtarget.insert(std::make_pair(pair.first, int(std::floor(target.GetOccupancy(pair.first) + 0.1))));
     }
 
     // Select orbitals in target wavefunction
@@ -512,7 +511,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     OccupationMap target_with_core;
     for(const auto& orb: *orbitals->core)
     {
-        target_with_core[orb.first] += orb.first.MaxNumElectrons();
+        target_with_core.insert(std::make_pair(orb.first, orb.first.MaxNumElectrons()));
     }
     target_with_core += target;
 

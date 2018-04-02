@@ -13,7 +13,7 @@ Core::Core(const OrbitalMap& other):
     OrbitalMap(other)
 {
     for(auto orbital: m_orbitals)
-        occupancy[orbital.first] = 2 * abs(orbital.first.Kappa());
+        occupancy.insert(std::make_pair(orbital.first, 2 * abs(orbital.first.Kappa())));
 }
 
 Core* Core::Clone(pLattice new_lattice) const
@@ -34,19 +34,15 @@ void Core::clear()
 
 auto Core::erase(const_iterator position) -> iterator
 {
-    iterator ret = OrbitalMap::erase(position);
     occupancy.erase(position->first);
+    iterator ret = OrbitalMap::erase(position);
 
     return ret;
 }
 
 double Core::GetOccupancy(OrbitalInfo info) const
 {
-    OccupationMap::const_iterator it = occupancy.find(info);
-    if(it == occupancy.end())
-        return 0.0;
-    else
-        return it->second;
+    return occupancy.GetOccupancy(info);
 }
 
 double Core::GetOccupancy(pOrbital info) const
@@ -62,7 +58,7 @@ void Core::SetOccupancies(const OccupationMap& occupancies)
     auto it = m_orbitals.begin();
     while(it != end())
     {
-        if(!occupancy.count(it->first))
+        if(occupancy.GetOccupancy(it->first) == 0)
             it = m_orbitals.erase(it);
         else
             it++;

@@ -202,8 +202,10 @@ void Atom::MakeIntegrals()
 
     // We don't need the two body integrals if we are just checking sizes and they are not needed by ConfigGenerator.
     if(user_input.search("--check-sizes")
-       && !(user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
-            || user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")))
+       && !user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
+       && !user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
+       && !user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
+       && !user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
         *outstream << "\nNum Coulomb integrals: " << size << std::endl;
@@ -340,16 +342,12 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
         ConfigGenerator gen(orbitals, user_input);
-        if(user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
-           || user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
-           || user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
-           || user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
-        {
-            if(twobody_electron == nullptr)
-                MakeIntegrals();
 
+        if(twobody_electron == nullptr)
+            MakeIntegrals();
+
+        if(twobody_electron)
             allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
-        }
         else
             allconfigs = gen.GenerateConfigurations();
 

@@ -34,7 +34,7 @@ const ElectronInfo& Projection::operator[](unsigned int i) const
 Parity Projection::GetParity() const
 {
     int sum = 0;
-    for_each(config.begin(), config.end(), [&](const ElectronInfo& info)
+    for_each(config.begin(), config.end(), [&sum](const ElectronInfo& info)
     {   sum += info.L();
     } );
 
@@ -47,8 +47,8 @@ Parity Projection::GetParity() const
 int Projection::GetTwoM() const
 {
     int sum = 0;
-    for_each(config.begin(), config.end(), [&](const ElectronInfo& info)
-    {   sum += info.TwoM();
+    for_each(config.begin(), config.end(), [&sum](const ElectronInfo& info)
+    {   sum += (info.IsHole()? -info.TwoM(): info.TwoM());
     } );
 
     return sum;

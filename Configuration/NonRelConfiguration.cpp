@@ -12,10 +12,9 @@ NonRelConfiguration::NonRelConfiguration(const std::string& name)
 NonRelConfiguration::NonRelConfiguration(const RelativisticConfiguration& other)
 {
     for(auto& element: other)
-    {   int& occ = m_config[NonRelInfo(element.first)];
-        occ += element.second;
-        if(!occ)
-            erase(NonRelInfo(element.first));
+    {
+        int prev_occ = GetOccupancy(element.first);
+        insert(std::make_pair(NonRelInfo(element.first), prev_occ+element.second));
     }
 }
 
@@ -67,7 +66,7 @@ void NonRelConfiguration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);
         fread(&occupancy, sizeof(int), 1, fp);
 
-        m_config[NonRelInfo(pqn, kappa)] = occupancy;
+        insert(std::make_pair(NonRelInfo(pqn, kappa), occupancy));
     }
 }
 

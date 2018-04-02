@@ -55,7 +55,7 @@ public:
         abs(return value) is number of differences found.
         sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
         If skipped_right_electron != nullptr, assume indirects.right is one electron smaller than 
-        indirects.left; the first element of indirects.right is the skipped electron which we can 
+        indirects.left; the last element of indirects.right is the skipped electron which we can
         assume is not present in indirects.left.
 
         N.B. This must be public to allow unit tests to call it
@@ -336,7 +336,9 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectPr
 
     if(skipped_p2_electron != nullptr)
     {
-        // Assume first element of left was a skipped electron (not hole)
+        // Assume last element of right was a skipped electron (not hole)
+        // Move it to the front
+        permutations += indirects.right.size();
         indirects.diff2.push_back(skipped_p2_electron);
         num_electrons2++;
     }

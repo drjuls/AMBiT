@@ -435,7 +435,6 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 {
     // Create equivalent RelativisticConfiguration and use it.
     RelativisticConfiguration rconfig;
-    int prev_kappa = 0;
     int pqn = 1;
 
     auto it = key.begin();
@@ -443,14 +442,8 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 
     while(it != key.end())
     {   // Set PQN to some integer
-        if(it->first == prev_kappa)
+        rconfig.insert(std::make_pair(OrbitalInfo(pqn, it->first), it->second));
         pqn++;
-        else
-        {   pqn = 1;
-            prev_kappa = it->first;
-        }
-
-        rconfig[OrbitalInfo(pqn, it->first)] = it->second;
         it++;
     }
 
