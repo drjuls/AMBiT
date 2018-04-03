@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <memory>
 #include <boost/math/special_functions.hpp>
+#include <sparsehash/dense_hash_map>
 #include "Enums.h"
 
 /** Class of mathematical constants, following the Singleton pattern. 
@@ -118,7 +119,7 @@ public:
 
 protected:
     const std::string SpectroscopicNotation;
-    std::map<int, double> Symbols3j;
+    google::dense_hash_map<int, double> Symbols3j;
 
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;
