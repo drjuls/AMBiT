@@ -784,6 +784,8 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     config.insert(std::make_pair(info, 1));
     config.GetProjections(angular_library, sym->GetSymmetry(), sym->GetTwoJ());
 
+    angular_library->GenerateCSFs();
+
     // Make "level"
     levelvec.hID = sym;
     levelvec.configs = std::make_shared<RelativisticConfigList>(config);
