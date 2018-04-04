@@ -178,7 +178,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
             }
 
-            ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
+            ManyBodyOperator<TransitionIntegrals> many_body_operator(*integrals);
 
             // Get matrix elements for all transitions with same HamiltonianIDs
             std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);

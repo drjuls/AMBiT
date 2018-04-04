@@ -216,7 +216,7 @@ TEST(EJOperatorTester, HeTransitions)
     pSpinorMatrixElement E1(new EJOperator(1, integrator, TransitionGauge::Length));
     pTransitionIntegrals E1_matrix_elements(new TransitionIntegrals(orbitals, E1));
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-    ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
+    ManyBodyOperator<TransitionIntegrals> E1_many_body(*E1_matrix_elements);
 
     double matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[1];
     double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
@@ -305,7 +305,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, hf->GetIntegrator());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
+        ManyBodyOperator<TransitionIntegrals> M1_many_body(*M1_matrix_elements);
 
         m1_electron = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 
@@ -369,7 +369,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         pSpinorMatrixElement M1 = std::make_shared<MJOperator>(1, integrator);
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
+        ManyBodyOperator<TransitionIntegrals> M1_many_body(*M1_matrix_elements);
 
         m1_hole = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 
