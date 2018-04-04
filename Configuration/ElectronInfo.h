@@ -9,6 +9,7 @@ class ElectronInfo : public OrbitalInfo
         Since M is half-integer, use TwoM which is always integer.
      */
 public:
+    ElectronInfo(): OrbitalInfo() {};
     ElectronInfo(unsigned int principal_qn, int kappa, int two_m, bool is_hole = false):
         OrbitalInfo(principal_qn, kappa), two_m(two_m), is_hole(is_hole)
     {}
@@ -32,8 +33,8 @@ public:
     virtual std::string Name() const;
 
 protected:
-    int two_m;
-    bool is_hole;
+    int two_m = {0};
+    bool is_hole = {false};
 };
 
 #endif

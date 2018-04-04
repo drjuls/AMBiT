@@ -11,6 +11,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
     RelativisticConfiguration config1, config2;
     std::vector<int> TwoM1, TwoM2;
     ManyBodyOperator<>::IndirectProjectionStruct indirects;
+    std::array<std::pair<OrbitalInfo, OrbitalInfo>, 2> diffarray;
+    std::array<std::pair<OrbitalInfo, OrbitalInfo>, 1> diffarray1;
 
     // < e1 e2 | G | e3 e4 >
     {   config1.clear(); config2.clear();
@@ -33,6 +35,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 
     // < e1 e2 | G | e1 e3 >
@@ -56,6 +64,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(1, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<1>(config2, diffarray1));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray1[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray1[i].second);
+        }
     }
 
     // < e1 e2 | G | e3 e1 >
@@ -79,6 +93,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-1, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<1>(config2, diffarray1));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray1[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray1[i].second);
+        }
 
         many_body_operator.make_indirect_projection(proj1, indirects.right);
         many_body_operator.make_indirect_projection(proj2, indirects.left);
@@ -107,6 +127,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
 
         int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
         EXPECT_EQ(2, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 
     // < e1 e2 e3 | G | e4 e1 e5 >
@@ -129,6 +155,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
 
         int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
         EXPECT_EQ(-2, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 }
 
@@ -141,6 +173,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
     RelativisticConfiguration config1, config2;
     std::vector<int> TwoM1, TwoM2;
     ManyBodyOperator<>::IndirectProjectionStruct indirects;
+    std::array<std::pair<OrbitalInfo, OrbitalInfo>, 2> diffarray;
+    std::array<std::pair<OrbitalInfo, OrbitalInfo>, 3> diffarray3;
 
     // < h3 e2 | G | h1 e4 > => - < h1 e2 | G | h3 e4 >
     {   config1.clear(); config2.clear();
@@ -163,6 +197,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 
     // < e1 | G | h2 e2 e3> => - < h2 e1 | G | e2 e3 >
@@ -186,6 +226,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 
     // < e1 | G | h2 e1 e3>
@@ -210,6 +256,12 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(1, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
     }
 
     // < h1 h2 e1 e2 | G | 0 > => - < e1 e2 | G | h1 h2 >
@@ -233,20 +285,26 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
 
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<2>(config2, diffarray));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray[i].second);
+        }
+
         many_body_operator.make_indirect_projection(proj1, indirects.right);
         many_body_operator.make_indirect_projection(proj2, indirects.left);
         diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
         EXPECT_EQ(-2, diffs);
     }
 
-    // < h1 h2 e1 | G | h3 h4 e1 > => < h3 h4 | G | h1 h2 >
+    // < h1 h2 e1 | G | h3 h4 e2 > => < h3 h4 e1 | G | h1 h2 e2>
     {   config1.clear(); config2.clear();
         config1.insert(std::make_pair(OrbitalInfo(4, -1), -1));
         config1.insert(std::make_pair(OrbitalInfo(3, -2), -1));
         config1.insert(std::make_pair(OrbitalInfo(5, -1), 1));
         config2.insert(std::make_pair(OrbitalInfo(4, -3), -1));
         config2.insert(std::make_pair(OrbitalInfo(4, -4), -1));
-        config2.insert(std::make_pair(OrbitalInfo(5, -1), 1));
+        config2.insert(std::make_pair(OrbitalInfo(5, 1), 1));
 
         TwoM1.clear(); TwoM2.clear();
         TwoM1.push_back(1); TwoM1.push_back(1); TwoM1.push_back(1);
@@ -258,10 +316,14 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesHoles)
         many_body_operator.make_indirect_projection(proj1, indirects.left);
         many_body_operator.make_indirect_projection(proj2, indirects.right);
 
-        int diffs = many_body_operator.GetProjectionDifferences<2>(indirects);
-        *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
-                   << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
-        EXPECT_EQ(2, diffs);
+        int diffs = many_body_operator.GetProjectionDifferences<3>(indirects);
+        EXPECT_EQ(3, diffs);
+
+        ASSERT_EQ(abs(diffs), config1.GetConfigDifferences<3>(config2, diffarray3));
+        for(int i = 0; i < abs(diffs); i++)
+        {   EXPECT_EQ(OrbitalInfo(*indirects.left[i]), diffarray3[i].first);
+            EXPECT_EQ(OrbitalInfo(*indirects.right[i]), diffarray3[i].second);
+        }
     }
 }
 
@@ -275,6 +337,7 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
     RelativisticConfiguration config1, config2;
     std::vector<int> TwoM1, TwoM2;
     ManyBodyOperator<>::IndirectProjectionStruct indirects;
+    std::array<std::pair<OrbitalInfo, OrbitalInfo>, 2> diffarray;
 
     // Electrons only:
     // < e1 e2 | G | e3 ek > => - < e1 e2 | G | ek e3 >
@@ -299,6 +362,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < e1 e2 | G | e1 ek >
@@ -323,6 +388,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(1, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < e1 e2 e3 | G | e4 e1 ek > => < e2 e3 | g | ek e4 >
@@ -346,6 +413,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
 
         int diffs = many_body_operator.GetProjectionDifferences<2>(indirects, &skipped);
         EXPECT_EQ(2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < h3 e2 | G | h1 ek > => - < h1 e2 | G | h3 ek > = < h1 e2 | G | ek h3 >
@@ -370,6 +439,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < e1 | G | h2 e2 ek> => - < h2 e1 | G | e2 ek > = < h2 e1 | G | ek e2 >
@@ -395,6 +466,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < e1 | G | h2 e1 ek> => < h2 e1 | G | ek e1 >
@@ -420,6 +493,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(1, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < 0 | G | h1 h2 e1 ek > => - < h1 h2 | G | e1 ek > = < h1 h2 | G | ek e1 >
@@ -443,6 +518,8 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 
     // < h1 h2 e1 | G | h3 h1 ek > => < h3 e1 | G | h2 ek > =  - < h3 e1 | G | ek h2 >
@@ -469,5 +546,7 @@ TEST(ManyBodyOperatorTester, ProjectionDifferencesSkipped)
         *logstream << ((diffs > 0)? " = +< ": "= -< ") << indirects.left[0]->Name() << ", " << indirects.left[1]->Name()
                    << " |g| " << indirects.right[0]->Name() << ", " << indirects.right[1]->Name() << " >" << std::endl;
         EXPECT_EQ(-2, diffs);
+
+        EXPECT_EQ(abs(diffs), config1.GetConfigDifferencesCount(config2));
     }
 }
