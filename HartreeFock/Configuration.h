@@ -551,22 +551,34 @@ typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
         if(pairless(p1, p2))
         {
             if(i1 < num_hole_configs)
-                for(int j = 0; j < abs(p1.second) && diff_count2 <= max_diffs; j++)
-                    diffs[diff_count2++].second = p1.first;
+                for(int j = 0; j < abs(p1.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p1.first;
+                    diff_count2++;
+                }
             else
-                for(int j = 0; j < abs(p1.second) && diff_count1 <= max_diffs; j++)
-                    diffs[diff_count1++].first = p1.first;
+                for(int j = 0; j < abs(p1.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p1.first;
+                    diff_count1++;
+                }
 
             i1++;
         }
         else if(pairless(p2, p1))
         {
             if(i2 < other.num_hole_configs)
-                for(int j = 0; j < abs(p2.second) && diff_count1 <= max_diffs; j++)
-                    diffs[diff_count1++].first = p2.first;
+                for(int j = 0; j < abs(p2.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p2.first;
+                    diff_count1++;
+                }
             else
-                for(int j = 0; j < abs(p2.second) && diff_count2 <= max_diffs; j++)
-                    diffs[diff_count2++].second = p2.first;
+                for(int j = 0; j < abs(p2.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p2.first;
+                    diff_count2++;
+                }
 
             i2++;
         }
@@ -574,11 +586,17 @@ typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
         {   // p1 & p2 have same type and are both holes or both electrons
             if((i1 < num_hole_configs && p1.second > p2.second) || // more p1 holes
                (i1 >= num_hole_configs && p2.second > p1.second))  // more p2 electrons
-                for(int j = 0; j < abs(p1.second - p2.second) && diff_count2 <= max_diffs; j++)
-                    diffs[diff_count2++].second = p2.first;
+                for(int j = 0; j < abs(p1.second - p2.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p2.first;
+                    diff_count2++;
+                }
             else
-                for(int j = 0; j < abs(p1.second - p2.second) && diff_count1 <= max_diffs; j++)
-                    diffs[diff_count1++].first = p1.first;
+                for(int j = 0; j < abs(p1.second - p2.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p1.first;
+                    diff_count1++;
+                }
 
             i1++; i2++;
         }
@@ -588,11 +606,17 @@ typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
     {
         auto p1 = m_config[i1];
         if(i1 < num_hole_configs)
-            for(int j = 0; j < abs(p1.second) && diff_count2 <= max_diffs; j++)
-                diffs[diff_count2++].second = p1.first;
+            for(int j = 0; j < abs(p1.second); j++)
+            {   if(diff_count2 < max_diffs)
+                    diffs[diff_count2].second = p1.first;
+                diff_count2++;
+            }
         else
-            for(int j = 0; j < abs(p1.second) && diff_count1 <= max_diffs; j++)
-                diffs[diff_count1++].first = p1.first;
+            for(int j = 0; j < abs(p1.second); j++)
+            {   if(diff_count1 < max_diffs)
+                    diffs[diff_count1].first = p1.first;
+                diff_count1++;
+            }
 
         i1++;
     }
@@ -601,11 +625,17 @@ typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
     {
         auto p2 = other.m_config[i2];
         if(i2 < other.num_hole_configs)
-            for(int j = 0; j < abs(p2.second) && diff_count1 <= max_diffs; j++)
-                diffs[diff_count1++].first = p2.first;
+            for(int j = 0; j < abs(p2.second); j++)
+            {   if(diff_count1 < max_diffs)
+                    diffs[diff_count1].first = p2.first;
+                diff_count1++;
+            }
         else
-            for(int j = 0; j < abs(p2.second) && diff_count2 <= max_diffs; j++)
-                diffs[diff_count2++].second = p2.first;
+            for(int j = 0; j < abs(p2.second); j++)
+            {   if(diff_count2 < max_diffs)
+                    diffs[diff_count2].second = p2.first;
+                diff_count2++;
+            }
 
         i2++;
     }

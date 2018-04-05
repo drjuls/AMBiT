@@ -102,7 +102,19 @@ public:
 
         double J = double(levels.hID->GetTwoJ())/2.;
 
-        std::vector<double> total_Sz = Sz.GetMatrixElement(levels);
+        auto nonzero_overlap = [](const RelativisticConfiguration& rconfig1, const RelativisticConfiguration& rconfig2)
+        {
+            std::array<std::pair<OrbitalInfo, OrbitalInfo>, 1> diffs;
+            unsigned int numdiffs = rconfig1.GetConfigDifferences<1>(rconfig2, diffs);
+            if(numdiffs == 0)
+                return true;
+            else if(numdiffs > 1)
+                return false;
+            else
+                return (diffs[0].first.L() == diffs[0].second.L());
+        };
+
+        std::vector<double> total_Sz = Sz.GetMatrixElement(levels, std::function<bool(const RelativisticConfiguration&,const RelativisticConfiguration&)>(nonzero_overlap));
 
         auto Sz_it = total_Sz.begin();
         auto it = levels.levels.begin();
