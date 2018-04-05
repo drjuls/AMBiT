@@ -78,7 +78,10 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
         }
 
     auto solution_it = levels.begin();
-    *outstream << "Solutions for " << hID << " (N = " << (*solution_it)->GetEigenvectorLength() << "):\n";
+    *outstream << "Solutions for " << hID << " (N = " << configs->NumCSFs();
+    if(configs->NumCSFsSmall() != configs->NumCSFs())
+        *outstream << " x " << configs->NumCSFsSmall();
+    *outstream << "):\n";
 
     unsigned int index = 0;
     while(solution_it != levels.end() &&
