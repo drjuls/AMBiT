@@ -12,47 +12,10 @@ NonRelConfiguration::NonRelConfiguration(const std::string& name)
 NonRelConfiguration::NonRelConfiguration(const RelativisticConfiguration& other)
 {
     for(auto& element: other)
-    {   int& occ = m_config[NonRelInfo(element.first)];
-        occ += element.second;
-        if(!occ)
-            erase(NonRelInfo(element.first));
-    }
-}
-
-bool NonRelConfiguration::RemoveSingleParticle(const NonRelInfo& info)
-{
-    auto r_it = m_config.find(info);
-    if(r_it != m_config.end())
     {
-        if(r_it->second <= -info.MaxNumElectrons())
-            return false;
-        else if(r_it->second == 1)
-            m_config.erase(r_it);
-        else
-            r_it->second--;
+        int prev_occ = GetOccupancy(element.first);
+        insert(std::make_pair(NonRelInfo(element.first), prev_occ+element.second));
     }
-    else
-        m_config[info] = -1;
-
-    return true;
-}
-
-bool NonRelConfiguration::AddSingleParticle(const NonRelInfo& info)
-{
-    iterator a_it = m_config.find(info);
-    if(a_it != m_config.end())
-    {
-        if(a_it->second >= info.MaxNumElectrons())
-            return false;
-        else if(a_it->second == -1)
-            m_config.erase(a_it);
-        else
-            a_it->second++;
-    }
-    else
-        m_config[info] = 1;
-
-    return true;
 }
 
 std::string NonRelConfiguration::Name(bool aSpaceFirst) const
@@ -65,11 +28,46 @@ std::string NonRelConfiguration::Name(bool aSpaceFirst) const
     return name;
 }
 
-std::string NonRelConfiguration::NameNoSpaces() const
+void NonRelConfiguration::Write(FILE* fp) const
 {
-    std::string name = Name(false);
-    std::replace(name.begin(), name.end(), ' ', '-');
-    return name;
+    // Write config
+    unsigned int config_size = m_config.size();
+    fwrite(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(auto& pair: *this)
+    {
+        int pqn = pair.first.PQN();
+        int kappa = pair.first.Kappa();
+        int occupancy = pair.second;
+
+        // Write PQN, Kappa, occupancy
+        fwrite(&pqn, sizeof(int), 1, fp);
+        fwrite(&kappa, sizeof(int), 1, fp);
+        fwrite(&occupancy, sizeof(int), 1, fp);
+    }
+}
+
+void NonRelConfiguration::Read(FILE* fp)
+{
+    // Clear the current configuration
+    clear();
+
+    unsigned int config_size;
+    fread(&config_size, sizeof(unsigned int), 1, fp);
+
+    for(unsigned int i = 0; i < config_size; i++)
+    {
+        int pqn;
+        int kappa;
+        int occupancy;
+
+        // Read PQN, Kappa, occupancy
+        fread(&pqn, sizeof(int), 1, fp);
+        fread(&kappa, sizeof(int), 1, fp);
+        fread(&occupancy, sizeof(int), 1, fp);
+
+        insert(std::make_pair(NonRelInfo(pqn, kappa), occupancy));
+    }
 }
 
 pRelativisticConfigList NonRelConfiguration::GenerateRelativisticConfigs()
@@ -131,24 +129,29 @@ void NonRelConfiguration::SplitNonRelInfo(NonRelConfiguration::const_iterator cu
     }
 }
 
-double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body)
+double NonRelConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
-    double energy = 0.;
-    int num_levels = 0;
-
-    if(relconfiglist == nullptr)
-        GenerateRelativisticConfigs();
-
-    for(const auto& rconfig: *relconfiglist)
+    if(std::isnan(config_average_energy))
     {
-        int rconfig_num_levels = rconfig.GetNumberOfLevels();
-        double rconfig_energy = rconfig.CalculateConfigurationAverageEnergy(orbitals, one_body, two_body);
+        double energy = 0.;
+        num_levels = 0;
 
-        energy += rconfig_num_levels * rconfig_energy;
-        num_levels += rconfig_num_levels;
+        if(relconfiglist == nullptr)
+            GenerateRelativisticConfigs();
+
+        for(const auto& rconfig: *relconfiglist)
+        {
+            int rconfig_num_levels = rconfig.GetNumberOfLevels();
+            double rconfig_energy = rconfig.CalculateConfigurationAverageEnergy(orbitals, one_body, two_body);
+
+            energy += rconfig_num_levels * rconfig_energy;
+            num_levels += rconfig_num_levels;
+        }
+
+        config_average_energy = energy/num_levels;
     }
 
-    return energy/num_levels;
+    return config_average_energy;
 }
 
 int NonRelConfiguration::GetTwiceMaxProjection() const
@@ -179,12 +182,14 @@ int NonRelConfiguration::GetTwiceMaxProjection() const
 
 int NonRelConfiguration::GetNumberOfLevels()
 {
-    if(relconfiglist == nullptr)
-        GenerateRelativisticConfigs();
+    if(!num_levels)
+    {
+        if(relconfiglist == nullptr)
+            GenerateRelativisticConfigs();
 
-    int num_levels = 0;
-    for(auto& rconfig: *relconfiglist)
-        num_levels += rconfig.GetNumberOfLevels();
+        for(auto& rconfig: *relconfiglist)
+            num_levels += rconfig.GetNumberOfLevels();
+    }
 
     return num_levels;
 }

@@ -2,11 +2,23 @@
 #include "MathConstant.h"
 #include <vector>
 #include <algorithm>
+#include <gsl/gsl_sf_coupling.h>
+
+#ifdef AMBIT_USE_OPENMP
+#include <omp.h>
+#endif
 
 MathConstant* MathConstant::Instance()
 {
+#ifdef AMBIT_USE_OPENMP
+    // each OpenMP thread should get its own MathConstant Instance to maintain thread-safety when caching 3j/6j symbol values
+    static std::unique_ptr<MathConstant[]> instances (new MathConstant[omp_get_max_threads()]());
+    return &(instances[omp_get_thread_num()]);
+#else
+    // Obviously only return one instance if we're not using OpenMP
     static MathConstant instance;
     return &instance;
+#endif
 }
 
 MathConstant::MathConstant():
@@ -74,7 +86,7 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     if(m1 + m2 + m3 != 0.)
         return 0.;
 
-    static double test[9];
+    double test[9];
     test[0] = j1 + j2 - j3;
     test[1] = j3 + j1 - j2;
     test[2] = j2 + j3 - j1;
@@ -85,15 +97,11 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     test[7] = j3 + m3;
     test[8] = j3 - m3;
 
-    // Numerator terms and denominator terms of outer part.
-    static std::vector<unsigned int> outer_num(9), outer_den(9);
-
-    // Check that all test[] are non-negative integers. Save the integers.
+    // Check that all test[] are non-negative integers.
     unsigned int i;
     for(i=0; i<9; i++)
     {   if((test[i] < 0.) || (test[i] != floor(test[i])))
             return 0.;
-        outer_num[i] = (unsigned int)(test[i]);
     }
 
     double y[3];
@@ -105,61 +113,17 @@ double MathConstant::Wigner3j(double j1, double j2, double j3, double m1, double
     z[1] = j2 - j3 - m1;
     z[2] = j1 - j3 + m2;
 
-    // Check that all y[] and z[] are integers. Save the integers.
-    static std::vector<int> ma(3), na(3);
+    // Check that all y[] and z[] are integers.
     for(i=0; i<3; i++)
     {   if(y[i] != floor(y[i]))
             return 0.;
-        ma[i] = (int)(y[i]);
 
         if(z[i] != floor(z[i]))
             return 0.;
-        na[i] = (int)(z[i]);
     }
 
-    std::sort(ma.begin(), ma.end());
-    std::sort(na.begin(), na.end());
-    // All elements of ma should be non-negative
-    if(ma[0] < 0)
-        return 0.;
-    // Each element of ma should be larger than all elements of na.
-    if(ma[0] < na[2])
-        return 0.;
 
-    // Calculate denominator terms in outer part
-    outer_den[0] = (unsigned int)(j1 + j2 + j3 + 1.);
-    unsigned int j;
-    for(j=1; j<=2; j++)
-    {   outer_den[j] = outer_den[j+2] = ma[j] - ma[0];
-        outer_den[j+4] = outer_den[j+6] = na[2] - na[j-1];
-    }
-
-    // Calculate outer part
-    std::sort(outer_den.begin(), outer_den.end());
-    std::sort(outer_num.begin(), outer_num.end());
-
-    double outer = 0.;
-    for(j=0; j<9; j++)
-    {   outer += LogFactorialFraction(outer_num[j], outer_den[j]);
-    }
-    outer = outer/2;    // Outer part is to the power 1/2.
-
-    // Calculate summation part
-    double total = 0.;
-    for(int k = na[2]; k <= ma[0]; k++)
-    {   double term = 0.;
-        term += LogFactorialFraction(1, ma[0] - k);
-        term += LogFactorialFraction(ma[1] - ma[0], ma[1] - k);
-        term += LogFactorialFraction(ma[2] - ma[0], ma[2] - k);
-        term += LogFactorialFraction(0, k - na[2]);
-        term += LogFactorialFraction(na[2] - na[0], k - na[0]);
-        term += LogFactorialFraction(na[2] - na[1], k - na[1]);
-        double L = k + j1 -j2 - m3;
-        total = total + pow(-1., L) * exp(term);
-    }
-    total = exp(outer) * total;
-
-    return total;
+    return gsl_sf_coupling_3j(int(2*j1), int(2*j2), int(2*j3), int(2*m1), int(2*m2), int(2*m3));
 }
 
 double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double j5, double j6) const
@@ -168,36 +132,29 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
     if((j1 < 0.) || (j2 < 0.) || (j3 < 0.) || (j4 < 0.) || (j5 < 0.) || (j6 < 0.))
         return 0.;
 
-    static double test[4];
+    double test[4];
     test[0] = j1 + j2 + j3;
     test[1] = j1 + j5 + j6;
     test[2] = j4 + j2 + j6;
     test[3] = j4 + j5 + j3;
 
-    static double y[3];
+    double y[3];
     y[0] = j1 + j2 + j4 + j5;
     y[1] = j2 + j3 + j5 + j6;
     y[2] = j3 + j1 + j6 + j4;
 
-    static std::vector<unsigned int> ma(4), na(3);
-    unsigned int i;
+    //unsigned int i;
+    int i;
+
     for(i=0; i<4; i++)
     {   if(test[i] != floor(test[i]))
             return 0.;
-        ma[i] = (unsigned int)test[i];
     }
     for(i=0; i<3; i++)
     {   if(y[i] != floor(y[i]))
             return 0.;
-        na[i] = (unsigned int)y[i];
     }
-
-    std::sort(ma.begin(), ma.end());
-    std::sort(na.begin(), na.end());
-
-    if(ma[3] > na[1])
-        return 0.;
-
+    
     double x[12];
     x[0] = j1 + j2 - j3;
     x[1] = j1 - j2 + j3;
@@ -212,63 +169,13 @@ double MathConstant::Wigner6j(double j1, double j2, double j3, double j4, double
     x[10] = j4 - j5 + j3;
     x[11] = - j4 + j5 + j3;
 
-    static std::vector<unsigned int> outer_den(13), outer_num(13);
     unsigned int j;
     for(j=0; j<12; j++)
     {   if((x[j] < 0.) || (x[j] != floor(x[j])))
             return 0.;
-        outer_num[j] = (unsigned int)x[j];
     }
-    outer_num[12] = ma[3] + 1;
-    for(j=0; j<3; j++)
-    {   outer_den[j] = ma[j] + 1;
-        outer_den[j+3] = outer_den[j+6] = ma[3] - ma[j];
-    }
-    for(j=0; j<2; j++)
-    {   outer_den[j+9] = outer_den[j+11] = na[j+1] - na[0];
-    }
-    std::sort(outer_den.begin(), outer_den.end());
-    std::sort(outer_num.begin(), outer_num.end());
 
-    double outer = 0.;
-    for(j=0; j<13; j++)
-    {   outer += LogFactorialFraction(outer_num[j], outer_den[j]);
-    }
-    outer = outer/2;
-
-    double total = 0.;
-    for(unsigned int k=ma[3]; k<=na[0]; k++)
-    {   double term = 0.;
-        term += LogFactorialFraction(k+1, ma[3]+1);
-        term += LogFactorialFraction(ma[3] - ma[0], k - ma[0]);
-        term += LogFactorialFraction(ma[3] - ma[1], k - ma[1]);
-        term += LogFactorialFraction(ma[3] - ma[2], k - ma[2]);
-        term += LogFactorialFraction(0, k - ma[3]);
-        term += LogFactorialFraction(0, na[0] - k);
-        term += LogFactorialFraction(na[1] - na[0], na[1] - k);
-        term += LogFactorialFraction(na[2] - na[0], na[2] - k);
-        total = total + pow(-1., double(k)) * exp(term);
-    }
-    total = exp(outer) * total;
-
-    return total;
-}
-
-/** Calculate the logarithm of a fraction where the numerator and denominator are factorials
-     log( n!/d! )
- */
-double MathConstant::LogFactorialFraction(unsigned int num, unsigned int denom) const
-{
-    double total = 0.;
-    if(num > denom)
-    {   for(unsigned int i=denom+1; i<=num; i++)
-            total = total + log(double(i));
-    }
-    else if(denom > num)
-    {   for(unsigned int i=num+1; i<=denom; i++)
-            total = total - log(double(i));
-    }
-    return total;
+    return gsl_sf_coupling_6j(int(2*j1), int(2*j2), int(2*j3), int(2*j4), int(2*j5), int(2*j6));
 }
 
 int MathConstant::HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const
@@ -320,11 +227,11 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     }
 
     if(twoj1 > MaxStoredTwoJ)
-    {   double q = double(twoq)/2.;
+    {   
         if(sign)
-            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+            return gsl_sf_coupling_3j(twoj1, twoj2, 2*k, twom1, twom2, twoq);
         else
-            return -Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+            return -gsl_sf_coupling_3j(twoj1, twoj2, 2*k, twom1, twom2, twoq);
     }
 
     size_t key = HashWigner3j(twoj1, twoj2, twok, twom1, twom2);
@@ -337,9 +244,10 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
             return -it->second;
     }
     else
-    {   double q = double(- twom1 - twom2)/2.;
-        double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(k), double(twom1)/2., double(twom2)/2., q);
+    {   
+        double value = gsl_sf_coupling_3j(twoj1, twoj2, 2*k, twom1, twom2, twoq);
         Symbols3j[key] = value;
+        
         if(sign)
             return value;
         else
@@ -411,9 +319,9 @@ double MathConstant::Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int tw
     if(twoj1 > MaxStoredTwoJ)
     {
         if(sign)
-            return Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+            return gsl_sf_coupling_3j(twoj1, twoj2, twoj3, twom1, twom2, twom3);
         else
-            return -Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+            return -gsl_sf_coupling_3j(twoj1, twoj2, twoj3, twom1, twom2, twom3);
     }
 
     // (m1 >= 0)
@@ -460,8 +368,9 @@ double MathConstant::Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int tw
             return -it->second;
     }
     else
-    {   double value = Wigner3j(double(twoj1)/2., double(twoj2)/2., double(twoj3)/2., double(twom1)/2., double(twom2)/2., double(twom3)/2.);
+    {   double value = gsl_sf_coupling_3j(twoj1, twoj2, twoj3, twom1, twom2, twom3);
         Symbols3j[key] = value;
+        
         if(sign)
             return value;
         else

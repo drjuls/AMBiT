@@ -2,9 +2,9 @@
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
 
-Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, bool include_valence, const std::string& fermi_orbitals):
-    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), two_body(two_body), include_valence(include_valence),
-    deep(orbitals->deep), high(orbitals->high)
+Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
+    MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), two_body(two_body), include_valence(false),
+    include_core(true), deep(orbitals->deep), high(orbitals->high)
 {}
 
 Sigma3Calculator::~Sigma3Calculator(void)
@@ -12,9 +12,21 @@ Sigma3Calculator::~Sigma3Calculator(void)
     two_body->clear();
 }
 
+void Sigma3Calculator::IncludeCore(bool include_mbpt)
+{
+    include_core = include_mbpt;
+}
+
+void Sigma3Calculator::IncludeValence(bool include_mbpt)
+{
+    include_valence = include_mbpt;
+}
+
 unsigned int Sigma3Calculator::GetStorageSize()
 {
-    unsigned int total = two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence, true);
+    unsigned int total = 0;
+    if(include_core)
+        total += two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence, true);
     if(include_valence)
         total += two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high, true);
 
@@ -25,7 +37,8 @@ void Sigma3Calculator::UpdateIntegrals()
 {
     SetValenceEnergies();
 
-    two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence);
+    if(include_core)
+        two_body->CalculateTwoElectronIntegrals(deep, valence, valence, valence);
     if(include_valence)
         two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high);
 }
@@ -97,38 +110,41 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
 
                 if(coeff36)
                 {
-                    // Summation over core state 'n'
-                    auto it_n = deep->begin();
-                    while(it_n != deep->end())
+                    if(include_core)
                     {
-                        const OrbitalInfo& sn = it_n->first;
-                        int two_Jn = sn.TwoJ();
-
-                        if((two_Jn >= abs(two_mn)) && ParityCheck(e2, sn, k1))
+                        // Summation over core state 'n'
+                        auto it_n = deep->begin();
+                        while(it_n != deep->end())
                         {
-                            const double En = it_n->second->Energy();
+                            const OrbitalInfo& sn = it_n->first;
+                            int two_Jn = sn.TwoJ();
 
-                            double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn) *
-                                           constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM());
-
-                            if(coeff)
+                            if((two_Jn >= abs(two_mn)) && ParityCheck(e2, sn, k1))
                             {
-                                coeff *= constants->Electron3j(e2.TwoJ(), two_Jn, k1) *
-                                         constants->Electron3j(two_Jn, e5.TwoJ(), k2) *
-                                         coeff14 * coeff36;
-                                double energy_denominator = En - ValenceEnergy + delta;
+                                const double En = it_n->second->Energy();
 
-                                coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
-                                              e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
-                                         * double(two_Jn + 1);
+                                double coeff = constants->Electron3j(e2.TwoJ(), two_Jn, k1, -e2.TwoM(), two_mn) *
+                                               constants->Electron3j(two_Jn, e5.TwoJ(), k2, -two_mn, e5.TwoM());
 
-                                double R1 = two_body->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
-                                double R2 = two_body->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
+                                if(coeff)
+                                {
+                                    coeff *= constants->Electron3j(e2.TwoJ(), two_Jn, k1) *
+                                             constants->Electron3j(two_Jn, e5.TwoJ(), k2) *
+                                             coeff14 * coeff36;
+                                    double energy_denominator = En - ValenceEnergy + delta;
 
-                                total -= TermRatio(coeff * R1 * R2, energy_denominator, sn, e2);
+                                    coeff *= sqrt(e1.MaxNumElectrons() * e2.MaxNumElectrons() * e3.MaxNumElectrons() *
+                                                  e4.MaxNumElectrons() * e5.MaxNumElectrons() * e6.MaxNumElectrons())
+                                             * double(two_Jn + 1);
+
+                                    double R1 = two_body->GetTwoElectronIntegral(k1, sn, e4, e2, e1);
+                                    double R2 = two_body->GetTwoElectronIntegral(k2, sn, e3, e5, e6);
+
+                                    total -= TermRatio(coeff * R1 * R2, energy_denominator, sn, e2);
+                                }
                             }
+                            ++it_n;
                         }
-                        ++it_n;
                     }
 
                     if(include_valence)

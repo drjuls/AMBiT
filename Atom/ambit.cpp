@@ -33,12 +33,40 @@ Debug DebugOptions;
 int main(int argc, char* argv[])
 {
     #ifdef AMBIT_USE_MPI
-        MPI_Init(&argc, &argv);
-        MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
-        MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+        #ifdef AMBIT_USE_OPENMP
+            int MPI_thread_safety;
+            // Tell MPI to use thread-safe functions
+            MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &MPI_thread_safety);
+            MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+            MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+
+            /* Check if the MPI implementation provides the required level of thread safety (only the master thread needs to make calls to MPI subroutines so this should almost always be supported)
+            */
+            if(MPI_thread_safety != MPI_THREAD_FUNNELED){
+                std::cerr << "Warning: this MPI implementation is incompatible OpenMP." << std::endl;
+                exit(-1);
+            }
+        #else
+            MPI_Init(&argc, &argv);
+            MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);
+            MPI_Comm_rank(MPI_COMM_WORLD, &ProcessorRank);
+        #endif
     #else
         NumProcessors = 1;
         ProcessorRank = 0;
+    #endif
+
+    // Set the file permissions so generated files can be read and written to by group, as well as user
+    // N.B. this currently only works on posix systems
+    #ifdef UNIX
+        umask(0003);
+    #endif
+    
+    // Check whether the environment variable OMP_NUM_THREADS has been explicitly set - OpenMP threading
+    // should only be used if explicitly requested by the user
+    #ifdef AMBIT_USE_OPENMP
+        if(!std::getenv("OMP_NUM_THREADS"))
+            omp_set_num_threads(1);
     #endif
 
     OutStreams::InitialiseStreams();
@@ -114,20 +142,12 @@ int main(int argc, char* argv[])
         }
 
         Ambit ambit(fileInput, identifier);
+        ambit.EnergyCalculations();
 
-        if(fileInput.search("--recursive-build"))
+        if(!fileInput.search("--check-sizes"))
         {
-            ambit.Recursive();
-        }
-        else
-        {
-            ambit.EnergyCalculations();
-
-            if(!fileInput.search("--check-sizes"))
-            {
-                ambit.TransitionCalculations();
-                ambit.Recombination();
-            }
+            ambit.TransitionCalculations();
+            ambit.Recombination();
         }
     }
     catch(std::bad_alloc& ba)
@@ -306,7 +326,7 @@ void Ambit::EnergyCalculations()
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
         }
 
-        for(auto& key: *levels)
+        for(auto& key: levels->keys)
         {
             for(int i = 0; i < run_indexes.size(); i++)
             {
@@ -428,20 +448,24 @@ void Ambit::Recombination()
     // Get target level
     pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
     LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
+
     int target_level_index = user_input("DR/Target/Index", 0);
-    if(target_level_vec.size() <= target_level_index)
+    if(target_level_vec.levels.size() <= target_level_index)
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
-    pLevelConst target_level = target_level_vec[target_level_index];
+
+    auto keep = std::next(target_level_vec.levels.begin(), target_level_index);
+    target_level_vec.levels.erase(target_level_vec.levels.begin(), keep);
+    target_level_vec.levels.resize(1);
 
     // Get widths of current levels
     if(user_input.search("--configuration-average"))
-        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level);
+        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
     else if(user_input.search("DR/--energy-grid"))
-        atoms[first_run_index].AutoionizationEnergyGrid(target_level);
+        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
     else
-        atoms[first_run_index].Autoionization(target_level);
+        atoms[first_run_index].Autoionization(target_level_vec);
 }
 
 void Ambit::PrintHelp(const std::string& ApplicationName)

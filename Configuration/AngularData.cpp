@@ -3,6 +3,9 @@
 #include "RelativisticConfiguration.h"
 #include <Eigen/Eigen>
 #include "ManyBodyOperator.h"
+#include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/interprocess/sync/sharable_lock.hpp>
 #include <numeric>
 #ifdef AMBIT_USE_MPI
     #include <mpi.h>
@@ -208,7 +211,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     auto i_it = real_Projection_list.begin();
     auto j_it = i_it;
 
-    ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
+    ManyBodyOperator<const JSquaredOperator, const JSquaredOperator> J_squared(J_squared_operator, J_squared_operator);
 
     i = 0;
     while(i_it != real_Projection_list.end())
@@ -432,7 +435,6 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 {
     // Create equivalent RelativisticConfiguration and use it.
     RelativisticConfiguration rconfig;
-    int prev_kappa = 0;
     int pqn = 1;
 
     auto it = key.begin();
@@ -440,14 +442,8 @@ RelativisticConfiguration AngularDataLibrary::GenerateRelConfig(const KeyType& k
 
     while(it != key.end())
     {   // Set PQN to some integer
-        if(it->first == prev_kappa)
+        rconfig.insert(std::make_pair(OrbitalInfo(pqn, it->first), it->second));
         pqn++;
-        else
-        {   pqn = 1;
-            prev_kappa = it->first;
-        }
-
-        rconfig[OrbitalInfo(pqn, it->first)] = it->second;
         it++;
     }
 
@@ -538,6 +534,7 @@ void AngularDataLibrary::GenerateCSFs()
         {
             RelativisticConfiguration rconfig(GenerateRelConfig(pair.first));
             *logstream << "Calculating CSF: N = " << pAng->projection_size() << " " << rconfig << std::endl;
+
             pAng->GenerateCSFs(rconfig, sym.GetTwoJ());
         }
 
@@ -644,6 +641,13 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         filepath = directory / filename;
     }
 
+    // Only try to get a shared file lock if the file actually exists, otherwise there's no point reading
+    if(!boost::filesystem::exists(filedata.second.c_str()))
+        return;
+
+    boost::interprocess::file_lock f_lock(filedata.second.c_str());
+    boost::interprocess::sharable_lock<boost::interprocess::file_lock> shlock(f_lock);
+
     FILE* fp = fopen(filepath.string().c_str(), "rb");
     if(!fp)
         return;
@@ -730,11 +734,29 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
         if(filedata.second.empty())
             Read(electron_number, sym, two_m);
 
+        FILE* fp = nullptr;
+        // Create the AngularData file if it doesn't already exist
+        if(!boost::filesystem::exists(filedata.second.c_str()))
+        {
+            fp = fopen(filedata.second.c_str(), "wb");
+            if(!fp)
+            {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
+                return;
+            }
+        }
+
+        // Wait for exclusive file lock
+        boost::interprocess::file_lock f_lock(filedata.second.c_str());
+        boost::interprocess::scoped_lock<boost::interprocess::file_lock> shylock(f_lock);
+
         // Open file
-        FILE* fp = fopen(filedata.second.c_str(), "wb");
         if(!fp)
-        {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
-            return;
+        {
+            fp = fopen(filedata.second.c_str(), "wb");
+            if(!fp)
+            {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
+                return;
+            }
         }
 
         // Count number of elements with same symmetry

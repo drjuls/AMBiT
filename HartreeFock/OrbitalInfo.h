@@ -15,10 +15,7 @@ public:
     OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const Orbital& s);
-    OrbitalInfo(const OrbitalInfo& other);
-    virtual ~OrbitalInfo(void) {}
-
-    const OrbitalInfo& operator=(const OrbitalInfo& other);
+    virtual ~OrbitalInfo() = default;
 
     virtual bool operator<(const OrbitalInfo& other) const;
     virtual bool operator==(const OrbitalInfo& other) const;
@@ -71,10 +68,6 @@ inline OrbitalInfo::OrbitalInfo(const Orbital& s)
 
 inline OrbitalInfo::OrbitalInfo(int principal_qn, int kap):
     pqn(principal_qn), kappa(kap)
-{}
-
-inline OrbitalInfo::OrbitalInfo(const OrbitalInfo& other):
-    pqn(other.pqn), kappa(other.kappa)
 {}
 
 inline int OrbitalInfo::L() const

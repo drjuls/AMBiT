@@ -117,7 +117,7 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
             {   throw (1);
             }
 
-            ret[info] = occupancy;
+            ret.insert(std::make_pair(info, occupancy));
             while(sstream.good() && isspace(sstream.peek()))
                 sstream.get();
         }

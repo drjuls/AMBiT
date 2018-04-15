@@ -2,14 +2,6 @@
 #include "OrbitalInfo.h"
 #include "Universal/MathConstant.h"
 
-const OrbitalInfo& OrbitalInfo::operator=(const OrbitalInfo& other)
-{
-    pqn = other.pqn;
-    kappa = other.kappa;
-
-    return *this;
-}
-
 bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
     // Sort on abs(kappa) first:

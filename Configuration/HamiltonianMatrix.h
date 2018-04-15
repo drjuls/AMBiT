@@ -13,10 +13,10 @@
 #include "MBPT/Sigma3Calculator.h"
 #include <Eigen/Eigen>
 
-typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
+typedef ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 
-typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator, pSigma3Calculator> ThreeBodyHamiltonianOperator;
+typedef ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator, Sigma3Calculator> ThreeBodyHamiltonianOperator;
 typedef std::shared_ptr<ThreeBodyHamiltonianOperator> pThreeBodyHamiltonianOperator;
 
 /** The dimensions of HamiltonianMatrix is set by the RelativisticConfigList.

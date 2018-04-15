@@ -20,13 +20,13 @@ OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::strin
         int L = info.L();
 
         if(L == 0)
-        {   ret[info.GetFirstRelativisticInfo()] = occupancy;
+        {   ret.insert(std::make_pair(info.GetFirstRelativisticInfo(), occupancy));
         }
         else
         {   // Split electrons between subshells
             double first_fraction = double(L + 1)/double(2 * L + 1);
-            ret[info.GetFirstRelativisticInfo()] = first_fraction * occupancy;
-            ret[info.GetSecondRelativisticInfo()] = (1. - first_fraction) * occupancy;
+            ret.insert(std::make_pair(info.GetFirstRelativisticInfo(), first_fraction * occupancy));
+            ret.insert(std::make_pair(info.GetSecondRelativisticInfo(), (1. - first_fraction) * occupancy));
         }
 
         it++;
