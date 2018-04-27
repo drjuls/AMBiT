@@ -39,6 +39,9 @@ public:
     /** Return (f + deltaVhf)^{\dagger}||a> */
     SpinorFunction ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
+    /** Return direct expectation value <deltaVhf> */
+    RadialFunction GetRPAField() const;
+
 protected:
     SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const;
 

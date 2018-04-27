@@ -489,6 +489,59 @@ TEST(EJOperatorTester, Screening)
     SpinorFunction fs = pE1->ApplyTo(*s, 1);
     SpinorFunction dVs = rpa->ApplyTo(*s, 1);
 
+    auto dVdir = rpa->GetRPAField();
+    auto R = lattice->R();
+//    for(int i = 0; i < dVdir.size(); i++)
+//        *errstream << R[i] << "\t" << dVdir.f[i] << "\t" << dVdir.dfdr[i] << "\n";
+    for(int i = 0; i < dVdir.size(); i++)
+        *errstream << R[i] << "\t" << dVs.f[i]/fs.f[i] << "\n";
+
     // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
     EXPECT_NEAR(0., dVs.f[0]/fs.f[0], 1.e-4);
+}
+
+TEST(EJOperatorTester, TlScreening)
+{
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // Tl
+    std::string user_input_string = std::string() +
+        "NuclearRadius = 0.0\n" +
+        "NuclearThickness = 0.0\n" +
+        "Z = 81\n" +
+        "[HF]\n" +
+        "N = 80\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14 5s2 5p6 5d10 6s2'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 7s6pd\n" +
+        "BSpline/Rmax = 50.0\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    // Get core and excited basis
+    BasisGenerator basis_generator(lattice, userInput);
+    pCore core = basis_generator.GenerateHFCore();
+    pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pSpinorOperator pE1 = std::make_shared<EJOperator>(1, integrator);
+
+    DebugOptions.LogHFIterations(true);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
+    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
+    rpa->SetScale(0.001);
+    rpa->SetFrequency(0.0);
+
+    RadialFunction dV = rpa->GetRPAField();
+
+    auto R = lattice->R();
+    *errstream << std::setprecision(6);
+
+    for(int i = 0; i < dV.size(); i++)
+        *errstream << R[i] << "\t" << dV.f[i] << "\t" << dV.dfdr[i] << "\n";
+
+    // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
+//    EXPECT_NEAR(1./81., dVs.f[0]/fs.f[0], 1.e-4);
 }

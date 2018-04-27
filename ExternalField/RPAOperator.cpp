@@ -176,8 +176,10 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
             // Sum over all k
             if((alph_L + b->L())%2 == (a.L() + beta->L())%2)
             {
-                int mink = mmax(abs(a.L() - beta->L()), abs(alph_L - b->L()));
-                int maxk = mmin(a.L() + beta->L(), alph_L + b->L());
+                int mink = mmax(abs(a.TwoJ() - beta->TwoJ()), abs(alph_TwoJ - b->TwoJ()))/2;
+                if((alph_L + b->L() + mink)%2)
+                    mink++;
+                int maxk = mmin(a.TwoJ() + beta->TwoJ(), alph_TwoJ + b->TwoJ());
                 for(int k = mink; k <= maxk; k+=2)
                 {
                     double coeff = math->Wigner6j(K, alph_J, a.J(), k, beta->J(), b->J()) *
@@ -206,7 +208,9 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
             // Sum over all k
             if((a.L() + b->L())%2 == (alph_L + beta->L())%2)
             {
-                int mink = mmax(abs(a.L() - b->L()), abs(alph_L - beta->L()));
+                int mink = mmax(abs(a.TwoJ() - b->TwoJ()), abs(alph_TwoJ - beta->TwoJ()))/2;
+                if((alph_L + beta->L() + mink)%2)
+                    mink++;
                 int maxk = mmin(a.L() + b->L(), alph_L + beta->L());
                 for(int k = mink; k <= maxk; k+=2)
                 {
@@ -227,4 +231,98 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
     }
     
     return ret;
+}
+
+RadialFunction RPAOperator::GetRPAField() const
+{
+    RadialFunction ret;
+    RadialFunction density, pot;
+    MathConstant* math = MathConstant::Instance();
+
+    pIntegrator integrator(new SimpsonsIntegrator(hf->GetLattice()));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    pCoulombOperator coulomb(new CoulombOperator(hf->GetLattice(), ode_solver));
+
+    auto R = hf->GetLattice()->R();
+    RadialFunction Rp1, Rp2, Rm1;
+    Rp1.f = std::vector<double>(R, R+hf->GetLattice()->size());
+    Rp1.dfdr = std::vector<double>(hf->GetLattice()->size(), 1.);
+
+    Rp2 = Rp1 * Rp1;
+
+    Rm1.resize(Rp1.size());
+    for(int i = 0; i < Rp1.size(); i++)
+    {
+        Rm1.f[i] = 1./R[i];
+        Rm1.dfdr[i] = -Rm1.f[i]/R[i];
+    }
+
+    // Sum deltaV for all core states. Core states are `b', delta is `beta'.
+    for(const auto& cs: *core)
+    {
+        pRPAOrbitalConst b(std::dynamic_pointer_cast<const RPAOrbital>(cs.second));
+        if(b == nullptr)
+            continue;
+
+        // Sum over beta
+        for(const auto& cs_delta: b->deltapsi)
+        {
+            pDeltaOrbitalConst beta, betaplus;
+            beta = cs_delta.first;
+            betaplus = cs_delta.second;
+
+            double occupancy_factor = (b->TwoJ()+1) * (beta->TwoJ()+1);
+//            occupancy_factor = sqrt(occupancy_factor);
+            // TODO: Open shells need to be scaled
+
+            // Direct term
+            if((b->L() + beta->L() + K)%2 == 0)
+            {
+                double coeff = 1./(2. * K + 1.) /** math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + 1)*/;
+//                coeff *= math->Electron3j(b->TwoJ(), beta->TwoJ(), K);
+                coeff *= math->SphericalTensorReducedMatrixElement(b->Kappa(), beta->Kappa(), K);
+
+                if(coeff)
+                {
+//                    coeff *= occupancy_factor;
+
+                    if(static_rpa)
+                    {
+                        density = b->GetDensity(*beta);
+                        density.resize(integrator->GetLattice()->size());
+//                        coulomb->GetForwardPotential(K, density, pot);
+//                        ret += pot * Rp2 * coeff * 2.;
+
+//                        coulomb->GetBackwardPotential(K, density, pot);
+//                        ret += pot * Rm1 * coeff * 2.;
+
+                        coulomb->GetPotential(K, density, pot);
+                        ret += pot * coeff * 2.;
+                    }
+                    else
+                    {
+                        density = b->GetDensity(*beta);
+                        density.resize(integrator->GetLattice()->size());
+//                        coulomb->GetForwardPotential(K, density, pot);
+//                        ret += pot * Rp2 * coeff;
+//                        coulomb->GetBackwardPotential(K, density, pot);
+//                        ret += pot * Rm1 * coeff;
+                        coulomb->GetPotential(K, density, pot);
+                        ret += pot * coeff;
+
+                        density = b->GetDensity(*betaplus);
+                        density.resize(integrator->GetLattice()->size());
+//                        coulomb->GetForwardPotential(K, density, pot);
+//                        ret += pot * Rp2 * coeff;
+//                        coulomb->GetBackwardPotential(K, density, pot);
+//                        ret += pot * Rm1 * coeff;
+                        coulomb->GetPotential(K, density, pot);
+                        ret += pot * coeff;
+                    }
+                }
+            }
+        }
+    }
+
+    return ret * (1./scale);
 }
