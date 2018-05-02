@@ -21,7 +21,7 @@
 
 void Atom::MakeMBPTIntegrals()
 {
-    bool make_new_integrals = user_input.search(2, "-m", "--mbpt");
+    bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
     bool check_sizes = user_input.search("--check-sizes");
     bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
     bool two_body_mbpt = user_input.search(4, "-s2", "-s12", "-s23", "-s123");
