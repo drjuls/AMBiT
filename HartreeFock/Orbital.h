@@ -204,10 +204,10 @@ auto OrbitalTemplate<Base, Derived>::operator*=(const RadialFunction& chi) -> co
 
     for(unsigned int i = 0; i < this->size(); i++)
     {
-        this->f[i] *= chi.f[i];
-        this->g[i] *= chi.f[i];
         this->dfdr[i] = this->f[i] * chi.dfdr[i] + this->dfdr[i] * chi.f[i];
         this->dgdr[i] = this->g[i] * chi.dfdr[i] + this->dgdr[i] * chi.f[i];
+        this->f[i] *= chi.f[i];
+        this->g[i] *= chi.f[i];
     }
     return static_cast<const Derived&>(*this);
 }

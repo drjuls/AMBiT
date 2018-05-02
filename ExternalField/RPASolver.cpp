@@ -60,6 +60,7 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
     unsigned int loop = 0;
 
     bool is_static = rpa->IsStaticRPA();
+    double prop_new = 0.5;
 
     do
     {   loop++;
@@ -103,11 +104,44 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
             }
         }
 
-        // Copy new states
-        rpa_core.reset(next_states->Clone());
+        // Mix new and old states.
+        auto core_it = rpa_core->begin();
+        while(core_it != rpa_core->end())
+        {
+            pRPAOrbital core_state = std::dynamic_pointer_cast<RPAOrbital>(core_it->second);
+            pRPAOrbital new_state = std::dynamic_pointer_cast<RPAOrbital>(next_states->GetState(OrbitalInfo(core_state)));
+
+            // Add proportion of new states to core states.
+            *core_state *= (1. - prop_new);
+            *new_state *= (prop_new);
+            *core_state += *new_state;
+
+            // Update deltaEnergies
+            for(auto& deltaorbitals: core_state->deltapsi)
+            {
+                auto other_it = new_state->GetDeltaPsi(deltaorbitals.first->Kappa());
+                if(other_it != new_state->deltapsi.end())
+                {
+                    double dE = deltaorbitals.first->DeltaEnergy() * (1. - prop_new)
+                                + other_it->first->DeltaEnergy() * prop_new;
+                    deltaorbitals.first->SetDeltaEnergy(dE);
+
+                    if(deltaorbitals.second && other_it->second)
+                    {
+                        dE = deltaorbitals.second->DeltaEnergy() * (1. - prop_new)
+                             + other_it->second->DeltaEnergy() * prop_new;
+                        deltaorbitals.second->SetDeltaEnergy(dE);
+                    }
+                }
+            }
+
+            core_it++;
+        }
 
         // Update potential
         rpa->SetRPACore(rpa_core);
+
+        next_states.reset(rpa_core->Clone());
 
     }while((max_deltaE > EnergyTolerance) && (loop < MaxRPAIterations));
 }

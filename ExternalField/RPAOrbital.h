@@ -71,6 +71,18 @@ public:
         return ret;
     }
 
+    /** Multiply orbital and deltapsi by the scale factor. */
+    const RPAOrbital& operator*=(double scale_factor);
+
+    /** Adding or subtracting two RPAOrbitals can only occur if both have same angular part. */
+    const RPAOrbital& operator+=(const RPAOrbital& other);
+    const RPAOrbital& operator-=(const RPAOrbital& other);
+    RPAOrbital operator+(const RPAOrbital& other) const;
+    RPAOrbital operator-(const RPAOrbital& other) const;
+
+    /** Multiply spinor function by another radial function (assumed zero outside range). */
+    const RPAOrbital& operator*=(const RadialFunction& chi);
+
     /** Orbital contributions for different kappas: pair<dPsi(+), dPsi(-)>. */
     std::vector<std::pair<pDeltaOrbital, pDeltaOrbital>> deltapsi;
 
