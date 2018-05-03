@@ -285,7 +285,7 @@ def configure_environment(env, conf, ambit_conf):
     # If neither of these work then warn the user and bail out. 
     libs = [s.strip() for s in conf.get("Dependencies", "Libs").split(',')]
     for lib in libs:
-        env_conf.env.AppendUnique(LIBS=lib)
+        env_conf.env.AppendUnique(LIBS = [lib])
         # Don't check for Boost here, since it doesn't support pkg-config
         if lib.find("boost") == -1:
             # autoadd=0 is here because CheckLib adds the library to the compilation environment by
