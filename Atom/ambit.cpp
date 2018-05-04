@@ -67,6 +67,15 @@ int main(int argc, char* argv[])
     // N.B. these currently only work on posix systems.
     #ifdef UNIX
         umask(0003);
+
+        // NOTE: these print to stderr rather than logstream, since that is the place stack-traces would
+        // be written to
+        if(signal(SIGTERM, signal_handler) == SIG_ERR){
+            fputs("Note: This system does not allow AMBiT to produce stack-traces on termination", stderr);
+        }
+        if(signal(SIGSEGV, signal_handler) == SIG_ERR){
+            fputs("Note: This system does not allow AMBiT to produce stack-traces on a segmentation fault", stderr);
+        }
     #endif
     
     // Check whether the environment variable OMP_NUM_THREADS has been explicitly set - OpenMP threading
@@ -503,3 +512,43 @@ void Ambit::PrintHelp(const std::string& ApplicationName)
         << "                    calculate specified MBPT integrals\n\n"
         << "Sample input files are included with the documentation." << std::endl;
 }
+
+#ifdef UNIX
+static void signal_handler(int signo){
+    /* Function to catch SIGTERM and print a stacktrace. This doesn't neatly handle mutlithreading, but
+     * there isn't really any neat way to do this anyway. The stack-traces produced by this function are
+     * very rudimentary and need to be passed through addr2line or a similar utility to obtain
+     * line-numbers (although it will include function names in the stack-trace). Finally, this is 
+     * basically useless if AMBiT was not compiled with debugging symbols, as the stack-trace will just
+     * be a bunch of unadorned hex addresses.
+     */
+    if(signo == SIGTERM){
+        void *buff[256];
+        size_t numFrames;
+
+        const char* errmsg = "AMBiT terminated prematurely. Stacktrace:\n";
+        // C/C++ stdio functions are not safe to call in a signal handler, so use a bare write() instead
+        write(STDERR_FILENO, errmsg, strlen(errmsg));
+
+        // Write a stack-trace. This is very rudimentary and needs to be passed through addr2line to be
+        // properly readable
+        numFrames = backtrace(buff, 256);
+        backtrace_symbols_fd(buff, numFrames, STDERR_FILENO);
+
+        _exit(EXIT_FAILURE);
+    } else if(signo == SIGSEGV){
+        void *buff[256];
+        size_t numFrames;
+
+        const char* errmsg = "AMBiT terminated on a segmentation fault. Stacktrace:\n";
+        // C/C++ stdio functions are not safe to call in a signal handler, so use a bare write() instead
+        write(STDERR_FILENO, errmsg, strlen(errmsg));
+        
+        // Write a stack-trace. This is very rudimentary and needs to be passed through addr2line to be
+        // properly readable
+        numFrames = backtrace(buff, 256);
+        backtrace_symbols_fd(buff, numFrames, STDERR_FILENO);
+        _exit(EXIT_FAILURE);
+    }
+}
+#endif

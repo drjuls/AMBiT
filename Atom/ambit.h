@@ -25,4 +25,9 @@ public:
     std::vector<Atom> atoms;                // atoms[i] corresponds to run_indexes[i]
 };
 
+#ifdef UNIX
+// Signal handler: emits a stack-trace on SIGTERM or SIGSEGV. Only does something useful on UNIX systems
+static void signal_handler(int signo);
+#endif
+
 #endif
