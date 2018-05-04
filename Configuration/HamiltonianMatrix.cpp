@@ -404,8 +404,8 @@ void HamiltonianMatrix::Write(const std::string& filename) const
     if(ProcessorRank == 0)
     {
         // Write size of matrix.
-        fp = fopen(filename.c_str(), "wb");
-        fwrite(&N, sizeof(unsigned int), 1, fp);
+        fp = file_err_handler->fopen(filename.c_str(), "wb");
+        file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
         const double* pbuf;
         const double* pdiag;
         std::vector<double> zeros(N-Nsmall, 0.);
@@ -477,15 +477,15 @@ void HamiltonianMatrix::Write(const std::string& filename) const
             for(int i = 0; i < num_rows; i++)
             {
                 // Write chunk
-                fwrite(pbuf, sizeof(double), mmin(row + i + 1, Nsmall), fp);
+                file_err_handler->fwrite(pbuf, sizeof(double), mmin(row + i + 1, Nsmall), fp);
                 pbuf += mmin(row + num_rows, Nsmall);   // Move to next row
 
                 // Write diagonal
                 if(diag_rows && row + i >= Nsmall)
                 {
                     if(gap)
-                        fwrite(zeros.data(), sizeof(double), gap, fp);
-                    fwrite(pdiag, sizeof(double), row + i + 1 - Nsmall - gap, fp);
+                        file_err_handler->fwrite(zeros.data(), sizeof(double), gap, fp);
+                    file_err_handler->fwrite(pdiag, sizeof(double), row + i + 1 - Nsmall - gap, fp);
                     pdiag += diag_rows;
                 }
             }
@@ -498,7 +498,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
     #endif
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
     else
     {

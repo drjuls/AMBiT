@@ -177,7 +177,7 @@ SpinorFunction SigmaPotential::ApplyTo(const SpinorFunction& a) const
 
 bool SigmaPotential::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   return false;
     }
@@ -201,7 +201,7 @@ bool SigmaPotential::Read(const std::string& filename)
     if(use_gg)
         fread(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     return true;
 }
 
@@ -209,25 +209,25 @@ void SigmaPotential::Write(const std::string& filename) const
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
-        fwrite(&matrix_size, sizeof(unsigned int), 1, fp);
-        fwrite(&start, sizeof(unsigned int), 1, fp);
-        fwrite(&stride, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&matrix_size, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&start, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&stride, sizeof(unsigned int), 1, fp);
 
-        fwrite(&use_fg, sizeof(bool), 1, fp);
-        fwrite(&use_gg, sizeof(bool), 1, fp);
+        file_err_handler->fwrite(&use_fg, sizeof(bool), 1, fp);
+        file_err_handler->fwrite(&use_gg, sizeof(bool), 1, fp);
 
         // Write data
-        fwrite(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
+        file_err_handler->fwrite(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
 
         if(use_fg)
-        {   fwrite(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-            fwrite(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
+        {   file_err_handler->fwrite(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
+            file_err_handler->fwrite(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
         }
         if(use_gg)
-            fwrite(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
+            file_err_handler->fwrite(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }

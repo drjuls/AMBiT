@@ -267,7 +267,7 @@ unsigned int OneElectronIntegrals<IsHermitianZeroOperator>::CalculateOneElectron
 template <bool IsHermitianZeroOperator>
 void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
@@ -299,14 +299,14 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
             it->second += value;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <bool IsHermitianZeroOperator>
 template <class MapType>
 void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& filename, const MapType& scaling)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
@@ -347,7 +347,7 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
             it->second += value;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <bool IsHermitianZeroOperator>
@@ -355,21 +355,21 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Write(const std::string& fil
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(orbitals->state_index, fp);
 
         unsigned int num_integrals = size();
-        fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
 
         for(auto& pair: integrals)
         {
-            fwrite(&pair.first, sizeof(unsigned int), 1, fp);
-            fwrite(&pair.second, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(&pair.second, sizeof(double), 1, fp);
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }
 

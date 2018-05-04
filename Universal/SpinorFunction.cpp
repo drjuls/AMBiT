@@ -131,17 +131,17 @@ RadialFunction SpinorFunction::GetDensity(const SpinorFunction& other) const
 
 void SpinorFunction::Write(FILE* fp) const
 {
-    fwrite(&kappa, sizeof(int), 1, fp);
+    file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
 
     unsigned int my_size = size();
-    fwrite(&my_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&my_size, sizeof(unsigned int), 1, fp);
 
     // Write each vector in one hit.
     // This is important when the code is run on the supercomputer.
-    fwrite(f.data(), sizeof(double), my_size, fp);
-    fwrite(g.data(), sizeof(double), my_size, fp);
-    fwrite(dfdr.data(), sizeof(double), my_size, fp);
-    fwrite(dgdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(f.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(g.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(dfdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(dgdr.data(), sizeof(double), my_size, fp);
 }
 
 void SpinorFunction::Read(FILE* fp)
@@ -260,11 +260,11 @@ RadialFunction RadialFunction::operator*(const RadialFunction& other) const
 
 bool RadialFunction::Print(const std::string& filename, pLattice lattice) const
 {
-    FILE* fp = fopen(filename.c_str(), "wt");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "wt");
 
     if(fp)
     {   bool success = Print(fp, lattice);
-        fclose(fp);
+        file_err_handler->fclose(fp);
         return success;
     }
     else

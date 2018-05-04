@@ -284,29 +284,29 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
         }
 
         // Open after it is clear that all processes are on board
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(this->orbitals->state_index, fp);
 
-        fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
 
         unsigned int total_integrals = std::accumulate(num_integrals.begin(), num_integrals.end(), this->size());
-        fwrite(&total_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&total_integrals, sizeof(unsigned int), 1, fp);
 
         // Write root integrals
         for(auto& pair: this->TwoElectronIntegrals)
         {
             const double value = pair.second;   // Convert to double
-            fwrite(&pair.first, sizeof(KeyType), 1, fp);
-            fwrite(&value, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(KeyType), 1, fp);
+            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
         }
 
         for(int i = 0; i < num_integrals[0]; i++)
         {
             const double value = new_values[i];   // Convert to double
-            fwrite(&new_keys[i], sizeof(KeyType), 1, fp);
-            fwrite(&value, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&new_keys[i], sizeof(KeyType), 1, fp);
+            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
         }
 
         // Receive and write data from other processes
@@ -322,12 +322,12 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
 
             for(int i = 0; i < num_integrals[proc]; i++)
             {
-                fwrite(&keys[i], sizeof(KeyType), 1, fp);
-                fwrite(&values[i], sizeof(double), 1, fp);
+                file_err_handler->fwrite(&keys[i], sizeof(KeyType), 1, fp);
+                file_err_handler->fwrite(&values[i], sizeof(double), 1, fp);
             }
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
         *logstream << "Written " << total_integrals << " two-body MBPT integrals." << std::endl;
 
         // The *.two.int.save file is created to protect the work while

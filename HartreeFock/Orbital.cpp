@@ -66,8 +66,8 @@ std::string OrbitalBase::Name() const
 void OrbitalBase::Write(FILE* fp) const
 {
     // As well as the SpinorFunction vectors, we need to output some other things
-    fwrite(&pqn, sizeof(int), 1, fp);
-    fwrite(&energy, sizeof(double), 1, fp);
+    file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+    file_err_handler->fwrite(&energy, sizeof(double), 1, fp);
     
     SpinorFunction::Write(fp);
 }
@@ -87,11 +87,11 @@ bool OrbitalBase::Print(pLattice lattice) const
 
 bool OrbitalBase::Print(const std::string& filename, pLattice lattice) const
 {
-    FILE* fp = fopen(filename.c_str(), "wt");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "wt");
     
     if(fp)
     {   bool success = Print(fp, lattice);
-        fclose(fp);
+        file_err_handler->fclose(fp);
         return success;
     }
     else

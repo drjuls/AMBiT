@@ -32,7 +32,7 @@ void NonRelConfiguration::Write(FILE* fp) const
 {
     // Write config
     unsigned int config_size = m_config.size();
-    fwrite(&config_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&config_size, sizeof(unsigned int), 1, fp);
 
     for(auto& pair: *this)
     {
@@ -41,9 +41,9 @@ void NonRelConfiguration::Write(FILE* fp) const
         int occupancy = pair.second;
 
         // Write PQN, Kappa, occupancy
-        fwrite(&pqn, sizeof(int), 1, fp);
-        fwrite(&kappa, sizeof(int), 1, fp);
-        fwrite(&occupancy, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&occupancy, sizeof(int), 1, fp);
     }
 }
 

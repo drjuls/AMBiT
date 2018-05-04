@@ -12,6 +12,11 @@
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
 
+// Headers to get stack-traces
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
+
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
     #if !(_FUS)
@@ -57,7 +62,9 @@ int main(int argc, char* argv[])
     #endif
 
     // Set the file permissions so generated files can be read and written to by group, as well as user
-    // N.B. this currently only works on posix systems
+    // (so AngularData files can be reused by different users) and register our custom signal handler
+    // for SIGTERM and SIGSEGV.
+    // N.B. these currently only work on posix systems.
     #ifdef UNIX
         umask(0003);
     #endif

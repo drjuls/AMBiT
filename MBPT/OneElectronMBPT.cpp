@@ -139,7 +139,7 @@ void OneElectronMBPT::Write(const std::string& filename) const
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(orbitals->state_index, fp);
@@ -155,19 +155,19 @@ void OneElectronMBPT::Write(const std::string& filename) const
         }
 
         unsigned int total_integrals = std::accumulate(num_integrals.begin(), num_integrals.end(), size());
-        fwrite(&total_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&total_integrals, sizeof(unsigned int), 1, fp);
 
         // Write root integrals
         for(auto& pair: integrals)
         {
-            fwrite(&pair.first, sizeof(unsigned int), 1, fp);
-            fwrite(&pair.second, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(&pair.second, sizeof(double), 1, fp);
         }
 
         for(int i = 0; i < num_integrals[0]; i++)
         {
-            fwrite(&new_keys[i], sizeof(unsigned int), 1, fp);
-            fwrite(&new_values[i], sizeof(double), 1, fp);
+            file_err_handler->fwrite(&new_keys[i], sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(&new_values[i], sizeof(double), 1, fp);
         }
 
         // Receive and write data from other processes
@@ -183,12 +183,12 @@ void OneElectronMBPT::Write(const std::string& filename) const
 
             for(int i = 0; i < num_integrals[proc]; i++)
             {
-                fwrite(&keys[i], sizeof(unsigned int), 1, fp);
-                fwrite(&values[i], sizeof(double), 1, fp);
+                file_err_handler->fwrite(&keys[i], sizeof(unsigned int), 1, fp);
+                file_err_handler->fwrite(&values[i], sizeof(double), 1, fp);
             }
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
     else
     {   // Send data to root. First number of keys.

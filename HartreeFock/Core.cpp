@@ -98,16 +98,16 @@ void Core::Write(FILE* fp) const
 
     // Output occupancies
     unsigned int size = occupancy.size();
-    fwrite(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&size, sizeof(unsigned int), 1, fp);
     for(auto& pair: occupancy)
     {
         int kappa = pair.first.Kappa();
         int pqn = pair.first.PQN();
         double occ = pair.second;
 
-        fwrite(&kappa, sizeof(int), 1, fp);
-        fwrite(&pqn, sizeof(int), 1, fp);
-        fwrite(&occ, sizeof(double), 1, fp);
+        file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&occ, sizeof(double), 1, fp);
     }
 }
 

@@ -643,7 +643,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));
             //H->PollMatrix();
 
-            if(user_input.search("--write-hamiltonian"))
+            if(user_input.search("CI/Output/--write-hamiltonian"))
             {
                 std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
 
@@ -653,7 +653,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 H->Write(hamiltonian_filename);
             }
 
-            if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
+            if(user_input.search("CI/Output/--print-hamiltonian"))
             {
                 auto rel_it = configs->begin();
                 while(rel_it != configs->end())
