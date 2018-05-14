@@ -82,7 +82,7 @@ bool Atom::ReadBasis()
     if(!fp)
         return false;
     else
-        fclose(fp);
+        file_err_handler->fclose(fp);
 
     pOrbitalManager modifiable_orbitals(new OrbitalManager(filename));
     lattice = modifiable_orbitals->GetLattice();

@@ -304,7 +304,7 @@ void Ambit::EnergyCalculations()
     // Print basis option
     if(user_input.search(2, "--print-basis", "-p"))
     {
-        auto fp = fopen("Orbitals.txt", "wt");
+        auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
         auto lattice = atoms[first_run_index].GetLattice();
         for(auto& var: *atoms[first_run_index].GetBasis()->all)
@@ -313,6 +313,7 @@ void Ambit::EnergyCalculations()
             fprintf(fp, "  %i %i %12.6f %i\n", var.first.PQN(), var.first.Kappa(), var.second->Energy(), var.second->size());
             var.second->Print(fp, lattice, true);
         }
+        file_err_handler->fclose(fp);
     }
 //    {   // Check follower for option
 //        std::string print_option = user_input.next("");
