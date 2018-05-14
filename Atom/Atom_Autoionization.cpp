@@ -51,7 +51,7 @@ void Atom::Autoionization(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumFieldConfiguration", "");
+    std::string config = user_input("DR/ContinuumResidue", "");
     if(config == "")
         hf_continuum = hf_open;
     else
@@ -233,7 +233,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumFieldConfiguration", "");
+    std::string config = user_input("DR/ContinuumResidue", "");
     if(config == "")
         hf_continuum = hf_open;
     else
@@ -488,7 +488,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumFieldConfiguration", "");
+    std::string config = user_input("DR/ContinuumResidue", "");
     if(config == "")
         hf_continuum = hf_open;
     else
