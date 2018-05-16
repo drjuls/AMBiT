@@ -27,8 +27,7 @@ public:
     RPASolver(pCoreConst core, bool include_negative_basis = true):
         RPASolver(core->GetLattice(), core->GetLattice()->R(core->LargestOrbitalSize()), include_negative_basis)
     {}
-
-    ~RPASolver() {}
+    virtual ~RPASolver() = default;
 
     /** Solve RPA equations for core by expanding deltaOrbitals over a set of B-splines and
         taking matrix elements of RPAOperator to determine coefficients.
@@ -53,7 +52,10 @@ public:
      */
     double IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& orbitals, std::shared_ptr<const RPAOperator> rpa) const;
 
-    double EnergyTolerance = 1.e-14;
+    /** Set the weighting of successive TDHF loops.
+        PRE: 0 < propnew <= 1
+     */
+    void SetTDHFWeighting(double propnew) { TDHF_propnew = propnew; }
 
 protected:
     pBSplineBasis basis_maker;
@@ -61,7 +63,9 @@ protected:
     bool include_dirac_sea;
     std::map<int, pOrbitalMap> basis;   //!< DeltaOrbital basis for each kappa
 
-    unsigned int MaxRPAIterations = 100;
+    double TDHF_propnew = 0.5;          //!< Weighting to apply to each iteration
+    double EnergyTolerance = 1.e-14;
+    unsigned int MaxRPAIterations = 300;
 };
 
 typedef std::shared_ptr<RPASolver> pRPASolver;

@@ -60,7 +60,6 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
     unsigned int loop = 0;
 
     bool is_static = rpa->IsStaticRPA();
-    double prop_new = 0.5;
 
     do
     {   loop++;
@@ -104,44 +103,11 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
             }
         }
 
-        // Mix new and old states.
-        auto core_it = rpa_core->begin();
-        while(core_it != rpa_core->end())
-        {
-            pRPAOrbital core_state = std::dynamic_pointer_cast<RPAOrbital>(core_it->second);
-            pRPAOrbital new_state = std::dynamic_pointer_cast<RPAOrbital>(next_states->GetState(OrbitalInfo(core_state)));
-
-            // Add proportion of new states to core states.
-            *core_state *= (1. - prop_new);
-            *new_state *= (prop_new);
-            *core_state += *new_state;
-
-            // Update deltaEnergies
-            for(auto& deltaorbitals: core_state->deltapsi)
-            {
-                auto other_it = new_state->GetDeltaPsi(deltaorbitals.first->Kappa());
-                if(other_it != new_state->deltapsi.end())
-                {
-                    double dE = deltaorbitals.first->DeltaEnergy() * (1. - prop_new)
-                                + other_it->first->DeltaEnergy() * prop_new;
-                    deltaorbitals.first->SetDeltaEnergy(dE);
-
-                    if(deltaorbitals.second && other_it->second)
-                    {
-                        dE = deltaorbitals.second->DeltaEnergy() * (1. - prop_new)
-                             + other_it->second->DeltaEnergy() * prop_new;
-                        deltaorbitals.second->SetDeltaEnergy(dE);
-                    }
-                }
-            }
-
-            core_it++;
-        }
+        // Copy new states
+        rpa_core.reset(next_states->Clone());
 
         // Update potential
         rpa->SetRPACore(rpa_core);
-
-        next_states.reset(rpa_core->Clone());
 
     }while((max_deltaE > EnergyTolerance) && (loop < MaxRPAIterations));
 }
@@ -207,7 +173,12 @@ void RPASolver::CreateDeltaOrbitals(pRPAOrbital orbital, pRPAOperatorConst rpa) 
     {
         int kappa = math->convert_to_kappa(twoj, Pdelta);
         if(orbital->GetDeltaPsi(kappa) == orbital->deltapsi.end())
-            orbital->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, orbital), nullptr));
+        {
+            if(rpa->IsStaticRPA())
+                orbital->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, orbital), nullptr));
+            else
+                orbital->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, orbital), std::make_shared<DeltaOrbital>(kappa, orbital)));
+        }
     }
 }
 
@@ -226,16 +197,16 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
     // Apply (f + deltaV)||a>
     SpinorFunction X_a = rpa->ReducedApplyTo(*parent, orbital->Kappa());
 
+    double new_DE = start_DE * (1. - TDHF_propnew);
+
     // Apply deltaEnergy term if kappa == parent->Kappa()
     if(kappa == parent->Kappa())
     {
         // Get new deltaEnergy
-        double new_DE = integrator->GetInnerProduct(*parent, X_a);
-        orbital->SetDeltaEnergy(new_DE);
-        delta_DE = new_DE - start_DE;
+        new_DE += TDHF_propnew * integrator->GetInnerProduct(*parent, X_a);
     }
 
-    orbital->Clear();
+    (*orbital) *= (1.-TDHF_propnew);
 
     for(const auto& basis_pair: *basis.at(kappa))
     {
@@ -248,9 +219,18 @@ double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst r
             double coeff = integrator->GetInnerProduct(*beta, X_a);
             coeff = -coeff/(beta->Energy() - parent_energy);
 
-            (*orbital) += (*beta) * coeff;
+            (*orbital) += (*beta) * coeff * TDHF_propnew;
+
+            // Get new deltaEnergy
+            if(kappa != parent->Kappa())
+            {
+                new_DE += TDHF_propnew * beta->Energy() * coeff * coeff;
+            }
         }
     }
+
+    orbital->SetDeltaEnergy(new_DE);
+    delta_DE = new_DE - start_DE;
 
     return delta_DE;
 }
@@ -274,19 +254,16 @@ double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& o
     SpinorFunction X_a = rpa->ReducedApplyTo(*parent, kappa);
     SpinorFunction Y_a = rpa->ConjugateReducedApplyTo(*parent, kappa);
 
-    // Apply deltaEnergy term if kappa == parent->Kappa()
-    double new_DE = 0.;
-
-    double propnew = 1.;
+    double new_DE = start_DE * (1. - TDHF_propnew);
 
     // Get new deltaEnergy
     if(kappa == parent->Kappa())
     {
-        new_DE = integrator->GetInnerProduct(*parent, X_a);
+        new_DE += TDHF_propnew * integrator->GetInnerProduct(*parent, X_a);
     }
 
-    (*alpha) *= (1.-propnew);
-    (*alphaplus) *= (1.-propnew);
+    (*alpha) *= (1.-TDHF_propnew);
+    (*alphaplus) *= (1.-TDHF_propnew);
 
     double omega = rpa->GetFrequency();
 
@@ -300,16 +277,16 @@ double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& o
 
             double coeff = integrator->GetInnerProduct(*beta, X_a);
             coeff = -coeff/(beta->Energy() - parent_energy - omega);
-            (*alpha) += (*beta) * coeff * propnew;
+            (*alpha) += (*beta) * coeff * TDHF_propnew;
 
             double coeffplus = integrator->GetInnerProduct(*beta, Y_a);
             coeffplus = -coeffplus/(beta->Energy() - parent_energy + omega);
-            (*alphaplus) += (*beta) * coeffplus * propnew;
+            (*alphaplus) += (*beta) * coeffplus * TDHF_propnew;
 
             // Get new deltaEnergy
             if(kappa != parent->Kappa())
             {
-                new_DE += beta->Energy() * coeff * coeff;
+                new_DE += TDHF_propnew * beta->Energy() * coeff * coeff;
             }
         }
     }

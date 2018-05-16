@@ -137,6 +137,15 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
 
     pRPASolver rpa_solver = std::make_shared<RPASolver>(basis_maker, use_negative_states);
 
+    double propnew = user_input("RPA/Weighting", std::numeric_limits<double>::quiet_NaN());
+    if(!std::isnan(propnew))
+    {
+        if(propnew > 0 && propnew <= 1.0)
+            rpa_solver->SetTDHFWeighting(propnew);
+        else
+            *errstream << "RPA/Weighting must be in the range (0, 1] (ignoring).\n";
+    }
+
     // Make RPA operator
     pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
 
@@ -147,13 +156,13 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     }
     else
     {
-        double omega = user_input("Frequency", -1.0);
-        if(omega >= 0.0)
-        {   rpa->SetFrequency(omega);
-            variable_frequency_op = false;
+        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
+        if(std::isnan(omega))
+        {   variable_frequency_op = true;
         }
         else
-        {   variable_frequency_op = true;
+        {   rpa->SetFrequency(omega);
+            variable_frequency_op = false;
         }
     }
 
@@ -195,7 +204,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 // Clear integrals if frequency has changed
                 const Level& left_level = *(left_levels.levels[left.second]);
                 const Level& right_level = *(right_levels.levels[right.second]);
-                double freq = fabs(left_level.GetEnergy() - right_level.GetEnergy());
+                double freq = left_level.GetEnergy() - right_level.GetEnergy();
 
                 if(fabs(tdop->GetFrequency() - freq) > 1.e-6 || integrals == nullptr)
                 {
@@ -229,8 +238,8 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 {
                     if(tdop)
                     {
-                        double omega = user_input("Frequency", -1.0);
-                        if(omega >= 0.0)
+                        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
+                        if(!std::isnan(omega))
                             tdop->SetFrequency(omega);
 
                         auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);

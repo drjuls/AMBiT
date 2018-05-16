@@ -48,15 +48,15 @@ TEST(EJOperatorTester, LiTransitions)
 
     E1.SetFrequency(s.Energy() - p1.Energy());
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
-    EXPECT_NEAR(3.3644, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0001);
+    EXPECT_NEAR(3.3644, fabs(E1.GetReducedMatrixElement(p1, s)), 0.0001);
 
     E1.SetFrequency(p3.Energy() - s.Energy());
-    EXPECT_NEAR(4.7580, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0001);
+    EXPECT_NEAR(4.7580, fabs(E1.GetReducedMatrixElement(p3, s)), 0.0001);
 
     E1.SetGauge(TransitionGauge::Velocity);
 
     EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(4.8510, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0001);
+    EXPECT_NEAR(4.8510, fabs(E1.GetReducedMatrixElement(p3, s)), 0.0001);
     E1.SetFrequency(s.Energy() - p1.Energy());
     auto applied = E1.ReducedApplyTo(p1, -1);
     EXPECT_NEAR(3.4301, fabs(integrator->GetInnerProduct(applied, s)), 0.0001);
@@ -70,18 +70,22 @@ TEST(EJOperatorTester, LiTransitions)
     pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
     rpa->SetScale(scale);
     rpa->SetFrequency(p1.Energy() - s.Energy());
-    double s_p1_length = fabs(rpa->GetReducedMatrixElement(s, p1))/scale;
+    rpa->SolveRPA();
+    double s_p1_length = fabs(rpa->GetReducedMatrixElement(p1, s))/scale;
     EXPECT_NEAR(3.3505, s_p1_length, 0.0001);
     rpa->SetFrequency(p3.Energy() - s.Energy());
-    double s_p3_length = fabs(rpa->GetReducedMatrixElement(s, p3))/scale;
-    EXPECT_NEAR(4.7383, s_p3_length, 0.0002);
+    rpa->SolveRPA();
+    double s_p3_length = fabs(rpa->GetReducedMatrixElement(p3, s))/scale;
+    EXPECT_NEAR(4.7383, s_p3_length, 0.0001);
 
-//    E1.SetGauge(TransitionGauge::Velocity);
-//    rpa->ClearRPACore();
-//    rpa->SetFrequency(p1.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(s, p1))/scale, 1.e-6);
-//    rpa->SetFrequency(p3.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(s, p3))/scale, 1.e-6);
+    E1.SetGauge(TransitionGauge::Velocity);
+    rpa->ClearRPACore();
+    rpa->SetFrequency(p1.Energy() - s.Energy());
+    rpa->SolveRPA();
+    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(p1, s))/scale, 1.e-6);
+    rpa->SetFrequency(p3.Energy() - s.Energy());
+    rpa->SolveRPA();
+    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(p3, s))/scale, 1.e-6);
 }
 
 TEST(EJOperatorTester, NaTransitions)
@@ -118,17 +122,20 @@ TEST(EJOperatorTester, NaTransitions)
     const Orbital& p3 = *orbitals->valence->GetState(OrbitalInfo(3, -2));
 
     E1.SetFrequency(s.Energy() - p3.Energy());
-    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p3)), fabs(E1.GetReducedMatrixElement(p3, s)), 1.e-4);
-    EXPECT_NEAR(5.2188, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
+    auto Es = E1.ReducedApplyTo(s, -2);
+    auto Ep3 = E1.ConjugateReducedApplyTo(p3, -1);
+    EXPECT_NEAR(fabs(integrator->GetInnerProduct(s, Ep3)), fabs(integrator->GetInnerProduct(p3, Es)), 1.e-6);
+    EXPECT_NEAR(5.2188, fabs(E1.GetReducedMatrixElement(p3, s)), 0.0001);
     E1.SetFrequency(s.Energy() - p1.Energy());
-    EXPECT_NEAR(3.6906, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    EXPECT_NEAR(3.6906, fabs(E1.GetReducedMatrixElement(p1, s)), 0.0001);
 
     E1.SetGauge(TransitionGauge::Velocity);
-
-    EXPECT_NEAR(fabs(E1.GetReducedMatrixElement(s, p1)), fabs(E1.GetReducedMatrixElement(p1, s)), 1.e-4);
-    EXPECT_NEAR(3.6516, fabs(E1.GetReducedMatrixElement(s, p1)), 0.0003);
+    Es = E1.ReducedApplyTo(s, 1);
+    auto Ep = E1.ConjugateReducedApplyTo(p1, -1);
+    EXPECT_NEAR(integrator->GetInnerProduct(s, Ep), integrator->GetInnerProduct(p1, Es), 1.e-6);
+    EXPECT_NEAR(3.6516, fabs(E1.GetReducedMatrixElement(p1, s)), 0.0001);
     E1.SetFrequency(p3.Energy() - s.Energy());
-    EXPECT_NEAR(5.1632, fabs(E1.GetReducedMatrixElement(s, p3)), 0.0005);
+    EXPECT_NEAR(5.1632, fabs(E1.GetReducedMatrixElement(p3, s)), 0.0001);
 
     // RPA - comparison with Walter Johnson book page 240 (Table 8.2)
     //  and comparison of length and velocity gauges.
@@ -136,20 +143,24 @@ TEST(EJOperatorTester, NaTransitions)
     pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
     pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
     rpa->SetFrequency(p1.Energy() - s.Energy());
-    double s_p1_length = fabs(rpa->GetReducedMatrixElement(s, p1));
-    EXPECT_NEAR(3.6474, s_p1_length, 0.0003);
+    rpa->SolveRPA();
+    double s_p1_length = fabs(rpa->GetReducedMatrixElement(p1, s));
+    EXPECT_NEAR(3.6474, s_p1_length, 0.0001);
     rpa->SetFrequency(p3.Energy() - s.Energy());
-    double s_p3_length = fabs(rpa->GetReducedMatrixElement(s, p3));
-    EXPECT_NEAR(5.1578, s_p3_length, 0.0004);
+    rpa->SolveRPA();
+    double s_p3_length = fabs(rpa->GetReducedMatrixElement(p3, s));
+    EXPECT_NEAR(5.1578, s_p3_length, 0.0001);
 
-//    DebugOptions.LogHFIterations(true);
-//    double scale = 0.001;
-//    E1.SetGauge(TransitionGauge::Velocity);
-//    rpa->SetScale(scale);
-//    rpa->SetFrequency(p1.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(s, p1))/scale, 1.e-6);
-//    rpa->SetFrequency(p3.Energy() - s.Energy());
-//    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(s, p3))/scale, 1.e-6);
+    DebugOptions.LogHFIterations(true);
+    double scale = 0.001;
+    E1.SetGauge(TransitionGauge::Velocity);
+    rpa->SetScale(scale);
+    rpa->SetFrequency(p1.Energy() - s.Energy());
+    rpa->SolveRPA();
+    EXPECT_NEAR(s_p1_length, fabs(rpa->GetReducedMatrixElement(p1, s))/scale, 1.e-5);
+    rpa->SetFrequency(p3.Energy() - s.Energy());
+    rpa->SolveRPA();
+    EXPECT_NEAR(s_p3_length, fabs(rpa->GetReducedMatrixElement(p3, s))/scale, 1.e-5);
 }
 
 TEST(MJOperatorTester, LiTransitions)
@@ -506,8 +517,8 @@ TEST(EJOperatorTester, TlScreening)
 
     // Tl
     std::string user_input_string = std::string() +
-        "NuclearRadius = 0.0\n" +
-        "NuclearThickness = 0.0\n" +
+        "NuclearRadius = 6.6\n" +
+        "NuclearThickness = 2.3\n" +
         "Z = 81\n" +
         "[HF]\n" +
         "N = 80\n" +
@@ -521,26 +532,37 @@ TEST(EJOperatorTester, TlScreening)
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
+    DebugOptions.LogHFIterations(true);
     BasisGenerator basis_generator(lattice, userInput);
     pCore core = basis_generator.GenerateHFCore();
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorOperator pE1 = std::make_shared<EJOperator>(1, integrator);
+    pSpinorOperator pE1L = std::make_shared<EJOperator>(1, integrator, TransitionGauge::Length);
 
-    DebugOptions.LogHFIterations(true);
-    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
-    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
-    rpa->SetScale(0.001);
-    rpa->SetFrequency(0.0);
+    auto math = MathConstant::Instance();
+    auto sevenS = orbitals->excited->GetState(OrbitalInfo(7, -1));
+    auto sixP = orbitals->excited->GetState(OrbitalInfo(6, 1));
+    EXPECT_NEAR(2.50, fabs(pE1L->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1)), 0.01);
 
-    RadialFunction dV = rpa->GetRPAField();
+    auto pE1V = std::make_shared<EJOperator>(1, integrator, TransitionGauge::Velocity);
+    pE1V->SetFrequency(fabs(sevenS->Energy() - sixP->Energy()));
+    EXPECT_NEAR(2.00, fabs(pE1V->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1)), 0.01);
 
-    auto R = lattice->R();
-    *errstream << std::setprecision(6);
+//    DebugOptions.LogHFIterations(true);
+//    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
+//    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
+//    rpa->SetScale(0.001);
+//    rpa->SetFrequency(fabs(sevenS->Energy() - sixP->Energy()));
+//    EXPECT_NEAR(2.32, fabs(rpa->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1))/0.001, 0.02);
 
-    for(int i = 0; i < dV.size(); i++)
-        *errstream << R[i] << "\t" << dV.f[i] << "\t" << dV.dfdr[i] << "\n";
+//    RadialFunction dV = rpa->GetRPAField();
+
+//    auto R = lattice->R();
+//    *errstream << std::setprecision(6);
+
+//    for(int i = 0; i < dV.size(); i++)
+//        *errstream << R[i] << "\t" << dV.f[i] << "\t" << dV.dfdr[i] << "\n";
 
     // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
 //    EXPECT_NEAR(1./81., dVs.f[0]/fs.f[0], 1.e-4);

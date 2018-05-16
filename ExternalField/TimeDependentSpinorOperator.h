@@ -19,7 +19,7 @@ public:
         SpinorOperator(K, integration_strategy), omega(0.0)
     {}
 
-    virtual void SetFrequency(double frequency) { omega = fabs(frequency); }
+    virtual void SetFrequency(double frequency) { omega = frequency; }
     double GetFrequency() const { return omega; }
 
     /** Return f^{\dagger}||a> */

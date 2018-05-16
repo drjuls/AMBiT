@@ -5,6 +5,7 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/factorials.hpp>
 
+/*
 double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double matrix_element = 0.0;
@@ -75,15 +76,19 @@ double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
 
     return matrix_element;
 }
+*/
 
-SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const
 {
     SpinorFunction ret(kappa_b);
     double coeff = 0.0;
 
     // This is the reduced matrix element of the spherical tensor CJ
     MathConstant* math = MathConstant::Instance();
-    coeff = math->SphericalTensorReducedMatrixElement(kappa_b, a.Kappa(), K);
+//    if(conjugate)
+//        coeff = math->SphericalTensorReducedMatrixElement(a.Kappa(), kappa_b, K);
+//    else
+        coeff = math->SphericalTensorReducedMatrixElement(kappa_b, a.Kappa(), K);
 
     // Don't bother computing the overlap if the angular part is zero
     if(coeff == 0)
@@ -92,7 +97,7 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
     const double* R = integrator->GetLattice()->R();
 
     // p = omega/c, in atomic units
-    double p = omega/math->SpeedOfLightAU();
+    double p = fabs(omega)/math->SpeedOfLightAU();
 
     if(gauge == TransitionGauge::Length)
     {
@@ -116,6 +121,10 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
             double kappa_diff = double(kappa_b - a.Kappa())/double(K + 1);
             double kappa_diff_plus_one = kappa_diff + 1.;
             double kappa_diff_minus_one = kappa_diff - 1.;
+            if(!conjugate)
+            {   kappa_diff_plus_one = -kappa_diff_plus_one;
+                kappa_diff_minus_one = -kappa_diff_minus_one;
+            }
 
             ret.resize(a.size());
             for(unsigned int i = 0; i < a.size(); i++)
@@ -169,18 +178,11 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
                     + p * (kappa_diff * jKpp + (kappa_diff - K) * (jKp/pR - jK/(pR*pR))) * a.f[i];
             }
 
-            ret *= coeff * boost::math::double_factorial<double>(2 * K + 1)/pow(p, K);
+            if(conjugate)
+                coeff = -coeff;
+            ret *= coeff * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
         }
     }
-
-    return ret;
-}
-
-SpinorFunction EJOperator::ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const
-{
-    SpinorFunction ret = ReducedApplyTo(a, kappa_b);
-    if(gauge == TransitionGauge::Velocity)
-        ret *= -1.;
 
     return ret;
 }
@@ -231,7 +233,7 @@ double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) c
         }
 
         double overlap = integrator->Integrate(integrand);
-        matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/pow(p, K);
+        matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
     }
 
     // Return the matrix operator with dimensions in atomic units
@@ -295,7 +297,7 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
             ret.dgdr[i] = a.dfdr[i] * jK + a.f[i] * djKdr;
         }
 
-        ret *= coeff * kappa_plus * boost::math::double_factorial<double>(2 * K + 1)/pow(p, K)
+        ret *= coeff * kappa_plus * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K)
                 * 2.0 * math->SpeedOfLightAU();
     }
 
@@ -307,23 +309,30 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
+    auto gauge = (user_input.search("--velocity-gauge")? TransitionGauge::Velocity: TransitionGauge::Length);
+
     if(type == MultipolarityType::E)
-        op = std::make_shared<EJOperator>(J, hf->GetIntegrator());
+        op = std::make_shared<EJOperator>(J, hf->GetIntegrator(), gauge);
     else
         op = std::make_shared<MJOperator>(J, hf->GetIntegrator());
 
     variable_frequency_op = true;
     if(user_input.search("--rpa"))
-        op = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
+    {
+        auto op_rpa = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
+        double scale = user_input("RPA/Scale", 0.01);
+        op_rpa->SetScale(scale);
+        op = op_rpa;
+    }
     else
     {
-        double omega = user_input("Frequency", -1.0);
-        if(omega >= 0.0)
-        {   std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
-            variable_frequency_op = false;
+        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
+        if(std::isnan(omega))
+        {   variable_frequency_op = true;
         }
         else
-        {   variable_frequency_op = true;
+        {   std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
+            variable_frequency_op = false;
         }
     }
 }
@@ -350,17 +359,22 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     int twoj2 = right.first->GetTwoJ();
     double value = matrix_element/math->Electron3j(twoj2, twoj1, J, twoj2, -twoj1);
 
+    double scale = 1.;
+    pRPAOperator rpa = std::dynamic_pointer_cast<RPAOperator>(op);
+    if(rpa)
+        scale = rpa->GetScale();
+
     // Read over the user input to see if we need to print the reduced matrix
     // elements or the transition line strengths
     if(user_input.search("--reduced-elements"))
     {
         *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
-                   << " = " << std::setprecision(6) << value << std::endl;
+                   << " = " << std::setprecision(6) << value/scale << std::endl;
     }
     else
     {
         *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
-                   << " = " << std::setprecision(6) << value * value << std::endl;
+                   << " = " << std::setprecision(6) << gsl_pow_2(value/scale) << std::endl;
 
     }
 }

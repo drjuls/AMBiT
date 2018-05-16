@@ -17,15 +17,24 @@ public:
     TransitionGauge GetGauge() const { return gauge; }
 
     /** Reduced matrix element < b || E(J) || a > for our operator E(J). */
-    virtual double GetReducedMatrixElement(const Orbital& b, const Orbital& a) const override;
+//    virtual double GetReducedMatrixElement(const Orbital& b, const Orbital& a) const override;
 
     /** E(J) || a > for our operator E(J). */
-    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override
+    {
+        return ReducedApplyTo(a, kappa_b, false);
+    }
 
     /** E(J)^{\dagger} || a > for our operator E(J). */
-    virtual SpinorFunction ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
+    virtual SpinorFunction ConjugateReducedApplyTo(const SpinorFunction& a, int kappa_b) const override
+    {
+        return ReducedApplyTo(a, kappa_b, true);
+    }
 
 protected:
+    /** E(J) || a > for our operator E(J). */
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const;
+
     TransitionGauge gauge;
 };
 
