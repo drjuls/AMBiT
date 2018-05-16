@@ -312,7 +312,7 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
     else
         op = std::make_shared<MJOperator>(J, hf->GetIntegrator());
 
-    frequency_dependent_op = true;
+    variable_frequency_op = true;
     if(user_input.search("--rpa"))
         op = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
     else
@@ -320,10 +320,10 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
         double omega = user_input("Frequency", -1.0);
         if(omega >= 0.0)
         {   std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
-            frequency_dependent_op = false;
+            variable_frequency_op = false;
         }
         else
-        {   frequency_dependent_op = true;
+        {   variable_frequency_op = true;
         }
     }
 }

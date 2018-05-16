@@ -44,7 +44,7 @@ const RPAOrbital& RPAOrbital::operator+=(const RPAOrbital& other)
                 if(deltaorbitals.second)
                     *(deltaorbitals.second) += *(other_it->second);
                 else
-                    deltaorbitals.second = std::make_shared<DeltaOrbital>(*other_it->second);
+                    deltaorbitals.second = other_it->second->CloneWithNewParent(std::static_pointer_cast<RPAOrbital>(shared_from_this()));
             }
         }
     }

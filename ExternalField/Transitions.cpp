@@ -120,7 +120,7 @@ void TransitionCalculator::PrintIntegrals()
     }
 }
 
-pSpinorMatrixElement TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY)
+pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY)
 {
     // Get BSplineBasis parameters and make RPA solver
     int N = user_input("RPA/BSpline/N", 40);
@@ -143,17 +143,17 @@ pSpinorMatrixElement TransitionCalculator::MakeRPA(pSpinorOperator external, pHF
     DebugOptions.LogHFIterations(true);
     if(rpa->IsStaticRPA())
     {   rpa->SolveRPA();
-        frequency_dependent_op = false;
+        variable_frequency_op = false;
     }
     else
     {
         double omega = user_input("Frequency", -1.0);
         if(omega >= 0.0)
         {   rpa->SetFrequency(omega);
-            frequency_dependent_op = false;
+            variable_frequency_op = false;
         }
         else
-        {   frequency_dependent_op = true;
+        {   variable_frequency_op = true;
         }
     }
 
@@ -190,7 +190,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
             }
 
             pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op);
-            if(frequency_dependent_op && tdop)
+            if(variable_frequency_op && tdop)
             {
                 // Clear integrals if frequency has changed
                 const Level& left_level = *(left_levels.levels[left.second]);
@@ -200,6 +200,9 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 if(fabs(tdop->GetFrequency() - freq) > 1.e-6 || integrals == nullptr)
                 {
                     tdop->SetFrequency(freq);
+                    auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
+                    if(rpa)
+                        rpa->SolveRPA();
 
                     if(integrals == nullptr)
                     {
@@ -229,6 +232,10 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                         double omega = user_input("Frequency", -1.0);
                         if(omega >= 0.0)
                             tdop->SetFrequency(omega);
+
+                        auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
+                        if(rpa)
+                            rpa->SolveRPA();
                     }
 
                     // Create new TransitionIntegrals object and calculate integrals

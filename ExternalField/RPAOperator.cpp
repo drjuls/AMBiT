@@ -44,14 +44,7 @@ RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartree
 void RPAOperator::SolveRPA()
 {
     // Solve RPA core.
-    if(static_rpa)
-    {   omega = 0.;
-        solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
-    }
-    else
-    {   pTimeDependentSpinorOperator tdop = std::static_pointer_cast<TimeDependentSpinorOperator>(external);
-        SetFrequency(tdop->GetFrequency());
-    }
+    solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
 }
 
 void RPAOperator::SetFrequency(double frequency)
@@ -62,12 +55,8 @@ void RPAOperator::SetFrequency(double frequency)
 
         pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
         if(tdop)
-        {   tdop->SetFrequency(omega);
-            solver->SolveRPACore(hf, std::static_pointer_cast<RPAOperator>(shared_from_this()));
-        }
+            tdop->SetFrequency(omega);
     }
-    else
-        SolveRPA();
 }
 
 void RPAOperator::ClearRPACore()
@@ -183,7 +172,7 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
                 for(int k = mink; k <= maxk; k+=2)
                 {
                     double coeff = math->Wigner6j(K, alph_J, a.J(), k, beta->J(), b->J()) *
-                    math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
+                        math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
                     coeff *= math->Electron3j(a.TwoJ(), beta->TwoJ(), k) * math->Electron3j(alph_TwoJ, b->TwoJ(), k);
 
                     if(coeff)
@@ -215,7 +204,7 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
                 for(int k = mink; k <= maxk; k+=2)
                 {
                     double coeff = math->Wigner6j(K, a.J(), alph_J, k, beta->J(), b->J()) *
-                    math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
+                        math->minus_one_to_the_power((a.TwoJ() + b->TwoJ())/2 + k + K + 1);
                     coeff *= math->Electron3j(a.TwoJ(), b->TwoJ(), k) * math->Electron3j(alph_TwoJ, beta->TwoJ(), k);
 
                     if(coeff)

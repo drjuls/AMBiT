@@ -39,7 +39,7 @@ public:
     virtual void SetDeltaEnergy(double energy) { deltaEnergy = energy; }
 
 protected:
-    double deltaEnergy;
+    double deltaEnergy = 0.;
     std::weak_ptr<RPAOrbital> parent;
 };
 
@@ -55,7 +55,9 @@ public:
     RPAOrbital(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0):
         BaseClass(kappa, pqn, energy, size) {}
     RPAOrbital(const Orbital& other): BaseClass(other) {}
-    virtual ~RPAOrbital() {}
+    RPAOrbital(const RPAOrbital& other) = default;
+    RPAOrbital(RPAOrbital&& other) = default;
+    virtual ~RPAOrbital() = default;
 
     /** Clone makes deep copy of deltapsi. */
     virtual pOrbital Clone() const override
