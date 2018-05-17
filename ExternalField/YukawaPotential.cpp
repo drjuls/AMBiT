@@ -44,7 +44,7 @@ YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom):
     auto yukawa_decorator = std::make_shared<YukawaDecorator>(zero, mass, scale, hf->GetIntegrator());
 
     if(user_input.search("--rpa"))
-        op = MakeStaticRPA(yukawa_decorator, hf, atom.GetHartreeY());
+        op = MakeRPA(yukawa_decorator, hf, atom.GetHartreeY());
     else
         op = yukawa_decorator;
 }

@@ -45,7 +45,7 @@ FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& at
     field_shift->SetScale(scale);
 
     if(user_input.search("--rpa"))
-        op = MakeStaticRPA(field_shift, hf, atom.GetHartreeY());
+        op = MakeRPA(field_shift, hf, atom.GetHartreeY());
     else
         op = field_shift;
 

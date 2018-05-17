@@ -692,7 +692,7 @@ unsigned int HartreeFocker::CalculateContinuumWave(pContinuumWave s, pHFOperator
             double Rmax = 100. * pi/kmin;
 
             if(lattice->MaxRealDistance() > mmax(Rmax, 1000))
-            {   *errstream << "HartreeFocker::CalculateContinuumWave:\n"
+            {   *logstream << "HartreeFocker::CalculateContinuumWave:\n"
                            << "    start_sine not reached; Rmax = " << hf->GetLattice()->MaxRealDistance()
                            << "\n    ...expanding lattice and continuing." << std::endl;
             }

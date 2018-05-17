@@ -89,10 +89,10 @@ const SpinorFunction& SpinorFunction::operator*=(const RadialFunction& chi)
         resize(chi.size());
 
     for(unsigned int i = 0; i < size(); i++)
-    {   f[i] *= chi.f[i];
-        g[i] *= chi.f[i];
-        dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
+    {   dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
         dgdr[i] = g[i] * chi.dfdr[i] + dgdr[i] * chi.f[i];
+        f[i] *= chi.f[i];
+        g[i] *= chi.f[i];
     }
 
     return *this;
@@ -244,9 +244,8 @@ const RadialFunction& RadialFunction::operator*=(const RadialFunction& other)
         resize(other.size());
 
     for(unsigned int i = 0; i < size(); i++)
-    {
+    {   dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];
         f[i] *= other.f[i];
-        dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];
     }
 
     return *this;

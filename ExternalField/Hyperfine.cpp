@@ -61,7 +61,7 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input
     g_I = user_input("gOnI", 1.0);
 
     if(user_input.search("--rpa"))
-        op = MakeStaticRPA(std::static_pointer_cast<HyperfineDipoleOperator>(op), hf, atom.GetHartreeY());
+        op = MakeRPA(std::static_pointer_cast<HyperfineDipoleOperator>(op), hf, atom.GetHartreeY());
 }
 
 void HyperfineDipoleCalculator::PrintHeader() const
@@ -139,7 +139,7 @@ HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& us
     Q = user_input("Q", 1.0);
 
     if(user_input.search("--rpa"))
-        op = MakeStaticRPA(std::static_pointer_cast<HyperfineQuadrupoleOperator>(op), hf, atom.GetHartreeY());
+        op = MakeRPA(std::static_pointer_cast<HyperfineQuadrupoleOperator>(op), hf, atom.GetHartreeY());
 }
 
 void HyperfineQuadrupoleCalculator::PrintHeader() const

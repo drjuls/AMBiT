@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Atom/HamiltonianTypes.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "TimeDependentSpinorOperator.h"
+#include "ExternalField/RPAOperator.h"
 #include "ExternalField/RPASolver.h"
 
 std::string Name(const LevelID& levelid)
@@ -118,11 +120,9 @@ void TransitionCalculator::PrintIntegrals()
     }
 }
 
-pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const
+pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY)
 {
-    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hartreeY);
-
-    // Get BSplineBasis parameters
+    // Get BSplineBasis parameters and make RPA solver
     int N = user_input("RPA/BSpline/N", 40);
     int K = user_input("RPA/BSpline/K", 7);
     double Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
@@ -135,8 +135,36 @@ pSpinorMatrixElement TransitionCalculator::MakeStaticRPA(pSpinorOperator externa
     if(user_input.search("RPA/--no-negative-states"))
         use_negative_states = false;
 
-    RPASolver rpa_solver(basis_maker, use_negative_states);
-    rpa_solver.SolveRPACore(hf, rpa);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(basis_maker, use_negative_states);
+
+    double propnew = user_input("RPA/Weighting", std::numeric_limits<double>::quiet_NaN());
+    if(!std::isnan(propnew))
+    {
+        if(propnew > 0 && propnew <= 1.0)
+            rpa_solver->SetTDHFWeighting(propnew);
+        else
+            *errstream << "RPA/Weighting must be in the range (0, 1] (ignoring).\n";
+    }
+
+    // Make RPA operator
+    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
+
+    DebugOptions.LogHFIterations(true);
+    if(rpa->IsStaticRPA())
+    {   rpa->SolveRPA();
+        variable_frequency_op = false;
+    }
+    else
+    {
+        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
+        if(std::isnan(omega))
+        {   variable_frequency_op = true;
+        }
+        else
+        {   rpa->SetFrequency(omega);
+            variable_frequency_op = false;
+        }
+    }
 
     return rpa;
 }
@@ -170,32 +198,79 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 return 0.;
             }
 
-            // Get transition integrals
-            if(integrals == nullptr)
+            pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op);
+            if(variable_frequency_op && tdop)
             {
-                // Create new TransitionIntegrals object and calculate integrals
-                integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
-                integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-            }
+                // Clear integrals if frequency has changed
+                const Level& left_level = *(left_levels.levels[left.second]);
+                const Level& right_level = *(right_levels.levels[right.second]);
+                double freq = left_level.GetEnergy() - right_level.GetEnergy();
 
-            ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
-
-            // Get matrix elements for all transitions with same HamiltonianIDs
-            std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
-
-            // Add to matrix_elements map
-            auto value_iterator = values.begin();
-            for(int i = 0; i < left_levels.levels.size(); i++)
-            {
-                for(int j = 0; j < right_levels.levels.size(); j++)
+                if(fabs(tdop->GetFrequency() - freq) > 1.e-6 || integrals == nullptr)
                 {
-                    TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
-                    matrix_elements.insert(std::make_pair(current_id, *value_iterator));
-                    value_iterator++;
-                }
-            }
+                    tdop->SetFrequency(freq);
+                    auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
+                    if(rpa)
+                        rpa->SolveRPA();
 
-            return_value = matrix_elements[id];
+                    if(integrals == nullptr)
+                    {
+                        // Create new TransitionIntegrals object and calculate integrals
+                        integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                    }
+
+                    integrals->clear();
+                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+                }
+
+                ManyBodyOperator<TransitionIntegrals> many_body_operator(*integrals);
+
+                // Get matrix elements for all transitions with same HamiltonianIDs
+                std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
+
+                // Add to matrix_elements map
+                return_value = values[left.second * left_levels.levels.size() + right.second];
+                matrix_elements.insert(std::make_pair(id, return_value));
+            }
+            else
+            {   // Get transition integrals
+                if(integrals == nullptr)
+                {
+                    if(tdop)
+                    {
+                        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
+                        if(!std::isnan(omega))
+                            tdop->SetFrequency(omega);
+
+                        auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
+                        if(rpa)
+                            rpa->SolveRPA();
+                    }
+
+                    // Create new TransitionIntegrals object and calculate integrals
+                    integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+                }
+
+                ManyBodyOperator<TransitionIntegrals> many_body_operator(*integrals);
+
+                // Get matrix elements for all transitions with same HamiltonianIDs
+                std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
+
+                // Add to matrix_elements map
+                auto value_iterator = values.begin();
+                for(int i = 0; i < left_levels.levels.size(); i++)
+                {
+                    for(int j = 0; j < right_levels.levels.size(); j++)
+                    {
+                        TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
+                        matrix_elements.insert(std::make_pair(current_id, *value_iterator));
+                        value_iterator++;
+                    }
+                }
+
+                return_value = matrix_elements[id];
+            }
         }
     }
 
@@ -308,7 +383,6 @@ LevelID TransitionCalculator::make_LevelID(const std::string& name)
         ret.first = std::make_shared<HamiltonianID>(twoJ, P);
         ret.second = index;
     }
-
 
     return ret;
 }

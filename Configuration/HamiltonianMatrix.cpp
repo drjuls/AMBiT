@@ -23,7 +23,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
-    H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(hf, coulomb);
+    H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(*hf, *coulomb);
 
     // Set up matrix
     N = configs->NumCSFs();
@@ -45,7 +45,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     HamiltonianMatrix(hf, coulomb, relconfigs)
 {
     // Set up three-body operator
-    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
+    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(*hf, *coulomb, *sigma3);
     leading_configs = leadconfigs;
 }
 

@@ -1286,7 +1286,7 @@ QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom):
     }
 
     if(user_input.search("--rpa"))
-        op = MakeStaticRPA(qed, hf, atom.GetHartreeY());
+        op = MakeRPA(qed, hf, atom.GetHartreeY());
     else
         op = qed;
 }
