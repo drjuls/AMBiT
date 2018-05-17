@@ -489,43 +489,29 @@ TEST(EJOperatorTester, Screening)
     pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
     pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
     rpa->SetFrequency(0.0);
+    rpa->SolveRPA();
 
-    pOrbital s = std::make_shared<Orbital>(-1);
-    s->resize(1000);
-    s->f = std::vector<double>(1000, 1.);
-    s->dfdr = std::vector<double>(1000, 0.);
-    s->g = s->dfdr;
-    s->dgdr = s->dfdr;
-
-    SpinorFunction fs = pE1->ApplyTo(*s, 1);
-    SpinorFunction dVs = rpa->ApplyTo(*s, 1);
-
-    auto dVdir = rpa->GetRPAField();
-    auto R = lattice->R();
-//    for(int i = 0; i < dVdir.size(); i++)
-//        *errstream << R[i] << "\t" << dVdir.f[i] << "\t" << dVdir.dfdr[i] << "\n";
-    for(int i = 0; i < dVdir.size(); i++)
-        *errstream << R[i] << "\t" << dVs.f[i]/fs.f[i] << "\n";
+    auto dV = rpa->GetRPAField();
 
     // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
-    EXPECT_NEAR(0., dVs.f[0]/fs.f[0], 1.e-4);
+    EXPECT_NEAR(-1., dV.dfdr[0], 1.e-4);
 }
 
-TEST(EJOperatorTester, TlScreening)
+TEST(EJOperatorTester, XeScreening)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
 
-    // Tl
+    // Xe
     std::string user_input_string = std::string() +
-        "NuclearRadius = 6.6\n" +
+        "NuclearRadius = 5.7\n" +
         "NuclearThickness = 2.3\n" +
-        "Z = 81\n" +
+        "Z = 54\n" +
         "[HF]\n" +
-        "N = 80\n" +
-        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14 5s2 5p6 5d10 6s2'\n" +
+        "N = 54\n" +
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6'\n" +
         "[Basis]\n" +
         "--bspline-basis\n" +
-        "ValenceBasis = 7s6pd\n" +
+        "ValenceBasis = 6sp\n" +
         "BSpline/Rmax = 50.0\n";
 
     std::stringstream user_input_stream(user_input_string);
@@ -538,32 +524,14 @@ TEST(EJOperatorTester, TlScreening)
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorOperator pE1L = std::make_shared<EJOperator>(1, integrator, TransitionGauge::Length);
+    auto pE1 = std::make_shared<EJOperator>(1, integrator, TransitionGauge::Length);
+    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
+    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
+    rpa->SetFrequency(0.);
+    rpa->SolveRPA();
 
-    auto math = MathConstant::Instance();
-    auto sevenS = orbitals->excited->GetState(OrbitalInfo(7, -1));
-    auto sixP = orbitals->excited->GetState(OrbitalInfo(6, 1));
-    EXPECT_NEAR(2.50, fabs(pE1L->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1)), 0.01);
-
-    auto pE1V = std::make_shared<EJOperator>(1, integrator, TransitionGauge::Velocity);
-    pE1V->SetFrequency(fabs(sevenS->Energy() - sixP->Energy()));
-    EXPECT_NEAR(2.00, fabs(pE1V->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1)), 0.01);
-
-//    DebugOptions.LogHFIterations(true);
-//    pRPASolver rpa_solver = std::make_shared<RPASolver>(lattice);
-//    pRPAOperator rpa = std::make_shared<RPAOperator>(pE1, basis_generator.GetClosedHFOperator(), basis_generator.GetHartreeY(), rpa_solver);
-//    rpa->SetScale(0.001);
-//    rpa->SetFrequency(fabs(sevenS->Energy() - sixP->Energy()));
-//    EXPECT_NEAR(2.32, fabs(rpa->GetReducedMatrixElement(*sevenS, *sixP)/math->SphericalTensorReducedMatrixElement(sevenS->Kappa(), sixP->Kappa(), 1))/0.001, 0.02);
-
-//    RadialFunction dV = rpa->GetRPAField();
-
-//    auto R = lattice->R();
-//    *errstream << std::setprecision(6);
-
-//    for(int i = 0; i < dV.size(); i++)
-//        *errstream << R[i] << "\t" << dV.f[i] << "\t" << dV.dfdr[i] << "\n";
+    RadialFunction dV = rpa->GetRPAField();
 
     // Expect Z_ion/Z: see, e.g., Dzuba et al. Phys. Lett. A 118, 177 (1986)
-//    EXPECT_NEAR(1./81., dVs.f[0]/fs.f[0], 1.e-4);
+    EXPECT_NEAR(-1., dV.dfdr[0], 1.e-3);
 }

@@ -5,79 +5,6 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/factorials.hpp>
 
-/*
-double EJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
-{
-    double matrix_element = 0.0;
-    double coeff = 0.0;
-
-    // This is the reduced matrix element of the spherical tensor CJ
-    MathConstant* math = MathConstant::Instance();
-    coeff = math->SphericalTensorReducedMatrixElement(b.Kappa(), a.Kappa(), K);
-
-    // Don't bother computing the overlap if the angular part is zero
-    if(coeff == 0)
-        return 0.0;
-
-    const double* R = integrator->GetLattice()->R();
-
-    // p = omega/c, in atomic units
-    double p = omega/math->SpeedOfLightAU();
-
-    if(gauge == TransitionGauge::Length)
-    {
-        if(p < 1.e-6)
-        {
-            // For the same state to itself, a special case is needed to compute the
-            // overlap, because dependence of the spherical bessel function on k
-            // exactly cancels the k dependence added by reintroducing dimensionality
-            RadialFunction bessel(mmin(a.size(), b.size()));
-            for(unsigned int i = 0; i < bessel.size(); i++)
-            {
-                bessel.f[i] = gsl_pow_int(R[i], K);
-            }
-
-            double overlap = integrator->GetPotentialMatrixElement(b, a, bessel);
-            matrix_element = coeff * overlap;
-        }
-        else
-        {
-            RadialFunction integrand(mmin(a.size(), b.size()));
-            double kappa_diff = double(b.Kappa() - a.Kappa())/double(K + 1);
-
-            for(unsigned int i = 0; i < integrand.size(); i++)
-            {
-                integrand.f[i] = (b.f[i] * a.f[i] + b.g[i] * a.g[i]) * boost::math::sph_bessel(K, R[i] * p)
-                    + ((b.f[i] * a.g[i] + b.g[i] * a.f[i]) * kappa_diff + (b.f[i] * a.g[i] - b.g[i] * a.f[i])) * boost::math::sph_bessel(K + 1, R[i] * p);
-            }
-
-            double overlap = integrator->Integrate(integrand);
-            matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
-        }
-    }
-    else if(gauge == TransitionGauge::Velocity)
-    {
-        if(p > 1.e-6)
-        {
-            RadialFunction integrand(mmin(a.size(), b.size()));
-            double kappa_diff = - double(b.Kappa() - a.Kappa())/double(K + 1);
-
-            for(unsigned int i = 0; i < integrand.size(); i++)
-            {
-                double pR = p * R[i];
-                integrand.f[i] = kappa_diff * (math->sph_bessel_prime(K, pR) + math->sph_bessel(K, pR)/pR) * (b.f[i] * a.g[i] + b.g[i] * a.f[i])
-                    + (b.f[i] * a.g[i] - b.g[i] * a.f[i]) * K * math->sph_bessel(K, pR)/pR;
-            }
-
-            double overlap = integrator->Integrate(integrand);
-            matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
-        }
-    }
-
-    return matrix_element;
-}
-*/
-
 SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const
 {
     SpinorFunction ret(kappa_b);
@@ -85,10 +12,7 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, 
 
     // This is the reduced matrix element of the spherical tensor CJ
     MathConstant* math = MathConstant::Instance();
-//    if(conjugate)
-//        coeff = math->SphericalTensorReducedMatrixElement(a.Kappa(), kappa_b, K);
-//    else
-        coeff = math->SphericalTensorReducedMatrixElement(kappa_b, a.Kappa(), K);
+    coeff = math->SphericalTensorReducedMatrixElement(kappa_b, a.Kappa(), K);
 
     // Don't bother computing the overlap if the angular part is zero
     if(coeff == 0)
@@ -178,66 +102,13 @@ SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, 
                     + p * (kappa_diff * jKpp + (kappa_diff - K) * (jKp/pR - jK/(pR*pR))) * a.f[i];
             }
 
-            if(conjugate)
+            if(!conjugate)
                 coeff = -coeff;
             ret *= coeff * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
         }
     }
 
     return ret;
-}
-
-double MJOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
-{
-    double matrix_element = 0.0;
-    double coeff = 0.0;
-
-    MathConstant* math = MathConstant::Instance();
-    coeff = math->SphericalTensorReducedMatrixElement(-b.Kappa(), a.Kappa(), K);
-
-    // Don't bother computing the overlap if the angular part is zero
-    if(coeff == 0)
-    {
-        return 0.0;
-    }
-
-    const double* R = integrator->GetLattice()->R();
-
-    // p = omega/c, in atomic units
-    double p = omega/math->SpeedOfLightAU();
-
-    if(p < 1.e-6)
-    {
-        // For the same state to itself, a special case is needed to compute the
-        // overlap, because dependence of the spherical bessel function on k
-        // exactly cancels the k dependence added by reintroducing dimensionality
-        RadialFunction integrand(mmin(b.size(), a.size()));
-        double kappa_plus = double(b.Kappa() + a.Kappa())/double(K + 1);
-
-        for(unsigned int i = 0; i < integrand.size(); i++)
-        {
-            integrand.f[i] = (b.f[i] * a.g[i] + b.g[i] * a.f[i]) * gsl_pow_int(R[i], K);
-        }
-
-        double overlap = integrator->Integrate(integrand);
-        matrix_element = coeff * overlap * kappa_plus;
-    }
-    else
-    {
-        RadialFunction integrand(mmin(b.size(), a.size()));
-        double kappa_plus = double(b.Kappa() + a.Kappa())/double(K + 1);
-
-        for(unsigned int i = 0; i < integrand.size(); i++)
-        {
-            integrand.f[i] = (b.f[i] * a.g[i] + b.g[i] * a.f[i]) * boost::math::sph_bessel(K, p * R[i]) * kappa_plus;
-        }
-
-        double overlap = integrator->Integrate(integrand);
-        matrix_element = coeff * overlap * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K);
-    }
-
-    // Return the matrix operator with dimensions in atomic units
-    return matrix_element * 2.0 * math->SpeedOfLightAU();
 }
 
 SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
@@ -250,14 +121,12 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
 
     // Don't bother computing the overlap if the angular part is zero
     if(coeff == 0)
-    {
-        return 0.0;
-    }
+        return ret;
 
     const double* R = integrator->GetLattice()->R();
 
     // p = omega/c, in atomic units
-    double p = omega/math->SpeedOfLightAU();
+    double p = fabs(omega)/math->SpeedOfLightAU();
 
     if(p < 1.e-6)
     {
@@ -278,7 +147,7 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
             ret.dgdr[i] = a.dfdr[i] * RK + a.f[i] * dRKdr;
         }
 
-        ret *= coeff * kappa_plus * 2.0 * math->SpeedOfLightAU();
+        ret *= -coeff * kappa_plus * 2.0 * math->SpeedOfLightAU();
     }
     else
     {
@@ -297,7 +166,7 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
             ret.dgdr[i] = a.dfdr[i] * jK + a.f[i] * djKdr;
         }
 
-        ret *= coeff * kappa_plus * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K)
+        ret *= -coeff * kappa_plus * boost::math::double_factorial<double>(2 * K + 1)/gsl_pow_int(p, K)
                 * 2.0 * math->SpeedOfLightAU();
     }
 
@@ -342,13 +211,10 @@ void EMCalculator::PrintHeader() const
     // Print the appropriate header for the type of transitions we're printing:
     // either reduced matrix elements of transition line strengths (the
     // default)
-    if(user_input.search("--reduced-elements")){
-      *outstream << Name() << " reduced matrix elements (T):"
-          << std::endl;
-    } else {
-      *outstream << Name() << " transition strengths (S):"
-          << std::endl;
-    }
+    if(user_input.search("--reduced-elements"))
+      *outstream << Name() << " reduced matrix elements (T):\n";
+    else
+      *outstream << Name() << " transition strengths (S):\n";
 }
 
 void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
@@ -375,7 +241,21 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     {
         *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
                    << " = " << std::setprecision(6) << gsl_pow_2(value/scale) << std::endl;
+    }
 
+    if(rpa && user_input.search("RPA/--print-field"))
+    {
+        auto fp = fopen("RPAField.txt", "wt");
+
+        auto dV = rpa->GetRPAField();
+        auto R = orbitals->GetLattice()->R();
+
+        for(int i = 0; i < dV.size(); i++)
+        {
+            fprintf(fp, "%12.6e %12.6e %12.6e\n", R[i], dV.f[i], dV.dfdr[i]);
+        }
+
+        fclose(fp);
     }
 }
 

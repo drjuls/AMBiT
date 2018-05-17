@@ -18,7 +18,6 @@ public:
     /** Solve the RPA equations using solver. */
     void SolveRPA();
 
-    /** Reset frequency and solve RPA core.  */
     virtual void SetFrequency(double frequency) override;
 
     void SetScale(double factor) { scale = factor; }
