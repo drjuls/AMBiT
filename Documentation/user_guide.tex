@@ -25,7 +25,871 @@
 \date{}
 \maketitle
 
+\tableofcontents
+
+\chapter{Introduction}
+This is the user guide for \ambit: a modern, highly-parallel implementation of Configuration Interaction
+with Many-Body Perturbation Theory (CI+MBPT) for atomic structure calculations. \ambit ~makes extensive 
+use of modern software engineering and high-performance computing (HPC) techniques to provide 
+high-performance and accuracy on both personal workstations and HPC clusters (supercomputers).
+
+This guide focuses on the mechanics of \ambit ~from an end-user perspective, i.e. how to actually use the
+code to do physics. This guide assumes \emph{some} knowledge of both general atomic structure theory and
+CI+MBPT specifically; see the \href{link_goes_here}{\textit{Computer Physics Communications} paper on 
+\ambit~} and Walter Johnson's \textit{Lectures on Atomic Physics} 
+(\href{https://www3.nd.edu/~johnson/Publications/book.pdf}{available here}) for a more thorough 
+introduction to the physics involved. Additionally, this guide does \emph{not} cover information 
+specific to developing \ambit ~-- that information is covered on the \ambit~ 
+\href{https://github.com/drjuls/AMBiT}{GitHub repository}.
+
+\chapter{Tutorial calculations: Cr$^+$}
+
+This chapter contains a step-by-step tutorial for running CI+MBPT calculations for the spectrum of the
+Cr$^+$ ion using \ambit. We will run through the three major sections of a CI+MBPT calculation:
+Dirac-Fock, calculating MBPT integrals, and generating and solving the CI matrix for calculations. We
+will provide the necessary \ambit~ input options for each step of the calculation, while the input file
+for the full calculation is located at \texttt{Documentation/ExampleCalculation/Cr+.input}.
+
+We've made the example calculations small-enough to run on a consumer-level laptop or desktop: the
+largest calculation runs in approximately 15 minutes on a quad-core x86-64 laptop with 8GB of
+memory. However, these calculations are still sufficient to demonstrate the most important features of 
+\ambit, including parallelism via OpenMP. We have tried to capture the \textit{median} usage of \ambit~
+and have not included more specialised options and features in the software; consult chapter
+\ref{chap:input} for an exhaustive list of all \ambit~ features.
+
+Additionally, the steps shown in this tutorial will generalise
+(with some work) to other atoms as well as computing architectures; in particular, they can be
+combined with the information on MPI and OpenMP in chapter \ref{chap:HPC} to perform much larger
+calculations.
+
+\ambit~ is designed to be run from the command-line, using a shell such as Bash or PowerShell (for MS
+Windows). We will
+use Bash for the examples throughout this chapter, as that is the default for macOS and Linux, but the
+process should be similar for other shells. Throughout this chapter, we will use the following
+convention when presenting commands to run:
+
+\begin{verbatim}
+$ command
+\end{verbatim}
+
+The above means: open a terminal, change to the desired directory (if necessary) and issue
+\texttt{command} (without the ``\$''). Commands are always presented in \texttt{teletype font}
+throughout the text of this section, as are \ambit~ input options. We do not currently provide a 
+graphical interface for \ambit, as our primary use-case is in batch-jobs on HPC clusters, which are not
+a good fit for graphical interfaces. Consequently, some basic command-line knowledge is necessary in
+order to effectively use \ambit. Rutgers University has a
+\href{http://linuxcourse.rutgers.edu/documents/Bash-Beginners-Guide/}{good introduction} to Bash, which
+is worth reading if you are not comfortable with using the command-line.
+
+Finally, all quantities throughout this section are given in atomic units ($\hbar = e = m_e = 1$), 
+unless otherwise specified.
+
+\section{Installation}
+
+We've tested \ambit~ and know it works on the Linux and macOS operating systems. It will probably work
+on MS Windows or other Unix operating systems (e.g. FreeBSD, Illumos, etc), but we can't guarantee it
+and do not support these systems. 
+
+In order to compile \ambit~ you'll need the following software libraries and tools:
+\begin{itemize}
+\item A C++ compiler with support for C++11, such as GCC, Clang, or the Intel C++ compiler. Your 
+compiler should preferably have OpenMP support, but this is not strictly necessary for this tutorial;
+the examples will just run more slowly without it.
+\item \href{https://www.gnu.org/software/gsl/}{GSL} - The GNU Scientific Library. 
+\item The \href{https://www.boost.org/}{Boost} filesystem and system C++ libraries (boost\_filesystem 
+and boost\_system).
+\item \href{http://eigen.tuxfamily.org/index.php?title=Main_Page}{Eigen} (v3) - C++ linear algebra 
+package.
+\item \href{http://www.netlib.org/lapack/}{LAPACK} and \href{http://www.netlib.org/blas/}{BLAS} - 
+linear algebra subroutines. Can be substituted for internal libraries in the 
+\href{https://software.intel.com/en-us/mkl}{Intel Math Kernel Library} (MKL).
+\item \href{https://github.com/sparsehash/sparsehash}{Google Sparsehash}
+\item Python v2.7.x
+\item \href{http://scons.org/}{SCons} - a python based software build tool.
+\item The Unix \texttt{pkg-config} tool if you want the build system to automatically find and link
+against libraries. This should be installed by default on macOS and most Linux distributions.
+\end{itemize}
+
+The \ambit~ build process is based around a build tool called SCons, whose build-control scripts 
+(similar to Makefiles) are full Python scripts. To simplify the process, we specify build options such 
+as compiler and flags, locations of required libraries, and which (if any) methods of parallelism to 
+employ in a plain-text file \texttt{config.ini}. This file has a standard key-value structure and its 
+filename is hard-coded into the build system -- you cannot specify a different file to use when 
+controlling the build. A minimal ``skeleton'' file is included with the source code as 
+\texttt{config\_template.ini}, which we recommend you copy (not rename) this file to \texttt{config.ini}
+and fill in the desired compilation options. If no file named \texttt{config.ini} exists, then the build
+system will make a copy of the minimal \texttt{config\_template.ini} and use that. Here is an example of
+a \texttt{config.ini} file to build \ambit~ on Fedora Linux (version 27):
+
+\begin{verbatim}
+; Most options are safe to leave blank - the build process will try to deduce
+; sensible defaults
+[Compiler options]
+CXX = g++ -std=c++11 -fopenmp
+CXXFLAGS = -Wno-deprecated-declarations -Wno-unused-result -Wno-ignored-attributes 
+F77 = 
+LINK = g++ -std=c++11 -fopenmp
+LINKFLAGS = 
+
+[HPC options]
+Use OpenMP = yes
+; NOTE: The compiler options required to use MPI and MKL are strongly platform 
+; dependent and cannot be automatically inferred. All MPI and OpenMP compilers, 
+; flags and Include paths must be explicitly specified if running with MPI 
+; and/or MKL
+Use MPI = no
+Use MKL = no
+MKL flags = 
+
+[AMBiT options]
+AMBiT path = 
+Angular data = ./AngularData
+
+[Dependency paths]
+Lib path =
+Include path =
+Eigen path =
+Sparsehash path = /usr/local/include/sparsehash
+
+[Dependencies]
+; These libraries will be linked with -l<lib> flags by the linker
+Libs = gsl,
+       gslcblas,
+       lapack, 
+       blas, 
+       boost_system, 
+       boost_filesystem
+\end{verbatim}
+
+Most build options can be left unspecified and the build system will attempt to automatically
+infer sensible defaults, but these inferences can be explicitly overridden if required. Once the 
+\texttt{config.ini} file has been filled as required, the software executable can be built by 
+navigating to the top-level \ambit~ directory and issuing the \texttt{scons} command. The minimal
+version of this (allowing the build system to automatically find the required libraries) would look
+like:
+
+\begin{verbatim}
+$ cd /path/to/ambit/
+$ cp config_template.ini config.ini
+$ scons
+\end{verbatim}
+
+Once you have a \texttt{config.ini} file working, it should continue to work unless dependencies and
+libraries get moved (very rare, even considering system upgrades). We strive to maintain backwards
+compatibility in the build system and try our best not to make changes which break working 
+configurations. 
+
+Additionally, we recommend passing the \texttt{-j} option to \texttt{scons} to use multiple cores when
+compiling \ambit. For example, on a quad-core system we can do:
+
+\begin{verbatim}
+$ scons -j 4
+\end{verbatim}
+
+which will considerably speed up the build process by using all four cores (note: it's important not to
+\textit{oversubscribe} the build process, i.e. use more processes than there are physical cores on your 
+machine, as this will \emph{seriously} degrade performance).
+
+Finally, \texttt{scons} takes an optional ``target'' to build, which can be either ``release''
+\footnote{Release builds include the \texttt{-O3} compiler flag.} (the default), or ``debug'' to 
+enable debugging options and disable compiler optimisations \footnote{Equivalent to compiling with the
+\texttt{-g -O0} compiler flags}, for example:
+
+\begin{verbatim}
+$ scons release
+$ scons debug
+\end{verbatim}
+
+\ambit~ executables built with debugging information will perform considerably more slowly (since they
+don't use compiler optimisations) and should only be used to troubleshoot software bugs (e.g. crashes or
+nonsense results). Effectively using this option requires \emph{some} knowledge of the structure of the
+\ambit~ codebase, as well as debugging tools like \href{https://www.gnu.org/software/gdb/}{GDB}, so we
+recommend against using this option unless absolutely necessary.
+
+\section{Cr$^+$ calculations}
+
+In this section, we will go over an example calculation from start to finish, giving an outline of each
+section of the calculation. The input file for the full calculation is located at 
+\texttt{Documentation/ExampleCalculation/Cr+.input} and can by run by passing it as an option to
+\ambit:
+
+\begin{verbatim}
+$ cd /path/to/ambit
+$ ./ambit Documentation/ExampleCalculation/Cr+.input
+\end{verbatim}
+
+If you've compiled \ambit~ with OpenMP support and would like to try parallel calculations (which run
+significantly more quickly), set the \texttt{bash} environment variable \texttt{OMP\_NUM\_THREADS} to
+the desired number of threads and then run \ambit~ as usual:
+
+\begin{verbatim}
+$ export OMP_NUM_THREADS=3
+$ ./ambit Documentation/ExampleCalculation/Cr+.input
+\end{verbatim}
+
+We will no longer include the file path information in commands for the rest of this chapter, and will
+refer to the input file simply as \texttt{Cr+.input}
+
+\ambit~ will send all output to \textit{standard output} (i.e. print to the terminal), so it is often
+useful to redirect the output to a file, using either:
+
+\begin{verbatim}
+$ ./ambit Cr+.input > ambitoutput.txt
+\end{verbatim}
+
+to send all output to the file \texttt{ambitoutput.txt}, or
+\begin{verbatim}
+$ ./ambit Cr+.input | tee ambitoutput.txt
+\end{verbatim}
+
+to simultaneously save the output to \texttt{ambitoutput.txt} and print the output to standard output.
+
+\subsection{Dirac-Fock and B-Spline basis}
+\label{sec:tut_DF}
+
+This section of the calculation controls the Dirac-Fock calculation for the core electrons, as well as
+the single-particle basis functions used to generate the CI matrix and MBPT integrals. Up-front, the 
+input file used in this section is:
+
+\begin{verbatim}
+ID = CrII
+
+Z = 24
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.0e-6
+EndPoint = 50.0
+
+[HF]
+N = 23
+Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d5'
+
+[Basis]
+--bspline-basis
+ValenceBasis = 7spdf
+FrozenCore = 3s2p
+\end{verbatim}
+
+Let's go through these options one-by-one. 
+
+First, \texttt{ID} is the ``identifier'' for the calculation. \ambit~ generates a number of temporary
+and checkpoint files, saving things like the basis functions and MBPT integrals, which will have
+filenames based on the value of this option. Following atomic structure conventions, \texttt{Z} is the
+nuclear charge of the system, given in atomic units. Note that this is distinct from the \textit{ionic}
+charge, which is never directly specified in the \ambit~ input. Both of these options must be included
+in every calculation.
+
+Next, we specify options to control the lattice spacing underneath the \texttt{[Lattice]} header. 
+Options in the input files are grouped into sections according to a prefix with the
+syntax:
+
+\texttt{Option1}\\
+\texttt{[Prefix1]}\\
+\texttt{Option2}\\
+\texttt{[Prefix2]}\\
+\texttt{Option3}
+
+All options appearing before the first prefix are treated as ``ungrouped'', while all options between
+two prefixes are treated as belonging to the first option. Consequently, \texttt{Option1} in the above
+snippet will have no prefix, while \texttt{Option2} and \texttt{Option3} are equivalent to
+\texttt{Prefix1/Option2} and \texttt{Prefix2/Option3}, respectively.
+
+In the \texttt{[Lattice]} section, \texttt{NumPoints} specifies how many points to use when calculating
+basis functions and wavefunctions, while \texttt{StartPoint} and \texttt{EndPoint} specify the start-
+and end-points of the lattice, respectively. \ambit~ uses a lattice with exponential scaling close to
+the nucleus, which transitions to linear spacing at larger radii. \texttt{Lattice/StartPoint} doesn't
+need to be modified for most calculations, but it is often important to modify \texttt{Lattice/Endpoint}
+when treating systems such as highly-charged ions (which tend to have wavefunctions tightly localised
+around the nucleus) or Rydberg states (which tend to have relatively diffuse wavefunctions). It is also
+sometimes necessary to use more points in the lattice if \texttt{Lattice/EndPoint} is significantly
+larger than 50 atomic units.
+
+The \texttt{[HF]} section contains the meat of the Dirac-Fock (DF, a relativistic extension to the
+Hartree-Fock method) calculation. We first specify the number of electrons to include in the calculation
+with \texttt{N} and the non-relativistic configuration to use as the basis of the calculation via
+\texttt{Configuration}. The colon `:' specifies the location of the Fermi level, which separates the
+fully-occupied core-states from the valence states which contain the dynamics of interest. If the colon
+is omitted then \ambit~ will place the Fermi level above the last orbital specified in
+\texttt{Configuration}.
+
+It is important to note that the \texttt{HF/N} and \texttt{HF/Configuration} do not need to exactly
+match the real configuration of the atomic system: any number of electrons can be included in the 
+procedure in any desired (valid) configuration. In general, either all valence electrons can be
+included, to produce a so-called $V^N$ potential, or some subset of valence electrons, which produces a
+$V^{N-M}$ potential (the $N$ in both of these potentials represents the number of valence electrons in 
+the atom, \emph{not} the value of the \texttt{HF/N} option).
+
+The choice of Dirac-Fock potential $V^{N_{\mathrm{DF}}}$ has a large effect on the accuracy of the 
+resulting spectra; with a potential $V^{N_{\mathrm{DF}}} = V^{N}$ producing so-called ``spectroscopic'' 
+orbitals (which benefit CI convergence of the ground-state configuration) but potentially introducing 
+large subtraction diagrams for open-shell systems at the MBPT level, which can degrade accuracy. 
+Conversely, choosing a $V^{N-M}$ potential can reduce the effects of MBPT subtraction diagrams but
+provides less good wavefunctions for the ground-state configuration (but potentially providing a better
+description of excited state configurations). 
+
+It is very hard to predict which configuration will give the best accuracy ahead of time, as it involves
+the interaction between multiple competing processes (CI, MBPT, DF). Generally speaking, we recommend 
+you perform multiple small calculations with different DF configurations, see which one provides better 
+accuracy and use that for larger-scale calculations, although even this approach requires some fiddling.
+Unfortunately, CI+MBPT is not a ``plug-and-play'' technique and requires a good deal of experimentation
+to get right.
+
+Next, the \texttt{[Basis]} section provides options controlling the calculation of single-particle, 
+excited basis-states. The \texttt{--bspline-basis} specifies that the basis should be formed from a 
+large set of B-Splines, which are diagonalised against the Dirac-Fock operator. This is the default
+option and is usually ideal for most atomic calculations but other basis types are available, as
+specified in chapter \ref{chap:input}. \texttt{ValenceBasis} specifies the size of the size of the basis
+set to use when generating the CI matrix and takes a string specifying the limits on principal quantum
+number $n$ and orbital angular momentum $l$ of orbitals in the basis. For example, 
+\texttt{Basis/ValenceBasis = 7spdf} will include orbitals with $0 \leq l \leq 3$ and $n \leq 7$ for
+each partial wave. It is also possible to specify different values of $n$ for each partial wave, so, for
+example, \texttt{Basis/ValenceBasis = 7sp5d} will include s- and p-orbitals with $n \leq 7$ and
+d-orbitals with $n \leq 5$.
+
+\texttt{FrozenCore} takes a string of the same form, but sets a \emph{lower} limit on $n$ and $l$ of
+valence hole-excitations. If any holes are required when building the CI matrix, they will be generated
+from orbitals above the frozen core but below the Fermi level.
+
+Running \ambit~ with the options included so far will produce a set of single-particle basis orbitals up
+to the value specified in \texttt{ValenceBasis} (7spdf in this case). \ambit~ will first print the 
+version information (from \href{https://git-scm.com/}{Git}) and then the input options we have specified
+so that this calculation can be (almost) exactly reproduced using only the information in the output.
+Next, it will print the energy, size (in lattice points), and radial size (in atomic units) of the basis
+orbitals, which are then ordered by $l$ and then $n$. Here's the output from using these options (yours
+may be slightly different due to finite machine-precision):
+
+\begin{verbatim}
+Core orbitals:                                                                 
+    1s  E = -222.448723239  size: (521) 6.135                                  
+    2s  E = -26.8861828069  size: (594) 12.81                                  
+    3s  E = -3.65304653115  size: (642) 17.81                                  
+    2p  E = -22.738117817  size: (618) 15.27                                   
+    3p  E = -2.40253423199  size: (667) 20.54                                  
+   2p+  E = -22.4139800078  size: (619) 15.37                                  
+   3p+  E = -2.36228057126  size: (668) 20.65                                  
+    3d  E = -0.591219307459  size: (738) 28.57                                 
+   3d+  E = -0.586958225697  size: (739) 28.69                                 
+Excited orbitals:                                                              
+    4s  E = -0.203846623548  size: (999) 60                                    
+    5s  E = -0.0736314364105  size: (999) 60                                   
+    6s  E = -0.038267239446  size: (999) 60                                    
+    7s  E = -0.0233587120771  size: (999) 60                                   
+    4p  E = -0.116400004544  size: (999) 60                                    
+    5p  E = -0.0521229801705  size: (999) 60                                   
+    6p  E = -0.0296666443307  size: (999) 60                                   
+    7p  E = -0.0186679891399  size: (999) 60                                   
+   4p+  E = -0.115885461182  size: (999) 60                                    
+   5p+  E = -0.0519670060685  size: (999) 60                                   
+   6p+  E = -0.0295990294885  size: (999) 60                                   
+   7p+  E = -0.0186251607677  size: (999) 60                                   
+    3d  E = -0.591219307459  size: (738) 28.57                                 
+    4d  E = -0.0542305587503  size: (999) 60                                   
+    5d  E = -0.0305427712566  size: (999) 60                                   
+    6d  E = -0.0193344401285  size: (999) 60                                   
+    7d  E = -0.0101349758  size: (999) 60                                      
+   3d+  E = -0.586958225697  size: (739) 28.69                                 
+   4d+  E = -0.0542036850313  size: (999) 60                                   
+   5d+  E = -0.0305291973468  size: (999) 60                                   
+   6d+  E = -0.0193260390484  size: (999) 60                                   
+   7d+  E = -0.0101245091501  size: (999) 60
+\end{verbatim}
+
+\ambit~ will also save this information in a binary file called \texttt{CrII\_0.basis} (since
+\texttt{ID=CrII}), which allows it to reuse these basis orbitals rather than having to re-calculate them
+each time. \ambit~ always prefers to reuse orbitals if the binary file exists, even if you have
+requested a different number of orbitals to what is stored in the file. If there are fewer orbitals in
+the file than required by \texttt{Basis/ValenceBasis}, \ambit~ will print a warning, since this can lead
+to unexpected results. Deleting this file or running \ambit~ with:
+
+\begin{verbatim}
+$ ./ambit -c Cr+.input
+\end{verbatim}
+
+will force a recalculation of the basis orbitals.
+
+\subsection{CI - Configuration Interaction}
+
+Once we've generated out basis orbitals, we can move on to the CI part of the calculation, which is
+where the majority of the computational workload takes place. CI treats the inter-electron repulsion
+between valence electrons by exactly diagonalising the Hamiltonian matrix in a basis of so-called
+Configuration State Functions (CSFs). These CSFs are many-body eigenstates of the $\hat{J}^2$
+operator, which are formed from the basis functions generated in the previous section. This means we
+have to diagonalise one Hamiltonian matrix per $J^{\pi}$ symmetry, which we will refer to as ``the CI 
+matrix'' throughout this section for brevity's sake.
+
+More
+specifically, we specify a set of non-relativistic leading configurations using 
+\texttt{CI/LeadingConfigurations}, from which \ambit~ takes electrons and/or hole excitations up to the
+limit set in \texttt{Basis/ValenceBasis} to form the CSFs. It is extremely important to choose the
+leading configurations such that the electron- or hole-excitations capture all of the important
+contributions to the expansion of the wavefunction, while including extraneous leading configurations
+will blow-up the size of the matrix for little gain in accuracy. This choice is a bit of an art, but we
+have provided some heuristics in section \ref{sec:CI_tips} at the end of this chapter.
+
+Here is the list of input options relevant to the Cr$^+$ CI calculation, which should be appended to the
+end of the options provided in the last section:
+
+\begin{verbatim}
+[CI]                                                                           
+LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'                                
+ElectronExcitations = 2                                                        
+HoleExcitations = 0                                                            
+EvenParityTwoJ = '1, 3, 5'                                                     
+NumSolutions = 3
+                                                                               
+[CI/SmallSide]                                                                 
+LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'                                
+ElectronExcitations = '1,5spdf, 2, 5spdf'                                      
+HoleExcitations = 0 
+\end{verbatim}
+
+The \texttt{[CI]} and \texttt{[CI/SmallSide]} sections are conceptually related and, combined, specify 
+how to generate the CI matrix. The \texttt{[CI]} section is mandatory, while the \texttt{[CI/SmallSide]}
+is optional, but controls the ``small-side'' of the matrix when using Emu CI, which is described further
+in the \href{link_goes_here}{\ambit~ CPC paper}.
+
+First, \texttt{LeadingConfigurations} specifies the leading configurations from which to generate the 
+CSFs, which are usually the
+same in both sections. These are non-relativistic configurations of the form nl$^{m}...$ where $m$ is 
+the occupancy of the orbital. The occupancy must be given for every orbital, even if there it only has a
+single particle, so we write 3d$^4$ 4s$^1$, rather than 3d$^4$ 4s as is common in the literature (\ambit
+~will abort the calculation if these configurations are improperly specified). These configurations need
+not have the same number of electrons as the Dirac-Fock calculation, but every leading configuration
+must conserve particle number (i.e. $N_{\mathrm{electrons}} - N_{\mathrm{holes}}$). Finally, although
+this calculation does not have any hole-excitations, hole-states are denoted here by orbitals with a
+negative occupancy number, such as \texttt{2p-1} for a single hole in an otherwise filled 2p-shell.
+
+Next, we specify the number of electron- and hole-excitations to use when generating the CI matrix with
+the \texttt{ElectronExcitations} and \texttt{HoleExcitations} options, respectively. Both options accept
+an integer value (the number of excitations), with \texttt{ElectronExcitations} defaulting to 2 and
+\texttt{HoleExcitations} defaulting to 0 if no value is specified (or the option is left out of the
+input file).
+
+Additionally \texttt{ElectronExcitations} also accepts input as a string of the form 
+\texttt{'1, <Size 1>, 2, <Size 2>, ...'}, which specifies different limits on $n$ and $l$ for each 
+electron. For example, running with \texttt{ElectronExcitations = '1,7spdf,2,6spd'} will include all
+single-excitations up to 7spdf and all double-excitations up to 6spd. This is occasionally useful in
+full-CI calculations, but is especially important when using Emu CI, which requires fine-grained control
+over which configurations to include in the small-side of the CI matrix. 
+
+This calculation has to fit within memory constraints of consumer-level computers, so we've picked the
+value of \texttt{CI/SmallSide/ElectronExcitations = '1,5spdf,2,5spdf'} to ensure that the largest CI 
+matrix just fits within 6GB of memory. This is generally \emph{not} the most optimal choice of
+small-side for larger-scale calculations on HPC clusters, however. We've found that the most effective
+choice is to include all single-electron excitations up to the value of \texttt{Basis/ValenceBasis} and
+all single- and double-excitations up to some threshold which captures the dominant configurations in
+the CI expansion. For example, setting \texttt{CI/SmallSide/ElectronExcitations = '1,7spdf,2,5spdf'}
+would greatly improve the accuracy of this calculation, at the expense of a significantly larger CI
+matrix.
+
+The \texttt{[CI]} section also controls the output from the CI procedure. \texttt{CI/EvenParityTwoJ} and
+\texttt{CI/OddParityTwoJ} (not used here) specifies which $J^{\pi}$ symmetries for which to generate 
+energy levels. These options take a list of $2J$-values (twice the total angular momenta of the desired
+symmetries), so this calculation will calculate states with even parity and $J = 1/2, 3/2, 5/2$. Finally
+\texttt{CI/NumSolutions} specifies how many CI solutions to calculate and print, which defaults to 6 if
+no value is provided.
+
+Running \ambit~ with these options, plus the HF and Basis options in section \ref{sec:tut_DF} produces
+CI output similar to the following (we have elided the basis functions and truncated the output to one
+symmetry to save space):
+
+\begin{verbatim}
+...
+ Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
+    nloops=47
+Solutions for J = 0.5, P = even (N = 18540):
+0: -9.7109371    -2131304.33981 /cm
+             4s1 3d4  90.0307%
+             5s1 3d4  3.1585%
+                 3d5  5.5672%
+    g-factor = 3.2925
+
+1: -9.7100037    -2131099.47302 /cm
+             4s1 3d4  5.9598%
+                 3d5  93.6045%
+    g-factor = 2.6919
+
+2: -9.7004781    -2129008.8537 /cm
+             4s1 3d4  7.3610%
+                 3d5  92.2118%
+    g-factor = 0.013881
+
+\end{verbatim}
+
+For each symmetry, \ambit~ first prints a ``header'' containing the number of CSFs 
+(the size of the CI matrix) and the algorithm used to compute the eigenvectors and eigenvalues 
+(Davidson's algorithm, in this case), followed by the total angular momentum $J$, parity $\pi$ and 
+maximum number of states which \textit{could} be calculated using this CI basis size.
+
+After this header, the actual solutions are ordered by energy (relative to the other states of this
+symmetry, \emph{not} relative to the ground-state of the atom) and the ``absolute'' energy is given,
+first in atomic units and then in cm$^{-1}$. It is important to note that these energies are not
+relative to the ionisation potential. The absolute value of the energies is physically meaningless --
+only the relative excitation energies have a physically meaningful value.
+
+Each solution also contains a breakdown of the most important nonrelativistic configurations in the CI
+expansion in percentages $\displaystyle \sum_I |C_I|^2$, where $C_I$ is the expansion coefficient of
+each CSF corresponding to that configuration. Finally, the Land\`{e} g-factors are also presented to aid
+with the identification of levels. These are expensive to calculate and can be suppressed with the
+\texttt{CI/{-}{-}no-gfactors} flag.
+
+CI contributes the most to the resulting energy and wavefunction of any step (in multi-electron atoms),
+so this it's important to expand the CI matrix to the largest basis your machine will support.
+Generating and solving the CI matrix is heavily parallelised, so memory usage is usually the main
+bottleneck to expanding the CI basis. However, \ambit~ splits the matrix into ``chunks'', which can then
+be distributed between multiple nodes on a cluster via MPI, so it is often possible to ``throw more
+nodes'' at the problem if memory usage becomes too high for a single machine. See chapter \ref{chap:HPC}
+for a more detailed discussion and tutorial on how to most effectively use HPC resources with \ambit.
+
+Finally, \ambit~ stores the CI solutions (including energy levels and expansion coefficients) in the 
+binary file \texttt{CrII\_0.levels} at ``checkpoints'' which occur after solving a particular $J^{\pi}$ 
+matrix, and again after calculating the g-factors for that matrix. This means that calculations can be
+interrupted and re-started without needing to re-calculate energy levels which have already been done.
+
+Additionally, the fact that there are checkpoints before and after calculating g-factors means we can
+run a calculation without g-factors, re-use the levels file (which \ambit~ will do automatically if one 
+with the correct file name exists in the current directory) to avoid constructing and diagonalising 
+the CI matrices again, and calculate only the g-factors with \texttt{CI/{-}{-}gfactors}.
+
+\subsection{MBPT}
+
+Now let's consider the effects of including core-valence MBPT corrections to the calculation so far. If 
+we've constructed the CI basis appropriately, that will capture most of the energy of the atomic states,
+so we can treat the rest (including core-valence correlations and correlations with high-lying valence 
+states) as a perturbation. The key here is that many-body perturbation theory is just that; a 
+perturbation which can only ever provide small contribution to the total energy. CI has to be able to 
+take you ``most of the way'' to the correct solution, with MBPT adding as a small correction after the 
+fact. First, we'll present the MBPT input options used in this calculation, then go over what each of 
+them does, before finally discussing some of the ins and outs of MBPT.
+
+Although there are a lot of options for controlling MBPT calculations (see chapter \ref{chap:input}), we
+will only use a few of them here. First, we have the \texttt{[MBPT]} section of the input options:
+
+\begin{verbatim}
+[MBPT]
+Basis = 15spdf
+\end{verbatim}
+
+The only option here, \texttt{MBPT/Basis} places upper limits on $n$ and $l$ of orbitals to include in
+internal lines of the MBPT diagrams, and takes a string with the same format as
+\texttt{Basis/ValenceBasis}.
+
+Additionally, MBPT diagrams are generally quite expensive to calculate, so \ambit~ does not include them
+by default. The inclusion of MBPT corrections is controlled via the ``ungrouped'' option
+\texttt{-s[123]}, where \texttt{[123]} denotes which of the one-, two-, or three-body diagrams to 
+include in MBPT corrections, and can be any any combination of 1, 2, or 3. For example, \texttt{-s2} 
+will calculate two-body diagrams, and \texttt{-s123} will calculate all one-, two-, and three-body 
+diagrams. Importantly, this option does not belong to the \texttt{[MBPT]} section of input, and must be
+declared at the top of the input file, such as:
+
+\begin{verbatim}
+ID = CrII
+
+Z = 24
+
+-s123
+
+[Lattice]
+
+...
+
+[MBPT]
+Basis = 15spdf
+\end{verbatim}
+
+\ambit~ incorporates MBPT corrections by first calculating the requested diagrams, then using those
+diagrams to modify the radial Coulomb integrals used to build the CI matrix. \ambit~ will also save the
+one- and two-body integrals to the binary, checkpoint files \texttt{CrII\_0.one.int} and
+\texttt{CrII\_0.two.int} to be reused for future calculations. The three-body integrals are not saved,
+as there are a huge number of them and they are relatively cheap to calculate ``on the fly''.
+
+Here's the $J = 1/2, \pi = 1$ solutions from the combined CI+MBPT calculation for Cr$^+$ (as before, 
+your results may slightly differ from these):
+
+\begin{verbatim}
+ Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
+    nloops=18
+Solutions for J = 0.5, P = even (N = 18540):
+0: -9.2204352    -2023651.61572 /cm
+             4s1 3d4  95.2301%
+             5s1 3d4  3.4370%
+    g-factor = 3.3311
+
+1: -9.1995009    -2019057.06501 /cm
+             4s1 3d4  1.0396%
+                 3d5  98.6843%
+    g-factor = 2.6102
+
+2: -9.1933251    -2017701.64374 /cm
+             4s1 3d4  21.9455%
+                 3d5  77.0086%
+    g-factor = 0.055881
+\end{verbatim}
+
+Notice that the CI matrices have the same size as in the CI-only calculation, but the energy levels and
+g-factors are slightly different. In this specific case, adding MBPT corrections does improve the
+accuracy of the calculation, as compared to experimental data from the 
+\href{https://physics.nist.gov/PhysRefData/ASD/levels_form.html}{NIST Atomic Spectra Database} in table
+\ref{tab:CI_MBPT_comparison}. Even though both calculations are not even remotely converged (Cr$^+$ is a
+\emph{very} complicated system that requires a huge CI basis to treat accurately), adding in
+core-valence MBPT still improves the accuracy by a few thousand cm$^{-1}$. That being said, the
+individual terms in the MBPT expansion must be small (otherwise it's not a perturbation) to ensure that
+MBPT actually improves the accuracy. There are some cases where small energy differences between
+basis orbitals lead to large MBPT diagrams, so including MBPT corrections (especially
+valence-valence MBPT corrections, described in the \href{link_goes_here}{\ambit~ CPC paper}) can
+actually reduce the accuracy of the calculation. Consequently, it's important to be careful when 
+constructing the MBPT basis to ensure all the terms remain small.
+
+\begin{table}
+\label{tab:CI_MBPT_comparison}
+\caption{Comparison of Cr$^+$ energy levels for CI and CI+MBPT calculations with experimental results
+from \href{https://physics.nist.gov/PhysRefData/ASD/levels_form.html}{NIST}.}
+\begin{tabular}{l  l  l  l  l}
+\hline
+Configuration   &Term    &$E_{\mathrm{CI}}$ (cm$^{-1}$)     &$E_{\mathrm{CI+MBPT}}$ (cm$^{-1}$)  & $E_{\mathrm{Expt}}$\\
+\hline
+\hline
+3d$^5$  &$^6S_{5/2}$    &0  &0  &0\\
+3d$^4$ 4s$^1$   &$^6D_{1/2}$    &28939  &23835  &11961\\
+3d$^4$ 4s$^1$   &$^6D_{3/2}$    &29042  &23981  &12032\\
+3d$^4$ 4s$^1$   &$^6D_{5/2}$    &29111  &24219  &12147\\
+\hline
+\end{tabular}
+\end{table}
+
+
+\subsection{Transitions}
+
+Once the CI energy levels and wavefunctions have been generated, we can use them to calculate transition
+matrix elements for a variety of operators, such as electric and magnetic multipoles and hyperfine
+shifts (see chapter \ref{chap:input} for a full list of supported transition operators). In this 
+section, we will calculate the transition line strengths $S_{if} =
+\left|\left<f||\hat{O}||i\right>\right|^2$ for 
+the $M_1$ (magnetic dipole) and $E_2$ (electric quadrupole) operators.
+
+All transition calculations can use the pre-existing CI solutions stored in \texttt{CrII\_0.levels} to 
+generate the matrix elements, so we don't have to re-run the entire calculation every time we need new
+matrix elements. This saves a lot of time, but transition matrix elements can still take a long time to
+calculate so this section of the code is heavily parallelised with both OpenMP and MPI which we
+recommend using whenever possible.
+
+The options controlling transition calculations are in the \texttt{[Transitions]} sections and divided
+into sections for each operator, e.g. \texttt{Transitions/E2/{-}{-}reduced-elements} or 
+\texttt{Transitions/M2/Transitions}. Each subsection accepts the same set of possible arguments, but 
+the arguments need not be the same for each requested operator. There are two ways of specifying which
+transitions to calculate. The first is to directly list the transitions with the option
+\texttt{<Operator>/MatrixElements}, which takes a list of transitions between levels of the form
+"$2J_i\pi_i:N_i$ -\textgreater $2J_f\pi_f:N_f$", where $N_i$ is the index given to the state in the CI
+output. We use this approach in calculating the $M_1$ transitions in the input options below.
+
+The second way of requesting transitions is to specify an upper energy limit with the option
+\texttt{<Operator>/AllBelow}. \ambit~ will calculate all transitions for states with absolute energy (in
+atomic units) below this value. We use this approach below in order to calculate all $E_{2}$ 
+transitions.
+
+Putting all of this together, the following input options:
+
+\begin{verbatim}
+[Transitions]                                                                  
+E2/AllBelow = -9.2                                                                
+M1/MatrixElements = '1e:0->1e:1, 3e:0->5e:0'
+\end{verbatim}
+
+produce the following set of transitions:
+
+\begin{verbatim}
+M1 transition strengths (S):
+  1e:0 -> 1e:1 = 0.000297507
+  3e:0 -> 5e:0 = 4.62493e-08
+
+E2 transition strengths (S):
+  1e:0 -> 3e:0 = 0.676905
+  1e:0 -> 5e:0 = 5.80501
+  1e:0 -> 5e:1 = 2.70778
+  1e:0 -> 5e:2 = 0.00239213
+  3e:0 -> 3e:0 = 2.41072
+  3e:0 -> 5e:0 = 11.5707
+  3e:0 -> 5e:1 = 0.684676
+  3e:0 -> 5e:2 = 0.00582365
+  5e:0 -> 5e:0 = 8.83616e-08
+  5e:0 -> 5e:1 = 17.2609
+  5e:0 -> 5e:2 = 6.03841e-05
+  5e:1 -> 5e:0 = 17.2609
+  5e:1 -> 5e:1 = 1.04423
+  5e:1 -> 5e:2 = 0.00318904
+  5e:2 -> 5e:0 = 6.03841e-05
+  5e:2 -> 5e:1 = 0.00318904
+  5e:2 -> 5e:2 = 0.0339526
+
+M1 transition strengths (S):
+  1e:0 -> 1e:0 = 16.6435
+  1e:0 -> 1e:1 = 0.000297507
+  1e:0 -> 1e:2 = 0.000154869
+  1e:1 -> 1e:0 = 0.000297507
+  1e:1 -> 1e:1 = 10.2179
+  1e:1 -> 1e:2 = 0.216327
+  1e:2 -> 1e:0 = 0.000154869
+  1e:2 -> 1e:1 = 0.216327
+  1e:2 -> 1e:2 = 0.00463104
+  5e:0 -> 3e:0 = 4.62493e-08
+  5e:0 -> 3e:1 = 0.00167995
+  5e:0 -> 3e:2 = 8.88683e-05
+  5e:1 -> 3e:0 = 14.3741
+  5e:1 -> 3e:1 = 0.00257567
+  5e:1 -> 3e:2 = 1.46865e-06
+  5e:2 -> 3e:0 = 5.48977e-05
+  5e:2 -> 3e:1 = 3.78487e-06
+  5e:2 -> 3e:2 = 8.36944e-06
+
+E2 transition strengths (S):
+  1e:0 -> 3e:0 = 0.676905
+  1e:0 -> 3e:1 = 0.00213727
+  1e:0 -> 3e:2 = 0.000728625
+  1e:0 -> 5e:0 = 5.80501
+  1e:0 -> 5e:1 = 2.70778
+  1e:0 -> 5e:2 = 0.00239213
+  1e:1 -> 3e:0 = 0.0013822
+  1e:1 -> 3e:1 = 0.297287
+  1e:1 -> 3e:2 = 2.60007
+  1e:1 -> 5e:0 = 0.000980374
+  1e:1 -> 5e:1 = 0.00543533
+  1e:1 -> 5e:2 = 0.0417482
+  1e:2 -> 3e:0 = 0.000446003
+  1e:2 -> 3e:1 = 5.21948
+  1e:2 -> 3e:2 = 1.05775
+  1e:2 -> 5e:0 = 7.64666e-05
+  1e:2 -> 5e:1 = 9.73159e-06
+  1e:2 -> 5e:2 = 3.46324
+  3e:0 -> 3e:0 = 2.41072
+  3e:0 -> 3e:1 = 0.0072805
+  3e:0 -> 3e:2 = 0.00114804
+  3e:0 -> 5e:0 = 11.5707
+  3e:0 -> 5e:1 = 0.684676
+  3e:0 -> 5e:2 = 0.00582365
+  3e:1 -> 3e:1 = 0.33213
+  3e:1 -> 3e:2 = 2.81372
+  3e:1 -> 5e:0 = 0.00127588
+  3e:1 -> 5e:1 = 0.00293353
+  3e:1 -> 5e:2 = 0.0742223
+  3e:2 -> 3e:2 = 0.717609
+  3e:2 -> 5e:0 = 0.000120508
+  3e:2 -> 5e:1 = 0.00084502
+  3e:2 -> 5e:2 = 1.90527
+  5e:0 -> 5e:0 = 8.83616e-08
+  5e:0 -> 5e:1 = 17.2609
+  5e:0 -> 5e:2 = 6.03841e-05
+  5e:1 -> 5e:1 = 1.04423
+  5e:1 -> 5e:2 = 0.00318904
+  5e:2 -> 5e:2 = 0.0339526
+\end{verbatim}
+
+First, notice that there are two sections of transitions output. The first contains the values for just
+the transitions we requested in the input file: a limited set of $M_1$ transitions and all $E_2$
+transitions for states with energy $E < -9.2$ a.u. \ambit~ automatically incorporates the relevant
+selection rules for each operator, and will not print transitions which are disallowed. 
+
+Due to the way \ambit~ calculates transition matrix elements, calculating one transition between states
+with $J^{\pi}_1, J^{\pi}_2$ also allows us to calculate every other transition with the same 
+symmetry essentially extremely cheaply. Consequently, \ambit~ also prints these transitions in the 
+second section of the output regardless of how many transitions are requested, since we get these
+transitions essentially ``for free''.
+
+\section{CI+MBPT tips}
+\label{sec:CI_tips}
+
+As described throughout this chapter, a typical calculation in AMBiT consists of three conceptual steps.
+First, the core electrons are treated using a Dirac-Fock (relativistic
+Hartree-Fock), which also generates the starting orbitals for CI and
+MBPT. Next, a subset of the valence electron excitations are treated via
+CI, which includes the inter-electron correlations directly. This step
+is very computationally expensive, but also where the majority of the
+contribution to the energy comes from. Finally, core-valence
+correlations and any valence-valence correlations not included in CI are
+treated by MBPT via modification of the radial CI integrals. These MBPT
+integrals/diagrams are calculated prior to the CI step and the one- and
+two-body diagrams are stored on disk to speed up future runs.
+
+Note that these steps do not necessarily occur in this order in
+the code; don't worry too much about what's going on under the hood
+unless you are actually intending to contribute to the development.
+
+Finally and most importantly, you can't ``plug-and-play'' when using the CI+MBPT method. The quality of 
+the end results are strongly
+dependent on your choice of parameters when running the code (which
+electrons to include in Hartree-Fock, which leading configurations to
+include in CI, etc.). The main thing to remember is to always
+experiment! Build up the calculations methodically (e.g. do CI first,
+then include MBPT and so on) but try running the calculations for
+multiple choices of parameters and choose whichever one gives the best
+results - it sometimes won't be the first one you think of.
+
+\subsection{Tips for good convergence}
+
+The recipe that follows generally provides a good starting-point for constructing CI+MBPT calculations.
+It is not an ironclad set of rules, however: this is just a set of heuristics which usually provide
+``pretty-good'' results and can be further refined as necessary. 
+
+\begin{enumerate}
+\item
+  Pick the configurations you're interested in\\
+\item
+  Write down all one and two electron excitations from these
+  configurations which satisfy:
+
+  \begin{itemize}
+  \item
+    $\Delta n = 0, 1$\\
+  \item
+    $\Delta l = 0, \pm 1$\\
+  \end{itemize}
+\item
+  Include these either by hand or through a minimal CI space
+  (Basis/ValenceBasis) and verify which ones make a significant
+  contribution to the energy. These configurations must always be
+  included in future CI procedures\\
+\item
+  Gradually increase the CI basis from here until either the energy
+  doesn't change much or you bump up against computational limits (the latter will usually happen
+  first). It's important to use Emu CI here, with the small-side including single-electron excitations
+  up to the valence basis, and all single- and double-electron excitations up to the minimal
+  configurations found in step 2.
+\item
+  Then include Core-Valence MBPT diagrams - usually you want 1, 2 and 3
+  body diagrams for this stage. MBPT is very cheap (at least compared to
+  CI) so you can usually get away with picking some huge basis
+  (e.g.~30spdfg) and sticking with that\\
+\item
+  Valence-valence MBPT is sometimes good when there's a large separation
+  between valence energy levels, since this suppresses individual
+  diagrams through the energy denominator. If this is not satisfied,
+  then valence-valence MBPT can actually degrade the accuracy, so make
+  sure to test the accuracy with it both include and excluded. As a good
+  rule of thumb, highly-charge ions generally benefit from including
+  valence MBPT, whereas lowly-charged or neutral systems like Yb+ do
+  not. As always, the terms in the MBPT expansion must be small (since they're perturbations, after all)
+  to ensure well-behaved MBPT corrections, whether core-valence or valence-valence. Be careful when
+  you're deciding which corrections to include.
+\item
+  Try including some HF decorators if you really think you'll need them.
+  The Breit and various QED (Uehling, self-energy etc) generally make
+  small contributions, but can become large for very high Z or charge.
+  Generally, QED decorators are very cheap but don't contribute much,
+  while Breit gives a bigger effect but can drastically increase memory
+  usage. Finally, Breit and QED effects are additive, so $\Delta_{\mathrm{Breit} +
+  QED} = \Delta_{\mathrm{Breit}} + \Delta_{\mathrm{QED}}$ (to within floating-point precision) so it's
+  usually possible to run the calculations separately for the two effects and then combine the results 
+  by hand to get the total contribution.
+\end{enumerate}
+
+Remember that the main source of error in atomic calculations is the Coulomb repulsion between
+electrons, so it's critical to get CI right. MBPT and the other DF decorators only make small 
+contributions to the energy, so make sure you get CI working first.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HPC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Parallelism: An introduction to OpenMP and MPI}
+\label{chap:HPC}
 
 \section{Introduction}
 \ambit ~makes extensive use of parallelism to make full use of modern high-performance computing cluster
@@ -86,7 +950,7 @@ Br\"{u}ckner MBPT   &No &No &No\\
 
 \section{Definitions}
 \label{sec:definitions}
-Definitions of terms used in this guide:
+Definitions of terms used in this chapter:
 \begin{enumerate}
 \item \textit{Cluster}: a computer system consisting of multiple smaller, tightly interlinked computers, 
 which are capable coordinating to carry out large, computationally intensive calculations in parallel.
@@ -549,6 +1413,7 @@ running MPI programs on a variety of cluster and software environments.
 \end{itemize}
 
 \chapter{User input options}
+\label{chap:input}
 
 \section{Introduction}
 
@@ -587,7 +1452,7 @@ Currently, misspelled or erroneous arguments are not automatically handled by \a
 and will be either be ignored (for typos) or cause the corresponding part of the calculation to fail 
 (for errors or incorrect arguments).
 
-\subsection{Conventions used throughout this document}
+\subsection{Conventions used throughout this chapter}
 
 Each section of this document corresponds to a prefix (except for section \ref{sec:ungrouped}, which
 contains ungrouped options), with the options belonging to that prefix outlined at the beginning of the
@@ -1110,7 +1975,7 @@ the form $nl$ or $nl+$, where $+$ corresponds to orbitals with $\kappa < -1$.
 
 \texttt{ElectronExcitations} \uline{Integer or String}[2]
 \begin{adjustwidth}{1cm}{}
-Number of electron excitations to include in CI. Defaults to 2 if no value is specified.
+Number of electron excitations to include in CI. 
 This option also accepts input as a string of the form \texttt{'1, <Size 1>, 2, <Size 2>, ...'},
 which specifies different limits on $pqn$ and $l$ for each electron. For example, the string
 \texttt{1,8spdf,2,6spd} will include all single-excitations up to 8spdf and all double-excitations up to 
