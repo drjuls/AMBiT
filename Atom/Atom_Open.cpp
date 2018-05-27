@@ -690,19 +690,24 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         }
 
         // Check if gfactor overrides are present, otherwise decide on course of action
-        bool get_gfactor;
-        if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
-            get_gfactor = false;
-        else if(user_input.search("CI/--gfactors"))
-            get_gfactor = true;
-        else
-        {   if(nrID || num_solutions > 50)
-                get_gfactor = false;
+        bool get_gfactors = levels->GFactorsNeeded();
+
+        // Don't bother doing any checks if we've got pre-calculated g-factors stored
+        if(get_gfactors)
+        {
+            if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
+                get_gfactors = false;
+            else if(user_input.search("CI/--gfactors"))
+                get_gfactors = true;
             else
-                get_gfactor = true;
+            {   if(nrID || num_solutions > 50)
+                    get_gfactors = false;
+                else
+                    get_gfactors = true;
+            }
         }
 
-        if(get_gfactor)
+        if(get_gfactors)
         {
             GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
             g_factors.CalculateGFactors(levelvec);

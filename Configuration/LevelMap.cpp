@@ -119,6 +119,7 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
         unsigned int N;
         std::vector<double> eigenvector;
         double gfactor;
+        gfactors_needed = false; // Assume the file has g-factors unless one or more of them is NaN
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
@@ -127,6 +128,10 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
             eigenvector.resize(N);
             fread(eigenvector.data(), sizeof(double), N, fp);
             fread(&gfactor, sizeof(double), 1, fp);
+            
+            // Check if we need to re-calculate this g-factor
+            if(std::isnan(gfactor))
+                gfactors_needed = true;
 
             levelvec.levels.emplace_back(std::make_shared<Level>(eigenvalue, eigenvector, key, gfactor));
         }
@@ -196,6 +201,7 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
         unsigned int N;
         std::vector<double> eigenvector;
         double gfactor;
+        gfactors_needed = false; // Assume the file has g-factors unless one or more of them is NaN
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
@@ -204,6 +210,10 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
             eigenvector.resize(N);
             fread(eigenvector.data(), sizeof(double), N, fp);
             fread(&gfactor, sizeof(double), 1, fp);
+
+            // Check if we need to re-calculate this g-factor
+            if(std::isnan(gfactor))
+                gfactors_needed = true;
 
             levelvec.levels.emplace_back(std::make_shared<Level>(eigenvalue, eigenvector, read_key, gfactor));
         }
