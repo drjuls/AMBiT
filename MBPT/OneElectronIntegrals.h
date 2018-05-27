@@ -270,9 +270,7 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -309,9 +307,7 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);

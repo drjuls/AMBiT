@@ -1,7 +1,8 @@
+## Compiling AMBiT
 We’ve tested AMBiT and know it works on the Linux and macOS operating
 systems. It will probably work on MS Windows or other Unix operating
-systems (e.g. FreeBSD, Illumos, etc), but we can’t guarantee it and do
-not support these systems.
+systems (e.g. FreeBSD, Illumos, etc), but we haven't tried it so we 
+can't say for sure.
 
 In order to compile AMBiT you’ll need the following software libraries
 and tools:
@@ -20,8 +21,11 @@ and tools:
 
 -   [LAPACK](http://www.netlib.org/lapack/) and
     [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines.
-    Can be substituted for internal libraries in the [Intel Math Kernel
-    Library](https://software.intel.com/en-us/mkl) (MKL).
+    Can be substituted for internal libraries in the (proprietary) 
+    [Intel Math Kernel Library](https://software.intel.com/en-us/mkl) 
+    (MKL). Compiling against MKL allows expensive linear-algebra 
+    operations (including generating angular data) to be automatically
+    parallelised at run-time.
 
 -   [Google Sparsehash](https://github.com/sparsehash/sparsehash)
 
@@ -89,3 +93,11 @@ example:
     $ scons release
     $ scons debug
     $ scons test
+
+### Make
+We also supply some rudimentary Makefiles for systems where SCons is 
+unavailable. Plain `make` can't automatically figure out linker paths like
+SCons, so these files need to be hand-tailored to your specific system 
+configuration. The system-specific parameters like compiler, compile flags 
+and linker paths are set in `make.machine`; once this is set run `make`,
+`make debug` or `make test` in the root directory.

@@ -59,7 +59,7 @@ void OutStreams::FinaliseStreams()
 FILE* FileErrHandler::fopen(const char* path, const char* mode){
     
     FILE* ofp = std::fopen(path, mode);
-    if(!ofp){
+    if(!ofp && errno != ENOENT){ // Don't print a warning if the file doesn't exist - fopen() will automatically create it
         *errstream << "WARNING: error opening file - " << std::strerror(errno) << "\n";
     }
     return(ofp);

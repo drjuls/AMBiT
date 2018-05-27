@@ -242,9 +242,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "SlaterIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);

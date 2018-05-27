@@ -101,8 +101,10 @@ and boost\_system).
 \item \href{http://eigen.tuxfamily.org/index.php?title=Main_Page}{Eigen} (v3) - C++ linear algebra 
 package.
 \item \href{http://www.netlib.org/lapack/}{LAPACK} and \href{http://www.netlib.org/blas/}{BLAS} - 
-linear algebra subroutines. Can be substituted for internal libraries in the 
-\href{https://software.intel.com/en-us/mkl}{Intel Math Kernel Library} (MKL).
+linear algebra subroutines. Can be substituted for internal libraries in the (proprietary)
+\href{https://software.intel.com/en-us/mkl}{Intel Math Kernel Library} (MKL). Compiling against MKL
+allows expensive linear-algebra operations (including generating angular data) to be automatically
+parallelised at run-time.
 \item \href{https://github.com/sparsehash/sparsehash}{Google Sparsehash}
 \item Python v2.7.x
 \item \href{http://scons.org/}{SCons} - a python based software build tool.
@@ -242,7 +244,49 @@ to send all output to the file \texttt{ambitoutput.txt}, or
 $ ./ambit Cr+.input | tee ambitoutput.txt
 \end{verbatim}
 
-to simultaneously save the output to \texttt{ambitoutput.txt} and print the output to standard output.
+which will simultaneously save the output to \texttt{ambitoutput.txt} and print to standard output.
+
+\subsection{Check the calculation size}
+
+It is often useful to estimate the size of a calculation prior to running it. For example, most HPC 
+clusters require users to specify the resources required by a calculation when submitting it, and will
+kill the calculation if it exceeds these limits. \ambit~ can calculate the approximate size of a
+calculation via the \texttt{{-}{-}check-sizes} command-line option:
+
+\begin{verbatim}
+$ ./ambit --check-sizes Cr+.input
+\end{verbatim}
+
+Running with \texttt{{-}{-}check-sizes} will not actually do any CI or MBPT calculations (except for
+generating the Dirac-Fock basis functions), but will print the size of the CI matrices and the number of
+MBPT integrals to be calculated. For this example calculation, the CI and MBPT sections of the
+\texttt{{-}{-}check-sizes} output should look like:
+
+\begin{verbatim}
+Num stored coulomb integrals for MBPT = 617242
+Num one-body mbpt integrals: 90
+Num two-body mbpt integrals: 120855
+
+Num Coulomb integrals: 141500
+
+Sigma3 Coulomb integrals: 64523
+Calculating CSFs: 
+J(P) = 0.5(+):   2583 x    656 rel. configurations; 18540 x 4356 CSFs.
+J(P) = 1.5(+):   2579 x    654 rel. configurations; 32798 x 7712 CSFs.
+J(P) = 2.5(+):   2567 x    648 rel. configurations; 40060 x 9449 CSFs.
+
+Total number of levels (all symmetries included) = 91398
+\end{verbatim}
+
+This information can then be used to estimate how much memory a calculation will need. A good heuristic
+is that the elements of the CI matrices are stored as double-precision floating-point numbers
+(which require 8 bytes of storage), while the radial CI and MBPT integrals require approximately
+\textbf{TODO} bytes per integral (since they are stored as key-value pairs in an associative container).
+
+Importantly, \texttt{{-}{-}check-sizes} will calculate the angular data for a calculation if it is not
+already saved to disk (in the directory specified in the \texttt{Angular data directory} compile-time
+option). Generating this data from scratch can be very expensive for open d- and f-shell systems, so it
+is best to compile against Intel \texttt{MKL} and run \ambit~ in parallel when using this option.
 
 \subsection{Dirac-Fock and B-Spline basis}
 \label{sec:tut_DF}
@@ -416,10 +460,12 @@ between valence electrons by exactly diagonalising the Hamiltonian matrix in a b
 Configuration State Functions (CSFs). These CSFs are many-body eigenstates of the $\hat{J}^2$
 operator, which are formed from the basis functions generated in the previous section. This means we
 have to diagonalise one Hamiltonian matrix per $J^{\pi}$ symmetry, which we will refer to as ``the CI 
-matrix'' throughout this section for brevity's sake.
+matrix'' throughout this section for brevity's sake.  The angular data for each CSF with the same number
+of electrons, $J^{\pi}$ symmetry and projection $M_J$ are stored to disk the first time it is
+calculated, and then re-used in subsequent calculations. This means that the cost of diagonalising the
+$\hat{J}^2$ operator is effectively spread-out across all calculations with the same angular components.
 
-More
-specifically, we specify a set of non-relativistic leading configurations using 
+More specifically, we specify a set of non-relativistic leading configurations using 
 \texttt{CI/LeadingConfigurations}, from which \ambit~ takes electrons and/or hole excitations up to the
 limit set in \texttt{Basis/ValenceBasis} to form the CSFs. It is extremely important to choose the
 leading configurations such that the electron- or hole-excitations capture all of the important
@@ -1624,7 +1670,9 @@ calculated.
 \texttt{--check-sizes}
 \begin{adjustwidth}{1cm}{}
 Calculate and print the number of Coulomb and MBPT integrals, as well as the size of the CI matrix for
-each symmetry $J^{\pi}$. Used to determine the size of a calculation before running it in full.
+each symmetry $J^{\pi}$. Calculations with this option will also generate the angular data (if needed),
+which can be computationally expensive and often requires the calculation to be run with OpenMP
+parallelism. Used to determine the size of a calculation before running it in full.
 \end{adjustwidth}
 
 \texttt{-c, --clean}
@@ -2358,6 +2406,11 @@ List of specific transition matrix elements to calculate, e.g.
 Calculates all matrix elements between states with energy less than this value.
 \end{adjustwidth}
 
+\texttt{Frequency} \uline{Real}
+\begin{adjustwidth}{1cm}{}
+Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators.
+\end{adjustwidth}
+
 \texttt{{-}{-}reduced-elements} 
 \begin{adjustwidth}{1cm}{}
 Calculate the reduced matrix elements $T$ (default behaviour is to calculate the line strengths 
@@ -2373,32 +2426,6 @@ orbitals $a$ and $b$.
 \texttt{{-}{-}rpa}
 \begin{adjustwidth}{1cm}{}
 Include random-phase approximation (RPA) corrections when calculating transition matrix elements. 
-\end{adjustwidth}
-
-\texttt{RPA/BSpline/N} \uline{Integer}[40]
-\begin{adjustwidth}{1cm}{}
-Number of B-Splines to use when calculating RPA corrections.
-\end{adjustwidth}
-
-\texttt{RPA/BSpline/K} \uline{Integer}[7]
-\begin{adjustwidth}{1cm}{}
-Order of B-Splines to use when calculating RPA corrections.
-\end{adjustwidth}
-
-\texttt{RPA/BSpline/Rmax} \uline{Real}[\texttt{Lattice/EndPoint}]
-\begin{adjustwidth}{1cm}{}
-Maximum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections. 
-Defaults to \texttt{Lattice/EndPoint} if no value is specified.
-\end{adjustwidth}
-
-\texttt{RPA/BSpline/R0} \uline{Real}[0.0]
-\begin{adjustwidth}{1cm}{}
-Minimum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.
-\end{adjustwidth}
-
-\texttt{RPA/{-}{-}no-negative-states}
-\begin{adjustwidth}{1cm}{}
-Exclude basis states in the Dirac sea (i.e. negative energy states) from RPA corrections.
 \end{adjustwidth}
 
 Additionally, Yukawa and QED transitions take the same input arguments (with the appropriate
@@ -2430,6 +2457,49 @@ Scale factor of the field-shift operator.
 \texttt{FS/DeltaNuclearRadius} \uline{Real}[0.1]
 \begin{adjustwidth}{1cm}{}
 Distance in fm by which to change the nuclear radius in the field-shift operator. 
+\end{adjustwidth}
+
+\subsection{RPA}
+
+\texttt{Scale} \uline{Real}[0.01]
+\begin{adjustwidth}{1cm}{}
+Scale the RPA operator internally.
+\end{adjustwidth}
+
+\texttt{Weighting} \uline{Real}
+\begin{adjustwidth}{1cm}{}
+Mix old and new wavefunctions at each step in RPA with this weighting factor.
+\end{adjustwidth}
+
+\texttt{{-}{-}no-negative-states}
+\begin{adjustwidth}{1cm}{}
+Exclude basis states in the Dirac sea (i.e. negative energy states) from RPA corrections.
+\end{adjustwidth}
+
+\texttt{{-}{-}print-field}
+\begin{adjustwidth}{1cm}{}
+Print the direct part of the change in the DF core.
+\end{adjustwidth}
+
+\texttt{BSpline/N} \uline{Integer}[40]
+\begin{adjustwidth}{1cm}{}
+Number of B-Splines to use when calculating RPA corrections.
+\end{adjustwidth}
+
+\texttt{BSpline/K} \uline{Integer}[7]
+\begin{adjustwidth}{1cm}{}
+Order of B-Splines to use when calculating RPA corrections.
+\end{adjustwidth}
+
+\texttt{BSpline/Rmax} \uline{Real}[\texttt{Lattice/EndPoint}]
+\begin{adjustwidth}{1cm}{}
+Maximum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections. 
+Defaults to \texttt{Lattice/EndPoint} if no value is specified.
+\end{adjustwidth}
+
+\texttt{BSpline/R0} \uline{Real}[0.0]
+\begin{adjustwidth}{1cm}{}
+Minimum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.
 \end{adjustwidth}
 
 \section{DR} % Dielectronic recombination/autoionisation
