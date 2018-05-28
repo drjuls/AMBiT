@@ -42,6 +42,13 @@ and tools:
     cluster-specific, although OpenMP is supported by default on both GCC 
     and the Intel C++ compiler.
 
+Most of these dependencies can be installed from your operating system's 
+pacakge manager (e.g. apt-get in Ubuntu, dnf in Fedora or Homebrew in 
+macOS). Some package managers have separate "development" packages, which 
+you must also install to be able to compile AMBiT against them. These 
+development packages tend to have names ending with some variation on "dev",
+such as `libsparsehash-dev` on Ubuntu or `sparsehash-devel` on Fedora.
+
 The AMBiT build process is based around a build tool called SCons, whose
 build-control scripts (similar to Makefiles) are full Python scripts. To
 simplify the process, we specify build options such as compiler and
@@ -58,7 +65,21 @@ the AMBiT user guide for an example of this configuration file.
 
 Most build options can be left unspecified and the build system will
 attempt to automatically infer sensible defaults, but these inferences
-can be explicitly overridden if required. Once the `config.ini` file has
+can be explicitly overridden if required. It may be necessary to explicitly
+specify the paths to some of the libraries required by AMBiT, since SCons
+may not be able to automatically find the libraries on all systems. If 
+you need to do this, the Unix `locate` command can be useful to find the
+full path to the libraries (it may be necessary to refres `locate`'s 
+database with the `updatedb` if you've just installed a package). 
+For example, to find `sparsehash`, do:
+
+    $ locate sparsehash
+
+Each library should have an "include" directory, similar to 
+`/usr/local/include/sparsehash` - this is the directory which should go
+in your `config.ini`.
+
+Once the `config.ini` file has
 been filled as required, the software executable can be built by
 navigating to the top-level AMBiT directory and issuing the `scons`
 command. The minimal version of this (allowing the build system to
@@ -68,22 +89,21 @@ automatically find the required libraries) would look like:
     $ cp config_template.ini config.ini
     $ scons
 
+Additionally, you can pass the `-j` option to tell `scons` to use
+multiple cores when compiling AMBiT. For example, on a quad-core system
+we can do:
+    
+    $ cd /path/to/ambit
+    $ scons -j 4
+
+which will considerably speed up the build process by using compiling 4
+files at a time in parallel.
+
 Once you have a `config.ini` file working, it should continue to work
 unless dependencies and libraries get moved (very rare, even considering
 system upgrades). We strive to maintain backwards compatibility in the
 build system and try our best not to make changes which break working
 configurations.
-
-Additionally, we recommend passing the `-j` option to `scons` to use
-multiple cores when compiling AMBiT. For example, on a quad-core system
-we can do:
-
-    $ scons -j 4
-
-which will considerably speed up the build process by using all four
-cores (note: it’s important not to *oversubscribe* the build process,
-i.e. use more processes than there are physical cores on your machine,
-as this will `seriously` degrade performance).
 
 Finally, `scons` takes an optional `target` to build, which can be
 either `release` (the default), `debug` (to enable debugging options and
