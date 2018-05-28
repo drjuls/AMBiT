@@ -75,7 +75,7 @@ public:
     /** Defines minimal requirements for rconfigs to overlap:
             number of particle differences <= rank of operator
      */
-    static struct MinimalRelativisticConfigurationOverlap
+    struct MinimalRelativisticConfigurationOverlap
     {
         bool operator()(const RelativisticConfiguration& rconfig1, const RelativisticConfiguration& rconfig2) const
         {
@@ -87,7 +87,7 @@ public:
         Return vector of matrix elements.
      */
     template<typename RelativisticConfigurationOverlap = MinimalRelativisticConfigurationOverlap>
-    inline std::vector<double> GetMatrixElement(const LevelVector& levels, RelativisticConfigurationOverlap rconfig_comp = use_minimal_overlap) const;
+    inline std::vector<double> GetMatrixElement(const LevelVector& levels, RelativisticConfigurationOverlap rconfig_comp = MinimalRelativisticConfigurationOverlap()) const;
 
     /** Returns <left | O | right> for each pair of levels in their respective vectors.
         If eplsion != nullptr, we want
@@ -95,9 +95,9 @@ public:
         where <left| is one electron larger than |right>.
         Return array of matrix elements indexed by left_index * (num_right) + right_index.
      */
+
     template<typename RelativisticConfigurationOverlap = MinimalRelativisticConfigurationOverlap>
-    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels,
-                                                RelativisticConfigurationOverlap rconfig_comp = use_minimal_overlap, const ElectronInfo* epsilon = nullptr) const;
+    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, RelativisticConfigurationOverlap rconfig_comp = MinimalRelativisticConfigurationOverlap(), const ElectronInfo* epsilon = nullptr) const;
 
 protected:
     std::tuple<ElectronOperators...> m_operators;
@@ -518,7 +518,6 @@ int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectPro
     }
 
     //Copy differences
-    indirects.diff1.insert(indirects.diff1.end(), indirects.sorted_p1.begin(), indirects.sorted_p1.end());
     indirects.diff2.insert(indirects.diff2.end(), indirects.sorted_p2.begin(), indirects.sorted_p2.end());
 
     indirects.left = indirects.diff1;
