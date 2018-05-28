@@ -2,6 +2,8 @@
 #include "Include.h"
 #include <thread>
 
+namespace Ambit
+{
 LevelMap::LevelMap(pAngularDataLibrary lib): angular_library(lib) {}
 
 LevelMap::LevelMap(const std::string& file_id, pAngularDataLibrary lib):
@@ -260,4 +262,5 @@ void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_ve
     }
 
     file_err_handler->fclose(fp);
+}
 }

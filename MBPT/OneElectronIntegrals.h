@@ -6,6 +6,8 @@
 #include "Configuration/ElectronInfo.h"
 #include "Universal/SpinorFunction.h"
 
+namespace Ambit
+{
 /** OneElectronIntegrals takes a SpinorMatrixElement and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2),
     adding the angular dependence on m1 and m2.
@@ -370,4 +372,5 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Write(const std::string& fil
     }
 }
 
+}
 #endif

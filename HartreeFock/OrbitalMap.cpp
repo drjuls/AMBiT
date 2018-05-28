@@ -2,6 +2,8 @@
 #include "OrbitalMap.h"
 #include "Universal/Interpolator.h"
 
+namespace Ambit
+{
 OrbitalMap* OrbitalMap::Clone(pLattice new_lattice) const
 {
     OrbitalMap* ret;
@@ -132,4 +134,5 @@ void OrbitalMap::Print() const
                    << "  size: (" << it.second->size()
                    << ") " << std::setprecision(4) << lattice->R(it.second->size()) << std::endl;
     }
+}
 }

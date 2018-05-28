@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "HartreeFock/NucleusDecorator.h"
 
+namespace Ambit
+{
 FieldShiftDecorator::FieldShiftDecorator(pHFOperator wrapped_hf, double R0, double dR, double t, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
@@ -67,4 +69,5 @@ void FieldShiftCalculator::PrintTransition(const LevelID& left, const LevelID& r
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(6) << value << std::endl;
+}
 }

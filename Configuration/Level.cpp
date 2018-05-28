@@ -3,6 +3,8 @@
 #include "Universal/MathConstant.h"
 #include "NonRelConfiguration.h"
 
+namespace Ambit
+{
 HamiltonianID::HamiltonianID(const std::string& name):
     sym(-1)
 {
@@ -59,4 +61,5 @@ Level::Level(const double& energy, const double* csf_eigenvector, pHamiltonianID
 {
     memcpy(eigenvector.data(), csf_eigenvector, numCSFs * sizeof(double));
     gFactor = std::numeric_limits<double>::quiet_NaN();
+}
 }

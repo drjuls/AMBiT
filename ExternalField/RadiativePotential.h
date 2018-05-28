@@ -6,6 +6,8 @@
 #include "LimitApplicabilityWrapper.h"
 #include "Transitions.h"
 
+namespace Ambit
+{
 /** Uehling potential decorator.
     Uses step potential from Ginges & Berengut, J. Phys. B 49, 095001 (2016).
  */
@@ -123,4 +125,5 @@ public:
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
 };
 
+}
 #endif

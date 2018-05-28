@@ -6,6 +6,8 @@
 #include "Universal/Enums.h"
 #include "Transitions.h"
 
+namespace Ambit
+{
 class EJOperator : public TimeDependentSpinorOperator
 {
 public:
@@ -64,4 +66,5 @@ protected:
     int J;
 };
 
+}
 #endif

@@ -10,6 +10,8 @@
 #include "Universal/MathConstant.h"
 #include "MBPT/CoreMBPTCalculator.h"
 
+using namespace Ambit;
+
 TEST(BruecknerDecoratorTester, MgIISlow)
 {
     DebugOptions.LogHFIterations(true);

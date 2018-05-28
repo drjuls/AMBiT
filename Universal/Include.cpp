@@ -3,6 +3,8 @@
 // Use the standard fread inside our own fread.
 #undef fread
 
+namespace Ambit
+{
 extern size_t fread_other_endian(void* ptr, size_t size, size_t count, FILE* fp)
 {
     size_t num_read;
@@ -54,4 +56,5 @@ std::string itoa(int value, unsigned int base)
 	}
 
 	return sign.append(buf);	
+}
 }

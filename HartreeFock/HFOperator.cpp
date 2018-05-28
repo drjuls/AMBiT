@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 HFOperator::HFOperator(double Z, pCoreConst hf_core, pPhysicalConstant physical_constant, pIntegrator integration_strategy, pCoulombOperator coulomb) :
     HFOperatorBase(Z, hf_core, physical_constant, integration_strategy), coulombSolver(coulomb), currentExchangePotential(-1)
 {}
@@ -384,4 +386,5 @@ SpinorFunction HFOperator::CalculateExchange(const SpinorFunction& s) const
     }
 
     return exchange;
+}
 }

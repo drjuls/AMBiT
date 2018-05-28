@@ -3,6 +3,8 @@
 
 #include "HartreeFock/HFOperator.h"
 
+namespace Ambit
+{
 /** Add an extra exchange potential to a HF operator.
     Extra exchange potential is stored in currentExchangePotential.
     Note sign is for normal electrostatic potential: V_nucleus(r) > 0.
@@ -53,4 +55,5 @@ protected:
     SpinorFunction currentExchangePotential;
 };
 
+}
 #endif

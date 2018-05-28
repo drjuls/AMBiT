@@ -5,6 +5,8 @@
 #include "NonRelConfiguration.h"
 #include <iostream>
 
+namespace Ambit
+{
 /** LevelVector consists of Hamiltonian that levels come from,
     common relativistic config list, and vector of levels.
  */
@@ -219,4 +221,5 @@ void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print
     }
 }
 
+}
 #endif

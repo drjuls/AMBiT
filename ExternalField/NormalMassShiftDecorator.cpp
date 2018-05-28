@@ -3,6 +3,8 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 
+namespace Ambit
+{
 NormalMassShiftDecorator::NormalMassShiftDecorator(pHFOperator wrapped_hf, bool only_rel_nms, bool nonrel):
     BaseDecorator(wrapped_hf)
 {
@@ -61,4 +63,5 @@ SpinorFunction NormalMassShiftDecorator::CalculateExtraExchange(const SpinorFunc
     }
 
     return exchange;
+}
 }

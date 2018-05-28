@@ -8,6 +8,8 @@
 #include <sparsehash/dense_hash_map>
 #include <sparsehash/sparse_hash_map>
 
+namespace Ambit
+{
 /** Class to hold Slater integrals \f$ R^k(12,34) \f$.
     storage_id is used to store and retrieve integrals in files.
     The existence of reversal symmetry
@@ -160,6 +162,7 @@ protected:
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
 typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
 typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
+}
 
 #include "SlaterIntegrals.cpp"
 

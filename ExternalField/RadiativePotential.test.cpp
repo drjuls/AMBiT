@@ -4,6 +4,8 @@
 #include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 
+using namespace Ambit;
+
 TEST(RadiativePotentialTester, Uehling)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

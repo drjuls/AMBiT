@@ -4,6 +4,8 @@
 #include "Universal/Eigensolver.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+namespace Ambit
+{
 RelativisticConfiguration::RelativisticConfiguration(const std::string& name)
 {
     *this = RelativisticConfiguration(ConfigurationParser::ParseConfiguration<OrbitalInfo, int>(name));
@@ -61,7 +63,7 @@ int RelativisticConfiguration::GetNumberOfLevels() const
 
 double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body) const
 {
-    return ::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
+    return Ambit::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
 }
 
 void RelativisticConfiguration::Write(FILE* fp) const
@@ -133,4 +135,5 @@ void RelativisticConfiguration::Print(bool include_CSFs) const
             *outstream << std::endl;
         }
     }
+}
 }

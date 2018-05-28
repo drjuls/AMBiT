@@ -11,6 +11,8 @@
     #include <mpi.h>
 #endif
 
+namespace Ambit
+{
 AngularData::AngularData(int two_m):
     two_m(two_m), two_j(-1), num_CSFs(0), CSFs(nullptr), have_CSFs(false)
 {}
@@ -852,4 +854,5 @@ void AngularDataLibrary::PrintKeys() const
         if(pair.second->have_CSFs)
             *outstream << "; num CSFs = " << pair.second->num_CSFs << std::endl;
     }
+}
 }

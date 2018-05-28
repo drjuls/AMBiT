@@ -3,6 +3,8 @@
 
 #include "ODESolver.h"
 
+namespace Ambit
+{
 /** Find the potential due to a charge density
                            r< ^k
         I(r) = Integral[ ---------.density(r').dr' ]
@@ -71,4 +73,5 @@ protected:
 typedef std::shared_ptr<CoulombOperator> pCoulombOperator;
 typedef std::shared_ptr<const CoulombOperator> pCoulombOperatorConst;
 
+}
 #endif

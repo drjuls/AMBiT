@@ -11,6 +11,8 @@
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
 
+namespace Ambit
+{
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
     hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
 {
@@ -657,4 +659,5 @@ double BasisGenerator::GetNuclearRMSRadius() const
         return nucleus->CalculateNuclearRMSRadius();
     else
         return 0.0;
+}
 }

@@ -7,6 +7,8 @@
 #include "Universal/MathConstant.h"
 #include <sstream>
 
+namespace Ambit
+{
 class ConfigurationParser
 {
     /** Class that holds static functions to parse strings to configurations. */
@@ -130,4 +132,5 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
     return ret;
 }
 
+}
 #endif

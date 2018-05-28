@@ -3,6 +3,8 @@
 
 #include "RelativisticConfiguration.h"
 
+namespace Ambit
+{
 class ConfigurationComparator;
 class MostCSFsFirstComparator;
 class FewestProjectionsFirstComparator;
@@ -286,4 +288,5 @@ void RelativisticConfigList::sort(Comparator comp)
 typedef std::shared_ptr<RelativisticConfigList> pRelativisticConfigList;
 typedef std::shared_ptr<const RelativisticConfigList> pRelativisticConfigListConst;
 
+}
 #endif

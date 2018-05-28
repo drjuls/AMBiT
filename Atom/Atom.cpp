@@ -9,6 +9,8 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+namespace Ambit
+{
 Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier):
     user_input(userInput), Z(atomic_number), identifier(atom_identifier)
 {}
@@ -252,4 +254,5 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     *outstream << "Brueckner orbitals:\n";
     orbitals->valence->Print();
     *outstream << std::endl;
+}
 }

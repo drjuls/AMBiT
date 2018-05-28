@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cerrno>
 
+namespace Ambit
+{
 std::ostream* outstream;
 std::ostream* logstream;
 std::ostream* errstream;
@@ -85,4 +87,5 @@ int FileErrHandler::fwrite(const void* buf, size_t size, size_t nr, FILE* stream
         }
     }
     return(ret);
+}
 }

@@ -8,6 +8,8 @@
 #include "GFactor.h"
 #include "Atom/MultirunOptions.h"
 
+using namespace Ambit;
+
 TEST(HamiltonianMatrixTester, MgILevels)
 {
     DebugOptions.LogHFIterations(true);

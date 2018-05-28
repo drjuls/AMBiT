@@ -6,6 +6,8 @@
 #include "Basis/BSplineBasis.h"
 #include "RPAOrbital.h"
 
+namespace Ambit
+{
 class RPAOperator;
 
 /** Solve RPA equations self-consistently:
@@ -70,4 +72,5 @@ protected:
 
 typedef std::shared_ptr<RPASolver> pRPASolver;
 
+}
 #endif

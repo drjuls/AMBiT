@@ -4,6 +4,8 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
+namespace Ambit
+{
 OrbitalBase::OrbitalBase(const OrbitalInfo& info):
     SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
 {}
@@ -261,4 +263,5 @@ unsigned int OrbitalBase::NumNodes() const
         i++;
     }
     return zeros;
+}
 }

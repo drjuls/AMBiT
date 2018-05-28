@@ -6,6 +6,8 @@
 #include <set>
 #include <map>
 
+namespace Ambit
+{
 /** OrbitalMap is functionally a map from OrbitalInfo to pOrbital.
  */
 class OrbitalMap
@@ -74,4 +76,5 @@ protected:
 typedef std::shared_ptr<OrbitalMap> pOrbitalMap;
 typedef std::shared_ptr<const OrbitalMap> pOrbitalMapConst;
 
+}
 #endif

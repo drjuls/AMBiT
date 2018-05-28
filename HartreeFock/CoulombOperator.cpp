@@ -1,6 +1,8 @@
 #include "CoulombOperator.h"
 #include <gsl/gsl_math.h>
 
+namespace Ambit
+{
 CoulombOperator::CoulombOperator(pLattice lattice, pODESolver ode):
     OneDimensionalODE(lattice), fwd_direction(true), ode_solver(ode)
 {   SetK(0);
@@ -232,4 +234,5 @@ void CoulombOperator::EstimateSolutionNearInfinity(unsigned int numpoints, Radia
         f.dfdr[i] = (-double(k+1) * f.f[i] + rhof)/lattice->R(i);
         integrand += 0.5 * 1./gsl_pow_int(lattice->R(i), k+1) * rhof * lattice->dR(i);
     }
+}
 }

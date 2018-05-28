@@ -7,6 +7,8 @@
 #include <memory>
 #include <boost/weak_ptr.hpp>
 
+namespace Ambit
+{
 class LatticeObserver;
 
 /** The lattice class provides a conversion between a lattice with even spacing (x),
@@ -160,4 +162,5 @@ inline const double* Lattice::Rpower(unsigned int k)
         return Calculate_Rpower(k);
 }
 
+}
 #endif

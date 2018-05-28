@@ -4,6 +4,8 @@
 #include "SpinorODE.h"
 #include "Integrator.h"
 
+namespace Ambit
+{
 /** OneDimensionalODE is an abstract class for numerical integration of a simple one-dimensional
     linear ordinary differential equations (ODE) of the form
         df/dr = w[0] = w_f(r) f + w_const(r)
@@ -108,4 +110,5 @@ protected:
     std::vector<double> adams_coeff;
 };
 
+}
 #endif

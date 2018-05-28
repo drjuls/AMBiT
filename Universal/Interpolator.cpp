@@ -1,6 +1,8 @@
 #include "Interpolator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 Interpolator::Interpolator(const std::vector<double>& R_points, unsigned int order):
     lattice(pLattice())
 {
@@ -136,3 +138,4 @@ double Interpolator::FindExtremum(const std::vector<double>& function, unsigned 
     return A*x_offset*x_offset*x_offset + B*x_offset*x_offset + C*x_offset + D;
 }
 
+}

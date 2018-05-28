@@ -29,14 +29,16 @@
 #endif
 
 // MPI details (if not used, we can have NumProcessors == 1)
-int NumProcessors;
-int ProcessorRank;
+int Ambit::NumProcessors;
+int Ambit::ProcessorRank;
 
 // The debug options for the whole program.
-Debug DebugOptions;
+Ambit::Debug Ambit::DebugOptions;
 
 int main(int argc, char* argv[])
 {
+    using namespace Ambit;
+
     #ifdef AMBIT_USE_MPI
         #ifdef AMBIT_USE_OPENMP
             int MPI_thread_safety;
@@ -70,10 +72,10 @@ int main(int argc, char* argv[])
 
         // NOTE: these print to stderr rather than logstream, since that is the place stack-traces would
         // be written to
-        if(signal(SIGTERM, signal_handler) == SIG_ERR){
+        if(signal(SIGTERM, ::signal_handler) == SIG_ERR){
             fputs("Note: This system does not allow AMBiT to produce stack-traces on termination", stderr);
         }
-        if(signal(SIGSEGV, signal_handler) == SIG_ERR){
+        if(signal(SIGSEGV, ::signal_handler) == SIG_ERR){
             fputs("Note: This system does not allow AMBiT to produce stack-traces on a segmentation fault", stderr);
         }
     #endif
@@ -92,7 +94,7 @@ int main(int argc, char* argv[])
 
         // Check for help message
         if(lineInput.size() == 1 || lineInput.search(2, "--help", "-h"))
-        {   Ambit::PrintHelp(lineInput[0]);
+        {   Ambit::AmbitInterface::PrintHelp(lineInput[0]);
             return 0;
         }
 
@@ -121,7 +123,7 @@ int main(int argc, char* argv[])
         if(lineInput.search("-f"))
         {   inputFileName = lineInput.next("");
             if(inputFileName == "")
-                Ambit::PrintHelp(lineInput[0]);
+                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
         }
         else
         {   // Else look for .input arguments
@@ -138,7 +140,7 @@ int main(int argc, char* argv[])
             
             if(endOfInput && !lineInput.search("--recursive-build"))
             {   *errstream << "Input file not found" << std::endl;
-                Ambit::PrintHelp(lineInput[0]);
+                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
             }
         }
 
@@ -157,7 +159,7 @@ int main(int argc, char* argv[])
             }
         }
 
-        Ambit ambit(fileInput, identifier);
+        Ambit::AmbitInterface ambit(fileInput, identifier);
         ambit.EnergyCalculations();
 
         if(!fileInput.search("--check-sizes"))
@@ -188,7 +190,9 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-Ambit::Ambit(MultirunOptions& user_input, const std::string& identifier):
+namespace Ambit
+{
+AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& identifier):
     user_input(user_input), identifier(identifier)
 {
     if(ProcessorRank == 0)
@@ -201,7 +205,7 @@ Ambit::Ambit(MultirunOptions& user_input, const std::string& identifier):
     }
 }
 
-void Ambit::EnergyCalculations()
+void AmbitInterface::EnergyCalculations()
 {
     int Z = user_input("Z", 0);
     if(Z <= 0)
@@ -372,7 +376,7 @@ do { \
   } \
 } while(0)
 
-void Ambit::TransitionCalculations()
+void AmbitInterface::TransitionCalculations()
 {
     Atom& atom = atoms[first_run_index];
 
@@ -420,7 +424,7 @@ void Ambit::TransitionCalculations()
 
 #undef RUN_AND_STORE_TRANSITION
 
-void Ambit::Recombination()
+void AmbitInterface::Recombination()
 {
     std::string target_file = user_input("DR/Target/Filename", "");
     if(target_file.length() == 0)
@@ -456,7 +460,7 @@ void Ambit::Recombination()
     }
 
     *outstream << "\nTarget:" << std::endl;
-    Ambit target_calculator(target_input, target_id);
+    AmbitInterface target_calculator(target_input, target_id);
     target_calculator.EnergyCalculations();
     *outstream << "----------------------------------------------------------" << std::endl;
 
@@ -485,7 +489,7 @@ void Ambit::Recombination()
         atoms[first_run_index].Autoionization(target_level_vec);
 }
 
-void Ambit::PrintHelp(const std::string& ApplicationName)
+void AmbitInterface::PrintHelp(const std::string& ApplicationName)
 {
     *outstream << ApplicationName << std::endl;
     *outstream
@@ -514,6 +518,7 @@ void Ambit::PrintHelp(const std::string& ApplicationName)
         << "   --generate-integrals-mbpt\n"
         << "                    calculate specified MBPT integrals\n\n"
         << "Sample input files are included with the documentation." << std::endl;
+}
 }
 
 #ifdef UNIX

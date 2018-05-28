@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
     #if !(_FUS)
@@ -28,16 +29,17 @@
 #endif
 
 // MPI details (if not used, we can have NumProcessors == 1)
-int NumProcessors;
-int ProcessorRank;
+int Ambit::NumProcessors;
+int Ambit::ProcessorRank;
 
 // The debug options for the whole program.
-Debug DebugOptions;
+Ambit::Debug Ambit::DebugOptions;
 
 void PrintHelp(const std::string& ApplicationName);
 
 int main(int argc, char* argv[])
 {
+    using namespace Ambit;
     #ifdef AMBIT_USE_MPI
         MPI_Init(&argc, &argv);
         MPI_Comm_size(MPI_COMM_WORLD, &NumProcessors);

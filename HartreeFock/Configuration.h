@@ -9,6 +9,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 
+namespace Ambit
+{
 /** Configuration is similar to std::map<OrbitalType, OccupancyType>,
     with a simplified, and sometimes intentionally modified, interface.
     OrbitalType should have functions L() and Name().
@@ -514,4 +516,5 @@ Configuration<OrbitalType, OccupancyType>::GetConfigDifferencesCount(const BaseC
     return diff_count/2;
 }
 
+}
 #endif

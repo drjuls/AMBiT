@@ -5,10 +5,12 @@
 #include "MultirunOptions.h"
 #include "Atom.h"
 
-class Ambit
+namespace Ambit
+{
+class AmbitInterface
 {
 public:
-    Ambit(MultirunOptions& user_input, const std::string& identifier);
+    AmbitInterface(MultirunOptions& user_input, const std::string& identifier);
 
     void EnergyCalculations();
     void Recursive();
@@ -24,6 +26,7 @@ public:
     unsigned int first_run_index;           // "main" or "first" run index, corresponding to parameter = 0 when multiparameters are used
     std::vector<Atom> atoms;                // atoms[i] corresponds to run_indexes[i]
 };
+}
 
 #ifdef UNIX
 // Signal handler: emits a stack-trace on SIGTERM or SIGSEGV. Only does something useful on UNIX systems

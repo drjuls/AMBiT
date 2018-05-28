@@ -1,6 +1,8 @@
 #include "Include.h"
 #include "SpinorFunction.h"
 
+namespace Ambit
+{
 SpinorFunction::SpinorFunction(int kappa, unsigned int size):
     kappa(kappa)
 {
@@ -285,4 +287,5 @@ bool RadialFunction::Print(FILE* fp, pLattice lattice) const
         }
 
     return true;
+}
 }

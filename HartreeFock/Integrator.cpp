@@ -1,6 +1,8 @@
 #include "Integrator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 double Integrator::GetInnerProduct(const SpinorFunction& a, const SpinorFunction& b) const
 {
     RadialFunction integrand = a.GetDensity(b);
@@ -71,4 +73,5 @@ double SimpsonsIntegrator::GetPotentialMatrixElement(const SpinorFunction& a, co
 {
     int size = mmin(a.size(), V.size());
     return Integrate(size, [&](int i){ return (a.f[i] * a.f[i] + a.g[i] * a.g[i]) * V.f[i]; });
+}
 }

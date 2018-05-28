@@ -4,6 +4,8 @@
 #include "HartreeFock/SpinorOperator.h"
 #include "Transitions.h"
 
+namespace Ambit
+{
 /** Hyperfine operator based on relativistic Johnson formula. */
 class HyperfineDipoleOperator : public SpinorOperator
 {
@@ -65,4 +67,5 @@ protected:
     double Q;
 };
 
+}
 #endif

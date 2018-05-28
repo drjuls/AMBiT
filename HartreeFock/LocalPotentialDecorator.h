@@ -3,6 +3,8 @@
 
 #include "HFOperator.h"
 
+namespace Ambit
+{
 /** Add an extra local potential to a HF operator.
     Extra local potential should be stored in directPotential and
     must be set by subclasses via SetCore() and/or SetODEParameters().
@@ -77,4 +79,5 @@ protected:
 typedef std::shared_ptr<LocalExchangeApproximation> pLocalExchangeApproximation;
 typedef std::shared_ptr<const LocalExchangeApproximation> pLocalExchangeApproximationConst;
 
+}
 #endif

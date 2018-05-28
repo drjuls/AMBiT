@@ -8,6 +8,8 @@
 #include <Eigen/Eigen>
 #include <gsl/gsl_bspline.h>
 
+namespace Ambit
+{
 // This file contains B-spline routines from BasisGenerator as well as BSplineBasis
 pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
 {
@@ -429,4 +431,5 @@ pOrbitalMap BSplineBasis::GeneratePositiveBasis(pHFOperatorConst hf, int kappa)
 pOrbitalMap BSplineBasis::GenerateCompleteBasis(pHFOperatorConst hf, int kappa)
 {
     return GenerateBSplines(hf, kappa, 0);
+}
 }

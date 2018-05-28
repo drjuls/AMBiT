@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 
+namespace Ambit
+{
 typedef std::map<int, SigmaPotential*> SigmaMap;
 typedef std::map<OrbitalInfo, double> SigmaAmount;
 
@@ -88,4 +90,5 @@ protected:
 typedef std::shared_ptr<ExcitedStates> pExcitedStates;
 typedef std::shared_ptr<const ExcitedStates> pExcitedStatesConst;
 
+}
 #endif

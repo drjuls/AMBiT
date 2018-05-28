@@ -1,5 +1,7 @@
 #include "SpinorODE.h"
 
+namespace Ambit
+{
 SpinorODE::SpinorODE(pLattice lattice): LatticeObserver(lattice), include_nonlocal(true)
 {}
 
@@ -30,4 +32,5 @@ void SpinorODE::GetDerivative(Orbital& fg) const
         fg.dfdr[i] = w[0];
         fg.dgdr[i] = w[1];
     }
+}
 }

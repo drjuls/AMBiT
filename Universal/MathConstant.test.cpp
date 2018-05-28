@@ -3,6 +3,8 @@
 #include "Include.h"
 #include "gtest/gtest.h"
 
+using namespace Ambit;
+
 TEST(ConstantTester, Electron3j)
 {
     MathConstant* constant = MathConstant::Instance();

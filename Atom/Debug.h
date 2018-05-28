@@ -3,6 +3,8 @@
 
 #include <chrono>
 
+namespace Ambit
+{
 class Debug
 {
     /** Set of options for debugging and logging.
@@ -96,4 +98,5 @@ inline Debug::Debug()
     MarkTime();
 }
 
+}
 #endif

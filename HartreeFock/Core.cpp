@@ -3,6 +3,8 @@
 #include "Universal/MathConstant.h"
 #include "ConfigurationParser.h"
 
+namespace Ambit
+{
 Core::Core(pLattice lat, const std::string& filling): OrbitalMap(lat)
 {
     if(!filling.empty())
@@ -135,4 +137,5 @@ void Core::Read(FILE* fp)
         OrbitalInfo info(pqn, kappa);
         occupancy.insert(std::pair<OrbitalInfo, double>(info, occ));
     }
+}
 }

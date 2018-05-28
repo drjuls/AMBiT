@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace Ambit
+{
 enum class Parity { even, odd };
 
 enum class ContinuumNormalisation { LandauNu, LandauEnergy, Cowan, Unitary };
@@ -162,4 +164,5 @@ namespace TransitionCalculationMethod
     }
 }
 
+}
 #endif

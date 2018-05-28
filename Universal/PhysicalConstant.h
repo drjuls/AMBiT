@@ -3,6 +3,8 @@
 
 #include <memory>
 
+namespace Ambit
+{
 /** Fundamental physical constants.
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
       c = 1/alpha ~ 137 depends on alpha.
@@ -39,4 +41,5 @@ protected:
 typedef std::shared_ptr<PhysicalConstant> pPhysicalConstant;
 typedef std::shared_ptr<const PhysicalConstant> pPhysicalConstantConst;
 
+}
 #endif

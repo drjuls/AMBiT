@@ -7,6 +7,8 @@
 #include <iostream>
 #include <set>
 
+namespace Ambit
+{
 /** Symmetry provides a key to uniquely identify a particular Hamiltonian
     using an identifier for the Hamiltonian (J, parity).
     It is convertible to/from an int called Jpi, for which:
@@ -116,4 +118,5 @@ protected:
     int Jpi;
 };
 
+}
 #endif

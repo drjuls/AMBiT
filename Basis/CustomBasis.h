@@ -4,6 +4,8 @@
 #include "ExcitedStates.h"
 #include "HartreeFock/NonRelInfo.h"
 
+namespace Ambit
+{
 class CustomBasis : public ExcitedStates
 {
 public:
@@ -30,4 +32,5 @@ protected:
     std::string filename;
 };
 
+}
 #endif

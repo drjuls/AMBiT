@@ -7,6 +7,8 @@
 #include "HartreeFocker.h"
 #include "ConfigurationParser.h"
 
+using namespace Ambit;
+
 TEST(HFOperatorTester, ODESolver)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

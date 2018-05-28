@@ -4,6 +4,8 @@
 
 #define CONFIG_PRINT_LIMIT 5.
 
+namespace Ambit
+{
 Eigenstates::Eigenstates(const std::string& atom_identifier, pRelativisticConfigListConst configlist):
     identifier(atom_identifier), configs(configlist),
     num_eigenvalues(0), num_eigenvectors(0), num_gFactors(0), eigenvalues(nullptr), eigenvectors(nullptr), gFactors(nullptr)
@@ -407,4 +409,5 @@ bool SymmetryEigenstatesMap::RestoreAll()
     }
     
     return result;
+}
 }

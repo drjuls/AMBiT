@@ -6,6 +6,8 @@
 #include <vector>
 #include <list>
 
+namespace Ambit
+{
 class RelativisticConfiguration;
 
 /** A projection is kind of like a configuration, however there
@@ -68,4 +70,5 @@ protected:
 
 typedef std::vector<Projection> ProjectionList;
 
+}
 #endif

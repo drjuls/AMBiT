@@ -4,6 +4,8 @@
 #include "NonRelInfo.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::string& configuration)
 {
     OccupationMap ret;
@@ -87,4 +89,5 @@ std::vector<int> ConfigurationParser::ParseBasisSize(const std::string& basis)
     }
 
     return num_states;
+}
 }

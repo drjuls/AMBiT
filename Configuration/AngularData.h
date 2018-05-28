@@ -11,6 +11,8 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/filesystem.hpp>
 
+namespace Ambit
+{
 class RelativisticConfiguration;
 class AngularDataLibrary;
 
@@ -218,4 +220,5 @@ protected:
 
 typedef std::shared_ptr<AngularDataLibrary> pAngularDataLibrary;
 
+}
 #endif

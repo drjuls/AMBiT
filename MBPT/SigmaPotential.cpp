@@ -2,6 +2,8 @@
 #include "SigmaPotential.h"
 #include "Universal/Interpolator.h"
 
+namespace Ambit
+{
 typedef Eigen::Map<const Eigen::VectorXd, Eigen::Unaligned, Eigen::InnerStride<>> EigenVectorMapped;
 typedef Eigen::Map<const Eigen::ArrayXd, Eigen::Unaligned, Eigen::InnerStride<>> EigenArrayMapped;
 
@@ -230,4 +232,5 @@ void SigmaPotential::Write(const std::string& filename) const
 
         file_err_handler->fclose(fp);
     }
+}
 }

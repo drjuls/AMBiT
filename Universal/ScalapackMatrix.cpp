@@ -46,6 +46,8 @@ void pdsyev_(const char* JOBZ, const char* UPLO, const int* N, double* A, const 
              double* WORK, const int* LWORK, int* INFO);
 }
 
+namespace Ambit
+{
 ScalapackMatrix::ScalapackMatrix(unsigned int size):
     Matrix()
 {
@@ -712,6 +714,7 @@ void ScalapackMatrix::TestEigenvalues(const double* eigenvalues, const double* V
     delete[] buffer;
     delete[] column;
     delete[] MtimesV;
+}
 }
 
 #endif

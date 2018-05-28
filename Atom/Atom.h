@@ -10,6 +10,8 @@
 #include "HartreeFock/NucleusDecorator.h"
 #include "MBPT/Sigma3Calculator.h"
 
+namespace Ambit
+{
 class Sigma3Calculator;
 
 /** Atom is something like a "LevelGenerator", but with Read/Write operations,
@@ -169,4 +171,5 @@ protected:
     pLevelStore levels;
 };
 
+}
 #endif

@@ -6,6 +6,8 @@
 #include "Configuration/IndexedIterator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 /** Classification of orbitals matches maps OrbitalManager. */
 enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
 
@@ -124,4 +126,5 @@ inline ReverseOrbitalIndex GetReverseIndex(const OrbitalIndex& state_index)
     return ret;
 }
 
+}
 #endif

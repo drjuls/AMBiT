@@ -6,6 +6,8 @@
 #include "ExternalField/RPAOperator.h"
 #include "ExternalField/RPASolver.h"
 
+namespace Ambit
+{
 std::string Name(const LevelID& levelid)
 {
     return (levelid.first->Name() + ":" + itoa(levelid.second));
@@ -385,4 +387,5 @@ LevelID TransitionCalculator::make_LevelID(const std::string& name)
     }
 
     return ret;
+}
 }

@@ -12,6 +12,8 @@
 #include "Configuration/GFactor.h"
 #include "RPAOperator.h"
 
+using namespace Ambit;
+
 TEST(EJOperatorTester, LiTransitions)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

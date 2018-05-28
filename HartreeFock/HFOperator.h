@@ -4,6 +4,8 @@
 #include "HFOperatorBase.h"
 #include "CoulombOperator.h"
 
+namespace Ambit
+{
 /** The relativistic Hartree-Fock (Dirac-Fock) operator:
     \f[
     h = \left( \begin{array}{cc}
@@ -114,4 +116,5 @@ protected:
     SpinorFunction currentExchangePotential;
 };
 
+}
 #endif

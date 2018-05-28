@@ -2,6 +2,8 @@
 #include "OrbitalInfo.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 bool OrbitalInfo::operator<(const OrbitalInfo& other) const
 {
     // Sort on abs(kappa) first:
@@ -40,4 +42,5 @@ std::string OrbitalInfo::Name() const
         ret.append(1, '+');
 
     return ret;
+}
 }

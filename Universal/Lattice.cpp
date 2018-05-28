@@ -2,6 +2,8 @@
 #include "Lattice.h"
 #include <fstream>
 
+namespace Ambit
+{
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), num_points(numpoints), original_size(numpoints), rmin(r_min)
 {
@@ -170,4 +172,5 @@ void Lattice::Write(FILE* binary_outfile) const
 
     file_err_handler->fwrite(r.data(), sizeof(double), num_points, binary_outfile);
     file_err_handler->fwrite(dr.data(), sizeof(double), num_points, binary_outfile);
+}
 }

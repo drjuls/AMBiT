@@ -4,6 +4,8 @@
 #include "OrbitalInfo.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 class NonRelInfo : public OrbitalInfo
 {
     /** Stores a non-relativistic single particle state info. */
@@ -53,4 +55,5 @@ inline std::string NonRelInfo::Name() const
     return ret;
 }
 
+}
 #endif

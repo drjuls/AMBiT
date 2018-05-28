@@ -3,6 +3,8 @@
 #include "Include.h"
 #include "Basis/BSplineBasis.h"
 
+namespace Ambit
+{
 void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
 {
     hf0 = hf;
@@ -295,4 +297,5 @@ double RPASolver::IterateDeltaOrbital(std::pair<pDeltaOrbital, pDeltaOrbital>& o
     delta_DE = new_DE - start_DE;
 
     return delta_DE;
+}
 }

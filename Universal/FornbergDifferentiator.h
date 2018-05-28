@@ -4,6 +4,8 @@
 #include "Lattice.h"
 #include <Eigen/Eigen>
 
+namespace Ambit
+{
 class FornbergDifferentiator : public LatticeObserver
 {
 public:
@@ -59,4 +61,5 @@ protected:
 
 typedef std::shared_ptr<FornbergDifferentiator> pFornbergDifferentiator;
 
+}
 #endif

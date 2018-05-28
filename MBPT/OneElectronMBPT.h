@@ -5,6 +5,8 @@
 #include "CoreMBPTCalculator.h"
 #include "ValenceMBPTCalculator.h"
 
+namespace Ambit
+{
 /** Valence-valence HFIntegrals including core and/or virtual correlations via MBPT.
     Default setting: include all core MBPT and no valence MBPT. Change using IncludeCore()/IncludeValence().
     Writing to file is overriden, and occurs automatically when calculating as a failsafe.
@@ -49,4 +51,5 @@ protected:
 
 typedef std::shared_ptr<OneElectronMBPT> pOneElectronMBPT;
 
+}
 #endif

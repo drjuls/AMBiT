@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 void ExchangeDecorator::Alert()
 {
     if(currentExchangePotential.size() > lattice->size())
@@ -67,4 +69,5 @@ SpinorFunction ExchangeDecorator::ApplyTo(const SpinorFunction& a) const
     ta -= CalculateExtraExchange(a) * scale;
 
     return ta;
+}
 }

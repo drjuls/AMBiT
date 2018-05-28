@@ -5,6 +5,8 @@
 #include "SlaterIntegrals.h"
 #include "Configuration/ElectronInfo.h"
 
+namespace Ambit
+{
 /** Calculate effective three-body diagrams of many-body perturbation theory.
     Three-body diagrams have the form:
     a___ _______ ___d
@@ -66,4 +68,5 @@ protected:
 
 typedef std::shared_ptr<Sigma3Calculator> pSigma3Calculator;
 
+}
 #endif

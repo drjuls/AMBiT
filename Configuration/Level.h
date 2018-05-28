@@ -6,6 +6,8 @@
 #include "Universal/Enums.h"
 #include <boost/iterator/filter_iterator.hpp>
 
+namespace Ambit
+{
 /** HamiltonianID provides a key to uniquely identify a particular Hamiltonian
     using an identifier for the Hamiltonian (e.g. J, parity).
  */
@@ -100,4 +102,5 @@ protected:
 typedef std::shared_ptr<Level> pLevel;
 typedef std::shared_ptr<const Level> pLevelConst;
 
+}
 #endif

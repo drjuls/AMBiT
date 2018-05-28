@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 pHartreeY BreitZero::Clone() const
 {
     auto ret(std::make_shared<BreitZero>(*this));
@@ -270,4 +272,5 @@ RadialFunction BreitZero::Q(const SpinorFunction& i, const SpinorFunction& k) co
 {
     RadialFunction ret = i.GetDensity(Q(k, i.Kappa()));
     return ret;
+}
 }

@@ -4,6 +4,8 @@
 #include "HFOperator.h"
 #include "Universal/Enums.h"
 
+namespace Ambit
+{
 class HartreeFocker
 {
 public:
@@ -141,4 +143,5 @@ protected:
     };
 };
 
+}
 #endif

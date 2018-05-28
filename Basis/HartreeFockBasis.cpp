@@ -2,6 +2,8 @@
 #include "BasisGenerator.h"
 #include "HartreeFock/HartreeFocker.h"
 
+namespace Ambit
+{
 pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
 {
     pOrbitalMap excited(new OrbitalMap(lattice));
@@ -64,4 +66,5 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
     }
 
     return excited;
+}
 }

@@ -1,5 +1,7 @@
 #include "RelativisticConfigList.h"
 
+namespace Ambit
+{
 unsigned int RelativisticConfigList::NumCSFs() const
 {
     unsigned int total = 0;
@@ -117,4 +119,5 @@ void RelativisticConfigList::Write(FILE* fp) const
     {
         relconfig.Write(fp);
     }
+}
 }

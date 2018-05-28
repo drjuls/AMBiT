@@ -4,6 +4,8 @@
 #include "Universal/MathConstant.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+namespace Ambit
+{
 NonRelConfiguration::NonRelConfiguration(const std::string& name)
 {
     *this = NonRelConfiguration(ConfigurationParser::ParseConfiguration<NonRelInfo, int>(name));
@@ -215,4 +217,5 @@ void SortAndUnique(pConfigList& config_list)
     std::sort(itsmall, config_list->first.end());
     last = std::unique(itsmall, config_list->first.end());
     config_list->first.resize(last-config_list->first.begin());
+}
 }

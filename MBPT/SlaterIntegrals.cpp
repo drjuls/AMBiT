@@ -7,6 +7,8 @@
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
+namespace Ambit
+{
 template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
     SlaterIntegralsInterface(orbitals, two_body_reverse_symmetry_exists)
@@ -364,4 +366,5 @@ void SlaterIntegrals<MapType>::Write(const std::string& filename) const
 
         file_err_handler->fclose(fp);
     }
+}
 }

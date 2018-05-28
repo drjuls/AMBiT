@@ -3,6 +3,8 @@
 
 #include "Configuration/Level.h"
 
+namespace Ambit
+{
 /** SingleOrbitalID defines a Hamiltonian of size 1:
     just the one configuration from one orbital.
     They are distinguishable by PQN().
@@ -133,4 +135,5 @@ protected:
     NonRelConfiguration nrconfig;
 };
 
+}
 #endif

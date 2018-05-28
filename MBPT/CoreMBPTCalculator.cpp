@@ -6,6 +6,8 @@
 #include <omp.h>
 #endif
 
+namespace Ambit
+{
 CoreMBPTCalculator::CoreMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
     MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), one_body(one_body), two_body(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
@@ -994,4 +996,5 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     if(debug)
         *logstream << "  " << std::setprecision(6) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << std::endl;
     return energy;
+}
 }

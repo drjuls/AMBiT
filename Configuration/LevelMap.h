@@ -8,6 +8,8 @@
 #include <map>
 #include <boost/filesystem.hpp>
 
+namespace Ambit
+{
 template <class Value>
 struct DereferenceComparator
 {
@@ -127,4 +129,5 @@ protected:
     pAngularDataLibrary angular_library;
 };
 
+}
 #endif

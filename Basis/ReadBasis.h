@@ -4,6 +4,8 @@
 #include "Include.h"
 #include "ExcitedStates.h"
 
+namespace Ambit
+{
 class ReadBasis : public ExcitedStates
 {
     /** Read basis functions from a GRASP file.
@@ -31,4 +33,5 @@ protected:
     std::string filename;
 };
 
+}
 #endif

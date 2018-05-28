@@ -4,6 +4,8 @@
 #include "CoulombOperator.h"
 #include "Universal/Interpolator.h"
 
+namespace Ambit
+{
 RadialFunction LocalPotentialDecorator::GetDirectPotential() const
 {
     RadialFunction ret = wrapped->GetDirectPotential();
@@ -195,4 +197,5 @@ void LocalExchangeApproximation::Alert()
 {
     if(directPotential.size() > lattice->size())
         directPotential.resize(lattice->size());
+}
 }

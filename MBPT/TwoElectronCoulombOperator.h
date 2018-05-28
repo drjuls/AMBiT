@@ -4,6 +4,8 @@
 #include "Configuration/ElectronInfo.h"
 #include "MBPT/SlaterIntegrals.h"
 
+namespace Ambit
+{
 /** Holds two-electron radial integrals (which may have MBPT) and adds angular part to give two-body matrix elements.
     Option include_off_parity will include "off-parity" matrix elements if they are found in the radial integrals
     (these diagams are found in MBPT and Breit interactions).
@@ -37,4 +39,5 @@ protected:
 
 typedef std::shared_ptr<TwoElectronCoulombOperator> pTwoElectronCoulombOperator;
 
+}
 #endif

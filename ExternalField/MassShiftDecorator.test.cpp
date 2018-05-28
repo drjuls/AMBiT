@@ -7,6 +7,8 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+using namespace Ambit;
+
 TEST(MassShiftDecoratorTester, CaII)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

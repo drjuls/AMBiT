@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
 
+namespace Ambit
+{
 Sigma3Calculator::Sigma3Calculator(pOrbitalManagerConst orbitals, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
     MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), two_body(two_body), include_valence(false),
     include_core(true), deep(orbitals->deep), high(orbitals->high)
@@ -193,4 +195,5 @@ double Sigma3Calculator::GetSecondOrderSigma3(const ElectronInfo& e1, const Elec
         total = - total;
 
     return total;
+}
 }

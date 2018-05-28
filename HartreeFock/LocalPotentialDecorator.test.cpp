@@ -8,6 +8,8 @@
         Sapirstein & Cheng, PRA 66, 042501 (2002).
  */
 
+using namespace Ambit;
+
 TEST(LocalPotentialDecoratorTester, CoreHartree)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

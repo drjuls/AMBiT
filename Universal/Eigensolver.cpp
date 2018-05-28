@@ -13,6 +13,8 @@
     #define dsygv_  dsygv
 #endif
 
+namespace Ambit
+{
 static Matrix* aa;
 
 extern "C"{
@@ -334,4 +336,5 @@ bool Eigensolver::SolveMatrixEquation(double* A_matrix, double* B_matrix, double
         }
     }
     return false;
+}
 }

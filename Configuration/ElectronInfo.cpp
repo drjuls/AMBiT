@@ -1,6 +1,8 @@
 #include "Include.h"
 #include "ElectronInfo.h"
 
+namespace Ambit
+{
 const ElectronInfo& ElectronInfo::operator=(const ElectronInfo& other)
 {
     OrbitalInfo::operator=(other);
@@ -61,4 +63,5 @@ std::string ElectronInfo::Name() const
     name.append(buffer);
 
     return name;
+}
 }

@@ -1,6 +1,8 @@
 #include "RPAOperator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY, pRPASolver rpa_solver):
     TimeDependentSpinorOperator(external->GetK(), external->GetParity(), external->GetIntegrator()),
     external(external), hf(hf), hartreeY(hartreeY), core(nullptr), solver(rpa_solver), scale(1.0)
@@ -287,4 +289,5 @@ RadialFunction RPAOperator::GetRPAField() const
     }
 
     return ret * (1./scale);
+}
 }

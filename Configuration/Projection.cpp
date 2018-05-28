@@ -3,6 +3,8 @@
 #include "RelativisticConfiguration.h"
 #include "HartreeFock/NonRelInfo.h"
 
+namespace Ambit
+{
 Projection::Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& TwoMs)
 {
     config.reserve(relconfig.ParticleNumber());
@@ -190,4 +192,5 @@ int Projection::GetProjectionDifferences3(const Projection& p1, const Projection
         return int(diff1_size);
     else
         return -int(diff1_size);
+}
 }

@@ -3,6 +3,8 @@
 
 #include "HartreeFock/SpinorOperator.h"
 
+namespace Ambit
+{
 /** Time-dependent external operators oscillate with a frequency omega:
     \f[
         \hat h = f \exp(-i \omega t) + f^\dagger \exp(i \omega t)
@@ -36,4 +38,5 @@ protected:
 typedef std::shared_ptr<TimeDependentSpinorOperator> pTimeDependentSpinorOperator;
 typedef std::shared_ptr<const TimeDependentSpinorOperator> pTimeDependentSpinorOperatorConst;
 
+}
 #endif

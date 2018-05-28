@@ -5,6 +5,8 @@
 #include "CoreMBPTCalculator.h"
 #include "ValenceMBPTCalculator.h"
 
+namespace Ambit
+{
 /** Valence-valence SlaterIntegrals (for CI) including core and/or virtual correlations via MBPT.
     CoreValenceIntegrals<MapType> both is a SlaterIntegrals<MapType> and has one for use in the MBPTCalculator.
     Default setting: include all core MBPT and no valence MBPT. Change using IncludeCore()/IncludeValence().
@@ -68,6 +70,7 @@ protected:
 
 typedef CoreValenceIntegrals<std::map<unsigned long long int, double>> CoreValenceIntegralsMap;
 typedef std::shared_ptr<CoreValenceIntegralsMap> pCoreValenceIntegralsMap;
+}
 
 #include "CoreValenceIntegrals.cpp"
 

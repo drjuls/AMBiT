@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <vector>
 
+namespace Ambit
+{
 class RadialFunction;
 
 /** SpinorFunction is the radial part of a Dirac function of the form
@@ -135,4 +137,5 @@ else
     return Parity::odd;
 }
 
+}
 #endif

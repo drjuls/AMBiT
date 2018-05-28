@@ -7,6 +7,8 @@
 #include "RPAOperator.h"
 #include <map>
 
+namespace Ambit
+{
 /** LevelID uniquely specifies a Level (HamiltonianID and index).
     The principle of don't be a jerk programming applies: for any calculation we should only be using one
     type of HamiltonianID in Atom, so no comparisons between pHamiltonianIDs of different classes occurs.
@@ -113,4 +115,5 @@ protected:
     std::map<TransitionID, double> matrix_elements;
 };
 
+}
 #endif

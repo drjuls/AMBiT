@@ -4,6 +4,8 @@
 #include "HartreeFock/HartreeY.h"
 #include "Universal/FornbergDifferentiator.h"
 
+namespace Ambit
+{
 /** Non-relativistic specific mass shift operator [Berengut et al. PRA 68, 022502 (2003)].
     \f[
         P^1 (ac, bd) = \lambda p_{ab} p_{cd}
@@ -73,4 +75,5 @@ protected:
 
 typedef std::shared_ptr<TwoBodySMSOperator> pSMSOperator;
 
+}
 #endif

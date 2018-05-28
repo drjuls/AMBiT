@@ -4,6 +4,8 @@
 #include "Include.h"
 #include "HartreeFock/Core.h"
 
+using namespace Ambit;
+
 TEST(AngularDataTester, Projections)
 {
     // Create some RelativisticConfigurations and check the projections correspond to those expected.

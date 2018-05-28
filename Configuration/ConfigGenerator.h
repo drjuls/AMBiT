@@ -11,6 +11,8 @@
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/TwoElectronCoulombOperator.h"
 
+namespace Ambit
+{
 /** ConfigGenerator makes the set of projections for use in CI method.
     This includes a bunch of routines to create a set of
     non-relativistic configurations (eg: 3d2 4s, 4s2, ...),
@@ -84,4 +86,5 @@ protected:
     pConfigList leading_configs;
 };
 
+}
 #endif

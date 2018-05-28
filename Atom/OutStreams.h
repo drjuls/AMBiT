@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cstdio>
 
+namespace Ambit
+{
 class OutStreams
 {
 public:
@@ -34,4 +36,5 @@ protected:
     bool print_errors; // Ensures we don't print too many error messages for the block of writes
 };
 
+}
 #endif

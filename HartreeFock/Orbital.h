@@ -9,6 +9,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+namespace Ambit
+{
 class Orbital;
 class OrbitalInfo;
 
@@ -219,5 +221,5 @@ auto OrbitalTemplate<Base, Derived>::operator*(const RadialFunction& chi) const 
     return (ret *= chi);
 }
 
+}
 #endif
-
