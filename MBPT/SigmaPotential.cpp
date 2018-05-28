@@ -184,24 +184,24 @@ bool SigmaPotential::Read(const std::string& filename)
     {   return false;
     }
 
-    fread(&matrix_size, sizeof(unsigned int), 1, fp);
-    fread(&start, sizeof(unsigned int), 1, fp);
-    fread(&stride, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&matrix_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&start, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&stride, sizeof(unsigned int), 1, fp);
 
-    fread(&use_fg, sizeof(bool), 1, fp);
-    fread(&use_gg, sizeof(bool), 1, fp);
+    file_err_handler->fread(&use_fg, sizeof(bool), 1, fp);
+    file_err_handler->fread(&use_gg, sizeof(bool), 1, fp);
 
     resize_and_clear(start + matrix_size * stride);
 
-    fread(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
+    file_err_handler->fread(ff.data(), sizeof(double), matrix_size * matrix_size, fp);
 
     if(use_fg)
-    {   fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
-        fread(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
+    {   file_err_handler->fread(fg.data(), sizeof(double), matrix_size * matrix_size, fp);
+        file_err_handler->fread(gf.data(), sizeof(double), matrix_size * matrix_size, fp);
     }
 
     if(use_gg)
-        fread(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
+        file_err_handler->fread(gg.data(), sizeof(double), matrix_size * matrix_size, fp);
 
     file_err_handler->fclose(fp);
     return true;

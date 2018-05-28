@@ -148,16 +148,16 @@ void SpinorFunction::Write(FILE* fp) const
 
 void SpinorFunction::Read(FILE* fp)
 {
-    fread(&kappa, sizeof(int), 1, fp);
+    file_err_handler->fread(&kappa, sizeof(int), 1, fp);
 
     unsigned int my_size;
-    fread(&my_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&my_size, sizeof(unsigned int), 1, fp);
     resize(my_size);
 
-    fread(f.data(), sizeof(double), my_size, fp);
-    fread(g.data(), sizeof(double), my_size, fp);
-    fread(dfdr.data(), sizeof(double), my_size, fp);
-    fread(dgdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fread(f.data(), sizeof(double), my_size, fp);
+    file_err_handler->fread(g.data(), sizeof(double), my_size, fp);
+    file_err_handler->fread(dfdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fread(dgdr.data(), sizeof(double), my_size, fp);
 }
 
 RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr)

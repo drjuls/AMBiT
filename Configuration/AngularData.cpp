@@ -655,7 +655,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         return;
 
     int num_angular_data_objects = 0;
-    fread(&num_angular_data_objects, sizeof(int), 1, fp);
+    file_err_handler->fread(&num_angular_data_objects, sizeof(int), 1, fp);
 
     int count = 0;
 
@@ -663,15 +663,15 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     {
         // Key
         int key_size = 0;
-        fread(&key_size, sizeof(int), 1, fp);
+        file_err_handler->fread(&key_size, sizeof(int), 1, fp);
 
         KeyType key;    // vector of pair(kappa, num particles)
         key.reserve(key_size);
         for(int i = 0; i < key_size; i++)
         {
             int kappa, num_particles;
-            fread(&kappa, sizeof(int), 1, fp);
-            fread(&num_particles, sizeof(int), 1, fp);
+            file_err_handler->fread(&kappa, sizeof(int), 1, fp);
+            file_err_handler->fread(&num_particles, sizeof(int), 1, fp);
 
             key.push_back(std::make_pair(kappa, num_particles));
         }
@@ -681,23 +681,23 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
 
         // Projections
         int num_projections = 0;
-        fread(&num_projections, sizeof(int), 1, fp);
+        file_err_handler->fread(&num_projections, sizeof(int), 1, fp);
 
         int particle_number = 0;
-        fread(&particle_number, sizeof(int), 1, fp);
+        file_err_handler->fread(&particle_number, sizeof(int), 1, fp);
         int projection_array[particle_number];
 
         for(int i = 0; i < num_projections; i++)
         {
-            fread(projection_array, sizeof(int), particle_number, fp);
+            file_err_handler->fread(projection_array, sizeof(int), particle_number, fp);
             ang->projections.push_back(std::vector<int>(projection_array, projection_array + particle_number));
         }
 
         // CSFs
-        fread(&ang->num_CSFs, sizeof(int), 1, fp);
+        file_err_handler->fread(&ang->num_CSFs, sizeof(int), 1, fp);
         if(ang->num_CSFs)
         {   ang->CSFs = new double[num_projections * ang->num_CSFs];
-            fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
+            file_err_handler->fread(ang->CSFs, sizeof(double), ang->num_CSFs * num_projections, fp);
         }
         ang->have_CSFs = true;
 

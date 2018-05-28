@@ -282,12 +282,12 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     unsigned int old_key;
     double value;
 
-    fread(&num_integrals, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
-        fread(&old_key, sizeof(unsigned int), 1, fp);
-        fread(&value, sizeof(double), 1, fp);
+        file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&value, sizeof(double), 1, fp);
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
@@ -319,12 +319,12 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     unsigned int old_key;
     double value;
 
-    fread(&num_integrals, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
-        fread(&old_key, sizeof(unsigned int), 1, fp);
-        fread(&value, sizeof(double), 1, fp);
+        file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&value, sizeof(double), 1, fp);
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;

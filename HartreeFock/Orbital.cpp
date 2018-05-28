@@ -76,8 +76,8 @@ void OrbitalBase::Write(FILE* fp) const
 
 void OrbitalBase::Read(FILE* fp)
 {
-    fread(&pqn, sizeof(int), 1, fp);
-    fread(&energy, sizeof(double), 1, fp);
+    file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+    file_err_handler->fread(&energy, sizeof(double), 1, fp);
     
     SpinorFunction::Read(fp);
 }

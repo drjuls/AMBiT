@@ -55,7 +55,7 @@ void NonRelConfiguration::Read(FILE* fp)
     clear();
 
     unsigned int config_size;
-    fread(&config_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&config_size, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < config_size; i++)
     {
@@ -64,9 +64,9 @@ void NonRelConfiguration::Read(FILE* fp)
         int occupancy;
 
         // Read PQN, Kappa, occupancy
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&kappa, sizeof(int), 1, fp);
-        fread(&occupancy, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&occupancy, sizeof(int), 1, fp);
 
         insert(std::make_pair(NonRelInfo(pqn, kappa), occupancy));
     }

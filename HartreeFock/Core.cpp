@@ -123,16 +123,16 @@ void Core::Read(FILE* fp)
     OrbitalMap::Read(fp);
 
     // Read occupancies
-    fread(&occ_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&occ_size, sizeof(unsigned int), 1, fp);
     for(i = 0; i < occ_size; i++)
     {
         int kappa;
         int pqn;
         double occ;
 
-        fread(&kappa, sizeof(int), 1, fp);
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&occ, sizeof(double), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&occ, sizeof(double), 1, fp);
 
         OrbitalInfo info(pqn, kappa);
         occupancy.insert(std::pair<OrbitalInfo, double>(info, occ));

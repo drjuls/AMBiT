@@ -84,16 +84,16 @@ typedef std::shared_ptr<const OrbitalManager> pOrbitalManagerConst;
 inline void ReadOrbitalIndexes(OrbitalIndex& state_index, FILE* fp)
 {
     unsigned int size;
-    fread(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&size, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < size; i++)
     {
         unsigned int index;
         int pqn, kappa;
 
-        fread(&index, sizeof(unsigned int), 1, fp);
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&index, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
 
         state_index[OrbitalInfo(pqn, kappa)] = index;
     }

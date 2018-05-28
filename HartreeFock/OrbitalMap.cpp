@@ -96,7 +96,7 @@ void OrbitalMap::Read(FILE* fp)
     unsigned int max_size = 0;
 
     // Read states
-    fread(&num_core, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
         pOrbital ds(new Orbital(-1));

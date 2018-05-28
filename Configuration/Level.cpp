@@ -51,8 +51,8 @@ void HamiltonianID::Read(FILE* fp)
 {
     int two_j;
     Parity P;
-    fread(&two_j, sizeof(int), 1, fp);
-    fread(&P, sizeof(Parity), 1, fp);
+    file_err_handler->fread(&two_j, sizeof(int), 1, fp);
+    file_err_handler->fread(&P, sizeof(Parity), 1, fp);
     sym = Symmetry(two_j, P);
 }
 

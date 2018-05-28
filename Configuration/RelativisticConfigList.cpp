@@ -99,7 +99,7 @@ void RelativisticConfigList::Read(FILE* fp)
 {
     m_list.clear();
     unsigned int num_configs;
-    fread(&num_configs, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_configs, sizeof(unsigned int), 1, fp);
     m_list.reserve(num_configs);
 
     for(unsigned int i = 0; i < num_configs; i++)

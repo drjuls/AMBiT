@@ -88,7 +88,7 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 
     // Read number of entries in LevelMap
     unsigned int num_hamiltonians;
-    fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_hamiltonians, sizeof(unsigned int), 1, fp);
 
     // Read all HamiltonianIDs and Level information
     for(unsigned int i = 0; i < num_hamiltonians; i++)
@@ -113,7 +113,7 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 
         // Read all level information
         unsigned int num_levels;
-        fread(&num_levels, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&num_levels, sizeof(unsigned int), 1, fp);
 
         levelvec.levels.reserve(num_levels);
 
@@ -125,11 +125,11 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
-            fread(&eigenvalue, sizeof(double), 1, fp);
-            fread(&N, sizeof(unsigned int), 1, fp);
+            file_err_handler->fread(&eigenvalue, sizeof(double), 1, fp);
+            file_err_handler->fread(&N, sizeof(unsigned int), 1, fp);
             eigenvector.resize(N);
-            fread(eigenvector.data(), sizeof(double), N, fp);
-            fread(&gfactor, sizeof(double), 1, fp);
+            file_err_handler->fread(eigenvector.data(), sizeof(double), N, fp);
+            file_err_handler->fread(&gfactor, sizeof(double), 1, fp);
             
             // Check if we need to re-calculate this g-factor
             if(std::isnan(gfactor))
@@ -195,7 +195,7 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
 
         // Read all level information
         unsigned int num_levels;
-        fread(&num_levels, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&num_levels, sizeof(unsigned int), 1, fp);
 
         levelvec.levels.reserve(num_levels);
 
@@ -207,11 +207,11 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
-            fread(&eigenvalue, sizeof(double), 1, fp);
-            fread(&N, sizeof(unsigned int), 1, fp);
+            file_err_handler->fread(&eigenvalue, sizeof(double), 1, fp);
+            file_err_handler->fread(&N, sizeof(unsigned int), 1, fp);
             eigenvector.resize(N);
-            fread(eigenvector.data(), sizeof(double), N, fp);
-            fread(&gfactor, sizeof(double), 1, fp);
+            file_err_handler->fread(eigenvector.data(), sizeof(double), N, fp);
+            file_err_handler->fread(&gfactor, sizeof(double), 1, fp);
 
             // Check if we need to re-calculate this g-factor
             if(std::isnan(gfactor))
