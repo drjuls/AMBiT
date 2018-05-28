@@ -34,11 +34,11 @@ config.ini
 config.log
 
 # Auxillary documentation files
-Documentation/*
 *.aux
 *.dvi
 *.log
 *.pdf
+*.out
 
 # Python bytecode
 __init__.pyc

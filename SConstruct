@@ -151,8 +151,6 @@ def read_config(env, conf, ambit_conf):
         sparsehash_dir = conf.get("Dependency paths", "Sparsehash path")
     except ConfigParser.NoOptionError:
         sparsehash_dir = ''
-
-    libs = [s.strip() for s in conf.get("Dependencies", "Libs").split(',')]
     
     # Make sure to expand any environment variables in the paths
     lib_path = expand_flags(env, conf.get("Dependency paths", "Lib path"))
@@ -167,10 +165,10 @@ def read_config(env, conf, ambit_conf):
 
     header_path = [ambit_dir, eigen_dir, sparsehash_dir, custom_include, gtest_header_dir]
 
+    # NOTE: Don't append the list of libs until we've checked they exist
     env.Append(CPPPATH=header_path)
     env.Append(LIBPATH=lib_path)
     env.Append(LIBPATH=gtest_libs_dir)
-    env.Append(LIBS=libs)
 
     # Also grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
     # exist
@@ -284,14 +282,22 @@ def configure_environment(env, conf, ambit_conf):
     # Run through the required libs, two approaches to find libraries:
     #   1) Look for it in the path specified in the configuration file
     #   2) Fallback: Try to find it automatically with pkg-config
-    # If neither of these work then warn the user and bail out. Don't check for Boost here, since it doesn't support pkg-config
-    for lib in [l for l in env["LIBS"] if l.find("boost") == -1]:
-        if not env_conf.CheckLib(lib): # Can't find in current path
-            if(not pkgconfig_exists or not env_conf.check_pkg(lib)):
-                print("Warning: could not find library {}. Check [Dependency paths] in config.ini".format(lib))
-                exit(-1)
-            else:
-               env_conf.env.ParseConfig("pkg-config --libs --cflags {}".format(lib))
+    # If neither of these work then warn the user and bail out. 
+    libs = [s.strip() for s in conf.get("Dependencies", "Libs").split(',')]
+    for lib in libs:
+        env_conf.env.AppendUnique(LIBS = [lib])
+        # Don't check for Boost here, since it doesn't support pkg-config
+        if lib.find("boost") == -1:
+            # autoadd=0 is here because CheckLib adds the library to the compilation environment by
+            # default, so we get duplicate -l<lib> linker commands if we don't explicitly set it. This
+            # behaviour is not mentioned in the main documentation and only seems to be documented in
+            # the SCons man page.
+            if not env_conf.CheckLib(lib, autoadd=0): 
+                if(not pkgconfig_exists or not env_conf.check_pkg(lib)):
+                    print("Error: could not find library {}. See config.log for details.".format(lib))
+                    exit(-1)
+                else:
+                   env_conf.env.ParseConfig("pkg-config --libs --cflags {}".format(lib))
 
     # Check the requested HPC libraries exist
     if "-DAMBIT_USE_OPENMP" in env_conf.env["CXXFLAGS"]:
@@ -375,9 +381,11 @@ if 'debug' in COMMAND_LINE_TARGETS:
 elif 'test' in COMMAND_LINE_TARGETS:
     build = "Test"
     env.Append(CXXFLAGS = '-std=c++11')
-    env.Append(LIBS = ['gtest', 'pthread'])
+    env.AppendUnique(LIBS = ['gtest', 'pthread'])
 else:
     env.Append(CXXFLAGS = '-std=c++11 -O3')
+
+env.Append(CXXFLAGS = '-Wno-undefined-var-template')
 
 # Now open the ini files containing the user config options, and the AMBiT requirements
 conf = ConfigParser.SafeConfigParser(allow_no_value = True)

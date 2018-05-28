@@ -61,6 +61,15 @@ public:
 
     /** Store LevelVector (and generally write to file, although this is implementation dependent). */
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) = 0;
+    
+    /** Check whether we need to calculate g-factors. Returns false if the store has g-factors */
+    bool GFactorsNeeded()
+    {   return gfactors_needed;
+    }
+
+protected:
+    bool gfactors_needed = true;
+
 };
 
 typedef std::shared_ptr<LevelStore> pLevelStore;

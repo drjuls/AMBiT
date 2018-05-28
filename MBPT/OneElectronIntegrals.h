@@ -177,50 +177,51 @@ unsigned int OneElectronIntegrals<IsHermitianZeroOperator>::CalculateOneElectron
         MathConstant* math = MathConstant::Instance();
         pIntegrator integrator = op->GetIntegrator();
 
-        auto it_1 = orbital_map_1->begin();
-        while(it_1 != orbital_map_1->end())
+        // Apply operator to orbital_map_2
+        auto it_2 = orbital_map_2->begin();
+        while(it_2 != orbital_map_2->end())
         {
-            i1 = orbitals->state_index.at(it_1->first);
-            s1 = it_1->second;
+            i2 = orbitals->state_index.at(it_2->first);
+            s2 = it_2->second;
 
             // Apply for all non-zero kappa_2
-            int twoj_min = mmax(1, s1->TwoJ() - TwoK);
-            int twoj_max = s1->TwoJ() + TwoK;
+            int twoj_min = mmax(1, s2->TwoJ() - TwoK);
+            int twoj_max = s2->TwoJ() + TwoK;
 
             std::vector<SpinorFunction> op_applied;
             op_applied.reserve((twoj_max - twoj_min)/2 + 1);
-            for(int twoj2 = twoj_min; twoj2 <= twoj_max; twoj2 += 2)
+            for(int twoj1 = twoj_min; twoj1 <= twoj_max; twoj1 += 2)
             {
-                int kappa2 = math->convert_to_kappa(twoj2, s1->GetParity() * op->GetParity());
+                int kappa1 = math->convert_to_kappa(twoj1, s2->GetParity() * op->GetParity());
 
                 if(IsHermitianZeroOperator)
-                    op_applied.push_back(spinor_op->ApplyTo(*s1, kappa2));
+                    op_applied.push_back(spinor_op->ApplyTo(*s2, kappa1));
                 else
-                    op_applied.push_back(spinor_op->ReducedApplyTo(*s1, kappa2));
+                    op_applied.push_back(spinor_op->ReducedApplyTo(*s2, kappa1));
             }
 
             // Take overlaps to get matrix elements
-            auto it_2 = orbital_map_2->begin();
-            while(it_2 != orbital_map_2->end())
+            auto it_1 = orbital_map_1->begin();
+            while(it_1 != orbital_map_1->end())
             {
-                s2 = it_2->second;
+                s1 = it_1->second;
 
                 if(op->IsNonZero(*s1, *s2))
                 {
-                    i2 = orbitals->state_index.at(it_2->first);
+                    i1 = orbitals->state_index.at(it_1->first);
 
                     unsigned int key = GetKey(i1, i2);
 
                     if(!integrals.count(key))
                     {
-                        const SpinorFunction& rhs = op_applied[(s2->TwoJ() - twoj_min)/2];
-                        integrals[key] = integrator->GetInnerProduct(*s2, rhs);
+                        const SpinorFunction& rhs = op_applied[(s1->TwoJ() - twoj_min)/2];
+                        integrals[key] = integrator->GetInnerProduct(*s1, rhs);
                     }
                 }
-                it_2++;
+                it_1++;
             }
 
-            it_1++;
+            it_2++;
         }
     }
     else
@@ -267,11 +268,9 @@ unsigned int OneElectronIntegrals<IsHermitianZeroOperator>::CalculateOneElectron
 template <bool IsHermitianZeroOperator>
 void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -299,18 +298,16 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
             it->second += value;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <bool IsHermitianZeroOperator>
 template <class MapType>
 void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& filename, const MapType& scaling)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "OneElectronIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -347,7 +344,7 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
             it->second += value;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <bool IsHermitianZeroOperator>
@@ -355,21 +352,21 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Write(const std::string& fil
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(orbitals->state_index, fp);
 
         unsigned int num_integrals = size();
-        fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
 
         for(auto& pair: integrals)
         {
-            fwrite(&pair.first, sizeof(unsigned int), 1, fp);
-            fwrite(&pair.second, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(&pair.second, sizeof(double), 1, fp);
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }
 

@@ -78,11 +78,11 @@ bool Atom::ReadBasis()
 {
     // Import lattice and all orbitals
     std::string filename = identifier + ".basis";
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return false;
     else
-        fclose(fp);
+        file_err_handler->fclose(fp);
 
     pOrbitalManager modifiable_orbitals(new OrbitalManager(filename));
     lattice = modifiable_orbitals->GetLattice();

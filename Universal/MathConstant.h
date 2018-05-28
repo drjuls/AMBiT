@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <memory>
 #include <boost/math/special_functions.hpp>
+#include <sparsehash/dense_hash_map>
+#include <gsl/gsl_math.h>
 #include "Enums.h"
 
 /** Class of mathematical constants, following the Singleton pattern. 
@@ -104,7 +106,14 @@ public:
             j_v(x) = x^v / (2v + 1)!!
      */
     inline double sph_bessel_small_limit(unsigned int v, double x) const
-    {   return pow(x, v)/boost::math::double_factorial<double>(2 * v + 1);
+    {   return gsl_pow_int(x, v)/boost::math::double_factorial<double>(2 * v + 1);
+    }
+
+    /** Derivative of spherical bessel function j_v(x) in the limit of small x:
+            j_v'(x) = v x^(v-1) / (2v + 1)!!
+     */
+    inline double sph_bessel_small_limit_prime(unsigned int v, double x) const
+    {   return v * gsl_pow_int(x, int(v)-1)/boost::math::double_factorial<double>(2 * v + 1);
     }
 
     /** Return number of combinations of k elements in n slots. */
@@ -118,7 +127,7 @@ public:
 
 protected:
     const std::string SpectroscopicNotation;
-    std::map<int, double> Symbols3j;
+    google::dense_hash_map<int, double> Symbols3j;
 
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;

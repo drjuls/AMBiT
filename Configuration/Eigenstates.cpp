@@ -84,30 +84,30 @@ void Eigenstates::Write() const
 //        std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
         std::string filename = identifier + ".eigenstates";
 
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write N as sanity check
-        fwrite(&N, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
 
         // Write eigenvalues
-        fwrite(&num_eigenvalues, sizeof(unsigned int), 1, fp);
-        fwrite(eigenvalues, sizeof(double), num_eigenvalues, fp);
+        file_err_handler->fwrite(&num_eigenvalues, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(eigenvalues, sizeof(double), num_eigenvalues, fp);
 
         // Write eigenvectors
-        fwrite(&num_eigenvectors, sizeof(unsigned int), 1, fp);
-        fwrite(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
+        file_err_handler->fwrite(&num_eigenvectors, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(eigenvectors, sizeof(double), N * num_eigenvectors, fp);
 
         // Write g-factors
         if(num_gFactors && gFactors)
-        {   fwrite(&num_gFactors, sizeof(unsigned int), 1, fp);
-            fwrite(gFactors, sizeof(double), num_gFactors, fp);
+        {   file_err_handler->fwrite(&num_gFactors, sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(gFactors, sizeof(double), num_gFactors, fp);
         }
         else
         {   unsigned int zero = 0;
-            fwrite(&zero, sizeof(unsigned int), 1, fp);
+            file_err_handler->fwrite(&zero, sizeof(unsigned int), 1, fp);
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }
 
@@ -116,7 +116,7 @@ bool Eigenstates::Read()
 //    std::string filename = identifier + "." + configs->GetSymmetry().GetString() + ".eigenstates";
     std::string filename = identifier + ".eigenstates";
 
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return false;
 
@@ -157,7 +157,7 @@ bool Eigenstates::Read()
     else
         gFactors = nullptr;
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     
     return true;
 }

@@ -21,7 +21,7 @@
 
 void Atom::MakeMBPTIntegrals()
 {
-    bool make_new_integrals = user_input.search(2, "-m", "--mbpt");
+    bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
     bool check_sizes = user_input.search("--check-sizes");
     bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
     bool two_body_mbpt = user_input.search(4, "-s2", "-s12", "-s23", "-s123");
@@ -643,7 +643,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));
             //H->PollMatrix();
 
-            if(user_input.search("--write-hamiltonian"))
+            if(user_input.search("CI/Output/--write-hamiltonian"))
             {
                 std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
 
@@ -653,7 +653,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 H->Write(hamiltonian_filename);
             }
 
-            if((user_input("CI/Output/PrintH", "false") == "true") || (user_input("CI/Output/PrintH", 0) == 1))
+            if(user_input.search("CI/Output/--print-hamiltonian"))
             {
                 auto rel_it = configs->begin();
                 while(rel_it != configs->end())
@@ -690,19 +690,24 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         }
 
         // Check if gfactor overrides are present, otherwise decide on course of action
-        bool get_gfactor;
-        if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
-            get_gfactor = false;
-        else if(user_input.search("CI/--gfactors"))
-            get_gfactor = true;
-        else
-        {   if(nrID || num_solutions > 50)
-                get_gfactor = false;
+        bool get_gfactors = levels->GFactorsNeeded();
+
+        // Don't bother doing any checks if we've got pre-calculated g-factors stored
+        if(get_gfactors)
+        {
+            if(hID->GetTwoJ() == 0 || user_input.search("CI/--no-gfactors"))
+                get_gfactors = false;
+            else if(user_input.search("CI/--gfactors"))
+                get_gfactors = true;
             else
-                get_gfactor = true;
+            {   if(nrID || num_solutions > 50)
+                    get_gfactors = false;
+                else
+                    get_gfactors = true;
+            }
         }
 
-        if(get_gfactor)
+        if(get_gfactors)
         {
             GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
             g_factors.CalculateGFactors(levelvec);

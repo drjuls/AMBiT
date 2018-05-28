@@ -163,11 +163,11 @@ void Lattice::Unsubscribe(LatticeObserver* observer)
 
 void Lattice::Write(FILE* binary_outfile) const
 {
-    fwrite(&beta, sizeof(double), 1, binary_outfile);
-    fwrite(&h, sizeof(double), 1, binary_outfile);
-    fwrite(&rmin, sizeof(double), 1, binary_outfile);
-    fwrite(&num_points, sizeof(unsigned int), 1, binary_outfile);
+    file_err_handler->fwrite(&beta, sizeof(double), 1, binary_outfile);
+    file_err_handler->fwrite(&h, sizeof(double), 1, binary_outfile);
+    file_err_handler->fwrite(&rmin, sizeof(double), 1, binary_outfile);
+    file_err_handler->fwrite(&num_points, sizeof(unsigned int), 1, binary_outfile);
 
-    fwrite(r.data(), sizeof(double), num_points, binary_outfile);
-    fwrite(dr.data(), sizeof(double), num_points, binary_outfile);
+    file_err_handler->fwrite(r.data(), sizeof(double), num_points, binary_outfile);
+    file_err_handler->fwrite(dr.data(), sizeof(double), num_points, binary_outfile);
 }

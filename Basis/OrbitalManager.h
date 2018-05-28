@@ -4,6 +4,7 @@
 #include "HartreeFock/OrbitalMap.h"
 #include "HartreeFock/Core.h"
 #include "Configuration/IndexedIterator.h"
+#include "Include.h"
 
 /** Classification of orbitals matches maps OrbitalManager. */
 enum class OrbitalClassification { deep, hole, particle, high, core, excited, valence, all };
@@ -100,16 +101,16 @@ inline void ReadOrbitalIndexes(OrbitalIndex& state_index, FILE* fp)
 inline void WriteOrbitalIndexes(const OrbitalIndex& state_index, FILE* fp)
 {
     unsigned int size = state_index.size();
-    fwrite(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&size, sizeof(unsigned int), 1, fp);
 
     for(auto& pair: state_index)
     {
         const int pqn = pair.first.PQN();
         const int kappa = pair.first.Kappa();
 
-        fwrite(&pair.second, sizeof(unsigned int), 1, fp);
-        fwrite(&pqn, sizeof(int), 1, fp);
-        fwrite(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&pair.second, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
     }
 }
 

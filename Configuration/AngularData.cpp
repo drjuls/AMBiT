@@ -211,7 +211,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     auto i_it = real_Projection_list.begin();
     auto j_it = i_it;
 
-    ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
+    ManyBodyOperator<const JSquaredOperator, const JSquaredOperator> J_squared(J_squared_operator, J_squared_operator);
 
     i = 0;
     while(i_it != real_Projection_list.end())
@@ -648,7 +648,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     boost::interprocess::file_lock f_lock(filedata.second.c_str());
     boost::interprocess::sharable_lock<boost::interprocess::file_lock> shlock(f_lock);
 
-    FILE* fp = fopen(filepath.string().c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filepath.string().c_str(), "rb");
     if(!fp)
         return;
 
@@ -703,7 +703,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         count++;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     filedata.first = false;
 }
 
@@ -738,7 +738,7 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
         // Create the AngularData file if it doesn't already exist
         if(!boost::filesystem::exists(filedata.second.c_str()))
         {
-            fp = fopen(filedata.second.c_str(), "wb");
+            fp = file_err_handler->fopen(filedata.second.c_str(), "wb");
             if(!fp)
             {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
                 return;
@@ -752,7 +752,7 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
         // Open file
         if(!fp)
         {
-            fp = fopen(filedata.second.c_str(), "wb");
+            fp = file_err_handler->fopen(filedata.second.c_str(), "wb");
             if(!fp)
             {   *errstream << "AngularDataLibrary::Couldn't open file " << filedata.second << " for writing." << std::endl;
                 return;
@@ -767,7 +767,7 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
             if(pair.first[0] == symmetry_pair)
                 num_angular_data_objects++;
         }
-        fwrite(&num_angular_data_objects, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&num_angular_data_objects, sizeof(int), 1, fp);
 
         for(const auto& pair: library)
         {
@@ -775,35 +775,35 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
             {
                 // Key
                 int key_size = pair.first.size();
-                fwrite(&key_size, sizeof(int), 1, fp);
+                file_err_handler->fwrite(&key_size, sizeof(int), 1, fp);
 
                 for(auto& key_pair: pair.first)
                 {
-                    fwrite(&key_pair.first, sizeof(int), 1, fp);
-                    fwrite(&key_pair.second, sizeof(int), 1, fp);
+                    file_err_handler->fwrite(&key_pair.first, sizeof(int), 1, fp);
+                    file_err_handler->fwrite(&key_pair.second, sizeof(int), 1, fp);
                 }
 
                 // Projections
                 int num_projections = pair.second->projections.size();
-                fwrite(&num_projections, sizeof(int), 1, fp);
+                file_err_handler->fwrite(&num_projections, sizeof(int), 1, fp);
 
                 int particle_number = 0;
                 if(num_projections)
                     particle_number = pair.second->projections.front().size();
-                fwrite(&particle_number, sizeof(int), 1, fp);
+                file_err_handler->fwrite(&particle_number, sizeof(int), 1, fp);
 
                 for(const auto& projection: pair.second->projections)
                 {
-                    fwrite(&projection[0], sizeof(int), particle_number, fp);
+                    file_err_handler->fwrite(&projection[0], sizeof(int), particle_number, fp);
                 }
 
                 // CSFs
-                fwrite(&pair.second->num_CSFs, sizeof(int), 1, fp);
+                file_err_handler->fwrite(&pair.second->num_CSFs, sizeof(int), 1, fp);
                 if(pair.second->num_CSFs)
-                    fwrite(pair.second->CSFs, sizeof(double), pair.second->num_CSFs * num_projections, fp);
+                    file_err_handler->fwrite(pair.second->CSFs, sizeof(double), pair.second->num_CSFs * num_projections, fp);
             }
         }
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 
 #ifdef AMBIT_USE_MPI

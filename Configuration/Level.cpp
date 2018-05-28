@@ -41,8 +41,8 @@ void HamiltonianID::Write(FILE* fp) const
 {
     int two_j = sym.GetTwoJ();
     Parity P = sym.GetParity();
-    fwrite(&two_j, sizeof(int), 1, fp);
-    fwrite(&P, sizeof(Parity), 1, fp);
+    file_err_handler->fwrite(&two_j, sizeof(int), 1, fp);
+    file_err_handler->fwrite(&P, sizeof(Parity), 1, fp);
 }
 
 void HamiltonianID::Read(FILE* fp)

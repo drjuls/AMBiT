@@ -1,0 +1,195 @@
+AMBiT version:    dev3.0.0
+      git branch: dev e4609a1
+      compiled:   Thu May 17 17:33:25 AEST 2018
+----------------------------------------------------------
+input:
+----------------------------------------------------------
+argc = 28
+Cr+.input
+ID=CrII
+Z=24
+-s123
+[Lattice]
+Lattice/NumPoints=1000
+Lattice/StartPoint=1.0e-6
+Lattice/EndPoint=50.0
+[HF]
+HF/N=23
+HF/Configuration=1s2 2s2 2p6 3s2 3p6 : 3d5
+[Basis]
+Basis/--bspline-basis
+Basis/ValenceBasis=7spdf
+Basis/FrozenCore=3s2p
+[CI]
+CI/LeadingConfigurations=3d5, 3d4 4s1, 3d4 4p1
+CI/ElectronExcitations=2
+CI/HoleExcitations=0
+CI/EvenParityTwoJ=1, 3, 5
+CI/NumSolutions=3
+[CI/SmallSide]
+CI/SmallSide/LeadingConfigurations=3d5, 3d4 4s1, 3d4 4p1
+CI/SmallSide/ElectronExcitations=1,5spdf, 2, 5spdf
+CI/SmallSide/HoleExcitations=0
+[MBPT]
+MBPT/Basis=15spdf
+Cr+.input
+
+----------------------------------------------------------
+Core orbitals: 
+    1s  E = -222.448723263  size: (569) 6.265
+    2s  E = -26.8861828091  size: (647) 12.84
+    3s  E = -3.65304653147  size: (699) 17.82
+    2p  E = -22.7381178168  size: (673) 15.28
+    3p  E = -2.40253423197  size: (726) 20.52
+   2p+  E = -22.4139800076  size: (674) 15.38
+   3p+  E = -2.36228057124  size: (727) 20.62
+    3d  E = -0.591219307452  size: (803) 28.52
+   3d+  E = -0.58695822569  size: (804) 28.63
+Excited orbitals: 
+    4s  E = -0.203846640377  size: (999) 50
+    5s  E = -0.0736314289952  size: (999) 50
+    6s  E = -0.0382640649088  size: (999) 50
+    7s  E = -0.0227258227389  size: (999) 50
+    8s  E = -0.00878164195756  size: (999) 50
+    9s  E = 0.0101691639357  size: (999) 50
+   10s  E = 0.0358256736685  size: (999) 50
+   11s  E = 0.0638509800423  size: (999) 50
+   12s  E = 0.151428850437  size: (999) 50
+   13s  E = 0.209216562263  size: (999) 50
+   14s  E = 0.449876493133  size: (999) 50
+   15s  E = 1.20331948655  size: (999) 50
+    4p  E = -0.116400004525  size: (999) 50
+    5p  E = -0.0521230284864  size: (999) 50
+    6p  E = -0.0296082407712  size: (999) 50
+    7p  E = -0.0167733660152  size: (999) 50
+    8p  E = -0.00128112138672  size: (999) 50
+    9p  E = 0.0193378840763  size: (999) 50
+   10p  E = 0.0468399111297  size: (999) 50
+   11p  E = 0.0812452031214  size: (999) 50
+   12p  E = 0.190811071992  size: (999) 50
+   13p  E = 0.228911808604  size: (999) 50
+   14p  E = 0.56777356187  size: (999) 50
+   15p  E = 1.42642719052  size: (999) 50
+   4p+  E = -0.115885445035  size: (999) 50
+   5p+  E = -0.0519670303175  size: (999) 50
+   6p+  E = -0.0295391563407  size: (999) 50
+   7p+  E = -0.0167122298392  size: (999) 50
+   8p+  E = -0.00119783962191  size: (999) 50
+   9p+  E = 0.0194166355938  size: (999) 50
+  10p+  E = 0.0470832521097  size: (999) 50
+  11p+  E = 0.078654063397  size: (999) 50
+  12p+  E = 0.18338745997  size: (999) 50
+  13p+  E = 0.224266103437  size: (999) 50
+  14p+  E = 0.498688370447  size: (999) 50
+  15p+  E = 1.21844167091  size: (999) 50
+    3d  E = -0.591219307452  size: (803) 28.52
+    4d  E = -0.0542305646094  size: (999) 50
+    5d  E = -0.0305212657833  size: (999) 50
+    6d  E = -0.018118473368  size: (999) 50
+    7d  E = -0.0043267188511  size: (999) 50
+    8d  E = 0.0143121657962  size: (999) 50
+    9d  E = 0.0389714129956  size: (999) 50
+   10d  E = 0.0660460321768  size: (999) 50
+   11d  E = 0.131146667  size: (999) 50
+   12d  E = 0.214841828984  size: (999) 50
+   13d  E = 0.324486399649  size: (999) 50
+   14d  E = 0.740890032867  size: (999) 50
+   15d  E = 1.62675994953  size: (999) 50
+   3d+  E = -0.58695822569  size: (804) 28.63
+   4d+  E = -0.0542036879672  size: (999) 50
+   5d+  E = -0.0305075571052  size: (999) 50
+   6d+  E = -0.0181071835894  size: (999) 50
+   7d+  E = -0.00431021604011  size: (999) 50
+   8d+  E = 0.0143382932008  size: (999) 50
+   9d+  E = 0.0387467788619  size: (999) 50
+  10d+  E = 0.0661857144713  size: (999) 50
+  11d+  E = 0.123059776065  size: (999) 50
+  12d+  E = 0.221395542801  size: (999) 50
+  13d+  E = 0.295435388574  size: (999) 50
+  14d+  E = 0.656430891251  size: (999) 50
+  15d+  E = 1.41497480375  size: (999) 50
+    4f  E = -0.0312539328046  size: (999) 50
+    5f  E = -0.0193082586889  size: (999) 50
+    6f  E = -0.00763764375138  size: (999) 50
+    7f  E = 0.00852257643757  size: (999) 50
+    8f  E = 0.0294087947338  size: (999) 50
+    9f  E = 0.0561013771119  size: (999) 50
+   10f  E = 0.0882838582691  size: (999) 50
+   11f  E = 0.17699153697  size: (999) 50
+   12f  E = 0.230649635097  size: (999) 50
+   13f  E = 0.392769498124  size: (999) 50
+   14f  E = 0.804031350405  size: (999) 50
+   15f  E = 1.58339203172  size: (999) 50
+   4f+  E = -0.0312540206009  size: (999) 50
+   5f+  E = -0.019308360855  size: (999) 50
+   6f+  E = -0.00763783329047  size: (999) 50
+   7f+  E = 0.00852156257348  size: (999) 50
+   8f+  E = 0.0293361560894  size: (999) 50
+   9f+  E = 0.0562596177549  size: (999) 50
+  10f+  E = 0.0863628999247  size: (999) 50
+  11f+  E = 0.166626138523  size: (999) 50
+  12f+  E = 0.237071997842  size: (999) 50
+  13f+  E = 0.359502536651  size: (999) 50
+  14f+  E = 0.723313159663  size: (999) 50
+  15f+  E = 1.40697227262  size: (999) 50
+
+WARNING: error opening file - No such file or directory
+OneElectronIntegrals::Read: file CrII_0.one.int not found.
+WARNING: error opening file - No such file or directory
+SlaterIntegrals::Read: file CrII_0.two.int not found.
+WARNING: error opening file - No such file or directory
+ Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
+    nloops=18
+Solutions for J = 0.5, P = even (N = 18540):
+0: -9.2204352    -2023651.61572 /cm
+             4s1 3d4  95.2301%
+             5s1 3d4  3.4370%
+    g-factor = 3.3311
+
+1: -9.1995009    -2019057.06501 /cm
+             4s1 3d4  1.0396%
+                 3d5  98.6843%
+    g-factor = 2.6102
+
+2: -9.1933251    -2017701.64374 /cm
+             4s1 3d4  21.9455%
+                 3d5  77.0086%
+    g-factor = 0.055881
+
+ Number of CSFs = 32798 x 7712; Finding solutions using Davidson...
+    nloops=23
+Solutions for J = 1.5, P = even (N = 32798):
+0: -9.2197684    -2023505.27154 /cm
+             4s1 3d4  95.2325%
+             5s1 3d4  3.4378%
+    g-factor = 1.8661
+
+1: -9.199656    -2019091.11219 /cm
+             4s1 3d4  1.4332%
+                 3d5  98.2774%
+    g-factor = 1.7005
+
+2: -9.1927272    -2017570.40672 /cm
+             4s1 3d4  19.6383%
+                 3d5  79.4040%
+    g-factor = 1.2313
+
+ Number of CSFs = 40060 x 9449; Finding solutions using Davidson...
+    nloops=27
+Solutions for J = 2.5, P = even (N = 40060):
+0: -9.3290339    -2047486.27856 /cm
+                 3d5  99.9555%
+    g-factor = 1.9996
+
+1: -9.218686    -2023267.71499 /cm
+             4s1 3d4  95.2380%
+             5s1 3d4  3.4399%
+    g-factor = 1.6568
+
+2: -9.2167879    -2022851.11939 /cm
+                 3d5  99.6700%
+    g-factor = 0.57213
+
+
+Finished
+

@@ -12,6 +12,11 @@
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
 
+// Headers to get stack-traces
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
+
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
     #if !(_FUS)
@@ -57,9 +62,20 @@ int main(int argc, char* argv[])
     #endif
 
     // Set the file permissions so generated files can be read and written to by group, as well as user
-    // N.B. this currently only works on posix systems
+    // (so AngularData files can be reused by different users) and register our custom signal handler
+    // for SIGTERM and SIGSEGV.
+    // N.B. these currently only work on posix systems.
     #ifdef UNIX
         umask(0003);
+
+        // NOTE: these print to stderr rather than logstream, since that is the place stack-traces would
+        // be written to
+        if(signal(SIGTERM, signal_handler) == SIG_ERR){
+            fputs("Note: This system does not allow AMBiT to produce stack-traces on termination", stderr);
+        }
+        if(signal(SIGSEGV, signal_handler) == SIG_ERR){
+            fputs("Note: This system does not allow AMBiT to produce stack-traces on a segmentation fault", stderr);
+        }
     #endif
     
     // Check whether the environment variable OMP_NUM_THREADS has been explicitly set - OpenMP threading
@@ -288,7 +304,7 @@ void Ambit::EnergyCalculations()
     // Print basis option
     if(user_input.search(2, "--print-basis", "-p"))
     {
-        auto fp = fopen("Orbitals.txt", "wt");
+        auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
         auto lattice = atoms[first_run_index].GetLattice();
         for(auto& var: *atoms[first_run_index].GetBasis()->all)
@@ -297,6 +313,7 @@ void Ambit::EnergyCalculations()
             fprintf(fp, "  %i %i %12.6f %i\n", var.first.PQN(), var.first.Kappa(), var.second->Energy(), var.second->size());
             var.second->Print(fp, lattice, true);
         }
+        file_err_handler->fclose(fp);
     }
 //    {   // Check follower for option
 //        std::string print_option = user_input.next("");
@@ -349,9 +366,9 @@ do { \
   if(user_input.SectionExists(prefix)) \
   { \
     user_input.set_prefix(prefix); \
-    std::unique_ptr<TRANSITION_CALCULATOR_TYPE> calculon(new TRANSITION_CALCULATOR_TYPE(user_input, atom)); \
-    calculon->CalculateAndPrint(); \
-    calculators.push_back(std::move(calculon)); \
+    TRANSITION_CALCULATOR_TYPE calculon(user_input, atom); \
+    calculon.CalculateAndPrint(); \
+    calculon.PrintAll(); \
   } \
 } while(0)
 
@@ -368,7 +385,7 @@ void Ambit::TransitionCalculations()
             std::make_tuple("E3", MultipolarityType::E, 3),
            };
 
-    std::vector<std::unique_ptr<TransitionCalculator>> calculators;
+    std::vector<std::unique_ptr<EMCalculator>> calculators;
 
     for(const auto& types: EM_transition_types)
     {
@@ -377,11 +394,18 @@ void Ambit::TransitionCalculations()
         if(user_input.SectionExists(user_string))
         {
             user_input.set_prefix(user_string);
-            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom.GetBasis(), atom.GetLevels(), atom.GetHFOperator()->GetIntegrator()));
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom));
 
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
         }
+    }
+
+    // Print all EM transitions
+    for(auto& calc: calculators)
+    {
+        user_input.set_prefix(std::string("Transitions/") + calc->Name());
+        calc->PrintAll();
     }
 
     // Other operators
@@ -392,11 +416,6 @@ void Ambit::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
 
     user_input.set_prefix("");
-
-    for(auto& calc: calculators)
-    {
-        calc->PrintAll();
-    }
 }
 
 #undef RUN_AND_STORE_TRANSITION
@@ -496,3 +515,43 @@ void Ambit::PrintHelp(const std::string& ApplicationName)
         << "                    calculate specified MBPT integrals\n\n"
         << "Sample input files are included with the documentation." << std::endl;
 }
+
+#ifdef UNIX
+static void signal_handler(int signo){
+    /* Function to catch SIGTERM and print a stacktrace. This doesn't neatly handle mutlithreading, but
+     * there isn't really any neat way to do this anyway. The stack-traces produced by this function are
+     * very rudimentary and need to be passed through addr2line or a similar utility to obtain
+     * line-numbers (although it will include function names in the stack-trace). Finally, this is 
+     * basically useless if AMBiT was not compiled with debugging symbols, as the stack-trace will just
+     * be a bunch of unadorned hex addresses.
+     */
+    if(signo == SIGTERM){
+        void *buff[256];
+        size_t numFrames;
+
+        const char* errmsg = "AMBiT terminated prematurely. Stacktrace:\n";
+        // C/C++ stdio functions are not safe to call in a signal handler, so use a bare write() instead
+        write(STDERR_FILENO, errmsg, strlen(errmsg));
+
+        // Write a stack-trace. This is very rudimentary and needs to be passed through addr2line to be
+        // properly readable
+        numFrames = backtrace(buff, 256);
+        backtrace_symbols_fd(buff, numFrames, STDERR_FILENO);
+
+        _exit(EXIT_FAILURE);
+    } else if(signo == SIGSEGV){
+        void *buff[256];
+        size_t numFrames;
+
+        const char* errmsg = "AMBiT terminated on a segmentation fault. Stacktrace:\n";
+        // C/C++ stdio functions are not safe to call in a signal handler, so use a bare write() instead
+        write(STDERR_FILENO, errmsg, strlen(errmsg));
+        
+        // Write a stack-trace. This is very rudimentary and needs to be passed through addr2line to be
+        // properly readable
+        numFrames = backtrace(buff, 256);
+        backtrace_symbols_fd(buff, numFrames, STDERR_FILENO);
+        _exit(EXIT_FAILURE);
+    }
+}
+#endif

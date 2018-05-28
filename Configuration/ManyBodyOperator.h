@@ -18,7 +18,7 @@ public:
     inline double GetMatrixElement(Args&... args) { return 0.; }
 };
 
-/** ManyBodyOperator is instantiated with a set of pointers to operators,
+/** ManyBodyOperator is instantiated with a set of operators,
     each of which must supply GetMatrixElement(const ElectronInfo& e1, ...).
     The number of operators supplied must be between one and three.
     Ordering of electrons in GetMatrixElement (la->ra, lb->rb, etc):
@@ -26,12 +26,12 @@ public:
         Two-body:   (la, lb, ra, rb)
         Three-body: (la, lb, lc, ra, rb, rc)
  */
-template <typename... pElectronOperators>
+template <typename... ElectronOperators>
 class ManyBodyOperator
 {
 public:
-    ManyBodyOperator(pElectronOperators... operators): pOperators(operators...)
-    {   static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
+    ManyBodyOperator(ElectronOperators... operators): m_operators(operators...)
+    {   static_assert(sizeof...(ElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
 #ifdef AMBIT_USE_OPENMP
         indirects_list.resize(omp_get_max_threads());
 #else
@@ -79,7 +79,7 @@ public:
     {
         bool operator()(const RelativisticConfiguration& rconfig1, const RelativisticConfiguration& rconfig2) const
         {
-            return (rconfig1.GetConfigDifferencesCount(rconfig2) <= sizeof...(pElectronOperators));
+            return (rconfig1.GetConfigDifferencesCount(rconfig2) <= sizeof...(ElectronOperators));
         }
     } use_minimal_overlap;
 
@@ -100,7 +100,7 @@ public:
                                                 RelativisticConfigurationOverlap rconfig_comp = use_minimal_overlap, const ElectronInfo* epsilon = nullptr) const;
 
 protected:
-    std::tuple<pElectronOperators...> pOperators;
+    std::tuple<ElectronOperators...> m_operators;
 
     // NB: Indirect projections are class members to prevent expensive memory (de)allocations
     mutable std::vector<IndirectProjectionStruct> indirects_list;
@@ -108,43 +108,43 @@ protected:
     // There is always a one-body operator
     inline double OneBodyMatrixElements(const ElectronInfo& la, const ElectronInfo& ra) const
     {
-        return std::get<0>(pOperators)->GetMatrixElement(la, ra);
+        return std::get<0>(m_operators).GetMatrixElement(la, ra);
     }
 
     // Sometimes there is no two-body operator, therefore need to protect std::get<1>().
-    // In this version, std::get<1>(pOperators) will always compile
-    template<int S = sizeof...(pElectronOperators)>
+    // In this version, std::get<1>(m_operators) will always compile
+    template<int S = sizeof...(ElectronOperators)>
     inline double TwoBodyMatrixElements(typename boost::enable_if_c< S >= 2, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& ra, const ElectronInfo& rb) const
     {
-        auto& p_operator = std::get<1>(pOperators);
-        return p_operator->GetMatrixElement(la, lb, ra, rb)
-                - p_operator->GetMatrixElement(la, lb, rb, ra);
+        auto& p_operator = std::get<1>(m_operators);
+        return p_operator.GetMatrixElement(la, lb, ra, rb)
+                - p_operator.GetMatrixElement(la, lb, rb, ra);
     }
 
     // This function is never actually called, but must be valid.
-    template<int S = sizeof...(pElectronOperators)>
+    template<int S = sizeof...(ElectronOperators)>
     inline double TwoBodyMatrixElements(typename boost::enable_if_c< S <= 1, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& ra, const ElectronInfo& rb) const
     {   return 0.;
     }
 
     // As with TwoBodyMatrixElements(), we need to protect std::get here.
-    template<int S = sizeof...(pElectronOperators)>
+    template<int S = sizeof...(ElectronOperators)>
     inline double ThreeBodyMatrixElements(typename boost::enable_if_c< S >= 3, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& lc, const ElectronInfo& ra, const ElectronInfo& rb, const ElectronInfo& rc) const
     {
-        auto& p_operator = std::get<2>(pOperators);
-        return p_operator->GetMatrixElement(la, lb, lc, ra, rb, rc)
-                + p_operator->GetMatrixElement(la, lb, lc, rb, rc, ra)
-                + p_operator->GetMatrixElement(la, lb, lc, rc, ra, rb)
-                - p_operator->GetMatrixElement(la, lb, lc, rc, rb, ra)
-                - p_operator->GetMatrixElement(la, lb, lc, rb, ra, rc)
-                - p_operator->GetMatrixElement(la, lb, lc, ra, rc, rb);
+        auto& p_operator = std::get<2>(m_operators);
+        return p_operator.GetMatrixElement(la, lb, lc, ra, rb, rc)
+                + p_operator.GetMatrixElement(la, lb, lc, rb, rc, ra)
+                + p_operator.GetMatrixElement(la, lb, lc, rc, ra, rb)
+                - p_operator.GetMatrixElement(la, lb, lc, rc, rb, ra)
+                - p_operator.GetMatrixElement(la, lb, lc, rb, ra, rc)
+                - p_operator.GetMatrixElement(la, lb, lc, ra, rc, rb);
     }
 
     // This function is never actually called, but must be valid.
-    template<int S = sizeof...(pElectronOperators)>
+    template<int S = sizeof...(ElectronOperators)>
     inline double ThreeBodyMatrixElements(typename boost::enable_if_c< S <= 2, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& lc, const ElectronInfo& ra, const ElectronInfo& rb, const ElectronInfo& rc) const
     {   return 0.;
@@ -156,8 +156,8 @@ protected:
 };
 
 /** ManyBodyOperator: one body operator specialization. */
-template <typename... pElectronOperators>
-double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon) const
+template <typename... ElectronOperators>
+double ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon) const
 {
     int num_diffs = 0;
 
@@ -173,12 +173,12 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
     if(&proj_left != &proj_right)
     {
         make_indirect_projection(proj_right, my_projections.right);
-        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(my_projections, epsilon);
+        num_diffs = GetProjectionDifferences<sizeof...(ElectronOperators)>(my_projections, epsilon);
     }
 
     double matrix_element = 0.0;
 
-    switch(sizeof...(pElectronOperators))
+    switch(sizeof...(ElectronOperators))
     {
         case 1:
             if(num_diffs == 0)
@@ -313,8 +313,8 @@ double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projectio
         return matrix_element;
 }
 
-template<typename... pElectronOperators>
-void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
+template<typename... ElectronOperators>
+void ManyBodyOperator<ElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
 {
     if(indirect_proj.size() != proj.size())
         indirect_proj.resize(proj.size());
@@ -324,9 +324,9 @@ void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Pro
         *indirect_it++ = &e;
 }
 
-template<typename... pElectronOperators>
+template<typename... ElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron) const
+int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron) const
 {
     indirects.diff1.clear();
     indirects.diff2.clear();
@@ -530,9 +530,9 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectPr
         return -num_diffs;
 }
 
-template<typename... pElectronOperators>
+template<typename... ElectronOperators>
 template<typename RelativisticConfigurationOverlap>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levelvec, RelativisticConfigurationOverlap rconfig_comp) const
+std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& levelvec, RelativisticConfigurationOverlap rconfig_comp) const
 {
     std::vector<const double*> eigenvector;
 
@@ -658,9 +658,9 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 #endif
 }
 
-template<typename... pElectronOperators>
+template<typename... ElectronOperators>
 template<typename RelativisticConfigurationOverlap>
-std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, RelativisticConfigurationOverlap rconfig_comp, const ElectronInfo* epsilon) const
+std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, RelativisticConfigurationOverlap rconfig_comp, const ElectronInfo* epsilon) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;

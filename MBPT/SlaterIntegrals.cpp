@@ -240,11 +240,9 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
 template <class MapType>
 void SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "SlaterIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -309,7 +307,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
         }
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <class MapType>
@@ -346,24 +344,24 @@ void SlaterIntegrals<MapType>::Write(const std::string& filename) const
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(orbitals->state_index, fp);
 
         unsigned int KeyType_size = sizeof(KeyType);
-        fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
 
         unsigned int num_integrals = size();
-        fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
 
         for(auto& pair: TwoElectronIntegrals)
         {
             const double value = pair.second;   // Convert to double
-            fwrite(&pair.first, sizeof(KeyType), 1, fp);
-            fwrite(&value, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(KeyType), 1, fp);
+            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }

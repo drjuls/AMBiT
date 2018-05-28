@@ -31,7 +31,7 @@ void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
     if(ProcessorRank == 0 && level_vector.levels.size() && !filename_prefix.empty())
     {
         std::string filename = filename_prefix + ".levels";
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
         
         // Write number of entries in LevelMap
         unsigned int num_hamiltonians = 0;
@@ -41,7 +41,7 @@ void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
             if((pair.second.configs != nullptr) && pair.second.levels.size())
                 num_hamiltonians++;
         }
-        fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&num_hamiltonians, sizeof(unsigned int), 1, fp);
         
         // Write all HamiltonianIDs and Level information
         for(auto& pair: m_map)
@@ -56,7 +56,7 @@ void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
 
                 // Write all level information
                 unsigned int num_levels = pair.second.levels.size();
-                fwrite(&num_levels, sizeof(unsigned int), 1, fp);
+                file_err_handler->fwrite(&num_levels, sizeof(unsigned int), 1, fp);
                 
                 for(auto& pl: pair.second.levels)
                 {
@@ -65,22 +65,22 @@ void LevelMap::Store(pHamiltonianID key, const LevelVector& level_vector)
                     double eigenvalue = pl->GetEnergy();
                     double gfactor = pl->GetgFactor();
                     
-                    fwrite(&eigenvalue, sizeof(double), 1, fp);
-                    fwrite(&N, sizeof(unsigned int), 1, fp);
-                    fwrite(eigenvector.data(), sizeof(double), N, fp);
-                    fwrite(&gfactor, sizeof(double), 1, fp);
+                    file_err_handler->fwrite(&eigenvalue, sizeof(double), 1, fp);
+                    file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
+                    file_err_handler->fwrite(eigenvector.data(), sizeof(double), N, fp);
+                    file_err_handler->fwrite(&gfactor, sizeof(double), 1, fp);
                 }
             }
         }
         
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }
 
 void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
 {
     std::string filename = filename_prefix + ".levels";
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return;
 
@@ -119,6 +119,7 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
         unsigned int N;
         std::vector<double> eigenvector;
         double gfactor;
+        gfactors_needed = false; // Assume the file has g-factors unless one or more of them is NaN
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
@@ -127,12 +128,16 @@ void LevelMap::ReadLevelMap(pHamiltonianIDConst hamiltonian_example)
             eigenvector.resize(N);
             fread(eigenvector.data(), sizeof(double), N, fp);
             fread(&gfactor, sizeof(double), 1, fp);
+            
+            // Check if we need to re-calculate this g-factor
+            if(std::isnan(gfactor))
+                gfactors_needed = true;
 
             levelvec.levels.emplace_back(std::make_shared<Level>(eigenvalue, eigenvector, key, gfactor));
         }
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 FileSystemLevelStore::FileSystemLevelStore(const std::string& file_prefix, pAngularDataLibrary lib):
@@ -166,7 +171,7 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
     std::string filename = filename_prefix + "." + key->Name() + ".levels";
     filename = (directory / filename).string();
 
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return levelvec;
 
@@ -196,6 +201,7 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
         unsigned int N;
         std::vector<double> eigenvector;
         double gfactor;
+        gfactors_needed = false; // Assume the file has g-factors unless one or more of them is NaN
 
         for(unsigned int index = 0; index < num_levels; index++)
         {
@@ -205,11 +211,15 @@ LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)
             fread(eigenvector.data(), sizeof(double), N, fp);
             fread(&gfactor, sizeof(double), 1, fp);
 
+            // Check if we need to re-calculate this g-factor
+            if(std::isnan(gfactor))
+                gfactors_needed = true;
+
             levelvec.levels.emplace_back(std::make_shared<Level>(eigenvalue, eigenvector, read_key, gfactor));
         }
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     return levelvec;
 }
 
@@ -223,7 +233,7 @@ void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_ve
     std::string filename = filename_prefix + "." + key->Name() + ".levels";
     filename = (directory / filename).string();
 
-    FILE* fp = fopen(filename.c_str(), "wb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
     if(!fp)
     {   *errstream << "FileSystemLevelStore::Store() cannot open " << filename << " for writing." << std::endl;
         exit(1);
@@ -234,7 +244,7 @@ void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_ve
     level_vector.configs->Write(fp);
 
     unsigned int num_levels = level_vector.levels.size();
-    fwrite(&num_levels, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&num_levels, sizeof(unsigned int), 1, fp);
 
     for(auto& pl: level_vector.levels)
     {
@@ -243,11 +253,11 @@ void FileSystemLevelStore::Store(pHamiltonianID key, const LevelVector& level_ve
         double eigenvalue = pl->GetEnergy();
         double gfactor = pl->GetgFactor();
 
-        fwrite(&eigenvalue, sizeof(double), 1, fp);
-        fwrite(&N, sizeof(unsigned int), 1, fp);
-        fwrite(eigenvector.data(), sizeof(double), N, fp);
-        fwrite(&gfactor, sizeof(double), 1, fp);
+        file_err_handler->fwrite(&eigenvalue, sizeof(double), 1, fp);
+        file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(eigenvector.data(), sizeof(double), N, fp);
+        file_err_handler->fwrite(&gfactor, sizeof(double), 1, fp);
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }

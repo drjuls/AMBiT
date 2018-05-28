@@ -112,8 +112,8 @@ void RelativisticConfigList::Read(FILE* fp)
 void RelativisticConfigList::Write(FILE* fp) const
 {
     unsigned int num_configs = m_list.size();
-    fwrite(&num_configs, sizeof(unsigned int), 1, fp);
-    fwrite(&Nsmall, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&num_configs, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&Nsmall, sizeof(unsigned int), 1, fp);
 
     for(const auto& relconfig: *this)
     {

@@ -191,14 +191,17 @@ std::vector<pBSpline> BSplineBasis::MakeSplines(int kappa, pPhysicalConstant con
 
         if((curr_knot_point - prev_knot_point) <= K)
         {
+            *errstream << "\nBSplineBasis: constructing Kappa = " << kappa;
+            *errstream << "\n    Warning: too few points in each spline segment. Increase Lattice/NumPoints (details in log)." << std::endl;
+
             // Print whole list and escape!
-            *errstream << "\nBSplineBasis: constructing Kappa = " << kappa << std::endl;
-            *errstream << "Warning: too few points in each spline segment. Increase Lattice/NumPoints." << std::endl;
+            *logstream << "\nBSplineBasis: constructing Kappa = " << kappa;
+            *logstream << "\n    Warning: too few points in each spline segment. Increase Lattice/NumPoints." << std::endl;
             unsigned int prev = 0;
             for(unsigned int i = 0; i < breakpoints->size; i++)
             {   unsigned int curr = lattice->real_to_lattice(gsl_vector_get(breakpoints, i));
                 if(curr > 0)
-                    *errstream << i << " " << curr << "  " << curr - prev << "  " << gsl_vector_get(breakpoints, i) << std::endl;
+                    *logstream << i << " " << curr << "  " << curr - prev << "  " << gsl_vector_get(breakpoints, i) << std::endl;
                 prev = curr;
             }
             break;

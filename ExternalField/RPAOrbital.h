@@ -2,7 +2,6 @@
 #define RPA_ORBITAL_H
 
 #include "HartreeFock/Orbital.h"
-#include <map>
 
 class RPAOrbital;
 
@@ -40,7 +39,7 @@ public:
     virtual void SetDeltaEnergy(double energy) { deltaEnergy = energy; }
 
 protected:
-    double deltaEnergy;
+    double deltaEnergy = 0.;
     std::weak_ptr<RPAOrbital> parent;
 };
 
@@ -56,7 +55,9 @@ public:
     RPAOrbital(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0):
         BaseClass(kappa, pqn, energy, size) {}
     RPAOrbital(const Orbital& other): BaseClass(other) {}
-    virtual ~RPAOrbital() {}
+    RPAOrbital(const RPAOrbital& other) = default;
+    RPAOrbital(RPAOrbital&& other) = default;
+    virtual ~RPAOrbital() = default;
 
     /** Clone makes deep copy of deltapsi. */
     virtual pOrbital Clone() const override
@@ -65,14 +66,31 @@ public:
 
         for(const auto& pair: deltapsi)
         {
-            pDeltaOrbital clone = pair.second->CloneWithNewParent(ret);
-            ret->deltapsi[pair.first] = clone;
+            pDeltaOrbital first_clone = (pair.first? pair.first->CloneWithNewParent(ret): nullptr);
+            pDeltaOrbital second_clone = (pair.second? pair.second->CloneWithNewParent(ret): nullptr);
+            ret->deltapsi.emplace_back(std::make_pair(first_clone, second_clone));
         }
         return ret;
     }
 
-    /** Map from kappa to orbital contribution. */
-    std::map<int, pDeltaOrbital> deltapsi;
+    /** Multiply orbital and deltapsi by the scale factor. */
+    const RPAOrbital& operator*=(double scale_factor);
+
+    /** Adding or subtracting two RPAOrbitals can only occur if both have same angular part. */
+    const RPAOrbital& operator+=(const RPAOrbital& other);
+    const RPAOrbital& operator-=(const RPAOrbital& other);
+    RPAOrbital operator+(const RPAOrbital& other) const;
+    RPAOrbital operator-(const RPAOrbital& other) const;
+
+    /** Multiply spinor function by another radial function (assumed zero outside range). */
+    const RPAOrbital& operator*=(const RadialFunction& chi);
+
+    /** Orbital contributions for different kappas: pair<dPsi(+), dPsi(-)>. */
+    std::vector<std::pair<pDeltaOrbital, pDeltaOrbital>> deltapsi;
+
+    /** Search deltaPsi for pair with given kappa. Returns deltapsi.end() if none found. */
+    auto GetDeltaPsi(int kappa) -> decltype(deltapsi)::iterator;
+    auto GetDeltaPsi(int kappa) const -> decltype(deltapsi)::const_iterator;
 };
 
 typedef std::shared_ptr<RPAOrbital> pRPAOrbital;
