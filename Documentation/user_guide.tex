@@ -13,14 +13,13 @@
 \usepackage{anysize}
 \usepackage{braket}
 
-
 \newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}                   
 
 \graphicspath{{./figures/}}
 
 \begin{document}
 
-\title{AMBiT user guide}
+\title{AMBiT 3.0\\User Guide}
 \author{Emily Kahl, Julian Berengut}
 \date{}
 \maketitle
@@ -29,17 +28,17 @@
 
 \chapter{Introduction}
 This is the user guide for \ambit: a modern, highly-parallel implementation of Configuration Interaction
-with Many-Body Perturbation Theory (CI+MBPT) for atomic structure calculations. \ambit ~makes extensive 
+with Many-Body Perturbation Theory (CI+MBPT) for atomic structure calculations. \ambit\ makes extensive 
 use of modern software engineering and high-performance computing (HPC) techniques to provide 
 high-performance and accuracy on both personal workstations and HPC clusters (supercomputers).
 
-This guide focuses on the mechanics of \ambit ~from an end-user perspective, i.e. how to actually use the
+This guide focuses on the mechanics of \ambit\ from an end-user perspective, i.e. how to actually use the
 code to do physics. This guide assumes \emph{some} knowledge of both general atomic structure theory and
 CI+MBPT specifically; see the \href{link_goes_here}{\textit{Computer Physics Communications} paper on 
-\ambit~} and Walter Johnson's \textit{Lectures on Atomic Physics} 
+\ambit} and Walter Johnson's \textit{Lectures on Atomic Physics} 
 (\href{https://www3.nd.edu/~johnson/Publications/book.pdf}{available here}) for a more thorough 
 introduction to the physics involved. Additionally, this guide does \emph{not} cover information 
-specific to developing \ambit ~-- that information is covered on the \ambit~ 
+specific to developing \ambit\ -- that information is covered on the \ambit\  
 \href{https://github.com/drjuls/AMBiT}{GitHub repository}.
 
 \chapter{Tutorial calculations: Cr$^+$}
@@ -47,22 +46,22 @@ specific to developing \ambit ~-- that information is covered on the \ambit~
 This chapter contains a step-by-step tutorial for running CI+MBPT calculations for the spectrum of the
 Cr$^+$ ion using \ambit. We will run through the three major sections of a CI+MBPT calculation:
 Dirac-Fock, calculating MBPT integrals, and generating and solving the CI matrix for calculations. We
-will provide the necessary \ambit~ input options for each step of the calculation, while the input file
+will provide the necessary \ambit\  input options for each step of the calculation, while the input file
 for the full calculation is located at \texttt{Documentation/ExampleCalculation/Cr+.input}.
 
 We've made the example calculations small-enough to run on a consumer-level laptop or desktop: the
 largest calculation runs in approximately 15 minutes on a quad-core x86-64 laptop with 8GB of
 memory. However, these calculations are still sufficient to demonstrate the most important features of 
-\ambit, including parallelism via OpenMP. We have tried to capture the \textit{median} usage of \ambit~
+\ambit, including parallelism via OpenMP. We have tried to capture the \textit{median} usage of \ambit\ 
 and have not included more specialised options and features in the software; consult chapter
-\ref{chap:input} for an exhaustive list of all \ambit~ features.
+\ref{chap:input} for an exhaustive list of all \ambit\  features.
 
 Additionally, the steps shown in this tutorial will generalise
 (with some work) to other atoms as well as computing architectures; in particular, they can be
 combined with the information on MPI and OpenMP in chapter \ref{chap:HPC} to perform much larger
 calculations.
 
-\ambit~ is designed to be run from the command-line, using a shell such as Bash or PowerShell (for MS
+\ambit\  is designed to be run from the command-line, using a shell such as Bash or PowerShell (for MS
 Windows). We will
 use Bash for the examples throughout this chapter, as that is the default for macOS and Linux, but the
 process should be similar for other shells. Throughout this chapter, we will use the following
@@ -74,7 +73,7 @@ $ command
 
 The above means: open a terminal, change to the desired directory (if necessary) and issue
 \texttt{command} (without the ``\$''). Commands are always presented in \texttt{teletype font}
-throughout the text of this section, as are \ambit~ input options. We do not currently provide a 
+throughout the text of this section, as are \ambit\  input options. We do not currently provide a 
 graphical interface for \ambit, as our primary use-case is in batch-jobs on HPC clusters, which are not
 a good fit for graphical interfaces. Consequently, some basic command-line knowledge is necessary in
 order to effectively use \ambit. Rutgers University has a
@@ -86,11 +85,11 @@ unless otherwise specified.
 
 \section{Installation}
 
-We've tested \ambit~ and know it works on the Linux and macOS operating systems. It will probably work
+We've tested \ambit\  and know it works on the Linux and macOS operating systems. It will probably work
 on MS Windows or other Unix operating systems (e.g. FreeBSD, Illumos, etc), but we can't guarantee it
 and do not support these systems. 
 
-In order to compile \ambit~ you'll need the following software libraries and tools:
+In order to compile \ambit\  you'll need the following software libraries and tools:
 \begin{itemize}
 \item A C++ compiler with support for C++11, such as GCC, Clang, or the Intel C++ compiler. Your 
 compiler should preferably have OpenMP support, but this is not strictly necessary for this tutorial;
@@ -112,7 +111,7 @@ parallelised at run-time.
 against libraries. This should be installed by default on macOS and most Linux distributions.
 \end{itemize}
 
-The \ambit~ build process is based around a build tool called SCons, whose build-control scripts 
+The \ambit\  build process is based around a build tool called SCons, whose build-control scripts 
 (similar to Makefiles) are full Python scripts. To simplify the process, we specify build options such 
 as compiler and flags, locations of required libraries, and which (if any) methods of parallelism to 
 employ in a plain-text file \texttt{config.ini}. This file has a standard key-value structure and its 
@@ -121,7 +120,7 @@ controlling the build. A minimal ``skeleton'' file is included with the source c
 \texttt{config\_template.ini}, which we recommend you copy (not rename) this file to \texttt{config.ini}
 and fill in the desired compilation options. If no file named \texttt{config.ini} exists, then the build
 system will make a copy of the minimal \texttt{config\_template.ini} and use that. Here is an example of
-a \texttt{config.ini} file to build \ambit~ on Fedora Linux (version 27):
+a \texttt{config.ini} file to build \ambit\  on Fedora Linux (version 27):
 
 \begin{verbatim}
 ; Most options are safe to leave blank - the build process will try to deduce
@@ -166,7 +165,7 @@ Libs = gsl,
 Most build options can be left unspecified and the build system will attempt to automatically
 infer sensible defaults, but these inferences can be explicitly overridden if required. Once the 
 \texttt{config.ini} file has been filled as required, the software executable can be built by 
-navigating to the top-level \ambit~ directory and issuing the \texttt{scons} command. The minimal
+navigating to the top-level \ambit\  directory and issuing the \texttt{scons} command. The minimal
 version of this (allowing the build system to automatically find the required libraries) would look
 like:
 
@@ -192,9 +191,9 @@ which will considerably speed up the build process by using all four cores (note
 \textit{oversubscribe} the build process, i.e. use more processes than there are physical cores on your 
 machine, as this will \emph{seriously} degrade performance).
 
-Finally, \texttt{scons} takes an optional ``target'' to build, which can be either ``release''
+Finally, \texttt{scons} takes an optional ``target'' to build, which can be either ``release''%
 \footnote{Release builds include the \texttt{-O3} compiler flag.} (the default), or ``debug'' to 
-enable debugging options and disable compiler optimisations \footnote{Equivalent to compiling with the
+enable debugging options and disable compiler optimisations\footnote{Equivalent to compiling with the
 \texttt{-g -O0} compiler flags}, for example:
 
 \begin{verbatim}
@@ -202,10 +201,10 @@ $ scons release
 $ scons debug
 \end{verbatim}
 
-\ambit~ executables built with debugging information will perform considerably more slowly (since they
+\ambit\  executables built with debugging information will perform considerably more slowly (since they
 don't use compiler optimisations) and should only be used to troubleshoot software bugs (e.g. crashes or
 nonsense results). Effectively using this option requires \emph{some} knowledge of the structure of the
-\ambit~ codebase, as well as debugging tools like \href{https://www.gnu.org/software/gdb/}{GDB}, so we
+\ambit\  codebase, as well as debugging tools like \href{https://www.gnu.org/software/gdb/}{GDB}, so we
 recommend against using this option unless absolutely necessary.
 
 \section{Cr$^+$ calculations}
@@ -220,9 +219,9 @@ $ cd /path/to/ambit
 $ ./ambit Documentation/ExampleCalculation/Cr+.input
 \end{verbatim}
 
-If you've compiled \ambit~ with OpenMP support and would like to try parallel calculations (which run
+If you've compiled \ambit\  with OpenMP support and would like to try parallel calculations (which run
 significantly more quickly), set the \texttt{bash} environment variable \texttt{OMP\_NUM\_THREADS} to
-the desired number of threads and then run \ambit~ as usual:
+the desired number of threads and then run \ambit\  as usual:
 
 \begin{verbatim}
 $ export OMP_NUM_THREADS=3
@@ -232,7 +231,7 @@ $ ./ambit Documentation/ExampleCalculation/Cr+.input
 We will no longer include the file path information in commands for the rest of this chapter, and will
 refer to the input file simply as \texttt{Cr+.input}
 
-\ambit~ will send all output to \textit{standard output} (i.e. print to the terminal), so it is often
+\ambit\  will send all output to \textit{standard output} (i.e. print to the terminal), so it is often
 useful to redirect the output to a file, using either:
 
 \begin{verbatim}
@@ -250,7 +249,7 @@ which will simultaneously save the output to \texttt{ambitoutput.txt} and print 
 
 It is often useful to estimate the size of a calculation prior to running it. For example, most HPC 
 clusters require users to specify the resources required by a calculation when submitting it, and will
-kill the calculation if it exceeds these limits. \ambit~ can calculate the approximate size of a
+kill the calculation if it exceeds these limits. \ambit\  can calculate the approximate size of a
 calculation via the \texttt{{-}{-}check-sizes} command-line option:
 
 \begin{verbatim}
@@ -286,7 +285,7 @@ is that the elements of the CI matrices are stored as double-precision floating-
 Importantly, \texttt{{-}{-}check-sizes} will calculate the angular data for a calculation if it is not
 already saved to disk (in the directory specified in the \texttt{Angular data directory} compile-time
 option). Generating this data from scratch can be very expensive for open d- and f-shell systems, so it
-is best to compile against Intel \texttt{MKL} and run \ambit~ in parallel when using this option.
+is best to compile against Intel \texttt{MKL} and run \ambit\  in parallel when using this option.
 
 \subsection{Dirac-Fock and B-Spline basis}
 \label{sec:tut_DF}
@@ -317,11 +316,11 @@ FrozenCore = 3s2p
 
 Let's go through these options one-by-one. 
 
-First, \texttt{ID} is the ``identifier'' for the calculation. \ambit~ generates a number of temporary
+First, \texttt{ID} is the ``identifier'' for the calculation. \ambit\  generates a number of temporary
 and checkpoint files, saving things like the basis functions and MBPT integrals, which will have
 filenames based on the value of this option. Following atomic structure conventions, \texttt{Z} is the
 nuclear charge of the system, given in atomic units. Note that this is distinct from the \textit{ionic}
-charge, which is never directly specified in the \ambit~ input. Both of these options must be included
+charge, which is never directly specified in the \ambit\  input. Both of these options must be included
 in every calculation.
 
 Next, we specify options to control the lattice spacing underneath the \texttt{[Lattice]} header. 
@@ -341,7 +340,7 @@ snippet will have no prefix, while \texttt{Option2} and \texttt{Option3} are equ
 
 In the \texttt{[Lattice]} section, \texttt{NumPoints} specifies how many points to use when calculating
 basis functions and wavefunctions, while \texttt{StartPoint} and \texttt{EndPoint} specify the start-
-and end-points of the lattice, respectively. \ambit~ uses a lattice with exponential scaling close to
+and end-points of the lattice, respectively. \ambit\  uses a lattice with exponential scaling close to
 the nucleus, which transitions to linear spacing at larger radii. \texttt{Lattice/StartPoint} doesn't
 need to be modified for most calculations, but it is often important to modify \texttt{Lattice/Endpoint}
 when treating systems such as highly-charged ions (which tend to have wavefunctions tightly localised
@@ -354,7 +353,7 @@ Hartree-Fock method) calculation. We first specify the number of electrons to in
 with \texttt{N} and the non-relativistic configuration to use as the basis of the calculation via
 \texttt{Configuration}. The colon `:' specifies the location of the Fermi level, which separates the
 fully-occupied core-states from the valence states which contain the dynamics of interest. If the colon
-is omitted then \ambit~ will place the Fermi level above the last orbital specified in
+is omitted then \ambit\  will place the Fermi level above the last orbital specified in
 \texttt{Configuration}.
 
 It is important to note that the \texttt{HF/N} and \texttt{HF/Configuration} do not need to exactly
@@ -395,8 +394,8 @@ d-orbitals with $n \leq 5$.
 valence hole-excitations. If any holes are required when building the CI matrix, they will be generated
 from orbitals above the frozen core but below the Fermi level.
 
-Running \ambit~ with the options included so far will produce a set of single-particle basis orbitals up
-to the value specified in \texttt{ValenceBasis} (7spdf in this case). \ambit~ will first print the 
+Running \ambit\  with the options included so far will produce a set of single-particle basis orbitals up
+to the value specified in \texttt{ValenceBasis} (7spdf in this case). \ambit\  will first print the 
 version information (from \href{https://git-scm.com/}{Git}) and then the input options we have specified
 so that this calculation can be (almost) exactly reproduced using only the information in the output.
 Next, it will print the energy, size (in lattice points), and radial size (in atomic units) of the basis
@@ -439,12 +438,12 @@ Excited orbitals:
    7d+  E = -0.0101245091501  size: (999) 60
 \end{verbatim}
 
-\ambit~ will also save this information in a binary file called \texttt{CrII\_0.basis} (since
+\ambit\  will also save this information in a binary file called \texttt{CrII\_0.basis} (since
 \texttt{ID=CrII}), which allows it to reuse these basis orbitals rather than having to re-calculate them
-each time. \ambit~ always prefers to reuse orbitals if the binary file exists, even if you have
+each time. \ambit\  always prefers to reuse orbitals if the binary file exists, even if you have
 requested a different number of orbitals to what is stored in the file. If there are fewer orbitals in
-the file than required by \texttt{Basis/ValenceBasis}, \ambit~ will print a warning, since this can lead
-to unexpected results. Deleting this file or running \ambit~ with:
+the file than required by \texttt{Basis/ValenceBasis}, \ambit\  will print a warning, since this can lead
+to unexpected results. Deleting this file or running \ambit\  with:
 
 \begin{verbatim}
 $ ./ambit -c Cr+.input
@@ -466,7 +465,7 @@ calculated, and then re-used in subsequent calculations. This means that the cos
 $\hat{J}^2$ operator is effectively spread-out across all calculations with the same angular components.
 
 More specifically, we specify a set of non-relativistic leading configurations using 
-\texttt{CI/LeadingConfigurations}, from which \ambit~ takes electrons and/or hole excitations up to the
+\texttt{CI/LeadingConfigurations}, from which \ambit\  takes electrons and/or hole excitations up to the
 limit set in \texttt{Basis/ValenceBasis} to form the CSFs. It is extremely important to choose the
 leading configurations such that the electron- or hole-excitations capture all of the important
 contributions to the expansion of the wavefunction, while including extraneous leading configurations
@@ -493,7 +492,7 @@ HoleExcitations = 0
 The \texttt{[CI]} and \texttt{[CI/SmallSide]} sections are conceptually related and, combined, specify 
 how to generate the CI matrix. The \texttt{[CI]} section is mandatory, while the \texttt{[CI/SmallSide]}
 is optional, but controls the ``small-side'' of the matrix when using Emu CI, which is described further
-in the \href{link_goes_here}{\ambit~ CPC paper}.
+in the \href{link_goes_here}{\ambit\  CPC paper}.
 
 First, \texttt{LeadingConfigurations} specifies the leading configurations from which to generate the 
 CSFs, which are usually the
@@ -536,7 +535,7 @@ symmetries), so this calculation will calculate states with even parity and $J =
 \texttt{CI/NumSolutions} specifies how many CI solutions to calculate and print, which defaults to 6 if
 no value is provided.
 
-Running \ambit~ with these options, plus the HF and Basis options in section \ref{sec:tut_DF} produces
+Running \ambit\  with these options, plus the HF and Basis options in section \ref{sec:tut_DF} produces
 CI output similar to the following (we have elided the basis functions and truncated the output to one
 symmetry to save space):
 
@@ -563,7 +562,7 @@ Solutions for J = 0.5, P = even (N = 18540):
 
 \end{verbatim}
 
-For each symmetry, \ambit~ first prints a ``header'' containing the number of CSFs 
+For each symmetry, \ambit\  first prints a ``header'' containing the number of CSFs 
 (the size of the CI matrix) and the algorithm used to compute the eigenvectors and eigenvalues 
 (Davidson's algorithm, in this case), followed by the total angular momentum $J$, parity $\pi$ and 
 maximum number of states which \textit{could} be calculated using this CI basis size.
@@ -583,18 +582,18 @@ with the identification of levels. These are expensive to calculate and can be s
 CI contributes the most to the resulting energy and wavefunction of any step (in multi-electron atoms),
 so this it's important to expand the CI matrix to the largest basis your machine will support.
 Generating and solving the CI matrix is heavily parallelised, so memory usage is usually the main
-bottleneck to expanding the CI basis. However, \ambit~ splits the matrix into ``chunks'', which can then
+bottleneck to expanding the CI basis. However, \ambit\  splits the matrix into ``chunks'', which can then
 be distributed between multiple nodes on a cluster via MPI, so it is often possible to ``throw more
 nodes'' at the problem if memory usage becomes too high for a single machine. See chapter \ref{chap:HPC}
 for a more detailed discussion and tutorial on how to most effectively use HPC resources with \ambit.
 
-Finally, \ambit~ stores the CI solutions (including energy levels and expansion coefficients) in the 
+Finally, \ambit\  stores the CI solutions (including energy levels and expansion coefficients) in the 
 binary file \texttt{CrII\_0.levels} at ``checkpoints'' which occur after solving a particular $J^{\pi}$ 
 matrix, and again after calculating the g-factors for that matrix. This means that calculations can be
 interrupted and re-started without needing to re-calculate energy levels which have already been done.
 
 Additionally, the fact that there are checkpoints before and after calculating g-factors means we can
-run a calculation without g-factors, re-use the levels file (which \ambit~ will do automatically if one 
+run a calculation without g-factors, re-use the levels file (which \ambit\  will do automatically if one 
 with the correct file name exists in the current directory) to avoid constructing and diagonalising 
 the CI matrices again, and calculate only the g-factors with \texttt{CI/{-}{-}gfactors}.
 
@@ -621,7 +620,7 @@ The only option here, \texttt{MBPT/Basis} places upper limits on $n$ and $l$ of 
 internal lines of the MBPT diagrams, and takes a string with the same format as
 \texttt{Basis/ValenceBasis}.
 
-Additionally, MBPT diagrams are generally quite expensive to calculate, so \ambit~ does not include them
+Additionally, MBPT diagrams are generally quite expensive to calculate, so \ambit\  does not include them
 by default. The inclusion of MBPT corrections is controlled via the ``ungrouped'' option
 \texttt{-s[123]}, where \texttt{[123]} denotes which of the one-, two-, or three-body diagrams to 
 include in MBPT corrections, and can be any any combination of 1, 2, or 3. For example, \texttt{-s2} 
@@ -644,8 +643,8 @@ Z = 24
 Basis = 15spdf
 \end{verbatim}
 
-\ambit~ incorporates MBPT corrections by first calculating the requested diagrams, then using those
-diagrams to modify the radial Coulomb integrals used to build the CI matrix. \ambit~ will also save the
+\ambit\  incorporates MBPT corrections by first calculating the requested diagrams, then using those
+diagrams to modify the radial Coulomb integrals used to build the CI matrix. \ambit\  will also save the
 one- and two-body integrals to the binary, checkpoint files \texttt{CrII\_0.one.int} and
 \texttt{CrII\_0.two.int} to be reused for future calculations. The three-body integrals are not saved,
 as there are a huge number of them and they are relatively cheap to calculate ``on the fly''.
@@ -683,7 +682,7 @@ core-valence MBPT still improves the accuracy by a few thousand cm$^{-1}$. That 
 individual terms in the MBPT expansion must be small (otherwise it's not a perturbation) to ensure that
 MBPT actually improves the accuracy. There are some cases where small energy differences between
 basis orbitals lead to large MBPT diagrams, so including MBPT corrections (especially
-valence-valence MBPT corrections, described in the \href{link_goes_here}{\ambit~ CPC paper}) can
+valence-valence MBPT corrections, described in the \href{link_goes_here}{\ambit\  CPC paper}) can
 actually reduce the accuracy of the calculation. Consequently, it's important to be careful when 
 constructing the MBPT basis to ensure all the terms remain small.
 
@@ -730,7 +729,7 @@ transitions to calculate. The first is to directly list the transitions with the
 output. We use this approach in calculating the $M_1$ transitions in the input options below.
 
 The second way of requesting transitions is to specify an upper energy limit with the option
-\texttt{<Operator>/AllBelow}. \ambit~ will calculate all transitions for states with absolute energy (in
+\texttt{<Operator>/AllBelow}. \ambit\  will calculate all transitions for states with absolute energy (in
 atomic units) below this value. We use this approach below in order to calculate all $E_{2}$ 
 transitions.
 
@@ -832,12 +831,12 @@ E2 transition strengths (S):
 
 First, notice that there are two sections of transitions output. The first contains the values for just
 the transitions we requested in the input file: a limited set of $M_1$ transitions and all $E_2$
-transitions for states with energy $E < -9.2$ a.u. \ambit~ automatically incorporates the relevant
+transitions for states with energy $E < -9.2$ a.u. \ambit\  automatically incorporates the relevant
 selection rules for each operator, and will not print transitions which are disallowed. 
 
-Due to the way \ambit~ calculates transition matrix elements, calculating one transition between states
+Due to the way \ambit\  calculates transition matrix elements, calculating one transition between states
 with $J^{\pi}_1, J^{\pi}_2$ also allows us to calculate every other transition with the same 
-symmetry essentially extremely cheaply. Consequently, \ambit~ also prints these transitions in the 
+symmetry essentially extremely cheaply. Consequently, \ambit\  also prints these transitions in the 
 second section of the output regardless of how many transitions are requested, since we get these
 transitions essentially ``for free''.
 
@@ -938,7 +937,7 @@ contributions to the energy, so make sure you get CI working first.
 \label{chap:HPC}
 
 \section{Introduction}
-\ambit ~makes extensive use of parallelism to make full use of modern high-performance computing cluster
+\ambit\ makes extensive use of parallelism to make full use of modern high-performance computing cluster
 architecture. There are currently three methods of parallelism available in \ambit, the choice of which
 will depend on the architecture on which you are running \ambit:
 
@@ -967,7 +966,7 @@ parallelism with \ambit, respectively. Finally, section \ref{sec:cluster_specifi
 and instructions specific to the Katana and Raijin clusters, as well as sample job scripts for each
 machine.
 
-Lastly, table \ref{tab:parallelism} provides a quick overview of which sections of \ambit can exploit
+Lastly, table \ref{tab:parallelism} provides a quick overview of which sections of \ambit\ can exploit
 particular modes of parallelism, as well as under what circumstances.
 
 
@@ -978,7 +977,7 @@ some combination of MPI, OpenMP or automatic parallelism through the Intel MKL l
 Sections with N/A under the MKL column do not do automatically parallelisable linear algebra operations.}
 \begin{tabular}{l l l l}
 \hline
-\ambit~section & MPI   &OpenMP  &MKL\\
+\ambit\ section & MPI   &OpenMP  &MKL\\
 \hline
 \hline
 Two-electron Slater integrals   &No &Yes &N/A\\
@@ -1034,7 +1033,7 @@ Rather than consisting of a single, all-powerful monolith, modern supercomputers
 organised as clusters - huge arrays of interlinked, often off-the-shelf servers which derive their 
 computing power from the ability to execute massively parallel workloads by splitting the workload up
 between computational resources and having those resources communicate the results to one another. 
-\ambit ~is designed to take advantage of this kind of architecture, but in order to get the most 
+\ambit\ is designed to take advantage of this kind of architecture, but in order to get the most 
 performance out of your calculation it is worthwhile familiarising yourself with the basics of modern 
 cluster architecture. This section will focus on the high-level, conceptual details of cluster
 architecture; more technical points can be found in the footnotes, although the low-level details will
@@ -1047,13 +1046,13 @@ node and four CPUs per socket. We will use this simplified cluster to illustrate
 parallelism throughout the rest of this guide.
 
 At the 
-lowest level are \textit{cores} \footnote{Sometimes called \textit{processors}, although somewhat 
+lowest level are \textit{cores}\footnote{Sometimes called \textit{processors}, although somewhat 
 confusingly, this can also be used to refer to sockets.}, which for our purposes are essentially chips 
 that can do basic arithmetic, manage branching logic, and store and retrieve values in memory. Cores are 
 the basic unit of computing resources and are what actually executes our computer program. 
 
 At the next level up, processors are organised into \textit{sockets}. Sockets are groups of cores which are
-``close'' to one another in the machine \footnote{They share a memory bus and usually some kind of fast
+``close'' to one another in the machine\footnote{They share a memory bus and usually some kind of fast
 but small cache memory.}, so
 communication within a socket is much faster than communication between sockets. The number of cores on a
 socket varies considerably between clusters and even individual nodes on the same cluster, so consult 
@@ -1075,7 +1074,7 @@ cores (small, white rectangles) per socket for a total of eight cores per node.}
 \end{figure}
 
 The different characteristics of inter- vs intra-node communication necessitates the use of different
-techniques in parallelising code. \ambit ~employs two software libraries to achieve this: \textit{OpenMP} 
+techniques in parallelising code. \ambit\ employs two software libraries to achieve this: \textit{OpenMP} 
 for distributing the workload among cores within a node and \textit{MPI} for distributing the workload
 between nodes. These two methods of parallelism can be used in isolation or combined for a hybrid
 approach. 
@@ -1083,20 +1082,20 @@ approach.
 \section{MPI}
 \label{sec:MPI}
 
-MPI \footnote{\textit{Message Passing Interface} - technically a specification and standard rather than a
+MPI\footnote{\textit{Message Passing Interface} - technically a specification and standard rather than a
 specific library. Implementations include OpenMPI, MPICH, and Intel MPI} provides a platform-independent
 interface for communication between computing resources and allows for parallelism at either the core or
 node level. Invoking a program with MPI spawns a number of independent \textit{processes} (the term which
 we will use to refer to MPI parallelism throughout the rest of this section) which do not share resources
 and cannot communicate outside of MPI directives, even if they reside on the same node. Each MPI process
-runs its own copy of the \ambit ~code and requires its own set of variables, so there is some duplication
+runs its own copy of the \ambit\ code and requires its own set of variables, so there is some duplication
 of resources (most importantly the CI matrix) between processes. Consequently, running multiple MPI
 processes per node comes with some memory overhead, which limits the number of processes and parallel
 speedup which is possible with a pure MPI approach.
 
-To enable MPI support, \ambit ~must first be compiled with the \texttt{-D\_AMBIT\_USE\_MPI} compiler flag
+To enable MPI support, \ambit\ must first be compiled with the \texttt{-D\_AMBIT\_USE\_MPI} compiler flag
 (currently enabled by default on the Katana, Raijin and Peregrine clusters). Next, the MPI sections of
-\ambit ~are only activated when the code is run with the either of the equivalent commands 
+\ambit\ are only activated when the code is run with the either of the equivalent commands 
 \texttt{mpirun} or \texttt{mpiexec}:
 
 \begin{verbatim}
@@ -1106,7 +1105,7 @@ mpirun [-np <N>] <ambit>
 where \texttt{<ambit>} is the command and arguments you would usually use to run \ambit. Note that
 \texttt{mpirun} will not always be available by default on clusters which employ a \textit{module-based}
 system to manage software; it may be necessary to load the appropriate MPI module (e.g. OpenMPI) before
-running \ambit ~in MPI-mode.
+running \ambit\ in MPI-mode.
 
 The \texttt{-np} option is optional (as indicated by the square brackets) and indicates the number of MPI
 processes to spawn. If it is left out then MPI will make as many processes as there are available cores
@@ -1114,7 +1113,7 @@ across all nodes (i.e. a job with 2 nodes and 4 cores per node will spawn 8 MPI 
 otherwise specified with the \texttt{-np} option).
 
 If your cluster/job scheduler allows you to request a specific number of nodes and cores per node
-than the above command is all that is necessary to run \ambit ~with MPI. However, if the job scheduler
+than the above command is all that is necessary to run \ambit\ with MPI. However, if the job scheduler
 only allows requests for cores (NCI's \textit{Raijin} cluster schedules jobs this way) then it is still
 possible to limit the number of MPI processes per node via command-line arguments to mpirun. The
 \texttt{--map-by <resource>} option specifies how to distribute the generated MPI processes among
@@ -1122,7 +1121,7 @@ available computational resources.
 
 The \texttt{--map-by} option requires at least the type of resource to ``map'' the processes to
 (essentially, the level of granularity of control we want over how MPI distributes processes), which can
-be node, socket or core \footnote{There are plenty of other options as well, which are beyond the
+be node, socket or core\footnote{There are plenty of other options as well, which are beyond the
 scope of this guide. Consult the man page if you're interested.}. If this option is used then the
 \texttt{-np} option \textit{must} also be specified. Additionally, \texttt{--map-by} accepts
 additional arguments specifying the number of processes to allocate, \texttt{ppr}, to each resource 
@@ -1140,7 +1139,7 @@ mpirun -np 8 --map-by ppr:4:node <ambit>
 \end{verbatim}
 
 This is a very coarse-grained level of control though, as MPI is free to spawn processes \emph{anywhere} 
-on the node. This can be useful if the cluster is busy, as it allows \ambit ~to ``share'' the nodes with
+on the node. This can be useful if the cluster is busy, as it allows \ambit\ to ``share'' the nodes with
 other running jobs by placing the processes wherever is available. However, if the processes are spawned
 across multiple sockets on the nodes, as shown in figure \ref{fig:MPI_map-by_node}, then this may degrade
 performance, as it is considerably faster to pass messages
@@ -1177,7 +1176,7 @@ performance.}
 
 Finally, it is also possible to map MPI processes by core, which will map the processes to whichever
 cores are available without regard for node or socket. This is the default behaviour for most
-current implementations of MPI \footnote{Binding/mapping processes by core is the default behaviour for
+current implementations of MPI\footnote{Binding/mapping processes by core is the default behaviour for
 OpenMPI versions 1.7.x and above.} and is functionally identical to running \texttt{mpirun} without any
 options.
 
@@ -1185,17 +1184,17 @@ options.
 \label{sec:OpenMP}
 As previously mentioned, all cores within a node have access to a shared memory pool, so it is not
 necessary to employ explicit message passing to distribute the workload. Consequently, we employ
-\textit{shared-memory parallelism} via the \textit{OpenMP} library when running \ambit ~in parallel
+\textit{shared-memory parallelism} via the \textit{OpenMP} library when running \ambit\ in parallel
 \emph{within} a node. OpenMP employs the \textit{fork-join} model of parallelism. The code runs as a 
 single \textit{thread} until it encounters a section (such as a subroutine or loop) which the programmer 
 has declared should be run in parallel, at which point the program spawns multiple threads
-which draw from a common pool of memory \footnote{At least, all OpenMP threads created by the same MPI 
+which draw from a common pool of memory\footnote{At least, all OpenMP threads created by the same MPI 
 process share memory. As we'll see, a hybrid MPI+OpenMP program can result in multiple ``groups'' of 
 OpenMP threads executing on a single node, which share memory within groups spawned by the same process, 
 but not between different groups} and distribute the work in the parallel section between them. 
 
-In addition to OpenMP, \ambit ~can optionally make use of Intel's \textit{Math Kernel Library} 
-(\textit{MKL}) to automatically parallelise certain linear algebra operations \footnote{Only operations 
+In addition to OpenMP, \ambit\ can optionally make use of Intel's \textit{Math Kernel Library} 
+(\textit{MKL}) to automatically parallelise certain linear algebra operations\footnote{Only operations 
 with relatively moderate overhead are parallelised via MKL; the huge eigenvalue problems required by the
 CI algorithm employ a different, more specialised algorithm instead.}. MKL's internal subroutines also
 employ shared-memory parallelism, so all of the same performance concerns which apply to OpenMP also
@@ -1216,14 +1215,14 @@ Note that if \texttt{MKL\_NUM\_THREADS} is not defined then MKL will use the sam
 OpenMP; this is a sensible default, so it is usually sufficient to only specify 
 \texttt{OMP\_NUM\_THREADS}. 
 
-To enable OpenMP support, \ambit ~must first be compiled with the \texttt{-D\_AMBIT\_USE\_OPENMP} compiler
+To enable OpenMP support, \ambit\ must first be compiled with the \texttt{-D\_AMBIT\_USE\_OPENMP} compiler
 flags and \texttt{OMP\_NUM\_THREADS} must be defined \emph{before} running \ambit. Additionally, MKL's
-internal parallelism can be enabled by first compiling and linking \ambit ~against MKL libraries
+internal parallelism can be enabled by first compiling and linking \ambit\ against MKL libraries%
 \footnote{The details of this are beyond the scope of this guide. Consult your cluster's documentation or
 IT people for more details.} and passing the \texttt{-D\_EIGEN\_USE\_MKL\_ALL} flag during compilation.
-Once \ambit ~has been compiled with the correct options and at least \texttt{OMP\_NUM\_THREADS} has been
-defined, \ambit ~will use OpenMP parallelism without requiring any additional command line options (i.e.
-simply run \ambit ~as you would normally).
+Once \ambit\ has been compiled with the correct options and at least \texttt{OMP\_NUM\_THREADS} has been
+defined, \ambit\ will use OpenMP parallelism without requiring any additional command line options (i.e.
+simply run \ambit\ as you would normally).
 
 OpenMP is very forgiving when it comes to performance issues and we have tried to ensure that \ambit
 \textit{scales} well as more cores/threads are added. Performance will be drastically reduced if you
@@ -1241,17 +1240,17 @@ figure \ref{fig:omp_scatter}.
 Lastly, a value of \textit{none} indicates that the OpenMP runtime should automatically decide where to 
 place threads.
 
-Not requesting any affinity \emph{may} allow threads to migrate between cores as \ambit ~
+Not requesting any affinity \emph{may} allow threads to migrate between cores as \ambit\ 
 is running, which may degrade performance. Compact and scatter ensure threads stay bound to a specific
 core for the lifetime of the calculation and only differ when running with fewer 
 threads than there are available cores on a node. Even then these two affinities only differ 
-substantially in memory access latency \footnote{Specifically, all cores on a
+substantially in memory access latency\footnote{Specifically, all cores on a
 socket share a single memory bus, so highly memory intensive calculations may saturate the bus if all
 threads are bound to a single socket. Conversely, it is expensive to communicate across sockets, so
 computation intensive jobs may \emph{benefit} from all having threads bound to a single socket. The only
 way to determine which affinity will give optimal performance for a specific job is to try both and 
 compare}. Consequently, it is usually good practice to explicitly request a thread affinity of either 
-compact or scatter, the choice of which only matters when running \ambit ~with fewer than the available
+compact or scatter, the choice of which only matters when running \ambit\ with fewer than the available
 number of cores on a node. This is achieved by adding the following line to the job script used to run
 \ambit:
 
@@ -1274,7 +1273,7 @@ a single node of the model cluster shown in figure \ref{fig:cluster_hierarchy}.}
 \end{figure}
 
 \begin{comment}
-As a point of comparison, figure \ref{fig:OMPvsMPI} provides a comparison of the run times of \ambit ~(for
+As a point of comparison, figure \ref{fig:OMPvsMPI} provides a comparison of the run times of \ambit\ (for
 a mid-sized Sn$^{10+}$ calculation) using pure OpenMP as compared to pure MPI on UNSW's Katana cluster. 
 In each case, the number of processes/threads starts at one and is increased to 16 across a single, 
 16-core node on katana. Both cases  demonstrate clear parallel scaling (i.e. the run time steadily 
@@ -1291,13 +1290,13 @@ This is a clear demonstration of the advantages of OpenMP over MPI when distribu
 single node. 
 \end{comment}
 In summary, if your job fits on a single node (i.e. the CI matrix is not larger than the 
-memory possessed by a single node) then it is almost always preferable to run \ambit ~with OpenMP rather 
+memory possessed by a single node) then it is almost always preferable to run \ambit\ with OpenMP rather 
 than MPI.
 
 \section{Hybrid OpenMP + MPI}
 \label{sec:hybrid}
 
-\ambit ~also supports a hybrid method of parallelism, exploiting the complementary performance aspects of
+\ambit\ also supports a hybrid method of parallelism, exploiting the complementary performance aspects of
 MPI and OpenMP to provide good scaling across multiple cluster nodes. We employ MPI to coordinate and
 distribute work across nodes, while parallelism \emph{within} each node is handled by OpenMP. This allows
 for jobs to be spread across multiple nodes (for example, if the CI matrix is too large to fit in the
@@ -1305,7 +1304,7 @@ memory of a single node), while maintaining as much of the speedup due to shared
 possible. 
 
 Since it is fastest to use OpenMP within a node, it is generally ideal to run exactly one MPI process per
-node and allow those process to spawn as many OpenMP threads as required \footnote{It may be desirable 
+node and allow those process to spawn as many OpenMP threads as required\footnote{It may be desirable 
 to run one MPI process per \emph{socket} for calculations where memory bandwidth is the bottleneck (as 
 cores on a socket generally share a single memory bus) or when running on ccNUMA nodes (where latency in
 accessing memory across sockets and cache-thrashing can cause significant slowdowns). In these cases,
@@ -1315,7 +1314,7 @@ creation are handled by the MPI library; exact details of which differ between i
 include \textit{OpenMPI}, \textit{MPICH} and \textit{Intel MPI}. This section will only focus on the
 specifics of hybrid parallelism under OpenMPI, as it provides the most finely-grained control over how to
 distribute MPI processes and OpenMP threads. While it is possible to use other MPI implementations with
-\ambit ~\footnote{This requires recompiling \ambit ~and linking against the desired MPI library, which we
+\ambit\footnote{This requires recompiling \ambit\ and linking against the desired MPI library, which we
 do not recommend for most users.}, there can be significant performance issues when using the Intel MPI
 library, so we recommend you stick with OpenMPI unless there are significant reasons not to.
 
@@ -1340,7 +1339,7 @@ is inconvenient, but unfortunately there is currently no reliable way to have ei
 handle this automatically.
 
 As a more concrete example, 
-consider the model cluster introduced in figure \ref{fig:cluster_hierarchy}. The command to run \ambit ~
+consider the model cluster introduced in figure \ref{fig:cluster_hierarchy}. The command to run \ambit\ 
 with one MPI process per node and 8 OpenMP threads per process is:
 
 \begin{verbatim}
@@ -1395,14 +1394,14 @@ form:
 The above commands can be extended to as many nodes as required by only changing the number of
 requested MPI processes (via the \texttt{-np} option to \texttt{mpirun}); the OpenMP specific options
 (\texttt{OMP\_NUM\_THREADS} and the \texttt{pe} option to \texttt{mpirun}) do not need to be changed
-unless \ambit ~will be run on multiple, heterogeneous nodes with different numbers of available cores.
+unless \ambit\ will be run on multiple, heterogeneous nodes with different numbers of available cores.
 This usage case is beyond the scope of this guide, so ask the IT support for your cluster if you need to 
-run \ambit ~in this configuration.
+run \ambit\ in this configuration.
 
 \section{Cluster specific information}
 \label{sec:cluster_specific}
 \subsection{Raijin}
-All modes of \ambit parallelism currently work on Rajiin with no requirements or special commands above 
+All modes of \ambit\ parallelism currently work on Rajiin with no requirements or special commands above 
 and beyond what has been mentioned so far in this guide. In terms of hardware, all currently available 
 nodes in the \textit{normal} and \textit{express} queues in have two sockets with 8 cores per socket, 
 for a total of 16 cores per node. Each node has a total of 128GB of memory shared between sockets,
@@ -1422,10 +1421,10 @@ not possible to request multiple nodes in any other manner.
 \subsection{Katana}
 
 Currently, it is not possible to run hybrid OpenMP+MPI jobs on Katana: attempting to use more than one
-MPI process with OpenMP causes \ambit to hang when diagonalising the Hamiltonian Matrix \footnote{This is
+MPI process with OpenMP causes \ambit\ to hang when diagonalising the Hamiltonian Matrix\footnote{This is
 achieved via the Davidson algorithm, which we have explicitly parallelised via MPI and rely on the
 automatic shared memory parallelism in the \textit{Eigen} linear algebra library.}. The source of this
-bug is still currently unknown, so for now it is necessary to run \ambit in either pure OpenMP mode if
+bug is still currently unknown, so for now it is necessary to run \ambit\ in either pure OpenMP mode if
 the job will fit on one node or pure MPI if more than one node is required.
 
 The Katana nodes available to the Atomic Physics group fall into two groups:
@@ -1452,7 +1451,7 @@ to Debug Parallel Programs} - Provides advice and working examples for debugging
 Raijin. Can be useful for locating performance bottlenecks as well as bugs.
 
 \item \href{https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/}{Intel MKL Link Line
-Advisor} - Online tool to determine which compiler flags to use with \ambit ~to enable MKL functionality.
+Advisor} - Online tool to determine which compiler flags to use with \ambit\ to enable MKL functionality.
 
 \item \href{https://www.open-mpi.org/faq/}{OpenMPI FAQ} - Provides general advice for compiling and
 running MPI programs on a variety of cluster and software environments.
@@ -1486,7 +1485,7 @@ snippet will have no prefix, while \texttt{Option2} and \texttt{Option3} are equ
 \texttt{Prefix1/Option2} and \texttt{Prefix2/Option3}, respectively.
 
 Input files are specified on the command line with the \texttt{-f} option; if this is not present,
-\ambit will search the command line arguments for a filename with the \texttt{.input} extension and
+\ambit\ will search the command line arguments for a filename with the \texttt{.input} extension and
 automatically read input options from that file. Consequently, the following two invocations are
 equivalent:
 
@@ -1494,7 +1493,7 @@ equivalent:
 \texttt{ambit file.input}
 \end{itemize}
 
-Currently, misspelled or erroneous arguments are not automatically handled by \ambit ~
+Currently, misspelled or erroneous arguments are not automatically handled by \ambit\ 
 and will be either be ignored (for typos) or cause the corresponding part of the calculation to fail 
 (for errors or incorrect arguments).
 
@@ -1505,12 +1504,12 @@ contains ungrouped options), with the options belonging to that prefix outlined 
 section. 
 
 Additionally, the input options may either take an argument (specified after an ``=''), or are binary
-``flags'' which do not take arguments and control \ambit by whether or not they are specified. This
+``flags'' which do not take arguments and control \ambit\ by whether or not they are specified. This
 distinction is reflected in the syntax and naming conventions of arguments. Options requiring an
 argument are written in CamelCase and have the form \texttt{InputOption=Argument}, where the argument
 can be either a numeric value (an integer or a real number) or a text string encased in single- or
 double-quotes. Quotes may be omitted only in the special case of a string-type argument which is a
-single word, in which case \ambit will automatically treat the argument as a string (multi-word
+single word, in which case \ambit\ will automatically treat the argument as a string (multi-word
 arguments are never automatically converted). Input flags, on the other hand, are written in lower case 
 and have the form \texttt{{-}{-}flag-option} (note the two leading-dashes). 
 
@@ -1529,7 +1528,7 @@ Finally, the value of all numerical parameters must be given in atomic units unl
 
 It is sometimes necessary to run multiple almost identical CI+MBPT calculations which differ only in
 some varying parameter, such as the nuclear mass or radius in field-shift calculations. To facilitate
-this use-case, \ambit supports multiple runs via the \texttt{Multirun} ungrouped input option, which
+this use-case, \ambit\ supports multiple runs via the \texttt{Multirun} ungrouped input option, which
 accepts a string containing the parameter to vary. The varying parameters values are then provided via 
 the usual input options, except they must be given as a list of values the parameter may take. For 
 example:
@@ -1537,7 +1536,7 @@ example:
 \texttt{Multirun = 'AlphaSquaredVariation'}
 \texttt{AlphaSquaredVariation = '-0.1, 0.0, 0.1'}
 
-will perform three runs with $\alpha^2 \to (1 - \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$.
+will perform three runs with $\alpha^2 \to (1 + \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$.
 
 The resulting energy levels and transition matrix elements are for each run are all grouped according to
 $J^{\pi}$ symmetry and printed to standard output. And example output file might look like:
@@ -1618,7 +1617,7 @@ Filename (and path) of input file containing options to be passed to \ambit.
 
 \texttt{NuclearInverseMass} \uline{Real}
 \begin{adjustwidth}{1cm}{}
-Inverse mass of the nucleus in atomic units.
+Inverse mass of the nucleus in atomic units. Used when calculating mass shift.
 \end{adjustwidth}
 
 \texttt{NuclearRadius} \uline{Real}
@@ -1644,7 +1643,7 @@ $\alpha^2 \to (1 + \Delta)\alpha^2$.
 
 \texttt{AngularDataDirectory} \uline{String}
 \begin{adjustwidth}{1cm}{}
-alternative directory used to store and read angular data files. This option overrides the angular data
+Alternative directory used to store and read angular data files. This option overrides the angular data
 directory set by the \texttt{-DANGULAR\_DATA\_DIRECTORY} compile-time option.
 \end{adjustwidth}
 
@@ -1710,7 +1709,7 @@ Print a help message.
 
 \texttt{--version}
 \begin{adjustwidth}{1cm}{}
-Print \ambit version information. Output includes a version number, git branch, and date and time of 
+Print \ambit\ version information. Output includes a version number, git branch, and date and time of 
 compilation. This information is also printed in the output of all calculations.
 \end{adjustwidth}
 
@@ -1771,7 +1770,7 @@ with a colon (`:'), orbitals above which will be included in the CI and MBPT val
 Fermi level is specified it will default to immediately above the highest supplied orbital in this
 argument. Additionally, Valence holes can only appear in shells with energy below the Fermi level.
                                                                                
-As an example, the string \texttt{HF/Configuration = '1s2 2s2 2p6 : 3s1'} will include the configuration
+As an example, the string \texttt{HF/Configuration = '1s2 2s2 2p6~:~3s1'} will include the configuration
 1s$^2$ 2s$^2$ 2p$^6$ 3s$^1$, with 1s, 2s and 2p shells below and 3s above the Fermi level.
 Configuration must have \texttt{HF/N} total electrons.
 \end{adjustwidth}
@@ -1799,9 +1798,8 @@ Only include non-relativistic contribution to normal mass-shift operator.
 
 \texttt{--include-lower-sms}
 \begin{adjustwidth}{1cm}{}
-%TODO: Julian to write
-Include the lower-component of the wavefunction when calculating non-relativistic specific mass-shift.
-This can produce unphysical results
+Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
+This can produce unphysical results, and is not recommended.
 \end{adjustwidth}
 
 \texttt{--read-grasp0}
@@ -1862,13 +1860,15 @@ correction will not be calculated.
 
 \texttt{--skip-offmass}
 \begin{adjustwidth}{1cm}{}
-%TODO: Julian to write
-% Use an approximate method to calculate the radiative potential (by skipping a complicated integral)
+Use an approximate method to calculate the radiative potential by taking the offmass term outside the self-energy integral.
+Black magic, but it tends to work.
 \end{adjustwidth}
 
 \texttt{--use-electron-screening}
-%TODO: Julian to write
-%Screens the radiative potential in many-electron atoms.
+\begin{adjustwidth}{1cm}{}
+Used to estimate the effect of electron screening of the nucleus (due to the charge density of the electrons)
+on the radiative potential.
+\end{adjustwidth}
 
 \subsection{HF/Yukawa}
 \texttt{Mass} \uline{Real}[1.0]
@@ -1948,7 +1948,7 @@ Force all basis functions to be re-orthogonalised once generated.
 
 \texttt{--hf-basis}
 \begin{adjustwidth}{1cm}{}
-Use Hartree-Fock in the field of the core to calculate excited basis states.
+Use Hartree-Fock in the field of the core to calculate excited basis states. This may fail for orbitals with high angular momentum or high principal quantum number, and will definitely fail unless $\texttt{HF/N} < \texttt{Z}$.
 \end{adjustwidth}
 
 \texttt{--bspline-basis} 
@@ -2038,17 +2038,17 @@ Number of hole excitations to include in CI.
 \texttt{EvenParityTwoJ} \uline{String}
 \begin{adjustwidth}{1cm}{}
 List of total angular momenta $2J$ of even parity to solve the CI problem for.
-For example, \texttt{CI/EvenParityTwoJ='0, 1, 2'} will generate and solve the Hamiltonian matrices for
-even parity states with $J = 0, \frac{1}{2}, 1$. At least one of \texttt{CI/EvenParityTwoJ}, 
-\texttt{CI/OddParityTwoJ} or \texttt{CI/{-}{-}all-symmetries} must be specified.
+For example, \texttt{CI/EvenParityTwoJ='0, 2, 4'} will generate and solve the Hamiltonian matrices for
+even parity states with $J = 0, 1, 2$. At least one of \texttt{CI/EvenParityTwoJ}, 
+\texttt{CI/OddParityTwoJ}, or \texttt{CI/{-}{-}all-symmetries} must be specified.
 \end{adjustwidth}
 
 \texttt{OddParityTwoJ} \uline{String}
 \begin{adjustwidth}{1cm}{}
 List of total angular momenta $2J$ of odd parity to solve the CI problem for.
-For example, \texttt{CI/OddParityTwoJ='0, 1, 2'} will generate and solve the Hamiltonian matrices for
-odd parity states with $J = 0, \frac{1}{2}, 1$. At least one of \texttt{CI/EvenParityTwoJ}, 
-\texttt{CI/OddParityTwoJ} or \texttt{CI/{-}{-}all-symmetries} must be specified.
+For example, \texttt{CI/OddParityTwoJ='1, 3, 5'} will generate and solve the Hamiltonian matrices for
+odd parity states with $J = \frac{1}{2}, \frac{3}{2}, \frac{5}{2}$. At least one of \texttt{CI/EvenParityTwoJ}, 
+\texttt{CI/OddParityTwoJ}, or \texttt{CI/{-}{-}all-symmetries} must be specified.
 \end{adjustwidth}
 
 \texttt{NumSolutions} \uline{Integer}[6] 
@@ -2064,7 +2064,7 @@ Generate solutions for every valid $J^{\pi}$.
 \texttt{--gfactors} 
 \begin{adjustwidth}{1cm}{}
 Calculate the Land\`{e} g-factors for each solution. This option is enabled by default unless 
-\texttt{CI/NumSolutions}$> 50$.
+$\texttt{CI/NumSolutions} > 50$.
 \end{adjustwidth}
 
 \texttt{--no-gfactors} 
@@ -2100,7 +2100,7 @@ Output includes the name, configuration-average energy and number of sub-levels 
 \begin{adjustwidth}{1cm}{}
 Solve the Hamiltonian matrix using ScaLAPACK routines (rather than the default Davidson algorithm). 
 This approach directly diagonalises the matrix in parallel via MPI, so should not be used in hybrid
-OpenMP+MPI configuration. This flag is only available when \ambit ~has been compiled with the
+OpenMP+MPI configuration. This flag is only available when \ambit\ has been compiled with the
 \texttt{-DAMBIT\_USE\_SCALAPACK} compile-time flag.
 \end{adjustwidth}
 
@@ -2234,7 +2234,7 @@ with $n \leq 30$ and f-orbitals with $n \leq 20$. (Mandatory, must be a superset
 Specifies which orbitals/shells to use when calculating the valence energy
 in the MBPT diagram energy denominators. Accepts an orbital string as input, so e.g. 
 \texttt{MBPT/EnergyDenomOrbitals = 5sp4df} will use the $5s$, $5p$, $4d$ and $4f$ orbitals to calculate
-the valence energy. If no value is specified, then \ambit will use the orbitals at the Fermi level for
+the valence energy. If no value is specified, then \ambit\ will use the orbitals at the Fermi level for
 energy denominators.
 \end{adjustwidth}
 
@@ -2318,7 +2318,7 @@ Where each quadrant is a matrix in $r_1, r_2$, so the submatrices will therefore
 N_{\mathrm{Lattice}}^2$ elements, which can get very large quickly. Additionally, the potentially is
 strongly dominated by the $ff$ quadrant, so only this sub-matrix is calculated by default.
 
-The so-called Br\"{u}ckner orbitals \footnote{this is very muddled terminology and 
+The so-called Br\"{u}ckner orbitals\footnote{this is very muddled terminology and 
 means different things to different papers in the literature. } $\ket{\Psi_{Br}}$ are then calculated 
 self-consistently via:
 
@@ -2352,13 +2352,12 @@ Adds a $\kappa$-dependent prefactor to the (Br\"{u}ckner) sigma potential so $\S
 \lambda_{\kappa}\Sigma$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.
 \end{adjustwidth}
 
-\texttt{EnergyScaling} \uline{Real}
+\texttt{EnergyScaling} \uline{List of reals}
 \begin{adjustwidth}{1cm}{}
-% TODO: Julian to check.
-Chooses a value of $\lambda_{\kappa}$ (as in \texttt{MBPT/Brueckner/Scaling}) such that the resulting
-single-particle energy $\varepsilon$ in equation \ref{eq:brueckner} is scaled by some desired amount (in
-atomic units): $\varepsilon \to \mu_{\kappa} \varepsilon$. Input consists of a list of consecutive
-$\kappa, \mu_{\kappa}$ pairs.
+Attempt to find a value of $\lambda_{\kappa}$ (as in \texttt{MBPT/Brueckner/Scaling}) such that the resulting
+single-particle energy $\varepsilon$ of the orbital $nl$ in equation \ref{eq:brueckner} is equal to $\mu_{\kappa}$ (in
+atomic units). Input consists of a list of consecutive
+$nl, \mu_{\kappa}$ pairs, where $nl$ is, for example, \texttt{6s}, \texttt{5d}, \texttt{5d+}, etc.
 \end{adjustwidth}
 
 \texttt{{-}{-}use-lower}
@@ -2408,7 +2407,7 @@ Calculates all matrix elements between states with energy less than this value.
 
 \texttt{Frequency} \uline{Real}
 \begin{adjustwidth}{1cm}{}
-Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators.
+Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators. If not specified the default is to use the Dirac-Fock transition frequency; RPA must then be recalculated for each transition.
 \end{adjustwidth}
 
 \texttt{{-}{-}reduced-elements} 
@@ -2428,7 +2427,7 @@ orbitals $a$ and $b$.
 Include random-phase approximation (RPA) corrections when calculating transition matrix elements. 
 \end{adjustwidth}
 
-Additionally, Yukawa and QED transitions take the same input arguments (with the appropriate
+Additionally, Yukawa and QED transitions take the same input arguments (with the appropriate\\
 \texttt{Transitions/\textless{Operator}\textgreater} prefix), while HFS and FS operators accept the following options:
 
 \texttt{HFS1/NuclearMagneticRadius} \uline{Real}
@@ -2478,7 +2477,9 @@ Exclude basis states in the Dirac sea (i.e. negative energy states) from RPA cor
 
 \texttt{{-}{-}print-field}
 \begin{adjustwidth}{1cm}{}
-Print the direct part of the change in the DF core.
+Print the direct part of the change in the DF core to the file \texttt{RPAField.txt},
+which is overwritten if it already exists. The format of each line is
+\quad $r$\quad $\delta V(r)$\quad $\delta V'(r)$.
 \end{adjustwidth}
 
 \texttt{BSpline/N} \uline{Integer}[40]
