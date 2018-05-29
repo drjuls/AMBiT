@@ -112,5 +112,6 @@ int FileErrHandler::fread(void* buf, size_t size, size_t nr, FILE* stream)
             *errstream << "WARNING: unexpectedly reached end of data in file\n";
         }
     }
+    return(ret);
 }
 }
