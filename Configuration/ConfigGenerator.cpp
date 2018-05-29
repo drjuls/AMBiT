@@ -6,21 +6,7 @@
 ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput):
     orbitals(orbitals), user_input(userInput)
 {
-    NonRelSet.clear();
-    leading_configs = pConfigList(new ConfigList());
-
-    pOrbitalMapConst valence = orbitals->GetOrbitalMap(OrbitalClassification::valence);
-    auto it = valence->begin();
-    while(it != valence->end())
-    {
-        pOrbitalConst ds = it->second;
-        if(ds != NULL)
-        {
-            if(ds->Kappa() < 0)
-                NonRelSet.insert(NonRelInfo(ds->PQN(), ds->L()));
-        }
-        it++;
-    }
+    leading_configs = std::make_shared<ConfigList>();
 }
 
 pConfigList ConfigGenerator::GetLeadingConfigs()
@@ -31,30 +17,28 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 {   return leading_configs;
 }
 
-pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, pHartreeY two_body)
+pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     // Do sublist first since leading_configs should come from CI, rather than CI/SmallSide
-    pConfigList sublist = nullptr;
+    pRelativisticConfigList sublist = nullptr;
     if(user_input.SectionExists("CI/SmallSide"))
     {
         user_input.set_prefix("CI/SmallSide");
-        sublist = ParseAndGenerateNonRelConfigurations(one_body, two_body);
+        sublist = ParseAndGenerateConfigurations(one_body, two_body);
     }
 
     user_input.set_prefix("CI");
-    pConfigList biglist = ParseAndGenerateNonRelConfigurations(one_body, two_body);
+    pRelativisticConfigList biglist = ParseAndGenerateConfigurations(one_body, two_body);
 
     // Join sublist and biglist by getting set difference and appending to sublist.
     if(sublist)
     {
-        pConfigList joined = std::make_shared<ConfigList>(*sublist);
-        joined->first.resize(biglist->first.size() + sublist->first.size());
-        joined->second = sublist->first.size();
-        auto itsmall = std::next(joined->first.begin(), joined->second);
+        pRelativisticConfigList setdiff = std::make_shared<RelativisticConfigList>(biglist->size());
+        auto last = std::set_difference(biglist->begin(), biglist->end(), sublist->begin(), sublist->end(), setdiff->begin());
+        setdiff->erase(last, setdiff->end());
 
-        auto last = std::set_difference(biglist->first.begin(), biglist->first.end(), sublist->first.begin(), sublist->first.end(), itsmall);
-        joined->first.resize(last - joined->first.begin());
-        biglist = joined;
+        biglist = sublist;
+        biglist->append(*setdiff);
     }
 
     user_input.set_prefix("");
@@ -62,9 +46,9 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pHFOperator one_body, 
     return biglist;
 }
 
-pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator one_body, pHartreeY two_body)
+pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
-    pConfigList nrlist = std::make_shared<ConfigList>();
+    pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
 
     int electron_excitations = 0;
     int hole_excitations = 0;
@@ -136,42 +120,71 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
         leading_configs->first.push_back(config);
     }
 
-    if(numValenceElectrons == 0)
-    {   // Add vacuum state: no holes or electrons
-        leading_configs->first.push_back(NonRelConfiguration());
-    }
-
     leading_configs->second = leading_configs->first.size();
     SortAndUnique(leading_configs);
-    nrlist->first.insert(nrlist->first.end(), leading_configs->first.begin(), leading_configs->first.end());
+    rlist->append(*GenerateRelativisticConfigurations(leading_configs));
+
+    // Get any leading relativistic configurations
+    num_configs = user_input.vector_variable_size("LeadingRelativisticConfigurations");
+    if(num_configs)
+    {
+        for(int i = 0; i < num_configs; i++)
+        {
+            const std::string name = user_input("LeadingRelativisticConfigurations", "", i);
+            RelativisticConfiguration config(name);
+
+            // Check that the configuration gels with the number of electrons
+            if(leading_configs->first.size() == 0)
+                numValenceElectrons = config.ElectronNumber();
+            else if(config.ElectronNumber() != numValenceElectrons)
+            {   *errstream << "USAGE: LeadingConfiguration " << name
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            rlist->push_back(config);
+            leading_configs->first.push_back(NonRelConfiguration(config));
+        }
+
+        leading_configs->second = leading_configs->first.size();
+        SortAndUnique(leading_configs);
+    }
+
+    // Get maxenergy
+    bool use_maxenergy = false;
+    double upper_energy = 0.0;
+    if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
+    {
+        use_maxenergy = true;
+        upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
+    }
 
     // Total number of excitation steps
     int total_num_excitations = mmax(electron_excitations, hole_excitations);
 
     for(int excitation_step = 0; excitation_step < total_num_excitations; excitation_step++)
     {
-        NonRelInfoSet valence_electrons;
-        NonRelInfoSet valence_holes;
+        OrbitalMap valence_electrons(orbitals->GetLattice());
+        OrbitalMap valence_holes(orbitals->GetLattice());
 
         // Electron subset
         if(excitation_step < electron_excitations)
         {
-            for(const auto& pair: *orbitals->particle)
-                valence_electrons.insert(NonRelInfo(pair.first));
+            valence_electrons = *orbitals->particle;
 
             if(num_electron_excitation_inputs > 1)
             {
                 std::string CI_basis_string = user_input("ElectronExcitations", "", 2*excitation_step + 1);
+                // Limits here are in the form of ValenceBasis (pqn up to and including limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
 
                 auto valence_it = valence_electrons.begin();
                 while(valence_it != valence_electrons.end())
                 {
-                    int L = valence_it->L();
+                    int L = valence_it->first.L();
                     
                     if(L >= limits.size())
                         valence_it = valence_electrons.erase(valence_it);
-                    else if(valence_it->PQN() > limits[L])
+                    else if(valence_it->first.PQN() > limits[L])
                         valence_it = valence_electrons.erase(valence_it);
                     else
                         valence_it++;
@@ -182,22 +195,20 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
         // Holes subset
         if(excitation_step < hole_excitations)
         {
-            for(const auto& pair: *orbitals->hole)
-                valence_holes.insert(NonRelInfo(pair.first));
+            valence_holes = *orbitals->hole;
 
             if(num_hole_excitation_inputs > 1)
             {
                 std::string CI_basis_string = user_input("HoleExcitations", "", 2*excitation_step + 1);
+                // Limits here are in the form of FrozenCore (pqn should be bigger than limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
                 
                 auto valence_it = valence_holes.begin();
                 while(valence_it != valence_holes.end())
                 {
-                    int L = valence_it->L();
+                    int L = valence_it->first.L();
                     
-                    if(L >= limits.size())
-                        valence_it = valence_holes.erase(valence_it);
-                    else if(valence_it->PQN() > limits[L])
+                    if(L < limits.size() && valence_it->first.PQN() <= limits[L])
                         valence_it = valence_holes.erase(valence_it);
                     else
                         valence_it++;
@@ -205,71 +216,132 @@ pConfigList ConfigGenerator::ParseAndGenerateNonRelConfigurations(pHFOperator on
             }
         }
 
-        GenerateExcitations(nrlist, valence_electrons, valence_holes);
+        GenerateExcitations(rlist, valence_electrons, valence_holes);
+
+        if(use_maxenergy && excitation_step < total_num_excitations-1)
+        {   auto newend = std::remove_if(rlist->begin(), rlist->end(),
+                            [&](RelativisticConfiguration& item){
+                                return (item.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body) > upper_energy);
+                            });
+            rlist->erase(newend, rlist->end());
+        }
     }
 
     // Trim configurations outside of ConfigurationAverageEnergyRange
     if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
     {
         double lower_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 0);
-        double upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
 
-        auto it = nrlist->first.begin();
-        while(it != nrlist->first.end())
-        {
-            double energy = it->CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
-            if(energy < lower_energy || energy > upper_energy)
-                it = nrlist->first.erase(it);
-            else
-                it++;
-        }
+        auto newend = std::remove_if(rlist->begin(), rlist->end(),
+                        [&](RelativisticConfiguration& item){
+                            double energy = item.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body);
+                            return (energy < lower_energy || energy > upper_energy);
+                        });
+        rlist->erase(newend, rlist->end());
     }
 
     // Add extra configurations not to be considered leading configurations.
     // These are added regardless of ConfigurationAverageEnergyRange
     int num_extra_configs = user_input.vector_variable_size("ExtraConfigurations");
-    nrlist->first.reserve(nrlist->first.size() + num_extra_configs);
-    for(int i = 0; i < num_extra_configs; i++)
+    if(num_extra_configs)
     {
-        const std::string extraname = user_input("ExtraConfigurations", "", i);
-        NonRelConfiguration extraconfig(extraname);
-        
-        if(extraconfig.ElectronNumber() != numValenceElectrons)
+        pConfigList nrlist = std::make_shared<ConfigList>();
+        nrlist->first.reserve(num_extra_configs);
+        for(int i = 0; i < num_extra_configs; i++)
         {
-            *errstream << "USAGE: ExtraConfiguration " << extraname
-                       << " does not have correct number of valence electrons." << std::endl;
-            exit(1);
+            const std::string extraname = user_input("ExtraConfigurations", "", i);
+            NonRelConfiguration extraconfig(extraname);
+            
+            if(extraconfig.ElectronNumber() != numValenceElectrons)
+            {
+                *errstream << "USAGE: ExtraConfiguration " << extraname
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            nrlist->first.push_back(extraconfig);
+            nrlist->second++;
         }
-        nrlist->first.push_back(extraconfig);
-        nrlist->second++;
+
+        rlist->append(*GenerateRelativisticConfigurations(nrlist));
     }
 
-    SortAndUnique(nrlist);
+    // Add extra relativistic configurations not to be considered leading configurations.
+    num_extra_configs = user_input.vector_variable_size("ExtraRelativisticConfigurations");
+    if(num_extra_configs)
+    {
+        for(int i = 0; i < num_extra_configs; i++)
+        {
+            const std::string extraname = user_input("ExtraRelativisticConfigurations", "", i);
+            RelativisticConfiguration extraconfig(extraname);
+
+            if(extraconfig.ElectronNumber() != numValenceElectrons)
+            {
+                *errstream << "USAGE: ExtraConfiguration " << extraname
+                           << " does not have correct number of valence electrons." << std::endl;
+                exit(1);
+            }
+            rlist->push_back(extraconfig);
+        }
+    }
+
+    rlist->SetSmallSize(rlist->size());
+    rlist->sort(MostProjectionsFirstComparator());
+    rlist->unique();
+    rlist->SetSmallSize(rlist->size());
 
     // Print configuration list if requested
-    if(user_input.search("CI/--print-configurations"))
+    if(user_input.search(2, "--print-relativistic-configurations", "--print-configurations"))
     {
-        *outstream << "\nConfigurations:" << std::endl;
-        for(auto& config: nrlist->first)
+        // Include energies
+        if(one_body && two_body)
         {
-            *outstream << "  " << config << std::endl;
+            *outstream << "\nConfigurations; E; N:" << std::setprecision(6) << "\n";
+
+            if(user_input.search("--print-relativistic-configurations"))
+            {
+                for(auto& config: *rlist)
+                {
+                    *outstream << config << "; "
+                               << config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body)
+                               << "; " << config.GetNumberOfLevels() << "\n";
+                }
+            }
+            else
+            {
+                pConfigList nrlist = GenerateNonRelConfigurations(rlist);
+                for(auto& config: nrlist->first)
+                {
+                    *outstream << config << "; "
+                               << config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body)
+                               << "; " << config.GetNumberOfLevels() << "\n";
+                }
+            }
+            *outstream << std::endl;
+        }
+        else
+        {
+            *outstream << "\nConfigurations; N:" << std::endl;
+
+            if(user_input.search("--print-relativistic-configurations"))
+            {
+                for(auto& config: *rlist)
+                {
+                    *outstream << config << "; " << config.GetNumberOfLevels() << "\n";
+                }
+            }
+            else
+            {
+                pConfigList nrlist = GenerateNonRelConfigurations(rlist);
+                for(auto& config: nrlist->first)
+                {
+                    *outstream << config << "; " << config.GetNumberOfLevels() << "\n";
+                }
+            }
+            *outstream << std::endl;
         }
     }
 
-    // Print configuration average energies if requested
-    if(one_body && two_body && user_input.search("--print-configuration-average-energy"))
-    {
-        *outstream << "\nConfiguration average energies:" << std::endl;
-        for(auto& config: nrlist->first)
-        {
-            *outstream << config << ": "
-                       << config.CalculateConfigurationAverageEnergy(orbitals->valence, one_body, two_body)
-                       << std::endl;
-        }
-    }
-
-    nrlist->second = nrlist->first.size();
-    return nrlist;
+    return rlist;
 }
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist) const
@@ -280,71 +352,95 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
     auto it = nrlist->first.begin();
     while(it != nrlist->first.end())
     {
-        rlist->append(*it->GenerateRelativisticConfigs());
+        auto relconfs = it->relconfiglist;
+        if(relconfs == nullptr)
+            relconfs = it->GenerateRelativisticConfigs();
+
+        rlist->append(*relconfs);
         if(it == itsmall)
             rlist->SetSmallSize(rlist->size());
 
         ++it;
     }
 
-    rlist->sort(FewestProjectionsFirstComparator());
+    rlist->sort(MostProjectionsFirstComparator());
     rlist->unique();
     return rlist;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pConfigList nrlist, const Symmetry& sym, pAngularDataLibrary angular_library) const
+pConfigList ConfigGenerator::GenerateNonRelConfigurations(pRelativisticConfigListConst rlist) const
+{
+    pConfigList nrlist = std::make_shared<ConfigList>();
+    nrlist->first.reserve(rlist->size());
+    for(auto& rconf: *rlist)
+    {
+        nrlist->first.push_back(NonRelConfiguration(rconf));
+    }
+    SortAndUnique(nrlist);
+
+    return nrlist;
+}
+
+pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRelativisticConfigListConst rlist, const Symmetry& sym, pAngularDataLibrary angular_library) const
 {
     pRelativisticConfigList prlist = std::make_shared<RelativisticConfigList>();
-    RelativisticConfigList& rlist = *prlist;
+    RelativisticConfigList& returnedlist = *prlist;
 
-    auto check_symmetry = [&sym](const NonRelConfiguration& nrconfig) {
-        return (nrconfig.GetParity() == sym.GetParity() && sym.GetTwoJ() <= nrconfig.GetTwiceMaxProjection());
+    auto check_symmetry = [&sym](const RelativisticConfiguration& rconfig) {
+        return (rconfig.GetParity() == sym.GetParity() && sym.GetTwoJ() <= rconfig.GetTwiceMaxProjection());
     };
 
-    // [0, small_size)
-    auto itsmall = std::next(nrlist->first.begin(), nrlist->second);
-    rlist = std::accumulate(nrlist->first.begin(), itsmall, rlist,
-                            [&check_symmetry](RelativisticConfigList& list, NonRelConfiguration& item) {
-                                if(check_symmetry(item))
-                                    list.append(*item.GenerateRelativisticConfigs());
-                                return list;
-                            });
+    /* Select the configurations from the main list with the desired parity
+     * NOTE: we write this loop out by hand rather than using std::accumulate since accumulate casts its
+     * arguments to const, which causes lots of copy allocations (even when passing arguments by 
+     * reference). This drastically reduces performance when rlist is large. 
+     */
+    //[0, small_size)
+    auto it = rlist->begin();
+    while(it != rlist->small_end())
+    {
+        if(check_symmetry(*it))
+        {
+            returnedlist.push_back(*it);
+        }
+        it++;
+    }
 
-    unsigned int rel_small_size = rlist.size();
+    returnedlist.SetSmallSize(returnedlist.size());
 
     // [small_size, end)
-    rlist = std::accumulate(itsmall, nrlist->first.end(), rlist,
-                            [&check_symmetry](RelativisticConfigList& list, NonRelConfiguration& item) {
-                                if(check_symmetry(item))
-                                    list.append(*item.GenerateRelativisticConfigs());
-                                return list;
-                            });
-
-    prlist->SetSmallSize(rel_small_size);
+    it = rlist->small_end();
+    while(it != rlist->end())
+    {
+        if(check_symmetry(*it))
+        {
+            returnedlist.push_back(*it);
+        }
+        it++;
+    }
 
     if(angular_library)
-        GenerateProjections(prlist, sym.GetTwoJ(), sym.GetTwoJ(), angular_library);
+        GenerateProjections(prlist, sym, sym.GetTwoJ(), angular_library);
+
+    if(user_input.search("CI/--sort-matrix-by-configuration"))
+        returnedlist.sort(ConfigurationComparator());
+    else
+        returnedlist.sort(MostProjectionsFirstComparator());
 
     return prlist;
 }
 
-pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(const Symmetry& sym, pAngularDataLibrary angular_library)
+void ConfigGenerator::GenerateExcitations(pRelativisticConfigList configlist, OrbitalMap& electron_valence, OrbitalMap& hole_valence) const
 {
-    pConfigList nrlist = GenerateNonRelConfigurations();
-    return GenerateRelativisticConfigurations(nrlist, sym, angular_library);
-}
-
-void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelInfoSet& electron_valence, const NonRelInfoSet& hole_valence) const
-{
-    ConfigList old_list(*configlist);
-
     // Go through the set of initial configurations
-    auto config_it = old_list.first.begin();
-    while(config_it != old_list.first.end())
+    RelativisticConfigList old_list(*configlist);
+
+    auto config_it = old_list.begin();
+    while(config_it != old_list.end())
     {
         // Move electrons and holes:
         // For each single particle state in the configuration
-        NonRelConfiguration::const_iterator particle_it = config_it->begin();
+        auto particle_it = config_it->begin();
         while(particle_it != config_it->end())
         {
             // Electron or hole?
@@ -353,12 +449,12 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
                 // Get another single particle state to move to
                 for(const auto& electron: electron_valence)
                 {
-                    if(electron != particle_it->first)
+                    if(electron.first != particle_it->first)
                     {
-                        NonRelConfiguration new_config(*config_it);
+                        RelativisticConfiguration new_config(*config_it);
                         new_config.RemoveSingleParticle(particle_it->first);
-                        if(new_config.AddSingleParticle(electron))
-                            configlist->first.push_back(new_config);
+                        if(new_config.AddSingleParticle(electron.first))
+                            configlist->push_back(new_config);
                     }
                 }
             }
@@ -366,12 +462,12 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
             {   // Get another single particle state to move to
                 for(const auto& hole: hole_valence)
                 {
-                    if(hole != particle_it->first)
+                    if(hole.first != particle_it->first)
                     {
-                        NonRelConfiguration new_config(*config_it);
+                        RelativisticConfiguration new_config(*config_it);
                         new_config.AddSingleParticle(particle_it->first);
-                        if(new_config.RemoveSingleParticle(hole))
-                            configlist->first.push_back(new_config);
+                        if(new_config.RemoveSingleParticle(hole.first))
+                            configlist->push_back(new_config);
                     }
                 }
             }
@@ -382,14 +478,14 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
         // Pair creation
         for(const auto& electron: electron_valence)
         {
-            NonRelConfiguration config_with_extra_electron(*config_it);
-            if(config_with_extra_electron.AddSingleParticle(electron))
+            RelativisticConfiguration config_with_extra_electron(*config_it);
+            if(config_with_extra_electron.AddSingleParticle(electron.first))
             {
                 for(const auto& hole: hole_valence)
                 {
-                    NonRelConfiguration new_config(config_with_extra_electron);
-                    if(new_config.RemoveSingleParticle(hole))
-                        configlist->first.push_back(new_config);
+                    RelativisticConfiguration new_config(config_with_extra_electron);
+                    if(new_config.RemoveSingleParticle(hole.first))
+                        configlist->push_back(new_config);
                 }
             }
         }
@@ -405,17 +501,17 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
             {
                 if((particle_it->second < 0) && (other_particle_it->second > 0))
                 {
-                    NonRelConfiguration new_config(*config_it);
+                    RelativisticConfiguration new_config(*config_it);
                     new_config.AddSingleParticle(particle_it->first);
                     new_config.RemoveSingleParticle(other_particle_it->first);
-                    configlist->first.push_back(new_config);
+                    configlist->push_back(new_config);
                 }
                 else if((particle_it->second > 0) && (other_particle_it->second < 0))
                 {
-                    NonRelConfiguration new_config(*config_it);
+                    RelativisticConfiguration new_config(*config_it);
                     new_config.RemoveSingleParticle(particle_it->first);
                     new_config.AddSingleParticle(other_particle_it->first);
-                    configlist->first.push_back(new_config);
+                    configlist->push_back(new_config);
                 }
 
                 other_particle_it++;
@@ -427,8 +523,9 @@ void ConfigGenerator::GenerateExcitations(pConfigList configlist, const NonRelIn
         config_it++;
     }
 
-    configlist->second = configlist->first.size();
-    SortAndUnique(configlist);
+    configlist->SetSmallSize(configlist->size());
+    configlist->sort(MostProjectionsFirstComparator());
+    configlist->unique();
 }
 
 void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, const Symmetry& sym, int two_m, pAngularDataLibrary angular_library) const

@@ -81,7 +81,7 @@ void OrbitalMap::AddState(pOrbital s)
 void OrbitalMap::Write(FILE* fp) const
 {
     unsigned int num_states = size();
-    fwrite(&num_states, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&num_states, sizeof(unsigned int), 1, fp);
 
     for(auto it = begin(); it != end(); it++)
         it->second->Write(fp);

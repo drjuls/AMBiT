@@ -78,11 +78,11 @@ bool Atom::ReadBasis()
 {
     // Import lattice and all orbitals
     std::string filename = identifier + ".basis";
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return false;
     else
-        fclose(fp);
+        file_err_handler->fclose(fp);
 
     pOrbitalManager modifiable_orbitals(new OrbitalManager(filename));
     lattice = modifiable_orbitals->GetLattice();
@@ -101,6 +101,41 @@ bool Atom::ReadBasis()
 
     // Nucleus
     nucleus = basis_generator.GetNucleusDecorator();
+
+
+    // Finally, go over the orbitals we've read and make sure they're consistent with the user input
+    // First, parse the largest basis string in the user input
+    std::string all_states = user_input("Basis/BasisSize", "");
+    if(all_states.empty())
+        all_states = user_input("MBPT/Basis", "");
+    if(all_states.empty())
+        all_states = user_input("Basis/ValenceBasis", "");
+
+    std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(all_states);
+
+    // Make a set to hold all of the PQN and L combinations in our basis so we can compare it against 
+    // what the user has specified in the input file
+    auto all_orbs = orbitals->all;
+    auto orb_it = all_orbs->begin();
+    std::set<std::pair<int, int> > pqns;
+    while(orb_it != all_orbs->end()){
+
+        // Store all the PQN and l
+        int pqn = orb_it->first.PQN();
+        int l = orb_it->first.L();
+        pqns.insert(std::make_pair(pqn, l));
+        orb_it++;
+    }
+
+    // Run through all the user specified orbitals and complain if any are missing
+    for(int l = 0; l < max_pqn_per_l.size(); l++){
+        auto key = std::make_pair(max_pqn_per_l[l], l);
+        if(pqns.find(key) == pqns.end()){
+            *outstream << "\nWarning: couldn't find all requested orbitals  " << filename << " basis file." << std::endl;
+            *outstream << "Consider re-running AMBiT with the -c flag to recalculate the basis.\n" << std::endl;
+            break;
+        }
+    }
 
     return true;
 }

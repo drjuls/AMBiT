@@ -18,11 +18,6 @@ class SpinorOperator : public SpinorMatrixElement
 public:
     using SpinorMatrixElement::SpinorMatrixElement;
 
-    /** < b | t | a > for stretched states a and b.
-        Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
-     */
-    virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
-
     /** < b || t || a > for an operator t.
         Default behaviour: take ApplyTo(a, b.Kappa) and integrate with b.
      */
@@ -60,18 +55,6 @@ public:
 
 typedef std::shared_ptr<SpinorOperator> pSpinorOperator;
 typedef std::shared_ptr<const SpinorOperator> pSpinorOperatorConst;
-
-inline double SpinorOperator::GetMatrixElement(const Orbital& b, const Orbital& a) const
-{
-    SpinorFunction ta = this->ReducedApplyTo(a, b.Kappa());
-    if(!integrator)
-    {   *errstream << "SpinorOperator::GetMatrixElement(): no integrator found." << std::endl;
-        exit(1);
-    }
-
-    double stretched = MathConstant::Instance()->Electron3j(a.TwoJ(), b.TwoJ(), K, a.TwoJ(), -b.TwoJ());
-    return integrator->GetInnerProduct(ta, b) * stretched;
-}
 
 inline double SpinorOperator::GetReducedMatrixElement(const Orbital& b, const Orbital& a) const
 {

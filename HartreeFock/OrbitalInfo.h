@@ -10,15 +10,13 @@ class OrbitalInfo
         Stores pqn and kappa (L). Has an inbuilt ordering.
      */
 public:
+    OrbitalInfo() {};
     OrbitalInfo(int pqn, int kappa);
     OrbitalInfo(int pqn, int two_j, Parity p);
     OrbitalInfo(pOrbitalConst s);
     OrbitalInfo(const Orbital* s);
     OrbitalInfo(const Orbital& s);
-    OrbitalInfo(const OrbitalInfo& other);
-    virtual ~OrbitalInfo(void) {}
-
-    const OrbitalInfo& operator=(const OrbitalInfo& other);
+    virtual ~OrbitalInfo() = default;
 
     virtual bool operator<(const OrbitalInfo& other) const;
     virtual bool operator==(const OrbitalInfo& other) const;
@@ -35,9 +33,11 @@ public:
     virtual int MaxNumElectrons() const { return 2*abs(kappa); }
     virtual std::string Name() const;
 
+    inline bool IsValid() const { return (kappa != 0); }
+
 protected:
-    int pqn;
-    int kappa;
+    int pqn = {0};
+    int kappa = {0};
 };
 
 inline OrbitalInfo::OrbitalInfo(int pqn, int two_j, Parity p):
@@ -71,10 +71,6 @@ inline OrbitalInfo::OrbitalInfo(const Orbital& s)
 
 inline OrbitalInfo::OrbitalInfo(int principal_qn, int kap):
     pqn(principal_qn), kappa(kap)
-{}
-
-inline OrbitalInfo::OrbitalInfo(const OrbitalInfo& other):
-    pqn(other.pqn), kappa(other.kappa)
 {}
 
 inline int OrbitalInfo::L() const

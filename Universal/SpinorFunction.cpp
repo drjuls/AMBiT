@@ -89,10 +89,10 @@ const SpinorFunction& SpinorFunction::operator*=(const RadialFunction& chi)
         resize(chi.size());
 
     for(unsigned int i = 0; i < size(); i++)
-    {   f[i] *= chi.f[i];
-        g[i] *= chi.f[i];
-        dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
+    {   dfdr[i] = f[i] * chi.dfdr[i] + dfdr[i] * chi.f[i];
         dgdr[i] = g[i] * chi.dfdr[i] + dgdr[i] * chi.f[i];
+        f[i] *= chi.f[i];
+        g[i] *= chi.f[i];
     }
 
     return *this;
@@ -131,17 +131,17 @@ RadialFunction SpinorFunction::GetDensity(const SpinorFunction& other) const
 
 void SpinorFunction::Write(FILE* fp) const
 {
-    fwrite(&kappa, sizeof(int), 1, fp);
+    file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
 
     unsigned int my_size = size();
-    fwrite(&my_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&my_size, sizeof(unsigned int), 1, fp);
 
     // Write each vector in one hit.
     // This is important when the code is run on the supercomputer.
-    fwrite(f.data(), sizeof(double), my_size, fp);
-    fwrite(g.data(), sizeof(double), my_size, fp);
-    fwrite(dfdr.data(), sizeof(double), my_size, fp);
-    fwrite(dgdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(f.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(g.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(dfdr.data(), sizeof(double), my_size, fp);
+    file_err_handler->fwrite(dgdr.data(), sizeof(double), my_size, fp);
 }
 
 void SpinorFunction::Read(FILE* fp)
@@ -167,29 +167,19 @@ RadialFunction::RadialFunction(const std::vector<double>& pf, const std::vector<
 }
 
 RadialFunction::RadialFunction(unsigned int size)
-{   Clear();
+{
     resize(size);
 }
 
-const RadialFunction& RadialFunction::operator=(const RadialFunction& other)
-{   f = other.f;
-    dfdr = other.dfdr;
-    return *this;
-}
-
-RadialFunction& RadialFunction::operator=(RadialFunction&& other)
-{   f.swap(other.f);
-    dfdr.swap(other.dfdr);
-    return *this;
-}
-
 void RadialFunction::resize(unsigned int size)
-{   f.resize(size);
+{
+    f.resize(size);
     dfdr.resize(size);
 }
 
 void RadialFunction::Clear()
-{   f.clear();
+{
+    f.clear();
     dfdr.clear();
 }
 
@@ -254,9 +244,8 @@ const RadialFunction& RadialFunction::operator*=(const RadialFunction& other)
         resize(other.size());
 
     for(unsigned int i = 0; i < size(); i++)
-    {
+    {   dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];
         f[i] *= other.f[i];
-        dfdr[i] = f[i] * other.dfdr[i] + dfdr[i] * other.f[i];
     }
 
     return *this;
@@ -270,11 +259,11 @@ RadialFunction RadialFunction::operator*(const RadialFunction& other) const
 
 bool RadialFunction::Print(const std::string& filename, pLattice lattice) const
 {
-    FILE* fp = fopen(filename.c_str(), "wt");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "wt");
 
     if(fp)
     {   bool success = Print(fp, lattice);
-        fclose(fp);
+        file_err_handler->fclose(fp);
         return success;
     }
     else

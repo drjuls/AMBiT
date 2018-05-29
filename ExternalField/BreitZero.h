@@ -21,6 +21,8 @@ public:
 
     virtual SpinorFunction ApplyTo(const SpinorFunction& a, int kappa_b, bool reverse = false) const override;
 
+    virtual pHartreeY Clone() const override;
+
 protected:
     virtual bool SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d) override;
     virtual bool isZeroLocal() const override;

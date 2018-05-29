@@ -18,7 +18,7 @@ class SpinorFunction : public std::enable_shared_from_this<SpinorFunction>
 {
 public:
     SpinorFunction(int kappa, unsigned int size = 0);
-    virtual ~SpinorFunction() {}
+    virtual ~SpinorFunction() = default;
 
     std::vector<double> f, g,       // Upper and lower components of the radial functions
                         dfdr, dgdr; // Function derivatives, ie. df/dr, dg/dr
@@ -86,12 +86,7 @@ class RadialFunction
 public:
     RadialFunction(const std::vector<double>& pf, const std::vector<double>& pdfdr);
     RadialFunction(unsigned int size = 0);
-    RadialFunction(const RadialFunction& other): f(other.f), dfdr(other.dfdr) {}
-    RadialFunction(RadialFunction&& other): f(other.f), dfdr(other.dfdr) {}
-    virtual ~RadialFunction() {}
-
-    const RadialFunction& operator=(const RadialFunction& other);
-    RadialFunction& operator=(RadialFunction&& other);
+    virtual ~RadialFunction() = default;
 
     std::vector<double> f, dfdr;
     

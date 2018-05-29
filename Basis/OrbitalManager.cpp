@@ -105,7 +105,7 @@ void OrbitalManager::MakeStateIndexes()
 
 void OrbitalManager::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "OrbitalManager::Read unable to open file \'" << filename << '\'' << std::endl;
         exit(1);
@@ -124,14 +124,14 @@ void OrbitalManager::Read(const std::string& filename)
     ReadInfo(fp, excited);
     ReadInfo(fp, valence);
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 
     MakeStateIndexes();
 }
 
 void OrbitalManager::Write(const std::string& filename) const
 {
-    FILE* fp = fopen(filename.c_str(), "wb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
     if(!fp)
     {   *errstream << "OrbitalManager::Write unable to open file \'" << filename << '\'' << std::endl;
         exit(1);
@@ -149,7 +149,7 @@ void OrbitalManager::Write(const std::string& filename) const
     WriteInfo(fp, excited);
     WriteInfo(fp, valence);
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 void OrbitalManager::ReadInfo(FILE* fp, pOrbitalMap& orbitals)
@@ -174,14 +174,14 @@ void OrbitalManager::ReadInfo(FILE* fp, pOrbitalMap& orbitals)
 void OrbitalManager::WriteInfo(FILE* fp, const pOrbitalMap& orbitals) const
 {
     unsigned int size = orbitals->size();
-    fwrite(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&size, sizeof(unsigned int), 1, fp);
 
     for(auto pair: *orbitals)
     {
         int pqn = pair.first.PQN();
         int kappa = pair.first.Kappa();
 
-        fwrite(&pqn, sizeof(int), 1, fp);
-        fwrite(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
     }
 }

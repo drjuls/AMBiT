@@ -31,6 +31,16 @@ RelativisticConfigList::iterator RelativisticConfigList::erase(iterator position
     return iterator(it);
 }
 
+RelativisticConfigList::iterator RelativisticConfigList::erase(iterator first, iterator last)
+{
+    int start = first.base() - m_list.begin();
+    int num_removed = last.base() - first.base();
+    if(start < Nsmall)
+        Nsmall -= mmin(Nsmall - start, num_removed);
+
+    return iterator(m_list.erase(first.base(), last.base()));
+}
+
 RelativisticConfigList::iterator RelativisticConfigList::operator[](unsigned int i)
 {
     return std::next(begin(), i);
@@ -88,6 +98,7 @@ void RelativisticConfigList::Read(FILE* fp)
     m_list.clear();
     unsigned int num_configs;
     fread(&num_configs, sizeof(unsigned int), 1, fp);
+    fread(&Nsmall, sizeof(unsigned int), 1, fp);
     m_list.reserve(num_configs);
 
     for(unsigned int i = 0; i < num_configs; i++)
@@ -101,7 +112,8 @@ void RelativisticConfigList::Read(FILE* fp)
 void RelativisticConfigList::Write(FILE* fp) const
 {
     unsigned int num_configs = m_list.size();
-    fwrite(&num_configs, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&num_configs, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&Nsmall, sizeof(unsigned int), 1, fp);
 
     for(const auto& relconfig: *this)
     {

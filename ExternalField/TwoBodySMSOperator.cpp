@@ -7,7 +7,7 @@ bool TwoBodySMSOperator::SetLocalParameters(int new_K, pSpinorFunctionConst new_
     c = new_c;
     d = new_d;
 
-    if(K == 1 && lambda)
+    if(K == 1 && lambda && (c->L() + d->L())%2)
     {
         if(!lightweight_mode)
         {

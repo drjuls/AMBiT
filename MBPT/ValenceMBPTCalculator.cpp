@@ -3,6 +3,10 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 
+#ifdef AMBIT_USE_OPENMP
+#include <omp.h>
+#endif
+
 ValenceMBPTCalculator::ValenceMBPTCalculator(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body, const std::string& fermi_orbitals):
     MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), one_body(one_body), two_body(two_body), excited(orbitals->excited), high(orbitals->high)
 {}
@@ -15,7 +19,7 @@ ValenceMBPTCalculator::~ValenceMBPTCalculator()
 
 unsigned int ValenceMBPTCalculator::GetStorageSize()
 {
-    unsigned int total = one_body->CalculateOneElectronIntegrals(valence, high, true);
+    unsigned int total = one_body->CalculateOneElectronIntegrals(high, valence, true);
     total += two_body->CalculateTwoElectronIntegrals(valence, valence, excited, high, true);
     total += two_body->CalculateTwoElectronIntegrals(valence, valence, orbitals->hole, high, true);
 
@@ -26,7 +30,7 @@ void ValenceMBPTCalculator::UpdateIntegrals()
 {
     SetValenceEnergies();
 
-    one_body->CalculateOneElectronIntegrals(valence, high);
+    one_body->CalculateOneElectronIntegrals(high, valence);
     two_body->CalculateTwoElectronIntegrals(valence, valence, excited, high);
     two_body->CalculateTwoElectronIntegrals(valence, valence, valence, high);
 }
@@ -103,9 +107,16 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
     int k1, k1max;
     int k2, k2max;
 
-    auto it_alpha = excited->begin();
-    while(it_alpha != excited->end())
+    int ii;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(ii, k1, k1max, k2, k2max) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(ii = 0; ii < excited->size(); ++ii)
     {
+        auto it_alpha = excited->begin();
+        std::advance(it_alpha, ii);
         const OrbitalInfo& salpha = it_alpha->first;
         const double Ealpha = it_alpha->second->Energy();
 
@@ -169,7 +180,6 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
             }
             it_beta++;
         }
-        it_alpha++;
     }
 
     if(debug)
@@ -190,10 +200,16 @@ double ValenceMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbi
     const double Ec = ValenceEnergies.find(sc.Kappa())->second;
     const double Ed = ValenceEnergies.find(sd.Kappa())->second;
 
-
-    auto it_alpha = high->begin();
-    while(it_alpha != high->end())
+    int ii;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for private(ii) reduction(+:energy)
+#endif
+    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
+    with non-random-access iterators */
+    for(ii=0; ii < high->size(); ++ii)
     {
+        auto it_alpha = high->begin();
+        std::advance(it_alpha, ii);
         const OrbitalInfo& salpha = it_alpha->first;
         const double Ealpha = it_alpha->second->Energy();
 
@@ -228,7 +244,6 @@ double ValenceMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbi
                 energy += TermRatio(R1 * one_body->GetMatrixElement(salpha, sd), energy_denominator, sd, salpha);
             }
         }
-        it_alpha++;
     }
 
     if(debug)

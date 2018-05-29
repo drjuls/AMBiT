@@ -28,7 +28,7 @@ class OrbitalBase : public SpinorFunction
 public:
     OrbitalBase(const OrbitalInfo& info);
     OrbitalBase(int kappa, int pqn = 0, double energy = 0.0, unsigned int size = 0);
-    virtual ~OrbitalBase() {}
+    virtual ~OrbitalBase() = default;
 
     virtual std::shared_ptr<Orbital> Clone() const = 0;
 
@@ -204,10 +204,10 @@ auto OrbitalTemplate<Base, Derived>::operator*=(const RadialFunction& chi) -> co
 
     for(unsigned int i = 0; i < this->size(); i++)
     {
-        this->f[i] *= chi.f[i];
-        this->g[i] *= chi.f[i];
         this->dfdr[i] = this->f[i] * chi.dfdr[i] + this->dfdr[i] * chi.f[i];
         this->dgdr[i] = this->g[i] * chi.dfdr[i] + this->dgdr[i] * chi.f[i];
+        this->f[i] *= chi.f[i];
+        this->g[i] *= chi.f[i];
     }
     return static_cast<const Derived&>(*this);
 }

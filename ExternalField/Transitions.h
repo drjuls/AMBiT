@@ -4,6 +4,7 @@
 #include "Atom/Atom.h"
 #include "Configuration/Level.h"
 #include "Universal/Enums.h"
+#include "RPAOperator.h"
 #include <map>
 
 /** LevelID uniquely specifies a Level (HamiltonianID and index).
@@ -24,13 +25,13 @@ typedef std::pair<LevelID, LevelID> TransitionID;
     TransitionCalculator provides generic RPA routines for authors of subclasses.
     When constructing the operator use something like
         if(user_input.search("--rpa"))
-            op = MakeStaticRPA(op, hf, hartreeY);
+            op = MakeRPA(op, hf, hartreeY);
  */
 class TransitionCalculator
 {
 public:
     TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr)
+        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), variable_frequency_op(false)
     {}
     TransitionCalculator(MultirunOptions& user_input, Atom& atom):
         TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
@@ -60,7 +61,7 @@ protected:
     /** Parse user_input for RPA options. Return an RPAOperator.
         PRE: hf->GetCore() should be a self-consistent solution of hf.
      */
-    virtual pSpinorMatrixElement MakeStaticRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY) const;
+    virtual pRPAOperator MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY);
 
     /** Check if transition exists or is excluded by symmetry considerations. */
     inline bool TransitionExists(const Symmetry& left, const Symmetry& right) const
@@ -105,7 +106,8 @@ protected:
     MultirunOptions& user_input;
     pOrbitalManagerConst orbitals;
     pLevelStore levels;
-    pSpinorMatrixElement op;
+    pSpinorMatrixElement op = nullptr;
+    bool variable_frequency_op = false;
 
     pTransitionIntegrals integrals;     // One-electron integrals
     std::map<TransitionID, double> matrix_elements;

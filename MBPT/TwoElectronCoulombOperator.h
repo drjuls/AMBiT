@@ -28,6 +28,8 @@ public:
      */
     double GetReducedMatrixElement(int k, const OrbitalInfo& e1, const OrbitalInfo& e2, const OrbitalInfo& e3, const OrbitalInfo& e4) const;
 
+    pSlaterIntegrals GetIntegrals() { return integrals; }
+
 protected:
     bool include_off_parity;
     pSlaterIntegrals integrals;

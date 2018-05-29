@@ -2,31 +2,11 @@
 #include "RelativisticConfiguration.h"
 #include "ConfigGenerator.h"
 #include "Universal/Eigensolver.h"
+#include "HartreeFock/ConfigurationParser.h"
 
-RelativisticConfiguration::RelativisticConfiguration(const RelativisticConfiguration& other):
-    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
-{}
-
-RelativisticConfiguration::RelativisticConfiguration(RelativisticConfiguration&& other):
-    BaseConfiguration(other), projections(other.projections), angular_data(other.angular_data)
-{}
-
-const RelativisticConfiguration& RelativisticConfiguration::operator=(const RelativisticConfiguration& other)
+RelativisticConfiguration::RelativisticConfiguration(const std::string& name)
 {
-    m_config = other.m_config;
-    angular_data = other.angular_data;
-    projections = other.projections;
-
-    return *this;
-}
-
-RelativisticConfiguration& RelativisticConfiguration::operator=(RelativisticConfiguration&& other)
-{
-    m_config.swap(other.m_config);
-    angular_data = other.angular_data;
-    projections.swap(other.projections);
-
-    return *this;
+    *this = RelativisticConfiguration(ConfigurationParser::ParseConfiguration<OrbitalInfo, int>(name));
 }
 
 bool RelativisticConfiguration::GetProjections(pAngularDataLibrary data, const Symmetry& sym, int two_m)
@@ -79,7 +59,7 @@ int RelativisticConfiguration::GetNumberOfLevels() const
     return result;
 }
 
-double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFOperator one_body, pHartreeY two_body) const
+double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body) const
 {
     return ::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
 }
@@ -88,7 +68,7 @@ void RelativisticConfiguration::Write(FILE* fp) const
 {
     // Write config
     unsigned int config_size = m_config.size();
-    fwrite(&config_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fwrite(&config_size, sizeof(unsigned int), 1, fp);
 
     for(auto& pair: *this)
     {
@@ -97,9 +77,9 @@ void RelativisticConfiguration::Write(FILE* fp) const
         int occupancy = pair.second;
 
         // Write PQN, Kappa, occupancy
-        fwrite(&pqn, sizeof(int), 1, fp);
-        fwrite(&kappa, sizeof(int), 1, fp);
-        fwrite(&occupancy, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fwrite(&occupancy, sizeof(int), 1, fp);
     }
 }
 
@@ -122,7 +102,7 @@ void RelativisticConfiguration::Read(FILE* fp)
         fread(&kappa, sizeof(int), 1, fp);
         fread(&occupancy, sizeof(int), 1, fp);
 
-        m_config[OrbitalInfo(pqn, kappa)] = occupancy;
+        insert(std::make_pair(OrbitalInfo(pqn, kappa), occupancy));
     }
 }
 

@@ -30,7 +30,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
 
 void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, pCoreConst atom_core)
 {
-    FILE* fp = fopen(filename.c_str(), "r");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "r");
     if(fp == NULL)
     {   *errstream << "Unable to open file " << filename << std::endl;
         PAUSE;
@@ -235,7 +235,7 @@ void ReadBasis::CreateExcitedStates(const std::vector<unsigned int>& num_states_
         ds->SetEnergy(I.HamiltonianMatrixElement(*ds, *ds, *core));
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 
     if(DebugOptions.OutputHFExcited())
         *outstream << "Basis Orthogonality test: " << TestOrthogonality() << std::endl;

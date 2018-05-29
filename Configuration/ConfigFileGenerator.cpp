@@ -16,7 +16,7 @@ void ConfigFileGenerator::ReadConfigs(double cutoff)
     if(nrlist.empty() && !rlist.empty())
         RestoreNonRelConfigs();
 
-    FILE* fp = fopen(input_filename.c_str(), "r");
+    FILE* fp = file_err_handler->fopen(input_filename.c_str(), "r");
     char buffer[200];
 
     int L, pqn, occupancy;
@@ -84,14 +84,14 @@ void ConfigFileGenerator::ReadConfigs(double cutoff)
     nrlist.sort();
     nrlist.unique();
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 void ConfigFileGenerator::WriteConfigs(double cutoff)
 {
     std::map<Configuration, double>::const_iterator it = Contributions.begin();
     
-    FILE* fp = fopen(output_filename.c_str(), "w");
+    FILE* fp = file_err_handler->fopen(output_filename.c_str(), "w");
     
     while(it != Contributions.end())
     {
@@ -100,7 +100,7 @@ void ConfigFileGenerator::WriteConfigs(double cutoff)
         it++;
     }
     
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 void ConfigFileGenerator::AddPercentages(const std::map<Configuration, double> percentages)

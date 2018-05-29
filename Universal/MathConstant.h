@@ -3,7 +3,10 @@
 
 #include <map>
 #include <stdlib.h>
+#include <memory>
 #include <boost/math/special_functions.hpp>
+#include <sparsehash/dense_hash_map>
+#include <gsl/gsl_math.h>
 #include "Enums.h"
 
 /** Class of mathematical constants, following the Singleton pattern. 
@@ -47,7 +50,7 @@ public:
         Assumes m3 = - m1 - m2.
      */
     double Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2);
-    
+
     /** Calculate 3j symbol where j1, j2 are half integer and k is integer.
         Assumes q (projection of k) = - m1 - m2.
         ( j1  j2  k )
@@ -103,7 +106,14 @@ public:
             j_v(x) = x^v / (2v + 1)!!
      */
     inline double sph_bessel_small_limit(unsigned int v, double x) const
-    {   return pow(x, v)/boost::math::double_factorial<double>(2 * v + 1);
+    {   return gsl_pow_int(x, v)/boost::math::double_factorial<double>(2 * v + 1);
+    }
+
+    /** Derivative of spherical bessel function j_v(x) in the limit of small x:
+            j_v'(x) = v x^(v-1) / (2v + 1)!!
+     */
+    inline double sph_bessel_small_limit_prime(unsigned int v, double x) const
+    {   return v * gsl_pow_int(x, int(v)-1)/boost::math::double_factorial<double>(2 * v + 1);
     }
 
     /** Return number of combinations of k elements in n slots. */
@@ -111,20 +121,17 @@ public:
 
 protected:
     MathConstant();
+
+public:
     ~MathConstant();
 
 protected:
     const std::string SpectroscopicNotation;
-    std::map<int, double> Symbols3j;
+    google::dense_hash_map<int, double> Symbols3j;
 
     unsigned int MaxStoredTwoJ;
     unsigned int MSize;
     int HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const;
-    
-    /** Calculate the logarithm of a fraction where the numerator and denominator are factorials
-     log( n!/d! )
-     */
-    double LogFactorialFraction(unsigned int num, unsigned int denom) const;
 };
 
 inline int MathConstant::convert_to_kappa(int twoj, Parity P)

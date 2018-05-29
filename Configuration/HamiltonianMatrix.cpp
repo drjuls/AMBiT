@@ -8,6 +8,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef AMBIT_USE_OPENMP
+#include<omp.h>
+#endif
+
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
 
@@ -19,7 +23,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
-    H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(hf, coulomb);
+    H_two_body = std::make_shared<TwoBodyHamiltonianOperator>(*hf, *coulomb);
 
     // Set up matrix
     N = configs->NumCSFs();
@@ -41,7 +45,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     HamiltonianMatrix(hf, coulomb, relconfigs)
 {
     // Set up three-body operator
-    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
+    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(*hf, *coulomb, *sigma3);
     leading_configs = leadconfigs;
 }
 
@@ -58,15 +62,15 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     }
 
     // Total number of chunks = ceiling(number of configs/configs_per_chunk)
-    unsigned int num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
+    unsigned int total_num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
 
     // Divide up chunks
     auto config_it = configs->begin();
     unsigned int config_index = 0;
     unsigned int csf_start = 0;
-    for(int chunk_index = 0; chunk_index < num_chunks; chunk_index++)
+    for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
     {
-        // Get chunk num_rows and number of configs
+        // Get chunk num_rows and number of configs. Allocates resources for the chunks.
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
         while(config_it != configs->end() && current_num_configs < configs_per_chunk)
@@ -92,15 +96,17 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
-    for(auto& current_chunk: chunks)
+    unsigned int chunk_index;
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
+#endif
+    for(chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
     {
+        auto& current_chunk = chunks[chunk_index];
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& D = current_chunk.diagonal;
 
         // Loop through configs for this chunk
-#ifdef AMBIT_USE_OPENMP
-        #pragma omp parallel for private(config_it)
-#endif
         config_it = (*configs)[current_chunk.config_indices.first];
         for(unsigned int config_index = current_chunk.config_indices.first; config_index < current_chunk.config_indices.second; config_index++)
         {
@@ -140,10 +146,13 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                         {
                             double operatorH;
                             if(do_three_body)
+                            {
                                 operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                            }
                             else
+                            {
                                 operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
+                            }
                             if(fabs(operatorH) > 1.e-15)
                             {
                                 for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
@@ -224,7 +233,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                     proj_it++;
                 }
             }
-
             config_it++;
         } // Configs in chunk
     } // Chunks
@@ -235,9 +243,8 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
 {
-    LevelVector levels;
-    if(hID->GetRelativisticConfigList() == nullptr)
-        hID->SetRelativisticConfigList(configs);
+    LevelVector levelvec(hID);
+    levelvec.configs = configs;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
 
@@ -249,7 +256,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
     {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
         {
             *outstream << "; Finding solutions using Eigen..." << std::endl;
-            levels.reserve(NumSolutions);
+            levelvec.levels.reserve(NumSolutions);
 
             Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
             const Eigen::VectorXd& E = es.eigenvalues();
@@ -257,18 +264,18 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
             for(unsigned int i = 0; i < NumSolutions; i++)
             {
-                levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
             }
         }
     #ifdef AMBIT_USE_SCALAPACK
         else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
         {
-            levels = SolveMatrixScalapack(hID, NumSolutions, false);
+            levelvec = SolveMatrixScalapack(hID, NumSolutions, false);
         }
     #endif
         else
         {   *outstream << "; Finding solutions using Davidson..." << std::endl;
-            levels.reserve(NumSolutions);
+            levelvec.levels.reserve(NumSolutions);
 
             double* V = new double[NumSolutions * N];
             double* E = new double[NumSolutions];
@@ -282,7 +289,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
             for(unsigned int i = 0; i < NumSolutions; i++)
             {
-                levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
+                levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
             }
 
             delete[] E;
@@ -290,15 +297,15 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         }
     }
 
-    return levels;
+    return levelvec;
 }
 
 #ifdef AMBIT_USE_SCALAPACK
 LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit)
 {
-    LevelVector levels;
-    if(hID->GetRelativisticConfigList() == nullptr)
-        hID->SetRelativisticConfigList(configs);
+    LevelVector levelvec;
+    levelvec.hID = hID;
+    levelvec.configs = configs;
 
     unsigned int NumSolutions = mmin(num_solutions, N);
 
@@ -340,7 +347,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
 
         // Get levels. Using a larger buffer is generally better, so
         // choose something around 1M * 8 bytes (small enough to be "in the noise")
-        levels.reserve(NumSolutions);
+        levelvec.levels.reserve(NumSolutions);
         unsigned int column_begin = 0;
         unsigned int num_columns_per_step = 1000000/N;
         double* V = new double[N * num_columns_per_step];  // Eigenvectors
@@ -352,7 +359,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
 
             double* pV = V;
             while(column_begin < column_end)
-            {   levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
+            {   levelvec.levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
                 column_begin++;
                 pV += N;
             }
@@ -362,7 +369,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         delete[] V;
     }
 
-    return levels;
+    return levelvec;
 }
 #endif
 
@@ -397,8 +404,8 @@ void HamiltonianMatrix::Write(const std::string& filename) const
     if(ProcessorRank == 0)
     {
         // Write size of matrix.
-        fp = fopen(filename.c_str(), "wb");
-        fwrite(&N, sizeof(unsigned int), 1, fp);
+        fp = file_err_handler->fopen(filename.c_str(), "wb");
+        file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
         const double* pbuf;
         const double* pdiag;
         std::vector<double> zeros(N-Nsmall, 0.);
@@ -470,15 +477,15 @@ void HamiltonianMatrix::Write(const std::string& filename) const
             for(int i = 0; i < num_rows; i++)
             {
                 // Write chunk
-                fwrite(pbuf, sizeof(double), mmin(row + i + 1, Nsmall), fp);
+                file_err_handler->fwrite(pbuf, sizeof(double), mmin(row + i + 1, Nsmall), fp);
                 pbuf += mmin(row + num_rows, Nsmall);   // Move to next row
 
                 // Write diagonal
                 if(diag_rows && row + i >= Nsmall)
                 {
                     if(gap)
-                        fwrite(zeros.data(), sizeof(double), gap, fp);
-                    fwrite(pdiag, sizeof(double), row + i + 1 - Nsmall - gap, fp);
+                        file_err_handler->fwrite(zeros.data(), sizeof(double), gap, fp);
+                    file_err_handler->fwrite(pdiag, sizeof(double), row + i + 1 - Nsmall - gap, fp);
                     pdiag += diag_rows;
                 }
             }
@@ -491,7 +498,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         MPI_Bcast(&row, 1, MPI_INT, 0, MPI_COMM_WORLD);
     #endif
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
     else
     {

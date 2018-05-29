@@ -6,7 +6,7 @@
 #include "HartreeFock/Core.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
-#include "Configuration/Level.h"
+#include "Configuration/LevelMap.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "MBPT/Sigma3Calculator.h"
 
@@ -99,17 +99,17 @@ public:
     /** For all levels requested, create continuum wave and calculate autoionization width.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
-    void Autoionization(pLevelConst target);
+    void Autoionization(const LevelVector& target);
 
     /** Use continuum energy grid for autoionisation.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */
-    void AutoionizationEnergyGrid(pLevelConst target);
+    void AutoionizationEnergyGrid(const LevelVector& target);
 
     /** Configuration averaged autoionisation strength S.
         PRE: Have to have nrconfigs.
      */
-    void AutoionizationConfigurationAveraged(pLevelConst target);
+    void AutoionizationConfigurationAveraged(const LevelVector& target);
     void AutoionizationConfigurationAveraged(const OccupationMap& target);
 
 protected:
@@ -121,7 +121,7 @@ protected:
     /** Instantiate LevelMap and read from file.
         Get set of requested symmetries from user input.
      */
-    pLevelStore ChooseHamiltonians(pConfigList nrlist);
+    pLevelStore ChooseHamiltonians(pRelativisticConfigList rlist);
 
     /** Get configurations based on single electron configurations with no CI.
         PRE: MakeBasis() must have been run.
@@ -164,7 +164,7 @@ protected:
     pSigma3Calculator threebody_electron;           //!< Three-body Hamiltonian operator
 
     pConfigList leading_configs;
-    pConfigList nrconfigs;
+    pRelativisticConfigList allconfigs;
     pAngularDataLibrary angular_library;
     pLevelStore levels;
 };

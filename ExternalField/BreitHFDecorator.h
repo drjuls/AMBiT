@@ -19,6 +19,15 @@ public:
 public:
     virtual double GetMatrixElement(const Orbital& b, const Orbital& a) const override;
 
+    /** Deep copy including breit_operator. */
+    virtual pHFOperator Clone() const override
+    {
+        auto ret(std::make_shared<BreitHFDecorator>(*this));
+        ret->wrapped = wrapped->Clone();
+        ret->breit_operator = breit_operator->Clone();
+        return ret;
+    }
+
 protected:
     virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const override;
     pHartreeY breit_operator;

@@ -1,0 +1,38 @@
+ID = CrII
+
+Z = 24
+
+-s123
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.0e-6
+EndPoint = 50.0
+
+[HF]
+N = 23
+Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d5'
+
+[Basis]
+--bspline-basis
+ValenceBasis = 7spdf
+FrozenCore = 3s2p
+
+[CI]
+LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'
+ElectronExcitations = 2
+HoleExcitations = 0
+EvenParityTwoJ = '1, 3, 5'
+NumSolutions = 3
+
+[CI/SmallSide]
+LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'
+ElectronExcitations = '1,5spdf, 2, 5spdf'
+HoleExcitations = 0
+
+[MBPT]
+Basis = 15spdf
+
+[Transitions]
+E2/AllBelow = -9.2
+M1/MatrixElements = '1e:0->1e:1, 3e:0->5e:0'

@@ -11,9 +11,12 @@
 #include <new>
 #include <sstream>
 #include <fstream>
+#include <numeric>
+#include <memory>
 #include <gsl/gsl_math.h>
 
 #include "Atom/Debug.h"
+#include "Atom/OutStreams.h"
 
 #define string_macro(x) _stringify(x)
 #define _stringify(x) #x
@@ -35,6 +38,8 @@
 #else
     #ifndef UNIX
         #define UNIX
+        // Allows us to set file permissions with umask. Only works with UNIX, though
+        #include <sys/stat.h>
     #endif
 
     #ifdef GCC
@@ -59,6 +64,7 @@
 extern std::ostream* outstream;
 extern std::ostream* logstream;
 extern std::ostream* errstream;
+extern FileErrHandler* file_err_handler; 
 
 extern Debug DebugOptions;
 

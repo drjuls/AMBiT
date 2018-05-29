@@ -222,7 +222,7 @@ void ScalapackMatrix::GetDiagonal(double* diag) const
 
 void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "ScalapackMatrix::ReadTriangle: Couldn't open " << filename << std::endl;
         exit(1);
@@ -299,14 +299,14 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
         i++;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     delete[] buffer;
     upper_triangle = false;
 }
 
 void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
     {   *errstream << "ScalapackMatrix::ReadLowerTriangle: Couldn't open " << filename << std::endl;
         exit(1);
@@ -360,7 +360,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
         i++;
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
     delete[] buffer;
     upper_triangle = true;
 }
@@ -374,10 +374,10 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
     FILE* fp;
     if(ProcessorRank == 0)
     {
-        fp = fopen(filename.c_str(), "wb");
+        fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write size of matrix.
-        fwrite(&N, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&N, sizeof(unsigned int), 1, fp);
         writebuf = new double[N];
     }
 
@@ -414,14 +414,14 @@ void ScalapackMatrix::WriteToFile(const std::string& filename) const
         MPI_Reduce(buffer, writebuf, N, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
         if(ProcessorRank == 0)
-        {   fwrite(writebuf, sizeof(double), N, fp);
+        {   file_err_handler->fwrite(writebuf, sizeof(double), N, fp);
         }
     }
 
     delete[] buffer;
     if(ProcessorRank == 0)
     {   delete[] writebuf;
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }
 

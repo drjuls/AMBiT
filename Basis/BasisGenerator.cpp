@@ -183,7 +183,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
                 hf = magneticQED;
             }
             if(!user_input.search("HF/QED/--no-electric"))
-            {   electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius));
+            {   bool skip_offmass = user_input.search("HF/QED/--skip-offmass");
+                electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius, !skip_offmass));
                 hf = electricQED;
             }
         }
@@ -421,7 +422,25 @@ pHFOperator BasisGenerator::RecreateBasis(pOrbitalManager orbital_manager)
 pOrbitalManagerConst BasisGenerator::GenerateBasis()
 {
     // Make sure hf is correct
-    hf->SetCore(open_core);
+    std::string residue = user_input("Basis/Residue", "");
+    if(residue.empty())
+    {
+        hf->SetCore(open_core);
+    }
+    else
+    {   // Strip any errant colon
+        size_t colon_pos = residue.find(':');
+        if(colon_pos != std::string::npos)
+            residue.erase(colon_pos, 1);
+
+        // No need to clone, since we are not changing the core orbitals
+        pCore residual_core = std::make_shared<Core>(*open_core);
+
+        OccupationMap residual_occupations = ConfigurationParser::ParseFractionalConfiguration(residue);
+        residual_core->SetOccupancies(residual_occupations);
+
+        hf->SetCore(residual_core);
+    }
 
     // Generate excited states
     std::string all_states = user_input("Basis/BasisSize", "");

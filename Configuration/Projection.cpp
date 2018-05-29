@@ -21,16 +21,6 @@ Projection::Projection(const RelativisticConfiguration& relconfig, const std::ve
     config.shrink_to_fit();
 }
 
-Projection::Projection(const Projection& other): config(other.config)
-{
-    config.shrink_to_fit();
-}
-
-Projection::Projection(Projection&& other)
-{
-    config.swap(other.config);
-}
-
 ElectronInfo& Projection::operator[](unsigned int i)
 {
     return config[i];
@@ -44,7 +34,7 @@ const ElectronInfo& Projection::operator[](unsigned int i) const
 Parity Projection::GetParity() const
 {
     int sum = 0;
-    for_each(config.begin(), config.end(), [&](const ElectronInfo& info)
+    for_each(config.begin(), config.end(), [&sum](const ElectronInfo& info)
     {   sum += info.L();
     } );
 
@@ -57,8 +47,8 @@ Parity Projection::GetParity() const
 int Projection::GetTwoM() const
 {
     int sum = 0;
-    for_each(config.begin(), config.end(), [&](const ElectronInfo& info)
-    {   sum += info.TwoM();
+    for_each(config.begin(), config.end(), [&sum](const ElectronInfo& info)
+    {   sum += (info.IsHole()? -info.TwoM(): info.TwoM());
     } );
 
     return sum;
@@ -75,129 +65,4 @@ std::string Projection::Name() const
     name.append("}");
 
     return name;
-}
-
-int Projection::GetProjectionDifferences(const Projection& p1, const Projection& p2, unsigned int* diff)
-{
-    unsigned int i=0, j=0;
-    unsigned int diff1[3], diff2[3];
-    unsigned int diff1_size=0, diff2_size=0;
-
-    while((i < p1.size()) && (j < p2.size()) && (diff1_size <= 2) && (diff2_size <= 2))
-    {
-        if(p1[i] == p2[j])
-        {   i++;
-            j++;
-        }
-        else if(p1[i] < p2[j])
-        {   diff1[diff1_size++] = i;
-            i++;
-        }
-        else
-        {   diff2[diff2_size++] = j;
-            j++;
-        }
-    }
-    while((i < p1.size()) && (diff1_size <= 2))
-    {   diff1[diff1_size++] = i;
-        i++;
-    }
-    while((j < p2.size()) && (diff2_size <= 2))
-    {   diff2[diff2_size++] = j;
-        j++;
-    }
-
-    if((diff1_size > 2) || (diff2_size > 2))
-        return 3;
-
-    if(diff1_size < diff2_size)
-        diff1[diff1_size++] = p1.size();
-    else if(diff2_size < diff1_size)
-        diff2[diff2_size++] = p2.size();
-
-    if(diff1_size != diff2_size)
-        return 3;
-    else if(diff1_size == 0)
-        return 0;
-
-    int sort = abs(int(diff1[0]) - int(diff2[0]));
-    
-    //Copy first difference
-    diff[0] = diff1[0];
-    diff[1] = diff2[0];
-
-    if(diff1_size == 2)
-    {   sort += abs(int(diff1[1]) - int(diff2[1]));
-
-        // Copy second difference
-        diff[2] = diff1[1];
-        diff[3] = diff2[1];
-    }
-
-    if(sort%2 == 0)
-        return int(diff1_size);
-    else
-        return -int(diff1_size);
-}
-
-int Projection::GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff)
-{
-    unsigned int i=0, j=0;
-    unsigned int diff1[4], diff2[4];
-    unsigned int diff1_size=0, diff2_size=0;
-
-    while((i < p1.size()) && (j < p2.size()) && (diff1_size <= 3) && (diff2_size <= 3))
-    {
-        if(p1[i] == p2[j])
-        {   i++;
-            j++;
-        }
-        else if(p1[i] < p2[j])
-        {   diff1[diff1_size++] = i;
-            i++;
-        }
-        else
-        {   diff2[diff2_size++] = j;
-            j++;
-        }
-    }
-    while((i < p1.size()) && (diff1_size <= 3))
-    {   diff1[diff1_size++] = i;
-        i++;
-    }
-    while((j < p2.size()) && (diff2_size <= 3))
-    {   diff2[diff2_size++] = j;
-        j++;
-    }
-    if((diff1_size != diff2_size) || (diff1_size > 3))
-        return 4;
-    else if(diff1_size == 0)
-        return 0;
-
-    int sort = abs(int(diff1[0]) - int(diff2[0]));
-    
-    //Copy first difference
-    diff[0] = diff1[0];
-    diff[1] = diff2[0];
-
-    if(diff1_size >= 2)
-    {   sort += abs(int(diff1[1]) - int(diff2[1]));
-
-        // Copy second difference
-        diff[2] = diff1[1];
-        diff[3] = diff2[1];
-    }
-
-    if(diff1_size == 3)
-    {   sort += abs(int(diff1[2]) - int(diff2[2]));
-
-        // Copy third difference
-        diff[4] = diff1[2];
-        diff[5] = diff2[2];
-    }
-
-    if(sort%2 == 0)
-        return int(diff1_size);
-    else
-        return -int(diff1_size);
 }

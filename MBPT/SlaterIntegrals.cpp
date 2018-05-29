@@ -1,5 +1,9 @@
 #include "Include.h"
 
+#ifdef AMBIT_USE_OPENMP
+    #include <omp.h>
+#endif
+
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
@@ -44,6 +48,16 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
     // Get Y^k_{31}
     auto it_1 = orbital_map_1->begin();
+#ifdef AMBIT_USE_OPENMP
+    // The HartreeY operator is not thread-safe, so make a separate clone for each thread
+    std::vector<pHartreeY> hartreeY_operators;
+    for(int ii = 0; ii < omp_get_max_threads(); ++ii){
+        hartreeY_operators.emplace_back(hartreeY_operator->Clone());
+    }
+    #pragma omp parallel if(!check_size_only)
+    {
+    #pragma omp single nowait
+#endif
     while(it_1 != orbital_map_1->end())
     {
         i1 = orbitals->state_index.at(it_1->first);
@@ -60,9 +74,14 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
             i3 = orbitals->state_index.at(it_3->first);
             s3 = it_3->second;
 
-            // Limits on k
+            // Limits on k. This is the expensive part to calculate
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task firstprivate(i1, i3, s1, s3) private(k, i2, i4, s2, s4)
+            {
+            k = hartreeY_operators[omp_get_thread_num()]->SetOrbitals(s3, s1);
+#else
             k = hartreeY_operator->SetOrbitals(s3, s1);
-
+#endif
             while(k != -1)
             {
                 auto it_2 = orbital_map_2->begin();
@@ -85,12 +104,19 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                             KeyType key = GetKey(k, i1, i2, i3, i4);
 
                             if(check_size_only)
+                            {
                                 found_keys.insert(key);
+                            }
                             else
                             {   // Check that this integral doesn't already exist
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
+#ifdef AMBIT_USE_OPENMP
+                                    double radial = hartreeY_operators[omp_get_thread_num()]->GetMatrixElement(*s4, *s2);
+                                    #pragma omp critical(TWO_ELECTRON_SLATER)
+#else
                                     double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
+#endif
                                     TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
                                 }
                             }
@@ -99,13 +125,22 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                     }
                     it_2++;
                 }
-
+#ifdef AMBIT_USE_OPENMP
+                k = hartreeY_operators[omp_get_thread_num()]->NextK();
+            } // K loop
+            } // OpenMP task
+#else
                 k = hartreeY_operator->NextK();
-            }
+            } // K loop
+#endif
             it_3++;
         }
         it_1++;
     }
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp taskwait
+    } // OpenMP parallel region
+#endif
 
     if(check_size_only)
     {   hartreeY_operator->SetLightWeightMode(false);
@@ -188,8 +223,11 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
     {
         radial = it->second;
     }
-    else if((s1.L() + s3.L() + k) == 0)
+    else if((s1.L() + s3.L() + k)%2 == 0 && (s2.L() + s4.L() + k)%2 == 0)
     {   // Only print error if requested integral has correct parity rules
+#ifdef AMBIT_USE_OPENMP
+        #pragma omp critical(ERRSTREAM)
+#endif
         *errstream << "SlaterIntegrals::GetTwoElectronIntegral() failed to find integral."
                    << "\n  R^" << k << " ( " << s1.Name() << " " << s2.Name()
                    << ", " << s3.Name() << " " << s4.Name() << "):  key = "
@@ -202,11 +240,9 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
 template <class MapType>
 void SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
-    FILE* fp = fopen(filename.c_str(), "rb");
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-    {   *errstream << "SlaterIntegrals::Read: file " << filename << " not found." << std::endl;
         return;
-    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -271,7 +307,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
         }
     }
 
-    fclose(fp);
+    file_err_handler->fclose(fp);
 }
 
 template <class MapType>
@@ -308,24 +344,24 @@ void SlaterIntegrals<MapType>::Write(const std::string& filename) const
 {
     if(ProcessorRank == 0)
     {
-        FILE* fp = fopen(filename.c_str(), "wb");
+        FILE* fp = file_err_handler->fopen(filename.c_str(), "wb");
 
         // Write state index
         WriteOrbitalIndexes(orbitals->state_index, fp);
 
         unsigned int KeyType_size = sizeof(KeyType);
-        fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&KeyType_size, sizeof(unsigned int), 1, fp);
 
         unsigned int num_integrals = size();
-        fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
+        file_err_handler->fwrite(&num_integrals, sizeof(unsigned int), 1, fp);
 
         for(auto& pair: TwoElectronIntegrals)
         {
             const double value = pair.second;   // Convert to double
-            fwrite(&pair.first, sizeof(KeyType), 1, fp);
-            fwrite(&value, sizeof(double), 1, fp);
+            file_err_handler->fwrite(&pair.first, sizeof(KeyType), 1, fp);
+            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
         }
 
-        fclose(fp);
+        file_err_handler->fclose(fp);
     }
 }

@@ -8,17 +8,14 @@
 
 /** HamiltonianID provides a key to uniquely identify a particular Hamiltonian
     using an identifier for the Hamiltonian (e.g. J, parity).
-    It also stores the RelativisticConfigList common to all eigenstates (Levels)
-    of the Hamiltonian and has operations that satisfy LevelMap::HamiltonianID.
  */
 class HamiltonianID : public std::enable_shared_from_this<HamiltonianID>
 {
 public:
-    HamiltonianID(int Jpi = 0): sym(Jpi), configs(nullptr) {}
-    HamiltonianID(int two_J, Parity parity, pRelativisticConfigList rconfigs = nullptr): sym(two_J, parity), configs(rconfigs) {}
-    HamiltonianID(const Symmetry& sym, pRelativisticConfigList rconfigs = nullptr): sym(sym), configs(rconfigs) {}
+    HamiltonianID(int Jpi = 0): sym(Jpi) {}
+    HamiltonianID(int two_J, Parity parity): sym(two_J, parity) {}
+    HamiltonianID(const Symmetry& sym): sym(sym) {}
     HamiltonianID(const std::string& name);
-    HamiltonianID(const HamiltonianID& other): sym(other.sym), configs(other.configs) {}
 
     virtual bool operator<(const HamiltonianID& other) const
     {   return (sym < other.sym);
@@ -37,10 +34,6 @@ public:
     Parity GetParity() const { return sym.GetParity(); }
     Symmetry GetSymmetry() const { return sym; }
 
-    void SetRelativisticConfigList(pRelativisticConfigList rconfigs) { configs = rconfigs; }
-    pRelativisticConfigList GetRelativisticConfigList() { return configs; }
-    pRelativisticConfigListConst GetRelativisticConfigList() const { return configs; }
-
     /** Unique short name for filenames, short printing.
         In this case, twoJ, followed by parity (e/o).
      */
@@ -49,7 +42,7 @@ public:
     /** Name for printing, in this case "J = <J>, P = <parity>". */
     virtual std::string Print() const;
 
-    /** Read and write functions also write the configs. */
+    /** Read and write functions. */
     virtual void Write(FILE* fp) const;
     virtual void Read(FILE* fp);
 
@@ -60,7 +53,6 @@ public:
 
 protected:
     Symmetry sym;
-    pRelativisticConfigList configs;
 };
 
 typedef std::shared_ptr<HamiltonianID> pHamiltonianID;
@@ -71,7 +63,7 @@ inline std::ostream& operator<<(std::ostream& stream, const pHamiltonianID& hID)
 }
 
 /** A Level is an eigenstate of the Hamiltonian with eigenvector of length NumCSFs.
-    The symmetry of the eigenstate is given by the stored RelativisticConfigList.
+    The symmetry of the eigenstate is given by the stored HamiltonianID.
  */
 class Level : public std::enable_shared_from_this<Level>
 {
@@ -81,13 +73,7 @@ public:
      */
     Level(const double& energy, const std::vector<double>& csf_eigenvector, pHamiltonianID hamiltonian_id, const double& gFactor):
         eigenvalue(energy), eigenvector(csf_eigenvector), hamiltonian(hamiltonian_id), gFactor(gFactor) {}
-    Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs = 0);
-    Level(const Level& other): eigenvalue(other.eigenvalue), eigenvector(other.eigenvector), hamiltonian(other.hamiltonian), gFactor(other.gFactor) {}
-    Level(Level&& other): eigenvalue(other.eigenvalue), eigenvector(other.eigenvector), hamiltonian(other.hamiltonian), gFactor(other.gFactor) {}
-    ~Level() {}
-
-    const Level& operator=(const Level& other);
-    Level& operator=(Level&& other);
+    Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs);
 
     double GetEnergy() const { return eigenvalue; }
     void SetEnergy(double energy) { eigenvalue = energy; }
@@ -104,28 +90,11 @@ public:
     pHamiltonianID GetHamiltonianID() { return hamiltonian; }
     pHamiltonianIDConst GetHamiltonianID() const { return hamiltonian; }
 
-    pRelativisticConfigList GetRelativisticConfigList()
-    {   if(hamiltonian)
-            return hamiltonian->GetRelativisticConfigList();
-        else return nullptr;
-    }
-
-    pRelativisticConfigListConst GetRelativisticConfigList() const
-    {   if(hamiltonian)
-            return hamiltonian->GetRelativisticConfigList();
-        else return nullptr;
-    }
-
-    void SetRelativisticConfigList(pRelativisticConfigList rconfigs)
-    {   if(hamiltonian)
-            hamiltonian->SetRelativisticConfigList(rconfigs);
-    }
-
 protected:
     double eigenvalue;
-    std::vector<double> eigenvector;    // length of eigenvector = hamiltonian->configs->NumCSFs()
-    pHamiltonianID hamiltonian;         // identifier for the Hamiltonian that *this is an eigenvalue of
-    double gFactor;
+    std::vector<double> eigenvector;        // length of eigenvector = hamiltonian->configs->NumCSFs()
+    pHamiltonianID hamiltonian = nullptr;   // identifier for the Hamiltonian that *this is an eigenvalue of
+    double gFactor = std::numeric_limits<double>::quiet_NaN();
 };
 
 typedef std::shared_ptr<Level> pLevel;
