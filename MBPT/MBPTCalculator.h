@@ -5,6 +5,8 @@
 #include "HartreeFock/Core.h"
 #include "Basis/OrbitalManager.h"
 
+namespace Ambit
+{
 class MBPTCalculator
 {
     /** Calculate diagrams of many-body perturbation theory.
@@ -207,4 +209,5 @@ double MBPTCalculator::TermRatio(const double& numerator, const double& energy_d
     return ret;
 }
 
+}
 #endif

@@ -7,6 +7,8 @@
 #include "Universal/MathConstant.h"
 #include "Include.h"
 
+namespace Ambit
+{
 /** SpinorMatrixElement is a base class for calculating radial matrix elements with an orbital basis. */
 class SpinorMatrixElement : public std::enable_shared_from_this<SpinorMatrixElement>
 {
@@ -87,4 +89,5 @@ protected:
 typedef std::shared_ptr<SpinorMatrixElement> pSpinorMatrixElement;
 typedef std::shared_ptr<const SpinorMatrixElement> pSpinorMatrixElementConst;
 
+}
 #endif

@@ -9,6 +9,8 @@
 #include <gsl/gsl_math.h>
 #include "Enums.h"
 
+namespace Ambit
+{
 /** Class of mathematical constants, following the Singleton pattern. 
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
     Bohr radius = 1, energy of ground state in hydrogen is 1/2.
@@ -146,4 +148,5 @@ inline int MathConstant::convert_to_kappa(int twoj, Parity P)
     return kappa;
 }
 
+}
 #endif

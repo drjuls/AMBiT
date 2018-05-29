@@ -4,6 +4,8 @@
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 
+namespace Ambit
+{
 SpecificMassShiftDecorator::SpecificMassShiftDecorator(pHFOperator wrapped_hf, bool nonrel, bool nonrel_include_lower):
     BaseDecorator(wrapped_hf), sms_operator(nullptr)
 {
@@ -96,4 +98,5 @@ SpinorFunction SpecificMassShiftDecorator::CalculateExtraExchange(const SpinorFu
     }
 
     return exchange;
+}
 }

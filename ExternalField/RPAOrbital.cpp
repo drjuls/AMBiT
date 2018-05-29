@@ -1,5 +1,7 @@
 #include "RPAOrbital.h"
 
+namespace Ambit
+{
 double DeltaOrbital::Energy() const
 {
     pOrbitalConst sp = parent.lock();
@@ -101,4 +103,5 @@ auto RPAOrbital::GetDeltaPsi(int kappa) const -> decltype(deltapsi)::const_itera
     };
 
     return std::find_if(deltapsi.begin(), deltapsi.end(), compare_kappas);
+}
 }

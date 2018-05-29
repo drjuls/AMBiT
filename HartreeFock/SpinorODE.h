@@ -5,6 +5,8 @@
 #include "Orbital.h"
 #include "Core.h"
 
+namespace Ambit
+{
 /** SpinorODE is an abstract class for numerical integration of coupled linear
     ordinary differential equations (ODEs) of the form
         df/dr = w[0] = w_f[0] f + w_g[0] g + w_const[0]
@@ -77,4 +79,5 @@ protected:
 typedef std::shared_ptr<SpinorODE> pSpinorODE;
 typedef std::shared_ptr<const SpinorODE> pSpinorODEConst;
 
+}
 #endif

@@ -19,6 +19,8 @@
 // and ScaLAPACK is available.
 #define MANY_LEVELS_LIM   50
 
+namespace Ambit
+{
 HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
@@ -613,4 +615,5 @@ void HamiltonianMatrix::GetDiagonal(double* diag) const
                 = matrix_section.diagonal.diagonal();
         }
     }
+}
 }

@@ -2,6 +2,8 @@
 #include "OrbitalMap.h"
 #include "Universal/Interpolator.h"
 
+namespace Ambit
+{
 OrbitalMap* OrbitalMap::Clone(pLattice new_lattice) const
 {
     OrbitalMap* ret;
@@ -94,7 +96,7 @@ void OrbitalMap::Read(FILE* fp)
     unsigned int max_size = 0;
 
     // Read states
-    fread(&num_core, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_core, sizeof(unsigned int), 1, fp);
     for(i = 0; i<num_core; i++)
     {
         pOrbital ds(new Orbital(-1));
@@ -132,4 +134,5 @@ void OrbitalMap::Print() const
                    << "  size: (" << it.second->size()
                    << ") " << std::setprecision(4) << lattice->R(it.second->size()) << std::endl;
     }
+}
 }

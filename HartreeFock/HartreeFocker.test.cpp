@@ -7,6 +7,8 @@
 #include "HartreeFocker.h"
 #include "NucleusDecorator.h"
 
+using namespace Ambit;
+
 TEST(HartreeFockerTester, CaIIOrbital)
 {
     pLattice lattice(new Lattice(1500, 1.e-6, 100.));

@@ -6,6 +6,8 @@
 #include "RelativisticConfiguration.h"
 #include "Symmetry.h"
 
+namespace Ambit
+{
 /** Storage class for eigenstates of the Hamiltonian with a particular (J, P) symmetry. */
 class Eigenstates
 {
@@ -91,4 +93,5 @@ public:
     bool RestoreAll();
 };
 
+}
 #endif

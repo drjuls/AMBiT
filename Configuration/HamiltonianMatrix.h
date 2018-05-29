@@ -13,6 +13,8 @@
 #include "MBPT/Sigma3Calculator.h"
 #include <Eigen/Eigen>
 
+namespace Ambit
+{
 typedef ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 
@@ -129,4 +131,5 @@ protected:
     unsigned int most_chunk_rows;
 };
 
+}
 #endif

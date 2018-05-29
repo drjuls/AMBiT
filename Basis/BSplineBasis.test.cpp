@@ -5,6 +5,8 @@
 #include "Atom/MultirunOptions.h"
 #include "BSplineBasis.h"
 
+using namespace Ambit;
+
 TEST(BSplineBasisTester, Rb)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

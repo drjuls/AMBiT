@@ -8,6 +8,8 @@
 #include <mpi.h>
 #endif
 
+namespace Ambit
+{
 void Atom::Autoionization(const LevelVector& target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
@@ -683,4 +685,5 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
             *outstream << rconfig.Name('_') << std::endl;
         }
     }
+}
 }

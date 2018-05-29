@@ -2,6 +2,8 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 
+using namespace Ambit;
+
 class BasisGeneratorTester : public ::testing::Test
 {
 protected:

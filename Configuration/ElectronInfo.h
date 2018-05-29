@@ -3,6 +3,8 @@
 
 #include "HartreeFock/OrbitalInfo.h"
 
+namespace Ambit
+{
 class ElectronInfo : public OrbitalInfo
 {
     /** Stores a projection of angular momentum, M.
@@ -33,4 +35,5 @@ protected:
     bool is_hole = {false};
 };
 
+}
 #endif

@@ -6,6 +6,8 @@
 #include "RPAOrbital.h"
 #include "RPASolver.h"
 
+namespace Ambit
+{
 /** Add RPA corrections to external SpinorOperator. */
 class RPAOperator : public TimeDependentSpinorOperator
 {
@@ -58,4 +60,5 @@ protected:
 typedef std::shared_ptr<RPAOperator> pRPAOperator;
 typedef std::shared_ptr<const RPAOperator> pRPAOperatorConst;
 
+}
 #endif

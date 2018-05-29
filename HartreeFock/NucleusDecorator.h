@@ -3,6 +3,8 @@
 
 #include "LocalPotentialDecorator.h"
 
+namespace Ambit
+{
 /** Add nuclear field to the direct potential. Assumed Fermi disribution of proton density:
      \f[ \rho(r) = \frac{1}{Exp[B(r - R)] + 1}, \
                B = 4ln(3)/t
@@ -40,4 +42,5 @@ protected:
 typedef std::shared_ptr<NucleusDecorator> pNucleusDecorator;
 typedef std::shared_ptr<const NucleusDecorator> pNucleusDecoratorConst;
 
+}
 #endif

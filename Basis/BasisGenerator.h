@@ -10,6 +10,8 @@
 #include "OrbitalManager.h"
 #include <list>
 
+namespace Ambit
+{
 /** Based on user input:
     - create HartreeFock operator (with relevant decorators)
     - create (or read) core orbitals, solving the Hartree Fock equations as required
@@ -136,4 +138,5 @@ protected:
     pElectricSelfEnergyDecorator electricQED;
 };
 
+}
 #endif

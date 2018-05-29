@@ -6,6 +6,8 @@
 #include "Universal/SpinorMatrixElement.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 /** SpinorOperator is a base class for calculating radial matrix elements with an orbital basis.
     Operators are also components of the Strategy pattern; they are initialised with an Integrator that the client can choose.
     Subclasses may choose their default integrator.
@@ -74,4 +76,5 @@ inline SpinorFunction SpinorOperator::ApplyTo(const SpinorFunction& a, int kappa
     return ReducedApplyTo(a, kappa_b) * stretched;
 }
 
+}
 #endif

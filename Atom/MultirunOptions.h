@@ -4,6 +4,8 @@
 #include "Atom/GetPot"
 #include "Include.h"
 
+namespace Ambit
+{
 /** A subclass of GetPot, MultirunOptions masks input vectors that are designed for
     multiple runs. Indicate which keys have multiple runs with the "Multirun" variable.
     For example, to run the code with multiple values of nuclear inverse mass
@@ -260,4 +262,5 @@ inline void MultirunOptions::ParseMultirun()
     subsection_list.resize(std::distance(subsection_list.begin(), end));
 }
 
+}
 #endif

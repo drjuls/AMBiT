@@ -9,6 +9,8 @@
 #define accuracy_rel 1.e-10
 #define accuracy_abs 1.e-20
 
+namespace Ambit
+{
 UehlingDecorator::UehlingDecorator(pHFOperator wrapped_hf, double nuclear_rms_radius, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy)
 {
@@ -1302,4 +1304,5 @@ void QEDCalculator::PrintTransition(const LevelID& left, const LevelID& right, d
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(12) << value << std::endl;
+}
 }

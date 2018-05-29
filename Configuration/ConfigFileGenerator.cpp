@@ -2,6 +2,8 @@
 #include "ConfigFileGenerator.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 void ConfigFileGenerator::Clear()
 {
     ConfigGenerator::Clear();
@@ -141,4 +143,5 @@ void ConfigFileGenerator::GenerateMultipleExcitationsFromImportantConfigs(unsign
     important.unique();
     
     GenerateMultipleExcitations(important, num_excitations);
+}
 }

@@ -12,6 +12,8 @@
 #include "MBPT/CoreMBPTCalculator.h"
 #include "RPAOperator.h"
 
+using namespace Ambit;
+
 TEST(HyperfineTester, Rb)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

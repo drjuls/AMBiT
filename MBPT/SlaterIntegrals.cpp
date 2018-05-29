@@ -7,6 +7,8 @@
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "SlaterIntegrals.h"
 
+namespace Ambit
+{
 template <class MapType>
 SlaterIntegrals<MapType>::SlaterIntegrals(pOrbitalManagerConst orbitals, bool two_body_reverse_symmetry_exists):
     SlaterIntegralsInterface(orbitals, two_body_reverse_symmetry_exists)
@@ -248,7 +250,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
     ReadOrbitalIndexes(old_state_index, fp);
 
     unsigned int old_key_size;
-    fread(&old_key_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&old_key_size, sizeof(unsigned int), 1, fp);
 
     switch(old_key_size)
     {
@@ -258,14 +260,14 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
             unsigned long long int old_key;
             double value;
 
-            fread(&num_integrals, sizeof(unsigned int), 1, fp);
+            file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
             unsigned long long int old_num_states = old_state_index.size();
 
             for(unsigned int i = 0; i < num_integrals; i++)
             {
-                fread(&old_key, sizeof(unsigned long long int), 1, fp);
-                fread(&value, sizeof(double), 1, fp);
+                file_err_handler->fread(&old_key, sizeof(unsigned long long int), 1, fp);
+                file_err_handler->fread(&value, sizeof(double), 1, fp);
 
                 ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
                 KeyType new_key = GetKey(temp_expanded);
@@ -285,14 +287,14 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
             unsigned int old_key;
             double value;
 
-            fread(&num_integrals, sizeof(unsigned int), 1, fp);
+            file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
             unsigned long long int old_num_states = old_state_index.size();
 
             for(unsigned int i = 0; i < num_integrals; i++)
             {
-                fread(&old_key, sizeof(unsigned int), 1, fp);
-                fread(&value, sizeof(double), 1, fp);
+                file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
+                file_err_handler->fread(&value, sizeof(double), 1, fp);
 
                 ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
                 KeyType new_key = GetKey(temp_expanded);
@@ -364,4 +366,5 @@ void SlaterIntegrals<MapType>::Write(const std::string& filename) const
 
         file_err_handler->fclose(fp);
     }
+}
 }

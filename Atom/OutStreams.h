@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cstdio>
 
+namespace Ambit
+{
 class OutStreams
 {
 public:
@@ -29,9 +31,11 @@ public:
     FILE* fopen(const char* path, const char* mode);
     int fclose(FILE* stream);
     int fwrite(const void* buf, size_t size, size_t nr, FILE* stream);
+    int fread(void* buf, size_t size, size_t nr, FILE* stream);
 
 protected:
     bool print_errors; // Ensures we don't print too many error messages for the block of writes
 };
 
+}
 #endif

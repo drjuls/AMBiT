@@ -8,6 +8,8 @@
 #include <omp.h>
 #endif
 
+namespace Ambit
+{
 MathConstant* MathConstant::Instance()
 {
 #ifdef AMBIT_USE_OPENMP
@@ -451,4 +453,5 @@ unsigned int MathConstant::nChoosek(unsigned int n, unsigned int k) const
         result /= i;
     }
     return result;
+}
 }

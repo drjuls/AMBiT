@@ -5,6 +5,8 @@
 #include "Configuration/RelativisticConfiguration.h"
 #include "Core.h"
 
+using namespace Ambit;
+
 TEST(ConfigurationParserTester, NonRelConfigs)
 {
     std::string input("4d-1 5s2 5p4");

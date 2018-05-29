@@ -4,6 +4,8 @@
 #include "HartreeFock/ExchangeDecorator.h"
 #include "BreitZero.h"
 
+namespace Ambit
+{
 /** As defined by Johnson
         \f$ (B_HF)_{ij} = Sum_b \left( b_{ibjb} - b_{ibbj} \right) \f$,
     where \f$ b_{ijkl} \f$ is the Breit operator.
@@ -33,4 +35,5 @@ protected:
     pHartreeY breit_operator;
 };
 
+}
 #endif

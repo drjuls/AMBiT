@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cerrno>
 
+namespace Ambit
+{
 std::ostream* outstream;
 std::ostream* logstream;
 std::ostream* errstream;
@@ -56,7 +58,8 @@ void OutStreams::FinaliseStreams()
 #endif
 }
 
-FILE* FileErrHandler::fopen(const char* path, const char* mode){
+FILE* FileErrHandler::fopen(const char* path, const char* mode)
+{
     
     FILE* ofp = std::fopen(path, mode);
     if(!ofp && errno != ENOENT){ // Don't print a warning if the file doesn't exist - fopen() will automatically create it
@@ -65,7 +68,8 @@ FILE* FileErrHandler::fopen(const char* path, const char* mode){
     return(ofp);
 }
 
-int FileErrHandler::fclose(FILE* stream){
+int FileErrHandler::fclose(FILE* stream)
+{
 
     int ret = std::fclose(stream);
     if(ret){
@@ -75,7 +79,8 @@ int FileErrHandler::fclose(FILE* stream){
     return(ret);
 }
 
-int FileErrHandler::fwrite(const void* buf, size_t size, size_t nr, FILE* stream){
+int FileErrHandler::fwrite(const void* buf, size_t size, size_t nr, FILE* stream)
+{
     
     size_t ret = std::fwrite(buf, size, nr, stream);
     if(!ret){
@@ -85,4 +90,27 @@ int FileErrHandler::fwrite(const void* buf, size_t size, size_t nr, FILE* stream
         }
     }
     return(ret);
+}
+
+int FileErrHandler::fread(void* buf, size_t size, size_t nr, FILE* stream)
+{
+    size_t ret = std::fread(buf, size, nr, stream);
+    
+    // fread uses a return value less than nr for both errors and EOF, so we need to explicitly check
+    // std::ferror to see which happened.
+    // NOTE: we want to alert every time we get an fread() error, since this can tank the entire
+    // calculation.
+    if(ret < nr)
+    {
+        if(std::ferror(stream))
+        {
+            *errstream << "WARNING: error reading from file - " << std::strerror(errno) << "\n";
+            std::clearerr(stream);
+        }
+        else if(std::feof(stream))
+        {
+            *errstream << "WARNING: unexpectedly reached end of data in file\n";
+        }
+    }
+}
 }

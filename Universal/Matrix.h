@@ -1,6 +1,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+namespace Ambit
+{
 /** Storage container for a square, symmetrical matrix of size N to be used with Davidson method.
     We need to use polymorphism rather than templating because Eigensolver must pass the method
     MatrixMultiply to the Davidson method wrapped in an "extern C" function.
@@ -30,4 +32,5 @@ protected:
     unsigned int N;
 };
 
+}
 #endif

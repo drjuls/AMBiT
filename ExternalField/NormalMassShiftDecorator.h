@@ -3,6 +3,8 @@
 
 #include "HartreeFock/ExchangeDecorator.h"
 
+namespace Ambit
+{
 /** Add normal mass shift to exchange part of operator.
     The extra exchange is stored in currentExchangePotential, inherited from HFDecorator.
     Typical values of inverse mass (1/M) are of order 0.00001 or even smaller.
@@ -32,4 +34,5 @@ protected:
 typedef std::shared_ptr<NormalMassShiftDecorator> pNormalMassShiftDecorator;
 typedef std::shared_ptr<const NormalMassShiftDecorator> pNormalMassShiftDecoratorConst;
 
+}
 #endif

@@ -1,6 +1,8 @@
 #include "ODESolver.h"
 #include "Include.h"
 
+namespace Ambit
+{
 AdamsSolver::AdamsSolver(pIntegrator integrator): ODESolver(integrator)
 {
     order = 10;
@@ -197,4 +199,5 @@ unsigned int AdamsSolver::IntegrateBackwardsUntilPeak(pSpinorODEConst op, Orbita
     }
 
     return peak;
+}
 }

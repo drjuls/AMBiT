@@ -4,6 +4,8 @@
 #include "HartreeFock/ExchangeDecorator.h"
 #include "TwoBodySMSOperator.h"
 
+namespace Ambit
+{
 /** Add specific mass shift to exchange part of operator [Berengut et al. PRA 68, 022502 (2003)].
     \f{eqnarray*}{
         P &=& p_{an}p_{na} \quad \textrm{where} \\
@@ -37,4 +39,5 @@ protected:
 typedef std::shared_ptr<SpecificMassShiftDecorator> pSpecificMassShiftDecorator;
 typedef std::shared_ptr<const SpecificMassShiftDecorator> pSpecificMassShiftDecoratorConst;
 
+}
 #endif

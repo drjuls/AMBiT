@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/PhysicalConstant.h"
 
+namespace Ambit
+{
 void ThomasFermiDecorator::SetCore(pCoreConst hf_core, double hf_mixing)
 {
     wrapped->SetCore(hf_core);
@@ -140,4 +142,5 @@ SpinorFunction ThomasFermiDecorator::ApplyTo(const SpinorFunction& a) const
     }
 
     return ta;
+}
 }

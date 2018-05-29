@@ -3,6 +3,8 @@
 
 #include "Lattice.h"
 
+namespace Ambit
+{
 /** Interpolator is constructed with either a lattice or a vector of points for the
     radial grid. The functions Interpolate and GetDerivative assume that the functions
     y or yvalues are defined on this grid.
@@ -40,4 +42,5 @@ protected:
     std::vector<double> R, dR;
 };
 
+}
 #endif

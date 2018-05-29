@@ -4,6 +4,8 @@
 #include "Configuration/ElectronInfo.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 double TwoElectronCoulombOperator::GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2, const ElectronInfo& e3, const ElectronInfo& e4) const
 {
     if((e1.L() + e2.L() + e3.L() + e4.L())%2)
@@ -112,4 +114,5 @@ double TwoElectronCoulombOperator::GetReducedMatrixElement(int k, const OrbitalI
     }
     
     return total;
+}
 }

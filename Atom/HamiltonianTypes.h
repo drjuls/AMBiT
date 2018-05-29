@@ -3,6 +3,8 @@
 
 #include "Configuration/Level.h"
 
+namespace Ambit
+{
 /** SingleOrbitalID defines a Hamiltonian of size 1:
     just the one configuration from one orbital.
     They are distinguishable by PQN().
@@ -57,7 +59,7 @@ public:
     virtual void Read(FILE* fp) override
     {
         HamiltonianID::Read(fp);
-        fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
     }
     
     virtual pHamiltonianID Clone() const override
@@ -133,4 +135,5 @@ protected:
     NonRelConfiguration nrconfig;
 };
 
+}
 #endif

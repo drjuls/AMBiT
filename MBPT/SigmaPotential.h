@@ -6,6 +6,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
+namespace Ambit
+{
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> SigmaMatrix;
 
 class BruecknerSigmaCalculator;
@@ -70,4 +72,5 @@ protected:
 
 typedef std::shared_ptr<SigmaPotential> pSigmaPotential;
 
+}
 #endif

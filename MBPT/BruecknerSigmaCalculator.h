@@ -5,6 +5,8 @@
 #include "SigmaPotential.h"
 #include "HartreeFock/HartreeY.h"
 
+namespace Ambit
+{
 class BruecknerSigmaCalculator : public MBPTCalculator
 {
 public:
@@ -50,4 +52,5 @@ inline bool BruecknerSigmaCalculator::ParityCheck(const int& La, const int& Lb, 
 
 typedef std::shared_ptr<BruecknerSigmaCalculator> pBruecknerSigmaCalculator;
 
+}
 #endif

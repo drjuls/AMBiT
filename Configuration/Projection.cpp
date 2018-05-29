@@ -3,6 +3,8 @@
 #include "RelativisticConfiguration.h"
 #include "HartreeFock/NonRelInfo.h"
 
+namespace Ambit
+{
 Projection::Projection(const RelativisticConfiguration& relconfig, const std::vector<int>& TwoMs)
 {
     config.reserve(relconfig.ParticleNumber());
@@ -65,4 +67,5 @@ std::string Projection::Name() const
     name.append("}");
 
     return name;
+}
 }

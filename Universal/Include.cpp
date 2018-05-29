@@ -3,6 +3,8 @@
 // Use the standard fread inside our own fread.
 #undef fread
 
+namespace Ambit
+{
 extern size_t fread_other_endian(void* ptr, size_t size, size_t count, FILE* fp)
 {
     size_t num_read;
@@ -10,7 +12,7 @@ extern size_t fread_other_endian(void* ptr, size_t size, size_t count, FILE* fp)
     unsigned char* lebuffer = new unsigned char[size * count];
     unsigned char* bebuffer = reinterpret_cast<unsigned char*>(ptr);
 
-    num_read = fread(lebuffer, size, count, fp);
+    num_read = file_err_handler->fread(lebuffer, size, count, fp);
 
     for(size_t i = 0; i < count; i++)
     {
@@ -54,4 +56,5 @@ std::string itoa(int value, unsigned int base)
 	}
 
 	return sign.append(buf);	
+}
 }

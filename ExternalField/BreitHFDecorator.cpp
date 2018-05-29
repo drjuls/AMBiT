@@ -1,5 +1,7 @@
 #include "BreitHFDecorator.h"
 
+namespace Ambit
+{
 double BreitHFDecorator::GetMatrixElement(const Orbital& b, const Orbital& a) const
 {
     double value = wrapped->GetMatrixElement(b, a);
@@ -144,4 +146,5 @@ SpinorFunction BreitHFDecorator::CalculateExtraExchange(const SpinorFunction& s)
     }
     
     return exchange;
+}
 }

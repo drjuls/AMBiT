@@ -1,6 +1,9 @@
 #include "Include.h"
 #include "ElectronInfo.h"
 
+namespace Ambit
+{
+
 bool ElectronInfo::operator<(const ElectronInfo& other) const
 {
     // Sort on hole first
@@ -52,4 +55,5 @@ std::string ElectronInfo::Name() const
     name.append(buffer);
 
     return name;
+}
 }

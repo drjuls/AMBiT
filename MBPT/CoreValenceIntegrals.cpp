@@ -8,6 +8,8 @@
 // Below purposely not included: this file is for a template class and should be included in the header.
 // #include "CoreValenceIntegrals.h"
 
+namespace Ambit
+{
 template <class MapType>
 CoreValenceIntegrals<MapType>::CoreValenceIntegrals(pOrbitalManagerConst orbitals, pHFIntegrals one_body, pHartreeY hartreeY_op, const std::string& write_file):
     CoreValenceIntegrals(one_body, pSlaterIntegrals(new SlaterIntegrals<MapType>(orbitals, hartreeY_op)), write_file)
@@ -380,4 +382,5 @@ void CoreValenceIntegrals<MapType>::IncludeValence(bool include_mbpt, bool inclu
     include_valence = include_mbpt && valence_PT;
     include_valence_subtraction = include_subtraction && valence_PT;
     include_valence_extra_box = include_wrong_parity_box_diagrams && valence_PT;
+}
 }

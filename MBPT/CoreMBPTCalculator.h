@@ -5,6 +5,8 @@
 #include "SlaterIntegrals.h"
 #include "OneElectronIntegrals.h"
 
+namespace Ambit
+{
 /** Calculate diagrams of many-body perturbation theory.
     One-body diagrams (functions GetSecondOrderSigma()) are of the form
            _____
@@ -132,4 +134,5 @@ protected:
 
 typedef std::shared_ptr<CoreMBPTCalculator> pCoreMBPTCalculator;
 
+}
 #endif

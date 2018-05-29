@@ -3,6 +3,8 @@
 
 #include "CoreMBPTCalculator.h"
 
+namespace Ambit
+{
 /** Calculate valence-valence diagrams of many-body perturbation theory.
     In these diagrams there are no (non-valence) holes.
  */
@@ -64,4 +66,5 @@ protected:
 
 typedef std::shared_ptr<ValenceMBPTCalculator> pValenceMBPTCalculator;
 
+}
 #endif

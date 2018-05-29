@@ -1,5 +1,7 @@
 #include "BruecknerDecorator.h"
 
+namespace Ambit
+{
 BruecknerDecorator::BruecknerDecorator(pHFOperator wrapped_hf, pIntegrator integration_strategy):
     HFOperatorDecorator(wrapped_hf, integration_strategy)
 {
@@ -108,4 +110,5 @@ SpinorFunction BruecknerDecorator::CalculateExtraExchange(const SpinorFunction& 
     }
 
     return ret;
+}
 }

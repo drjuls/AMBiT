@@ -5,6 +5,8 @@
 #include "Universal/SpinorFunction.h"
 #include <memory>
 
+namespace Ambit
+{
 /** Integrator provides an interface for integrating radial functions and spinor functions.
     A default implementation for spinor integration routines is provided, that defers the
     actual integration to the abstract function Integrate().
@@ -90,4 +92,5 @@ protected:
     }
 };
 
+}
 #endif

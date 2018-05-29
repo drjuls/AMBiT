@@ -5,6 +5,8 @@
 #include <boost/math/special_functions/bessel.hpp>
 #include <boost/math/special_functions/factorials.hpp>
 
+namespace Ambit
+{
 SpinorFunction EJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b, bool conjugate) const
 {
     SpinorFunction ret(kappa_b);
@@ -234,12 +236,12 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     // elements or the transition line strengths
     if(user_input.search("--reduced-elements"))
     {
-        *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
+        *outstream << "  " << Ambit::Name(left) << " -> " << Ambit::Name(right)
                    << " = " << std::setprecision(6) << value/scale << std::endl;
     }
     else
     {
-        *outstream << "  " << ::Name(left) << " -> " << ::Name(right)
+        *outstream << "  " << Ambit::Name(left) << " -> " << Ambit::Name(right)
                    << " = " << std::setprecision(6) << gsl_pow_2(value/scale) << std::endl;
     }
 
@@ -261,5 +263,6 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
 
 std::string EMCalculator::Name() const
 {
-    return ::Name(type) + itoa(J);
+    return Ambit::Name(type) + itoa(J);
+}
 }

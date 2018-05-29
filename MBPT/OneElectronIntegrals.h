@@ -6,6 +6,8 @@
 #include "Configuration/ElectronInfo.h"
 #include "Universal/SpinorFunction.h"
 
+namespace Ambit
+{
 /** OneElectronIntegrals takes a SpinorMatrixElement and maps it to an electron operator for
     ManyBodyOperator, i.e. it implements GetMatrixElement(const ElectronInfo& e1, const ElectronInfo& e2),
     adding the angular dependence on m1 and m2.
@@ -280,12 +282,12 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     unsigned int old_key;
     double value;
 
-    fread(&num_integrals, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
-        fread(&old_key, sizeof(unsigned int), 1, fp);
-        fread(&value, sizeof(double), 1, fp);
+        file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&value, sizeof(double), 1, fp);
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
@@ -317,12 +319,12 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     unsigned int old_key;
     double value;
 
-    fread(&num_integrals, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
-        fread(&old_key, sizeof(unsigned int), 1, fp);
-        fread(&value, sizeof(double), 1, fp);
+        file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
+        file_err_handler->fread(&value, sizeof(double), 1, fp);
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
@@ -370,4 +372,5 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Write(const std::string& fil
     }
 }
 
+}
 #endif

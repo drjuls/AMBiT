@@ -60,6 +60,8 @@
     #define _FUS 1
 #endif
 
+namespace Ambit
+{
 /** I/O streams */
 extern std::ostream* outstream;
 extern std::ostream* logstream;
@@ -78,4 +80,5 @@ extern std::string itoa(int value, unsigned int base = 10);
 //#define fread fread_other_endian
 extern size_t fread_other_endian(void* ptr, size_t size, size_t count, FILE * fp);
 
+}
 #endif

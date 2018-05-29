@@ -4,6 +4,8 @@
 #include "HartreeFock/LocalPotentialDecorator.h"
 #include "Transitions.h"
 
+namespace Ambit
+{
 /** Yukawa decorator adds the potential
         V(r) = alpha.exp(-mr)/r
     where alpha and m are constants.
@@ -34,4 +36,5 @@ protected:
     double mass;
 };
 
+}
 #endif

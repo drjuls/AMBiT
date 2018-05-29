@@ -46,6 +46,8 @@ void pdsyev_(const char* JOBZ, const char* UPLO, const int* N, double* A, const 
              double* WORK, const int* LWORK, int* INFO);
 }
 
+namespace Ambit
+{
 ScalapackMatrix::ScalapackMatrix(unsigned int size):
     Matrix()
 {
@@ -230,7 +232,7 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
 
     // Check size of stored matrix matches
     unsigned int size;
-    fread(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&size, sizeof(unsigned int), 1, fp);
 
     if(size != N)
     {   *errstream << "ScalapackMatrix::ReadTriangle: Matrix size mismatch: " << filename
@@ -249,7 +251,7 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
     i = 0; M_i = 0; M_j = 0;
     while((i < N) && (M_i < M_rows) && (M_j < M_cols))
     {
-        fread(buffer+i, sizeof(double), N-i, fp);
+        file_err_handler->fread(buffer+i, sizeof(double), N-i, fp);
 
         // Copy row
         if(M_row_numbers[M_i] == i)
@@ -314,7 +316,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
 
     // Check size of stored matrix matches
     unsigned int size;
-    fread(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&size, sizeof(unsigned int), 1, fp);
 
     if(size != N)
     {   *errstream << "ScalapackMatrix::ReadLowerTriangle: Matrix size mismatch: " << filename
@@ -331,7 +333,7 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
     i = 0; M_i = 0; M_j = 0;
     while((i < N) && (M_j < M_cols))
     {
-        fread(buffer, sizeof(double), i+1, fp);
+        file_err_handler->fread(buffer, sizeof(double), i+1, fp);
 
         if(M_i < M_rows && M_row_numbers[M_i] == i)
             M_i++;
@@ -712,6 +714,7 @@ void ScalapackMatrix::TestEigenvalues(const double* eigenvalues, const double* V
     delete[] buffer;
     delete[] column;
     delete[] MtimesV;
+}
 }
 
 #endif

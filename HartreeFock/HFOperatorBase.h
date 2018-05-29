@@ -7,6 +7,8 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/FornbergDifferentiator.h"
 
+namespace Ambit
+{
 /** Base for the relativistic Hartree-Fock (Dirac-Fock) operator and its decorators. */
 class HFOperatorBase : public SpinorOperator, public SpinorODE
 {
@@ -328,4 +330,5 @@ inline void HFOperatorBase::EstimateOrbitalNearInfinity(unsigned int numpoints, 
     }
 }
 
+}
 #endif

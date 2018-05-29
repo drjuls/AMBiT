@@ -3,6 +3,8 @@
 
 #include "Matrix.h"
 
+namespace Ambit
+{
 class Eigensolver
 {
 public:
@@ -59,4 +61,5 @@ public:
     bool SolveMatrixEquation(double* A_matrix, double* B_matrix, double* eigenvalues, unsigned int N);
 };
 
+}
 #endif

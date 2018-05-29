@@ -11,6 +11,8 @@
 #include <mpi.h>
 #endif
 
+namespace Ambit
+{
 class ZeroOperator
 {
 public:
@@ -779,4 +781,5 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
 #endif
 }
 
+}
 #endif

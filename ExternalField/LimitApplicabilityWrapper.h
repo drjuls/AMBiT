@@ -3,6 +3,8 @@
 
 #include "HartreeFock/HFOperator.h"
 
+namespace Ambit
+{
 /** The idea of this class is to wrap any HFOperatorDecorator such that its applicability can be limited.
     The limitation of a method comes via the ChangeThisSpinorFunction():
         if(ChangeThisSpinorFunction(s) == true)
@@ -92,4 +94,5 @@ protected:
     }
 };
 
+}
 #endif

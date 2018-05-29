@@ -3,6 +3,8 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include <numeric>
 
+namespace Ambit
+{
 ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput):
     orbitals(orbitals), user_input(userInput)
 {
@@ -557,4 +559,5 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, const S
         else
             it = rlist->erase(it);
     }
+}
 }

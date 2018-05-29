@@ -4,6 +4,8 @@
 #include "Universal/MathConstant.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+namespace Ambit
+{
 NonRelConfiguration::NonRelConfiguration(const std::string& name)
 {
     *this = NonRelConfiguration(ConfigurationParser::ParseConfiguration<NonRelInfo, int>(name));
@@ -53,7 +55,7 @@ void NonRelConfiguration::Read(FILE* fp)
     clear();
 
     unsigned int config_size;
-    fread(&config_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&config_size, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < config_size; i++)
     {
@@ -62,9 +64,9 @@ void NonRelConfiguration::Read(FILE* fp)
         int occupancy;
 
         // Read PQN, Kappa, occupancy
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&kappa, sizeof(int), 1, fp);
-        fread(&occupancy, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&occupancy, sizeof(int), 1, fp);
 
         insert(std::make_pair(NonRelInfo(pqn, kappa), occupancy));
     }
@@ -215,4 +217,5 @@ void SortAndUnique(pConfigList& config_list)
     std::sort(itsmall, config_list->first.end());
     last = std::unique(itsmall, config_list->first.end());
     config_list->first.resize(last-config_list->first.begin());
+}
 }

@@ -1,5 +1,7 @@
 #include "YukawaPotential.h"
 
+namespace Ambit
+{
 YukawaDecorator::YukawaDecorator(pHFOperator wrapped_hf, double mass, double scale, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), mass(mass)
 {
@@ -60,4 +62,5 @@ void YukawaCalculator::PrintTransition(const LevelID& left, const LevelID& right
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(12) << value << std::endl;
+}
 }

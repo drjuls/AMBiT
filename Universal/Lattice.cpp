@@ -2,6 +2,8 @@
 #include "Lattice.h"
 #include <fstream>
 
+namespace Ambit
+{
 Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
     beta(4.0), num_points(numpoints), original_size(numpoints), rmin(r_min)
 {
@@ -18,16 +20,16 @@ Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
 
 Lattice::Lattice(FILE* binary_infile)
 {
-    fread(&beta, sizeof(double), 1, binary_infile);
-    fread(&h, sizeof(double), 1, binary_infile);
-    fread(&rmin, sizeof(double), 1, binary_infile);
-    fread(&num_points, sizeof(unsigned int), 1, binary_infile);
+    file_err_handler->fread(&beta, sizeof(double), 1, binary_infile);
+    file_err_handler->fread(&h, sizeof(double), 1, binary_infile);
+    file_err_handler->fread(&rmin, sizeof(double), 1, binary_infile);
+    file_err_handler->fread(&num_points, sizeof(unsigned int), 1, binary_infile);
 
     r.resize(num_points);
     dr.resize(num_points);
 
-    fread(r.data(), sizeof(double), num_points, binary_infile);
-    fread(dr.data(), sizeof(double), num_points, binary_infile);
+    file_err_handler->fread(r.data(), sizeof(double), num_points, binary_infile);
+    file_err_handler->fread(dr.data(), sizeof(double), num_points, binary_infile);
 
     original_size = num_points;
 }
@@ -170,4 +172,5 @@ void Lattice::Write(FILE* binary_outfile) const
 
     file_err_handler->fwrite(r.data(), sizeof(double), num_points, binary_outfile);
     file_err_handler->fwrite(dr.data(), sizeof(double), num_points, binary_outfile);
+}
 }

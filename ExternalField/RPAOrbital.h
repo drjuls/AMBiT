@@ -3,6 +3,8 @@
 
 #include "HartreeFock/Orbital.h"
 
+namespace Ambit
+{
 class RPAOrbital;
 
 /** DeltaOrbital is a perturbation to an existing orbital (which is an RPAOrbital).
@@ -96,4 +98,5 @@ public:
 typedef std::shared_ptr<RPAOrbital> pRPAOrbital;
 typedef std::shared_ptr<const RPAOrbital> pRPAOrbitalConst;
 
+}
 #endif

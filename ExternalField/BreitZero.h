@@ -3,6 +3,8 @@
 
 #include "HartreeFock/HartreeY.h"
 
+namespace Ambit
+{
 /** Two-body operator for frequency-independent Breit interaction, following Johnson book p. 203.
     Note that here the reduced spherical tensor matrix elements (prefactors in Johnson's book) are
     removed: we are calculating the equivalent of HartreeY operators.
@@ -66,4 +68,5 @@ protected:
     RadialFunction pot_Q_back;
 };
 
+}
 #endif

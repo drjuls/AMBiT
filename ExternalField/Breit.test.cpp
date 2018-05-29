@@ -9,6 +9,8 @@
 #include "MBPT/SlaterIntegrals.h"
 #include "HartreeFock/HartreeFocker.h"
 
+using namespace Ambit;
+
 TEST(BreitTester, LiLikeNe)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 20.));

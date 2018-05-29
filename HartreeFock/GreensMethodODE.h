@@ -4,6 +4,8 @@
 #include "SpinorODE.h"
 #include "ODESolver.h"
 
+namespace Ambit
+{
 /** Operator for solving equations of the form
         L psi = source(r)
     where L is a first order differential operator.
@@ -65,4 +67,5 @@ protected:
     std::vector<double> wronskian;
 };
 
+}
 #endif

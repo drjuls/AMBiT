@@ -4,6 +4,8 @@
 #include "Orbital.h"
 #include <string>
 
+namespace Ambit
+{
 class OrbitalInfo
 {
     /** Single particle state information.
@@ -109,4 +111,5 @@ inline Parity OrbitalInfo::GetParity() const
         return Parity::odd;
 }
 
+}
 #endif

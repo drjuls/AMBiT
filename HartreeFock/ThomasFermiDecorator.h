@@ -3,6 +3,8 @@
 
 #include "HFOperator.h"
 
+namespace Ambit
+{
 /** Replace part of Hartree-Fock potential with simple Thomas-Fermi type potential,
     where direct part \f$ V = Z_{eff}/r \f$ and exchange is always zero
     (it may be approximated by wrapping LocalExchangeApproximation).
@@ -36,4 +38,5 @@ protected:
 typedef std::shared_ptr<ThomasFermiDecorator> pThomasFermiDecorator;
 typedef std::shared_ptr<const ThomasFermiDecorator> pThomasFermiDecoratorConst;
 
+}
 #endif

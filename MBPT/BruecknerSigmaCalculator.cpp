@@ -4,6 +4,8 @@
 #include <mpi.h>
 #endif
 
+namespace Ambit
+{
 BruecknerSigmaCalculator::BruecknerSigmaCalculator(pOrbitalManagerConst orbitals, pSpinorOperatorConst one_body, pHartreeY two_body, const std::string& fermi_orbitals):
     MBPTCalculator(orbitals, fermi_orbitals, two_body->OffParityExists()), hf(one_body), hartreeY(two_body), core(orbitals->core), excited(orbitals->excited)
 {}
@@ -470,4 +472,5 @@ void BruecknerSigmaCalculator::CalculateCorrelation4(int kappa, SigmaPotential& 
         sigma.gg += reduced;
     }
 #endif
+}
 }

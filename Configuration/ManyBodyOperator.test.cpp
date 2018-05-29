@@ -2,6 +2,8 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 
+using namespace Ambit;
+
 TEST(ManyBodyOperatorTester, ProjectionDifferencesElectrons)
 {
     // Make Projections and check projection differences

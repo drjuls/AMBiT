@@ -5,6 +5,8 @@
 #include "HartreeFock/Integrator.h"
 #include "Basis/OrbitalManager.h"
 
+namespace Ambit
+{
 /** Sz operator is a one body electron operator that calculates
         < a | Sz | b >
     It stores overlap integrals < a | b > where a.L() == b.L() and
@@ -120,4 +122,5 @@ protected:
     ManyBodyOperator<SzOperator> Sz;
 };
 
+}
 #endif

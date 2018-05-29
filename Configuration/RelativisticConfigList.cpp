@@ -1,5 +1,7 @@
 #include "RelativisticConfigList.h"
 
+namespace Ambit
+{
 unsigned int RelativisticConfigList::NumCSFs() const
 {
     unsigned int total = 0;
@@ -97,8 +99,8 @@ void RelativisticConfigList::Read(FILE* fp)
 {
     m_list.clear();
     unsigned int num_configs;
-    fread(&num_configs, sizeof(unsigned int), 1, fp);
-    fread(&Nsmall, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_configs, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&Nsmall, sizeof(unsigned int), 1, fp);
     m_list.reserve(num_configs);
 
     for(unsigned int i = 0; i < num_configs; i++)
@@ -119,4 +121,5 @@ void RelativisticConfigList::Write(FILE* fp) const
     {
         relconfig.Write(fp);
     }
+}
 }

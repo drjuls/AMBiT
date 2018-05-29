@@ -1,6 +1,8 @@
 #include "Include.h"
 #include "ExpLattice.h"
 
+namespace Ambit
+{
 ExpLattice::ExpLattice(const ExpLattice& other):
     Lattice(other)
 {}
@@ -49,4 +51,5 @@ unsigned int ExpLattice::real_to_lattice(double r_point) const
 double ExpLattice::calculate_dr(double r_point) const
 {
     return r_point*h;
+}
 }

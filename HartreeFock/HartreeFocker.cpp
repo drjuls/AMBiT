@@ -10,6 +10,8 @@
 
 #define PRINT_HF_LOOP_ORBITALS false
 
+namespace Ambit
+{
 void HartreeFocker::StartCore(pCore core, pHFOperator hf)
 {
     // Sanity check
@@ -843,4 +845,5 @@ unsigned int HartreeFocker::IntegrateContinuum(pContinuumWave s, pHFOperator hf,
     }
     
     return start_sine;
+}
 }

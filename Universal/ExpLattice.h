@@ -3,6 +3,8 @@
 
 #include "Lattice.h"
 
+namespace Ambit
+{
 class ExpLattice : public Lattice
 {
     /** Simple exponential conversion between a lattice with even spacing (x),
@@ -30,4 +32,5 @@ public:
     virtual double calculate_dr(double r_point) const override;
 };
 
+}
 #endif

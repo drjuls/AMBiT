@@ -3,6 +3,8 @@
 
 #include <boost/iterator_adaptors.hpp>
 
+namespace Ambit
+{
 /** An iterator class for when one needs an iterator over values or other objects and the position of those values in the sequence.
     This is typical for example when constructing a Hamiltonian matrix or when the position must be correlated on another array.
     The iterator is initialised with a starting index, is incremented or decremented with the iterator, and is accessible via the
@@ -49,4 +51,5 @@ private:
     }
 };
 
+}
 #endif

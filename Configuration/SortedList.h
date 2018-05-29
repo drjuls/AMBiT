@@ -3,6 +3,8 @@
 
 #include <list>
 
+namespace Ambit
+{
 template <class Value>
 class DefaultComparator
 {
@@ -66,4 +68,5 @@ protected:
 };
 
 
+}
 #endif

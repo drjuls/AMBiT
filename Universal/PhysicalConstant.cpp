@@ -4,6 +4,8 @@
 #define ALPHA_0        0.007297352932703
 #define NUCLEON_MASS_0 1822.888
 
+namespace Ambit
+{
 PhysicalConstant::PhysicalConstant()
 {
     NucleonElectronMassRatio = NUCLEON_MASS_0;
@@ -43,4 +45,5 @@ void PhysicalConstant::SetAlphaToEarthValue()
 void PhysicalConstant::SetAlpha(double alpha)
 {
     AlphaSquared = alpha * alpha;
+}
 }

@@ -4,6 +4,8 @@
 #include "HartreeFock/LocalPotentialDecorator.h"
 #include "Transitions.h"
 
+namespace Ambit
+{
 class FieldShiftDecorator: public HFOperatorDecorator<LocalPotentialDecorator, FieldShiftDecorator>
 {
 public:
@@ -28,4 +30,5 @@ protected:
     double MHzOverRsq;
 };
 
+}
 #endif

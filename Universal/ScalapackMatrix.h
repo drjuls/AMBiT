@@ -3,6 +3,8 @@
 
 #include "Matrix.h"
 
+namespace Ambit
+{
 /** Storage container for a matrix decomposed as per ScaLAPACK requirements.
     The entire matrix is stored in memory.
     The local array is stored in column-first (fortran style) format.
@@ -79,4 +81,5 @@ protected:
     int proc_row, proc_col;             // Processor row and column of this node
 };
 
+}
 #endif

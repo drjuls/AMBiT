@@ -4,6 +4,8 @@
 #include "OrbitalInfo.h"
 #include <math.h>
 
+namespace Ambit
+{
 OrbitalBase::OrbitalBase(const OrbitalInfo& info):
     SpinorFunction(info.Kappa()), pqn(info.PQN()), energy(0.0)
 {}
@@ -74,8 +76,8 @@ void OrbitalBase::Write(FILE* fp) const
 
 void OrbitalBase::Read(FILE* fp)
 {
-    fread(&pqn, sizeof(int), 1, fp);
-    fread(&energy, sizeof(double), 1, fp);
+    file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+    file_err_handler->fread(&energy, sizeof(double), 1, fp);
     
     SpinorFunction::Read(fp);
 }
@@ -261,4 +263,5 @@ unsigned int OrbitalBase::NumNodes() const
         i++;
     }
     return zeros;
+}
 }

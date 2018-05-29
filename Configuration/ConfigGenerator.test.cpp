@@ -5,6 +5,8 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
 
+using namespace Ambit;
+
 TEST(ConfigGeneratorTester, CountConfigurations)
 {
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));

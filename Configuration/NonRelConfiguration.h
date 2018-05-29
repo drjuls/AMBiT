@@ -11,6 +11,8 @@
 #include "SortedList.h"
 #include <set>
 
+namespace Ambit
+{
 /** Non-relativistic configuration does not know whether an orbital is above or below
     the Fermi surface (hole or particle state) so the only requirement is that
     abs(occupation) doesn't exceed allowed occupation 2.abs(kappa).
@@ -72,4 +74,5 @@ typedef std::shared_ptr<const ConfigList> pConfigListConst;
  */
 void SortAndUnique(pConfigList& config_list);
 
+}
 #endif

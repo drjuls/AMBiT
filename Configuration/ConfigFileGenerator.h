@@ -3,6 +3,8 @@
 
 #include "ConfigGenerator.h"
 
+namespace Ambit
+{
 //typedef std::map<Configuration, double> ConfigPercentage;
 
 class ConfigFileGenerator : public ConfigGenerator
@@ -54,4 +56,5 @@ protected:
     std::map<Configuration, double> Contributions;
 };
 
+}
 #endif

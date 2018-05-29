@@ -1,6 +1,8 @@
 #include "NucleusDecorator.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 NucleusDecorator::NucleusDecorator(pHFOperator wrapped_hf, pCoulombOperator coulomb, pIntegrator integration_strategy):
     BaseDecorator(wrapped_hf, integration_strategy), nuclear_radius(0.0), nuclear_thickness(0.0), coulombSolver(coulomb)
 {}
@@ -110,4 +112,5 @@ RadialFunction NucleusDecorator::CalculateNuclearDensity(double radius, double t
     double r2rho = integrator->Integrate(density);
 
     return density * (Z/r2rho);
+}
 }

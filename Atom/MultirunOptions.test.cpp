@@ -3,6 +3,8 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 
+using namespace Ambit;
+
 TEST(MultirunOptionsTester, MultirunTest)
 {
     std::string inputFileName("template.input");

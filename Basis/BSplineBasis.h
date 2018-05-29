@@ -1,6 +1,8 @@
 #ifndef BSPLINE_BASIS_H
 #define BSPLINE_BASIS_H
 
+namespace Ambit
+{
 enum class SplineType {NotreDame, Reno, Vanderbilt};
 
 typedef Orbital BSpline;
@@ -45,4 +47,5 @@ protected:
 
 typedef std::shared_ptr<BSplineBasis> pBSplineBasis;
 
+}
 #endif

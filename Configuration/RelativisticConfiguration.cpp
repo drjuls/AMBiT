@@ -4,6 +4,8 @@
 #include "Universal/Eigensolver.h"
 #include "HartreeFock/ConfigurationParser.h"
 
+namespace Ambit
+{
 RelativisticConfiguration::RelativisticConfiguration(const std::string& name)
 {
     *this = RelativisticConfiguration(ConfigurationParser::ParseConfiguration<OrbitalInfo, int>(name));
@@ -61,7 +63,7 @@ int RelativisticConfiguration::GetNumberOfLevels() const
 
 double RelativisticConfiguration::CalculateConfigurationAverageEnergy(pOrbitalMapConst orbitals, pHFIntegrals one_body, pSlaterIntegrals two_body) const
 {
-    return ::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
+    return Ambit::CalculateConfigurationAverageEnergy(*this, orbitals, one_body, two_body);
 }
 
 void RelativisticConfiguration::Write(FILE* fp) const
@@ -89,7 +91,7 @@ void RelativisticConfiguration::Read(FILE* fp)
     clear();
 
     unsigned int config_size;
-    fread(&config_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&config_size, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < config_size; i++)
     {
@@ -98,9 +100,9 @@ void RelativisticConfiguration::Read(FILE* fp)
         int occupancy;
 
         // Read PQN, Kappa, occupancy
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&kappa, sizeof(int), 1, fp);
-        fread(&occupancy, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&occupancy, sizeof(int), 1, fp);
 
         insert(std::make_pair(OrbitalInfo(pqn, kappa), occupancy));
     }
@@ -133,4 +135,5 @@ void RelativisticConfiguration::Print(bool include_CSFs) const
             *outstream << std::endl;
         }
     }
+}
 }

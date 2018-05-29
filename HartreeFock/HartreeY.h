@@ -4,6 +4,8 @@
 #include "SpinorOperator.h"
 #include "CoulombOperator.h"
 
+namespace Ambit
+{
 /** HartreeY is a radial one-body operator defined by
     \f[
         Y^k_{cd}(r) = \int \frac{r_<^k}{r_>^{k+1}} \psi_c^\dag (r') \psi_d (r') dr'
@@ -425,4 +427,5 @@ protected:
     typedef HartreeYDecorator<Base, Derived> BaseDecorator;
 };
 
+}
 #endif

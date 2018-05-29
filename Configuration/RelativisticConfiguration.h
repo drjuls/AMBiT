@@ -13,6 +13,8 @@
 #include "IndexedIterator.h"
 #include <string>
 
+namespace Ambit
+{
 class RelativisticConfigList;
 
 /** RelativisticConfiguration extends configuration by adding a set of projections
@@ -207,4 +209,5 @@ double CalculateConfigurationAverageEnergy(const Configuration<OrbitalInfo, Occu
     return energy;
 }
 
+}
 #endif

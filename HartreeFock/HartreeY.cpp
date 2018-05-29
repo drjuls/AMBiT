@@ -1,5 +1,7 @@
 #include "HartreeY.h"
 
+namespace Ambit
+{
 HartreeY::HartreeY(pIntegrator integration_strategy, pCoulombOperator coulomb):
     HartreeYBase(integration_strategy), LatticeObserver(integration_strategy->GetLattice()), coulomb(coulomb)
 {
@@ -136,4 +138,5 @@ SpinorFunction HartreeY::ApplyTo(const SpinorFunction& a, int kappa_b, bool reve
     }
 
     return ret;
+}
 }

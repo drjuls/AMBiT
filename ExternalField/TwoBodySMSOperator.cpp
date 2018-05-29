@@ -1,6 +1,8 @@
 #include "TwoBodySMSOperator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 bool TwoBodySMSOperator::SetLocalParameters(int new_K, pSpinorFunctionConst new_c, pSpinorFunctionConst new_d)
 {
     K = new_K;
@@ -169,4 +171,5 @@ SpinorFunction TwoBodySMSOperator::ApplyOperator(const SpinorFunction& a, int ka
     }
     
     return p;
+}
 }

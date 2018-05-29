@@ -3,6 +3,8 @@
 #include "Universal/MathConstant.h"
 #include "NonRelConfiguration.h"
 
+namespace Ambit
+{
 HamiltonianID::HamiltonianID(const std::string& name):
     sym(-1)
 {
@@ -49,8 +51,8 @@ void HamiltonianID::Read(FILE* fp)
 {
     int two_j;
     Parity P;
-    fread(&two_j, sizeof(int), 1, fp);
-    fread(&P, sizeof(Parity), 1, fp);
+    file_err_handler->fread(&two_j, sizeof(int), 1, fp);
+    file_err_handler->fread(&P, sizeof(Parity), 1, fp);
     sym = Symmetry(two_j, P);
 }
 
@@ -59,4 +61,5 @@ Level::Level(const double& energy, const double* csf_eigenvector, pHamiltonianID
 {
     memcpy(eigenvector.data(), csf_eigenvector, numCSFs * sizeof(double));
     gFactor = std::numeric_limits<double>::quiet_NaN();
+}
 }

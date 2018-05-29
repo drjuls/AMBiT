@@ -1,6 +1,8 @@
 #include "FornbergDifferentiator.h"
 #include "Include.h"
 
+namespace Ambit
+{
 void FornbergDifferentiator::GetDerivative(const std::vector<double>& f, std::vector<double>& dfdr) const
 {
     int size = mmin(f.size(), first_derivative.rows());
@@ -123,4 +125,5 @@ void FornbergDifferentiator::GetWeights(int k, double xvalue, const double* x, E
 
         c1 = c2;
     }
+}
 }

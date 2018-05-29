@@ -2,6 +2,8 @@
 #include "Include.h"
 #include "Universal/MathConstant.h"
 
+namespace Ambit
+{
 HyperfineDipoleOperator::HyperfineDipoleOperator(pIntegrator integration_strategy, double nuclear_magnetic_radius_fm):
     SpinorOperator(1, Parity::even, integration_strategy), lattice(integration_strategy->GetLattice())
 {
@@ -154,4 +156,5 @@ void HyperfineQuadrupoleCalculator::PrintTransition(const LevelID& left, const L
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(6) << value << std::endl;
+}
 }

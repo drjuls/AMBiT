@@ -3,6 +3,8 @@
 #include <mpi.h>
 #endif
 
+namespace Ambit
+{
 OneElectronMBPT::OneElectronMBPT(pOrbitalManagerConst orbitals, pHFIntegrals bare_one_body, pSlaterIntegrals bare_two_body, const std::string& write_file):
     OneElectronMBPT(orbitals, bare_one_body->GetOperator(),
                     std::make_shared<CoreMBPTCalculator>(orbitals, bare_one_body, bare_two_body),
@@ -213,4 +215,5 @@ void OneElectronMBPT::IncludeCore(bool include_mbpt, bool include_subtraction)
 void OneElectronMBPT::IncludeValence(bool include_subtraction)
 {
     include_valence_subtraction = include_subtraction && valence_PT;
+}
 }

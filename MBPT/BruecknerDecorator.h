@@ -5,6 +5,8 @@
 #include "SigmaPotential.h"
 #include "BruecknerSigmaCalculator.h"
 
+namespace Ambit
+{
 /** BruecknerDecorator adds one-body "sigma" operators to a HF potential.
     It stores a mapping from kappa to SigmaPotential, and can read and write sigmas to file.
     Creation is deferred to a CoreMBPTCalculator that must be supplied as necessary.
@@ -68,4 +70,5 @@ protected:
 typedef std::shared_ptr<BruecknerDecorator> pBruecknerDecorator;
 typedef std::shared_ptr<const BruecknerDecorator> pBruecknerDecoratorConst;
 
+}
 #endif

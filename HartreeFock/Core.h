@@ -5,6 +5,8 @@
 #include "Atom/Debug.h"
 #include "Configuration.h"
 
+namespace Ambit
+{
 typedef Configuration<OrbitalInfo, double> OccupationMap;
 
 /** Core is a OrbitalMap container class with orbital occupancies added. */
@@ -45,4 +47,5 @@ protected:
 typedef std::shared_ptr<Core> pCore;
 typedef std::shared_ptr<const Core> pCoreConst;
 
+}
 #endif

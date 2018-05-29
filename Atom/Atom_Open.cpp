@@ -19,6 +19,8 @@
 #include "HartreeFock/HartreeFocker.h"
 #include "HamiltonianTypes.h"
 
+namespace Ambit
+{
 void Atom::MakeMBPTIntegrals()
 {
     bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
@@ -799,4 +801,5 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     levels->Store(sym, levelvec);
 
     return levelvec;
+}
 }

@@ -1,6 +1,8 @@
 #include "OrbitalManager.h"
 #include "Include.h"
 
+namespace Ambit
+{
 OrbitalManager::OrbitalManager(pLattice lattice):
     lattice(lattice)
 {
@@ -159,12 +161,12 @@ void OrbitalManager::ReadInfo(FILE* fp, pOrbitalMap& orbitals)
 
     orbitals = pOrbitalMap(new OrbitalMap(lattice));
 
-    fread(&size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&size, sizeof(unsigned int), 1, fp);
 
     for(unsigned int i = 0; i < size; i++)
     {
-        fread(&pqn, sizeof(int), 1, fp);
-        fread(&kappa, sizeof(int), 1, fp);
+        file_err_handler->fread(&pqn, sizeof(int), 1, fp);
+        file_err_handler->fread(&kappa, sizeof(int), 1, fp);
 
         pOrbital orb = all->GetState(OrbitalInfo(pqn, kappa));
         orbitals->AddState(orb);
@@ -184,4 +186,5 @@ void OrbitalManager::WriteInfo(FILE* fp, const pOrbitalMap& orbitals) const
         file_err_handler->fwrite(&pqn, sizeof(int), 1, fp);
         file_err_handler->fwrite(&kappa, sizeof(int), 1, fp);
     }
+}
 }

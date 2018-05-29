@@ -1,6 +1,8 @@
 #include "GreensMethodODE.h"
 #include "Include.h"
 
+namespace Ambit
+{
 GreensMethodODE::GreensMethodODE(pLattice lattice): OneDimensionalODE(lattice), solutionRegularAtOrigin(true),
     s0(-1), sInf(-1), source(-1)
 {}
@@ -105,4 +107,5 @@ void GreensMethodODE::EstimateSolutionNearInfinity(unsigned int numpoints, Radia
         
         f.f[i] = f.f[i+1] - 0.5 * (f.dfdr[i+1] * dR[i+1] + f.dfdr[i] * dR[i]);
     }
+}
 }
