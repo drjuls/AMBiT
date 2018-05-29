@@ -174,7 +174,7 @@ void Atom::Autoionization(const LevelVector& target)
                     double coupling = math->Wigner3j(eps_twoJ, target_symmetry.GetTwoJ(), sym.GetTwoJ(), eps_twoM, target_twoM);
                     coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_symmetry.GetTwoJ() + eps_twoM + target_twoM)/2);
 
-                    partial += coupling * H.GetMatrixElement(levelvec_single, target_copy, &eps_info)[0];
+                    partial += coupling * H.GetMatrixElement(levelvec_single, target_copy, H.use_minimal_overlap, &eps_info)[0];
                     target_config_it++;
                 }
 
@@ -398,7 +398,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
                         coupling *= sqrt(double(sym.GetTwoJ() + 1)) * math->minus_one_to_the_power((eps_twoJ - target_symmetry.GetTwoJ() + eps_twoM + target_twoM)/2);
 
                         // Iterate over (generally larger) compound states first, for better multiprocessor load balance
-                        std::vector<double> partial_contribution = H.GetMatrixElement(level_subset, target_levelvector, &eps_info);
+                        std::vector<double> partial_contribution = H.GetMatrixElement(level_subset, target_levelvector, H.use_minimal_overlap, &eps_info);
                         for(solution = 0; solution < num_levels; solution++)
                             partial[solution] += coupling * partial_contribution[solution];
 

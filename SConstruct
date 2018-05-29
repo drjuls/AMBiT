@@ -385,6 +385,8 @@ elif 'test' in COMMAND_LINE_TARGETS:
 else:
     env.Append(CXXFLAGS = '-std=c++11 -O3')
 
+env.Append(CXXFLAGS = '-Wno-undefined-var-template')
+
 # Now open the ini files containing the user config options, and the AMBiT requirements
 conf = ConfigParser.SafeConfigParser(allow_no_value = True)
 conf.optionxform = str # Necessary to make keys case-sensitive

@@ -74,10 +74,22 @@ public:
      */
     inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon = nullptr) const;
 
-    /** Equivalent to calculating GetMatrixElement(level, level) for each level in vector.
+    /** Defines minimal requirements for rconfigs to overlap:
+            number of particle differences <= rank of operator
+     */
+    struct MinimalRelativisticConfigurationOverlap
+    {
+        bool operator()(const RelativisticConfiguration& rconfig1, const RelativisticConfiguration& rconfig2) const
+        {
+            return (rconfig1.GetConfigDifferencesCount(rconfig2) <= sizeof...(ElectronOperators));
+        }
+    } use_minimal_overlap;
+
+    /** Equivalent to calculating GetMatrixElement(level, level, rconfig_comp) for each level in vector.
         Return vector of matrix elements.
      */
-    inline std::vector<double> GetMatrixElement(const LevelVector& levels) const;
+    template<typename RelativisticConfigurationOverlap = MinimalRelativisticConfigurationOverlap>
+    inline std::vector<double> GetMatrixElement(const LevelVector& levels, RelativisticConfigurationOverlap rconfig_comp = MinimalRelativisticConfigurationOverlap()) const;
 
     /** Returns <left | O | right> for each pair of levels in their respective vectors.
         If eplsion != nullptr, we want
@@ -85,7 +97,9 @@ public:
         where <left| is one electron larger than |right>.
         Return array of matrix elements indexed by left_index * (num_right) + right_index.
      */
-    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon = nullptr) const;
+
+    template<typename RelativisticConfigurationOverlap = MinimalRelativisticConfigurationOverlap>
+    inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, RelativisticConfigurationOverlap rconfig_comp = MinimalRelativisticConfigurationOverlap(), const ElectronInfo* epsilon = nullptr) const;
 
 protected:
     std::tuple<ElectronOperators...> m_operators;
@@ -506,7 +520,6 @@ int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectPro
     }
 
     //Copy differences
-    indirects.diff1.insert(indirects.diff1.end(), indirects.sorted_p1.begin(), indirects.sorted_p1.end());
     indirects.diff2.insert(indirects.diff2.end(), indirects.sorted_p2.begin(), indirects.sorted_p2.end());
 
     indirects.left = indirects.diff1;
@@ -519,7 +532,8 @@ int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectPro
 }
 
 template<typename... ElectronOperators>
-std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& levelvec) const
+template<typename RelativisticConfigurationOverlap>
+std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& levelvec, RelativisticConfigurationOverlap rconfig_comp) const
 {
     std::vector<const double*> eigenvector;
 
@@ -546,7 +560,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
 
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(none) \
-                             shared(my_total, configs, eigenvector) \
+                             shared(my_total, configs, eigenvector, rconfig_comp) \
                              schedule(dynamic)
 #endif
     for(int ii = 0; ii < configs->size(); ii++)
@@ -561,7 +575,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
         auto config_jt = config_it;
         while(config_jt != configs->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(ElectronOperators))
+            if(rconfig_comp(*config_it, *config_jt))
             {
                 if(IsMyJob(config_index))
                 {
@@ -646,7 +660,8 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
 }
 
 template<typename... ElectronOperators>
-std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, const ElectronInfo* epsilon) const
+template<typename RelativisticConfigurationOverlap>
+std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, RelativisticConfigurationOverlap rconfig_comp, const ElectronInfo* epsilon) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
@@ -680,7 +695,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
 
     #pragma omp parallel for default(none) \
                              shared(my_total, configs_left, configs_right, left_eigenvector, \
-                                    right_eigenvector, epsilon, return_size)\
+                                    right_eigenvector, epsilon, return_size, rconfig_comp)\
                              schedule(dynamic)
 #endif
     for(int ii = 0; ii < configs_left->size(); ii++)
@@ -696,7 +711,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
         auto config_jt = configs_right->begin();
         while(config_jt != configs_right->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(ElectronOperators))
+            if(rconfig_comp(*config_it, *config_jt))
             {
                 if(IsMyJob(config_index))
                 {

@@ -142,10 +142,22 @@ public:
 
     friend std::ostream& operator<<(std::ostream& stream, const BaseConfiguration& config) { return stream << config.Name(); }
 
-    /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes. */
+    /** GetConfigDifferencesCount() is only defined for integral OccupancyTypes.
+        This function counts differences between two configurations.
+     */
     template<typename U = OccupancyType>
     typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
         GetConfigDifferencesCount(const BaseConfiguration& other) const;
+
+    /** GetConfigDifferences() is only defined for integral OccupancyTypes.
+        This function returns the number of differences between configurations (up to max_diffs differences).
+        If there are more than max_diffs differences the function returns a number greater than max_diffs
+        (but not necessarily the correct count).
+        If there are up to max_diffs differences, then diffs[i] is the ith pair of differences (i <= num_diffs).
+     */
+    template<int max_diffs, typename U = OccupancyType>
+    typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
+        GetConfigDifferences(const BaseConfiguration& other, std::array<std::pair<OrbitalType, OrbitalType>, max_diffs>& diffs) const;
 
 protected:
     std::vector<PairType> m_config;
@@ -514,6 +526,123 @@ Configuration<OrbitalType, OccupancyType>::GetConfigDifferencesCount(const BaseC
 
     // Each promotion of electrons or holes makes two changes, so divide by two.
     return diff_count/2;
+}
+
+template<class OrbitalType, class OccupancyType>
+template<int max_diffs, typename U>
+typename boost::enable_if<boost::is_integral<U>, unsigned int>::type
+    Configuration<OrbitalType, OccupancyType>::GetConfigDifferences(const BaseConfiguration& other, std::array<std::pair<OrbitalType, OrbitalType>, max_diffs>& diffs) const
+{
+    int diff_count1 = 0, diff_count2 = 0;
+    int i1 = 0, i2 = 0;
+
+    auto pairless = [](const PairType& left, const PairType& right)
+    {
+        if(left.second * right.second < 0)
+            return (left.second < 0);
+        else
+            return (left.first < right.first);
+    };
+
+    // Note: assumes first and second are sorted
+    while(i1 < size() && i2 < other.size() && diff_count1 <= max_diffs && diff_count2 <= max_diffs)
+    {
+        auto p1 = m_config[i1];
+        auto p2 = other.m_config[i2];
+
+        if(pairless(p1, p2))
+        {
+            if(i1 < num_hole_configs)
+                for(int j = 0; j < abs(p1.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p1.first;
+                    diff_count2++;
+                }
+            else
+                for(int j = 0; j < abs(p1.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p1.first;
+                    diff_count1++;
+                }
+
+            i1++;
+        }
+        else if(pairless(p2, p1))
+        {
+            if(i2 < other.num_hole_configs)
+                for(int j = 0; j < abs(p2.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p2.first;
+                    diff_count1++;
+                }
+            else
+                for(int j = 0; j < abs(p2.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p2.first;
+                    diff_count2++;
+                }
+
+            i2++;
+        }
+        else
+        {   // p1 & p2 have same type and are both holes or both electrons
+            if((i1 < num_hole_configs && p1.second > p2.second) || // more p1 holes
+               (i1 >= num_hole_configs && p2.second > p1.second))  // more p2 electrons
+                for(int j = 0; j < abs(p1.second - p2.second); j++)
+                {   if(diff_count2 < max_diffs)
+                        diffs[diff_count2].second = p2.first;
+                    diff_count2++;
+                }
+            else
+                for(int j = 0; j < abs(p1.second - p2.second); j++)
+                {   if(diff_count1 < max_diffs)
+                        diffs[diff_count1].first = p1.first;
+                    diff_count1++;
+                }
+
+            i1++; i2++;
+        }
+    }
+
+    while(i1 < size() && diff_count1 <= max_diffs && diff_count2 <= max_diffs)
+    {
+        auto p1 = m_config[i1];
+        if(i1 < num_hole_configs)
+            for(int j = 0; j < abs(p1.second); j++)
+            {   if(diff_count2 < max_diffs)
+                    diffs[diff_count2].second = p1.first;
+                diff_count2++;
+            }
+        else
+            for(int j = 0; j < abs(p1.second); j++)
+            {   if(diff_count1 < max_diffs)
+                    diffs[diff_count1].first = p1.first;
+                diff_count1++;
+            }
+
+        i1++;
+    }
+
+    while(i2 < other.size() && diff_count1 <= max_diffs && diff_count2 <= max_diffs)
+    {
+        auto p2 = other.m_config[i2];
+        if(i2 < other.num_hole_configs)
+            for(int j = 0; j < abs(p2.second); j++)
+            {   if(diff_count1 < max_diffs)
+                    diffs[diff_count1].first = p2.first;
+                diff_count1++;
+            }
+        else
+            for(int j = 0; j < abs(p2.second); j++)
+            {   if(diff_count2 < max_diffs)
+                    diffs[diff_count2].second = p2.first;
+                diff_count2++;
+            }
+
+        i2++;
+    }
+
+    return std::max(diff_count1, diff_count2);
 }
 
 }
