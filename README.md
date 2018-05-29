@@ -1,7 +1,7 @@
 # AMBiT
 AMBiT is a high-precision atomic structure software package based on the Configuration Interaction + Many-Body Perturbation Theory (CI+MBPT) method and is developed and maintained by the Julian Berengut Group at the University of New South Wales in Sydney, Australia. While we are contactable by email, we would prefer for bug reports and feature requests to be made on this GitHub page.
 
-# Features
+### Features
 Briefly, AMBiT is:
 * Highly-accurate - AMBiT typically gives better than 1% accuracy for simple atoms and highly-charged ions, while more complicated open-shell systems (e.g. Lanthanides and Actinides) AMBiT agrees with experiment to approximately 10% (note that such systems would be either extremely difficult or outright impossible to simulate using other codes)
 * Flexible - The particle-hole extension to CI+MBPT allows us to treat a wide range of atoms with many valence electrons which would be otherwise intractable
@@ -10,7 +10,7 @@ Briefly, AMBiT is:
 * Modern - Written in C++11, AMBiT makes heavy use of modern computer science paradigms which allows for rapid development and integration of new functionality
 * User friendly - we consider usability to be a first-class constraint on our development. 
 
-# Installation and development
+### Installation
 AMBiT is currently in active development: the ''dev'' branch is regularly updated with new features and performance improvements, while the ''master'' branch is more stable and only updated once we are sure it is correct and bug-free. If you are installing AMBiT globally (i.e. not in your personal directory) on a cluster then we recommend you use the master branch - otherwise use either dev or master depending on your tolerance for software changes. 
 
 AMBiT uses the [SCons](http://scons.org/) build-system, which is based on Python 2.7.x, and requires the following external libraries:
@@ -20,4 +20,10 @@ AMBiT uses the [SCons](http://scons.org/) build-system, which is based on Python
 - [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines. Can be substituted for internal libraries in the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl).
 - [Google Sparsehash](https://github.com/sparsehash/sparsehash)
 
-See INSTALL or the AMBiT user guide for more detailed instructions.
+See [INSTALL.md](https://github.com/drjuls/AMBiT/blob/master/INSTALL.md) or the [AMBiT user guide](https://github.com/drjuls/AMBiT/blob/master/Documentation/user_guide.tex) for more detailed instructions.
+
+### Contributing
+We welcome contributions, bug reports and feature requests. See [CONTRIBUTING.md](https://github.com/drjuls/AMBiT/blob/master/CONTRIBUTING.md) for contribution and bug-report guidlines.
+
+### Licensing
+This project is licensed under the GNU GPL v3.0. See [LICENSE](https://github.com/drjuls/AMBiT/blob/master/LICENSE) for more details
