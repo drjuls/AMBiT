@@ -1,15 +1,6 @@
 #include "Include.h"
 #include "ElectronInfo.h"
 
-const ElectronInfo& ElectronInfo::operator=(const ElectronInfo& other)
-{
-    OrbitalInfo::operator=(other);
-    two_m = other.two_m;
-    is_hole = other.is_hole;
-
-    return *this;
-}
-
 bool ElectronInfo::operator<(const ElectronInfo& other) const
 {
     // Sort on hole first

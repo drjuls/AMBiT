@@ -51,7 +51,7 @@ TEST(ConfigurationParserTester, BasisSize)
     EXPECT_EQ(10, basis[2]);
     EXPECT_EQ(4, basis[3]);
 
-    input = {" 6s 10pd4f "};
+    input = " 6s 10pd4f ";
     basis = ConfigurationParser::ParseBasisSize(input);
 
     ASSERT_EQ(4, basis.size());
@@ -72,7 +72,7 @@ TEST(ConfigurationParserTester, Orbital)
     EXPECT_TRUE(OrbitalInfo(5, 2) == info);
     EXPECT_FALSE(OrbitalInfo(5, -3) == info);
 
-    input = {"16p+"};
+    input = "16p+";
 
     nrinfo = ConfigurationParser::ParseOrbital<NonRelInfo>(input);
     EXPECT_TRUE(NonRelInfo(16, 1) == nrinfo);

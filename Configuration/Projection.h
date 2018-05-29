@@ -43,25 +43,6 @@ public:
 
     std::string Name() const;
 
-    /** This function finds differences between p1 and p2 (up to two differences).
-        The absolute value of the return is the number of differences. The sign of the return
-            indicates whether getting the differences to align required an odd or even number
-            of swaps. If there are more than two differences the function returns 3.
-        diff[4] is an array which will store the positions of the differences,
-            diff[0] = projection p1, difference 1.
-            diff[1] = projection p2, difference 1.
-            diff[2] = projection p1, difference 2.
-            diff[3] = projection p2, difference 2.
-      */
-    static int GetProjectionDifferences(const Projection& p1, const Projection& p2, unsigned int* diff);
-
-    /** This function is the same as GetProjectionDifferences(), but returns up
-            to three differences.
-            If there are more than three differences the function returns 4.
-        diff[6] stores the positions of the three differences (see above).
-     */
-    static int GetProjectionDifferences3(const Projection& p1, const Projection& p2, unsigned int* diff);
-
 protected:
     std::vector<ElectronInfo> config;
 };
