@@ -1,0 +1,46 @@
+// Neutral magnesium - this system has two-electrons above closed-shells and works well with both CI and
+// MBPT. It is not an inherently "hole"-y system, but adding single-electron excitations from the
+// 2p-shell does slightly improve the accuracy.
+//
+// This calculation is small enough to run on most laptops or personal computers, but requires OpenMP to
+// complete in a reasonable length of time. Errors are ~5% but can be greatly improved with larger CI
+// and MBPT basis sizes (e.g. more partial waves, greater maximum pqn).
+ID = MgI
+
+Z = 12
+
+-s12
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.e-6
+EndPoint = 50.
+
+[HF]
+// We use the V^{N-1} potential here to give a better description of singly-excited states.
+N = 11
+Configuration = '1s2 2s2 2p6 : 3s1'
+
+[Basis]
+--bspline-basis
+ValenceBasis = 15spdf
+FrozenCore = '1s2 2s2'
+
+[CI]
+LeadingConfigurations = '3s2, 3s1 3p1, 3p2, 3s1 4s1, 3s1 4p1, 3p1 4p1, 3p1 3d1'
+ElectronExcitations = 2
+HoleExcitations = 1
+NumSolutions = 5
+EvenParityTwoJ = '0, 2'
+OddParityTwoJ = '0, 2, 4'
+
+[CI/SmallSide]
+// We include all single-excitations up to the valence basis, and all doubles which make a significant
+// contribution to the CI expansion. This makes for larger matrices, but improves accuracy.
+
+LeadingConfigurations = '3s2, 3s1 3p1, 3p2, 3s1 4s1, 3s1 4p1, 3p1 4p1, 3p1 3d1'
+ElectronExcitations = '1,15spdf, 2,6spdf'
+HoleExcitations = 0
+
+[MBPT]
+Basis=20spdf
