@@ -5,7 +5,7 @@ AMBiT is a high-precision atomic structure software package based on the Configu
 Briefly, AMBiT is:
 * Highly-accurate - AMBiT typically gives better than 1% accuracy for simple atoms and highly-charged ions, while more complicated open-shell systems (e.g. Lanthanides and Actinides) AMBiT agrees with experiment to approximately 10% (note that such systems would be either extremely difficult or outright impossible to simulate using other codes)
 * Flexible - The particle-hole extension to CI+MBPT allows us to treat a wide range of atoms with many valence electrons which would be otherwise intractable
-* Ab-initio - no fitting or sem-empirical fudge-factors are necessary to get good results
+* Ab-initio - no fitting or semi-empirical fudge-factors are necessary to get good results
 * Fast and scalable - AMBiT is highly parallelised and designed to take full advantage of modern high-performance computing architecture, while still being possible to run on a personal workstation (or even a notebook computer!)
 * Modern - Written in C++11, AMBiT makes heavy use of modern computer science paradigms which allows for rapid development and integration of new functionality
 * User friendly - we consider usability to be a first-class constraint on our development. 

@@ -47,7 +47,14 @@ pacakge manager (e.g. apt-get in Ubuntu, dnf in Fedora or Homebrew in
 macOS). Some package managers have separate "development" packages, which 
 you must also install to be able to compile AMBiT against them. These 
 development packages tend to have names ending with some variation on "dev",
-such as `libsparsehash-dev` on Ubuntu or `sparsehash-devel` on Fedora.
+such as `libsparsehash-dev` on Ubuntu or `sparsehash-devel` on Fedora. 
+
+It is important that Boost dependencies are built with the same compiler as
+the rest of AMBiT. Some package managers (such as Homebrew or the module 
+systems on HPC clusters) do not guarantee this, which can cause crashes and 
+unpredictable behaviour at run-time. Consult your system's documentation 
+for instructions on how to ensure AMBiT and Boost are built with compatible
+compilers.
 
 The AMBiT build process is based around a build tool called SCons, whose
 build-control scripts (similar to Makefiles) are full Python scripts. To
