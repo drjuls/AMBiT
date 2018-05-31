@@ -20,7 +20,7 @@ public:
     inline double GetMatrixElement(Args&... args) { return 0.; }
 };
 
-/** ManyBodyOperator is instantiated with a set of operators,
+/** ManyBodyOperator is instantiated with a set of pointers to operators,
     each of which must supply GetMatrixElement(const ElectronInfo& e1, ...).
     The number of operators supplied must be between one and three.
     Ordering of electrons in GetMatrixElement (la->ra, lb->rb, etc):
@@ -28,12 +28,12 @@ public:
         Two-body:   (la, lb, ra, rb)
         Three-body: (la, lb, lc, ra, rb, rc)
  */
-template <typename... ElectronOperators>
+template <typename... pElectronOperators>
 class ManyBodyOperator
 {
 public:
-    ManyBodyOperator(ElectronOperators... operators): m_operators(operators...)
-    {   static_assert(sizeof...(ElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
+    ManyBodyOperator(pElectronOperators... operators): pOperators(operators...)
+    {   static_assert(sizeof...(pElectronOperators) < 4, "ManyBodyOperator<> instantiated with too many operators (template arguments).");
 #ifdef AMBIT_USE_OPENMP
         indirects_list.resize(omp_get_max_threads());
 #else
@@ -88,7 +88,7 @@ public:
     inline std::vector<double> GetMatrixElement(const LevelVector& left_levels, const LevelVector& right_levels, const ElectronInfo* epsilon = nullptr) const;
 
 protected:
-    std::tuple<ElectronOperators...> m_operators;
+    std::tuple<pElectronOperators...> pOperators;
 
     // NB: Indirect projections are class members to prevent expensive memory (de)allocations
     mutable std::vector<IndirectProjectionStruct> indirects_list;
@@ -96,43 +96,43 @@ protected:
     // There is always a one-body operator
     inline double OneBodyMatrixElements(const ElectronInfo& la, const ElectronInfo& ra) const
     {
-        return std::get<0>(m_operators).GetMatrixElement(la, ra);
+        return std::get<0>(pOperators)->GetMatrixElement(la, ra);
     }
 
     // Sometimes there is no two-body operator, therefore need to protect std::get<1>().
-    // In this version, std::get<1>(m_operators) will always compile
-    template<int S = sizeof...(ElectronOperators)>
+    // In this version, std::get<1>(pOperators) will always compile
+    template<int S = sizeof...(pElectronOperators)>
     inline double TwoBodyMatrixElements(typename boost::enable_if_c< S >= 2, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& ra, const ElectronInfo& rb) const
     {
-        auto& p_operator = std::get<1>(m_operators);
-        return p_operator.GetMatrixElement(la, lb, ra, rb)
-                - p_operator.GetMatrixElement(la, lb, rb, ra);
+        auto& p_operator = std::get<1>(pOperators);
+        return p_operator->GetMatrixElement(la, lb, ra, rb)
+                - p_operator->GetMatrixElement(la, lb, rb, ra);
     }
 
     // This function is never actually called, but must be valid.
-    template<int S = sizeof...(ElectronOperators)>
+    template<int S = sizeof...(pElectronOperators)>
     inline double TwoBodyMatrixElements(typename boost::enable_if_c< S <= 1, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& ra, const ElectronInfo& rb) const
     {   return 0.;
     }
 
     // As with TwoBodyMatrixElements(), we need to protect std::get here.
-    template<int S = sizeof...(ElectronOperators)>
+    template<int S = sizeof...(pElectronOperators)>
     inline double ThreeBodyMatrixElements(typename boost::enable_if_c< S >= 3, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& lc, const ElectronInfo& ra, const ElectronInfo& rb, const ElectronInfo& rc) const
     {
-        auto& p_operator = std::get<2>(m_operators);
-        return p_operator.GetMatrixElement(la, lb, lc, ra, rb, rc)
-                + p_operator.GetMatrixElement(la, lb, lc, rb, rc, ra)
-                + p_operator.GetMatrixElement(la, lb, lc, rc, ra, rb)
-                - p_operator.GetMatrixElement(la, lb, lc, rc, rb, ra)
-                - p_operator.GetMatrixElement(la, lb, lc, rb, ra, rc)
-                - p_operator.GetMatrixElement(la, lb, lc, ra, rc, rb);
+        auto& p_operator = std::get<2>(pOperators);
+        return p_operator->GetMatrixElement(la, lb, lc, ra, rb, rc)
+                + p_operator->GetMatrixElement(la, lb, lc, rb, rc, ra)
+                + p_operator->GetMatrixElement(la, lb, lc, rc, ra, rb)
+                - p_operator->GetMatrixElement(la, lb, lc, rc, rb, ra)
+                - p_operator->GetMatrixElement(la, lb, lc, rb, ra, rc)
+                - p_operator->GetMatrixElement(la, lb, lc, ra, rc, rb);
     }
 
     // This function is never actually called, but must be valid.
-    template<int S = sizeof...(ElectronOperators)>
+    template<int S = sizeof...(pElectronOperators)>
     inline double ThreeBodyMatrixElements(typename boost::enable_if_c< S <= 2, const ElectronInfo>::type& la,
         const ElectronInfo& lb, const ElectronInfo& lc, const ElectronInfo& ra, const ElectronInfo& rb, const ElectronInfo& rc) const
     {   return 0.;
@@ -144,8 +144,8 @@ protected:
 };
 
 /** ManyBodyOperator: one body operator specialization. */
-template <typename... ElectronOperators>
-double ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon) const
+template <typename... pElectronOperators>
+double ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon) const
 {
     int num_diffs = 0;
 
@@ -161,12 +161,12 @@ double ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const Projection
     if(&proj_left != &proj_right)
     {
         make_indirect_projection(proj_right, my_projections.right);
-        num_diffs = GetProjectionDifferences<sizeof...(ElectronOperators)>(my_projections, epsilon);
+        num_diffs = GetProjectionDifferences<sizeof...(pElectronOperators)>(my_projections, epsilon);
     }
 
     double matrix_element = 0.0;
 
-    switch(sizeof...(ElectronOperators))
+    switch(sizeof...(pElectronOperators))
     {
         case 1:
             if(num_diffs == 0)
@@ -301,8 +301,8 @@ double ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const Projection
         return matrix_element;
 }
 
-template<typename... ElectronOperators>
-void ManyBodyOperator<ElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
+template<typename... pElectronOperators>
+void ManyBodyOperator<pElectronOperators...>::make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const
 {
     if(indirect_proj.size() != proj.size())
         indirect_proj.resize(proj.size());
@@ -312,9 +312,9 @@ void ManyBodyOperator<ElectronOperators...>::make_indirect_projection(const Proj
         *indirect_it++ = &e;
 }
 
-template<typename... ElectronOperators>
+template<typename... pElectronOperators>
 template<int max_diffs>
-int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron) const
+int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron) const
 {
     indirects.diff1.clear();
     indirects.diff2.clear();
@@ -518,8 +518,8 @@ int ManyBodyOperator<ElectronOperators...>::GetProjectionDifferences(IndirectPro
         return -num_diffs;
 }
 
-template<typename... ElectronOperators>
-std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& levelvec) const
+template<typename... pElectronOperators>
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levelvec) const
 {
     std::vector<const double*> eigenvector;
 
@@ -561,7 +561,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
         auto config_jt = config_it;
         while(config_jt != configs->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(ElectronOperators))
+            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
                 if(IsMyJob(config_index))
                 {
@@ -645,8 +645,8 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
 #endif
 }
 
-template<typename... ElectronOperators>
-std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, const ElectronInfo* epsilon) const
+template<typename... pElectronOperators>
+std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, const ElectronInfo* epsilon) const
 {
     std::vector<const double*> left_eigenvector;
     std::vector<const double*> right_eigenvector;
@@ -696,7 +696,7 @@ std::vector<double> ManyBodyOperator<ElectronOperators...>::GetMatrixElement(con
         auto config_jt = configs_right->begin();
         while(config_jt != configs_right->end())
         {
-            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(ElectronOperators))
+            if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
                 if(IsMyJob(config_index))
                 {

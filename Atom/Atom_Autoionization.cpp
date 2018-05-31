@@ -155,7 +155,7 @@ void Atom::Autoionization(const LevelVector& target)
 
                 // Create operator for autoionization
                 pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
-                ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator> H(*one_body_integrals, *two_body_operator);
+                ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
                 // Couple target and epsilon; start with maximum target M
                 auto target_config_it = target_configs.begin();
@@ -291,7 +291,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 
     // Create operator for autoionization
     pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
-    ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator> H(*one_body_integrals, *two_body_operator);
+    ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> H(one_body_integrals, two_body_operator);
 
     // Create copies of target_configs with different two_M
     std::vector<pRelativisticConfigList> target_configs;

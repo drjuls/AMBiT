@@ -94,9 +94,8 @@ class GFactorCalculator
 {
 public:
     GFactorCalculator(pIntegrator integrator, pOrbitalManagerConst orbitals):
-        m_SzOp(integrator, orbitals), Sz(m_SzOp)
-    {
-    }
+        Sz(pSzOperatorConst(new SzOperator(integrator, orbitals)))
+    {}
 
     inline void CalculateGFactors(LevelVector& levels) const
     {
@@ -118,8 +117,7 @@ public:
     }
 
 protected:
-    SzOperator m_SzOp;
-    ManyBodyOperator<SzOperator> Sz;
+    ManyBodyOperator<pSzOperatorConst> Sz;
 };
 
 }

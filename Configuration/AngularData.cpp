@@ -213,7 +213,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     auto i_it = real_Projection_list.begin();
     auto j_it = i_it;
 
-    ManyBodyOperator<const JSquaredOperator, const JSquaredOperator> J_squared(J_squared_operator, J_squared_operator);
+    ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
 
     i = 0;
     while(i_it != real_Projection_list.end())

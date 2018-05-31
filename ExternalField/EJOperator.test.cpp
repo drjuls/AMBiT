@@ -287,7 +287,8 @@ TEST(EJOperatorTester, HeTransitions)
     E1->SetFrequency(ground_state_energy - excited_state_energy);
     E1_matrix_elements->clear();
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-    ManyBodyOperator<TransitionIntegrals> E1_many_body(*E1_matrix_elements);
+    ManyBodyOperator<pTransitionIntegrals> E1_many_body(E1_matrix_elements);
+
     double matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[1];
     double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2 -> 1s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
@@ -382,7 +383,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         M1->SetFrequency(levels.levels[2]->GetEnergy() - levels.levels[1]->GetEnergy());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        ManyBodyOperator<TransitionIntegrals> M1_many_body(*M1_matrix_elements);
+        ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
         m1_electron = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 
@@ -447,7 +448,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         M1->SetFrequency(levels.levels[2]->GetEnergy() - levels.levels[1]->GetEnergy());
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        ManyBodyOperator<TransitionIntegrals> M1_many_body(*M1_matrix_elements);
+        ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
         m1_hole = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
 

@@ -15,10 +15,10 @@
 
 namespace Ambit
 {
-typedef ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
+typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator> TwoBodyHamiltonianOperator;
 typedef std::shared_ptr<TwoBodyHamiltonianOperator> pTwoBodyHamiltonianOperator;
 
-typedef ManyBodyOperator<HFIntegrals, TwoElectronCoulombOperator, Sigma3Calculator> ThreeBodyHamiltonianOperator;
+typedef ManyBodyOperator<pHFIntegrals, pTwoElectronCoulombOperator, pSigma3Calculator> ThreeBodyHamiltonianOperator;
 typedef std::shared_ptr<ThreeBodyHamiltonianOperator> pThreeBodyHamiltonianOperator;
 
 /** The dimensions of HamiltonianMatrix is set by the RelativisticConfigList.
