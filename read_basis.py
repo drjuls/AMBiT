@@ -204,7 +204,7 @@ class OrbitalMap:
 
       plot.plot(lattice, target.f, label='{}: f(r)'.format(label)) 
     
-    plot.xlabel('r (arb. units)')
+    plot.xlabel('r (atomic units)')
     plot.ylabel("Radial Wavefunction")
     plot.legend(loc="upper right")
     plot.show()
@@ -228,7 +228,7 @@ class OrbitalMap:
 
       plot.plot(lattice, target.get_density(), label='{}: P(r)'.format(label)) 
       
-    plot.xlabel('r (arb. units)')
+    plot.xlabel('r (atomic units)')
     plot.ylabel("Probability density")
     plot.legend(loc="upper right")
     plot.show()
