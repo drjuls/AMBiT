@@ -417,6 +417,7 @@ void AmbitInterface::TransitionCalculations()
     // Other operators
     RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
     RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
+    RUN_AND_STORE_TRANSITION(HFI, GeneralisedHyperfineCalculator);
     RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
     RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);

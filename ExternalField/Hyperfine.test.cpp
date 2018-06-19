@@ -40,11 +40,11 @@ TEST(HyperfineTester, Rb)
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    HyperfineDipoleOperator HFS(integrator);
+    HyperfineMJOperator HFS(1, integrator);
 
     MathConstant* math = MathConstant::Instance();
     const Orbital& s = *orbitals->valence->GetState(OrbitalInfo(5, -1));
-    double g_I = 0.54121;
+    double g_I = 0.54121 * math->NuclearMagneton();
     double MHz = math->AtomicFrequencyMHz();
 
     // Comparisons made with stretched states m = j
@@ -79,11 +79,11 @@ TEST(HyperfineTester, Na)
     pPhysicalConstant constants = basis_generator.GetPhysicalConstant();
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator, basis_generator.GetNuclearRMSRadius());
+    pSpinorOperator HFS = std::make_shared<HyperfineMJOperator>(1, integrator, basis_generator.GetNuclearRMSRadius());
 
     MathConstant* math = MathConstant::Instance();
     pOrbital s = orbitals->valence->GetState(OrbitalInfo(3, -1));
-    double g_I = 2.2176/1.5;
+    double g_I = 2.2176/1.5 * math->NuclearMagneton();
     double MHz = math->AtomicFrequencyMHz();
 
     EXPECT_NEAR(623.64, HFS->GetMatrixElement(*s, *s) * g_I/s->J() * MHz, 0.2);
@@ -176,10 +176,10 @@ TEST(HyperfineTester, CsRPA)
 
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
     double Rmag = 5.6748; // Nuclear magnetic radius (fm)
-    pSpinorOperator HFS = std::make_shared<HyperfineDipoleOperator>(integrator, Rmag);
+    pSpinorOperator HFS = std::make_shared<HyperfineMJOperator>(1, integrator, Rmag);
 
     MathConstant* math = MathConstant::Instance();
-    double g_I = 2.582768/3.5;
+    double g_I = 2.582768/3.5 * math->NuclearMagneton();
     double kCm = math->HartreeEnergyInInvCm() * 1000.;
 
     pOrbital s, d;
