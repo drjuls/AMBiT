@@ -82,7 +82,6 @@ public:
 
 protected:
     MultipolarityType EorM;
-    double units;
 };
 
 }

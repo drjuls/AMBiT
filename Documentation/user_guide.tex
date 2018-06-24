@@ -2413,7 +2413,7 @@ Frequency of the external field, in atomic units. This option is only used with 
 
 \texttt{{-}{-}reduced-elements} 
 \begin{adjustwidth}{1cm}{}
-Calculate the reduced matrix elements $T$ (default behaviour is to calculate the line strengths 
+Calculate the reduced matrix elements $T$ of EJ or MJ operators (default behaviour is to calculate the line strengths 
 $S = |T|^2$).
 \end{adjustwidth}
 
@@ -2508,12 +2508,11 @@ Minimum radius (in atomic units) of B-Spline functions to use when calculating R
 
 The generalised hyperfine interaction is
 \[
-t^e_{k,\mu} = \begin{dcases}
+t_{k,\mu} = \begin{dcases}
 -\frac{1}{r^{k+1}}C_{k,\mu} & \textrm{electric} \\
 -\frac{i}{r^{k+1}}\sqrt{\frac{k+1}{k}}\, \boldsymbol{\alpha}\cdot\boldsymbol{C}^{(0)}_{k,\mu} & \textrm{magnetic}
 \end{dcases}
 \]
-Results are given in units of MHz/b$^{k/2}$ for electric type and MHz/$\mu_N$b$^{(k-1)/2}$ for magnetic type operators, where $\mu_N$ is the nuclear magneton and b$ = 10^{-28}$ m$^2$ = 100 fm$^2$.
 
 \texttt{Operator} \uline{String}
 \begin{adjustwidth}{1cm}{}
@@ -2531,6 +2530,10 @@ t(r) = \begin{dcases}
 \]
 \end{adjustwidth}
 
+\texttt{{-}{-}reduced-elements} 
+\begin{adjustwidth}{1cm}{}
+	Calculate the reduced matrix elements of $T_k$ (default behaviour is to calculate stretched states).
+\end{adjustwidth}
 \section{DR} % Dielectronic recombination/autoionisation
 
 \texttt{IonizationEnergy} \uline{Real}[0.0]

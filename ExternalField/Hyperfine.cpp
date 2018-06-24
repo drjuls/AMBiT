@@ -195,26 +195,32 @@ GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& 
         op = std::make_shared<HyperfineEJOperator>(k, hf->GetIntegrator(), magnetic_radius);
         if(user_input.search("--rpa"))
             op = MakeRPA(std::static_pointer_cast<HyperfineEJOperator>(op), hf, atom.GetHartreeY());
-        units = std::sqrt(gsl_pow_int(math->Barn(), k));
     }
     else
     {
         op = std::make_shared<HyperfineMJOperator>(k, hf->GetIntegrator(), magnetic_radius);
         if(user_input.search("--rpa"))
             op = MakeRPA(std::static_pointer_cast<HyperfineMJOperator>(op), hf, atom.GetHartreeY());
-        units = std::sqrt(gsl_pow_int(math->Barn(), k-1)) * math->NuclearMagneton();
     }
 }
 
 void GeneralisedHyperfineCalculator::PrintHeader() const
 {
-    *outstream << "Hyperfine-" << Name(EorM) << op->GetK() << " matrix elements (stretched states) in MHz: " << std::endl;
+    if(user_input.search("--reduced-elements"))
+        *outstream << "Hyperfine-" << Name(EorM) << op->GetK() << " reduced matrix elements (a.u.): " << std::endl;
+    else
+        *outstream << "Hyperfine-" << Name(EorM) << op->GetK() << " matrix elements (stretched states) in a.u.: " << std::endl;
 }
 
 void GeneralisedHyperfineCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
 {
     MathConstant* math = MathConstant::Instance();
-    double value = matrix_element * units * math->AtomicFrequencyMHz();
+    double value = matrix_element;
+    if(user_input.search("--reduced-elements"))
+    {   int twoj1 = left.first->GetTwoJ();
+        int twoj2 = right.first->GetTwoJ();
+        value = value/math->Electron3j(twoj2, twoj1, op->GetK(), twoj2, -twoj1);
+    }
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
                << " = " << std::setprecision(6) << value << std::endl;
