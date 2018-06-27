@@ -2,6 +2,10 @@
 
 namespace Ambit
 {
+RelativisticConfigList::RelativisticConfigList(const RelativisticConfiguration& val):
+    m_list(1, val), Nsmall(1)
+{}
+
 unsigned int RelativisticConfigList::NumCSFs() const
 {
     unsigned int total = 0;
@@ -88,11 +92,23 @@ unsigned int RelativisticConfigList::projection_size() const
 
 void RelativisticConfigList::unique()
 {
+    // Unique 0 -> Nsmall
     auto itsmall = std::next(m_list.begin(), Nsmall);
     itsmall = m_list.erase(std::unique(m_list.begin(), itsmall), itsmall);
 
-    m_list.erase(std::unique(itsmall, m_list.end()), m_list.end());
+    // Unique Nsmall -> end()
+    m_list.resize(std::unique(itsmall, m_list.end()) - m_list.begin());
     Nsmall = itsmall - m_list.begin();
+
+    // Remove any elements from after Nsmall that are found before Nsmall
+    auto ia = m_list.begin();
+    auto iter = std::remove_if(itsmall, m_list.end(),
+         [&ia,&itsmall](const RelativisticConfiguration& x) -> bool {
+                         while (ia != itsmall && *ia < x)
+                             ++ia;
+                         return (ia != itsmall && *ia == x);
+                       });
+    m_list.resize(iter - m_list.begin());
 }
 
 void RelativisticConfigList::Read(FILE* fp)

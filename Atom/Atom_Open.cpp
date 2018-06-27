@@ -541,7 +541,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
             pConfigList nrconfiglist = std::make_shared<ConfigList>();
             nrconfiglist->first.emplace_back(std::static_pointer_cast<const NonRelID>(key)->GetNonRelConfiguration());
             nrconfiglist->second = 1;
-            auto rconfigs = gen.GenerateRelativisticConfigurations(allconfigs, key->GetSymmetry());
+            auto rconfigs = gen.GenerateRelativisticConfigurations(nrconfiglist);
 
             unsigned int num_CSFs = 0;
             for(auto& config: *rconfigs)

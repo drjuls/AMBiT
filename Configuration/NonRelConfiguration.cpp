@@ -216,6 +216,16 @@ void SortAndUnique(pConfigList& config_list)
     // Sort Nsmall -> config_list.end()
     std::sort(itsmall, config_list->first.end());
     last = std::unique(itsmall, config_list->first.end());
-    config_list->first.resize(last-config_list->first.begin());
+    config_list->first.resize(last - config_list->first.begin());
+
+    // Remove any elements from after Nsmall that are found before Nsmall
+    auto ia = config_list->first.begin();
+    auto iter = std::remove_if(itsmall, config_list->first.end(),
+         [&ia,&itsmall](const NonRelConfiguration& x) -> bool {
+                         while (ia != itsmall && *ia < x)
+                             ++ia;
+                         return (ia != itsmall && *ia == x);
+                       });
+    config_list->first.resize(iter - config_list->first.begin());
 }
 }
