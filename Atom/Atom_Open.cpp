@@ -673,7 +673,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             }
 
             #ifdef AMBIT_USE_SCALAPACK
-            if(user_input.search("CI/--scalapack") || user_input.VariableExists("CI/MaxEnergy"))
+            if(user_input.search("CI/--scalapack"))
             {
                 if(user_input.VariableExists("CI/MaxEnergy"))
                 {

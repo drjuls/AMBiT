@@ -269,12 +269,26 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
                 levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
             }
         }
-    #ifdef AMBIT_USE_SCALAPACK
         else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
         {
-            levelvec = SolveMatrixScalapack(hID, NumSolutions, false);
+            *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
+            levelvec.levels.reserve(NumSolutions);
+
+            RowMajorMatrix M = RowMajorMatrix::Zero(N, N);
+            for(auto& chunk: chunks)
+            {
+                M.block(chunk.start_row, 0, chunk.chunk.rows(), chunk.chunk.cols()) = chunk.chunk;
+            }
+
+            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
+            const Eigen::VectorXd& E = es.eigenvalues();
+            const Eigen::MatrixXd& V = es.eigenvectors();
+
+            for(unsigned int i = 0; i < NumSolutions; i++)
+            {
+                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+            }
         }
-    #endif
         else
         {   *outstream << "; Finding solutions using Davidson..." << std::endl;
             levelvec.levels.reserve(NumSolutions);
