@@ -348,11 +348,6 @@ def configure_environment(env, conf, ambit_conf):
             print("Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
             exit(-1) 
 
-    # Also check the version of Eigen is at least 3.2 and gsl is version 2.x (or above) 
-    if pkgconfig_exists:
-        env_conf.check_pkg_version("gsl", "2.0")
-        env_conf.check_pkg_version("eigen3", "3.2.0")
-            
     env = env_conf.Finish()
     print("Finished configuring build environment.\n")
     return(env)
