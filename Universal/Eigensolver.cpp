@@ -45,18 +45,17 @@ void dsygv_(int*, char*, char*, int*, double*, int*, double*, int*, double*, dou
 }
 
 #ifdef AMBIT_USE_MPI
-MPI::Intracomm comm_world;
 double* c_copy;
 
 extern "C" {
 int MPI_op(int *n, int *m, double* b, double* c)
 {
-    comm_world.Bcast(m, 1, MPI::INT, 0);
-    comm_world.Bcast(b, (*n)*(*m), MPI::DOUBLE, 0);
+    MPI_Bcast(m, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(b, (*n)*(*m), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     aa->MatrixMultiply(*m, b, c_copy);
 
-    comm_world.Reduce(c_copy, c, (*n)*(*m), MPI::DOUBLE, MPI::SUM, 0);
+    MPI_Reduce(c_copy, c, (*n)*(*m), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     return 0;
 }
@@ -167,14 +166,13 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
     int i, j;
 
     n = N;
-    comm_world = MPI::COMM_WORLD;
     c_copy = new double[num_solutions * N]; 
 
     // Get diagonal
     diag = new double[n];
     double* my_diag = new double[n];
     matrix->GetDiagonal(my_diag);
-    comm_world.Reduce(my_diag, diag, n, MPI::DOUBLE, MPI::SUM, 0);
+    MPI_Reduce(my_diag, diag, n, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     if(ProcessorRank == 0)
     {
@@ -213,10 +211,10 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
 
         // send finish (m = 0)
         int finish_m = 0;
-        comm_world.Bcast(&finish_m, 1, MPI::INT, 0);
+        MPI_Bcast(&finish_m, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         // send success
-        comm_world.Bcast(&ierr, 1, MPI::INT, 0);
+        MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         if(ierr != 0)
         {   *errstream << "dvdson failed, ierr = " << ierr << std::endl;
@@ -230,8 +228,8 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
             }
 
             // broadcast results
-            comm_world.Bcast(eigenvalues, num_solutions, MPI::DOUBLE, 0);
-            comm_world.Bcast(eigenvectors, num_solutions * n, MPI::DOUBLE, 0);
+            MPI_Bcast(eigenvalues, num_solutions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(eigenvectors, num_solutions * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
 
         delete[] iselec;
@@ -248,21 +246,21 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
         int m = 1;
         while(m != 0)
         {
-            comm_world.Bcast(&m, 1, MPI::INT, 0);
+            MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
             if(m != 0)
             {   nloops++;
-                comm_world.Bcast(b, m * N, MPI::DOUBLE, 0);
+                MPI_Bcast(b, m * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
                 matrix->MatrixMultiply(m, b, c_copy);
 
-                comm_world.Reduce(c_copy, c, m * N, MPI::DOUBLE, MPI::SUM, 0);                
+                MPI_Reduce(c_copy, c, m * N, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
             }
         }
 
         delete[] b;
         delete[] c;
 
-        comm_world.Bcast(&ierr, 1, MPI::INT, 0);
+        MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         if(ierr != 0)
         {   *errstream << "dvdson failed, ierr = " << ierr << std::endl;
@@ -270,8 +268,8 @@ void Eigensolver::MPISolveLargeSymmetric(Matrix* matrix, double* eigenvalues, do
         }
         else
         {   // get broadcast results
-            comm_world.Bcast(eigenvalues, num_solutions, MPI::DOUBLE, 0);
-            comm_world.Bcast(eigenvectors, num_solutions * N, MPI::DOUBLE, 0);
+            MPI_Bcast(eigenvalues, num_solutions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(eigenvectors, num_solutions * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
     }
 
