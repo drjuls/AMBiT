@@ -114,6 +114,8 @@ public:
     void AutoionizationConfigurationAveraged(const LevelVector& target);
     void AutoionizationConfigurationAveraged(const OccupationMap& target);
 
+    void InternalConversion(const LevelVector& target);
+
 protected:
     /** Initialise AngularDataLibrary if it hasn't been already.
         If trial is included, check that the number of valence electrons is correct before using.

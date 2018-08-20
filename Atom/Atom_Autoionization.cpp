@@ -7,9 +7,222 @@
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
+#include "ExternalField/Hyperfine.h"
 
 namespace Ambit
 {
+void Atom::InternalConversion(const LevelVector& source)
+{
+    auto math = MathConstant::Instance();
+    double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
+
+    if(nuclear_energy <= 0.0)
+    {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
+        exit(1);
+    }
+
+    user_input.set_prefix(std::string("IC"));
+    GeneralisedHyperfineCalculator calculon(user_input, *this);
+    user_input.set_prefix("");
+    auto op = calculon.GetOperator();
+
+    pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
+    HartreeFocker HF_Solver(ode_solver);
+
+    char sep = ' ';
+    *outstream << std::setprecision(5);
+
+    // Get source level occupancies
+    Configuration<OrbitalInfo, double> source_occupancies;
+
+    auto& level = source.levels.front();
+    const std::vector<double>& eigenvector = level->GetEigenvector();
+
+    const double* eigenvector_csf = eigenvector.data();
+    for(auto& rconfig: *source.configs)
+    {
+        double contribution = 0.0;
+        for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
+        {   contribution += gsl_pow_2(*eigenvector_csf);
+            eigenvector_csf++;
+        }
+
+        // Convert rconfig occupancy to double
+        Configuration<OrbitalInfo, double> double_config;
+        double_config += rconfig;
+
+        source_occupancies += double_config * contribution;
+    }
+
+    // Print source configuration
+    *outstream << "IC Source: " << source_occupancies << std::endl;
+
+    double total_rate = 0.0;
+    for(auto& initialpair: source_occupancies)
+    {
+        // Create operator for construction of continuum field
+        pHFOperator hf_continuum;
+        std::string config = user_input("IC/Residue", "");
+        if(config == "")
+            hf_continuum = hf_open;
+        else
+        {   hf_continuum = hf_open->Clone();
+            pCore continuum_core(new Core(lattice, config));
+            for(auto& orbital: *continuum_core)
+            {
+                pOrbital basis_state = orbitals->all->GetState(orbital.first);
+                continuum_core->AddState(basis_state);
+            }
+
+            hf_continuum->SetCore(continuum_core);
+        }
+
+        auto initial = orbitals->valence->GetState(initialpair.first);
+
+        // Get continuum wave (eps)
+        Parity eps_parity = op->GetParity() * initial->GetParity();
+
+        // Minimum L and Parity -> Minimum J
+        int min_eps_twoJ = abs(2 * op->GetK() - initial->TwoJ());
+        int max_eps_twoJ = 2 * op->GetK() + initial->TwoJ();
+
+        double eps_energy = nuclear_energy + initial->Energy();
+        if(eps_energy <= 1.e-4)
+            continue;
+
+        double orbital_rate = 0.0;
+        for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
+        {
+            double partial = 0.0;
+
+            // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
+            int eps_kappa = (eps_twoJ + 1)/2;
+            eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
+
+            pContinuumWave eps = std::make_shared<ContinuumWave>(eps_kappa, 100, eps_energy);
+            HF_Solver.CalculateContinuumWave(eps, hf_continuum);
+
+            partial = op->GetReducedMatrixElement(*initial, *eps);
+            *outstream << "    " << initial->Name() << sep << eps->Name() << " => " << gsl_pow_2(partial) << '\n';
+
+            orbital_rate += gsl_pow_2(partial) * initialpair.second/abs(2 * initial->Kappa());
+        }
+
+        *outstream << "  Total " << initial->Name() << " = " << orbital_rate << "\n";
+        total_rate += orbital_rate;
+    }
+
+    total_rate *= 8. * gsl_pow_2(math->Pi()/(2*op->GetK()+1));
+
+    *outstream << "\nInternal conversion rate/B(M->G) (a.u.) = " << total_rate << std::endl;
+}
+
+void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
+{
+    auto math = MathConstant::Instance();
+    double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
+
+    if(nuclear_energy <= 0.0)
+    {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
+        exit(1);
+    }
+
+    user_input.set_prefix(std::string("IC"));
+    GeneralisedHyperfineCalculator calculon(user_input, *this);
+    user_input.set_prefix("");
+    auto op = calculon.GetOperator();
+
+    pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
+    HartreeFocker HF_Solver(ode_solver);
+
+    char sep = ' ';
+    *outstream << std::setprecision(5);
+
+    // Get source level occupancies
+    Configuration<OrbitalInfo, double> source_occupancies;
+
+    auto& level = source.levels.front();
+    const std::vector<double>& eigenvector = level->GetEigenvector();
+
+    const double* eigenvector_csf = eigenvector.data();
+    for(auto& rconfig: *source.configs)
+    {
+        double contribution = 0.0;
+        for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
+        {   contribution += gsl_pow_2(*eigenvector_csf);
+            eigenvector_csf++;
+        }
+
+        // Convert rconfig occupancy to double
+        Configuration<OrbitalInfo, double> double_config;
+        double_config += rconfig;
+
+        source_occupancies += double_config * contribution;
+    }
+
+    // Print source configuration
+    *outstream << "IC Source: " << source_occupancies << std::endl;
+
+    double total_rate = 0.0;
+    for(auto& initialpair: source_occupancies)
+    {
+        // Create operator for construction of continuum field
+        pHFOperator hf_continuum;
+        std::string config = user_input("IC/Residue", "");
+        if(config == "")
+            hf_continuum = hf_open;
+        else
+        {   hf_continuum = hf_open->Clone();
+            pCore continuum_core(new Core(lattice, config));
+            for(auto& orbital: *continuum_core)
+            {
+                pOrbital basis_state = orbitals->all->GetState(orbital.first);
+                continuum_core->AddState(basis_state);
+            }
+
+            hf_continuum->SetCore(continuum_core);
+        }
+
+        auto initial = orbitals->valence->GetState(initialpair.first);
+
+        // Get continuum wave (eps)
+        Parity eps_parity = op->GetParity() * initial->GetParity();
+
+        // Minimum L and Parity -> Minimum J
+        int min_eps_twoJ = abs(2 * op->GetK() - initial->TwoJ());
+        int max_eps_twoJ = 2 * op->GetK() + initial->TwoJ();
+
+        double eps_energy = nuclear_energy + initial->Energy();
+        if(eps_energy <= 1.e-4)
+            continue;
+
+        double orbital_rate = 0.0;
+        for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
+        {
+            double partial = 0.0;
+
+            // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
+            int eps_kappa = (eps_twoJ + 1)/2;
+            eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
+
+            pContinuumWave eps = std::make_shared<ContinuumWave>(eps_kappa, 100, eps_energy);
+            HF_Solver.CalculateContinuumWave(eps, hf_continuum);
+
+            partial = op->GetReducedMatrixElement(*initial, *eps);
+            *outstream << "    " << initial->Name() << sep << eps->Name() << " => " << gsl_pow_2(partial) << '\n';
+
+            orbital_rate += gsl_pow_2(partial) * initialpair.second/abs(2 * initial->Kappa());
+        }
+
+        *outstream << "  Total " << initial->Name() << " = " << orbital_rate << "\n";
+        total_rate += orbital_rate;
+    }
+
+    total_rate *= 8. * gsl_pow_2(math->Pi()/(2*op->GetK()+1));
+
+    *outstream << "\nInternal conversion rate/B(M->G) (a.u.) = " << total_rate << std::endl;
+}
+
 void Atom::Autoionization(const LevelVector& target)
 {
     double ionization_energy = user_input("DR/IonizationEnergy", 0.0);

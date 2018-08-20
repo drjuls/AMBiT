@@ -168,6 +168,7 @@ int main(int argc, char* argv[])
         {
             ambit.TransitionCalculations();
             ambit.Recombination();
+            ambit.InternalConversion();
         }
     }
     catch(std::bad_alloc& ba)
@@ -490,6 +491,72 @@ void AmbitInterface::Recombination()
         atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
     else
         atoms[first_run_index].Autoionization(target_level_vec);
+}
+
+void AmbitInterface::InternalConversion()
+{
+    std::string source_file = user_input("IC/Source/Filename", "");
+    if(source_file.length() == 0)
+        return;
+
+    int source_two_j = user_input("IC/Source/TwoJ", -1);
+    if(source_two_j < 0)
+    {   *errstream << "IC/Source/TwoJ must be set in input file." << std::endl;
+        exit(1);
+    }
+
+    std::string parity_string = user_input("IC/Source/Parity", "");
+    Parity source_parity;
+    if(parity_string == "even")
+        source_parity = Parity::even;
+    else if (parity_string == "odd")
+        source_parity = Parity::odd;
+    else
+    {   *errstream << "IC/Source/Parity must be set in input file to either \"even\" or \"odd\"." << std::endl;
+        exit(1);
+    }
+
+    // Get source atom and level
+    MultirunOptions source_input(source_file.c_str(), "//", "\n", ",");
+    std::string source_id = source_input("ID", "");
+    if(source_id == "")
+    {   if(source_file.find(".input") != std::string::npos)
+           source_id = source_file.substr(0, source_file.find(".input"));
+       else
+       {   *errstream << "No ID could be found." << std::endl;
+           exit(1);
+       }
+    }
+
+    *outstream << "\nSource:" << std::endl;
+    AmbitInterface source_calculator(source_input, source_id);
+    source_calculator.EnergyCalculations();
+    *outstream << "----------------------------------------------------------" << std::endl;
+
+    Atom& source_atom = source_calculator.atoms[source_calculator.first_run_index];
+
+    // Get source level
+    pHamiltonianID source_key = std::make_shared<HamiltonianID>(source_two_j, source_parity);
+    LevelVector source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
+
+    int source_level_index = user_input("IC/Source/Index", 0);
+    if(source_level_vec.levels.size() <= source_level_index)
+    {   *errstream << "IC: Cannot find source level." << std::endl;
+        exit(1);
+    }
+
+    auto keep = std::next(source_level_vec.levels.begin(), source_level_index);
+    source_level_vec.levels.erase(source_level_vec.levels.begin(), keep);
+    source_level_vec.levels.resize(1);
+
+    // Get widths of current levels
+    atoms[first_run_index].InternalConversion(source_level_vec);
+//    if(user_input.search("--configuration-average"))
+//        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
+//    else if(user_input.search("DR/--energy-grid"))
+//        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
+//    else
+//        atoms[first_run_index].Autoionization(target_level_vec);
 }
 
 void AmbitInterface::PrintHelp(const std::string& ApplicationName)
