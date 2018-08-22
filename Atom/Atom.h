@@ -115,6 +115,7 @@ public:
     void AutoionizationConfigurationAveraged(const OccupationMap& target);
 
     void InternalConversion(const LevelVector& target);
+    void InternalConversionConfigurationAveraged(const LevelVector& target);
 
 protected:
     /** Initialise AngularDataLibrary if it hasn't been already.

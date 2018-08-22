@@ -15,11 +15,16 @@ void Atom::InternalConversion(const LevelVector& source)
 {
     auto math = MathConstant::Instance();
     double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
+    int min_continuum_l = user_input("IC/ContinuumLMin", 0);
+    int max_continuum_l = user_input("IC/ContinuumLMax", 6);    // Default maximum L = 6
 
     if(nuclear_energy <= 0.0)
     {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
         exit(1);
     }
+
+    // Add nuclear_energy to source level energy
+    nuclear_energy += source.levels[0]->GetEnergy();
 
     user_input.set_prefix(std::string("IC"));
     GeneralisedHyperfineCalculator calculon(user_input, *this);
@@ -32,84 +37,145 @@ void Atom::InternalConversion(const LevelVector& source)
     char sep = ' ';
     *outstream << std::setprecision(5);
 
-    // Get source level occupancies
-    Configuration<OrbitalInfo, double> source_occupancies;
+    ConfigGenerator gen(orbitals, user_input);
 
-    auto& level = source.levels.front();
-    const std::vector<double>& eigenvector = level->GetEigenvector();
+    // Source information
+    Symmetry source_symmetry(source.hID->GetSymmetry());
 
-    const double* eigenvector_csf = eigenvector.data();
-    for(auto& rconfig: *source.configs)
-    {
-        double contribution = 0.0;
-        for(unsigned int j = 0; j < rconfig.NumCSFs(); j++)
-        {   contribution += gsl_pow_2(*eigenvector_csf);
-            eigenvector_csf++;
+    // Create operator for construction of continuum field
+    pHFOperator hf_continuum;
+    std::string config = user_input("IC/Residue", "");
+    if(config == "")
+        hf_continuum = hf_open;
+    else
+    {   hf_continuum = hf_open->Clone();
+        pCore continuum_core(new Core(lattice, config));
+        for(auto& orbital: *continuum_core)
+        {
+            pOrbital basis_state = orbitals->all->GetState(orbital.first);
+            continuum_core->AddState(basis_state);
         }
 
-        // Convert rconfig occupancy to double
-        Configuration<OrbitalInfo, double> double_config;
-        double_config += rconfig;
-
-        source_occupancies += double_config * contribution;
+        hf_continuum->SetCore(continuum_core);
     }
 
-    // Print source configuration
-    *outstream << "IC Source: " << source_occupancies << std::endl;
+    *outstream << "\nInternal conversion rates/B(M->G):"
+               << "\n E(eV)   IC (a.u.)   J   P   LevelID" << std::endl;
 
+    double energy_unit_conversion = math->HartreeEnergyIneV();
     double total_rate = 0.0;
-    for(auto& initialpair: source_occupancies)
+
+    // Loop over all HamiltonianIDs
+    for(auto& key: levels->keys)
     {
-        // Create operator for construction of continuum field
-        pHFOperator hf_continuum;
-        std::string config = user_input("IC/Residue", "");
-        if(config == "")
-            hf_continuum = hf_open;
-        else
-        {   hf_continuum = hf_open->Clone();
-            pCore continuum_core(new Core(lattice, config));
-            for(auto& orbital: *continuum_core)
+        Symmetry sym = key->GetSymmetry();
+        auto levelvec = levels->GetLevels(key);
+
+        // One final level at a time. Create a copy of the final level for summation over M.
+        LevelVector final_copy(levelvec.configs, levelvec.levels[0]);
+        final_copy.hID = key;
+
+        // Create copies of final_configs with different two_M
+        std::vector<pRelativisticConfigList> final_configs;
+        final_configs.reserve(2 * sym.GetTwoJ() + 1);
+        for(int two_m = sym.GetTwoJ(); two_m >= -sym.GetTwoJ(); two_m -= 2)
+        {
+            pRelativisticConfigList pfinal_config = std::make_shared<RelativisticConfigList>(*levelvec.configs);
+            final_configs.push_back(pfinal_config);
+            gen.GenerateProjections(pfinal_config, sym, two_m, angular_library);
+        }
+
+        // Loop over all levels
+        int level_index = 0;
+        for(auto level_it = levelvec.levels.begin(); level_it != levelvec.levels.end(); level_it++)
+        {
+            // Create final
+            final_copy.levels[0] = *level_it;
+
+            // Build continuum
+            double eps_energy = nuclear_energy - (*level_it)->GetEnergy();
+            if(eps_energy <= 1.e-4)
+                break;
+
+            double rate = 0.0;
+
+            // Get continuum wave (eps)
+            Parity eps_parity = sym.GetParity() * source_symmetry.GetParity() * op->GetParity();
+
+            // Minimum L and Parity -> Minimum J
+            int min_eps_twoJ;
+            if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+                min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
+            else
+                min_eps_twoJ = 2 * min_continuum_l + 1;
+
+            // continuum J should not be less than |J_i - K| - j_nu
+            min_eps_twoJ = mmax(min_eps_twoJ, abs(source_symmetry.GetTwoJ() - 2*op->GetK()) - sym.GetTwoJ());
+
+            // Maximum L and Parity -> Maximum J
+            int max_eps_twoJ;
+            if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+                max_eps_twoJ = 2 * max_continuum_l + 1;
+            else
+                max_eps_twoJ = 2 * max_continuum_l - 1;
+
+            // continuum J should not exceed J_i + K + J_nu
+            max_eps_twoJ = mmin(max_eps_twoJ, source_symmetry.GetTwoJ() + 2*op->GetK() + sym.GetTwoJ());
+
+            for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
             {
-                pOrbital basis_state = orbitals->all->GetState(orbital.first);
-                continuum_core->AddState(basis_state);
+                double partial = 0.0;
+
+                // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
+                int eps_kappa = (eps_twoJ + 1)/2;
+                eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
+
+                pContinuumWave eps = std::make_shared<ContinuumWave>(eps_kappa, 100, eps_energy);
+                HF_Solver.CalculateContinuumWave(eps, hf_continuum);
+
+                // Create operator integrals
+                pOrbitalMap continuum_map = std::make_shared<OrbitalMap>(lattice);
+                continuum_map->AddState(eps);
+                pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
+                all_orbitals->all->AddState(eps);
+                all_orbitals->MakeStateIndexes();
+                pTransitionIntegrals one_body_integrals = std::make_shared<TransitionIntegrals>(all_orbitals, op);
+                one_body_integrals->clear();
+                one_body_integrals->CalculateOneElectronIntegrals(orbitals->valence, continuum_map);
+
+                // Create many body operator
+                ManyBodyOperator<pTransitionIntegrals> T(one_body_integrals);
+
+                // Sum over M_nu (final)
+                auto final_config_it = final_configs.begin();
+                for(int final_twoM = sym.GetTwoJ(); final_twoM >= -sym.GetTwoJ(); final_twoM -= 2)
+                {
+                    final_copy.configs = *final_config_it++;
+
+                    // Sum over M_epsilon
+                    int eps_twoM_min = mmax(source_symmetry.GetTwoJ() - final_twoM - 2 * op->GetK(), -eps_twoJ);
+                    int eps_twoM_max = mmin(source_symmetry.GetTwoJ() - final_twoM + 2 * op->GetK(), eps_twoJ);
+
+                    for(int eps_twoM = eps_twoM_min; eps_twoM <= eps_twoM_max; eps_twoM += 2)
+                    {
+                        ElectronInfo eps_info(100, eps_kappa, eps_twoM);
+                        double matrixelement = T.GetMatrixElement(source, final_copy, &eps_info)[0];
+                        partial += gsl_pow_2(matrixelement);
+                    }
+                }
+
+                *outstream << "    " << eps->Name() << sep << partial << "\n";
+                rate += partial;
             }
 
-            hf_continuum->SetCore(continuum_core);
+            *outstream << eps_energy * energy_unit_conversion << sep
+                       << rate << sep
+                       << sym.GetJ() <<  sep << Sign(sym.GetParity()) << sep
+                       << key->Name() << ':' << level_index << std::endl;
+
+            total_rate += rate;
+            level_index++;
         }
-
-        auto initial = orbitals->valence->GetState(initialpair.first);
-
-        // Get continuum wave (eps)
-        Parity eps_parity = op->GetParity() * initial->GetParity();
-
-        // Minimum L and Parity -> Minimum J
-        int min_eps_twoJ = abs(2 * op->GetK() - initial->TwoJ());
-        int max_eps_twoJ = 2 * op->GetK() + initial->TwoJ();
-
-        double eps_energy = nuclear_energy + initial->Energy();
-        if(eps_energy <= 1.e-4)
-            continue;
-
-        double orbital_rate = 0.0;
-        for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
-        {
-            double partial = 0.0;
-
-            // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
-            int eps_kappa = (eps_twoJ + 1)/2;
-            eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
-
-            pContinuumWave eps = std::make_shared<ContinuumWave>(eps_kappa, 100, eps_energy);
-            HF_Solver.CalculateContinuumWave(eps, hf_continuum);
-
-            partial = op->GetReducedMatrixElement(*initial, *eps);
-            *outstream << "    " << initial->Name() << sep << eps->Name() << " => " << gsl_pow_2(partial) << '\n';
-
-            orbital_rate += gsl_pow_2(partial) * initialpair.second/abs(2 * initial->Kappa());
-        }
-
-        *outstream << "  Total " << initial->Name() << " = " << orbital_rate << "\n";
-        total_rate += orbital_rate;
     }
 
     total_rate *= 8. * gsl_pow_2(math->Pi()/(2*op->GetK()+1));

@@ -549,14 +549,10 @@ void AmbitInterface::InternalConversion()
     source_level_vec.levels.erase(source_level_vec.levels.begin(), keep);
     source_level_vec.levels.resize(1);
 
-    // Get widths of current levels
-    atoms[first_run_index].InternalConversion(source_level_vec);
-//    if(user_input.search("--configuration-average"))
-//        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
-//    else if(user_input.search("DR/--energy-grid"))
-//        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
-//    else
-//        atoms[first_run_index].Autoionization(target_level_vec);
+    if(user_input.search("--configuration-average"))
+        atoms[first_run_index].InternalConversionConfigurationAveraged(source_level_vec);
+    else
+        atoms[first_run_index].InternalConversion(source_level_vec);
 }
 
 void AmbitInterface::PrintHelp(const std::string& ApplicationName)
