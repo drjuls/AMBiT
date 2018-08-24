@@ -187,6 +187,8 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 {
     auto math = MathConstant::Instance();
     double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
+    int min_continuum_l = user_input("IC/ContinuumLMin", 0);
+    int max_continuum_l = user_input("IC/ContinuumLMax", 6);    // Default maximum L = 6
 
     if(nuclear_energy <= 0.0)
     {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
@@ -255,8 +257,24 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
         Parity eps_parity = op->GetParity() * initial->GetParity();
 
         // Minimum L and Parity -> Minimum J
-        int min_eps_twoJ = abs(2 * op->GetK() - initial->TwoJ());
-        int max_eps_twoJ = 2 * op->GetK() + initial->TwoJ();
+        int min_eps_twoJ;
+        if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+            min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
+        else
+            min_eps_twoJ = 2 * min_continuum_l + 1;
+
+        // continuum J should not be less than |J_i - K|
+        min_eps_twoJ = mmax(min_eps_twoJ, abs(2 * op->GetK() - initial->TwoJ()));
+
+        // Maximum L and Parity -> Maximum J
+        int max_eps_twoJ;
+        if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+            max_eps_twoJ = 2 * max_continuum_l + 1;
+        else
+            max_eps_twoJ = 2 * max_continuum_l - 1;
+
+        // continuum J should not exceed J_i + K
+        max_eps_twoJ = mmin(max_eps_twoJ, 2 * op->GetK() + initial->TwoJ());
 
         double eps_energy = nuclear_energy + initial->Energy();
         if(eps_energy <= 1.e-4)
