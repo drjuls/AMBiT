@@ -231,6 +231,15 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
     // Print source configuration
     *outstream << "IC Source: " << source_occupancies << std::endl;
 
+    // All occupied orbitals
+    for(auto& corepair: *orbitals->core)
+    {
+        Configuration<OrbitalInfo, double> double_config;
+        double_config.insert(std::make_pair(corepair.first, corepair.first.MaxNumElectrons()));
+
+        source_occupancies += double_config;
+    }
+
     double total_rate = 0.0;
     for(auto& initialpair: source_occupancies)
     {
@@ -251,7 +260,7 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
             hf_continuum->SetCore(continuum_core);
         }
 
-        auto initial = orbitals->valence->GetState(initialpair.first);
+        auto initial = orbitals->all->GetState(initialpair.first);
 
         // Get continuum wave (eps)
         Parity eps_parity = op->GetParity() * initial->GetParity();
