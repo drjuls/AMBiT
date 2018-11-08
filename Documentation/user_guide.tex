@@ -12,6 +12,7 @@
 \usepackage{changepage}
 \usepackage{anysize}
 \usepackage{braket}
+\usepackage{multirow}
 
 \newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}                   
 
@@ -1791,15 +1792,38 @@ Include normal mass-shift operator (for use when calculating isotope shifts).
 \begin{adjustwidth}{1cm}{}
 Only include relativistic contribution to normal mass-shift operator.
 \end{adjustwidth}
-\texttt{--nonrelativistic-mass-shift} 
+\texttt{--nonrelativistic-mass-shift}
 \begin{adjustwidth}{1cm}{}
-Only include non-relativistic contribution to normal mass-shift operator.
+Only include non-relativistic contribution to a mass-shift operator.
 \end{adjustwidth}
 
 \texttt{--include-lower-sms}
 \begin{adjustwidth}{1cm}{}
 Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
 This can produce unphysical results, and is not recommended.
+\end{adjustwidth}
+
+Summary of mass shift options for relativistic and nonrelativistic operators:
+\begin{adjustwidth}{1cm}{}
+\begin{tabular}{|l|l|l|}
+\cline{2-3}
+\multicolumn{1}{c|}{} & Normal Mass Shift & Specific Mass Shift \\
+\hline
+Relativistic & \texttt{--nms} & \texttt{--sms} \\
+\cline{2-2}
+ & Only include relativistic contribution: & \\
+ & \texttt{--nms} & \\
+ & \texttt{--only-relativistic-nms} & \\
+\hline
+Nonrelativistic & \texttt{--nms} & \texttt{--sms} \\
+ & \texttt{--nonrelativistic-mass-shift} & \texttt{--nonrelativistic-mass-shift} \\
+\cline{3-3}
+ & & Include lower part of Dirac spinors: \\
+ & & \texttt{--sms} \\
+ & & \texttt{--nonrelativistic-mass-shift} \\
+ & & \texttt{--include-lower-sms} \\
+\hline
+\end{tabular}
 \end{adjustwidth}
 
 \texttt{--read-grasp0}
