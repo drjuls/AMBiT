@@ -11,6 +11,7 @@
 #include "ExternalField/FieldShift.h"
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
+#include "ExternalField/KineticEnergy.h"
 
 // Headers to get stack-traces
 #include <unistd.h>
@@ -424,6 +425,7 @@ void AmbitInterface::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
     RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
+    RUN_AND_STORE_TRANSITION(KE, KineticEnergyCalculator);
 
     user_input.set_prefix("");
 }
