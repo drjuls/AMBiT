@@ -6,7 +6,7 @@
 
 namespace Ambit
 {
-/** Add additional kinetic energy term to HF operator.
+/** Add additional relativistic kinetic energy term, \f$ c\,\vec{\alpha}\cdot\vec{p} \f$, to HF operator.
  */
 class KineticEnergyDecorator : public HFOperatorDecorator<ExchangeDecorator, KineticEnergyDecorator>
 {

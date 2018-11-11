@@ -12,6 +12,7 @@
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
 #include "ExternalField/KineticEnergy.h"
+#include "ExternalField/LorentzInvarianceT2.h"
 
 // Headers to get stack-traces
 #include <unistd.h>
@@ -426,6 +427,7 @@ void AmbitInterface::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
     RUN_AND_STORE_TRANSITION(KE, KineticEnergyCalculator);
+    RUN_AND_STORE_TRANSITION(LLIT2, LorentzInvarianceT2Calculator);
 
     user_input.set_prefix("");
 }
