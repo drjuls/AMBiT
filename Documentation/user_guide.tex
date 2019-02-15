@@ -52,7 +52,8 @@ for the full calculation is located at \texttt{Documentation/ExampleCalculation/
 
 We've made the example calculations small-enough to run on a consumer-level laptop or desktop: the
 largest calculation runs in approximately 15 minutes on a quad-core x86-64 laptop with 8GB of
-memory. However, these calculations are still sufficient to demonstrate the most important features of 
+memory (although it may be best to close memory-hungry applications such as web-browsers
+first.). However, these calculations are still sufficient to demonstrate the most important features of 
 \ambit, including parallelism via OpenMP. We have tried to capture the \textit{median} usage of \ambit\ 
 and have not included more specialised options and features in the software; consult chapter
 \ref{chap:input} for an exhaustive list of all \ambit\  features.
@@ -280,8 +281,9 @@ Total number of levels (all symmetries included) = 91398
 
 This information can then be used to estimate how much memory a calculation will need. A good heuristic
 is that the elements of the CI matrices are stored as double-precision floating-point numbers
-(which require 8 bytes of storage), while the radial CI and MBPT integrals require approximately
-\textbf{TODO} bytes per integral (since they are stored as key-value pairs in an associative container).
+(which require 8 bytes of storage), while the radial CI and MBPT integrals require
+slightly more than 16 bytes per integral (since they are stored as key-value pairs in an associative
+container).
 
 Importantly, \texttt{{-}{-}check-sizes} will calculate the angular data for a calculation if it is not
 already saved to disk (in the directory specified in the \texttt{Angular data directory} compile-time
@@ -404,39 +406,47 @@ orbitals, which are then ordered by $l$ and then $n$. Here's the output from usi
 may be slightly different due to finite machine-precision):
 
 \begin{verbatim}
-Core orbitals:                                                                 
-    1s  E = -222.448723239  size: (521) 6.135                                  
-    2s  E = -26.8861828069  size: (594) 12.81                                  
-    3s  E = -3.65304653115  size: (642) 17.81                                  
-    2p  E = -22.738117817  size: (618) 15.27                                   
-    3p  E = -2.40253423199  size: (667) 20.54                                  
-   2p+  E = -22.4139800078  size: (619) 15.37                                  
-   3p+  E = -2.36228057126  size: (668) 20.65                                  
-    3d  E = -0.591219307459  size: (738) 28.57                                 
-   3d+  E = -0.586958225697  size: (739) 28.69                                 
-Excited orbitals:                                                              
-    4s  E = -0.203846623548  size: (999) 60                                    
-    5s  E = -0.0736314364105  size: (999) 60                                   
-    6s  E = -0.038267239446  size: (999) 60                                    
-    7s  E = -0.0233587120771  size: (999) 60                                   
-    4p  E = -0.116400004544  size: (999) 60                                    
-    5p  E = -0.0521229801705  size: (999) 60                                   
-    6p  E = -0.0296666443307  size: (999) 60                                   
-    7p  E = -0.0186679891399  size: (999) 60                                   
-   4p+  E = -0.115885461182  size: (999) 60                                    
-   5p+  E = -0.0519670060685  size: (999) 60                                   
-   6p+  E = -0.0295990294885  size: (999) 60                                   
-   7p+  E = -0.0186251607677  size: (999) 60                                   
-    3d  E = -0.591219307459  size: (738) 28.57                                 
-    4d  E = -0.0542305587503  size: (999) 60                                   
-    5d  E = -0.0305427712566  size: (999) 60                                   
-    6d  E = -0.0193344401285  size: (999) 60                                   
-    7d  E = -0.0101349758  size: (999) 60                                      
-   3d+  E = -0.586958225697  size: (739) 28.69                                 
-   4d+  E = -0.0542036850313  size: (999) 60                                   
-   5d+  E = -0.0305291973468  size: (999) 60                                   
-   6d+  E = -0.0193260390484  size: (999) 60                                   
-   7d+  E = -0.0101245091501  size: (999) 60
+Core orbitals: 
+    1s  E = -222.448723263  size: (569) 6.265
+    2s  E = -26.8861828091  size: (647) 12.84
+    3s  E = -3.65304653147  size: (699) 17.82
+    2p  E = -22.7381178168  size: (673) 15.28
+    3p  E = -2.40253423197  size: (726) 20.52
+   2p+  E = -22.4139800076  size: (674) 15.38
+   3p+  E = -2.36228057124  size: (727) 20.62
+    3d  E = -0.591219307452  size: (803) 28.52
+   3d+  E = -0.58695822569  size: (804) 28.63
+Excited orbitals: 
+    4s  E = -0.203846640381  size: (999) 50
+    5s  E = -0.0736314289931  size: (999) 50
+    6s  E = -0.0382640649084  size: (999) 50
+    7s  E = -0.0227258227426  size: (999) 50
+    4p  E = -0.116400004521  size: (999) 50
+    5p  E = -0.0521230284816  size: (999) 50
+    6p  E = -0.0296082407705  size: (999) 50
+    7p  E = -0.0167733660205  size: (999) 50
+   4p+  E = -0.115885445037  size: (999) 50
+   5p+  E = -0.0519670303227  size: (999) 50
+   6p+  E = -0.0295391563313  size: (999) 50
+   7p+  E = -0.0167122298378  size: (999) 50
+    3d  E = -0.591219307452  size: (803) 28.52
+    4d  E = -0.0542305646063  size: (999) 50
+    5d  E = -0.0305212657786  size: (999) 50
+    6d  E = -0.0181184733574  size: (999) 50
+    7d  E = -0.00432671884817  size: (999) 50
+   3d+  E = -0.58695822569  size: (804) 28.63
+   4d+  E = -0.0542036879641  size: (999) 50
+   5d+  E = -0.0305075571116  size: (999) 50
+   6d+  E = -0.0181071835831  size: (999) 50
+   7d+  E = -0.00431021603913  size: (999) 50
+    4f  E = -0.0312539327939  size: (999) 50
+    5f  E = -0.0193082587072  size: (999) 50
+    6f  E = -0.00763764375902  size: (999) 50
+    7f  E = 0.008522576434  size: (999) 50
+   4f+  E = -0.0312540206083  size: (999) 50
+   5f+  E = -0.0193083608559  size: (999) 50
+   6f+  E = -0.00763783329339  size: (999) 50
+   7f+  E = 0.00852156256589  size: (999) 50
 \end{verbatim}
 
 \ambit\  will also save this information in a binary file called \texttt{CrII\_0.basis} (since
@@ -542,25 +552,23 @@ symmetry to save space):
 
 \begin{verbatim}
 ...
- Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
-    nloops=47
-Solutions for J = 0.5, P = even (N = 18540):
-0: -9.7109371    -2131304.33981 /cm
-             4s1 3d4  90.0307%
-             5s1 3d4  3.1585%
-                 3d5  5.5672%
-    g-factor = 3.2925
-
-1: -9.7100037    -2131099.47302 /cm
-             4s1 3d4  5.9598%
-                 3d5  93.6045%
-    g-factor = 2.6919
-
-2: -9.7004781    -2129008.8537 /cm
-             4s1 3d4  7.3610%
-                 3d5  92.2118%
-    g-factor = 0.013881
-
+Solutions for J = 0.5, P = even (N = 18540 x 4356):                            
+0: -9.7117934    -2131492.2665 /cm                                             
+             4s1 3d4  93.7100%                                                 
+             5s1 3d4  3.2903%                                                  
+                 3d5  1.6039%                                                  
+    g-factor = 3.3202                                                          
+                                                                               
+1: -9.7100974    -2131120.05703 /cm                                            
+             4s1 3d4  2.1823%                                                  
+                 3d5  97.5475%                                                 
+    g-factor = 2.6641                                                          
+                                                                               
+2: -9.700613    -2129038.46247 /cm                                             
+             4s1 3d4  7.7647%                                                  
+                 3d5  91.7724%                                                 
+    g-factor = 0.014006 
+...
 \end{verbatim}
 
 For each symmetry, \ambit\  first prints a ``header'' containing the number of CSFs 
@@ -619,7 +627,16 @@ Basis = 15spdf
 
 The only option here, \texttt{MBPT/Basis} places upper limits on $n$ and $l$ of orbitals to include in
 internal lines of the MBPT diagrams, and takes a string with the same format as
-\texttt{Basis/ValenceBasis}.
+\texttt{Basis/ValenceBasis}. Usually, you'll want to have a larger MBPT basis than what
+you use for CI, which requires more orbitals be generated. However, if a \texttt{.basis} file containing
+pre-generated orbitals exists in the current working directory, \ambit\ will use those
+orbitals rather than generate new ones, even if more orbitals have been requested in the
+input. This can cause unexpected calculation results, as for example, re-using the basis
+file from the CI-only calculations in the previous section will only include MBPT
+diagrams with orbitals up to 7spdf. \ambit\ will print a warning message to the output if
+you request more orbitals than there are in the input file, and if this is the case then
+it's best to re-run the calculation with the \texttt{-c} option (for a clean calculation)
+to force a re-calculation of the basis.
 
 Additionally, MBPT diagrams are generally quite expensive to calculate, so \ambit\  does not include them
 by default. The inclusion of MBPT corrections is controlled via the ``ungrouped'' option
@@ -654,23 +671,23 @@ Here's the $J = 1/2, \pi = 1$ solutions from the combined CI+MBPT calculation fo
 your results may slightly differ from these):
 
 \begin{verbatim}
- Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
-    nloops=18
-Solutions for J = 0.5, P = even (N = 18540):
-0: -9.2204352    -2023651.61572 /cm
+...
+Solutions for J = 0.5, P = even (N = 18540 x 4356):
+0: -9.2204352    -2023651.61597 /cm
              4s1 3d4  95.2301%
              5s1 3d4  3.4370%
     g-factor = 3.3311
 
-1: -9.1995009    -2019057.06501 /cm
+1: -9.1995009    -2019057.06506 /cm
              4s1 3d4  1.0396%
                  3d5  98.6843%
     g-factor = 2.6102
 
-2: -9.1933251    -2017701.64374 /cm
+2: -9.1933251    -2017701.64385 /cm
              4s1 3d4  21.9455%
                  3d5  77.0086%
     g-factor = 0.055881
+...
 \end{verbatim}
 
 Notice that the CI matrices have the same size as in the CI-only calculation, but the energy levels and
@@ -679,11 +696,14 @@ accuracy of the calculation, as compared to experimental data from the
 \href{https://physics.nist.gov/PhysRefData/ASD/levels_form.html}{NIST Atomic Spectra Database} in table
 \ref{tab:CI_MBPT_comparison}. Even though both calculations are not even remotely converged (Cr$^+$ is a
 \emph{very} complicated system that requires a huge CI basis to treat accurately), adding in
-core-valence MBPT still improves the accuracy by a few thousand cm$^{-1}$. That being said, the
-individual terms in the MBPT expansion must be small (otherwise it's not a perturbation) to ensure that
-MBPT actually improves the accuracy. There are some cases where small energy differences between
-basis orbitals lead to large MBPT diagrams, so including MBPT corrections (especially
-valence-valence MBPT corrections, described in the \href{link_goes_here}{\ambit\  CPC paper}) can
+core-valence MBPT still improves the accuracy by a few thousand cm$^{-1}$. Additionally,
+the CI-only calculation gives the wrong ordering of the $^6D_{1/2}$ and $^6D_{5/2}$
+levels, while including MBPT corrections fixes this and gives the correct level-ordering. That being
+said, the individual terms in the MBPT expansion must be small (otherwise it's not a perturbation) to
+ensure that MBPT actually improves the accuracy. There are some cases where small energy differences
+between basis orbitals lead to large MBPT diagrams, so including MBPT corrections (especially
+valence-valence MBPT corrections, described in the \href{https://arxiv.org/abs/1805.11265}
+{\ambit\ paper}) can
 actually reduce the accuracy of the calculation. Consequently, it's important to be careful when 
 constructing the MBPT basis to ensure all the terms remain small.
 
@@ -697,9 +717,9 @@ Configuration   &Term    &$E_{\mathrm{CI}}$ (cm$^{-1}$)     &$E_{\mathrm{CI+MBPT
 \hline
 \hline
 3d$^5$  &$^6S_{5/2}$    &0  &0  &0\\
-3d$^4$ 4s$^1$   &$^6D_{1/2}$    &28939  &23835  &11961\\
-3d$^4$ 4s$^1$   &$^6D_{3/2}$    &29042  &23981  &12032\\
-3d$^4$ 4s$^1$   &$^6D_{5/2}$    &29111  &24219  &12147\\
+3d$^4$ 4s$^1$   &$^6D_{1/2}$    &28764   &23834   &11961\\
+3d$^4$ 4s$^1$   &$^6D_{3/2}$    &28877   &23981   &12032\\
+3d$^4$ 4s$^1$   &$^6D_{5/2}$    &25428   &24218   &12147\\
 \hline
 \end{tabular}
 \end{table}
@@ -746,87 +766,46 @@ produce the following set of transitions:
 
 \begin{verbatim}
 M1 transition strengths (S):
-  1e:0 -> 1e:1 = 0.000297507
-  3e:0 -> 5e:0 = 4.62493e-08
+  1e:0 -> 1e:1 = 0.000297528
+  3e:0 -> 5e:0 = 4.56563e-08
 
 E2 transition strengths (S):
-  1e:0 -> 3e:0 = 0.676905
-  1e:0 -> 5e:0 = 5.80501
-  1e:0 -> 5e:1 = 2.70778
-  1e:0 -> 5e:2 = 0.00239213
-  3e:0 -> 3e:0 = 2.41072
-  3e:0 -> 5e:0 = 11.5707
-  3e:0 -> 5e:1 = 0.684676
-  3e:0 -> 5e:2 = 0.00582365
-  5e:0 -> 5e:0 = 8.83616e-08
-  5e:0 -> 5e:1 = 17.2609
-  5e:0 -> 5e:2 = 6.03841e-05
-  5e:1 -> 5e:0 = 17.2609
-  5e:1 -> 5e:1 = 1.04423
-  5e:1 -> 5e:2 = 0.00318904
-  5e:2 -> 5e:0 = 6.03841e-05
-  5e:2 -> 5e:1 = 0.00318904
+  1e:0 -> 3e:0 = 0.676902
+  1e:0 -> 5e:0 = 5.80532
+  1e:0 -> 5e:1 = 2.70777
+  1e:0 -> 5e:2 = 0.00239306
+  3e:0 -> 3e:0 = 2.41071
+  3e:0 -> 5e:0 = 11.5712
+  3e:0 -> 5e:1 = 0.684673
+  3e:0 -> 5e:2 = 0.00582635
+  5e:0 -> 5e:0 = 8.83635e-08
+  5e:0 -> 5e:1 = 17.2607
+  5e:0 -> 5e:2 = 6.03834e-05
+  5e:1 -> 5e:0 = 17.2607
+  5e:1 -> 5e:1 = 1.04422
+  5e:1 -> 5e:2 = 0.00319069
+  5e:2 -> 5e:0 = 6.03834e-05
+  5e:2 -> 5e:1 = 0.00319069
   5e:2 -> 5e:2 = 0.0339526
 
 M1 transition strengths (S):
-  1e:0 -> 1e:0 = 16.6435
-  1e:0 -> 1e:1 = 0.000297507
-  1e:0 -> 1e:2 = 0.000154869
-  1e:1 -> 1e:0 = 0.000297507
-  1e:1 -> 1e:1 = 10.2179
-  1e:1 -> 1e:2 = 0.216327
-  1e:2 -> 1e:0 = 0.000154869
-  1e:2 -> 1e:1 = 0.216327
-  1e:2 -> 1e:2 = 0.00463104
-  5e:0 -> 3e:0 = 4.62493e-08
-  5e:0 -> 3e:1 = 0.00167995
-  5e:0 -> 3e:2 = 8.88683e-05
-  5e:1 -> 3e:0 = 14.3741
-  5e:1 -> 3e:1 = 0.00257567
-  5e:1 -> 3e:2 = 1.46865e-06
-  5e:2 -> 3e:0 = 5.48977e-05
-  5e:2 -> 3e:1 = 3.78487e-06
-  5e:2 -> 3e:2 = 8.36944e-06
+  1e:1 -> 1e:0 = 0.000297528
+  3e:0 -> 5e:0 = 4.56563e-08
 
 E2 transition strengths (S):
-  1e:0 -> 3e:0 = 0.676905
-  1e:0 -> 3e:1 = 0.00213727
-  1e:0 -> 3e:2 = 0.000728625
-  1e:0 -> 5e:0 = 5.80501
-  1e:0 -> 5e:1 = 2.70778
-  1e:0 -> 5e:2 = 0.00239213
-  1e:1 -> 3e:0 = 0.0013822
-  1e:1 -> 3e:1 = 0.297287
-  1e:1 -> 3e:2 = 2.60007
-  1e:1 -> 5e:0 = 0.000980374
-  1e:1 -> 5e:1 = 0.00543533
-  1e:1 -> 5e:2 = 0.0417482
-  1e:2 -> 3e:0 = 0.000446003
-  1e:2 -> 3e:1 = 5.21948
-  1e:2 -> 3e:2 = 1.05775
-  1e:2 -> 5e:0 = 7.64666e-05
-  1e:2 -> 5e:1 = 9.73159e-06
-  1e:2 -> 5e:2 = 3.46324
-  3e:0 -> 3e:0 = 2.41072
-  3e:0 -> 3e:1 = 0.0072805
-  3e:0 -> 3e:2 = 0.00114804
-  3e:0 -> 5e:0 = 11.5707
-  3e:0 -> 5e:1 = 0.684676
-  3e:0 -> 5e:2 = 0.00582365
-  3e:1 -> 3e:1 = 0.33213
-  3e:1 -> 3e:2 = 2.81372
-  3e:1 -> 5e:0 = 0.00127588
-  3e:1 -> 5e:1 = 0.00293353
-  3e:1 -> 5e:2 = 0.0742223
-  3e:2 -> 3e:2 = 0.717609
-  3e:2 -> 5e:0 = 0.000120508
-  3e:2 -> 5e:1 = 0.00084502
-  3e:2 -> 5e:2 = 1.90527
-  5e:0 -> 5e:0 = 8.83616e-08
-  5e:0 -> 5e:1 = 17.2609
-  5e:0 -> 5e:2 = 6.03841e-05
-  5e:1 -> 5e:1 = 1.04423
-  5e:1 -> 5e:2 = 0.00318904
+  3e:0 -> 3e:0 = 2.41071
+  3e:0 -> 1e:0 = 0.676902
+  3e:0 -> 5e:0 = 11.5712
+  3e:0 -> 5e:1 = 0.684673
+  3e:0 -> 5e:2 = 0.00582635
+  1e:0 -> 5e:0 = 5.80532
+  1e:0 -> 5e:1 = 2.70777
+  1e:0 -> 5e:2 = 0.00239306
+  5e:0 -> 5e:0 = 8.83635e-08
+  5e:0 -> 5e:1 = 17.2607
+  5e:0 -> 5e:2 = 6.03834e-05
+  5e:1 -> 5e:1 = 1.04422
+  5e:1 -> 5e:2 = 0.00319069
   5e:2 -> 5e:2 = 0.0339526
 \end{verbatim}
 
