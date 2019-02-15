@@ -32,9 +32,9 @@ protected:
 
 public:
     template<typename... Args>
-        RelativisticConfigList(Args... args): m_list(args...) {}    //!< Use vector constructors
-    RelativisticConfigList(const RelativisticConfiguration& val): m_list(1, val) {}
-    virtual ~RelativisticConfigList() {}
+        RelativisticConfigList(Args... args);   //!< Use vector constructors
+    RelativisticConfigList(const RelativisticConfiguration& val);
+    virtual ~RelativisticConfigList() = default;
 
 public: // Define iterators
     /** Iterator over RelativisticConfigurations in list. Templating just for const/non-const iterators. */
@@ -276,6 +276,13 @@ public:
             return(first < second);
     }
 };
+
+template<typename... Args>
+RelativisticConfigList::RelativisticConfigList(Args... args):
+    m_list(args...)
+{
+    Nsmall = m_list.size();
+}
 
 template<class Comparator>
 void RelativisticConfigList::sort(Comparator comp)

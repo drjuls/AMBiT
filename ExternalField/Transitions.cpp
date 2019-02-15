@@ -100,7 +100,7 @@ void TransitionCalculator::PrintIntegrals()
         integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     }
 
-    *outstream << "One-body transition integrals (a.u.):" << std::endl;
+    *outstream << "One-body transition reduced matrix elements (a.u.):" << std::endl;
     *outstream << std::setprecision(8);
     auto it1 = orbitals->valence->begin();
     while(it1 != orbitals->valence->end())
@@ -114,7 +114,7 @@ void TransitionCalculator::PrintIntegrals()
 
             if(op->IsNonZero(orb1, orb2))
             *outstream << "  " << orb1.Name() << " -> " << orb2.Name()
-                       << " = " << integrals->GetMatrixElement(orb1, orb2) << std::endl;
+                       << " = " << integrals->GetReducedMatrixElement(orb1, orb2) << std::endl;
 
             ++it2;
         }

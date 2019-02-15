@@ -1,6 +1,6 @@
 \documentclass{report}
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath}
+\usepackage{amsmath,mathtools}
 \usepackage{graphicx}
 \usepackage{parskip}
 \usepackage{hyperref}
@@ -12,6 +12,7 @@
 \usepackage{changepage}
 \usepackage{anysize}
 \usepackage{braket}
+\usepackage{multirow}
 
 \newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}                   
 
@@ -1791,15 +1792,38 @@ Include normal mass-shift operator (for use when calculating isotope shifts).
 \begin{adjustwidth}{1cm}{}
 Only include relativistic contribution to normal mass-shift operator.
 \end{adjustwidth}
-\texttt{--nonrelativistic-mass-shift} 
+\texttt{--nonrelativistic-mass-shift}
 \begin{adjustwidth}{1cm}{}
-Only include non-relativistic contribution to normal mass-shift operator.
+Only include non-relativistic contribution to a mass-shift operator.
 \end{adjustwidth}
 
 \texttt{--include-lower-sms}
 \begin{adjustwidth}{1cm}{}
 Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
 This can produce unphysical results, and is not recommended.
+\end{adjustwidth}
+
+Summary of mass shift options for relativistic and nonrelativistic operators:
+\begin{adjustwidth}{1cm}{}
+\begin{tabular}{|l|l|l|}
+\cline{2-3}
+\multicolumn{1}{c|}{} & Normal Mass Shift & Specific Mass Shift \\
+\hline
+Relativistic & \texttt{--nms} & \texttt{--sms} \\
+\cline{2-2}
+ & Only include relativistic contribution: & \\
+ & \texttt{--nms} & \\
+ & \texttt{--only-relativistic-nms} & \\
+\hline
+Nonrelativistic & \texttt{--nms} & \texttt{--sms} \\
+ & \texttt{--nonrelativistic-mass-shift} & \texttt{--nonrelativistic-mass-shift} \\
+\cline{3-3}
+ & & Include lower part of Dirac spinors: \\
+ & & \texttt{--sms} \\
+ & & \texttt{--nonrelativistic-mass-shift} \\
+ & & \texttt{--include-lower-sms} \\
+\hline
+\end{tabular}
 \end{adjustwidth}
 
 \texttt{--read-grasp0}
@@ -2380,12 +2404,15 @@ of possible arguments, but the arguments need not be the same for each requested
 Transitions for the following operators are supported by \ambit:
 
 \begin{itemize}
-\item E1, E2, E3 - Electric dipole, quadrupole and octupole operators,
-\item M1, M2 - Magnetic dipole and quadrupole operators,
-\item HFS1, HFS2 - Hyperfine dipole and quadrupole operators,
-\item FS - Field shift calculator (rank 0 tensor),
-\item QED - QED shift calculator (rank 0 tensor),
+\item E1, E2, E3 - Electric dipole, quadrupole and octupole operators
+\item M1, M2 - Magnetic dipole and quadrupole operators
+\item HFS1, HFS2 - Hyperfine dipole and quadrupole operators
+\item HFI - Generalised hyperfine interaction operators
+\item FS - Field shift calculator (rank 0 tensor)
+\item QED - QED shift calculator (rank 0 tensor)
 \item Yukawa - Yukawa calculator (rank 0 tensor)
+\item KE - Relativistic kinetic energy operator, $c\,\vec{\alpha}\cdot\vec{p}$
+\item LLIT2 - Local Lorentz invariance operator, $T^{(2)} = c\,(\vec{\alpha}\cdot\vec{p} - 3\,\alpha_z p_z)$
 \end{itemize}
 
 The field-shift, QED and Yukawa operators are rank zero tensors, so they do not have transitions
@@ -2412,7 +2439,7 @@ Frequency of the external field, in atomic units. This option is only used with 
 
 \texttt{{-}{-}reduced-elements} 
 \begin{adjustwidth}{1cm}{}
-Calculate the reduced matrix elements $T$ (default behaviour is to calculate the line strengths 
+Calculate the reduced matrix elements $T$ of EJ or MJ operators (default behaviour is to calculate the line strengths 
 $S = |T|^2$).
 \end{adjustwidth}
 
@@ -2427,26 +2454,25 @@ orbitals $a$ and $b$.
 Include random-phase approximation (RPA) corrections when calculating transition matrix elements. 
 \end{adjustwidth}
 
-Additionally, Yukawa and QED transitions take the same input arguments (with the appropriate\\
-\texttt{Transitions/\textless{Operator}\textgreater} prefix), while HFS and FS operators accept the following options:
+Additionally, Yukawa and QED transitions take the same input arguments as their HF decorator equivalents (with the appropriate \hbox{\texttt{Transitions/\textless{Operator}\textgreater}} prefix). Options for HFI are presented in Sec.~\ref{sec:HFI}, while HFS1, HFS2, and FS operators accept the following options:
 
 \texttt{HFS1/NuclearMagneticRadius} \uline{Real}
 \begin{adjustwidth}{1cm}{}
-Nuclear magnetic (dipole) radius used to calculate the hyperfine dipole matrix elements. If this is not
+Nuclear magnetic (dipole) radius used to calculate the hyperfine dipole matrix elements (in fm). If this is not
 specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.
 \end{adjustwidth}
 
 \texttt{HFS1/gOnI}[1.0]
-Magnetic-dipole g-factor $g_I$.
+Magnetic-dipole g-factor (in nuclear magnetons) divided by nuclear spin $g/I$.
 
 \texttt{HFS2/NuclearQuadrupoleRadius} \uline{Real}
 \begin{adjustwidth}{1cm}{}
-Nuclear quadrupole radius used to calculate the hyperfine quadrupole matrix elements. If this is not
+Nuclear quadrupole radius used to calculate the hyperfine quadrupole matrix elements (in fm). If this is not
 specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.
 \end{adjustwidth}
 
 \texttt{HFS2/Q}[1.0]
-Nuclear quadrupole moment $Q_{zz}$.
+Nuclear quadrupole moment $Q_{zz}$ in barn.
 
 \texttt{FS/Scale} \uline{Real}[1.0]
 \begin{adjustwidth}{1cm}{}
@@ -2503,6 +2529,37 @@ Defaults to \texttt{Lattice/EndPoint} if no value is specified.
 Minimum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.
 \end{adjustwidth}
 
+\subsection{HFI}
+\label{sec:HFI}
+
+The generalised hyperfine interaction is
+\[
+t_{k,\mu} = \begin{dcases}
+-\frac{1}{r^{k+1}}C_{k,\mu} & \textrm{electric} \\
+-\frac{i}{r^{k+1}}\sqrt{\frac{k+1}{k}}\, \boldsymbol{\alpha}\cdot\boldsymbol{C}^{(0)}_{k,\mu} & \textrm{magnetic}
+\end{dcases}
+\]
+
+\texttt{Operator} \uline{String}
+\begin{adjustwidth}{1cm}{}
+Input string should be of the form \texttt{Ek} or \texttt{Mk} where $k$ is an integer (e.g. \texttt{M3}) for nuclear electric and magnetic $2^k$-pole operators, respectively.
+\end{adjustwidth}
+
+\texttt{NuclearRadius} \uline{Real}
+\begin{adjustwidth}{1cm}{}
+Nuclear multipole radius (in fm). If this is not specified, then the default value of $r_N = \sqrt{5/3} ~ r_{\textrm{rms}}$ will be used. The form of the radial cutoff is the same for all operators:
+\[
+t(r) = \begin{dcases}
+\frac{r}{r_N^{k+2}}, & r < r_N \\
+\frac{1}{r^{k+1}}, & r \geq r_N \\
+\end{dcases}
+\]
+\end{adjustwidth}
+
+\texttt{{-}{-}reduced-elements} 
+\begin{adjustwidth}{1cm}{}
+	Calculate the reduced matrix elements of $T_k$ (default behaviour is to calculate stretched states).
+\end{adjustwidth}
 \section{DR} % Dielectronic recombination/autoionisation
 
 \texttt{IonizationEnergy} \uline{Real}[0.0]

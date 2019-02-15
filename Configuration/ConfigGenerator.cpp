@@ -364,6 +364,8 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
 
         ++it;
     }
+    if(it == itsmall)
+        rlist->SetSmallSize(rlist->size());
 
     rlist->sort(MostProjectionsFirstComparator());
     rlist->unique();
@@ -378,6 +380,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pRelativisticConfigLis
     {
         nrlist->first.push_back(NonRelConfiguration(rconf));
     }
+    nrlist->second = rlist->small_size();
     SortAndUnique(nrlist);
 
     return nrlist;

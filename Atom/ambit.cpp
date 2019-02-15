@@ -11,6 +11,8 @@
 #include "ExternalField/FieldShift.h"
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
+#include "ExternalField/KineticEnergy.h"
+#include "ExternalField/LorentzInvarianceT2.h"
 
 // Headers to get stack-traces
 #include <unistd.h>
@@ -383,12 +385,15 @@ void AmbitInterface::TransitionCalculations()
     Atom& atom = atoms[first_run_index];
 
     // EM types
-    std::array<std::tuple<std::string, MultipolarityType, int>, 5> EM_transition_types =
+    std::array<std::tuple<std::string, MultipolarityType, int>, 8> EM_transition_types =
            {std::make_tuple("E1", MultipolarityType::E, 1),
             std::make_tuple("M1", MultipolarityType::M, 1),
             std::make_tuple("E2", MultipolarityType::E, 2),
             std::make_tuple("M2", MultipolarityType::M, 2),
             std::make_tuple("E3", MultipolarityType::E, 3),
+            std::make_tuple("M3", MultipolarityType::M, 3),
+            std::make_tuple("E4", MultipolarityType::E, 4),
+            std::make_tuple("M4", MultipolarityType::M, 4),
            };
 
     std::vector<std::unique_ptr<EMCalculator>> calculators;
@@ -417,9 +422,12 @@ void AmbitInterface::TransitionCalculations()
     // Other operators
     RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
     RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
+    RUN_AND_STORE_TRANSITION(HFI, GeneralisedHyperfineCalculator);
     RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
     RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
+    RUN_AND_STORE_TRANSITION(KE, KineticEnergyCalculator);
+    RUN_AND_STORE_TRANSITION(LLIT2, LorentzInvarianceT2Calculator);
 
     user_input.set_prefix("");
 }

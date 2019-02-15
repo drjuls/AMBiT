@@ -1,5 +1,5 @@
-#ifndef NORMAL_MASS_SHIFT_DECORATOR
-#define NORMAL_MASS_SHIFT_DECORATOR
+#ifndef NORMAL_MASS_SHIFT_DECORATOR_H
+#define NORMAL_MASS_SHIFT_DECORATOR_H
 
 #include "HartreeFock/ExchangeDecorator.h"
 
