@@ -138,7 +138,7 @@ protected:
     {   return 0.;
     }
 
-    bool IsMyJob(int index) const
+    bool IsMyJob(unsigned long long index) const
     {   return index%NumProcessors == ProcessorRank;
     }
 };
@@ -549,14 +549,14 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                              shared(my_total, configs, eigenvector) \
                              schedule(dynamic)
 #endif
-    for(int ii = 0; ii < configs->size(); ii++)
+    for(unsigned long long ii = 0; ii < configs->size(); ii++)
     {
         // Increment config_it to bring it up to our loop variable. This isn't a great approach, but
         // OpenMP doesn't play nicely with non-random-access iterators
         auto config_it = configs->begin();
         std::advance(config_it, ii);
 
-        int config_index = ii * configs->size();
+        unsigned long long config_index = ii * configs->size();
 
         auto config_jt = config_it;
         while(config_jt != configs->end())
@@ -683,7 +683,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
                                     right_eigenvector, epsilon, return_size)\
                              schedule(dynamic)
 #endif
-    for(int ii = 0; ii < configs_left->size(); ii++)
+    for(unsigned long long ii = 0; ii < configs_left->size(); ii++)
     {
         // Increment config_it to keep it in step with our loop variable. This isn't a great 
         // approach, but OpenMP doesn't play nicely with non-random-access iterators so we don't
@@ -691,7 +691,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
         auto config_it = configs_left->begin();
         std::advance(config_it, ii);
 
-        int config_index = ii * configs_left->size();
+        unsigned long long config_index = ii * configs_left->size();
 
         auto config_jt = configs_right->begin();
         while(config_jt != configs_right->end())
