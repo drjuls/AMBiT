@@ -166,21 +166,21 @@ def read_config(env, conf, ambit_conf):
     header_path = [ambit_dir, eigen_dir, sparsehash_dir, custom_include, gtest_header_dir]
 
     # NOTE: Don't append the list of libs until we've checked they exist
-    env.Append(CPPPATH=header_path)
-    env.Append(LIBPATH=lib_path)
-    env.Append(LIBPATH=gtest_libs_dir)
+    env.Prepend(CPPPATH=header_path)
+    env.Prepend(LIBPATH=lib_path)
+    env.Prepend(LIBPATH=gtest_libs_dir)
 
     # Also grab the user specified compiler and compiler flags. This section is optional, so the keys may not 
     # exist
     try:
         custom_cxx_flags = conf.get("Compiler options", "CXXFLAGS")
-        env.Append(CXXFLAGS = custom_cxx_flags)
+        env.Prepend(CXXFLAGS = custom_cxx_flags)
     except ConfigParser.NoOptionError:
         pass
     # Link flags
     try:
         custom_linkflags = conf.get("Compiler options", "LINKFLAGS")
-        env.Append(LINKFLAGS=custom_linkflags)
+        env.Prepend(LINKFLAGS=custom_linkflags)
     except ConfigParser.NoOptionError:
         pass
 
