@@ -265,9 +265,12 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
         }
 
         rlist->append(*GenerateRelativisticConfigurations(nrlist));
+
+        // Now add to leading configurations for sigma 3
+        leading_configs->first.insert(leading_configs->first.end(), nrlist->first.begin(), nrlist->first.end());
     }
 
-    // Add extra relativistic configurations not to be considered leading configurations.
+    // Add extra relativistic configurations not to be considered leading configurations for the purpose of configuration generation.
     num_extra_configs = user_input.vector_variable_size("ExtraRelativisticConfigurations");
     if(num_extra_configs)
     {
