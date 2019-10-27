@@ -24,7 +24,7 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
     if(user_input.search(2, "--clean", "-c"))
         use_read = false;
 
-    if(!use_read || !ReadBasis())
+    if((ProcessorRank == 0) && (!use_read || !ReadBasis()))
     {
         int N = user_input("HF/N", -1);  // Number of electrons
         if(N == -1 || N > Z)
@@ -72,6 +72,11 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         std::string filename = identifier + ".basis";
         orbitals->Write(filename);
     }
+
+#ifdef AMBIT_USE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    ReadBasis();
+#endif
 
     return open_core;
 }
