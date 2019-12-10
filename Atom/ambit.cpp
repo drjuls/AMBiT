@@ -91,6 +91,9 @@ int main(int argc, char* argv[])
 
     OutStreams::InitialiseStreams();
 
+    // Write the number of threads to the log file. This is useful for debugging.
+    *logstream << "AMBiT running with " << omp_get_max_threads() << " OpenMP threads." << std::endl;
+
     try
     {   MultirunOptions lineInput(argc, argv, ",");
 

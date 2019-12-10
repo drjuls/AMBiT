@@ -294,8 +294,7 @@ def configure_environment(env, conf, ambit_conf):
             # the SCons man page.
             if not env_conf.CheckLib(lib, autoadd=0): 
                 if(not pkgconfig_exists or not env_conf.check_pkg(lib)):
-                    print("Error: could not find library {}. See config.log for details.".format(lib))
-                    exit(-1)
+                    print("Warning: could not find library {}. See config.log for details.".format(lib))
                 else:
                    env_conf.env.ParseConfig("pkg-config --libs --cflags {}".format(lib))
 
@@ -313,7 +312,6 @@ def configure_environment(env, conf, ambit_conf):
     # Check for Boost, Eigen and Sparsehash (these don't follow the nice pkg-config conventions)
     if not env_conf.CheckCXXHeader("boost/version.hpp"):
         print("Warning: could not find Boost headers. Check [Dependency paths] in config.ini")
-        exit(-1)
 
     try:
         if not conf.get("Dependency paths", "Sparsehash path"):
@@ -321,16 +319,13 @@ def configure_environment(env, conf, ambit_conf):
             if env_conf.check_pkg("libsparsehash"):
                 env_conf.env.ParseConfig("pkg-config --libs --cflags libsparsehash")
             else:
-                print("Failed to automatically locate Sparsehash headers. Specify Sparsehash path in config.ini")
-                exit(-1)
+                print("Warning: Failed to automatically locate Sparsehash headers. Specify Sparsehash path in config.ini")
     except ConfigParser.NoOptionError:
         print("Sparsehash directory not specified...")
         if env_conf.check_pkg("libsparsehash"):
             env_conf.env.ParseConfig("pkg-config --libs --cflags libsparsehash")
         else:
-            print("Failed to automatically locate Sparsehash headers. Specify Sparsehash path in config.ini")
-            exit(-1)
- 
+            print("Warning: Failed to automatically locate Sparsehash headers. Specify Sparsehash path in config.ini")
 
     try:
         if not conf.get("Dependency paths", "Eigen path"):
@@ -338,15 +333,13 @@ def configure_environment(env, conf, ambit_conf):
             if env_conf.check_pkg("eigen3"):
                 env_conf.env.ParseConfig("pkg-config --libs --cflags eigen3")
             else:
-                print("Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
-                exit(-1)
+                print("Warning: Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
     except ConfigParser.NoOptionError:
         print("Eigen directory not specified...")
         if env_conf.check_pkg("eigen3"):
             env_conf.env.ParseConfig("pkg-config --libs --cflags eigen3")
         else:
-            print("Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
-            exit(-1) 
+            print("Warning: Failed to automatically locate Eigen headers. Specify Eigen path in config.ini")
 
     env = env_conf.Finish()
     print("Finished configuring build environment.\n")
@@ -372,13 +365,12 @@ build = "Release" # Default build target (i.e. don't do debug unless specificall
 
 if 'debug' in COMMAND_LINE_TARGETS:
     build = "Debug"
-    env.Append(CXXFLAGS = '-std=c++11 -g -Wno-deprecated-register -Wno-unused-result -O0')
+    env.Append(CXXFLAGS = '-g -Wno-deprecated-register -Wno-unused-result -O0')
 elif 'test' in COMMAND_LINE_TARGETS:
     build = "Test"
-    env.Append(CXXFLAGS = '-std=c++11')
     env.AppendUnique(LIBS = ['gtest', 'pthread'])
 else:
-    env.Append(CXXFLAGS = '-std=c++11 -O3')
+    env.Append(CXXFLAGS = '-O3')
 
 # Now open the ini files containing the user config options, and the AMBiT requirements
 conf = ConfigParser.SafeConfigParser(allow_no_value = True)
