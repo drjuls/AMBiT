@@ -190,6 +190,7 @@ def read_config(env, conf, ambit_conf):
         custom_cxx = conf.get("Compiler options", "CXX")
         if custom_cxx:
             env.Replace(CXX = custom_cxx)
+            env.Replace(CC = custom_cxx)
     except ConfigParser.NoOptionError:
         pass
 
