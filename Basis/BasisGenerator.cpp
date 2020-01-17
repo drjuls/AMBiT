@@ -452,7 +452,6 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
         all_states = user_input("Basis/ValenceBasis", "");
 
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(all_states);
-
     pOrbitalMap excited;
 
     if(user_input.search("Basis/--hf-basis"))
@@ -461,6 +460,15 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     else // default "Basis/--bspline-basis"
     {   user_input.search("Basis/--bspline-basis"); // Just to clear UFO from user_input.
         excited = GenerateBSplines(max_pqn_per_l);
+
+        // Replace requested valence orbitals with HF orbitals
+        std::string hf_valence_states = user_input("Basis/HFOrbitals", "");
+        if(!hf_valence_states.empty())
+        {
+            pOrbitalMap hf_valence = GenerateHFExcited(ConfigurationParser::ParseBasisSize(hf_valence_states));
+            for(auto porb: *hf_valence)
+                excited->AddState(porb.second);
+        }
     }
     bool reorth = user_input.search("Basis/--reorthogonalise");
 
