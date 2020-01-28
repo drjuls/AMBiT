@@ -1959,6 +1959,11 @@ Use Hartree-Fock in the field of the core to calculate excited basis states. Thi
 Use B-Splines to generate single-particle basis functions.
 \end{adjustwidth}
 
+\texttt{HFOrbitals} \uline{Basis string}
+\begin{adjustwidth}{1cm}{}
+Generates Hartree-Fock orbitals calculated in the HF potential for orbitals up to those specified by the basis string. Can be used in conjunction with another method, e.g. B-Splines, for the remaining orbitals.
+\end{adjustwidth}
+
 \subsection{Basis/BSpline}
 
 \texttt{Rmax} \uline{Real}[\texttt{Lattice/EndPoint}]
@@ -2282,7 +2287,7 @@ calculations.
 Adds a small constant $\delta$ to the energy denominator in all diagrams.
 \end{adjustwidth}
 
-\texttt{TwoBody/StorageLimits} \uline{List of reals}['2, 2, 2']
+\texttt{TwoBody/StorageLimits} \uline{List of integers}['2, 2, 2']
 \begin{adjustwidth}{1cm}{}
 Specifies limits on the principal quantum number $n$ of
 valence orbitals included as external lines in two-body MBPT diagrams. Accepts input as a 
