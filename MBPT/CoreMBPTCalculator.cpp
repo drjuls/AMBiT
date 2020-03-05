@@ -942,7 +942,7 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
     // Hole line is attached to sa or sc
     int nn;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn) reduction(+:energy)
+    #pragma omp parallel for private(nn) reduction(-:energy)
 #endif
     /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
     with non-random-access iterators */
