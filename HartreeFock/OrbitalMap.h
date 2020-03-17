@@ -5,6 +5,7 @@
 #include "OrbitalInfo.h"
 #include <set>
 #include <map>
+#include <boost/container/flat_map.hpp>
 
 namespace Ambit
 {
@@ -13,7 +14,7 @@ namespace Ambit
 class OrbitalMap
 {
 protected:
-    typedef std::map<OrbitalInfo, pOrbital> BaseMap;
+    typedef boost::container::flat_map<OrbitalInfo, pOrbital> BaseMap;
 
 public:
     OrbitalMap(pLattice lat): lattice(lat) {}
