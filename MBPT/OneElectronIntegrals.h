@@ -277,12 +277,15 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
     unsigned int old_num_states = old_state_index.size();
+    ReverseOrbitalIndex rev_old_state_index = GetReverseIndex(old_state_index);
 
     unsigned int num_integrals;
     unsigned int old_key;
     double value;
 
     file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
+
+    OrbitalIndex::const_iterator s1, s2;
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
@@ -291,13 +294,21 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
-        unsigned int new_key = GetKey(i1, i2);
 
-        auto it = integrals.find(new_key);
-        if(it == integrals.end())
-            integrals[new_key] = value;
-        else
-            it->second += value;
+        s1 = orbitals->state_index.find(rev_old_state_index.at(i1));
+        s2 = orbitals->state_index.find(rev_old_state_index.at(i2));
+
+        // Old valence states no longer being included is not an error
+        if(s1 != orbitals->state_index.end() && s2 != orbitals->state_index.end())
+        {
+            unsigned int new_key = GetKey(s1->second, s2->second);
+
+            auto it = integrals.find(new_key);
+            if(it == integrals.end())
+                integrals[new_key] = value;
+            else
+                it->second += value;
+        }
     }
 
     file_err_handler->fclose(fp);
@@ -314,12 +325,15 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
     unsigned int old_num_states = old_state_index.size();
+    ReverseOrbitalIndex rev_old_state_index = GetReverseIndex(old_state_index);
 
     unsigned int num_integrals;
     unsigned int old_key;
     double value;
 
     file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
+
+    OrbitalIndex::const_iterator s1, s2;
 
     for(unsigned int i = 0; i < num_integrals; i++)
     {
@@ -328,22 +342,29 @@ void OneElectronIntegrals<IsHermitianZeroOperator>::Read(const std::string& file
 
         unsigned int i1 = old_key/old_num_states;
         unsigned int i2 = old_key - i1 * old_num_states;
-        unsigned int new_key = GetKey(i1, i2);
 
-        // Scale value
-        int kappa = orbitals->reverse_state_index.find(i1)->second.Kappa();
-        if(kappa == orbitals->reverse_state_index.find(i2)->second.Kappa())
+        s1 = orbitals->state_index.find(rev_old_state_index.at(i1));
+        s2 = orbitals->state_index.find(rev_old_state_index.at(i2));
+
+        // Old valence states no longer being included is not an error
+        if(s1 != orbitals->state_index.end() && s2 != orbitals->state_index.end())
         {
-            auto it = scaling.find(kappa);
-            if(it != scaling.end())
-                value *= it->second;
-        }
+            unsigned int new_key = GetKey(s1->second, s2->second);
 
-        auto it = integrals.find(new_key);
-        if(it == integrals.end())
-            integrals[new_key] = value;
-        else
-            it->second += value;
+            // Scale value
+            if(s1->first.Kappa() == s2->first.Kappa())
+            {
+                auto it = scaling.find(s1->first.Kappa());
+                if(it != scaling.end())
+                    value *= it->second;
+            }
+
+            auto it = integrals.find(new_key);
+            if(it == integrals.end())
+                integrals[new_key] = value;
+            else
+                it->second += value;
+        }
     }
 
     file_err_handler->fclose(fp);

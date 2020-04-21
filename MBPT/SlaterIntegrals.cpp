@@ -239,64 +239,58 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
+    unsigned long long int old_num_states = old_state_index.size();
+    ReverseOrbitalIndex rev_old_state_index = GetReverseIndex(old_state_index);
 
     unsigned int old_key_size;
+    unsigned int num_integrals;
+    double value;
     file_err_handler->fread(&old_key_size, sizeof(unsigned int), 1, fp);
+    file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
 
-    switch(old_key_size)
+    unsigned int old_key_4;
+    unsigned long long int old_key_8;
+    ExpandedKeyType temp_expanded;
+
+    OrbitalInfo s1, s2, s3, s4;
+    OrbitalIndex::const_iterator i1, i2, i3, i4;
+
+    for(unsigned int i = 0; i < num_integrals; i++)
     {
-        case sizeof(unsigned long long int):
+        if(old_key_size == sizeof(unsigned long long int))
         {
-            unsigned int num_integrals;
-            unsigned long long int old_key;
-            double value;
-
-            file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
-
-            unsigned long long int old_num_states = old_state_index.size();
-
-            for(unsigned int i = 0; i < num_integrals; i++)
-            {
-                file_err_handler->fread(&old_key, sizeof(unsigned long long int), 1, fp);
-                file_err_handler->fread(&value, sizeof(double), 1, fp);
-
-                ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
-                KeyType new_key = GetKey(temp_expanded);
-
-                auto it = TwoElectronIntegrals.find(new_key);
-                if(it == TwoElectronIntegrals.end())
-                    TwoElectronIntegrals[new_key] = value;
-                else
-                    it->second += value;
-            }
-            break;
+            file_err_handler->fread(&old_key_8, sizeof(unsigned long long int), 1, fp);
+            temp_expanded = ReverseKey(old_num_states, old_key_8);
+        }
+        else
+        {
+            file_err_handler->fread(&old_key_4, sizeof(unsigned int), 1, fp);
+            temp_expanded = ReverseKey(old_num_states, old_key_4);
         }
 
-        case sizeof(unsigned int):
+        file_err_handler->fread(&value, sizeof(double), 1, fp);
+
+        s1 = rev_old_state_index.at(std::get<1>(temp_expanded));
+        s2 = rev_old_state_index.at(std::get<2>(temp_expanded));
+        s3 = rev_old_state_index.at(std::get<3>(temp_expanded));
+        s4 = rev_old_state_index.at(std::get<4>(temp_expanded));
+
+        // Old valence states no longer being included is not an error
+        i1 = orbitals->state_index.find(s1);
+        i2 = orbitals->state_index.find(s2);
+        i3 = orbitals->state_index.find(s3);
+        i4 = orbitals->state_index.find(s4);
+
+        if(i1 != orbitals->state_index.end() && i2 != orbitals->state_index.end() &&
+           i3 != orbitals->state_index.end() && i4 != orbitals->state_index.end())
         {
-            unsigned int num_integrals;
-            unsigned int old_key;
-            double value;
+            KeyType new_key = GetKey(std::get<0>(temp_expanded), i1->second, i2->second, i3->second, i4->second);
 
-            file_err_handler->fread(&num_integrals, sizeof(unsigned int), 1, fp);
-
-            unsigned long long int old_num_states = old_state_index.size();
-
-            for(unsigned int i = 0; i < num_integrals; i++)
-            {
-                file_err_handler->fread(&old_key, sizeof(unsigned int), 1, fp);
-                file_err_handler->fread(&value, sizeof(double), 1, fp);
-
-                ExpandedKeyType temp_expanded = ReverseKey(old_num_states, old_key);
-                KeyType new_key = GetKey(temp_expanded);
-
-                auto it = TwoElectronIntegrals.find(new_key);
-                if(it == TwoElectronIntegrals.end())
-                    TwoElectronIntegrals[new_key] = value;
-                else
-                    it->second += value;
-            }
-            break;
+            auto it = TwoElectronIntegrals.find(new_key);
+            if(it == TwoElectronIntegrals.end())
+                TwoElectronIntegrals[new_key] = value;
+            else
+                it->second += value;
         }
     }
 
@@ -326,8 +320,7 @@ auto SlaterIntegrals<MapType>::ReverseKey(KeyType num_states, KeyType key) -> Ex
     remainder -= std::get<3>(expanded_key) * running_power;
     running_power = running_power/num_states;
 
-    std::get<4>(expanded_key) = remainder/running_power;
-    remainder -= std::get<4>(expanded_key) * running_power;
+    std::get<4>(expanded_key) = remainder;
 
     return expanded_key;
 }
