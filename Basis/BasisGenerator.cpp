@@ -228,11 +228,11 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     // Set closed core occupancies
     OccupationMap closed_shell_occupations = ConfigurationParser::ParseFractionalConfiguration(closed_shell_string);
-    
+
     // Make closed shell core. Ensure that all shells are completely filled.
     for(OccupationMap::iterator it = closed_shell_occupations.begin(); it != closed_shell_occupations.end(); it++)
         it->second = 2. * abs(it->first.Kappa());
-    
+
     // Create closed core with empty pointers for all occupied orbitals
     closed_core = pCore(new Core(lattice));
     closed_core->SetOccupancies(closed_shell_occupations);
@@ -451,11 +451,16 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     if(all_states.empty())
         all_states = user_input("Basis/ValenceBasis", "");
 
+    bool reorth = user_input.search("Basis/--reorthogonalise"); // Perform extra orthogonalisation
+
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(all_states);
     pOrbitalMap excited;
 
     if(user_input.search("Basis/--hf-basis"))
     {   excited = GenerateHFExcited(max_pqn_per_l);
+    }
+    else if(user_input.search("Basis/--xr-basis"))
+    {   excited = GenerateXRExcited(max_pqn_per_l);
     }
     else // default "Basis/--bspline-basis"
     {   user_input.search("Basis/--bspline-basis"); // Just to clear UFO from user_input.
@@ -470,7 +475,6 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
                 excited->AddState(porb.second);
         }
     }
-    bool reorth = user_input.search("Basis/--reorthogonalise");
 
     // Inject any special orbitals from another basis, and push the old ones to higher pqn
     int number_injected = user_input.vector_variable_size("Basis/InjectOrbitals");
@@ -618,6 +622,27 @@ void BasisGenerator::Orthogonalise(pOrbital current) const
                 current->ReNormalise(integrator);
             }
             it++;
+        }
+    }
+
+    current->SetEnergy(hf->GetMatrixElement(*current, *current));
+}
+
+void BasisGenerator::Orthogonalise(pOrbital current, pOrbitalMapConst orbitals) const
+{
+    pIntegrator integrator(hf->GetIntegrator());
+    current->ReNormalise(integrator);
+
+    // Orthogonalise to core
+    for(auto it: *orbitals)
+    {
+        pOrbitalConst other = it.second;
+        if((other->Kappa() == current->Kappa()) && (other->PQN() < current->PQN()))
+        {
+            double S = integrator->GetInnerProduct(*other, *current);
+            (*current) -= (*other) * S;
+
+            current->ReNormalise(integrator);
         }
     }
 

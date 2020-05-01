@@ -6,6 +6,8 @@
 
 namespace Ambit
 {
+typedef std::vector<OrbitalInfo> OrbitalInfoVector;
+
 class NonRelInfo : public OrbitalInfo
 {
     /** Stores a non-relativistic single particle state info. */
@@ -25,8 +27,11 @@ public:
 
     /** Get relativistic state info corresponding to kappa = -(L+1). */
     OrbitalInfo GetFirstRelativisticInfo() const;
+
     /** Get relativistic state info corresponding to kappa = L. */
     OrbitalInfo GetSecondRelativisticInfo() const;
+
+    OrbitalInfoVector GetRelativisticInfos() const;
 
     virtual int MaxNumElectrons() const override { return -4 * kappa - 2; } //!< Max occupancy of shell = 2(2L+1)
     virtual std::string Name() const override;
@@ -43,6 +48,14 @@ inline OrbitalInfo NonRelInfo::GetSecondRelativisticInfo() const
         return OrbitalInfo(pqn, kappa);
     else
         return OrbitalInfo(pqn, -kappa-1);
+}
+
+inline OrbitalInfoVector NonRelInfo::GetRelativisticInfos() const
+{
+    if(kappa == -1)
+        return {GetFirstRelativisticInfo()};
+    else
+        return {GetFirstRelativisticInfo(), GetSecondRelativisticInfo()};
 }
 
 inline std::string NonRelInfo::Name() const

@@ -1,35 +1,35 @@
 #ifndef CUSTOM_BASIS_H
 #define CUSTOM_BASIS_H
 
-#include "ExcitedStates.h"
+#include "HartreeFock/HFOperator.h"
 #include "HartreeFock/NonRelInfo.h"
 
 namespace Ambit
 {
-class CustomBasis : public ExcitedStates
+class CustomBasis
 {
 public:
-    CustomBasis(pLattice lattice, pCoreConst atom_core):
-        ExcitedStates(lattice, atom_core), filename("CustomBasis.txt")
-    {}
+    CustomBasis(pHFOperator hf_core);
     virtual ~CustomBasis() {}
 
-    /** Create excited states by following the prescription in filename (CustomBasis.txt).
-        Only creates up to num_states_per_l states in each wave. If num_states_per_l is zero length,
-        it creates all states in CustomBasis.txt.
+    /** current.f = r * previous.f
+        PRE: previous.kappa = current.kappa
      */
-    virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l);
-    virtual void CreateExcitedStates(const std::vector<unsigned int>& num_states_per_l, const std::string& file);
+    void MultiplyByR(pOrbitalConst previous, pOrbital current) const;
 
-    /** Update all of the excited states because the core has changed. */
-    virtual void Update();
+    /** current.f = sin(kr) * previous.f, where k = Pi/R_max
+        PRE: previous.kappa = current.kappa
+     */
+    void MultiplyBySinR(pOrbitalConst previous, pOrbital current) const;
 
-    virtual void SetFile(const std::string& file);
+    /** current.f = r * sin(kr) * previous.f
+        PRE: current.l = previous.l + 1
+     */
+    void MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const;
 
 protected:
-    virtual NonRelInfo ReadNonRelInfo(char* buffer, unsigned int& num_read);
-    std::vector<unsigned int> NumStatesPerL;
-    std::string filename;
+    pHFOperator hf;
+    RadialFunction potential;
 };
 
 }
