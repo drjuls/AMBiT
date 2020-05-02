@@ -133,7 +133,7 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
                 }
 
                 // Orthogonalise and set energy of new state
-                Orthogonalise(ds);
+                Orthogonalise(ds, open_core);
                 Orthogonalise(ds, excited);
 
                 if(DebugOptions.OutputHFExcited())
@@ -202,7 +202,7 @@ void CustomBasis::MultiplyByR(pOrbitalConst previous, pOrbital current) const
         current->dfdr[i] = previous->dfdr[i] * R[i] + previous->f[i];
         current->dgdr[i] = previous->dgdr[i] * R[i]
                 + alpha/(2. + AlphaSquared*potential.f[i])
-                  * (kappa_p/R[i] * previous->f[i] + (2. + (kappa_c - kappa_p)/R[i])*previous->dfdr[i]
+                  * (kappa_p/R[i] * previous->f[i] + (2. + kappa_c - kappa_p)*previous->dfdr[i]
                      + alpha * potential.dfdr[i] * (previous->g[i]*R[i] - current->g[i]));
     }
 
