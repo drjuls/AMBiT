@@ -12,6 +12,7 @@ class NonRelInfo : public OrbitalInfo
 {
     /** Stores a non-relativistic single particle state info. */
 public:
+    NonRelInfo(): OrbitalInfo() {};
     NonRelInfo(int principal_qn, int kappa_or_l):
         OrbitalInfo(principal_qn, kappa_or_l)
     {   if(kappa_or_l >= 0)

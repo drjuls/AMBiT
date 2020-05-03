@@ -20,63 +20,125 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
 
     bool debug = DebugOptions.OutputHFExcited();
 
+    // Create list of custom orbitals
+    typedef std::tuple<NonRelInfo, std::string, NonRelInfo> XRInstruction;
+    auto XRInstructionComparator = [](const XRInstruction& a, const XRInstruction& b)
+    {   return std::get<0>(a) < std::get<0>(b);
+    };
+    auto XRInstructionFromNonRelInfo = [](const NonRelInfo& nrinfo)
+    {   return std::make_tuple(nrinfo, "", nrinfo);
+    };
+
+    std::vector<XRInstruction> xRinstructions;
+    std::vector<NonRelInfo> HFinstructions;
+
+    unsigned int numcustomorbitals = user_input.vector_variable_size("Basis/CustomOrbitals");
+    for(unsigned int i = 0; i < numcustomorbitals; i++)
+    {
+        std::vector<std::string> line;
+        boost::split(line, boost::algorithm::trim_copy(user_input("Basis/CustomOrbitals", "", i)),
+                     boost::is_any_of(" -"), boost::token_compress_on);
+
+        NonRelInfo nrcurrent = ConfigurationParser::ParseOrbital(line[0]);
+        if(line.size() == 1)
+            HFinstructions.push_back(nrcurrent);
+        else if (line.size() == 3)
+        {   NonRelInfo nrprev = ConfigurationParser::ParseOrbital(line[2]);
+            xRinstructions.push_back(std::make_tuple(nrcurrent, line[1], nrprev));
+        }
+        else
+        {   *errstream << "Input error: CustomOrbitals: " << user_input("Basis/CustomOrbitals", "", i) << '\n';
+        }
+    }
+
+    // Sort instruction lists for searching on target NonRelInfo
+    std::sort(HFinstructions.begin(), HFinstructions.end());
+    std::sort(xRinstructions.begin(), xRinstructions.end(), XRInstructionComparator);
+    auto xrend = std::unique(xRinstructions.begin(), xRinstructions.end());
+    xRinstructions.resize(std::distance(xRinstructions.begin(), xrend));
+
+    // Default first state in each kappa is HF, so add to HF list if it is not in CustomOrbitals
+    for(int l = 0; l < max_pqn.size(); l++)
+    {
+        if(!max_pqn[l])
+            continue;
+
+        for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
+        {
+            if(kappa == 0)
+                break;
+
+            unsigned int pqn = l + 1;
+            while(pqn <= max_pqn[l] && closed_core->GetState(OrbitalInfo(pqn, kappa)))
+                pqn++;
+
+            if(pqn <= max_pqn[l])
+            {
+                if(!std::binary_search(xRinstructions.begin(), xRinstructions.end(),
+                                       XRInstructionFromNonRelInfo(NonRelInfo(pqn, kappa)), XRInstructionComparator))
+                    HFinstructions.push_back(OrbitalInfo(pqn, kappa));
+            }
+        }
+    }
+
+    std::sort(HFinstructions.begin(), HFinstructions.end());
+    auto hfend = std::unique(HFinstructions.begin(), HFinstructions.end());
+    HFinstructions.resize(std::distance(HFinstructions.begin(), hfend));
+
     // Create Hartree-Fock solver; define integrators.
     pIntegrator integrator(new SimpsonsIntegrator(lattice));
     pODESolver ode_solver(new AdamsSolver(integrator));
     HartreeFocker HF_Solver(ode_solver);
 
     // Do HF orbitals first. This ensures the lattice is large enough and that the starting levels exist.
-    unsigned int numorbitals = user_input.vector_variable_size("Basis/CustomOrbitals");
-    for(unsigned int i = 0; i < numorbitals; i++)
+    std::string hf_valence_states = user_input("Basis/HFOrbitals", "");
+    if(!hf_valence_states.empty())
     {
-        // Split each instruction on space
-        std::vector<std::string> instruction;
-        boost::split(instruction, boost::algorithm::trim_copy(user_input("Basis/CustomOrbitals", "", i)),
-                     boost::is_any_of(" -"), boost::token_compress_on);
+        pOrbitalMap hf_valence = GenerateHFExcited(ConfigurationParser::ParseBasisSize(hf_valence_states));
+        for(auto porb: *hf_valence)
+            excited->AddState(porb.second);
+    }
 
-        // Check orbital is required for current max_pqn
-        NonRelInfo nrcurrent = ConfigurationParser::ParseOrbital(instruction[0]);
-        if((max_pqn.size() <= nrcurrent.L()) || (max_pqn[nrcurrent.L()] < nrcurrent.PQN()))
-            continue;
-
-        if(instruction.size() == 1)
+    for(auto nrcurrent: HFinstructions)
+    {
+        // Create orbitals using Hartree Fock
+        for(OrbitalInfo current: nrcurrent.GetRelativisticInfos())
         {
-            // Create orbitals using Hartree Fock
-            for(OrbitalInfo current: nrcurrent.GetRelativisticInfos())
-            {
-                pOrbitalConst s = open_core->GetState(current);
-                if(s)
-                {   // Already exists in core
-                    if(!closed_core->GetOccupancy(current))
-                    {
-                        pOrbital s_copy = std::make_shared<Orbital>(s);
-                        double nu = s->Nu();
-                        *s_copy = *s;
-                        excited->AddState(s_copy);
+            if(excited->GetState(current))
+                continue;
 
-                        if(debug)
-                            *logstream << "  " << s_copy->Name() << " en:   " << std::setprecision(12) << s_copy->Energy() << "  size:  " << s_copy->size() << std::endl;
-                    }
-                }
-                else
+            pOrbitalConst s = open_core->GetState(current);
+            if(s)
+            {   // Already exists in core
+                if(!closed_core->GetOccupancy(current))
                 {
-                    pOrbital ds = std::make_shared<Orbital>(current);
-
-                    // Look for orbital with (pqn-1, kappa)
-                    pOrbitalConst onelower = open_core->GetState(OrbitalInfo(current.PQN()-1, current.Kappa()));
-                    if(!onelower)
-                        onelower = excited->GetState(OrbitalInfo(current.PQN()-1, current.Kappa()));
-
-                    if(onelower)
-                        ds->SetNu(onelower->Nu() + 1./hf->GetCharge());
-
-                    HF_Solver.CalculateExcitedState(ds, hf);
-                    double nu = ds->Nu();
-                    excited->AddState(ds);
+                    pOrbital s_copy = std::make_shared<Orbital>(s);
+                    double nu = s->Nu();
+                    *s_copy = *s;
+                    excited->AddState(s_copy);
 
                     if(debug)
-                        *logstream << "  " << ds->Name() << " en:   " << std::setprecision(12) << ds->Energy() << "  size:  " << ds->size() << std::endl;
+                        *logstream << "  " << s_copy->Name() << " en:   " << std::setprecision(12) << s_copy->Energy() << "  size:  " << s_copy->size() << std::endl;
                 }
+            }
+            else
+            {
+                pOrbital ds = std::make_shared<Orbital>(current);
+
+                // Look for orbital with (pqn-1, kappa)
+                pOrbitalConst onelower = open_core->GetState(OrbitalInfo(current.PQN()-1, current.Kappa()));
+                if(!onelower)
+                    onelower = excited->GetState(OrbitalInfo(current.PQN()-1, current.Kappa()));
+
+                if(onelower)
+                    ds->SetNu(onelower->Nu() + 1./hf->GetCharge());
+
+                HF_Solver.CalculateExcitedState(ds, hf);
+                double nu = ds->Nu();
+                excited->AddState(ds);
+
+                if(debug)
+                    *logstream << "  " << ds->Name() << " en:   " << std::setprecision(12) << ds->Energy() << "  size:  " << ds->size() << std::endl;
             }
         }
     }
@@ -84,51 +146,70 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
     // Do times R orbitals
     CustomBasis timesr(hf);
 
-    for(unsigned int i = 0; i < numorbitals; i++)
+    // Default first state in each kappa is HF, so add to HF list if it is not in CustomOrbitals
+    for(int l = 0; l < max_pqn.size(); l++)
     {
-        // Split each instruction on space
-        std::vector<std::string> instruction;
-        boost::split(instruction, boost::algorithm::trim_copy(user_input("Basis/CustomOrbitals", "", i)),
-                     boost::is_any_of(" -"), boost::token_compress_on);
-
-        // Check orbital is required for current max_pqn
-        NonRelInfo nrcurrent = ConfigurationParser::ParseOrbital(instruction[0]);
-        if((max_pqn.size() <= nrcurrent.L()) || (max_pqn[nrcurrent.L()] < nrcurrent.PQN()))
+        if(!max_pqn[l])
             continue;
 
-        if (instruction.size() == 3)
+        for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
         {
-            NonRelInfo nrprev = ConfigurationParser::ParseOrbital(instruction[2]);
+            if(kappa == 0)
+                break;
 
-            OrbitalInfo current = nrcurrent.GetFirstRelativisticInfo();
-            OrbitalInfo prev = nrprev.GetFirstRelativisticInfo();
-
-            int pass = 0;
-            while(pass < 2)
+            unsigned int pqn = l + 1;
+            bool use_sinkr = false;
+            while(pqn <= max_pqn[l])
             {
-                pass++;
-                pOrbital ds = open_core->GetState(current);
-                if(ds == NULL)
-                {   ds = std::make_shared<Orbital>(current);
-                    excited->AddState(ds);
+                OrbitalInfo current = OrbitalInfo(pqn, kappa);
+                OrbitalInfo prev;
+                std::string method;
+                pqn++;
+
+                if(closed_core->GetState(current) || excited->GetState(current))
+                {   use_sinkr = false;
+                    continue;
+                }
+                // Get method and previous orbitalinfo
+                else if(std::binary_search(xRinstructions.begin(), xRinstructions.end(),
+                                           XRInstructionFromNonRelInfo(current), XRInstructionComparator))
+                {
+                    auto it = std::lower_bound(xRinstructions.begin(), xRinstructions.end(),
+                                               XRInstructionFromNonRelInfo(current), XRInstructionComparator);
+
+                    // Use custom instruction
+                    method = std::get<1>(*it);
+                    NonRelInfo nrprev = std::get<2>(*it);
+                    prev = (kappa < 0? nrprev.GetFirstRelativisticInfo(): nrprev.GetSecondRelativisticInfo());
+                    use_sinkr = false;
+                }
+                else
+                {   prev = OrbitalInfo(current.PQN()-1, kappa);
+                    method = (use_sinkr? "S": "R");
+                    use_sinkr = !use_sinkr;
                 }
 
+                // Make new orbital
+                pOrbital ds = std::make_shared<Orbital>(current);
+                excited->AddState(ds);
+
+                // Find previous orbital
                 pOrbitalConst previous = excited->GetState(prev);
                 if(previous == NULL)
                     previous = open_core->GetState(prev);
                 if(previous == NULL)
-                {   *errstream << "Input error: " << prev.Name() << " undefined." << std::endl;
+                {   *errstream << "Input error: " << prev.Name() << " not found." << std::endl;
                     exit(1);
                 }
 
-                if(instruction[1] == std::string("R"))
+                if(method == std::string("R"))
                     timesr.MultiplyByR(previous, ds);
-                else if(instruction[1] == std::string("S"))
+                else if(method == std::string("S"))
                     timesr.MultiplyBySinR(previous, ds);
-                else if(instruction[1] == std::string("RS"))
+                else if(method == std::string("RS"))
                     timesr.MultiplyByRSinR(previous, ds);
                 else
-                {   *errstream << "Input error: " << user_input("Basis/CustomOrbitals", "", i) << " unknown." << std::endl;
+                {   *errstream << "Input error: method " << method << " unknown." << std::endl;
                     exit(1);
                 }
 
@@ -149,14 +230,6 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
                                << "  size: " << ds->size() << "  Rmax: " << r << "  NZ: "
                                << int(ds->PQN()) - int(ds->NumNodes()) - int(ds->L()) - 1 << std::endl;
                 }
-
-                if(current.L() != 0)
-                {
-                    current = nrcurrent.GetSecondRelativisticInfo();
-                    prev = nrprev.GetSecondRelativisticInfo();
-                }
-                else
-                    pass++;
             }
         }
     }
