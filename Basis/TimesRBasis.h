@@ -1,16 +1,16 @@
-#ifndef CUSTOM_BASIS_H
-#define CUSTOM_BASIS_H
+#ifndef TIMESR_BASIS_H
+#define TIMESR_BASIS_H
 
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/NonRelInfo.h"
 
 namespace Ambit
 {
-class CustomBasis
+class TimesRBasis
 {
 public:
-    CustomBasis(pHFOperator hf_core);
-    virtual ~CustomBasis() {}
+    TimesRBasis(pHFOperator hf_core);
+    virtual ~TimesRBasis() {}
 
     /** current.f = r * previous.f
         PRE: previous.kappa = current.kappa

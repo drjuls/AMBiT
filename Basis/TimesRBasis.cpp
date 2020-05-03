@@ -1,5 +1,5 @@
 #include "Include.h"
-#include "CustomBasis.h"
+#include "TimesRBasis.h"
 #include "BasisGenerator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HartreeFock/ConfigurationParser.h"
@@ -144,7 +144,7 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
     }
 
     // Do times R orbitals
-    CustomBasis timesr(hf);
+    TimesRBasis timesr(hf);
 
     // Default first state in each kappa is HF, so add to HF list if it is not in CustomOrbitals
     for(int l = 0; l < max_pqn.size(); l++)
@@ -237,7 +237,7 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
     return excited;
 }
 
-CustomBasis::CustomBasis(pHFOperator hf_core)
+TimesRBasis::TimesRBasis(pHFOperator hf_core)
 {
     pIntegrator integrator = std::make_shared<SimpsonsIntegrator>(hf_core->GetLattice());
     pODESolver ode_solver = std::make_shared<AdamsSolver>(integrator);
@@ -256,7 +256,7 @@ CustomBasis::CustomBasis(pHFOperator hf_core)
     hf = hf_core;
 }
 
-void CustomBasis::MultiplyByR(pOrbitalConst previous, pOrbital current) const
+void TimesRBasis::MultiplyByR(pOrbitalConst previous, pOrbital current) const
 {
     current->resize(previous->size());
 
@@ -282,7 +282,7 @@ void CustomBasis::MultiplyByR(pOrbitalConst previous, pOrbital current) const
     current->ReNormalise(hf->GetIntegrator());
 }
 
-void CustomBasis::MultiplyBySinR(pOrbitalConst previous, pOrbital current) const
+void TimesRBasis::MultiplyBySinR(pOrbitalConst previous, pOrbital current) const
 {
     current->resize(previous->size());
 
@@ -313,7 +313,7 @@ void CustomBasis::MultiplyBySinR(pOrbitalConst previous, pOrbital current) const
     current->ReNormalise(hf->GetIntegrator());
 }
 
-void CustomBasis::MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const
+void TimesRBasis::MultiplyByRSinR(pOrbitalConst previous, pOrbital current) const
 {
     current->resize(previous->size());
 
