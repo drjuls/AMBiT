@@ -36,8 +36,8 @@ pOrbitalMap BasisGenerator::GenerateXRExcited(const std::vector<int>& max_pqn)
     for(unsigned int i = 0; i < numcustomorbitals; i++)
     {
         std::vector<std::string> line;
-        boost::split(line, boost::algorithm::trim_copy(user_input("Basis/CustomOrbitals", "", i)),
-                     boost::is_any_of(" -"), boost::token_compress_on);
+        std::string trimmed = boost::algorithm::trim_copy(user_input("Basis/CustomOrbitals", "", i));
+        boost::algorithm::split(line, trimmed, boost::is_any_of(" -"), boost::token_compress_on);
 
         NonRelInfo nrcurrent = ConfigurationParser::ParseOrbital(line[0]);
         if(line.size() == 1)
