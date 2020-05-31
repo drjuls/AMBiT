@@ -561,11 +561,6 @@ double CoreMBPTCalculator::CalculateTwoElectron1(unsigned int k, const OrbitalIn
 
     double energy = 0.;
     int nn;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops
-    with non-random-access iterators */
     for(nn = 0; nn < core->size(); ++nn)
     {
         auto it_n = core->begin();
@@ -627,11 +622,6 @@ double CoreMBPTCalculator::CalculateTwoElectron2(unsigned int k, const OrbitalIn
     unsigned int k1, k1max;
 
     int nn;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn, k1, k1max) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(nn = 0; nn < core->size(); ++nn)
     {
         auto it_n = core->begin();
@@ -736,11 +726,6 @@ double CoreMBPTCalculator::CalculateTwoElectron4(unsigned int k, const OrbitalIn
     unsigned int k2, k2max;
 
     int nn;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn, k1, k1max, k2, k2max) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(nn = 0; nn < core->size(); ++nn)
     {
         auto it_n = core->begin();
@@ -842,11 +827,6 @@ double CoreMBPTCalculator::CalculateTwoElectron6(unsigned int k, const OrbitalIn
     unsigned int k2, k2max;
 
     int mm;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(mm, k1, k1max, k2, k2max) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(mm = 0; mm < core->size(); ++mm)
     {
         auto it_m = core->begin();
@@ -941,11 +921,6 @@ double CoreMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbital
 
     // Hole line is attached to sa or sc
     int nn;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(nn) reduction(-:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(nn = 0; nn < core->size(); ++nn)
     {
         auto it_n = core->begin();
