@@ -66,6 +66,7 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
 
     // NOTE: these have to be local variables because OpenMP doesn't support class-members in
     // data-sharing clauses. This means we need to pass these in as arguments to Write()
+    std::vector<std::tuple<int, unsigned, unsigned, unsigned, unsigned>> expanded_keys;
     std::vector<KeyType> keys;
     std::vector<double> values;
 
@@ -144,6 +145,15 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                                         {
                                     #endif
                                             keys.push_back(key);
+                                            // We need to store the actual orbital indices as well as the keys, since translating 
+                                            // between key and orbitals is not its own inverse (i.e. it doesn't preserve the order of
+                                            // the orbitals in the integral) and this can slightly affect the result. This will 
+                                            // increase the memory consumption within this subroutine, but these arrays will be 
+                                            // freed once we move on, si the overall effect on memory footprint should be small.
+                                            // TODO: Check with Julian as to whether the ordering of the orbitals *should* be 
+                                            // significant or is this a bug?
+                                            expanded_keys.push_back(std::make_tuple<int, unsigned, unsigned, unsigned, unsigned>\
+                                                    (std::move(k), std::move(i1), std::move(i2), std::move(i3), std::move(i4)));
 
                                     #ifdef AMBIT_USE_MPI
                                         }
@@ -173,15 +183,15 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
         return(previous_keys.size());
 
     // Make sure to allocate enough storage for the calculated integrals
-    values.resize(keys.size());
+    values.resize(expanded_keys.size());
 
     // Now run through all of this process's keys and calculate the corresponding integrals
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for default(none) shared(keys, values) schedule(dynamic, 8)
+    #pragma omp parallel for default(none) shared(expanded_keys, keys, values, stderr) schedule(dynamic, 8)
 #endif
-    for(int n = 0; n < keys.size(); n++)
+    for(int n = 0; n < expanded_keys.size(); n++)
     {   // Expand the key into a set of orbital indices and multipolarity k
-        auto expanded_key = this->ReverseKey(this->orbitals->size(), keys[n]);
+        auto expanded_key = expanded_keys[n];
         int k = std::get<0>(expanded_key);
         unsigned int i1 = std::get<1>(expanded_key);
         // reverse_state_index is a typedef for std::vector<OrbitalInfo>
@@ -257,6 +267,8 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
         return this->TwoElectronIntegrals.size();
     }
     #endif
+    // We should never reach this point unless there's been a compilation error, so bail with an error
+    exit(EXIT_FAILURE);
 }
 
 #ifdef AMBIT_USE_MPI
