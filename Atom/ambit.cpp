@@ -15,9 +15,11 @@
 #include "ExternalField/LorentzInvarianceT2.h"
 
 // Headers to get stack-traces
+#ifdef UNIX
 #include <unistd.h>
 #include <execinfo.h>
 #include <signal.h>
+#endif
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
