@@ -5,6 +5,9 @@
 #include <memory>
 #include <cstring>
 #include <cerrno>
+#ifdef UNIX
+#include <signal.h>
+#endif
 
 namespace Ambit
 {
@@ -98,7 +101,7 @@ int FileErrHandler::fread(void* buf, size_t size, size_t nr, FILE* stream)
     
     // fread uses a return value less than nr for both errors and EOF, so we need to explicitly check
     // std::ferror to see which happened.
-    // NOTE: we want to alert every time we get an fread() error, since this can tank the entire
+    // NOTE: we want to alert whenever we get an fread() error, since this can tank the entire
     // calculation.
     if(ret < nr)
     {
@@ -109,7 +112,13 @@ int FileErrHandler::fread(void* buf, size_t size, size_t nr, FILE* stream)
         }
         else if(std::feof(stream))
         {
-            *errstream << "WARNING: unexpectedly reached end of data in file\n";
+            *errstream << "Error: unexpectedly reached end of data in file\n";
+            #ifdef UNIX
+                // Send SIGTERM to ourselves so we can emit a stack-trace
+                raise(SIGTERM);
+            #else
+                exit(EXIT_FAILURE);
+            #endif
         }
     }
     return(ret);

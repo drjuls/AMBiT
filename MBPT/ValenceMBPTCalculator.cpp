@@ -110,11 +110,6 @@ double ValenceMBPTCalculator::CalculateTwoElectronValence(unsigned int k, const 
     int k2, k2max;
 
     int ii;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(ii, k1, k1max, k2, k2max) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(ii = 0; ii < excited->size(); ++ii)
     {
         auto it_alpha = excited->begin();
@@ -203,11 +198,6 @@ double ValenceMBPTCalculator::CalculateTwoElectronSub(unsigned int k, const Orbi
     const double Ed = ValenceEnergies.find(sd.Kappa())->second;
 
     int ii;
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(ii) reduction(+:energy)
-#endif
-    /* Note: this needs to be a for loop since OpenMP doesn't gracefully handle reductions over loops 
-    with non-random-access iterators */
     for(ii=0; ii < high->size(); ++ii)
     {
         auto it_alpha = high->begin();

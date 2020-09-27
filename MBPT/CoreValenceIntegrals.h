@@ -39,7 +39,7 @@ public:
 
 #ifdef AMBIT_USE_MPI
     /** MPI version of Write() overridden to gather and write. */
-    virtual void Write(const std::string& filename) const override;
+    virtual void Write(const std::string& filename, const std::vector<KeyType>& keys, const std::vector<double>& values) const;
 #endif
 
     void IncludeCore(bool include_mbpt, bool include_subtraction, bool include_wrong_parity_box_diagrams);
@@ -63,8 +63,6 @@ protected:
 #ifdef AMBIT_USE_MPI
     bool my_calculations_done;
     mutable bool root_complete;
-    std::vector<KeyType> new_keys;
-    std::vector<double> new_values;
 #endif
 };
 

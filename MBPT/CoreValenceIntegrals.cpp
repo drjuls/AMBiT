@@ -54,28 +54,21 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
     unsigned int i1, i2, i3, i4;
     int k, kmax;
 
-    std::set<KeyType> found_keys;   // For check_size_only or MPI checking
-
+    std::set<KeyType> previous_keys;   // Keep track of integrals we've already read from a file
+    for(auto integral : this->TwoElectronIntegrals)
+        previous_keys.insert(integral.first);
 #ifdef AMBIT_USE_MPI
     int count = 0;  // Processor index
 
-    if(!check_size_only)
-    {
-        int new_keys_per_processor = CalculateTwoElectronIntegrals(orbital_map_1, orbital_map_2, orbital_map_3, orbital_map_4, true);
-        new_keys_per_processor = (new_keys_per_processor + NumProcessors - 1)/NumProcessors;
-
-        new_keys.clear();
-        new_keys.reserve(new_keys_per_processor);
-        new_values.clear();
-        new_values.reserve(new_keys_per_processor);
-
-        for(const auto& pair: this->TwoElectronIntegrals)
-            found_keys.insert(pair.first);
-
-        my_calculations_done = false;
-        root_complete = false;
-    }
+    my_calculations_done = false;
+    root_complete = false;
 #endif
+
+    // NOTE: these have to be local variables because OpenMP doesn't support class-members in
+    // data-sharing clauses. This means we need to pass these in as arguments to Write()
+    std::vector<std::tuple<int, unsigned, unsigned, unsigned, unsigned>> expanded_keys;
+    std::vector<KeyType> keys;
+    std::vector<double> values;
 
     if(!check_size_only)
     {
@@ -84,18 +77,12 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
         if(include_valence || include_valence_subtraction || include_valence_extra_box)
             valence_PT->UpdateIntegrals();
     }
-
-    // Save state every hour or so unless nearly_done is true
-    std::chrono::steady_clock::time_point mark_time = std::chrono::steady_clock::now();
-    std::chrono::minutes gap(47);   // 47 minutes
-    bool nearly_done = false;
-
+    
+    // Populate a table of key-value pairs (basically a vector of pairs). This doesn't actually
+    // calculate the integrals
     auto it_1 = orbital_map_1->begin();
     while(it_1 != orbital_map_1->end())
     {
-        if(std::next(it_1) == orbital_map_1->end())
-            nearly_done = true;
-
         i1 = this->orbitals->state_index.at(it_1->first);
         const auto& s1 = it_1->first;
 
@@ -147,57 +134,34 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                             {
                                 KeyType key = this->GetKey(k, i1, i2, i3, i4);
 
-                                if(check_size_only)
-                                {
-                                    if((this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end()) &&
-                                       (include_core || include_core_subtraction || include_valence || include_valence_subtraction || !usual_parity))
-                                        found_keys.insert(key);
-                                }
-                                else
-                                {   // Check that this integral doesn't already exist
-                                    #ifdef AMBIT_USE_MPI
-                                    if(!found_keys.count(key))
+                                    if(!previous_keys.count(key) && (include_core || include_core_subtraction || include_valence || include_valence_subtraction || !usual_parity))
                                     {
+                                        // Keep track of the key even if it's not ours. This is necessary
+                                        // for check-sizes to work correctly across multiple processes.
+                                        previous_keys.insert(key);
+                                    #ifdef AMBIT_USE_MPI
                                         // Check if this is our job
-                                        if(count == ProcessorRank)
+                                        if(count == ProcessorRank || check_size_only)
                                         {
-                                    #else
-                                    if(this->TwoElectronIntegrals.find(key) == this->TwoElectronIntegrals.end())
-                                    {
                                     #endif
-
-                                        double radial = 0;
-                                        if(usual_parity)
-                                        {   if(include_core)
-                                                radial += core_PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
-                                            if(include_core_subtraction)
-                                                radial += core_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
-                                            if(include_valence)
-                                                radial += valence_PT->GetTwoElectronValence(k, s1, s2, s3, s4);
-                                            if(include_valence_subtraction)
-                                                radial += valence_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
-                                        }
-                                        else
-                                        {   if(include_core_extra_box)
-                                                radial += core_PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
-                                            if(include_valence_extra_box)
-                                                radial += valence_PT->GetTwoElectronBoxValence(k, s1, s2, s3, s4);
-                                        }
+                                            keys.push_back(key);
+                                            // We need to store the actual orbital indices as well as the keys, since translating 
+                                            // between key and orbitals is not its own inverse (i.e. it doesn't preserve the order of
+                                            // the orbitals in the integral) and this can slightly affect the result. This will 
+                                            // increase the memory consumption within this subroutine, but these arrays will be 
+                                            // freed once we move on, si the overall effect on memory footprint should be small.
+                                            // TODO: Check with Julian as to whether the ordering of the orbitals *should* be 
+                                            // significant or is this a bug?
+                                            expanded_keys.push_back(std::make_tuple<int, unsigned, unsigned, unsigned, unsigned>\
+                                                    (std::move(k), std::move(i1), std::move(i2), std::move(i3), std::move(i4)));
 
                                     #ifdef AMBIT_USE_MPI
-                                        new_keys.push_back(key);
-                                        new_values.push_back(radial);
                                         }
-
-                                        found_keys.insert(key);
-                                        count++;
-                                        if(count == NumProcessors)
-                                            count = 0;
-                                    #else
-                                        this->TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
+                                            count++;
+                                            if(count == NumProcessors)
+                                                count = 0;
                                     #endif
                                     }
-                                }
                             }
 
                             if(include_core_extra_box || include_valence_extra_box)
@@ -206,14 +170,6 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                                 k+=2;
                         }
                     }
-
-                    // Save state if lots of time has passed
-                    std::chrono::steady_clock::duration t = std::chrono::steady_clock::now() - mark_time;
-                    if(!nearly_done && t > gap)
-                    {   this->Write(write_file);    // Write has an MPI_Barrier, so all processes are at the same time
-                        mark_time = std::chrono::steady_clock::now();
-                    }
-
                     it_4++;
                 }
                 it_2++;
@@ -222,39 +178,102 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
         }
         it_1++;
     }
-
+    
     if(check_size_only)
-        return found_keys.size();
-    else
+        return(previous_keys.size());
+
+    // Make sure to allocate enough storage for the calculated integrals
+    values.resize(expanded_keys.size());
+
+    // Now run through all of this process's keys and calculate the corresponding integrals
+#ifdef AMBIT_USE_OPENMP
+    #pragma omp parallel for default(none) shared(expanded_keys, keys, values, stderr) schedule(dynamic, 8)
+#endif
+    for(int n = 0; n < expanded_keys.size(); n++)
+    {   // Expand the key into a set of orbital indices and multipolarity k
+        auto expanded_key = expanded_keys[n];
+        int k = std::get<0>(expanded_key);
+        unsigned int i1 = std::get<1>(expanded_key);
+        // reverse_state_index is a typedef for std::vector<OrbitalInfo>
+        const auto& s1 = this->orbitals->reverse_state_index.at(i1);
+
+        unsigned int i2 = std::get<2>(expanded_key);
+        const auto& s2 = this->orbitals->reverse_state_index.at(i2);
+
+        unsigned int i3 = std::get<3>(expanded_key);
+        const auto& s3 = this->orbitals->reverse_state_index.at(i3);
+
+        unsigned int i4 = std::get<4>(expanded_key);
+        const auto& s4 = this->orbitals->reverse_state_index.at(i4);
+     
+        // Now actually calculate the various diagrams
+        double radial = 0;
+        bool usual_parity = ((s2.L() + s4.L() + k)%2 == 0);
+
+        if(usual_parity)
+        {   if(include_core)
+                radial += core_PT->GetTwoElectronDiagrams(k, s1, s2, s3, s4);
+            if(include_core_subtraction)
+                radial += core_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
+            if(include_valence)
+                radial += valence_PT->GetTwoElectronValence(k, s1, s2, s3, s4);
+            if(include_valence_subtraction)
+                radial += valence_PT->GetTwoElectronSubtraction(k, s1, s2, s3, s4);
+        }
+        else
+        {   if(include_core_extra_box)
+                radial += core_PT->GetTwoElectronBoxDiagrams(k, s1, s2, s3, s4);
+            if(include_valence_extra_box)
+                radial += valence_PT->GetTwoElectronBoxValence(k, s1, s2, s3, s4);
+        }
+
+        values[n] = radial;
+    }
+
     #ifdef AMBIT_USE_MPI
+    if(!check_size_only)
     {   // Gather to root node, write to file, and read back in
         my_calculations_done = true;
         if(ProcessorRank == 0)
             root_complete = true;
 
         // Do loop protects processes that finished before root and therefore
-        // may have to write multiple times.
+        // may have to write multiple times. No need to explicitly collect the key-value pairs, since
+        // this happens when we read the file back in.
         do{
-            this->Write(write_file);
+            this->Write(write_file, keys, values);
         } while(!root_complete);
 
         this->clear();
-        new_keys.clear();
-        new_values.clear();
+        keys.clear();
+        values.clear();
         this->Read(write_file);
 
         return this->TwoElectronIntegrals.size();
     }
     #else
-    {   this->Write(write_file);
+    {   
+        // Collect all of our key-value pairs and put them in the class' map for writing
+        auto key_it = keys.begin();
+        auto value_it = values.begin();
+        while(key_it != keys.end() && value_it != values.end())
+        {   
+            this->TwoElectronIntegrals.insert(std::pair<KeyType, double>(*key_it, *value_it));
+            key_it++;
+            value_it++;
+        } 
+
+        this->Write(write_file);
         return this->TwoElectronIntegrals.size();
     }
     #endif
+    // We should never reach this point unless there's been a compilation error, so bail with an error
+    exit(EXIT_FAILURE);
 }
 
 #ifdef AMBIT_USE_MPI
 template <class MapType>
-void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
+void CoreValenceIntegrals<MapType>::Write(const std::string& filename, const std::vector<KeyType>& keys, const std::vector<double>& values) const
 {
     unsigned int KeyType_size = sizeof(KeyType);
     MPI_Datatype mpikeytype;
@@ -268,16 +287,16 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
             mpikeytype = MPI_UNSIGNED_LONG_LONG;
             break;
     }
-
+    
     if(ProcessorRank == 0)
     {
         // Send completion status
         int complete = (my_calculations_done? 1: 0);
         MPI_Bcast(&complete, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Get number of keys from all processes
+        // Get number of integrals from all processes. 
         std::vector<unsigned int> num_integrals(NumProcessors);
-        num_integrals[0] = new_keys.size();
+        num_integrals[0] = values.size();
 
         MPI_Status status;
         for(int proc = 1; proc < NumProcessors; proc++)
@@ -300,32 +319,41 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
         for(auto& pair: this->TwoElectronIntegrals)
         {
             const double value = pair.second;   // Convert to double
-            file_err_handler->fwrite(&pair.first, sizeof(KeyType), 1, fp);
-            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
+            if(!std::isnan(value))
+            {
+                file_err_handler->fwrite(&pair.first, sizeof(KeyType), 1, fp);
+                file_err_handler->fwrite(&value, sizeof(double), 1, fp);
+            }
         }
 
         for(int i = 0; i < num_integrals[0]; i++)
         {
-            const double value = new_values[i];   // Convert to double
-            file_err_handler->fwrite(&new_keys[i], sizeof(KeyType), 1, fp);
-            file_err_handler->fwrite(&value, sizeof(double), 1, fp);
+            const double value = values[i];   // Convert to double
+            if(!std::isnan(value))
+            {
+                file_err_handler->fwrite(&keys[i], sizeof(KeyType), 1, fp);
+                file_err_handler->fwrite(&value, sizeof(double), 1, fp);
+            }
         }
 
         // Receive and write data from other processes
-        std::vector<KeyType> keys;
-        std::vector<double> values;
+        std::vector<KeyType> mpi_keys;
+        std::vector<double> mpi_values;
         for(int proc = 1; proc < NumProcessors; proc++)
         {
-            keys.resize(num_integrals[proc]);
-            values.resize(num_integrals[proc]);
+            mpi_keys.resize(num_integrals[proc]);
+            mpi_values.resize(num_integrals[proc]);
 
-            MPI_Recv(keys.data(), num_integrals[proc], mpikeytype, proc, 2, MPI_COMM_WORLD, &status);
-            MPI_Recv(values.data(), num_integrals[proc], MPI_DOUBLE, proc, 3, MPI_COMM_WORLD, &status);
+            MPI_Recv(mpi_keys.data(), num_integrals[proc], mpikeytype, proc, 2, MPI_COMM_WORLD, &status);
+            MPI_Recv(mpi_values.data(), num_integrals[proc], MPI_DOUBLE, proc, 3, MPI_COMM_WORLD, &status);
 
             for(int i = 0; i < num_integrals[proc]; i++)
             {
-                file_err_handler->fwrite(&keys[i], sizeof(KeyType), 1, fp);
-                file_err_handler->fwrite(&values[i], sizeof(double), 1, fp);
+                if(!std::isnan(mpi_values[i]))
+                {
+                    file_err_handler->fwrite(&mpi_keys[i], sizeof(KeyType), 1, fp);
+                    file_err_handler->fwrite(&mpi_values[i], sizeof(double), 1, fp);
+                }
             }
         }
 
@@ -356,12 +384,12 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename) const
             return;
 
         // Send data to root. First number of keys.
-        unsigned int num_keys = new_keys.size();
-        MPI_Send(&num_keys, 1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD);
+        unsigned int num_integrals = values.size();
+        MPI_Send(&num_integrals, 1, MPI_UNSIGNED, 0, 1, MPI_COMM_WORLD);
 
         // Send keys and data to root
-        MPI_Send(new_keys.data(), num_keys, mpikeytype, 0, 2, MPI_COMM_WORLD);
-        MPI_Send(new_values.data(), num_keys, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
+        MPI_Send(keys.data(), num_integrals, mpikeytype, 0, 2, MPI_COMM_WORLD);
+        MPI_Send(values.data(), num_integrals, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

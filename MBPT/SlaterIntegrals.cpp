@@ -109,16 +109,22 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                             }
                             else
                             {   // Check that this integral doesn't already exist
+#ifdef AMBIT_USE_OPENMP
+                                #pragma omp critical(TWO_ELECTRON_SLATER)
+                                {
+#endif
                                 if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
                                 {
 #ifdef AMBIT_USE_OPENMP
                                     double radial = hartreeY_operators[omp_get_thread_num()]->GetMatrixElement(*s4, *s2);
-                                    #pragma omp critical(TWO_ELECTRON_SLATER)
 #else
                                     double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
 #endif
                                     TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
                                 }
+#ifdef AMBIT_USE_OPENMP
+                                } // Critical section
+#endif
                             }
                         }
                         it_4++;
