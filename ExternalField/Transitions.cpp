@@ -231,7 +231,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
 
                 // Add to matrix_elements map
-                return_value = values[left.second * left_levels.levels.size() + right.second];
+                return_value = values[left.second * right_levels.levels.size() + right.second];
                 matrix_elements.insert(std::make_pair(id, return_value));
             }
             else
