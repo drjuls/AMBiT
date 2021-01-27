@@ -23,8 +23,14 @@ public:
     {   return GetScale();
     }
 
+    virtual void GetODEFunction(unsigned int latticepoint, const SpinorFunction& fg, double* w) const override;
+    virtual void GetODECoefficients(unsigned int latticepoint, const SpinorFunction& fg, double* w_f, double* w_g, double* w_const) const override;
+    virtual void GetODEJacobian(unsigned int latticepoint, const SpinorFunction& fg, double** jacobian, double* dwdr) const override;
+
+    virtual SpinorFunction ApplyTo(const SpinorFunction& a) const override;
+
 protected:
-    virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const;
+    virtual SpinorFunction CalculateExtraExchange(const SpinorFunction& s) const override;
 
 protected:
     bool do_rel_nms;
