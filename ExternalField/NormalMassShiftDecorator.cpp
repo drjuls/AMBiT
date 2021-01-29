@@ -78,7 +78,7 @@ SpinorFunction NormalMassShiftDecorator::CalculateExtraExchange(const SpinorFunc
     differentiator->GetDerivative(s.dfdr, second_derivative_f);
     differentiator->GetDerivative(s.dgdr, second_derivative_g);
 
-    if(do_nonrel_nms)
+    if(false)
     {
         std::vector<double> third_derivative_f(s.size());
         std::vector<double> third_derivative_g(s.size());
