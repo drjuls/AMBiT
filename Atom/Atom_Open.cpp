@@ -279,7 +279,7 @@ void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
     else if(angular_library == nullptr)
     {
         std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-        if(user_input.search("AngularDataDirectory"))
+        if(user_input.VariableExists("AngularDataDirectory"))
             angular_directory = user_input("AngularDataDirectory", "");
 
         angular_library = std::make_shared<AngularDataLibrary>(angular_directory);
