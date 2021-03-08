@@ -21,6 +21,7 @@ void NormalMassShiftDecorator::GetODEFunction(unsigned int latticepoint, const S
     {
         const double alpha = physicalConstant->GetAlpha();
         w[0] += -2.*scale/alpha * fg.g[latticepoint];
+        w[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * GetDirectPotential().f[latticepoint]) * fg.f[latticepoint];
     }
 }
 
@@ -32,6 +33,7 @@ void NormalMassShiftDecorator::GetODECoefficients(unsigned int latticepoint, con
     {
         const double alpha = physicalConstant->GetAlpha();
         w_g[0] += -2.*scale/alpha;
+        w_f[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * GetDirectPotential().f[latticepoint]);
     }
 }
 
@@ -42,7 +44,7 @@ void NormalMassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const S
     if(do_nonrel_nms)
     {
         const double alpha = physicalConstant->GetAlpha();
-        jacobian[0][1] = -2.*scale/alpha;
+//        jacobian[0][1] = -2.*scale/alpha;
     }
 }
 
@@ -55,6 +57,9 @@ SpinorFunction NormalMassShiftDecorator::ApplyTo(const SpinorFunction& a) const
         const double alphasquared = physicalConstant->GetAlphaSquared();
         for(unsigned int i = 0; i < ta.size(); i++)
         {
+            ta.f[i] += 0.5 * scale * alphasquared * gsl_pow_2(GetDirectPotential().f[i]) * a.f[i];
+            ta.dfdr[i] += 0.5 * scale * alphasquared * GetDirectPotential().f[i] *
+                    (GetDirectPotential().f[i] * a.dfdr[i] + GetDirectPotential().dfdr[i] * a.f[i]);
             ta.g[i] += 2.*scale/alphasquared * a.g[i];
             ta.dgdr[i] += 2.*scale/alphasquared * a.dgdr[i];
         }
@@ -78,42 +83,141 @@ SpinorFunction NormalMassShiftDecorator::CalculateExtraExchange(const SpinorFunc
     differentiator->GetDerivative(s.dfdr, second_derivative_f);
     differentiator->GetDerivative(s.dgdr, second_derivative_g);
 
-    if(false)
-    {
-        std::vector<double> third_derivative_f(s.size());
-        std::vector<double> third_derivative_g(s.size());
+///    if(do_rel_nms)
+//    {
+//        double ZalphaOnTwoM = 0.5 * Z * alpha;
 
-        differentiator->GetSecondDerivative(s.dfdr, third_derivative_f);
-        differentiator->GetSecondDerivative(s.dgdr, third_derivative_g);
+//        for(int i = 0; i < s.size(); i++)
+//        {
+//            exchange.f[i] -= ZalphaOnTwoM/R[i] * (2. * s.dgdr[i] - (s.Kappa()+1) * s.g[i]/R[i]);
+//            exchange.dfdr[i] -= ZalphaOnTwoM/R[i]
+//                * (2. * second_derivative_g[i] - (s.Kappa()+3) * s.dgdr[i]/R[i] + (2.*s.Kappa()+2) * s.g[i]/R2[i]);
 
-        double coeff_f = s.Kappa() * (s.Kappa() + 1);
-        double coeff_g = s.Kappa() * (s.Kappa() - 1);
+//            exchange.g[i] += ZalphaOnTwoM * (2. * s.dfdr[i] + (s.Kappa() - 1) * s.f[i]/R[i])/R[i];
+//            exchange.dgdr[i] += ZalphaOnTwoM/R[i]
+//                * (2. * second_derivative_f[i] + (s.Kappa()-3) * s.dfdr[i]/R[i] - (2.*s.Kappa()-2) * s.f[i]/R2[i]);
+//        }
+//    }
 
-        for(int i = 0; i < s.size(); i++)
-        {
-            exchange.f[i] += 0.5 * (second_derivative_f[i] - coeff_f * s.f[i]/R2[i]);
-            exchange.dfdr[i] += 0.5 * (third_derivative_f[i] - coeff_f * (s.dfdr[i] - 2.*s.f[i]/R[i]) /R2[i]);
-            exchange.g[i] += 0.5 * (second_derivative_g[i] - coeff_g * s.g[i]/R2[i]) + 2./alphasquared * s.g[i];
-            exchange.dgdr[i] += 0.5 * (third_derivative_g[i] - coeff_g * (s.dgdr[i] - 2.*s.g[i]/R[i]) /R2[i]) + 2./alphasquared * s.dgdr[i];
-        }
-    }
+    RadialFunction V = GetDirectPotential();
 
     if(do_rel_nms)
     {
-        double ZalphaOnTwoM = 0.5 * Z * alpha;
-
         for(int i = 0; i < s.size(); i++)
         {
-            exchange.f[i] -= ZalphaOnTwoM/R[i] * (2. * s.dgdr[i] - (s.Kappa()+1) * s.g[i]/R[i]);
-            exchange.dfdr[i] -= ZalphaOnTwoM/R[i]
-                * (2. * second_derivative_g[i] - (s.Kappa()+3) * s.dgdr[i]/R[i] + (2.*s.Kappa()+2) * s.g[i]/R2[i]);
+            exchange.f[i] += V.f[i] * alpha * (s.Kappa() * s.g[i]/R[i]);
+            exchange.dfdr[i] += alpha * s.Kappa() * (V.dfdr[i] * s.g[i] + V.f[i] * s.dgdr[i] - V.f[i] * s.g[i]/R[i])/R[i];
 
-            exchange.g[i] += ZalphaOnTwoM * (2. * s.dfdr[i] + (s.Kappa() - 1) * s.f[i]/R[i])/R[i];
-            exchange.dgdr[i] += ZalphaOnTwoM/R[i]
-                * (2. * second_derivative_f[i] + (s.Kappa()-3) * s.dfdr[i]/R[i] - (2.*s.Kappa()-2) * s.f[i]/R2[i]);
+            exchange.g[i] += V.f[i] * alpha * s.dfdr[i];
+            exchange.dgdr[i] += alpha * (V.dfdr[i] * s.dfdr[i] + V.f[i] * second_derivative_f[i]);
         }
     }
 
     return exchange;
 }
+
+NormalMassShiftOperator::NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms, bool nonrel):
+    SpinorOperator(0, hf->GetIntegrator()), hf(hf), do_rel_nms(only_rel_nms), do_nonrel_nms(nonrel)
+{
+    if(only_rel_nms)
+        do_nonrel_nms = false;
+    else if(nonrel)
+        do_rel_nms = false;
+    else
+        do_nonrel_nms = do_rel_nms = true;
+}
+
+SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) const
+{
+    if(a.Kappa() != kappa_b)
+        return SpinorFunction(kappa_b);
+
+    SpinorFunction ret(a.Kappa(), a.size());
+
+    std::vector<double> second_derivative_f(a.size());
+    std::vector<double> second_derivative_g(a.size());
+
+    const double* R = hf->GetLattice()->R();
+    const double* R2 = hf->GetLattice()->Rpower(2);
+    const double alpha = hf->GetPhysicalConstant()->GetAlpha();
+    const double alphasquared = hf->GetPhysicalConstant()->GetAlphaSquared();
+
+    hf->GetDifferentiator()->GetDerivative(a.dfdr, second_derivative_f);
+    hf->GetDifferentiator()->GetDerivative(a.dgdr, second_derivative_g);
+
+    if(do_nonrel_nms)
+    {
+        std::vector<double> third_derivative_f(a.size());
+        std::vector<double> third_derivative_g(a.size());
+
+        hf->GetDifferentiator()->GetSecondDerivative(a.dfdr, third_derivative_f);
+        hf->GetDifferentiator()->GetSecondDerivative(a.dgdr, third_derivative_g);
+
+        double coeff_f = a.Kappa() * (a.Kappa() + 1);
+        double coeff_g = a.Kappa() * (a.Kappa() - 1);
+
+        for(unsigned int i = 0; i < a.size(); i++)
+        {
+            ret.f[i] -= 0.5 * (second_derivative_f[i] - coeff_f * a.f[i]/R2[i]);
+            ret.dfdr[i] -= 0.5 * (third_derivative_f[i] - coeff_f * (a.dfdr[i] - 2.*a.f[i]/R[i]) /R2[i]);
+            ret.g[i] -= 0.5 * (second_derivative_g[i] - coeff_g * a.g[i]/R2[i]);
+            ret.dgdr[i] -= 0.5 * (third_derivative_g[i] - coeff_g * (a.dgdr[i] - 2.*a.g[i]/R[i]) /R2[i]);
+        }
+    }
+
+    if(do_rel_nms)
+    {
+        double ZalphaOnTwoM = 0.5 * hf->GetZ() * alpha;
+
+        for(unsigned int i = 0; i < a.size(); i++)
+        {
+            ret.f[i] += ZalphaOnTwoM/R[i] * (2. * a.dgdr[i] - (a.Kappa()+1) * a.g[i]/R[i]);
+            ret.dfdr[i] += ZalphaOnTwoM/R[i]
+                * (2. * second_derivative_g[i] - (a.Kappa()+3) * a.dgdr[i]/R[i] + (2.*a.Kappa()+2) * a.g[i]/R2[i]);
+
+            ret.g[i] -= ZalphaOnTwoM * (2. * a.dfdr[i] + (a.Kappa() - 1) * a.f[i]/R[i])/R[i];
+            ret.dgdr[i] -= ZalphaOnTwoM/R[i]
+                * (2. * second_derivative_f[i] + (a.Kappa()-3) * a.dfdr[i]/R[i] - (2.*a.Kappa()-2) * a.f[i]/R2[i]);
+        }
+    }
+
+    // Convert to reduced matrix element
+    return ret * std::sqrt(a.TwoJ() + 1);
+}
+
+NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+{
+    auto hf = atom.GetHFOperator();
+    op = std::make_shared<NormalMassShiftOperator>(hf, user_input.search("--only-relativistic-nms"), user_input.search("--nonrelativistic-mass-shift"));
+
+    if(user_input.search("--rpa"))
+    {   op = MakeRPA(std::static_pointer_cast<NormalMassShiftOperator>(op), hf, atom.GetHartreeY());
+        double scale = user_input("Scale", 1.);
+        std::static_pointer_cast<RPAOperator>(op)->SetScale(scale);
+    }
+}
+
+void NormalMassShiftCalculator::PrintHeader() const
+{
+    if(user_input.search("--reduced-elements"))
+        *outstream << "NMS reduced matrix elements (a.u.): " << std::endl;
+    else
+        *outstream << "NMS matrix elements (stretched states) in a.u.: " << std::endl;
+}
+
+void NormalMassShiftCalculator::PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const
+{
+    MathConstant* math = MathConstant::Instance();
+    double value = matrix_element;
+    if(user_input.search("--reduced-elements"))
+    {   int twoj1 = left.first->GetTwoJ();
+        int twoj2 = right.first->GetTwoJ();
+        value = value/math->Electron3j(twoj2, twoj1, op->GetK(), twoj2, -twoj1);
+    }
+
+    *outstream << "  " << Name(left) << " -> " << Name(right)
+               << " = " << std::setprecision(6) << value << " = " << value * 3609.2 << std::endl;
+}
+
 }

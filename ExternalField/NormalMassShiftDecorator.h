@@ -2,6 +2,7 @@
 #define NORMAL_MASS_SHIFT_DECORATOR_H
 
 #include "HartreeFock/ExchangeDecorator.h"
+#include "ExternalField/Transitions.h"
 
 namespace Ambit
 {
@@ -39,6 +40,28 @@ protected:
 
 typedef std::shared_ptr<NormalMassShiftDecorator> pNormalMassShiftDecorator;
 typedef std::shared_ptr<const NormalMassShiftDecorator> pNormalMassShiftDecoratorConst;
+
+class NormalMassShiftOperator : public SpinorOperator
+{
+public:
+    NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms = false, bool nonrel = true);
+
+    virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
+
+protected:
+    pHFOperator hf;
+    bool do_rel_nms;
+    bool do_nonrel_nms;
+};
+
+class NormalMassShiftCalculator : public TransitionCalculator
+{
+public:
+    NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom);
+
+    virtual void PrintHeader() const override;
+    virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
+};
 
 }
 #endif
