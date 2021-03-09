@@ -44,7 +44,7 @@ typedef std::shared_ptr<const NormalMassShiftDecorator> pNormalMassShiftDecorato
 class NormalMassShiftOperator : public SpinorOperator
 {
 public:
-    NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms = false, bool nonrel = true);
+    NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms = true, bool nonrel = true, bool use_potential = false);
 
     virtual SpinorFunction ReducedApplyTo(const SpinorFunction& a, int kappa_b) const override;
 
@@ -52,6 +52,7 @@ protected:
     pHFOperator hf;
     bool do_rel_nms;
     bool do_nonrel_nms;
+    bool use_potential;
 };
 
 class NormalMassShiftCalculator : public TransitionCalculator
