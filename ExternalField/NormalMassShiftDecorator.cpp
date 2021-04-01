@@ -22,8 +22,8 @@ void NormalMassShiftDecorator::GetODEFunction(unsigned int latticepoint, const S
         const double alpha = physicalConstant->GetAlpha();
         const double alphasquared = physicalConstant->GetAlphaSquared();
 
-        w[0] += -2.*scale/alpha * (1. + GetDirectPotential().f[latticepoint] * alphasquared) * fg.g[latticepoint];
-        w[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * GetDirectPotential().f[latticepoint]) * fg.f[latticepoint];
+        w[0] += -2.*scale/alpha * gsl_pow_2(1. + 0.5 * (GetDirectPotential().f[latticepoint] + currentEnergy) * alphasquared) * fg.g[latticepoint];
+        w[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * (GetDirectPotential().f[latticepoint] + currentEnergy)) * fg.f[latticepoint];
     }
 }
 
@@ -36,8 +36,8 @@ void NormalMassShiftDecorator::GetODECoefficients(unsigned int latticepoint, con
         const double alpha = physicalConstant->GetAlpha();
         const double alphasquared = physicalConstant->GetAlphaSquared();
 
-        w_g[0] += -2.*scale/alpha * (1. + GetDirectPotential().f[latticepoint] * alphasquared);
-        w_f[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * GetDirectPotential().f[latticepoint]);
+        w_g[0] += -2.*scale/alpha * gsl_pow_2(1. + 0.5 * (GetDirectPotential().f[latticepoint] + currentEnergy) * alphasquared);
+        w_f[1] += alpha * 0.5 * scale * gsl_pow_2(alpha * (GetDirectPotential().f[latticepoint] + currentEnergy));
     }
 }
 
@@ -54,20 +54,27 @@ void NormalMassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const S
 
 SpinorFunction NormalMassShiftDecorator::ApplyTo(const SpinorFunction& a) const
 {
+    // This will add the relativistic part (via extra exchange) as required
     SpinorFunction ta = BaseDecorator::ApplyTo(a);
 
     if(do_nonrel_nms)
     {
+        double energy = 0.;
+        const Orbital* orb = dynamic_cast<const Orbital*>(&a);
+        if(orb)
+            energy = orb->Energy();
+
         const double alphasquared = physicalConstant->GetAlphaSquared();
         const RadialFunction V = GetDirectPotential();
 
         for(unsigned int i = 0; i < ta.size(); i++)
         {
-            ta.f[i] += 0.5 * scale * alphasquared * gsl_pow_2(V.f[i]) * a.f[i];
-            ta.dfdr[i] += 0.5 * scale * alphasquared * V.f[i] *
-                    (V.f[i] * a.dfdr[i] + V.dfdr[i] * a.f[i]);
-            ta.g[i] += 2.*scale*(1./alphasquared + V.f[i]) * a.g[i];
-            ta.dgdr[i] += 2.*scale/alphasquared * a.dgdr[i];
+            ta.f[i] += 0.5 * scale * alphasquared * gsl_pow_2(V.f[i] + energy) * a.f[i];
+            ta.dfdr[i] += 0.5 * scale * alphasquared * (V.f[i] + energy) *
+                    ((V.f[i] + energy) * a.dfdr[i] + V.dfdr[i] * a.f[i]);
+            ta.g[i] += 2.*scale/alphasquared * gsl_pow_2(1. + 0.5 * (V.f[i] + energy) * alphasquared) * a.g[i];
+            ta.dgdr[i] += 2.*scale/alphasquared * gsl_pow_2(1. + 0.5 * (V.f[i] + energy) * alphasquared) * a.dgdr[i]
+                          + 2.*scale * (1. + 0.5 * (V.f[i] + energy) * alphasquared) * V.dfdr[i] * a.g[i];
         }
     }
 
@@ -83,37 +90,25 @@ SpinorFunction NormalMassShiftDecorator::CalculateExtraExchange(const SpinorFunc
     const double alpha = physicalConstant->GetAlpha();
     const double alphasquared = physicalConstant->GetAlphaSquared();
 
-    const RadialFunction V = GetDirectPotential();
+    double ZalphaOnTwoM = 0.5 * Z * alpha;
 
     if(do_rel_nms)
     {
         for(int i = 0; i < s.size(); i++)
         {
-            exchange.f[i] -= V.f[i] * alpha * (s.dgdr[i] - (s.Kappa() + 1)/2. * s.g[i]/R[i]);
-            exchange.g[i] += V.f[i] * alpha * (s.dfdr[i] + (s.Kappa() - 1)/2. * s.f[i]/R[i]);
+            exchange.f[i] -= ZalphaOnTwoM/R[i] * (2. * s.dgdr[i] - (s.Kappa()+1) * s.g[i]/R[i]);
+            exchange.g[i] += ZalphaOnTwoM/R[i] * (2. * s.dfdr[i] + (s.Kappa()-1) * s.f[i]/R[i]);
         }
 
         differentiator->GetDerivative(exchange.f, exchange.dfdr);
         differentiator->GetDerivative(exchange.g, exchange.dgdr);
     }
 
-//    if(do_rel_nms)
-//    {
-//        for(int i = 0; i < s.size(); i++)
-//        {
-//            exchange.f[i] += V.f[i] * alpha * (s.Kappa() * s.g[i]/R[i]);
-//            exchange.dfdr[i] += alpha * s.Kappa() * (V.dfdr[i] * s.g[i] + V.f[i] * s.dgdr[i] - V.f[i] * s.g[i]/R[i])/R[i];
-
-//            exchange.g[i] += V.f[i] * alpha * s.dfdr[i];
-//            exchange.dgdr[i] += alpha * (V.dfdr[i] * s.dfdr[i] + V.f[i] * second_derivative_f[i]);
-//        }
-//    }
-
     return exchange;
 }
 
-NormalMassShiftOperator::NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms, bool nonrel, bool use_potential):
-    SpinorOperator(0, hf->GetIntegrator()), hf(hf), do_rel_nms(only_rel_nms), do_nonrel_nms(nonrel), use_potential(use_potential)
+NormalMassShiftOperator::NormalMassShiftOperator(pHFOperator hf, bool only_rel_nms, bool nonrel):
+    SpinorOperator(0, hf->GetIntegrator()), hf(hf), do_rel_nms(only_rel_nms), do_nonrel_nms(nonrel)
 {
     if(only_rel_nms)
         do_nonrel_nms = false;
@@ -163,33 +158,17 @@ SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, 
 
     if(do_rel_nms)
     {
-        if(use_potential)
+        double ZalphaOnTwoM = 0.5 * hf->GetZ() * alpha;
+
+        for(unsigned int i = 0; i < a.size(); i++)
         {
-            const RadialFunction V = hf->GetDirectPotential();
+            ret.f[i] += ZalphaOnTwoM/R[i] * (2. * a.dgdr[i] - (a.Kappa()+1) * a.g[i]/R[i]);
+            ret.dfdr[i] += ZalphaOnTwoM/R[i]
+                    * (2. * second_derivative_g[i] - (a.Kappa()+3) * a.dgdr[i]/R[i] + (2.*a.Kappa()+2) * a.g[i]/R2[i]);
 
-            for(unsigned int i = 0; i < a.size(); i++)
-            {
-                ret.f[i] += V.f[i] * alpha * (a.dgdr[i] - 0.5*(a.Kappa()+1) * a.g[i]/R[i]);
-                ret.g[i] -= V.f[i] * alpha * (a.dfdr[i] + 0.5*(a.Kappa()-1) * a.f[i]/R[i]);
-            }
-
-            hf->GetDifferentiator()->GetDerivative(ret.f, ret.dfdr);
-            hf->GetDifferentiator()->GetDerivative(ret.g, ret.dgdr);
-        }
-        else
-        {
-            double ZalphaOnTwoM = 0.5 * hf->GetZ() * alpha;
-
-            for(unsigned int i = 0; i < a.size(); i++)
-            {
-                ret.f[i] += ZalphaOnTwoM/R[i] * (2. * a.dgdr[i] - (a.Kappa()+1) * a.g[i]/R[i]);
-                ret.dfdr[i] += ZalphaOnTwoM/R[i]
-                        * (2. * second_derivative_g[i] - (a.Kappa()+3) * a.dgdr[i]/R[i] + (2.*a.Kappa()+2) * a.g[i]/R2[i]);
-
-                ret.g[i] -= ZalphaOnTwoM * (2. * a.dfdr[i] + (a.Kappa() - 1) * a.f[i]/R[i])/R[i];
-                ret.dgdr[i] -= ZalphaOnTwoM/R[i]
-                        * (2. * second_derivative_f[i] + (a.Kappa()-3) * a.dfdr[i]/R[i] - (2.*a.Kappa()-2) * a.f[i]/R2[i]);
-            }
+            ret.g[i] -= ZalphaOnTwoM/R[i] * (2. * a.dfdr[i] + (a.Kappa() - 1) * a.f[i]/R[i]);
+            ret.dgdr[i] -= ZalphaOnTwoM/R[i]
+                    * (2. * second_derivative_f[i] + (a.Kappa()-3) * a.dfdr[i]/R[i] - (2.*a.Kappa()-2) * a.f[i]/R2[i]);
         }
     }
 
@@ -201,8 +180,7 @@ NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input
     TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
 {
     auto hf = atom.GetHFOperator();
-    op = std::make_shared<NormalMassShiftOperator>(hf, user_input.search("--only-relativistic-nms"), user_input.search("--nonrelativistic-mass-shift"),
-                                                   true);
+    op = std::make_shared<NormalMassShiftOperator>(hf, user_input.search("--only-relativistic-nms"), user_input.search("--nonrelativistic-mass-shift"));
 
     if(user_input.search("--rpa"))
     {   op = MakeRPA(std::static_pointer_cast<NormalMassShiftOperator>(op), hf, atom.GetHartreeY());
@@ -230,7 +208,7 @@ void NormalMassShiftCalculator::PrintTransition(const LevelID& left, const Level
     }
 
     *outstream << "  " << Name(left) << " -> " << Name(right)
-               << " = " << std::setprecision(6) << value << " = " << value * 3609.2 << std::endl;
+               << " = " << std::setprecision(8) << value << std::endl;
 }
 
 }
