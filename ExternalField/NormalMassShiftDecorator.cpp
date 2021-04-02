@@ -48,7 +48,10 @@ void NormalMassShiftDecorator::GetODEJacobian(unsigned int latticepoint, const S
     if(do_nonrel_nms)
     {
         const double alpha = physicalConstant->GetAlpha();
-//        jacobian[0][1] = -2.*scale/alpha;
+        const double alphasquared = physicalConstant->GetAlphaSquared();
+
+        jacobian[0][1] += -2.*scale/alpha * gsl_pow_2(1. + 0.5 * (GetDirectPotential().f[latticepoint] + currentEnergy) * alphasquared);
+        jacobian[1][0] += alpha * 0.5 * scale * gsl_pow_2(alpha * (GetDirectPotential().f[latticepoint] + currentEnergy));
     }
 }
 
@@ -57,24 +60,31 @@ SpinorFunction NormalMassShiftDecorator::ApplyTo(const SpinorFunction& a) const
     // This will add the relativistic part (via extra exchange) as required
     SpinorFunction ta = BaseDecorator::ApplyTo(a);
 
+    // ApplyTo can be done using the standard formula, since here there is no problem with convergence
     if(do_nonrel_nms)
     {
-        double energy = 0.;
-        const Orbital* orb = dynamic_cast<const Orbital*>(&a);
-        if(orb)
-            energy = orb->Energy();
+        const double* R = lattice->R();
+        const double* R2 = lattice->Rpower(2);
 
-        const double alphasquared = physicalConstant->GetAlphaSquared();
-        const RadialFunction V = GetDirectPotential();
+        std::vector<double> second_derivative_f(a.size());
+        std::vector<double> second_derivative_g(a.size());
+        std::vector<double> third_derivative_f(a.size());
+        std::vector<double> third_derivative_g(a.size());
 
-        for(unsigned int i = 0; i < ta.size(); i++)
+        differentiator->GetDerivative(a.dfdr, second_derivative_f);
+        differentiator->GetDerivative(a.dgdr, second_derivative_g);
+        differentiator->GetSecondDerivative(a.dfdr, third_derivative_f);
+        differentiator->GetSecondDerivative(a.dgdr, third_derivative_g);
+
+        double coeff_f = a.Kappa() * (a.Kappa() + 1);
+        double coeff_g = a.Kappa() * (a.Kappa() - 1);
+
+        for(unsigned int i = 0; i < a.size(); i++)
         {
-            ta.f[i] += 0.5 * scale * alphasquared * gsl_pow_2(V.f[i] + energy) * a.f[i];
-            ta.dfdr[i] += 0.5 * scale * alphasquared * (V.f[i] + energy) *
-                    ((V.f[i] + energy) * a.dfdr[i] + V.dfdr[i] * a.f[i]);
-            ta.g[i] += 2.*scale/alphasquared * gsl_pow_2(1. + 0.5 * (V.f[i] + energy) * alphasquared) * a.g[i];
-            ta.dgdr[i] += 2.*scale/alphasquared * gsl_pow_2(1. + 0.5 * (V.f[i] + energy) * alphasquared) * a.dgdr[i]
-                          + 2.*scale * (1. + 0.5 * (V.f[i] + energy) * alphasquared) * V.dfdr[i] * a.g[i];
+            ta.f[i] -= 0.5 * scale * (second_derivative_f[i] - coeff_f * a.f[i]/R2[i]);
+            ta.dfdr[i] -= 0.5 * scale * (third_derivative_f[i] - coeff_f * (a.dfdr[i] - 2.*a.f[i]/R[i]) /R2[i]);
+            ta.g[i] -= 0.5 * scale * (second_derivative_g[i] - coeff_g * a.g[i]/R2[i]);
+            ta.dgdr[i] -= 0.5 * scale * (third_derivative_g[i] - coeff_g * (a.dgdr[i] - 2.*a.g[i]/R[i]) /R2[i]);
         }
     }
 
@@ -85,15 +95,13 @@ SpinorFunction NormalMassShiftDecorator::CalculateExtraExchange(const SpinorFunc
 {
     SpinorFunction exchange(s.Kappa(), s.size());
 
-    const double* R = lattice->R();
-    const double* R2 = lattice->Rpower(2);
-    const double alpha = physicalConstant->GetAlpha();
-    const double alphasquared = physicalConstant->GetAlphaSquared();
-
-    double ZalphaOnTwoM = 0.5 * Z * alpha;
-
     if(do_rel_nms)
     {
+        const double* R = lattice->R();
+        const double alpha = physicalConstant->GetAlpha();
+
+        double ZalphaOnTwoM = 0.5 * Z * alpha;
+
         for(int i = 0; i < s.size(); i++)
         {
             exchange.f[i] -= ZalphaOnTwoM/R[i] * (2. * s.dgdr[i] - (s.Kappa()+1) * s.g[i]/R[i]);
@@ -131,7 +139,6 @@ SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, 
     const double* R = hf->GetLattice()->R();
     const double* R2 = hf->GetLattice()->Rpower(2);
     const double alpha = hf->GetPhysicalConstant()->GetAlpha();
-    const double alphasquared = hf->GetPhysicalConstant()->GetAlphaSquared();
 
     hf->GetDifferentiator()->GetDerivative(a.dfdr, second_derivative_f);
     hf->GetDifferentiator()->GetDerivative(a.dgdr, second_derivative_g);
