@@ -21,7 +21,7 @@ public:
     template <class OrbitalType, class OccupancyType>
     static Configuration<OrbitalType, OccupancyType> ParseConfiguration(const std::string& configuration);
 
-    /** Split non-relativistic configurations from string according to occupancy weighting. */
+    /** Get configurations from string according to occupancy weighting. */
     static OccupationMap ParseFractionalConfiguration(const std::string& configuration);
 
     /** Return NonRelInfo from orbital string. */
@@ -115,7 +115,7 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
 
             // Check everything is okay and skip any whitespace
             OrbitalType info(pqn, kappa);
-            if((L == -1) || (pqn < L+1) || (occupancy > info.MaxNumElectrons()))
+            if((L == -1) || (pqn < L+1))
             {   throw (1);
             }
 
@@ -128,7 +128,7 @@ Configuration<OrbitalType, OccupancyType> ConfigurationParser::ParseConfiguratio
     {   *errstream << "ConfigurationParser::ParseConfiguration() initialised with problematic string " << configuration << std::endl;
         exit(1);
     }
-    
+
     return ret;
 }
 

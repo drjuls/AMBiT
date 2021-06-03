@@ -9,29 +9,43 @@ namespace Ambit
 OccupationMap ConfigurationParser::ParseFractionalConfiguration(const std::string& configuration)
 {
     OccupationMap ret;
-    NonRelConfiguration config(configuration);
+    auto config = ParseConfiguration<OrbitalInfo, double>(configuration);
 
     // Split non-relativistic configuration into relativistic states
-    NonRelConfiguration::iterator it = config.begin();
+    auto it = config.begin();
     while(it != config.end())
     {
-        pOrbital s1, s2;
-
-        NonRelInfo info(it->first);
         double occupancy = it->second;
-        int L = info.L();
 
-        if(L == 0)
-        {   ret.insert(std::make_pair(info.GetFirstRelativisticInfo(), occupancy));
+        // Split non-rel info with too many electrons
+        if((it->first.Kappa() > 0) && (occupancy > it->first.MaxNumElectrons()))
+        {
+            OrbitalInfo second_orbital(it->first.PQN(), -(it->first.L()+1));
+            if(ret.GetOccupancy(second_orbital))
+            {   *errstream << "ConfigurationParser::ParseFractionalConfiguration() initialised with problematic string " << configuration << std::endl;
+                exit(1);
+            }
+            ret.insert(std::make_pair(second_orbital, occupancy - it->first.MaxNumElectrons()));
+            occupancy = it->first.MaxNumElectrons();
         }
-        else
-        {   // Split electrons between subshells
-            double first_fraction = double(L + 1)/double(2 * L + 1);
-            ret.insert(std::make_pair(info.GetFirstRelativisticInfo(), first_fraction * occupancy));
-            ret.insert(std::make_pair(info.GetSecondRelativisticInfo(), (1. - first_fraction) * occupancy));
+
+        // Check that orbital doesn't already exist and add
+        if(ret.GetOccupancy(it->first))
+        {   *errstream << "ConfigurationParser::ParseFractionalConfiguration() initialised with problematic string " << configuration << std::endl;
+            exit(1);
         }
+
+        ret.insert(std::make_pair(it->first, occupancy));
 
         it++;
+    }
+
+    // Sanity check
+    for(const auto& orbital: ret)
+    {   if(orbital.second > orbital.first.MaxNumElectrons())
+        {   *errstream << "ConfigurationParser::ParseFractionalConfiguration() initialised with problematic string " << configuration << std::endl;
+            exit(1);
+        }
     }
 
     return ret;

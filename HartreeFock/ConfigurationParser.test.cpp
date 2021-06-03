@@ -33,13 +33,37 @@ TEST(ConfigurationParserTester, RelativisticConfigs)
 TEST(ConfigurationParserTester, FractionalConfigs)
 {
     std::string input("1s2 2s2 2p6 3s2 3p6 3d6");
-
-    OccupationMap config(ConfigurationParser::ParseFractionalConfiguration(input));
+    OccupationMap config;
+    config = ConfigurationParser::ParseFractionalConfiguration(input);
     EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(1, -1)), 1.e-6);
     EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(2, 1)), 1.e-6);
     EXPECT_NEAR(4.0, config.GetOccupancy(OrbitalInfo(2, -2)), 1.e-6);
-    EXPECT_NEAR(2.4, config.GetOccupancy(OrbitalInfo(3, 2)), 1.e-6);
-    EXPECT_NEAR(3.6, config.GetOccupancy(OrbitalInfo(3, -3)), 1.e-6);
+    EXPECT_NEAR(4, config.GetOccupancy(OrbitalInfo(3, 2)), 1.e-6);
+    EXPECT_NEAR(2, config.GetOccupancy(OrbitalInfo(3, -3)), 1.e-6);
+
+    input = "1s2 2s2 2p6 3s2 3p2";
+    config = ConfigurationParser::ParseFractionalConfiguration(input);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(1, -1)), 1.e-6);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(2, 1)), 1.e-6);
+    EXPECT_NEAR(4.0, config.GetOccupancy(OrbitalInfo(2, -2)), 1.e-6);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(3, 1)), 1.e-6);
+    EXPECT_NEAR(0.0, config.GetOccupancy(OrbitalInfo(3, -2)), 1.e-6);
+
+    input = "1s2 2s2 2p6 3s2 3p+2";
+    config = ConfigurationParser::ParseFractionalConfiguration(input);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(1, -1)), 1.e-6);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(2, 1)), 1.e-6);
+    EXPECT_NEAR(4.0, config.GetOccupancy(OrbitalInfo(2, -2)), 1.e-6);
+    EXPECT_NEAR(0.0, config.GetOccupancy(OrbitalInfo(3, 1)), 1.e-6);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(3, -2)), 1.e-6);
+
+    input = "1s2 2s2 2p6 3s2 3p+3.1 3p0.9";
+    config = ConfigurationParser::ParseFractionalConfiguration(input);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(1, -1)), 1.e-6);
+    EXPECT_NEAR(2.0, config.GetOccupancy(OrbitalInfo(2, 1)), 1.e-6);
+    EXPECT_NEAR(4.0, config.GetOccupancy(OrbitalInfo(2, -2)), 1.e-6);
+    EXPECT_NEAR(0.9, config.GetOccupancy(OrbitalInfo(3, 1)), 1.e-6);
+    EXPECT_NEAR(3.1, config.GetOccupancy(OrbitalInfo(3, -2)), 1.e-6);
 }
 
 TEST(ConfigurationParserTester, BasisSize)
