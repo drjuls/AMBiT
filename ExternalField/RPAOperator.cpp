@@ -11,32 +11,14 @@ RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartree
     pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
     static_rpa = (tdop == nullptr);
 
-    // Get rpa core: replace orbitals with RPAOrbitals
-    MathConstant* math = MathConstant::Instance();
-    int twoK = 2 * external->GetK();
-
+    // Clone hf core, replacing all orbitals with RPAOrbitals.
     pCoreConst hf_core = hf->GetCore();
     core = std::make_shared<Core>(hf_core->GetLattice());
 
     for(const auto& orb: *hf_core)
     {
         pRPAOrbital rpa_orb = std::make_shared<RPAOrbital>(*orb.second);
-
-        Parity Pdelta = rpa_orb->GetParity() * external->GetParity();
-        rpa_orb->deltapsi.clear();
-
-        for(int twoj = mmax(1, rpa_orb->TwoJ() - twoK); twoj <= rpa_orb->TwoJ() + twoK; twoj+=2)
-        {
-            int kappa = math->convert_to_kappa(twoj, Pdelta);
-            if(rpa_orb->GetDeltaPsi(kappa) == rpa_orb->deltapsi.end())
-            {
-                if(static_rpa)
-                    rpa_orb->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, rpa_orb), nullptr));
-                else
-                    rpa_orb->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, rpa_orb), std::make_shared<DeltaOrbital>(kappa, rpa_orb)));
-            }
-        }
-
+        solver->CreateDeltaOrbitals(rpa_orb, external->GetK(), external->GetParity(), static_rpa);
         core->AddState(rpa_orb);
     }
 
@@ -220,7 +202,7 @@ SpinorFunction RPAOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b,
             }
         }
     }
-    
+
     return ret;
 }
 

@@ -22,7 +22,7 @@ typedef std::pair<LevelID, LevelID> TransitionID;
     Calculates matrix_elements for the operator and stores them in a mapping between TransitionID and Strength (S).
     Derived classes should implement
         - operator creation (in the constructor),
-        - PrintHeader(), and 
+        - PrintHeader(), and
         - PrintTransition()
     TransitionCalculator provides generic RPA routines for authors of subclasses.
     When constructing the operator use something like
@@ -33,7 +33,7 @@ class TransitionCalculator
 {
 public:
     TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), variable_frequency_op(false)
+        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), variable_frequency_op(false), scale(1.0)
     {}
     TransitionCalculator(MultirunOptions& user_input, Atom& atom):
         TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
@@ -111,8 +111,9 @@ protected:
     pSpinorMatrixElement op = nullptr;
     bool variable_frequency_op = false;
 
-    pTransitionIntegrals integrals;     // One-electron integrals
-    std::map<TransitionID, double> matrix_elements;
+    double scale;
+    pTransitionIntegrals integrals;     // Scaled one-electron integrals
+    std::map<TransitionID, double> matrix_elements; // Not scaled
 };
 
 }

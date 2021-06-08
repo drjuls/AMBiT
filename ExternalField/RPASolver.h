@@ -43,6 +43,7 @@ public:
 
     /** Add all appropriate deltaOrbitals to RPA orbital. */
     void CreateDeltaOrbitals(pRPAOrbital orbital, std::shared_ptr<const RPAOperator> rpa) const;
+    void CreateDeltaOrbitals(pRPAOrbital orbital, int operator_K, Parity operator_P, bool operator_static) const;
 
     /** Iterate a single deltaOrbital.
         Return change in its deltaEnergy.
@@ -59,15 +60,26 @@ public:
      */
     void SetTDHFWeighting(double propnew) { TDHF_propnew = propnew; }
 
+    /** Set limit on the maximum angular momentum difference between each DeltaOrbital and its parent.
+        PRE: limit_deltaK >= 0
+     */
+    void SetLimitDeltaK(int deltaK) { limit_deltaK = deltaK; }
+
+    /** Set limit on the maximum number of iterations to RPA convergence.
+        PRE: max_iterations > 0
+     */
+    void SetMaxRPAIterations(int max_iterations) { MaxRPAIterations = max_iterations; }
+
 protected:
     pBSplineBasis basis_maker;
     pHFOperatorConst hf0;               //!< Keep HF operator for making additional basis orbitals
     bool include_dirac_sea;
     std::map<int, pOrbitalMap> basis;   //!< DeltaOrbital basis for each kappa
+    int limit_deltaK = -1;              //!< Limits on maximum angular momentum difference between each DeltaOrbital and its parent.
 
     double TDHF_propnew = 0.5;          //!< Weighting to apply to each iteration
     double EnergyTolerance = 1.e-14;
-    unsigned int MaxRPAIterations = 300;
+    unsigned int MaxRPAIterations = 100;
 };
 
 typedef std::shared_ptr<RPASolver> pRPASolver;

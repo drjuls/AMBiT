@@ -148,8 +148,30 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
             *errstream << "RPA/Weighting must be in the range (0, 1] (ignoring).\n";
     }
 
+    if(user_input.VariableExists("RPA/MaxDeltaK"))
+    {
+        int deltaKlimit = user_input("RPA/MaxDeltaK", -1);
+        if(deltaKlimit >= 0)
+            rpa_solver->SetLimitDeltaK(deltaKlimit);
+        else
+            *errstream << "RPA/MaxDeltaK must be greater than or equal to 0 (ignoring).\n";
+    }
+
+    if(user_input.VariableExists("RPA/MaxIterations"))
+    {
+        int max_iterations = user_input("RPA/MaxIterations", -1);
+        if(max_iterations > 0)
+            rpa_solver->SetMaxRPAIterations(max_iterations);
+        else
+            *errstream << "RPA/MaxIterations must be greater than or equal to 0 (ignoring).\n";
+    }
+
     // Make RPA operator
     pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
+
+    // Scale operator
+    scale = user_input("RPA/Scale", 1.0);
+    rpa->SetScale(scale);
 
     DebugOptions.LogHFIterations(true);
     if(rpa->IsStaticRPA())
@@ -232,7 +254,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
 
                 // Add to matrix_elements map
                 return_value = values[left.second * right_levels.levels.size() + right.second];
-                matrix_elements.insert(std::make_pair(id, return_value));
+                matrix_elements.insert(std::make_pair(id, return_value/scale));
             }
             else
             {   // Get transition integrals
@@ -266,7 +288,7 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                     for(int j = 0; j < right_levels.levels.size(); j++)
                     {
                         TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
-                        matrix_elements.insert(std::make_pair(current_id, *value_iterator));
+                        matrix_elements.insert(std::make_pair(current_id, *value_iterator/scale));
                         value_iterator++;
                     }
                 }

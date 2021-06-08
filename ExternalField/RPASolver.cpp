@@ -72,7 +72,7 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
             *logstream << "RPA Iteration: " << loop << std::endl;
 
         // Calculate new states
-        for(auto pair: *next_states)
+        for(auto& pair: *next_states)
         {
             pRPAOrbital rpa_orbital = std::dynamic_pointer_cast<RPAOrbital>(pair.second);
             if(rpa_orbital)
@@ -80,7 +80,7 @@ void RPASolver::SolveRPACore(pHFOperatorConst hf, pRPAOperator rpa)
                 if(debug)
                     *logstream << "  RPA orbital " << std::setw(4) << rpa_orbital->Name() << std::endl;
 
-                for(auto deltapsi: rpa_orbital->deltapsi)
+                for(auto& deltapsi: rpa_orbital->deltapsi)
                 {
                     pDeltaOrbital orbital = deltapsi.first;
                     double old_energy = orbital->DeltaEnergy();
@@ -165,9 +165,20 @@ double RPASolver::CalculateRPAExcited(pRPAOrbital orbital, pRPAOperatorConst rpa
 
 void RPASolver::CreateDeltaOrbitals(pRPAOrbital orbital, pRPAOperatorConst rpa) const
 {
+    CreateDeltaOrbitals(orbital, rpa->GetK(), rpa->GetParity(), rpa->IsStaticRPA());
+}
+
+void RPASolver::CreateDeltaOrbitals(pRPAOrbital orbital, int operator_K, Parity operator_P, bool operator_static) const
+{
     MathConstant* math = MathConstant::Instance();
-    int twoK = 2 * rpa->GetK();
-    Parity Pdelta = orbital->GetParity() * rpa->GetParity();
+
+    int twoK;
+    if(limit_deltaK >= 0)
+        twoK = 2 * mmin(limit_deltaK, operator_K);
+    else
+        twoK = 2 * operator_K;
+
+    Parity Pdelta = orbital->GetParity() * operator_P;
 
     orbital->deltapsi.clear();
 
@@ -176,13 +187,14 @@ void RPASolver::CreateDeltaOrbitals(pRPAOrbital orbital, pRPAOperatorConst rpa) 
         int kappa = math->convert_to_kappa(twoj, Pdelta);
         if(orbital->GetDeltaPsi(kappa) == orbital->deltapsi.end())
         {
-            if(rpa->IsStaticRPA())
+            if(operator_static)
                 orbital->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, orbital), nullptr));
             else
                 orbital->deltapsi.push_back(std::make_pair(std::make_shared<DeltaOrbital>(kappa, orbital), std::make_shared<DeltaOrbital>(kappa, orbital)));
         }
     }
 }
+
 
 double RPASolver::IterateDeltaOrbital(pDeltaOrbital orbital, pRPAOperatorConst rpa, double propnew) const
 {
