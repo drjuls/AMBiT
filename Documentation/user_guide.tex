@@ -309,7 +309,7 @@ EndPoint = 50.0
 
 [HF]
 N = 23
-Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d5'
+Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d2 3d+3'
 
 [Basis]
 --bspline-basis
@@ -330,9 +330,11 @@ Next, we specify options to control the lattice spacing underneath the \texttt{[
 Options in the input files are grouped into sections according to a prefix with the
 syntax:
 
-\texttt{Option1}\\
+\texttt{Option1}
+\smallskip\\
 \texttt{[Prefix1]}\\
-\texttt{Option2}\\
+\texttt{Option2}
+\smallskip\\
 \texttt{[Prefix2]}\\
 \texttt{Option3}
 
@@ -353,7 +355,7 @@ larger than 50 atomic units.
 
 The \texttt{[HF]} section contains the meat of the Dirac-Fock (DF, a relativistic extension to the
 Hartree-Fock method) calculation. We first specify the number of electrons to include in the calculation
-with \texttt{N} and the non-relativistic configuration to use as the basis of the calculation via
+with \texttt{N} and the \emph{non-relativistic} configuration to use as the basis of the calculation via
 \texttt{Configuration}. The colon `:' specifies the location of the Fermi level, which separates the
 fully-occupied core-states from the valence states which contain the dynamics of interest. If the colon
 is omitted then \ambit\  will place the Fermi level above the last orbital specified in
@@ -364,7 +366,7 @@ match the real configuration of the atomic system: any number of electrons can b
 procedure in any desired (valid) configuration. In general, either all valence electrons can be
 included, to produce a so-called $V^N$ potential, or some subset of valence electrons, which produces a
 $V^{N-M}$ potential (the $N$ in both of these potentials represents the number of valence electrons in 
-the atom, \emph{not} the value of the \texttt{HF/N} option).
+the atom, \emph{not} the value of the \texttt{HF/N} option). In any case, \ambit\ only allows for single-reference Dirac-Fock, so a choice of potential must be made.
 
 The choice of Dirac-Fock potential $V^{N_{\mathrm{DF}}}$ has a large effect on the accuracy of the 
 resulting spectra; with a potential $V^{N_{\mathrm{DF}}} = V^{N}$ producing so-called ``spectroscopic'' 
@@ -380,6 +382,8 @@ you perform multiple small calculations with different DF configurations, see wh
 accuracy and use that for larger-scale calculations, although even this approach requires some fiddling.
 Unfortunately, CI+MBPT is not a ``plug-and-play'' technique and requires a good deal of experimentation
 to get right.
+
+One further technical point here. There is some ambiguity in how open shells are included in the potential: we must split the electrons between relativistic shells. The 5 electrons in the 3d shell must be distributed between the $3d_{3/2}$ (\texttt{3d}) and $3d_{5/2}$ (\texttt{3d+}) subshells. Here we have chosen to split the 5 electrons according to the multiplicity of the subshells: \texttt{3d} has $4/10$ of the shell's electrons while \texttt{3d+} has $6/10$, so we distribute the electrons in the ratio $2:3$. Note that the default behaviour is to first fill the subshell with $j = l-1/2$, so a simple \texttt{3d5} would be interpreted as \texttt{3d4 3d+1}.
 
 Next, the \texttt{[Basis]} section provides options controlling the calculation of single-particle, 
 excited basis-states. The \texttt{--bspline-basis} specifies that the basis should be formed from a 
@@ -1453,9 +1457,11 @@ may be passed as \texttt{Prefix/Option}.
 passed to \ambit. Options in the input file are grouped into sections according to a prefix with the
 syntax:
 
-\texttt{Option1}\\
+\texttt{Option1}
+\smallskip\\
 \texttt{[Prefix1]}\\
-\texttt{Option2}\\
+\texttt{Option2}
+\smallskip\\
 \texttt{[Prefix2]}\\
 \texttt{Option3}
 
@@ -1750,9 +1756,11 @@ with a colon (`:'), orbitals above which will be included in the CI and MBPT val
 Fermi level is specified it will default to immediately above the highest supplied orbital in this
 argument. Additionally, Valence holes can only appear in shells with energy below the Fermi level.
                                                                                
-As an example, the string \texttt{HF/Configuration = '1s2 2s2 2p6~:~3s1'} will include the configuration
-1s$^2$ 2s$^2$ 2p$^6$ 3s$^1$, with 1s, 2s and 2p shells below and 3s above the Fermi level.
+As an example, the string \texttt{HF/Configuration = '1s2 2s2 2p6 3s2:~3p3'} will include the configuration
+1s$^2$ 2s$^2$ 2p$^6$ 3s$^2$ $3p^3$, with 1s, 2s, 2p, and 3s shells below and 3p above the Fermi level.
 Configuration must have \texttt{HF/N} total electrons.
+
+Open shells may be specified using relativistic notation, for example \texttt{'...3s2:~3p1 3p+2'}, where the `\texttt{+}' indicates the subshell with $j = l+1/2$. The default behaviour is to first fill the subshell with $j = l-1/2$, so a simple \texttt{3p3} would be interpreted as \texttt{3p2 3p+1}. Floating point filling is also allowed here, e.g. \texttt{3p1.33 3p+2.67}.
 \end{adjustwidth}
 
 \texttt{--breit} 
@@ -2457,7 +2465,7 @@ Nuclear magnetic (dipole) radius used to calculate the hyperfine dipole matrix e
 specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.
 \end{adjustwidth}
 
-\texttt{HFS1/gOnI}[1.0]
+\texttt{HFS1/gOnI} [1.0]
 Magnetic-dipole g-factor (in nuclear magnetons) divided by nuclear spin $g/I$.
 
 \texttt{HFS2/NuclearQuadrupoleRadius} \uline{Real}
@@ -2469,19 +2477,19 @@ specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be use
 \texttt{HFS2/Q}[1.0]
 Nuclear quadrupole moment $Q_{zz}$ in barn.
 
-\texttt{FS/Scale} \uline{Real}[1.0]
+\texttt{FS/Scale} \uline{Real} [1.0]
 \begin{adjustwidth}{1cm}{}
 Scale factor of the field-shift operator.
 \end{adjustwidth}
 
-\texttt{FS/DeltaNuclearRadius} \uline{Real}[0.1]
+\texttt{FS/DeltaNuclearRadius} \uline{Real} [0.1]
 \begin{adjustwidth}{1cm}{}
 Distance in fm by which to change the nuclear radius in the field-shift operator. 
 \end{adjustwidth}
 
 \subsection{RPA}
 
-\texttt{Scale} \uline{Real}[0.01]
+\texttt{Scale} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Scale the RPA operator internally.
 \end{adjustwidth}
@@ -2489,6 +2497,17 @@ Scale the RPA operator internally.
 \texttt{Weighting} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Mix old and new wavefunctions at each step in RPA with this weighting factor.
+\end{adjustwidth}
+
+\texttt{MaxDeltaK} \uline{Integer}
+\begin{adjustwidth}{1cm}{}
+	In the RPA procedure, each core orbital $\psi_\kappa$ is `dressed' with orbitals $\delta\psi_{\kappa'}$. Usually the change in angular momentum between the $\psi_\kappa$ and $\delta\psi_{\kappa'}$ is $|j' - j| \leq K$, where $K$ is the rank of the external operator.
+	This option limits the difference to $|j' - j|\leq \texttt{MaxDeltaK}$.
+\end{adjustwidth}
+
+\texttt{MaxIterations} \uline{Integer} [100]
+\begin{adjustwidth}{1cm}{}
+	Adjust the maximum allowed number of iterations in the RPA procedure. Helpful if more iterations are needed for convergence. Users should always check that convergence is reached in the log files.
 \end{adjustwidth}
 
 \texttt{{-}{-}no-negative-states}
