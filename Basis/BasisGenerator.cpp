@@ -250,16 +250,16 @@ void BasisGenerator::SetOrbitalMaps()
 
     // Hole and deep states.
     // Easiest to start with all core states in deep and modify from there.
-    orbitals->deep = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->hole = pOrbitalMap(new OrbitalMap(lattice));
+    orbitals->deep = std::make_shared<OrbitalMap>(lattice);
+    orbitals->hole = std::make_shared<OrbitalMap>(lattice);
     *orbitals->deep = *orbitals->core;
+
+    OrbitalMap& deep = *orbitals->deep;
+    OrbitalMap& hole = *orbitals->hole;
 
     std::string deep_states = user_input("Basis/FrozenCore", "");
     if(deep_states.length())
     {
-        OrbitalMap& deep = *orbitals->deep;
-        OrbitalMap& hole = *orbitals->hole;
-
         std::vector<int> max_deep_pqns = ConfigurationParser::ParseBasisSize(deep_states);
         auto it = deep.begin();
         while(it != deep.end())
@@ -276,54 +276,96 @@ void BasisGenerator::SetOrbitalMaps()
         }
     }
 
+    // IncludeValence moves deep orbitals into valence holes
+    int num_unfrozen = user_input.vector_variable_size("Basis/IncludeValence");
+    for(int i = 0; i < num_unfrozen; i++)
+    {
+        NonRelInfo nrorb = ConfigurationParser::ParseOrbital(user_input("Basis/IncludeValence", "", i));
+        for(auto& orbinfo: nrorb.GetRelativisticInfos())
+        {
+            auto it = deep.find(orbinfo);
+            if(it != deep.end())
+            {
+                hole.AddState(it->second);
+                deep.erase(it);
+            }
+            else
+            {   *errstream << "BasisGenerator::SetOrbitalMaps: Basis/IncludeValence "
+                           << orbinfo.Name() << " not found in frozen core." << std::endl;
+            }
+        }
+    }
+
     // Transfer from all to excited states
     std::string valence_states = user_input("Basis/ValenceBasis", "");
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(valence_states);
 
-    pOrbitalMap particle = pOrbitalMap(new OrbitalMap(lattice));
-    for(auto orbital: all)
+    orbitals->particle = std::make_shared<OrbitalMap>(lattice);
+    OrbitalMap& particle = *orbitals->particle;
+
+    for(auto& orbital: all)
     {
         if(orbital.first.L() < max_pqn_per_l.size()
            && orbital.first.PQN() <= max_pqn_per_l[orbital.first.L()]
            && closed_core->GetState(orbital.first) == nullptr)
         {
-            particle->AddState(orbital.second);
+            particle.AddState(orbital.second);
         }
     }
-    orbitals->particle = particle;
-
-    // valence
-    orbitals->valence = pOrbitalMap(new OrbitalMap(lattice));
-    orbitals->valence->AddStates(*orbitals->particle);
-    orbitals->valence->AddStates(*orbitals->hole);
 
     // high (virtual) states.
     std::string virtual_states = user_input("MBPT/Basis", "");
+    orbitals->excited = std::make_shared<OrbitalMap>(lattice);
+    orbitals->high = std::make_shared<OrbitalMap>(lattice);
+
+    OrbitalMap& excited = *orbitals->excited;
+    OrbitalMap& high = *orbitals->high;
+
     if(virtual_states.size())
     {
         max_pqn_per_l = ConfigurationParser::ParseBasisSize(virtual_states);
 
-        pOrbitalMap excited = pOrbitalMap(new OrbitalMap(lattice));
-        pOrbitalMap high = pOrbitalMap(new OrbitalMap(lattice));
-        for(auto orbital: all)
+        for(auto& orbital: all)
         {
             if(orbital.first.L() < max_pqn_per_l.size()
                && orbital.first.PQN() <= max_pqn_per_l[orbital.first.L()]
                && closed_core->GetState(orbital.first) == nullptr)
             {
-                excited->AddState(orbital.second);
-                if(particle->GetState(orbital.first) == nullptr)
-                    high->AddState(orbital.second);
+                excited.AddState(orbital.second);
+                if(particle.GetState(orbital.first) == nullptr)
+                    high.AddState(orbital.second);
             }
         }
-        orbitals->excited = excited;
-        orbitals->high = high;
     }
     else
-    {   // empty high
-        orbitals->high = pOrbitalMap(new OrbitalMap(lattice));
-        orbitals->excited = orbitals->particle;
+    {   // high is empty, excited is just particles
+        *orbitals->excited = *orbitals->particle;
     }
+
+    // ExcludeValence moves particle orbitals into high states
+    int num_excluded = user_input.vector_variable_size("Basis/ExcludeValence");
+    for(int i = 0; i < num_excluded; i++)
+    {
+        NonRelInfo nrorb = ConfigurationParser::ParseOrbital(user_input("Basis/ExcludeValence", "", i));
+        for(auto& orbinfo: nrorb.GetRelativisticInfos())
+        {
+            auto it = particle.find(orbinfo);
+            if(it != particle.end())
+            {
+                high.AddState(it->second);
+                particle.erase(it);
+            }
+            else
+            {   *errstream << "BasisGenerator::SetOrbitalMaps: Basis/ExcludeValence "
+                           << orbinfo.Name() << " not found in valence particle set." << std::endl;
+            }
+        }
+    }
+
+    // Make valence orbitals
+    orbitals->valence = std::make_shared<OrbitalMap>(lattice);
+    orbitals->valence->AddStates(*orbitals->particle);
+    orbitals->valence->AddStates(*orbitals->hole);
 }
 
 void BasisGenerator::UpdateNonSelfConsistentOperators()
