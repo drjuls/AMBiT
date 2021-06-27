@@ -13,6 +13,7 @@ class RPAOperator : public TimeDependentSpinorOperator
 {
 public:
     RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY, pRPASolver rpa_solver);
+    RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY, const OccupationMap& rpa_occupancies, pRPASolver rpa_solver);
 
     /** Returns true if the external operator is frequency-independent. */
     bool IsStaticRPA() const { return static_rpa; }

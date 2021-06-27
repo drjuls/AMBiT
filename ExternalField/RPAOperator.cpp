@@ -25,6 +25,28 @@ RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartree
     core->SetOccupancies(hf_core->GetOccupancies());
 }
 
+RPAOperator::RPAOperator(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY, const OccupationMap& rpa_occupancies, pRPASolver rpa_solver):
+    TimeDependentSpinorOperator(external->GetK(), external->GetParity(), external->GetIntegrator()),
+    external(external), hf(hf), hartreeY(hartreeY), core(nullptr), solver(rpa_solver), scale(1.0)
+{
+    // Check if static RPA
+    pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(external);
+    static_rpa = (tdop == nullptr);
+
+    // Clone hf core, replacing all orbitals with RPAOrbitals.
+    pCoreConst hf_core = hf->GetCore();
+    core = std::make_shared<Core>(hf_core->GetLattice());
+
+    for(const auto& orb: *hf_core)
+    {
+        pRPAOrbital rpa_orb = std::make_shared<RPAOrbital>(*orb.second);
+        solver->CreateDeltaOrbitals(rpa_orb, external->GetK(), external->GetParity(), static_rpa);
+        core->AddState(rpa_orb);
+    }
+
+    core->SetOccupancies(rpa_occupancies);
+}
+
 void RPAOperator::SolveRPA()
 {
     // Solve RPA core.

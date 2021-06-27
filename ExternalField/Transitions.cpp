@@ -166,8 +166,19 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
             *errstream << "RPA/MaxIterations must be greater than or equal to 0 (ignoring).\n";
     }
 
+    // Limit RPA orbitals if requested
     // Make RPA operator
-    pRPAOperator rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
+    std::string rpa_configuration = user_input("RPA/Configuration", "");
+    pRPAOperator rpa;
+    if(rpa_configuration.empty())
+    {
+        rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_solver);
+    }
+    else
+    {
+        OccupationMap rpa_occupancies = ConfigurationParser::ParseFractionalConfiguration(rpa_configuration);
+        rpa = std::make_shared<RPAOperator>(external, hf, hartreeY, rpa_occupancies, rpa_solver);
+    }
 
     // Scale operator
     scale = user_input("RPA/Scale", 1.0);
