@@ -1938,6 +1938,16 @@ the same format as as \texttt{Basis/ValenceBasis}, so \texttt{Basis/FrozenCore =
 holes in s- and p-shells with $n \leq 4$ and d-shells with $n \leq 3$.
 \end{adjustwidth}
 
+\texttt{IncludeValence} \uline{String}
+\begin{adjustwidth}{1cm}{}
+A list of core orbitals to include into the valence CI set (i.e. moves deep orbitals into valence holes). For example, \texttt{Basis/IncludeValence = '6s, 5d'} will unfreeze the $6s$ and $5d$ orbitals.
+\end{adjustwidth}
+
+\texttt{ExcludeValence} \uline{String}
+\begin{adjustwidth}{1cm}{}
+A list of valence orbitals to remove from the valence CI set (i.e. moves valence particle orbitals into high states). For example, \texttt{Basis/ExcludeValence = '6f, 7f'} will make these orbitals virtual for MBPT.
+\end{adjustwidth}
+
 \texttt{Residue} \uline{Basis string}
 \begin{adjustwidth}{1cm}{}
 Explicitly specify the which orbitals to include in the core. Used when calculating excited and core
@@ -2508,6 +2518,11 @@ Mix old and new wavefunctions at each step in RPA with this weighting factor.
 \texttt{MaxIterations} \uline{Integer} [100]
 \begin{adjustwidth}{1cm}{}
 	Adjust the maximum allowed number of iterations in the RPA procedure. Helpful if more iterations are needed for convergence. Users should always check that convergence is reached in the log files.
+\end{adjustwidth}
+
+\texttt{Configuration} \uline{String}
+\begin{adjustwidth}{1cm}{}
+	Choose the configuration to be included in the RPA core.
 \end{adjustwidth}
 
 \texttt{{-}{-}no-negative-states}
