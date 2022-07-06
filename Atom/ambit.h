@@ -16,6 +16,7 @@ public:
     void Recursive();
     void TransitionCalculations();
     void Recombination();
+    void InternalConversion();
 
     static void PrintHelp(const std::string& ApplicationName);
 
