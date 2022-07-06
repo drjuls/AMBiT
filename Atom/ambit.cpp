@@ -13,6 +13,7 @@
 #include "ExternalField/YukawaPotential.h"
 #include "ExternalField/KineticEnergy.h"
 #include "ExternalField/LorentzInvarianceT2.h"
+#include "ExternalField/NormalMassShiftDecorator.h"
 
 // Headers to get stack-traces
 #ifdef UNIX
@@ -83,7 +84,7 @@ int main(int argc, char* argv[])
             fputs("Note: This system does not allow AMBiT to produce stack-traces on a segmentation fault", stderr);
         }
     #endif
-    
+
     // Check whether the environment variable OMP_NUM_THREADS has been explicitly set - OpenMP threading
     // should only be used if explicitly requested by the user
     #ifdef AMBIT_USE_OPENMP
@@ -148,7 +149,7 @@ int main(int argc, char* argv[])
                 else if(inputFileName.find(extension) != std::string::npos)
                     foundFile = true;
             }
-            
+
             if(endOfInput && !lineInput.search("--recursive-build"))
             {   *errstream << "Input file not found" << std::endl;
                 Ambit::AmbitInterface::PrintHelp(lineInput[0]);
@@ -435,6 +436,7 @@ void AmbitInterface::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
     RUN_AND_STORE_TRANSITION(KE, KineticEnergyCalculator);
     RUN_AND_STORE_TRANSITION(LLIT2, LorentzInvarianceT2Calculator);
+    RUN_AND_STORE_TRANSITION(NMS, NormalMassShiftCalculator);
 
     user_input.set_prefix("");
 }
@@ -527,7 +529,7 @@ static void signal_handler(int signo){
     /* Function to catch SIGTERM and print a stacktrace. This doesn't neatly handle mutlithreading, but
      * there isn't really any neat way to do this anyway. The stack-traces produced by this function are
      * very rudimentary and need to be passed through addr2line or a similar utility to obtain
-     * line-numbers (although it will include function names in the stack-trace). Finally, this is 
+     * line-numbers (although it will include function names in the stack-trace). Finally, this is
      * basically useless if AMBiT was not compiled with debugging symbols, as the stack-trace will just
      * be a bunch of unadorned hex addresses.
      */
@@ -552,7 +554,7 @@ static void signal_handler(int signo){
         const char* errmsg = "AMBiT terminated on a segmentation fault. Stacktrace:\n";
         // C/C++ stdio functions are not safe to call in a signal handler, so use a bare write() instead
         write(STDERR_FILENO, errmsg, strlen(errmsg));
-        
+
         // Write a stack-trace. This is very rudimentary and needs to be passed through addr2line to be
         // properly readable
         numFrames = backtrace(buff, 256);
