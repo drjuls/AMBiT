@@ -9,6 +9,7 @@
 #include "ExternalField/TwoBodySMSOperator.h"
 #include "ExternalField/BreitHFDecorator.h"
 #include "ExternalField/RadiativePotential.h"
+#include "ExternalField/NuclearPolarisability.h"
 #include "ExternalField/YukawaPotential.h"
 
 namespace Ambit
@@ -147,7 +148,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         hartreeY = std::make_shared<BreitZero>(hartreeY, integrator, coulomb);
     }
 
-    if(user_input.search("HF/QED/--uehling"))
+    if(user_input.search(2, "HF/QED/--uehling", "HF/--qed"))
     {
         if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
@@ -162,7 +163,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         hf = uehling;
     }
 
-    if(user_input.search("HF/QED/--self-energy"))
+    if(user_input.search(2, "HF/QED/--self-energy", "HF/--qed"))
     {
         if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {
@@ -190,6 +191,14 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
                 hf = electricQED;
             }
         }
+    }
+
+    if(user_input.SectionExists("HF/NuclearPolarisability"))
+    {
+        double alphaE = user_input("HF/NuclearPolarisability/alphaE", 0.0);
+        double Ebar = user_input("HF/NuclearPolarisability/EbarMeV", 8.0);
+
+        hf = std::make_shared<NuclearPolarisability>(hf, alphaE, Ebar);
     }
 
     if(user_input.SectionExists("HF/Yukawa"))
