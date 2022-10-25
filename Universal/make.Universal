@@ -1,4 +1,4 @@
-cxxobjects = Eigensolver.o ExpLattice.o FornbergDifferentiator.o Function.o \
+cxxobjects = Eigensolver.o ExpLattice.o FornbergDifferentiator.o \
              Include.o Interpolator.o Lattice.o MathConstant.o PhysicalConstant.o \
              ScalapackMatrix.o SpinorFunction.o
 cobjects =
