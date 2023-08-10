@@ -27,8 +27,11 @@ public:
     /** Get the nuclear density function, rho(r). */
     virtual RadialFunction GetNuclearDensity() const;
 
-    /** Calculate nuclear RMS radius for the distribution used. */
+    /** Calculate nuclear RMS radius for the distribution used in fm. */
     virtual double CalculateNuclearRMSRadius() const;
+
+    /** Calculate expectation value <r^4> for the distribution used in fm^4. */
+    virtual double CalculateNuclearR4() const;
 
     /** Calculate the nuclear density as a radial function. */
     RadialFunction CalculateNuclearDensity(double radius, double thickness) const;
