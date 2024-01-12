@@ -1,0 +1,139 @@
+cmake_minimum_required(VERSION 3.18)
+
+project(ambit VERSION 3.1.1
+        DESCRIPTION "Relativistic CI+MBPT atomic structure code"
+        LANGUAGES C CXX Fortran)
+
+enable_language(CXX)
+enable_language(Fortran)
+
+# Set default C++ and Fortran standards
+set(CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(FVERSION "-std=gnu") # Modern Fortran with GNU extensions
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION} -cpp")
+
+# Set the Fortran compiler. Note that this is case-sensitive: "Fortran" not "FORTRAN"
+get_filename_component(Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
+
+
+###### AMBiT stuff ###### 
+
+# First, generate the gitinfo header file and dummy target
+execute_process(COMMAND bash "${CMAKE_SOURCE_DIR}/getGitInfo.sh" 
+                OUTPUT_FILE "${CMAKE_SOURCE_DIR}/gitInfo.h")
+add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_SOURCE_DIR}/gitInfo.h")
+
+# Main ambit exe
+add_executable(ambit ambit.cpp ambit.h)
+# Need to explicitly add the dependency on gitInfo.h to ensure it gets built before we do anything
+# else
+add_dependencies(ambit generate_gitinfo)
+include_directories("${CMAKE_SOURCE_DIR}")
+
+# Eigen headers. This needs to be here so the sub-modules can find it
+find_package(Eigen3 REQUIRED NO_MODULE)
+if(EIGEN3_FOUND)
+  target_link_libraries(ambit PUBLIC Eigen3::Eigen)
+  include_directories(${EIGEN_INCLUDE_DIR} PUBLIC)
+else()
+  message(FATAL_ERROR "Could not find Eigen. Set EIGEN_INCLUDE_DIR to the Eigen installation location")
+endif()
+
+# Now include the directories for the different ambit modules and link against the static libs
+add_subdirectory(Atom)
+add_subdirectory(Basis)
+add_subdirectory(Configuration)
+add_subdirectory(ExternalField)
+add_subdirectory(HartreeFock)
+add_subdirectory(MBPT)
+add_subdirectory(Universal)
+
+# TODO EVK: Should probably transition these to using CMake namespaces
+target_link_libraries(ambit PRIVATE atom)
+target_link_libraries(ambit PRIVATE basis)
+target_link_libraries(ambit PRIVATE configuration)
+target_link_libraries(ambit PRIVATE externalfield)
+target_link_libraries(ambit PRIVATE hartreefock)
+target_link_libraries(ambit PRIVATE mbpt)
+target_link_libraries(ambit PRIVATE universal)
+
+# External libraries
+# GSL
+find_package(GSL REQUIRED)
+target_link_libraries(ambit PUBLIC GSL::gsl)
+
+# Boost
+# TODO EVK: can we rip this out now that some stuff is in the C++ standard? Probably not because
+# flatmap is fast for some cases
+find_package(Boost REQUIRED 
+             COMPONENTS system filesystem)
+           target_include_directories(ambit PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(ambit PUBLIC Boost::system Boost::filesystem)
+
+# Eigen
+#find_package(Eigen3 REQUIRED NO_MODULE)
+#target_link_libraries(ambit PUBLIC Eigen3::Eigen)
+#include_directories(${EIGEN_INCLUDE_DIR} PUBLIC)
+#find_package(Eigen3 REQUIRED NO_MODULE)
+#if(EIGEN3_FOUND)
+#  target_link_libraries(ambit PUBLIC Eigen3::Eigen)
+#  include_directories(${EIGEN_INCLUDE_DIR} PUBLIC)
+#else()
+#  message(FATAL_ERROR "Could not find Eigen. Set EIGEN_INCLUDE_DIR")
+#endif()
+
+# LAPACK and BLAS
+# TODO EVK: need to handle MKL. Can do this by setting BLAS vendor
+find_package(LAPACK REQUIRED)
+
+if(LAPACK_FOUND)
+  target_link_libraries(ambit PUBLIC LAPACK::LAPACK)
+else()
+  message(FATAL_ERROR "Could not find LAPACK libraries. Set LAPACK_LIBRARIES CMake variable to LAPACK installation directory.")
+endif()
+
+find_package(BLAS REQUIRED)
+if(BLAS_FOUND)
+  target_link_libraries(ambit PUBLIC BLAS::BLAS)
+else()
+  message(FATAL_ERROR "Could not find BLAS libraries. Set BLAS_LIBRARIES CMake variable to BLAS installation directory.")
+endif()
+# Sparsehash
+# EVK TODO: Sparsehash doesn't have support for CMake, which makes automatically finding it pretty
+# annoying. I can think of a few options:
+# 1.  Make the user specify a root directory for Sparsehash and just bail out if we can't find it
+#     (this is the current behaviour with SCons)
+# 1a. Optional: download Sparsehash if we can't find it on the host system
+# 2.  There's a C++11 version of sparsehash which has CMake support: 
+#     https://github.com/sparsehash/sparsehash-c11/. We could switch to using this, although I
+#     don't know if there will be API incompatibilities or something
+# 3.  Switch to something like Abseil: https://github.com/abseil/abseil-cpp. This is the successor
+#     library to Sparsehash (also from Google) and (allegedly) has better performance than
+#     Sparsehash but would require some code changes for the new API. We could also automatically
+#     download Abseil if the user doesn't supply a location (which would be easier to do since we
+#     can add it as a submodule using CMake)
+#
+# I'm going to use the first option for now, but I'm leaning towards replacing this with Abseil
+# once I have the CMake build system done.
+add_definitions(-DSPARSEHASH_ROOT="${SPARSEHASH_ROOT}")
+target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
+
+# TODO EVK: need to handle MPI and OpenMP
+
+# Install the "ambit" exe into "./bin".
+# TODO EVK: check what Julian wants to do here
+install(TARGETS ambit DESTINATION "bin")
+
+############# Unit tests ############# 
+# Now do unit testing
+# TODO EVK
+#if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+#  # Download Googletest if we don't have it already
+#  FetchContent_Declare(
+#  googletest
+#  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
+#
+#  FetchContent_MakeAvailable(googletest)
+#
+#endif()
