@@ -2,7 +2,7 @@
 #include <mpi.h>
 #endif
 #include "Include.h"
-#include "OutStreams.h"
+#include "Atom/OutStreams.h"
 #include "gitInfo.h"
 #include "Universal/Enums.h"
 #include "Atom/GetPot"

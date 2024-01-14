@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
-#include "LocalPotentialDecorator.h"
+#include "HartreeFock/LocalPotentialDecorator.h"
 #include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 

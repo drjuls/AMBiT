@@ -1,11 +1,11 @@
-#include "HamiltonianMatrix.h"
+#include "Configuration/HamiltonianMatrix.h"
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
-#include "ConfigGenerator.h"
-#include "GFactor.h"
+#include "Configuration/ConfigGenerator.h"
+#include "Configuration/GFactor.h"
 #include "Atom/MultirunOptions.h"
 
 using namespace Ambit;

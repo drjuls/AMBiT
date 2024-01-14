@@ -1,5 +1,5 @@
-#include "MathConstant.h"
-#include "FornbergDifferentiator.h"
+#include "Universal/MathConstant.h"
+#include "Universal/FornbergDifferentiator.h"
 #include "Include.h"
 #include "gtest/gtest.h"
 

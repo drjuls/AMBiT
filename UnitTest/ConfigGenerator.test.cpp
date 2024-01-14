@@ -1,4 +1,4 @@
-#include "ConfigGenerator.h"
+#include "Configuration/ConfigGenerator.h"
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"

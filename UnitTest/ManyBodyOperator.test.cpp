@@ -1,4 +1,4 @@
-#include "ManyBodyOperator.h"
+#include "Configuration/ManyBodyOperator.h"
 #include "gtest/gtest.h"
 #include "Include.h"
 

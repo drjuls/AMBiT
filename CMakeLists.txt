@@ -140,13 +140,9 @@ install(TARGETS ambit DESTINATION "bin")
 
 ############# Unit tests ############# 
 # Now do unit testing
-# TODO EVK
-#if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-#  # Download Googletest if we don't have it already
-#  FetchContent_Declare(
-#  googletest
-#  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
-#
-#  FetchContent_MakeAvailable(googletest)
-#
-#endif()
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+  # Download Googletest if we don't have it already
+  enable_testing()
+  add_subdirectory(UnitTest)
+
+endif()
