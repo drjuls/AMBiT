@@ -11,6 +11,7 @@ set(MODS_CONFIGURATION  AngularData.cpp
                         CACHE INTERNAL "")
 add_library(configuration "${MODS_CONFIGURATION}")
 
+# Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(configuration PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)

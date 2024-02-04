@@ -19,6 +19,7 @@ set(MODS_HARTREEFOCK  ConfigurationParser.cpp
 
 add_library(hartreefock "${MODS_HARTREEFOCK}")
 
+# Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(hartreefock PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)

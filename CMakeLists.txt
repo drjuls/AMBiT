@@ -121,7 +121,8 @@ target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
 # AMBIT_USE_(OPENMP|MPI) are defined, regardless of its actual value. If we expose these variables
 # in the CMake cache then they'll get set to FALSE, but the preprocessor will see that they exist
 # and thus will always generate the OpenMP/MPI code, even though that's not what the user has
-# requested.
+# requested. Consequently, we need "PRIVATE" compile definitions that shadow the "CACHE" ones in
+# order to make this work properly.
 set(USE_MPI OFF CACHE BOOL "Enable MPI support in AMBiT")
 if(USE_MPI)
   target_compile_definitions(ambit PRIVATE -DAMBIT_USE_MPI)
@@ -131,9 +132,6 @@ endif()
 
 # OpenMP options. CMake should be able to automatically infer the correct flags for the current
 # compiler
-# TODO EVK: this currently doesn't work. It compiles and the OpenMP codepath *seems* to be
-# included in the build, but running on the MgI example calculation still only uses a single thread
-# when executing. I don't understand what's going on here
 set(USE_OPENMP OFF CACHE BOOL "Enable OpenMP support in AMBiT")
 if(USE_OPENMP)
   target_compile_definitions(ambit PRIVATE -DAMBIT_USE_OPENMP)

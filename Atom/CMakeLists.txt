@@ -6,7 +6,7 @@ set(MODS_ATOM Atom.cpp
 
 add_library(atom "${MODS_ATOM}")
 
-# Set the MPI and OpenMP #ifdefs
+# Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(atom PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)

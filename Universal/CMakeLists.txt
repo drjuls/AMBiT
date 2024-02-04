@@ -13,6 +13,7 @@ set(MODS_UNIVERSAL  Eigensolver.cpp
 
 add_library(universal "${MODS_UNIVERSAL}")
 
+# Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(universal PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)

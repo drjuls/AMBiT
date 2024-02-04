@@ -10,6 +10,8 @@ set(MODS_MBPT BruecknerDecorator.cpp
               CACHE INTERNAL "")
 
 add_library(mbpt "${MODS_MBPT}")
+
+# Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(mbpt PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)
