@@ -7,7 +7,14 @@ set(MODS_BASIS BasisGenerator.cpp
 
 add_library(basis "${MODS_BASIS}")
 
-#find_package(Eigen3 REQUIRED NO_MODULE)
-#target_link_libraries(basis PUBLIC Eigen3::Eigen)
-#include_directories(${EIGEN_INCLUDE_DIR} PUBLIC)
+if(USE_MPI)
+  target_compile_definitions(basis PRIVATE -DAMBIT_USE_MPI)
+  find_package(MPI REQUIRED)
+  target_link_libraries(basis PUBLIC MPI::MPI_CXX)
+endif()
 
+if(USE_OPENMP)
+  target_compile_definitions(basis PRIVATE -DAMBIT_USE_OPENMP)
+  find_package(OpenMP REQUIRED)
+  target_link_libraries(basis PUBLIC OpenMP::OpenMP_CXX)
+endif()

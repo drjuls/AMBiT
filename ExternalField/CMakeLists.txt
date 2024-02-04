@@ -18,3 +18,15 @@ set(MODS_EXTERNALFIELD  BreitHFDecorator.cpp
                         CACHE INTERNAL "")
 
 add_library(externalfield "${MODS_EXTERNALFIELD}")
+
+if(USE_MPI)
+  target_compile_definitions(externalfield PRIVATE -DAMBIT_USE_MPI)
+  find_package(MPI REQUIRED)
+  target_link_libraries(externalfield PUBLIC MPI::MPI_CXX)
+endif()
+
+if(USE_OPENMP)
+  target_compile_definitions(externalfield PRIVATE -DAMBIT_USE_OPENMP)
+  find_package(OpenMP REQUIRED)
+  target_link_libraries(externalfield PUBLIC OpenMP::OpenMP_CXX)
+endif()

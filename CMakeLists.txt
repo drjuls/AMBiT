@@ -24,12 +24,17 @@ execute_process(COMMAND bash "${CMAKE_SOURCE_DIR}/getGitInfo.sh"
                 OUTPUT_FILE "${CMAKE_SOURCE_DIR}/gitInfo.h")
 add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_SOURCE_DIR}/gitInfo.h")
 
+# Set directory for angular data caching
+set(ANGULAR_DATA_DIR "${CMAKE_SOURCE_DIR}/AngularData" CACHE STRING "Directory to store angular data")
+add_definitions(-DANGULAR_DATA_DIRECTORY=${ANGULAR_DATA_DIR})
+
+
 # Main ambit exe
 add_executable(ambit ambit.cpp ambit.h)
 # Need to explicitly add the dependency on gitInfo.h to ensure it gets built before we do anything
 # else
 add_dependencies(ambit generate_gitinfo)
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories(${CMAKE_SOURCE_DIR})
 
 # Eigen headers. This needs to be here so the sub-modules can find it
 # TODO EVK: this seems weird, is this a problem with Eigen?
@@ -104,7 +109,7 @@ endif()
 # I'm going to use the first option for now, but I'm leaning towards replacing this with Abseil
 # once I have the CMake build system done.
 set(SPARSEHASH_ROOT "" CACHE STRING "Sparsehash root installation directory")
-add_definitions(-DSPARSEHASH_ROOT="${SPARSEHASH_ROOT}")
+add_definitions(-DSPARSEHASH_ROOT=${SPARSEHASH_ROOT})
 target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
 
 # MPI options. Note that we can't automatically find the MPI compiler wrappers (e.g. mpiCC), so the
@@ -119,16 +124,19 @@ target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
 # requested.
 set(USE_MPI OFF CACHE BOOL "Enable MPI support in AMBiT")
 if(USE_MPI)
-  add_definitions(-DAMBIT_USE_MPI)
+  target_compile_definitions(ambit PRIVATE -DAMBIT_USE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ambit PUBLIC MPI::MPI_CXX)
 endif()
 
 # OpenMP options. CMake should be able to automatically infer the correct flags for the current
 # compiler
+# TODO EVK: this currently doesn't work. It compiles and the OpenMP codepath *seems* to be
+# included in the build, but running on the MgI example calculation still only uses a single thread
+# when executing. I don't understand what's going on here
 set(USE_OPENMP OFF CACHE BOOL "Enable OpenMP support in AMBiT")
 if(USE_OPENMP)
-  add_definitions(-DAMBIT_USE_OPENMP)
+  target_compile_definitions(ambit PRIVATE -DAMBIT_USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(ambit PUBLIC OpenMP::OpenMP_CXX)
 endif()
