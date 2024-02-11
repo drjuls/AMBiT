@@ -76,20 +76,34 @@ find_package(Boost REQUIRED
 target_link_libraries(ambit PUBLIC Boost::system Boost::filesystem)
 
 # LAPACK and BLAS
-# TODO EVK: need to handle MKL. Can do this by setting BLAS vendor
-find_package(LAPACK REQUIRED)
+# First, check to see if we need to use MKL
+set(USE_MKL OFF CACHE BOOL "Use Intel MKL for BLAS/LAPACK subroutines")
+if(USE_MKL)
+  # MKL 2021.3 and later has a nice CMake support, so make sure we use that
+  # Documentation can be found here:
+  # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/cmake-config-for-onemkl.html
+  # and
+  # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-cmake-config-file.html
+  # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
+  find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
+  target_link_libraries(ambit PUBLIC MKL::MKL)
+  # Also tell Eigen to use MKL as its backend
+  target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
+else() # Use vanilla BLAS/LAPACK
+  find_package(LAPACK REQUIRED)
 
-if(LAPACK_FOUND)
-  target_link_libraries(ambit PUBLIC LAPACK::LAPACK)
-else()
-  message(FATAL_ERROR "Could not find LAPACK libraries. Set LAPACK_LIBRARIES CMake variable to LAPACK installation directory.")
-endif()
+  if(LAPACK_FOUND)
+    target_link_libraries(ambit PUBLIC LAPACK::LAPACK)
+  else()
+    message(FATAL_ERROR "Could not find LAPACK libraries. Set LAPACK_LIBRARIES CMake variable to LAPACK installation directory.")
+  endif()
 
-find_package(BLAS REQUIRED)
-if(BLAS_FOUND)
-  target_link_libraries(ambit PUBLIC BLAS::BLAS)
-else()
-  message(FATAL_ERROR "Could not find BLAS libraries. Set BLAS_LIBRARIES CMake variable to BLAS installation directory.")
+  find_package(BLAS REQUIRED)
+  if(BLAS_FOUND)
+    target_link_libraries(ambit PUBLIC BLAS::BLAS)
+  else()
+    message(FATAL_ERROR "Could not find BLAS libraries. Set BLAS_LIBRARIES CMake variable to BLAS installation directory.")
+  endif()
 endif()
 # Sparsehash
 # EVK TODO: Sparsehash doesn't have support for CMake, which makes automatically finding it kind of
