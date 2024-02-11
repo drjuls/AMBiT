@@ -87,6 +87,8 @@ if(USE_MKL)
   # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
   find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
   target_link_libraries(ambit PUBLIC MKL::MKL)
+  # Need to use the 32-bit integer interface to MKL BLAS for compatibility with Eigen
+  set(MKL_INTERFACE_FULL CACHE INTERNAL STRING "intel_lp64")
   # Also tell Eigen to use MKL as its backend
   target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
 else() # Use vanilla BLAS/LAPACK
