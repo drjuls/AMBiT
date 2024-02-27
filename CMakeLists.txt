@@ -87,8 +87,6 @@ if(USE_MKL)
   # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
   find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
   target_link_libraries(ambit PUBLIC MKL::MKL)
-  # Need to use the 32-bit integer interface to MKL BLAS for compatibility with Eigen
-  set(MKL_INTERFACE_FULL CACHE INTERNAL STRING "intel_lp64")
   # Also tell Eigen to use MKL as its backend
   target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
 else() # Use vanilla BLAS/LAPACK
@@ -125,7 +123,7 @@ endif()
 # I'm going to use the first option for now, but I'm leaning towards replacing this with Abseil
 # once I have the CMake build system done.
 set(SPARSEHASH_ROOT "" CACHE STRING "Sparsehash root installation directory")
-add_definitions(-DSPARSEHASH_ROOT=${SPARSEHASH_ROOT})
+#add_definitions(-DSPARSEHASH_ROOT=${SPARSEHASH_ROOT})
 target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
 
 # MPI options. Note that we can't automatically find the MPI compiler wrappers (e.g. mpiCC), so the
@@ -166,5 +164,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   # Download Googletest if we don't have it already
   enable_testing()
   add_subdirectory(UnitTest)
+
+  # Copy the template input file (used for testing MultirunOptions) to the build directory so CTest
+  # can find it
+  configure_file("template.input" "${CMAKE_CURRENT_BINARY_DIR}/UnitTest/template.input" COPYONLY)
 
 endif()

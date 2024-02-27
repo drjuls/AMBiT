@@ -47,8 +47,15 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   # External dependencies
   target_link_libraries(ambit_test PUBLIC GSL::gsl)
   target_link_libraries(ambit_test PUBLIC Boost::system Boost::filesystem)
-  target_link_libraries(ambit_test PUBLIC LAPACK::LAPACK)
-  target_link_libraries(ambit_test PUBLIC BLAS::BLAS)
+  if(USE_MKL)
+    target_link_libraries(ambit_test PUBLIC MKL::MKL)
+    # Also tell Eigen to use MKL as its backend
+    target_compile_definitions(ambit_test PRIVATE -DEIGEN_USE_MKL_ALL)
+  else() # Use vanilla BLAS/LAPACK
+    target_link_libraries(ambit_test PUBLIC LAPACK::LAPACK)
+    target_link_libraries(ambit_test PUBLIC BLAS::BLAS)
+  endif()
+
   if(USE_MPI)
     target_link_libraries(ambit_test PUBLIC MPI::MPI_CXX)
   endif()

@@ -14,8 +14,47 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     // CaII
     OccupationMap occ = ConfigurationParser::ParseFractionalConfiguration("1s2 2s2 2p6 3s2 3p6");
 
-    MultirunOptions userInput("template.input", "//", "\n", ",");
+    std::string user_input_string = std::string() +
+      "-c \n" +
+      "ID = test\n" + 
+      "Multirun = 'AlphaSquaredVariation'\n" +
+      "NuclearRadius = 3.7188\n" +
+      "NuclearThickness = 2.3\n" +
+      "Z = 20\n" +
+      "AlphaSquaredVariation = '-0.1, 0.0, 0.1'\n" 
+      "[Lattice]\n" +
+      "NumPoints = 1000\n" +
+      "StartPoint = 1.e-6\n" +
+      "EndPoint = 50.\n" +
+      "[HF]\n" +
+      "N = 18\n" +
+      "Configuration = '1s2 2s2 2p6 3s2 3p6'\n" +
+      "[Basis]\n" +
+      "ValenceBasis = 6spdf\n" +
+      "FrozenCore = 3s2p\n" +
+      "BSpline/Rmax = 50.0\n" +
+      "[CI]\n" +
+      "LeadingConfigurations = '4s2, 4s1 4p1'\n" +
+      "ExtraConfigurations   = '4p2'\n" +
+      "ElectronExcitations = 2\n" +
+      "HoleExcitations = 1\n" +
+      "EvenParityTwoJ = '0'\n" +
+      "OddParityTwoJ =  '0, 2'\n" +
+      "NumSolutions = 3\n" +
+      "[./Output]\n" +
+      "Type = Standard\n" +
+      "ShowgFactors = 1\n" +
+      "ShowPercentages = 1\n" +
+      "NumLeadingConfigurations = 5\n" +
+      "MinimumDisplayedPercentage = 1\n" +
+      "MaxDisplayedEnergy = -10\n" +
+      "[Transitions]\n" +
+      "[./Output]\n" +
+      "ShowLifetime = 1\n" +
+      "ShowProbability = 1\n";
 
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
     pCore core(new Core(lattice));
     core->SetOccupancies(occ);
 
