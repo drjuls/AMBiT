@@ -1,4 +1,4 @@
-#include "SpecificMassShiftDecorator.h"
+#include "ExternalField/SpecificMassShiftDecorator.h"
 #include "gtest/gtest.h"
 #include "HartreeFock/Core.h"
 #include "Include.h"

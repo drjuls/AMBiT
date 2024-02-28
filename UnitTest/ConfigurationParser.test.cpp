@@ -1,9 +1,9 @@
-#include "ConfigurationParser.h"
+#include "HartreeFock/ConfigurationParser.h"
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "Configuration/NonRelConfiguration.h"
 #include "Configuration/RelativisticConfiguration.h"
-#include "Core.h"
+#include "HartreeFock/Core.h"
 
 using namespace Ambit;
 

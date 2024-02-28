@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
-#include "EJOperator.h"
+#include "ExternalField/EJOperator.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
@@ -10,7 +10,7 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/GFactor.h"
-#include "RPAOperator.h"
+#include "ExternalField/RPAOperator.h"
 
 using namespace Ambit;
 

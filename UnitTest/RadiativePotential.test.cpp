@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
-#include "RadiativePotential.h"
+#include "ExternalField/RadiativePotential.h"
 #include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 

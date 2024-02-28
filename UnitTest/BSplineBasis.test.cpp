@@ -3,7 +3,7 @@
 #include "HartreeFock/Core.h"
 #include "Basis/BasisGenerator.h"
 #include "Atom/MultirunOptions.h"
-#include "BSplineBasis.h"
+#include "Basis/BSplineBasis.h"
 
 using namespace Ambit;
 

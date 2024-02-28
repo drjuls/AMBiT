@@ -2,8 +2,8 @@
 #define AMBIT_CLASS_H
 
 #include "Include.h"
-#include "MultirunOptions.h"
-#include "Atom.h"
+#include "Atom/MultirunOptions.h"
+#include "Atom/Atom.h"
 
 namespace Ambit
 {

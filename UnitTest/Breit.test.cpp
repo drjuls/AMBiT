@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
-#include "BreitHFDecorator.h"
+#include "ExternalField/BreitHFDecorator.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"

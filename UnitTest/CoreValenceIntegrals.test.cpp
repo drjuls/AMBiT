@@ -6,8 +6,8 @@
 #include "Basis/BasisGenerator.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Atom/MultirunOptions.h"
-#include "OneElectronMBPT.h"
-#include "CoreValenceIntegrals.h"
+#include "MBPT/OneElectronMBPT.h"
+#include "MBPT/CoreValenceIntegrals.h"
 
 using namespace Ambit;
 

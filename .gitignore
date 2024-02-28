@@ -1,6 +1,5 @@
 # Input and output files
 AngularData/
-*.txt
 *.input
 *.out
 *.basis

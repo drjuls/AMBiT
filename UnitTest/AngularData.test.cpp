@@ -1,5 +1,5 @@
-#include "AngularData.h"
-#include "RelativisticConfiguration.h"
+#include "Configuration/AngularData.h"
+#include "Configuration/RelativisticConfiguration.h"
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"

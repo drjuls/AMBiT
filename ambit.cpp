@@ -2,10 +2,10 @@
 #include <mpi.h>
 #endif
 #include "Include.h"
-#include "OutStreams.h"
+#include "Atom/OutStreams.h"
 #include "gitInfo.h"
 #include "ambit.h"
-#include "Atom.h"
+#include "Atom/Atom.h"
 #include "ExternalField/EJOperator.h"
 #include "ExternalField/Hyperfine.h"
 #include "ExternalField/FieldShift.h"

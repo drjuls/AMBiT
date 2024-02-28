@@ -1,11 +1,11 @@
-#include "HFOperator.h"
+#include "HartreeFock/HFOperator.h"
 #include "gtest/gtest.h"
-#include "Core.h"
+#include "HartreeFock/Core.h"
 #include "Include.h"
-#include "ODESolver.h"
+#include "HartreeFock/ODESolver.h"
 #include "Universal/MathConstant.h"
-#include "HartreeFocker.h"
-#include "NucleusDecorator.h"
+#include "HartreeFock/HartreeFocker.h"
+#include "HartreeFock/NucleusDecorator.h"
 
 using namespace Ambit;
 
