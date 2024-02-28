@@ -191,11 +191,11 @@ interface.
 
 As a result, you must explicitly request the 32-bit interface when compiling AMBiT by setting
 `MKL_INTERFACE_FULL` in the configuration stage. The exact value this variable must be set to can
-be different depending on your configuration, but it's usually one of either 
-`-DMKL_INTERFACE_FULL=lp64` (for Intel compielrs) or `-DMKL_INTERFACE_FULL=gf_lp64` (for GNU). 
-If `MKL_INTERFACE_FULL` is not explicitly set, then CMake will
-print the possible options in the configuration output. Consult the documentation for your version
-of MKL, as well as for Eigen, if you are unsure:
+be different depending on your configuration, but it's usually one of either
+`-DMKL_INTERFACE_FULL=lp64` or `-DMKL_INTERFACE_FULL=intel_lp64` (for Intel compilers), or
+`-DMKL_INTERFACE_FULL=gf_lp64` (for GNU). If `MKL_INTERFACE_FULL` is not explicitly set, then
+CMake will print the possible options in the configuration output. Consult the documentation for
+your version of MKL, as well as for Eigen, if you are unsure:
 
 - [CMake Config for
 oneMKL](https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/cmake-config-for-onemkl.html),
@@ -266,8 +266,9 @@ Explicitly enable or disable Boost multithreading in your CMake build options, e
 Eigen only works with MKL as a backend via MKL's 32-bit integer interface
 (which Intel calls `LP64`) (see: <https://eigen.tuxfamily.org/dox/TopicUsingIntelMKL.html>), which
 we can control by setting the `-DMKL_INTERFACE_FULL` CMake variable. The exact value required
-varies, but it's usually one of either `-DMKL_INTERFACE_FULL=lp64` (for Intel compilers) or
-`-DMKL_INTERFACE_FULL=gf_lp64` (for GNU compilers).
+varies, but it's usually one of either `-DMKL_INTERFACE_FULL=lp64` or
+`-DMKL_INTERFACE_FULL=intel_lp64` (for Intel compilers), or `-DMKL_INTERFACE_FULL=gf_lp64` (for GNU
+compilers).
 
 ## Make
 
