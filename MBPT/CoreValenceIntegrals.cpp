@@ -1,5 +1,5 @@
 #include "Include.h"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <chrono>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
@@ -363,13 +363,13 @@ void CoreValenceIntegrals<MapType>::Write(const std::string& filename, const std
         // The *.two.int.save file is created to protect the work while
         // the *.two.int file is being re-written.
         // It is removed after the last write.
-        boost::filesystem::path current_path(filename);
-        boost::filesystem::path save_path(filename + ".save");
+        std::filesystem::path current_path(filename);
+        std::filesystem::path save_path(filename + ".save");
 
-        if(boost::filesystem::exists(save_path))
-            boost::filesystem::remove(save_path);
+        if(std::filesystem::exists(save_path))
+            std::filesystem::remove(save_path);
         if(!my_calculations_done)
-            boost::filesystem::copy(current_path, save_path);
+            std::filesystem::copy(current_path, save_path);
     }
     else
     {   // Receive root completion status

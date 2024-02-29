@@ -149,11 +149,11 @@ FileSystemLevelStore::FileSystemLevelStore(const std::string& file_prefix, pAngu
 FileSystemLevelStore::FileSystemLevelStore(const std::string& dir_name, const std::string& file_prefix, pAngularDataLibrary lib):
     directory(dir_name), filename_prefix(file_prefix), angular_library(lib)
 {
-    while(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
+    while(!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory))
     {
         if(ProcessorRank == 0)
         {   // Attempt to create, else fail
-            if(!boost::filesystem::create_directory(directory))
+            if(!std::filesystem::create_directory(directory))
             {   *errstream << "FileSystemLevelStore cannot create directory " << directory << std::endl;
                 exit(1);
             }
@@ -164,7 +164,7 @@ FileSystemLevelStore::FileSystemLevelStore(const std::string& dir_name, const st
         }
     }
 
-    directory = boost::filesystem::canonical(directory);
+    directory = std::filesystem::canonical(directory);
 }
 
 LevelVector FileSystemLevelStore::GetLevels(pHamiltonianID key)

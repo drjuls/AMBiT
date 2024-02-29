@@ -46,7 +46,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 
   # External dependencies
   target_link_libraries(ambit_test PUBLIC GSL::gsl)
-  target_link_libraries(ambit_test PUBLIC Boost::system Boost::filesystem)
   if(USE_MKL)
     target_link_libraries(ambit_test PUBLIC MKL::MKL)
     # Also tell Eigen to use MKL as its backend

@@ -6,7 +6,7 @@
 #include "NonRelConfiguration.h"
 #include <vector>
 #include <map>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 namespace Ambit
 {
@@ -124,7 +124,7 @@ public:
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
 
 protected:
-    boost::filesystem::path directory;
+    std::filesystem::path directory;
     std::string filename_prefix;
     pAngularDataLibrary angular_library;
 };

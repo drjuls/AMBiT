@@ -9,7 +9,7 @@
 #include <memory>
 #include <boost/functional/hash.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 namespace Ambit
 {
@@ -198,8 +198,8 @@ protected:
     std::unordered_map<KeyType, pAngularData, boost::hash<KeyType>> library;
 
     /** Details of file storage: file_info maps tuple<num_electrons, Symmetry.Jpi, two_m> to pair<write_needed, file>. */
-    std::map<std::tuple<int, int, int>, std::pair<bool, boost::filesystem::path>> file_info;
-    boost::filesystem::path directory;
+    std::map<std::tuple<int, int, int>, std::pair<bool, std::filesystem::path>> file_info;
+    std::filesystem::path directory;
 
 protected:
     class ProjectionSizeFirstComparator

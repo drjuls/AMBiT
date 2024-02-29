@@ -384,16 +384,16 @@ AngularDataLibrary::AngularDataLibrary(const std::string& lib_directory):
     if(!directory.empty())
     {
         // Check library directory exists
-        if(!boost::filesystem::exists(directory) || !boost::filesystem::is_directory(directory))
+        if(!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory))
         {
             // Attempt to create, else fail
-            if(!boost::filesystem::create_directory(directory))
+            if(!std::filesystem::create_directory(directory))
             {   *errstream << "AngularDataLibarary::AngularDataLibarary() cannot create directory " << directory << std::endl;
                 exit(1);
             }
         }
 
-        directory = boost::filesystem::canonical(directory);
+        directory = std::filesystem::canonical(directory);
     }
 }
 
@@ -633,7 +633,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
         return;
 
     auto& filedata = file_info[std::make_tuple(electron_number, sym.GetJpi(), two_m)];
-    boost::filesystem::path& filepath = filedata.second;
+    std::filesystem::path& filepath = filedata.second;
 
     if(filepath.empty())
     {
@@ -644,7 +644,7 @@ void AngularDataLibrary::Read(int electron_number, const Symmetry& sym, int two_
     }
 
     // Only try to get a shared file lock if the file actually exists, otherwise there's no point reading
-    if(!boost::filesystem::exists(filedata.second.c_str()))
+    if(!std::filesystem::exists(filedata.second.c_str()))
         return;
 
     boost::interprocess::file_lock f_lock(filedata.second.c_str());
@@ -738,7 +738,7 @@ void AngularDataLibrary::Write(int electron_number, const Symmetry& sym, int two
 
         FILE* fp = nullptr;
         // Create the AngularData file if it doesn't already exist
-        if(!boost::filesystem::exists(filedata.second.c_str()))
+        if(!std::filesystem::exists(filedata.second.c_str()))
         {
             fp = file_err_handler->fopen(filedata.second.c_str(), "wb");
             if(!fp)

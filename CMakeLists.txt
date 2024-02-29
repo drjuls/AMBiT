@@ -70,10 +70,8 @@ find_package(GSL REQUIRED)
 target_link_libraries(ambit PUBLIC GSL::gsl)
 
 # Boost
-find_package(Boost REQUIRED 
-             COMPONENTS system filesystem)
+find_package(Boost REQUIRED)
            target_include_directories(ambit PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(ambit PUBLIC Boost::system Boost::filesystem)
 
 # LAPACK and BLAS
 # First, check to see if we need to use MKL
