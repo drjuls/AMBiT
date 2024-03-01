@@ -41,9 +41,9 @@ include_directories(${CMAKE_SOURCE_DIR})
 find_package(Eigen3 REQUIRED NO_MODULE)
 if(EIGEN3_FOUND)
   target_link_libraries(ambit PUBLIC Eigen3::Eigen)
-  include_directories(${EIGEN_INCLUDE_DIR} PUBLIC)
+  include_directories(${EIGEN3_INCLUDE_DIR} PUBLIC)
 else()
-  message(FATAL_ERROR "Could not find Eigen. Set EIGEN_INCLUDE_DIR to the Eigen installation location")
+  message(FATAL_ERROR "Could not find Eigen. Set Eigen3_DIR to the location of the Eigen CMake configuration file")
 endif()
 
 # Now include the directories for the different ambit modules and link against the static libs
@@ -93,14 +93,14 @@ else() # Use vanilla BLAS/LAPACK
   if(LAPACK_FOUND)
     target_link_libraries(ambit PUBLIC LAPACK::LAPACK)
   else()
-    message(FATAL_ERROR "Could not find LAPACK libraries. Set LAPACK_LIBRARIES CMake variable to LAPACK installation directory.")
+    message(FATAL_ERROR "Could not find LAPACK libraries.")
   endif()
 
   find_package(BLAS REQUIRED)
   if(BLAS_FOUND)
     target_link_libraries(ambit PUBLIC BLAS::BLAS)
   else()
-    message(FATAL_ERROR "Could not find BLAS libraries. Set BLAS_LIBRARIES CMake variable to BLAS installation directory.")
+    message(FATAL_ERROR "Could not find BLAS libraries.")
   endif()
 endif()
 # Sparsehash
@@ -121,7 +121,6 @@ endif()
 # I'm going to use the first option for now, but I'm leaning towards replacing this with Abseil
 # once I have the CMake build system done.
 set(SPARSEHASH_ROOT "" CACHE STRING "Sparsehash root installation directory")
-#add_definitions(-DSPARSEHASH_ROOT=${SPARSEHASH_ROOT})
 target_include_directories(ambit PUBLIC "${SPARSEHASH_ROOT}/include")
 
 # MPI options. Note that we can't automatically find the MPI compiler wrappers (e.g. mpiCC), so the

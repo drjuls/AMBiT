@@ -123,11 +123,10 @@ Here is a short list of CMake options for AMBiT:
 - `CMAKE_Fortran_COMPILER` (case sensitive): Fortran compiler to use when compiling Davidson
   eigensolver
 - `CMAKE_Fortran_FLAGS` (case sensitive): Flags to pass to the Fortran compiler
-- `CMAKE_PREFIX_PATH`: additional paths for CMake configuration files for external libraries
+- `CMAKE_PREFIX_PATH`: additional paths for CMake configuration files for external libraries. Only
+  necessary when CMake's automatic package configuration fails
 - `SPARSEHASH_ROOT`: base directory of the Sparsehash installation
 - `EIGEN_INCLUDE_DIR`: directory containing Eigen header files
-- `BLAS_LIBRARIES`: BLAS shared library directory (only necessary when not using MKL)
-- `LAPACK_LIBRARIES`: LAPACK shraed library directory (only necessary when not using MKL)
 - `USE_OPENMP`: toggle whether to use OpenMP multithreading parallelism
 - `USE_MPI`: toggle whether to use MPI parallelism
 - `USE_MKL`: toggle whether to use MKL for linear algebra operations
