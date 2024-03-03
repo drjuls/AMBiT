@@ -28,7 +28,6 @@ add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_SOURCE_DIR}/gitInfo.h")
 set(ANGULAR_DATA_DIR "${CMAKE_SOURCE_DIR}/AngularData" CACHE STRING "Directory to store angular data")
 add_definitions(-DANGULAR_DATA_DIRECTORY=${ANGULAR_DATA_DIR})
 
-
 # Main ambit exe
 add_executable(ambit ambit.cpp ambit.h)
 # Need to explicitly add the dependency on gitInfo.h to ensure it gets built before we do anything
@@ -41,7 +40,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 find_package(Eigen3 REQUIRED NO_MODULE)
 if(EIGEN3_FOUND)
   target_link_libraries(ambit PUBLIC Eigen3::Eigen)
-  include_directories(${EIGEN3_INCLUDE_DIR} PUBLIC)
+  include_directories(${EIGEN3_INCLUDE_DIR})
 else()
   message(FATAL_ERROR "Could not find Eigen. Set Eigen3_DIR to the location of the Eigen CMake configuration file")
 endif()
