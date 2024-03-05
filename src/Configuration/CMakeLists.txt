@@ -23,3 +23,8 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(configuration PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(configuration PUBLIC Eigen3::Eigen)
+target_include_directories(configuration PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(configuration PUBLIC mbpt)
+

@@ -19,3 +19,8 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(basis PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(basis PUBLIC Eigen3::Eigen)
+target_include_directories(basis PRIVATE ${Boost_INCLUDE_DIRS})
+
+target_link_libraries(basis PUBLIC hartreefock)

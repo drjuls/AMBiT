@@ -31,3 +31,8 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(externalfield PUBLIC OpenMP::OpenMP_CXX)
 endif()
+target_link_libraries(externalfield PRIVATE GSL::gsl)
+target_include_directories(externalfield PRIVATE ${Boost_INCLUDE_DIRS})
+
+
+target_link_libraries(externalfield PUBLIC configuration)

@@ -18,3 +18,5 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(atom PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(atom PUBLIC externalfield)

@@ -3,9 +3,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   # Boilerplate for setting up googletest
   # Download gtest from GitHub
   include(FetchContent)
-  FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
+    FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
   FetchContent_MakeAvailable(googletest)
 
   # Actual ambit testing libraries
@@ -35,32 +35,43 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   add_executable(ambit_test "${MODS_TESTING}")
 
   # Internal AMBiT link dependencies
-  target_link_libraries(ambit_test PUBLIC Eigen3::Eigen)
-  target_link_libraries(ambit_test PRIVATE atom)
-  target_link_libraries(ambit_test PRIVATE basis)
-  target_link_libraries(ambit_test PRIVATE configuration)
-  target_link_libraries(ambit_test PRIVATE externalfield)
-  target_link_libraries(ambit_test PRIVATE hartreefock)
-  target_link_libraries(ambit_test PRIVATE mbpt)
-  target_link_libraries(ambit_test PRIVATE universal)
+  target_link_libraries(ambit_test PUBLIC atom)
+  target_link_libraries(ambit_test PUBLIC basis)
+  target_link_libraries(ambit_test PUBLIC configuration)
+  target_link_libraries(ambit_test PUBLIC externalfield)
+  target_link_libraries(ambit_test PUBLIC hartreefock)
+  target_link_libraries(ambit_test PUBLIC mbpt)
+  target_link_libraries(ambit_test PUBLIC universal)
 
   # External dependencies
+  find_package(Eigen3 REQUIRED NO_MODULE)
+  target_link_libraries(ambit_test PRIVATE Eigen3::Eigen)
   target_link_libraries(ambit_test PUBLIC GSL::gsl)
+  find_package(GSL REQUIRED)
+
   if(USE_MKL)
+    find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
     target_link_libraries(ambit_test PUBLIC MKL::MKL)
     # Also tell Eigen to use MKL as its backend
     target_compile_definitions(ambit_test PRIVATE -DEIGEN_USE_MKL_ALL)
   else() # Use vanilla BLAS/LAPACK
+    find_package(LAPACK REQUIRED)
+    find_package(BLAS REQUIRED)
     target_link_libraries(ambit_test PUBLIC LAPACK::LAPACK)
     target_link_libraries(ambit_test PUBLIC BLAS::BLAS)
   endif()
 
   if(USE_MPI)
-    target_link_libraries(ambit_test PUBLIC MPI::MPI_CXX)
+    find_package(MPI REQUIRED)
+    target_link_libraries(ambit_test PRIVATE MPI::MPI_CXX)
   endif()
   if(USE_OPENMP)
-    target_link_libraries(ambit_test PUBLIC OpenMP::OpenMP_CXX)
+    find_package(OpenMP REQUIRED)
+    target_link_libraries(ambit_test PRIVATE OpenMP::OpenMP_CXX)
   endif()
+
+  find_package(Boost REQUIRED)
+  target_include_directories(ambit_test PRIVATE ${Boost_INCLUDE_DIRS})
 
   # gtest dependencies
   target_link_libraries(ambit_test PUBLIC GTest::gtest_main)

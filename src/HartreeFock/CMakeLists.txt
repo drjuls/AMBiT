@@ -31,3 +31,8 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(hartreefock PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(hartreefock PUBLIC GSL::gsl)
+target_include_directories(hartreefock PRIVATE ${Boost_INCLUDE_DIRS})
+
+target_link_libraries(hartreefock PUBLIC universal)

@@ -25,3 +25,7 @@ if(USE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(universal PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(universal PUBLIC Eigen3::Eigen)
+target_link_libraries(universal PUBLIC GSL::gsl)
+target_include_directories(universal PRIVATE ${Boost_INCLUDE_DIRS})
