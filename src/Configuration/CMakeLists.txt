@@ -27,4 +27,3 @@ endif()
 target_link_libraries(configuration PUBLIC Eigen3::Eigen)
 target_include_directories(configuration PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(configuration PUBLIC mbpt)
-

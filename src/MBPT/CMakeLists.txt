@@ -11,6 +11,8 @@ set(MODS_MBPT BruecknerDecorator.cpp
 
 add_library(mbpt "${MODS_MBPT}")
 
+target_link_libraries(mbpt PUBLIC unordered_dense::unordered_dense)
+
 # Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)
   target_compile_definitions(mbpt PRIVATE -DAMBIT_USE_MPI)

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <sparsehash/dense_hash_map>
 #include <sparsehash/sparse_hash_map>
+#include <ankerl/unordered_dense.h>
 
 namespace Ambit
 {
@@ -162,6 +163,7 @@ protected:
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
 typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
 typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
+typedef SlaterIntegrals<ankerl::unordered_dense::map<unsigned long long int, double>> SlaterIntegralsUnorderedDense;
 }
 
 #include "SlaterIntegrals.cpp"

@@ -39,7 +39,7 @@ void Atom::MakeMBPTIntegrals()
 
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
-    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsDenseHash>(orbitals, hartreeY);
+    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsUnorderedDense>(orbitals, hartreeY);
 
     // MBPT calculators
     std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
@@ -188,9 +188,9 @@ void Atom::MakeIntegrals()
     bool three_body_mbpt = user_input.search(3, "-s3", "-s23", "-s123");
 
     if(!two_body_mbpt)
-        two_body_integrals.reset(new SlaterIntegralsDenseHash(orbitals, hartreeY));
+        two_body_integrals.reset(new SlaterIntegralsUnorderedDense(orbitals, hartreeY));
     else
-        two_body_integrals.reset(new SlaterIntegralsDenseHash(orbitals, hartreeY, false));
+        two_body_integrals.reset(new SlaterIntegralsUnorderedDense(orbitals, hartreeY, false));
 
     if(three_body_mbpt)
     {
