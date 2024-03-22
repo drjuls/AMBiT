@@ -35,6 +35,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 
   # Copy the template input file (used for testing MultirunOptions) to the build directory so CTest
   # can find it
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/template.input" "${CMAKE_CURRENT_BINARY_DIR}/UnitTest/template.input" COPYONLY)
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/template.input" "${CMAKE_CURRENT_BINARY_DIR}/test/template.input" COPYONLY)
 endif()
 
