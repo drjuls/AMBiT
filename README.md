@@ -18,7 +18,7 @@ AMBiT uses the [SCons](http://scons.org/) build-system, which is based on Python
 - [Boost](https://www.boost.org/) filesystem and system C++ (boost_filesystem and boost_system)
 - [Eigen v3](http://eigen.tuxfamily.org/index.php?title=Main_Page) - C++ linear algebra package.
 - [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines. Can be substituted for internal libraries in the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl).
-- [Google Sparsehash](https://github.com/sparsehash/sparsehash)
+- [Google Abseil](https://github.com/abseil/abseil-cpp)
 
 See [INSTALL.md](https://github.com/drjuls/AMBiT/blob/master/INSTALL.md) or the [AMBiT user guide](https://github.com/drjuls/AMBiT/blob/master/Documentation/user_guide.tex) for more detailed instructions.
 

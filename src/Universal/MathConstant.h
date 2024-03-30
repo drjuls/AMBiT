@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <memory>
 #include <boost/math/special_functions.hpp>
-#include <sparsehash/dense_hash_map>
 #include <absl/container/flat_hash_map.h>
 #include <gsl/gsl_math.h>
 #include "Enums.h"

@@ -75,25 +75,5 @@ add_subdirectory(Universal)
 
 target_link_libraries(ambit PUBLIC atom basis configuration externalfield hartreefock mbpt universal)
 
-# Sparsehash
-# EVK TODO: Sparsehash doesn't have support for CMake, which makes automatically finding it kind of
-# annoying. I can think of a few options:
-# 1.  Make the user specify a root directory for Sparsehash and just bail out if we can't find it
-#     (this is the current behaviour with SCons)
-# 1a. Optional: download Sparsehash if we can't find it on the host system
-# 2.  There's a C++11 version of sparsehash which has CMake support: 
-#     https://github.com/sparsehash/sparsehash-c11/. We could switch to using this, although I
-#     don't know if there will be API incompatibilities or something
-# 3.  Switch to something like Abseil: https://github.com/abseil/abseil-cpp. This is the successor
-#     library to Sparsehash (also from Google) and (allegedly) has better performance than
-#     Sparsehash but would require some code changes for the new API. We could also automatically
-#     download Abseil if the user doesn't supply a location (which would be easier to do since we
-#     can add it as a submodule using CMake)
-#
-# I'm going to use the first option for now, but I'm leaning towards replacing this with Abseil
-# once I have the CMake build system done.
-set(SPARSEHASH_ROOT "" CACHE STRING "Sparsehash root installation directory")
-target_include_directories(ambit PRIVATE "${SPARSEHASH_ROOT}/include")
-
 # Install the "ambit" exe into "./bin".
 install(TARGETS ambit DESTINATION "bin")

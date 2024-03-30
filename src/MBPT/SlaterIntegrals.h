@@ -5,8 +5,6 @@
 #include "HartreeFock/HartreeY.h"
 #include <map>
 #include <unordered_map>
-#include <sparsehash/dense_hash_map>
-#include <sparsehash/sparse_hash_map>
 #include <absl/container/flat_hash_map.h>
 
 namespace Ambit
@@ -143,15 +141,6 @@ protected:
 
     ExpandedKeyType ReverseKey(KeyType num_states, KeyType key);
 
-    template<typename U = MapType>
-    typename boost::enable_if_c<std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
-    {   TwoElectronIntegrals.set_empty_key(-1LL);
-    }
-
-    template<typename U = MapType>
-    typename boost::enable_if_c<!std::is_same<U, google::dense_hash_map<KeyType, double>>::value, void>::type SetUpMap()
-    {}
-
 protected:
     pHartreeY hartreeY_operator;
     KeyType NumStates;
@@ -161,8 +150,6 @@ protected:
 };
 
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
-typedef SlaterIntegrals<google::dense_hash_map<unsigned long long int, double>> SlaterIntegralsDenseHash;
-typedef SlaterIntegrals<google::sparse_hash_map<unsigned long long int, double>> SlaterIntegralsSparseHash;
 typedef SlaterIntegrals<absl::flat_hash_map<unsigned long long int, double>> SlaterIntegralsFlatHash;
 }
 

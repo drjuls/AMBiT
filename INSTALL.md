@@ -28,7 +28,7 @@ and tools:
   operations (including generating angular data) to be automatically
   parallelised at run-time.
 
-- [Google Sparsehash](https://github.com/sparsehash/sparsehash)
+- [Google Abseil](https://github.com/abseil/abseil-cpp)
 
 - [CMake](https://cmake.org/) software build tool
 
@@ -42,7 +42,7 @@ pacakge manager (e.g. apt-get in Ubuntu, dnf in Fedora or Homebrew in
 macOS). Some package managers have separate "development" packages, which
 you must also install to be able to compile AMBiT against them. These
 development packages tend to have names ending with some variation on "dev",
-such as `libsparsehash-dev` on Ubuntu or `sparsehash-devel` on Fedora.
+such as `liblapack-dev` on Ubuntu.
 
 It is important that Boost dependencies are built with the same compiler as
 the rest of AMBiT. Some package managers (such as Homebrew or the module
@@ -125,7 +125,6 @@ Here is a short list of CMake options for AMBiT:
 - `CMAKE_Fortran_FLAGS` (case sensitive): Flags to pass to the Fortran compiler
 - `CMAKE_PREFIX_PATH`: additional paths for CMake configuration files for external libraries. Only
   necessary when CMake's automatic package configuration fails
-- `SPARSEHASH_ROOT`: base directory of the Sparsehash installation
 - `EIGEN_INCLUDE_DIR`: directory containing Eigen header files
 - `USE_OPENMP`: toggle whether to use OpenMP multithreading parallelism
 - `USE_MPI`: toggle whether to use MPI parallelism
@@ -237,31 +236,28 @@ You can also run `ctest --help` for a full list of possible options when running
 
 ## Troubleshooting common build errors
 
-### CMake build fails with `Target Boost::filesystem already has an imported location`
-
-Example error output:
-
+### CMake fails to automatically find the path to external dependencies
+**Example error output**:
 ```
-CMake Error at /apps/boost/1.80.0/lib/cmake/boost_filesystem-1.80.0/libboost_filesystem-variant-shared.cmake:70 (message):
-  Target Boost::filesystem already has an imported location
-  '/apps/boost/1.80.0/lib/libboost_filesystem-mt-x64.so.1.80.0', which is
-  being overwritten with
-  '/apps/boost/1.80.0/lib/libboost_filesystem.so.1.80.0'
-Call Stack (most recent call first):
-  /apps/boost/1.80.0/lib/cmake/boost_filesystem-1.80.0/boost_filesystem-config.cmake:53 (include)
-  /apps/boost/1.80.0/lib/cmake/Boost-1.80.0/BoostConfig.cmake:141 (find_package)
-  /apps/boost/1.80.0/lib/cmake/Boost-1.80.0/BoostConfig.cmake:262 (boost_find_component)
-  /half-root/usr/share/cmake/Modules/FindBoost.cmake:594 (find_package)
-  CMakeLists.txt:73 (find_package)
+CMake Error at src/CMakeLists.txt:16 (find_package):
+  Could not find a package configuration file provided by "absl" with any of
+  the following names:
+
+    abslConfig.cmake
+    absl-config.cmake
+
+  Add the installation prefix of "absl" to CMAKE_PREFIX_PATH or set
+  "absl_DIR" to a directory containing one of the above files.  If "absl"
+  provides a separate development package or SDK, be sure it has been
+  installed.
 ```
+This error occurs when you have installed on of AMBiT's external dependencies in a non-standard
+location (e.g. not in `/usr/lib` or similar global locations). 
 
-This error sometimes occurs when compiling AMBiT on an HPC system which uses environment modules
-for software dependency management. Boost has both single- and multi-threaded libraries (the latter
-of which will have `-mt` somewhere in its filename) and the module system sometimes causes clashes
-between these two versions of the same shared library.
-
-**Resolution:**
-Explicitly enable or disable Boost multithreading in your CMake build options, e.g. `-DBoost_USE_MULTITHREADED=OFF`
+**Fix**: All of AMBiT's external dependencies have native support for CMake, so ensure the
+directories where the problem package is installed has one of the `.cmake` files mentioned in the
+error message (they'll usually be installed in something like `/path/to/installation/lib/cmake`)
+and modify the `CMAKE_PREFIX_PATH` build option to include this path.
 
 ### AMBiT crashes on a segmentation fault when calling into MKL functions
 
