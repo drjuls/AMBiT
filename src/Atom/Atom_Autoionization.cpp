@@ -453,7 +453,7 @@ void Atom::Autoionization(const LevelVector& target)
                 all_orbitals->all->AddState(eps);
                 all_orbitals->MakeStateIndexes();
                 pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
-                pSlaterIntegrals two_body_integrals(new SlaterIntegralsUnorderedDense(all_orbitals, hartreeY));
+                pSlaterIntegrals two_body_integrals(new SlaterIntegralsFlatHash(all_orbitals, hartreeY));
                 one_body_integrals->clear();
                 one_body_integrals->CalculateOneElectronIntegrals(continuum_map, valence);
                 two_body_integrals->clear();
@@ -589,7 +589,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
     // Create two-body integrals
     all_orbitals->MakeStateIndexes();
     pHFIntegrals one_body_integrals(new HFIntegrals(all_orbitals, hf));
-    pSlaterIntegrals two_body_integrals(new SlaterIntegralsUnorderedDense(all_orbitals, hartreeY));
+    pSlaterIntegrals two_body_integrals(new SlaterIntegralsFlatHash(all_orbitals, hartreeY));
     one_body_integrals->clear();
     one_body_integrals->CalculateOneElectronIntegrals(continuum_map, valence);
     two_body_integrals->clear();
@@ -932,7 +932,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 pOrbitalManager all_orbitals(new OrbitalManager(*orbitals));
                 all_orbitals->all->AddState(eps);
                 all_orbitals->MakeStateIndexes();
-                pSlaterIntegrals two_body_integrals(new SlaterIntegralsUnorderedDense(all_orbitals, hartreeY));
+                pSlaterIntegrals two_body_integrals(new SlaterIntegralsFlatHash(all_orbitals, hartreeY));
                 two_body_integrals->clear();
                 two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 

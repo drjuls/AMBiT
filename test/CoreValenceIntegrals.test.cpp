@@ -59,7 +59,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
-    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsUnorderedDense>(orbitals, hartreeY);
+    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsFlatHash>(orbitals, hartreeY);
 
     // MBPT calculators
     std::string fermi_orbitals = "";
@@ -215,7 +215,7 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
-    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsUnorderedDense>(orbitals, hartreeY);
+    pSlaterIntegrals bare_two_body_integrals = std::make_shared<SlaterIntegralsFlatHash>(orbitals, hartreeY);
 
     // MBPT calculators
     std::string fermi_orbitals = "";
