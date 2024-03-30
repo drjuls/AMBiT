@@ -13,7 +13,7 @@ add_dependencies(ambit generate_gitinfo)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(GSL REQUIRED)
 find_package(Boost REQUIRED)
-find_package(unordered_dense CONFIG REQUIRED)
+find_package(absl CONFIG REQUIRED)
 
 # LAPACK and BLAS
 # First, check to see if we need to use MKL

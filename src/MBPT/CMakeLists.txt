@@ -11,7 +11,7 @@ set(MODS_MBPT BruecknerDecorator.cpp
 
 add_library(mbpt "${MODS_MBPT}")
 
-target_link_libraries(mbpt PUBLIC unordered_dense::unordered_dense)
+target_link_libraries(mbpt PUBLIC absl::flat_hash_map)
 
 # Set the internal MPI and OpenMP #ifdefs for this library
 if(USE_MPI)

@@ -28,5 +28,5 @@ endif()
 
 target_link_libraries(universal PUBLIC Eigen3::Eigen)
 target_link_libraries(universal PUBLIC GSL::gsl)
-target_link_libraries(universal PUBLIC unordered_dense::unordered_dense)
+target_link_libraries(universal PUBLIC absl::flat_hash_map)
 target_include_directories(universal PRIVATE ${Boost_INCLUDE_DIRS})
