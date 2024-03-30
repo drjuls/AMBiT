@@ -119,7 +119,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
     hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
-    pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     // Do CI-only first
@@ -275,7 +275,7 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
     hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
 
-    pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     // Do CI-only first

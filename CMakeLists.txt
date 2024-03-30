@@ -29,7 +29,11 @@ add_subdirectory(src)
 ############# Unit tests ############# 
 # Now do unit testing
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-  # Download Googletest if we don't have it already
+  # Unit tests don't (currently) work with MPI, so abort if we're building with MPI
+  if(USE_MPI)
+    message(FATAL_ERROR "AMBiT test suite does not support MPI. Disable MPI support to build tests")
+  endif()
+
   enable_testing()
   add_subdirectory(test)
 

@@ -218,6 +218,9 @@ cd build
 ctest
 ```
 
+Note that the unit tests do not currently support MPI parallelism, so you must also compile with
+`USE_MPI=no` to build the test suite.
+
 Use `ctest -V` to print "verbose" diagnostic output to the terminal for the whole test suite, 
 and `ctest --output-on-failure` to print diagnostics for only those tests which fail. 
 Additionally, it can sometimes be useful to only run a subset of the test suite while debugging, 

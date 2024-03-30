@@ -54,7 +54,7 @@ TEST(BruecknerDecoratorTester, MgIISlow)
 
     // Calculate matrix element using core-valence MBPT
     pHFIntegrals one_body_integrals(new HFIntegrals(orbitals, hf));
-    pSlaterIntegrals two_body_integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pSlaterIntegrals two_body_integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
     CoreMBPTCalculator mbpt(orbitals, one_body_integrals, two_body_integrals);
     mbpt.UpdateIntegrals();
 

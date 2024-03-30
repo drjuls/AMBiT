@@ -51,7 +51,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     pCoulombOperator coulomb(new CoulombOperator(lattice));
     pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-    pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+    pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     EXPECT_EQ(31747, integrals->size());
@@ -140,7 +140,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -198,7 +198,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -289,7 +289,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -347,7 +347,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -436,7 +436,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -492,7 +492,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
@@ -586,7 +586,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 
@@ -641,7 +641,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
-        pSlaterIntegrals integrals(new SlaterIntegralsMap(orbitals, hartreeY));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
         pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
 

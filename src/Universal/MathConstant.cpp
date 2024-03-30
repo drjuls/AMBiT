@@ -30,10 +30,6 @@ MathConstant::MathConstant():
     // Set by consideration of key.
     MaxStoredTwoJ = 40;
     MSize = 2 * MaxStoredTwoJ + 1;
-
-    // Initialise the densehash cache. The 3j key is strictly positive, so pick a negative key for the
-    // empty bucket
-    Symbols3j.set_empty_key(-1);
 }
 
 MathConstant::~MathConstant()
@@ -241,7 +237,7 @@ double MathConstant::Electron3j(int twoj1, int twoj2, int k, int twom1, int twom
     }
 
     size_t key = HashWigner3j(twoj1, twoj2, twok, twom1, twom2);
-    google::dense_hash_map<int, double>::const_iterator it = Symbols3j.find(key);
+    absl::flat_hash_map<int, double>::const_iterator it = Symbols3j.find(key);
 
     if(it != Symbols3j.end())
     {   if(sign)
@@ -365,7 +361,7 @@ double MathConstant::Wigner3j(int twoj1, int twoj2, int twoj3, int twom1, int tw
     }
 
     size_t key = HashWigner3j(twoj1, twoj2, twoj3, twom1, twom2);
-    google::dense_hash_map<int, double>::const_iterator it = Symbols3j.find(key);
+    absl::flat_hash_map<int, double>::const_iterator it = Symbols3j.find(key);
 
     if(it != Symbols3j.end())
     {   if(sign)
