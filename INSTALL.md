@@ -130,6 +130,8 @@ Here is a short list of CMake options for AMBiT:
 - `USE_MPI`: toggle whether to use MPI parallelism
 - `USE_MKL`: toggle whether to use MKL for linear algebra operations
 - `MKL_INTERFACE_FULL`: MKL library interface to link against (see below for more details)
+- `MKL_THREADING`: backend library to use for multithreaded linear algebra operations (see below
+  for more details)
 - `MKL_MPI`: choice of MPI library to use for MKL (must be the same as used by AMBiT)
 - `CMAKE_BUILD_TYPE`: toggle whether to build an optimised (`CMAKE_BUILD_TYPE=Release`, the
   default) or debug (`CMAKE_BUILD_TYPE=Debug`) binary
@@ -200,6 +202,22 @@ oneMKL](https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linu
 - [Using the ILP64 Interface vs. LP64 Interface](https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-ilp64-interface-vs-lp64-interface.html),
 - [Using Intel MKL from Eigen](https://eigen.tuxfamily.org/dox/TopicUsingIntelMKL.html)
 
+Finally, MKL supports using multithreading to do linear algebra operations in parallel, which can
+provide substantial speedups when enabled. There are multiple supported backends, but it's
+important to select one that's compatible with the compiler you are using to build AMBiT. You can
+specify which backend MKL should use by setting the `MKL_THREADING` CMake variable to one of the
+following values:
+
+- `sequential`: no multithreading
+- `intel_thread`: Intel's *OpenMP* implementation (default)
+- `tbb_thread`: Intel's *Threading Building Blocks* library
+- `gnu_thread`: The GNU/GCC *OpenMP* implementation
+
+While it is technically possible to "mix and match" libraries, the safest choice is to set
+`MKL_THREADING=gnu_thread` if you're using GCC, or `MKL_THREADING=intel_thread` if you're using the
+Intel compilers. If no value is supplied then it will default to using
+`MKL_THREADING=intel_thread`
+
 ### Building the test suite
 AMBiT has a set of automated unit and regression tests via 
 [GoogleTest](https://github.com/google/googletest) and CMake's inbuilt `ctest` runner program.
@@ -267,6 +285,19 @@ we can control by setting the `-DMKL_INTERFACE_FULL` CMake variable. The exact v
 varies, but it's usually one of either `-DMKL_INTERFACE_FULL=lp64` or
 `-DMKL_INTERFACE_FULL=intel_lp64` (for Intel compilers), or `-DMKL_INTERFACE_FULL=gf_lp64` (for GNU
 compilers).
+
+### Building with MKL and GCC fails due to missing libiomp\*.so library
+Intel MKL has multiple ways of enabling multithreading for libear algebra operations, which are
+controlled by setting the `MKL_THREADING` CMake variable to one of the following choices:
+- `sequential`: no multithreading
+- `intel_thread`: Intel's *OpenMP* implementation (default)
+- `tbb_thread`: Intel's *Threading Building Blocks* library
+- `gnu_thread`: The GNU/GCC *OpenMP* implementation
+
+If no value is supplied to `MKL_THREADING`, it will default to using `intel_thread`, which requires
+the `libiomp` library to be available. This will usually be fine if you're using the Intel compilers,
+but may not be present when compiling AMBiT with GCC so you'll need to set
+`MKL_THREADING=gnu_thread`.
 
 ## Make
 
