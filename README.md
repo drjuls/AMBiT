@@ -20,7 +20,8 @@ AMBiT uses the [CMake](https://cmake.org/) build-system. It also requires the fo
 - [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines. Can be substituted for the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl).
 - [Google Abseil](https://github.com/abseil/abseil-cpp)
 
-See [INSTALL.md](https://github.com/drjuls/AMBiT/blob/master/INSTALL.md) or the [AMBiT user guide](https://github.com/drjuls/AMBiT/blob/master/Documentation/user_guide.tex) for more detailed instructions.
+See [INSTALL.md](https://github.com/drjuls/AMBiT/blob/master/INSTALL.md) for more detailed
+instructions on how to compile AMBiT.
 
 ### Contributing
 We welcome contributions, bug reports and feature requests. See [CONTRIBUTING.md](https://github.com/drjuls/AMBiT/blob/master/CONTRIBUTING.md) for contribution and bug-report guidlines.
