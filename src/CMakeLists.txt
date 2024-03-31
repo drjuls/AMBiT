@@ -37,9 +37,7 @@ else() # Use vanilla BLAS/LAPACK
   target_link_libraries(ambit PRIVATE BLAS::BLAS)
 endif()
 
-# MPI options. Note that we can't automatically find the MPI compiler wrappers (e.g. mpiCC), so the
-# user will have to manually set CMAKE_CXX_COMPILER=mpiCC or whatever (TODO EVK: put this in the
-# instructions)
+# MPI options
 
 # Important note: our user-facing "CACHE" variables (i.e. we can set them with cmake -DUSE_MPI=yes)
 # have to be different from the internal AMBiT preprocessor definitions. AMBiT just checks if

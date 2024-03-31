@@ -14,8 +14,7 @@ and tools:
 - [GSL](https://www.gnu.org/software/gsl/) - The GNU Scientific
   Library.
 
-- The [Boost](https://www.boost.org/) filesystem and system C++
-  libraries (boost\_filesystem and boost\_system).
+- The [Boost](https://www.boost.org/) C++ libraries.
 
 - [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page) (v3) -
   C++ linear algebra package.
@@ -30,7 +29,7 @@ and tools:
 
 - [Google Abseil](https://github.com/abseil/abseil-cpp)
 
-- [CMake](https://cmake.org/) software build tool
+- [CMake](https://cmake.org/) software build tool.
 
 - (Optional) OpenMP and MPI - parallel programming libraries to run
     AMBiT on high-performance computing clusters. These will generally be
@@ -51,6 +50,20 @@ unpredictable behaviour at run-time. Consult your system's documentation
 for instructions on how to ensure AMBiT and Boost are built with compatible
 compilers.
 
+## Compilers
+AMBiT makes extensive use of modern C++ features, and requires a compiler which supports at least
+C++17. Notably, AMBiT requires a toolchain (C++ compiler and standard library) which supports the
+`filesystem` library introduced in the C++17 standard; a table showing the minimum versions of
+major compilers which support this feature can be found at this link:
+<https://en.cppreference.com/w/cpp/compiler_support/17#C.2B.2B17_library_features>.
+
+The following compilers are known to work with AMBiT:
+- GCC with `libstdc++` v8.x or later
+- Intel "Classic" C++ compiler (`icpc`, not the newer LLVM-based compiler `icpx`) v2023 or later
+- Clang with `libc++` v7.x or later
+
+There is a bug in the newer LLVM-based Intel C++ compiler (`icpx`, released in 2024) which causes the
+compiler to crash when compiling AMBiT; use the "Classic" Intel C++ compiler or GCC instead.
 
 ## Building with CMake
 ### Quick start
@@ -118,7 +131,8 @@ Here is a short list of CMake options for AMBiT:
 
 - `CMAKE_INSTALL_PREFIX`: location to install AMBiT (you must have read/write permissions for this
   directory)
-- `CMAKE_CXX_COMPILER`: C++ compiler to use when compiling AMBiT
+- `CMAKE_CXX_COMPILER`: C++ compiler to use when compiling AMBiT. For MPI-enabled builds, this must
+  be manually set to the correct MPI compiler wrappers (e.g. `mpiCC` for OpenMPI)
 - `CMAKE_CXX_FLAGS`: Flags to pass to the C++ compiler
 - `CMAKE_Fortran_COMPILER` (case sensitive): Fortran compiler to use when compiling Davidson
   eigensolver
@@ -286,7 +300,7 @@ varies, but it's usually one of either `-DMKL_INTERFACE_FULL=lp64` or
 `-DMKL_INTERFACE_FULL=intel_lp64` (for Intel compilers), or `-DMKL_INTERFACE_FULL=gf_lp64` (for GNU
 compilers).
 
-### Building with MKL and GCC fails due to missing libiomp\*.so library
+### Building with MKL and GCC fails due to missing `libiomp*.so` library
 Intel MKL has multiple ways of enabling multithreading for libear algebra operations, which are
 controlled by setting the `MKL_THREADING` CMake variable to one of the following choices:
 - `sequential`: no multithreading
@@ -298,6 +312,20 @@ If no value is supplied to `MKL_THREADING`, it will default to using `intel_thre
 the `libiomp` library to be available. This will usually be fine if you're using the Intel compilers,
 but may not be present when compiling AMBiT with GCC so you'll need to set
 `MKL_THREADING=gnu_thread`.
+
+### Compilation fails when using Intel LLVM C++ compiler `icpx`
+**Example error output:**
+```
+icpx: error: clang frontend command failed with exit code 139 (use -v to see invocation)
+Intel(R) oneAPI DPC++/C++ Compiler 2024.1.0 (2024.1.0.20240308)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/intel/oneapi/compiler/2024.1/bin/compiler
+```
+
+**Fix:** 
+There is a bug in the newer LLVM-based Intel C++ compiler (`icpx`, released in 2024) which causes the
+compiler to crash when compiling AMBiT; use the "Classic" Intel C++ compiler (`icpc`) or GCC instead.
 
 ## Make
 
