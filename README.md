@@ -13,11 +13,11 @@ Briefly, AMBiT is:
 ### Installation
 AMBiT is currently in active development: the ''dev'' branch is regularly updated with new features and performance improvements, while the ''master'' branch is more stable and only updated once we are sure it is correct and bug-free. If you are installing AMBiT globally (i.e. not in your personal directory) on a cluster then we recommend you use the master branch - otherwise use either dev or master depending on your tolerance for software changes. 
 
-AMBiT uses the [SCons](http://scons.org/) build-system, which is based on Python 2.7.x, and requires the following external libraries:
+AMBiT uses the [CMake](https://cmake.org/) build-system. It also requires the following external libraries:
 - [GSL](https://www.gnu.org/software/gsl/) - The GNU Scientific Library.
-- [Boost](https://www.boost.org/) filesystem and system C++ (boost_filesystem and boost_system)
+- [Boost](https://www.boost.org/)
 - [Eigen v3](http://eigen.tuxfamily.org/index.php?title=Main_Page) - C++ linear algebra package.
-- [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines. Can be substituted for internal libraries in the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl).
+- [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines. Can be substituted for the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl).
 - [Google Abseil](https://github.com/abseil/abseil-cpp)
 
 See [INSTALL.md](https://github.com/drjuls/AMBiT/blob/master/INSTALL.md) or the [AMBiT user guide](https://github.com/drjuls/AMBiT/blob/master/Documentation/user_guide.tex) for more detailed instructions.
