@@ -20,7 +20,7 @@
 
 \begin{document}
 
-\title{AMBiT 3.1\\User Guide}
+\title{AMBiT 3.2\\User Guide}
 \author{Emily Kahl, Julian Berengut}
 \date{}
 \maketitle
@@ -48,7 +48,7 @@ This chapter contains a step-by-step tutorial for running CI+MBPT calculations f
 Cr$^+$ ion using \ambit. We will run through the three major sections of a CI+MBPT calculation:
 Dirac-Fock, calculating MBPT integrals, and generating and solving the CI matrix for calculations. We
 will provide the necessary \ambit\  input options for each step of the calculation, while the input file
-for the full calculation is located at \texttt{Documentation/ExampleCalculation/Cr+.input}.
+for the full calculation is located at \texttt{docs/Examples/CrII/Cr+.input}.
 
 We've made the example calculations small-enough to run on a consumer-level laptop or desktop: the
 largest calculation runs in approximately 15 minutes on a quad-core x86-64 laptop with 8GB of
@@ -86,7 +86,7 @@ Finally, all quantities throughout this section are given in atomic units ($\hba
 unless otherwise specified.
 
 \section{Installation}
-Instructions to build \ambit can be found in the \texttt{INSTALL.md} file in the main repository.
+Instructions to build \ambit\ can be found in the \texttt{INSTALL.md} file in the main repository.
 
 \section{Cr$^+$ calculations}
 
@@ -97,7 +97,7 @@ section of the calculation. The input file for the full calculation is located a
 
 \begin{verbatim}
 $ cd /path/to/ambit
-$ ./ambit Documentation/ExampleCalculation/Cr+.input
+$ ./ambit docs/Examples/Cr+.input
 \end{verbatim}
 
 If you've compiled \ambit\  with OpenMP support and would like to try parallel calculations (which run
@@ -106,7 +106,7 @@ the desired number of threads and then run \ambit\  as usual:
 
 \begin{verbatim}
 $ export OMP_NUM_THREADS=3
-$ ./ambit Documentation/ExampleCalculation/Cr+.input
+$ ./ambit docs/Examples/Cr+.input
 \end{verbatim}
 
 We will no longer include the file path information in commands for the rest of this chapter, and will

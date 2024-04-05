@@ -1,7 +1,0 @@
-cxxobjects = Eigensolver.o ExpLattice.o FornbergDifferentiator.o Function.o \
-             Include.o Interpolator.o Lattice.o MathConstant.o PhysicalConstant.o \
-             ScalapackMatrix.o SpinorFunction.o
-cobjects =
-fobjects = Davidson.o
-
-include $(SRCDIR)/make.instructions

@@ -1,7 +1,0 @@
-cxxobjects = BruecknerDecorator.o BruecknerSigmaCalculator.o CoreMBPTCalculator.o \
-             MBPTCalculator.o OneElectronMBPT.o Sigma3Calculator.o \
-             SigmaPotential.o TwoElectronCoulombOperator.o ValenceMBPTCalculator.o
-cobjects = 
-fobjects =
-
-include $(SRCDIR)/make.instructions

@@ -4,33 +4,21 @@ AngularData/
 *.out
 *.basis
 *.levels
-*.core.atom
-*.excited.atom
 *.sigma
 *.int
-*.configs
 *.matrix
-*.eigenstates
 
 # Build files, build locations, and packages
 *.tar
-*.tar.gz
+*.gz
 *.[oa]
 *~
 gitInfo.h
-Release
-Test
-Debug
 ambit
 ambit_test
 Eigen
-build
-
-# SCons configuration and temporary file
-config.ini
-.sconsign.dblite
-.sconf_temp
-config.log
+build*
+doxygen
 
 # Auxillary documentation files
 *.aux
@@ -38,6 +26,7 @@ config.log
 *.log
 *.pdf
 *.out
+*.toc
 
 # Python bytecode
 __init__.pyc

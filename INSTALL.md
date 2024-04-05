@@ -8,7 +8,7 @@ can't say for sure.
 In order to compile AMBiT you’ll need the following software libraries
 and tools:
 
-- A C++ compiler with support for C++11, such as GCC, Clang, or the
+- A C++ compiler with support for C++17, such as GCC, Clang, or the
   Intel C++ compiler.
 
 - [GSL](https://www.gnu.org/software/gsl/) - The GNU Scientific
@@ -158,7 +158,7 @@ Once we've configured the build, we can compile AMBiT by doing
 cmake --build build
 ```
 
-Additionally, you can pass the `-j` option to tell `scons` to use
+Additionally, you can pass the `-j` option to tell `cmake` to use
 multiple cores when compiling AMBiT. For example, we can use all available CPU cores on a system by
 doing:
 
@@ -175,10 +175,10 @@ Finally, we can install AMBiT by running:
 cmake --install build
 ```
 
-By default, this will try to install AMBiT somewhere like `/usr/bin/ambit`. This is often not
+By default, this will try to install AMBiT somewhere like `/usr/local/bin/ambit`. This is often not
 writable on shared systems like HPC clusters, so we usually want to set `CMAKE_INSTALL_PREFIX`
 during configuration to some directory we have write-access to. In this case, CMake will install
-AMBiT to `${CMAKE_INSTALL_PREFIX}/bin/abit`, so for example:
+AMBiT to `${CMAKE_INSTALL_PREFIX}/bin/ambit`, so for example:
 
 ```bash
 cmake -B build -DCMAKE_INSTALL_PREFIX=./installed
@@ -326,12 +326,3 @@ InstalledDir: /opt/intel/oneapi/compiler/2024.1/bin/compiler
 **Fix:** 
 There is a bug in the newer LLVM-based Intel C++ compiler (`icpx`, released in 2024) which causes the
 compiler to crash when compiling AMBiT; use the "Classic" Intel C++ compiler (`icpc`) or GCC instead.
-
-## Make
-
-We also supply some rudimentary Makefiles for systems where CMake is
-unavailable. Plain `make` can't automatically figure out linker paths like
-CMake, so these files need to be hand-tailored to your specific system
-configuration. The system-specific parameters like compiler, compile flags
-and linker paths are set in `make.machine`; once this is set run `make`,
-`make debug` or `make test` in the root directory.

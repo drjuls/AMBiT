@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(ambit VERSION 3.1.1
+project(ambit VERSION 3.2
         DESCRIPTION "Relativistic CI+MBPT atomic structure code"
         LANGUAGES C CXX Fortran)
 
