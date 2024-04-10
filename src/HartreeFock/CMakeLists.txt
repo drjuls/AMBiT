@@ -19,19 +19,6 @@ set(MODS_HARTREEFOCK  ConfigurationParser.cpp
 
 add_library(hartreefock "${MODS_HARTREEFOCK}")
 
-# Set the internal MPI and OpenMP #ifdefs for this library
-if(USE_MPI)
-  target_compile_definitions(hartreefock PRIVATE -DAMBIT_USE_MPI)
-  find_package(MPI REQUIRED)
-  target_link_libraries(hartreefock PUBLIC MPI::MPI_CXX)
-endif()
-
-if(USE_OPENMP)
-  target_compile_definitions(hartreefock PRIVATE -DAMBIT_USE_OPENMP)
-  find_package(OpenMP REQUIRED)
-  target_link_libraries(hartreefock PUBLIC OpenMP::OpenMP_CXX)
-endif()
-
 target_link_libraries(hartreefock PUBLIC GSL::gsl)
 target_include_directories(hartreefock PRIVATE ${Boost_INCLUDE_DIRS})
 
