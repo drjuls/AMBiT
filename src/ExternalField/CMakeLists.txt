@@ -19,6 +19,18 @@ set(MODS_EXTERNALFIELD  BreitHFDecorator.cpp
 
 add_library(externalfield "${MODS_EXTERNALFIELD}")
 
+# Set the internal MPI and OpenMP #ifdefs for this library
+if(USE_MPI)
+  target_compile_definitions(externalfield PRIVATE -DAMBIT_USE_MPI)
+  find_package(MPI REQUIRED)
+  target_link_libraries(externalfield PUBLIC MPI::MPI_CXX)
+endif()
+
+if(USE_OPENMP)
+  target_compile_definitions(externalfield PRIVATE -DAMBIT_USE_OPENMP)
+  find_package(OpenMP REQUIRED)
+  target_link_libraries(externalfield PUBLIC OpenMP::OpenMP_CXX)
+endif()
 target_link_libraries(externalfield PRIVATE GSL::gsl)
 target_include_directories(externalfield PRIVATE ${Boost_INCLUDE_DIRS})
 
