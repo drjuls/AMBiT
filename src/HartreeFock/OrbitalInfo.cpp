@@ -33,7 +33,7 @@ bool OrbitalInfo::operator!=(const OrbitalInfo& other) const
 std::string OrbitalInfo::Name() const
 {
     char buffer[20];
-    sprintf(buffer, "%d", pqn);
+    snprintf(buffer, 20, "%d", pqn);
     std::string ret(buffer);
 
     ret.append(1, MathConstant::Instance()->GetSpectroscopicNotation(L()));

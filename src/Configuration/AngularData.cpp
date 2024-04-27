@@ -179,7 +179,8 @@ int AngularData::GenerateProjections(const RelativisticConfiguration& config, in
     {   projections.insert(projections.end(), list.begin(), list.end());
     }
     std::sort(projections.begin(), projections.end(), ProjectionCompare);
-    std::unique(projections.begin(), projections.end());
+    auto end = std::unique(projections.begin(), projections.end());
+    projections.resize(std::distance(projections.begin(), end));
     projections.shrink_to_fit();
 
     return projections.size();

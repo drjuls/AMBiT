@@ -51,7 +51,7 @@ std::string ElectronInfo::Name() const
     name.append(OrbitalInfo::Name());
 
     char buffer[20];
-    sprintf(buffer, "(%d)", two_m);
+    snprintf(buffer, 20, "(%d)", two_m);
     name.append(buffer);
 
     return name;
