@@ -67,10 +67,10 @@ compiler to crash when compiling AMBiT; use the "Classic" Intel C++ compiler or 
 
 ## Building with CMake
 ### Quick start
-Do this to build AMBiT in `./build` and install it to `./installed/bin/ambit`:
+Do this to build AMBiT in `./build` and install it to a sensible directory:
 
 ```bash
-cmake -B build -DCMAKE_INSTALL_PREFIX=./installed
+cmake -B build
 cmake --build build
 cmake --install build
 ```
@@ -81,6 +81,7 @@ a brief overview here, but see the official
 [Kitware CMake FAQ](https://gitlab.kitware.com/cmake/community/-/wikis/FAQ)
 and [documentation](https://cmake.org/documentation/) for more detailed instructions.
 
+###Configuring
 A CMake build has three conceptual stages:
 
 1. Configuration, including setting compiler options and finding external libraries,
@@ -149,9 +150,10 @@ Here is a short list of CMake options for AMBiT:
 - `MKL_MPI`: choice of MPI library to use for MKL (must be the same as used by AMBiT)
 - `CMAKE_BUILD_TYPE`: toggle whether to build an optimised (`CMAKE_BUILD_TYPE=Release`, the
   default) or debug (`CMAKE_BUILD_TYPE=Debug`) binary
--`BUILD_TESTING`: (for developers) toggle whether to build unit testing suite (see below for more
+- `BUILD_TESTING`: (for developers) toggle whether to build unit testing suite (see below for more
   details)
 
+###Compiling
 Once we've configured the build, we can compile AMBiT by doing
 
 ```bash
@@ -169,6 +171,7 @@ cmake --build build -j $(nproc)
 which will considerably speed up the build process by using compiling multiple files at a time in
 parallel.
 
+###Installing
 Finally, we can install AMBiT by running:
 
 ```bash
@@ -232,18 +235,18 @@ While it is technically possible to "mix and match" libraries, the safest choice
 Intel compilers. If no value is supplied then it will default to using
 `MKL_THREADING=intel_thread`
 
-### Building the test suite
+## Building the test suite
 AMBiT has a set of automated unit and regression tests via 
 [GoogleTest](https://github.com/google/googletest) and CMake's inbuilt `ctest` runner program.
 Running tests can often catch bugs well before they show up in production, so we we recommend
 running the test suite early and often if you're developing AMBiT or adding your own functionality.
 
-To enable tests, set `ENABLE_TESTING=true` when configuring with CMake, then compile as normal -
+To enable tests, set `BUILD_TESTING=true` when configuring with CMake, then compile as normal -
 CMake will automatically download GoogleTest and build the test suite. Once the tests have been
 built, change into the build directory (e.g. `./build`) and run `ctest`, e.g.:
 
 ```bash
-cmake -B build -DENABLE_TESTING=true
+cmake -B build -DBUILD_TESTING=true
 cmake --build build
 cd build
 ctest
@@ -270,6 +273,7 @@ You can also run `ctest --help` for a full list of possible options when running
 
 ### CMake fails to automatically find the path to external dependencies
 **Example error output**:
+
 ```
 CMake Error at src/CMakeLists.txt:16 (find_package):
   Could not find a package configuration file provided by "absl" with any of
@@ -283,8 +287,9 @@ CMake Error at src/CMakeLists.txt:16 (find_package):
   provides a separate development package or SDK, be sure it has been
   installed.
 ```
-This error occurs when you have installed on of AMBiT's external dependencies in a non-standard
-location (e.g. not in `/usr/lib` or similar global locations). 
+
+This error occurs when you have installed one of AMBiT's external dependencies in a non-standard
+location (e.g. not in `/usr/lib` or similar global locations). It also occurs if the dependency is not installed at all.
 
 **Fix**: All of AMBiT's external dependencies have native support for CMake, so ensure the
 directories where the problem package is installed has one of the `.cmake` files mentioned in the
@@ -315,6 +320,7 @@ but may not be present when compiling AMBiT with GCC so you'll need to set
 
 ### Compilation fails when using Intel LLVM C++ compiler `icpx`
 **Example error output:**
+
 ```
 icpx: error: clang frontend command failed with exit code 139 (use -v to see invocation)
 Intel(R) oneAPI DPC++/C++ Compiler 2024.1.0 (2024.1.0.20240308)
