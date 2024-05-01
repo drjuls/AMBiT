@@ -148,8 +148,10 @@ Here is a short list of CMake options for AMBiT:
 - `MKL_THREADING`: backend library to use for multithreaded linear algebra operations (see below
   for more details)
 - `MKL_MPI`: choice of MPI library to use for MKL (must be the same as used by AMBiT)
-- `CMAKE_BUILD_TYPE`: toggle whether to build an optimised (`CMAKE_BUILD_TYPE=Release`, the
-  default) or debug (`CMAKE_BUILD_TYPE=Debug`) binary
+- `CMAKE_BUILD_TYPE`: choose the build type. Options include
+  - `Release` (`-DCMAKE_BUILD_TYPE=Release`) the default, optimised build
+  - `Debug`
+  - `RelWithDebInfo`
 - `BUILD_TESTING`: (for developers) toggle whether to build unit testing suite (see below for more
   details)
 
@@ -178,7 +180,7 @@ Finally, we can install AMBiT by running:
 cmake --install build
 ```
 
-By default, this will try to install AMBiT somewhere like `/usr/local/bin/ambit`. This is often not
+You might need to `sudo` this command. By default, this will try to install AMBiT somewhere like `/usr/local/bin/ambit`. This directory is often not
 writable on shared systems like HPC clusters, so we usually want to set `CMAKE_INSTALL_PREFIX`
 during configuration to some directory we have write-access to. In this case, CMake will install
 AMBiT to `${CMAKE_INSTALL_PREFIX}/bin/ambit`, so for example:
@@ -269,6 +271,56 @@ regular expressions).
 
 You can also run `ctest --help` for a full list of possible options when running unit tests.
 
+## Example build options
+
+### MacOS
+
+We recommend using the [homebrew](https://brew.sh) package manager on MacOS systems. Your MacBook or MacPro has a single shared pool of memory, so it is best to compile with OpenMP and not MPI. Step by step instructions for an 8-core Mac:
+
+1. Install dependencies  
+   `brew install gcc gsl boost eigen abseil cmake libomp`
+2. Set environment variable to find OpenMP  
+   `export OpenMP_ROOT=$(brew --prefix)/opt/libomp`
+3. Build AMBiT and install it somewhere in `$PATH`
+
+   ```bash
+   cmake -B build -DUSE_OPENMP=true
+   cmake --build build -j 8
+   sudo cmake --install build
+   ```
+
+4. Test it for your preferred number of threads
+
+   ```bash
+   export OMP_NUM_THREADS=8
+   ambit template.input
+   ```
+
+You might like to set the default environment variables by putting the `export` commands in your `~/.profile` (bash) or `~/.zprofile` (zsh) configuration files. Thanks to Steven Worm (DESY) for help with this configuration.
+
+### Gadi supercomputer (NCI Australia)
+
+This is intended only as an example of building for a CPU-based cluster. We use Gadi for large jobs run over several nodes. Gadi uses a module system, but does not have a module for Abseil at the time of writing. 
+
+We install Abseil using CMake in a user directory which we write as `<home>` below (instructions [here](https://abseil.io/docs/cpp/quickstart-cmake.html)). We also needed to point CMake at Abseil and Eigen explicitly in the AMBiT configuration step.
+
+The `ANGULAR_DATA_DIR` is set to a group directory so that angular data is shared between different users by default (you can override this at runtime). The `CMAKE_INSTALL_PREFIX` is also set in the group directory.
+
+Our configuration step looks like:
+
+```bash
+cmake -B build \
+  -DCMAKE_CXX_COMPILER=mpiCC -DCMAKE_Fortran_COMPILER=mpifort \
+  -DCMAKE_PREFIX_PATH=<home>/abseil-cpp/installed/lib64/cmake/absl/ \
+  -DEigen3_DIR=/apps/eigen/3.3.7/share/eigen3/cmake/ \
+  -DUSE_OPENMP=yes -DUSE_MPI=yes \
+  -DUSE_MKL=yes \
+  -DMKL_INTERFACE_FULL=gf_lp64 \
+  -DMKL_THREADING=gnu_thread \
+  -DCMAKE_INSTALL_PREFIX=<group>/ambit/ \
+  -DANGULAR_DATA_DIR=<group>/ambit/AngularData/
+```
+
 ## Troubleshooting common build errors
 
 ### CMake fails to automatically find the path to external dependencies
@@ -306,8 +358,10 @@ varies, but it's usually one of either `-DMKL_INTERFACE_FULL=lp64` or
 compilers).
 
 ### Building with MKL and GCC fails due to missing `libiomp*.so` library
+
 Intel MKL has multiple ways of enabling multithreading for libear algebra operations, which are
 controlled by setting the `MKL_THREADING` CMake variable to one of the following choices:
+
 - `sequential`: no multithreading
 - `intel_thread`: Intel's *OpenMP* implementation (default)
 - `tbb_thread`: Intel's *Threading Building Blocks* library

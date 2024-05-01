@@ -7,6 +7,11 @@ project(ambit VERSION 3.2
 enable_language(CXX)
 enable_language(Fortran)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+  message(STATUS "Build type set to Release")
+endif()
+
 # Set default C++ and Fortran standards
 set(CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,7 +20,6 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION} -cpp")
 
 # Set the Fortran compiler. Note that this is case-sensitive: "Fortran" not "FORTRAN"
 get_filename_component(Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-
 
 ###### AMBiT stuff ###### 
 

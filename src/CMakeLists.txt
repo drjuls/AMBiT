@@ -1,7 +1,7 @@
 # First, generate the gitinfo header file and dummy target
 execute_process(COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/getGitInfo.sh" 
                 OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h")
-              add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h")
+add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h")
 
 # Main ambit exe
 add_executable(ambit ambit.cpp ambit.h)
@@ -25,7 +25,7 @@ if(USE_MKL)
   # and
   # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-cmake-config-file.html
   # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
-  find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
+  find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
   target_link_libraries(ambit PRIVATE MKL::MKL)
   # Also tell Eigen to use MKL as its backend
   target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
