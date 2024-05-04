@@ -132,11 +132,9 @@ Here is a short list of CMake options for AMBiT:
 
 - `CMAKE_INSTALL_PREFIX`: location to install AMBiT (you must have read/write permissions for this
   directory)
-- `CMAKE_CXX_COMPILER`: C++ compiler to use when compiling AMBiT. For MPI-enabled builds, this must
-  be manually set to the correct MPI compiler wrappers (e.g. `mpiCC` for OpenMPI)
+- `CMAKE_CXX_COMPILER`: C++ compiler to use when compiling AMBiT. For MPI-enabled builds, this must be manually set to the correct MPI compiler wrappers (e.g. `mpiCC` for OpenMPI)
 - `CMAKE_CXX_FLAGS`: Flags to pass to the C++ compiler
-- `CMAKE_Fortran_COMPILER` (case sensitive): Fortran compiler to use when compiling Davidson
-  eigensolver
+- `CMAKE_Fortran_COMPILER` (case sensitive): Fortran compiler to use when compiling Davidson eigensolver
 - `CMAKE_Fortran_FLAGS` (case sensitive): Flags to pass to the Fortran compiler
 - `CMAKE_PREFIX_PATH`: additional paths for CMake configuration files for external libraries. Only
   necessary when CMake's automatic package configuration fails
@@ -302,9 +300,9 @@ You might like to set the default environment variables by putting the `export` 
 
 This is intended only as an example of building for a CPU-based cluster. We use Gadi for large jobs run over several nodes. Gadi uses a module system, but does not have a module for Abseil at the time of writing. 
 
-We install Abseil using CMake in a user directory which we write as `<home>` below (instructions [here](https://abseil.io/docs/cpp/quickstart-cmake.html)). We also needed to point CMake at Abseil and Eigen explicitly in the AMBiT configuration step.
+We install Abseil using CMake in a user directory which we write as `<home>` below (instructions [here](https://abseil.io/docs/cpp/quickstart-cmake.html)). Abseil is configured with the flag `-DCMAKE_INSTALL_PREFIX=<home>/abseil-cpp/installed`. We also needed to point CMake at Abseil and Eigen explicitly in the AMBiT configuration step.
 
-The `ANGULAR_DATA_DIR` is set to a group directory so that angular data is shared between different users by default (you can override this at runtime). The `CMAKE_INSTALL_PREFIX` is also set in the group directory.
+The `ANGULAR_DATA_DIR` is set to a group directory so that angular data is shared between different users by default (you can override this at runtime). The `CMAKE_INSTALL_PREFIX` is also set to the group directory.
 
 Our configuration step looks like:
 
@@ -317,8 +315,8 @@ cmake -B build \
   -DUSE_MKL=yes \
   -DMKL_INTERFACE_FULL=gf_lp64 \
   -DMKL_THREADING=gnu_thread \
-  -DCMAKE_INSTALL_PREFIX=<group>/ambit/ \
-  -DANGULAR_DATA_DIR=<group>/ambit/AngularData/
+  -DCMAKE_INSTALL_PREFIX=<group> \
+  -DANGULAR_DATA_DIR=<group>/AngularData/
 ```
 
 ## Troubleshooting common build errors
