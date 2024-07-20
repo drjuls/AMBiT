@@ -21,7 +21,7 @@
 
 namespace Ambit
 {
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk):
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
@@ -41,22 +41,6 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
         *logstream << " " << N << " " << std::flush;
         *outstream << " Number of CSFs = " << N << std::flush;
     }
-}
-
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
-    HamiltonianMatrix(hf, coulomb, relconfigs)
-{
-    // Set up three-body operator
-    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
-    leading_configs = leadconfigs;
-}
-
-HamiltonianMatrix::~HamiltonianMatrix()
-{}
-
-void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
-{
-    chunks.clear();
 
     if(N <= SMALL_MATRIX_LIM)
     {
@@ -93,12 +77,28 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         csf_start += current_num_rows;
         most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
     }
+}
 
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk):
+    HamiltonianMatrix(hf, coulomb, relconfigs, configs_per_chunk)
+{
+    // Set up three-body operator
+    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
+    leading_configs = leadconfigs;
+}
+
+HamiltonianMatrix::~HamiltonianMatrix()
+{}
+
+void HamiltonianMatrix::GenerateMatrix()
+{
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
     unsigned int chunk_index;
+    auto config_it = configs->begin();
+
 #ifdef AMBIT_USE_OPENMP
     #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
 #endif
@@ -408,6 +408,64 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
     stream.flush();
 
     return stream;
+}
+
+bool HamiltonianMatrix::Read(const std::string& filename)
+{
+    FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
+    if(!fp)
+        return false;
+
+    // Read size of matrix
+    unsigned int matrix_N;
+    file_err_handler->fread(&matrix_N, sizeof(unsigned int), 1, fp);
+
+    if(matrix_N != N)
+    {   *errstream << "HamiltonianMatrix::Read: matrix has incorrect dimension (number of CSFs)." << std::endl;
+        file_err_handler->fclose(fp);
+        return false;
+    }
+
+    auto chunk_it = chunks.begin();
+    double buf[N];
+    Eigen::Map<Eigen::RowVectorXd> buf_map(buf, N);
+
+    for(unsigned int matrix_row = 0; matrix_row < N && chunk_it != chunks.end(); matrix_row++)
+    {
+        file_err_handler->fread(buf, sizeof(double), matrix_row+1, fp);
+
+        // Find chunk for this row, if it exists in this process
+        while(matrix_row >= chunk_it->start_row + chunk_it->num_rows && chunk_it != chunks.end())
+            chunk_it++;
+        if(chunk_it == chunks.end())
+            break;
+        if(matrix_row < chunk_it->start_row)
+            continue;
+
+        // Change Map array using the "placement new" syntax.
+        // This does not invoke the memory allocator, because the syntax specifies the location for storing the result.
+        new (&buf_map) Eigen::Map<Eigen::RowVectorXd>(buf,matrix_row+1);
+
+        // Copy row into chunk
+        unsigned int row_length = mmin(matrix_row+1, Nsmall);
+        chunk_it->chunk.block(matrix_row-chunk_it->start_row, 0, 1, row_length) = buf_map.head(row_length);
+
+        // Copy row section into diagonal
+        if(Nsmall <= matrix_row)
+        {
+            // Row in diagonal
+            unsigned int diag_row = chunk_it->diagonal.rows() - (chunk_it->num_rows + chunk_it->start_row - matrix_row);
+            // Number of elements to copy = diag_row+1;
+            chunk_it->diagonal.block(diag_row, 0, 1, diag_row+1) = buf_map.tail(diag_row+1);
+        }
+    }
+
+    file_err_handler->fclose(fp);
+
+    for(auto& chunk: chunks)
+        chunk.Symmetrize();
+
+    return true;
 }
 
 void HamiltonianMatrix::Write(const std::string& filename) const

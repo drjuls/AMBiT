@@ -633,26 +633,29 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             if(twobody_electron == nullptr)
                 MakeIntegrals();
 
+            // If we're using OpenMP then the chunksize should be a multiple of the number of threads
+            int chunksize = user_input("CI/ChunkSize", 4);
+
             std::unique_ptr<HamiltonianMatrix> H;
             if(threebody_electron)
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs, chunksize));
             else
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs, chunksize));
 
-            // If we're using OpenMP then the chunksize should be a multiple of the number of threads
-            int default_chunksize = 4;
+            // Generate filename
+            std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
+            // Convert spaces to underscores in filename
+            std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
+                            [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
 
-            H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));
-            //H->PollMatrix();
-
-            if(user_input.search("CI/Output/--write-hamiltonian"))
+            // Read Hamiltonian if available
+            if(!H->Read(hamiltonian_filename))
             {
-                std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
+                H->GenerateMatrix();
+                //H->PollMatrix();
 
-                // Convert spaces to underscores in filename
-                std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
-                                [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
-                H->Write(hamiltonian_filename);
+                if(user_input.search("CI/Output/--write-hamiltonian"))
+                    H->Write(hamiltonian_filename);
             }
 
             if(user_input.search("CI/Output/--print-hamiltonian"))
