@@ -150,6 +150,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     if(user_input.search(2, "HF/QED/--uehling", "HF/--qed"))
     {
+        pUehlingDecorator uehling;
+
         if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {   uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
         }
@@ -165,6 +167,9 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     if(user_input.search(2, "HF/QED/--self-energy", "HF/--qed"))
     {
+        pElectricSelfEnergyDecorator electricQED;
+        pMagneticSelfEnergyDecorator magneticQED;
+
         if(nucleus && user_input.search("HF/QED/--use-nuclear-density"))
         {
             if(!user_input.search("HF/QED/--no-magnetic"))
@@ -393,6 +398,21 @@ void BasisGenerator::UpdateNonSelfConsistentOperators()
             density -= orb.second->GetDensity() * open_core->GetOccupancy(orb.first);
         }
 
+        pUehlingDecorator uehling;
+        pMagneticSelfEnergyDecorator magneticQED;
+        pElectricSelfEnergyDecorator electricQED;
+
+        // Traverse HFOperatorDecorator stack in hf to find QED decorators.
+        std::shared_ptr<HFBasicDecorator> hfdecorator = std::dynamic_pointer_cast<HFBasicDecorator>(hf);
+        while(hfdecorator)
+        {
+            uehling = std::dynamic_pointer_cast<UehlingDecorator>(hfdecorator);
+            magneticQED = std::dynamic_pointer_cast<MagneticSelfEnergyDecorator>(hfdecorator);
+            electricQED = std::dynamic_pointer_cast<ElectricSelfEnergyDecorator>(hfdecorator);
+
+            hfdecorator = std::dynamic_pointer_cast<HFBasicDecorator>(hfdecorator->GetWrapped());
+        }
+
         if(uehling)
             uehling->GenerateUehling(density);
         if(magneticQED)
@@ -521,9 +541,7 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
         std::string hf_valence_states = user_input("Basis/HFOrbitals", "");
         if(!hf_valence_states.empty())
         {
-            pOrbitalMap hf_valence = GenerateHFExcited(ConfigurationParser::ParseBasisSize(hf_valence_states));
-            for(auto porb: *hf_valence)
-                excited->AddState(porb.second);
+            UpdateHFOrbitals(ConfigurationParser::ParseBasisSize(hf_valence_states), excited);
         }
     }
 

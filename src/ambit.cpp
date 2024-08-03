@@ -226,10 +226,12 @@ void AmbitInterface::EnergyCalculations()
         exit(1);
     }
 
+    bool check_sizes = user_input.search("--check-sizes");
+
     // Choose which of the multiple runs are being done in the current calculation
     unsigned int total_run_selections = user_input.vector_variable_size("-r");
 
-    if((user_input.GetNumRuns() <= 1) || user_input.search("--check-sizes"))
+    if((user_input.GetNumRuns() <= 1) || check_sizes)
     {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
         run_indexes.push_back(0);
     }
@@ -332,17 +334,22 @@ void AmbitInterface::EnergyCalculations()
         }
         file_err_handler->fclose(fp);
     }
-//    {   // Check follower for option
-//        std::string print_option = user_input.next("");
-//        if(print_option == "Cowan")
-//            atom.GenerateCowanInputFile();
-//        else
-//            atom.WriteGraspMCDF();
-//    }
 
-    // Generate Brueckner orbitals and MBPT integrals
-    for(auto& atom: atoms)
-        atom.MakeMBPTIntegrals();
+    // Generate MBPT integrals and Brueckner orbitals
+    for(unsigned int index = 0; index < run_indexes.size(); index++)
+    {
+        auto& atom = atoms[index];
+        bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
+
+        if(make_new_integrals || check_sizes)
+            atom.MakeMBPTIntegrals();
+
+        if (user_input.search("MBPT/--brueckner") && !check_sizes)
+        {   // Show details of HF iterated Brueckner orbitals
+            DebugOptions.OutputHFExcited(index == first_run_index);
+            atom.GenerateBruecknerOrbitals(make_new_integrals);
+        }
+    }
 
     // CI
     if(user_input.search("--check-sizes"))

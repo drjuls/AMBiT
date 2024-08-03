@@ -4,6 +4,7 @@
 #include "GetPot"
 #include "Configuration/HamiltonianMatrix.h"
 #include "HartreeFock/Core.h"
+#include "Basis/BasisGenerator.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 #include "Configuration/LevelMap.h"
@@ -65,10 +66,15 @@ public:
      */
     void MakeMBPTIntegrals();
 
+    /** Generate or read sigma matrices, create Brueckner orbitals, and use them everywhere.
+        If(!generate_sigmas), new sigmas will not be created.
+     */
+    void GenerateBruecknerOrbitals(bool generate_sigmas);
+
     /** Generate integrals for CI using any stored MBPT integrals and calculating the rest with no MBPT.
         PRE: MakeBasis() must have been run.
      */
-    void MakeIntegrals();
+    void MakeCIIntegrals();
 
     /** Clear integrals for CI. */
     void ClearIntegrals();
@@ -88,7 +94,7 @@ public:
      */
     pLevelStore CalculateEnergies();
 
-    /** Calculate levels for given HamiltonianID, generating CI integrals if required via. MakeIntegrals().
+    /** Calculate levels for given HamiltonianID, generating CI integrals if required via. MakeCIIntegrals().
         PRE: ChooseHamiltoniansAndRead() must have been run.
         Levels are added to LevelMap levels.
     */
@@ -138,11 +144,6 @@ protected:
      */
     bool ReadBasis();
 
-    /** Generate or read sigma matrices, create Brueckner orbitals, and use them everywhere.
-        If(!generate_sigmas), new sigmas will not be created.
-     */
-    void GenerateBruecknerOrbitals(bool generate_sigmas);
-
 public:
     void GenerateCowanInputFile();
     void PrintWavefunctionCowan(FILE* fp, pOrbitalConst ds);
@@ -157,6 +158,7 @@ protected:
     double Z;         // Nuclear charge
 
     pLattice lattice;
+    pBasisGenerator basis_generator;
     pCore open_core;                //!< Open-shell HF core
     pHFOperator hf;                 //!< Closed-shell HF operator
     pHFOperator hf_open;            //!< Open-shell HF operator

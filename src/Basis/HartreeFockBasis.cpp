@@ -7,10 +7,10 @@ namespace Ambit
 pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
 {
     pOrbitalMap excited(new OrbitalMap(lattice));
-    
+
     if(!max_pqn.size())
         return excited;
-    
+
     bool debug = DebugOptions.OutputHFExcited();
 
     // Create Hartree-Fock solver; define integrators.
@@ -22,7 +22,7 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
     {
         if(!max_pqn[l])
             continue;
-        
+
         for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
         {
             if(kappa == 0)
@@ -66,5 +66,52 @@ pOrbitalMap BasisGenerator::GenerateHFExcited(const std::vector<int>& max_pqn)
     }
 
     return excited;
+}
+
+void BasisGenerator::UpdateHFOrbitals(const std::vector<int>& max_pqn, pOrbitalMap existing)
+{
+    // Create Hartree-Fock solver; define integrators.
+    pIntegrator integrator(new SimpsonsIntegrator(lattice));
+    pODESolver ode_solver(new AdamsSolver(integrator));
+    HartreeFocker hartree_focker(ode_solver);
+
+    bool debug = DebugOptions.OutputHFExcited();
+
+    for(int l = 0; l < max_pqn.size(); l++)
+    {
+        if(!max_pqn[l])
+            continue;
+
+        for(int kappa = - (l+1); kappa <= l; kappa += 2*l + 1)
+        {
+            if(kappa == 0)
+                break;
+
+            unsigned int pqn = l + 1;
+            double nu = 0.;
+
+            while(pqn <= max_pqn[l])
+            {
+                pOrbital s = existing->GetState(OrbitalInfo(pqn, kappa));
+                if(s)
+                {
+                    pOrbital ds = s->Clone();
+                    std::pair<bool, double> success = hartree_focker.ConvergeOrbitalAndExchange(ds, hf);
+
+                    if(debug)
+                        *logstream << "  " << ds->Name() << " E = " << std::setprecision(12) << ds->Energy()
+                                   << "  dE = " << success.second << "  size = " << ds->size() << std::endl;
+
+                    // Copy into the existing basis if successful, otherwise don't
+                    if(success.first)
+                        *s = *ds;
+                    else
+                        *errstream << "    BasisGenerator::UpdateHFOrbitals() did not update " << s->Name() << " orbital.\n";
+                }
+
+                pqn++;
+            }
+        }
+    }
 }
 }

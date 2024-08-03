@@ -4,6 +4,7 @@
 #include "Include.h"
 #include "Atom.h"
 #include "Basis/BasisGenerator.h"
+#include "Basis/BSplineBasis.h"
 #include "Universal/ExpLattice.h"
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/HartreeFocker.h"
@@ -95,19 +96,19 @@ bool Atom::ReadBasis()
     lattice = modifiable_orbitals->GetLattice();
 
     // Generate HF operator
-    BasisGenerator basis_generator(lattice, user_input);
-    hf_open = basis_generator.RecreateBasis(modifiable_orbitals);
+    basis_generator = std::make_shared<BasisGenerator>(lattice, user_input);
+    hf_open = basis_generator->RecreateBasis(modifiable_orbitals);
 
     orbitals = modifiable_orbitals;
-    hf = basis_generator.GetClosedHFOperator();
+    hf = basis_generator->GetClosedHFOperator();
 
-    open_core = basis_generator.GetHFCore();
+    open_core = basis_generator->GetHFCore();
 
     // HartreeY operator
-    hartreeY = basis_generator.GetHartreeY();
+    hartreeY = basis_generator->GetHartreeY();
 
     // Nucleus
-    nucleus = basis_generator.GetNucleusDecorator();
+    nucleus = basis_generator->GetNucleusDecorator();
 
 
     // Finally, go over the orbitals we've read and make sure they're consistent with the user input
@@ -125,8 +126,8 @@ bool Atom::ReadBasis()
     auto all_orbs = orbitals->all;
     auto orb_it = all_orbs->begin();
     std::set<std::pair<int, int> > pqns;
-    while(orb_it != all_orbs->end()){
-
+    while(orb_it != all_orbs->end())
+    {
         // Store all the PQN and l
         int pqn = orb_it->first.PQN();
         int l = orb_it->first.L();
@@ -135,7 +136,8 @@ bool Atom::ReadBasis()
     }
 
     // Run through all the user specified orbitals and complain if any are missing
-    for(int l = 0; l < max_pqn_per_l.size(); l++){
+    for(int l = 0; l < max_pqn_per_l.size(); l++)
+    {
         auto key = std::make_pair(max_pqn_per_l[l], l);
         if(pqns.find(key) == pqns.end()){
             *outstream << "\nWarning: couldn't find all requested orbitals  " << filename << " basis file." << std::endl;
@@ -160,12 +162,16 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     brueckner->SetMatrixParameters(stride, sigma_start_r, sigma_end_r);
 
     // Attempt to read all requested kappas
-    std::set<int> valence_kappas;
+    // Get max PQN for all kappas in valence orbitals
+    std::map<int, int> valence_bounds;
     for(auto& pair: *orbitals->valence)
-        valence_kappas.insert(pair.first.Kappa());
+    {
+        if(valence_bounds[pair.first.Kappa()] < pair.first.PQN())
+            valence_bounds[pair.first.Kappa()] = pair.first.PQN();
+    }
 
-    for(int kappa: valence_kappas)
-        brueckner->Read(identifier, kappa);
+    for(auto& kappa_pqn: valence_bounds)
+        brueckner->Read(identifier, kappa_pqn.first);
 
     // Replace hf operator for rest of calculation
     hf = brueckner;
@@ -174,16 +180,11 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     if(generate_sigmas)
     {
         std::string fermi_orbitals = user_input("MBPT/EnergyDenomOrbitals", "");
-        for(int kappa: valence_kappas)
-        {   brueckner->CalculateSigma(kappa, orbitals, hartreeY, fermi_orbitals);
-            brueckner->Write(identifier, kappa);
+        for(auto& kappa_maxpqn: valence_bounds)
+        {   brueckner->CalculateSigma(kappa_maxpqn.first, orbitals, hartreeY, fermi_orbitals);
+            brueckner->Write(identifier, kappa_maxpqn.first);
         }
     }
-
-    // And finally change all our valence orbitals to Brueckner orbitals
-    pIntegrator integrator(new SimpsonsIntegrator(lattice));
-    pODESolver ode_solver(new AdamsSolver(integrator));
-    HartreeFocker hartree_focker(ode_solver);
 
     // Get scalings or energies
     unsigned int scaling_length = user_input.vector_variable_size("MBPT/Brueckner/Scaling");
@@ -200,7 +201,7 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
             brueckner->SetSigmaScaling(kappa, scale);
         }
     }
-    else if(energy_scaling_length)
+/*    else if(energy_scaling_length)
     {   pOrbital brueckner_orbital;
 
         *outstream << "Brueckner scaling:" << std::endl;
@@ -242,18 +243,29 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
 
         *outstream << std::endl;
     }
+*/
+    // And finally change all our valence orbitals to Brueckner orbitals
+    BSplineBasis splines(lattice, 40, 9, lattice->MaxRealDistance());
 
-    pOrbital brueckner_orbital;
-    for(auto& pair: *orbitals->valence)
+    for(auto& kappa_maxpqn: valence_bounds)
     {
-        // Make a copy of the old orbital
-        brueckner_orbital.reset(new Orbital(*pair.second));
+        pOrbitalMap brueckner_orbitals = splines.GenerateBSplines(brueckner, kappa_maxpqn.first, kappa_maxpqn.second);
 
-        // Iterate
-        hartree_focker.ConvergeOrbitalAndExchange(brueckner_orbital, brueckner, &HartreeFocker::IterateOrbital, hartree_focker.EnergyTolerance);
+        for (auto &pair: *orbitals->valence)
+        {
+            pOrbital brueckner_orbital = brueckner_orbitals->GetState(pair.first);
 
-        // Copy back to orbital manager
-        *pair.second = *brueckner_orbital;
+            // Copy back to orbital manager
+            if (brueckner_orbital)
+                *pair.second = *brueckner_orbital;
+        }
+    }
+
+    // Update HF orbitals
+    std::string hf_valence_states = user_input("Basis/HFOrbitals", "");
+    if(!hf_valence_states.empty())
+    {
+        basis_generator->UpdateHFOrbitals(ConfigurationParser::ParseBasisSize(hf_valence_states), orbitals->valence);
     }
 
     *outstream << "Brueckner orbitals:\n";
