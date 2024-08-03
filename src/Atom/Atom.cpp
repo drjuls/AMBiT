@@ -164,10 +164,13 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     // Attempt to read all requested kappas
     // Get max PQN for all kappas in valence orbitals
     std::map<int, int> valence_bounds;
+    int lmax = 0;
     for(auto& pair: *orbitals->valence)
     {
         if(valence_bounds[pair.first.Kappa()] < pair.first.PQN())
             valence_bounds[pair.first.Kappa()] = pair.first.PQN();
+
+        lmax = mmax(lmax, pair.first.L());
     }
 
     for(auto& kappa_pqn: valence_bounds)
@@ -245,7 +248,15 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     }
 */
     // And finally change all our valence orbitals to Brueckner orbitals
-    BSplineBasis splines(lattice, 40, 9, lattice->MaxRealDistance());
+    int n = user_input("Basis/BSpline/N", 40);
+    int k = user_input("Basis/BSpline/K", 7);
+    double rmax = user_input("Basis/BSpline/Rmax", lattice->MaxRealDistance());
+    double dr0  = user_input("Basis/BSpline/R0", 0.0);
+
+    rmax = mmin(rmax, lattice->MaxRealDistance());
+    k = mmax(k, lmax + 3);
+
+    BSplineBasis splines(lattice, n, k, rmax, dr0);
 
     for(auto& kappa_maxpqn: valence_bounds)
     {
