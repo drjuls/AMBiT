@@ -15,7 +15,7 @@
 namespace Ambit
 {
 BasisGenerator::BasisGenerator(pLattice lat, MultirunOptions& userInput, pPhysicalConstant physical_constant):
-    hf(pHFOperator()), lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
+    lattice(lat), user_input(userInput), physical_constant(physical_constant), open_core(nullptr)
 {
     orbitals = pOrbitalManager(new OrbitalManager(lattice));
 }
@@ -650,6 +650,45 @@ void BasisGenerator::InjectOrbitals(const std::string& input, pOrbitalMap excite
             if(orbital->PQN() != max_moved_pqn)
                 excited->AddState(orbital);
         }
+    }
+}
+
+void BasisGenerator::CreateBruecknerOrbitals(pBruecknerDecorator brueckner)
+{
+    // Set hf operator to brueckner for the rest of the calculation
+    hf = brueckner;
+
+    pOrbitalMap orbitals_to_update = orbitals->valence;
+    if(user_input.search("MBPT/Brueckner/--excited"))
+        orbitals_to_update = orbitals->excited;
+
+    // Get max PQN for l
+    std::vector<int> max_pqn;
+    for(auto& pair: *orbitals_to_update)
+    {
+        int l = pair.first.L();
+        if(l+1 > max_pqn.size())
+            max_pqn.resize(l+1);
+
+        max_pqn[l] = mmax(max_pqn[l], pair.first.PQN());
+    }
+
+    pOrbitalMap brueckner_orbitals = GenerateBSplines(max_pqn);
+
+    for (auto &pair: *orbitals_to_update)
+    {
+        pOrbital brueckner_orbital = brueckner_orbitals->GetState(pair.first);
+
+        // Copy back to orbital manager
+        if (brueckner_orbital)
+            *pair.second = *brueckner_orbital;
+    }
+
+    // Update HF orbitals
+    std::string hf_valence_states = user_input("Basis/HFOrbitals", "");
+    if(!hf_valence_states.empty())
+    {
+        UpdateHFOrbitals(ConfigurationParser::ParseBasisSize(hf_valence_states), orbitals_to_update);
     }
 }
 

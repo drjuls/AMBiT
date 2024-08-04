@@ -340,8 +340,9 @@ void AmbitInterface::EnergyCalculations()
     {
         auto& atom = atoms[index];
         bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
+        bool mbpt_use_breuckner = user_input.search("MBPT/--mbpt-use-brueckner");
 
-        if(make_new_integrals || check_sizes)
+        if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
             atom.MakeMBPTIntegrals();
 
         if (user_input.search("MBPT/--brueckner") && !check_sizes)
@@ -349,6 +350,9 @@ void AmbitInterface::EnergyCalculations()
             DebugOptions.OutputHFExcited(index == first_run_index);
             atom.GenerateBruecknerOrbitals(make_new_integrals);
         }
+
+        if(mbpt_use_breuckner && make_new_integrals && !check_sizes)
+            atom.MakeMBPTIntegrals();
     }
 
     // CI

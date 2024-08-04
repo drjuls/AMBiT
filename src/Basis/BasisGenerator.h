@@ -6,6 +6,7 @@
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/HartreeY.h"
+#include "MBPT/BruecknerDecorator.h"
 #include "OrbitalManager.h"
 #include <list>
 
@@ -27,13 +28,6 @@ public:
      */
     virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
 
-    /** Update any non-self-consistent screening operators in hf (e.g. radiative potentials).
-        This is pretty niche, and should be carefully tested if used.
-        Warning: Because these are not self-consistent, it is not possible to exactly recreate the hf operator
-                 to match saved orbitals.
-     */
-    virtual void UpdateNonSelfConsistentOperators();
-
     /** Generate excited states.
         PRE: core must have been built using GenerateHFCore() already.
      */
@@ -49,6 +43,12 @@ public:
         Returns open-shell HF operator.
      */
     virtual pHFOperator RecreateBasis(pOrbitalManager orbital_manager);
+
+    /** Update hf operator and requested orbitals to include Brueckner Sigma potential.
+        PRE: this should only be used after GenerateBasis() or RecreateBasis(), and
+             brueckner should wrap open-core hf operator.
+     */
+    virtual void CreateBruecknerOrbitals(pBruecknerDecorator brueckner);
 
     /** Get open-shell Hartree-Fock operator. */
     virtual pHFOperatorConst GetOpenHFOperator() const { return hf; }
@@ -93,6 +93,13 @@ protected:
               this->open_core has correct occupancies.
      */
     virtual void InitialiseHF(pHFOperator& undressed_hf);
+
+    /** Update any non-self-consistent screening operators in hf (e.g. radiative potentials).
+        This is pretty niche, and should be carefully tested if used.
+        Warning: Because these are not self-consistent, it is not possible to exactly recreate the hf operator
+                 to match saved orbitals.
+     */
+    virtual void UpdateNonSelfConsistentOperators();
 
     /** Set orbital maps core, valence, etc according to user input.
         PRE:  orbitals->all and indexes must be up to date and include all states.
