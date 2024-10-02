@@ -290,7 +290,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     }
 
     rlist->SetSmallSize(rlist->size());
-    rlist->sort(MostProjectionsFirstComparator());
+    rlist->sort(MostWorkFirstComparator());
     rlist->unique();
     rlist->SetSmallSize(rlist->size());
 
@@ -370,7 +370,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pCon
     if(it == itsmall)
         rlist->SetSmallSize(rlist->size());
 
-    rlist->sort(MostProjectionsFirstComparator());
+    rlist->sort(MostWorkFirstComparator());
     rlist->unique();
     return rlist;
 }
@@ -433,7 +433,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
     if(user_input.search("CI/--sort-matrix-by-configuration"))
         returnedlist.sort(ConfigurationComparator());
     else
-        returnedlist.sort(MostProjectionsFirstComparator());
+        returnedlist.sort(MostWorkFirstComparator());
 
     return prlist;
 }

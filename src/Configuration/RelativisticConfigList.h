@@ -277,6 +277,28 @@ public:
     }
 };
 
+/**************************** EVK *****************************/
+// Comparator to sort configurations based on the approximate amount of work required to generate
+// their corresponding matrix elements. Hopefully useful for load balancing between MPI ranks and
+// OpenMP threads
+class MostWorkFirstComparator
+{
+public:
+    bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
+    {
+        int first_work = first.projection_size()*first.projection_size()*first.NumCSFs();
+        int second_work = second.projection_size()*second.projection_size()*second.NumCSFs();
+        if(first_work > second_work)
+            return true;
+        else if(first_work < second_work)
+            return false;
+        else
+            return(first < second);
+    }
+};
+
+
+
 template<typename... Args>
 RelativisticConfigList::RelativisticConfigList(Args... args):
     m_list(args...)
