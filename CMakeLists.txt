@@ -15,7 +15,7 @@ endif()
 # Set default C++ and Fortran standards
 set(CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(FVERSION "-std=gnu") # Modern Fortran with GNU extensions
+set(FVERSION "-std=f2018") # Modern Fortran
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION} -cpp")
 
 # Set the Fortran compiler. Note that this is case-sensitive: "Fortran" not "FORTRAN"
