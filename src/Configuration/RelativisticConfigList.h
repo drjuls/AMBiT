@@ -286,8 +286,8 @@ class MostWorkFirstComparator
 public:
     bool operator()(const RelativisticConfiguration& first, const RelativisticConfiguration& second) const
     {
-        int first_work = first.projection_size()*first.projection_size()*first.NumCSFs();
-        int second_work = second.projection_size()*second.projection_size()*second.NumCSFs();
+        size_t first_work = first.projection_size()*first.projection_size()*first.NumCSFs();
+        size_t second_work = second.projection_size()*second.projection_size()*second.NumCSFs();
         if(first_work > second_work)
             return true;
         else if(first_work < second_work)
