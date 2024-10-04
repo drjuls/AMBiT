@@ -98,11 +98,10 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
-    unsigned int chunk_index;
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
+    #pragma omp parallel for private(config_it)
 #endif
-    for(chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
+    for(size_t chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
     {
         auto& current_chunk = chunks[chunk_index];
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
@@ -124,6 +123,12 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             else
                 config_jend = configsubsetend_it;
 
+            #pragma omp task untied \
+                             default(none) \
+                             shared(M) \
+                             firstprivate(leading_config_i, config_it, config_jt, config_jend, \
+                                          current_chunk)
+            {
             while(config_jt != config_jend)
             {
                 bool leading_config_j = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_jt));
@@ -187,11 +192,17 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                     }
                 }
                 config_jt++;
-            }
+            } // while (config_jt)
+            } // OMP task
 
             // Diagonal
             if(config_index >= configs->small_size())
             {
+                #pragma omp task untied \
+                                 default(none) \
+                                 shared(D) \
+                                 firstprivate(current_chunk, config_it)
+                {
                 int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
 
                 // Loop through projections
@@ -233,11 +244,14 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                         proj_jt++;
                     }
                     proj_it++;
-                }
-            }
+                } // while (proj_it)
+                } // OMP task
+            } // Conditional for diagonal elements
             config_it++;
         } // Configs in chunk
     } // Chunks
+    //} // OMP single
+    //}  // OMP Parallel
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
