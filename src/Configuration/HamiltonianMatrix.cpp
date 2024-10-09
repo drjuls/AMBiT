@@ -99,7 +99,11 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     unsigned int configsubsetend = configs->small_size();
 
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for private(config_it)
+    #pragma omp parallel private(config_it)
+    {
+    #pragma omp single nowait
+    {
+    #pragma omp taskloop
 #endif
     for(size_t chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
     {
@@ -249,9 +253,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             } // Conditional for diagonal elements
             config_it++;
         } // Configs in chunk
-    } // Chunks
-    //} // OMP single
-    //}  // OMP Parallel
+    } // Chunks loop
+    } // OMP single
+    }  // OMP Parallel
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
