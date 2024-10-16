@@ -89,8 +89,8 @@ protected:
     class MatrixChunk
     {
     public:
-        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall):
-            start_row(row_start), num_rows(num_rows)
+        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall, bool big_chunk):
+            start_row(row_start), num_rows(num_rows), is_big_chunk(big_chunk)
         {
             config_indices.first = config_index_start;
             config_indices.second = config_index_end;
@@ -107,6 +107,7 @@ protected:
         unsigned int num_rows;
         RowMajorMatrix chunk;
         RowMajorMatrix diagonal;
+        bool is_big_chunk;
 
         /** Make upper triangle part of the matrix chunk match the lower. */
         void Symmetrize()
