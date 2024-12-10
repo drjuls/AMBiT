@@ -23,7 +23,9 @@ and tools:
   [BLAS](http://www.netlib.org/blas/) - linear algebra subroutines.
   Can be substituted for internal libraries in the (proprietary)
   [Intel Math Kernel Library](https://software.intel.com/en-us/mkl)
-  (MKL). Compiling against MKL allows expensive linear-algebra
+  (MKL) or the open-source 
+  [OpenBLAS](http://www.openmathlib.org/OpenBLAS/) library. Compiling
+  against MKL or OpenBLAS allows expensive linear-algebra
   operations (including generating angular data) to be automatically
   parallelised at run-time.
 
@@ -141,11 +143,17 @@ Here is a short list of CMake options for AMBiT:
 - `EIGEN_INCLUDE_DIR`: directory containing Eigen header files
 - `USE_OPENMP`: toggle whether to use OpenMP multithreading parallelism
 - `USE_MPI`: toggle whether to use MPI parallelism
-- `USE_MKL`: toggle whether to use MKL for linear algebra operations
+- `USE_OPENBLAS`: toggle whether to use OpenBLAS for linear algebra operations. Incompatible with
+  `USE_MKL`.
+- `USE_MKL`: toggle whether to use MKL for linear algebra operations. Incompatible with
+  `USE_OPENBLAS`.
 - `MKL_INTERFACE_FULL`: MKL library interface to link against (see below for more details)
 - `MKL_THREADING`: backend library to use for multithreaded linear algebra operations (see below
   for more details)
 - `MKL_MPI`: choice of MPI library to use for MKL (must be the same as used by AMBiT)
+- `EIGEN_USE_BLAS`: (when set to `true`) use an external BLAS library for linear algebra. When this
+  option is enabled, you'll need to manually provide compile and link flags for a suitable library
+  with a BLAS-compatible interface.
 - `CMAKE_BUILD_TYPE`: choose the build type. Options include
   - `Release` (`-DCMAKE_BUILD_TYPE=Release`) the default, optimised build
   - `Debug`
@@ -191,6 +199,23 @@ cmake --install build
 
 will install AMBiT to `./installed/bin/ambit`.
 
+## Building with OpenBLAS
+OpenBLAS can provide substantial speedups for linear algebra operations compared to Eigen's
+internal libraries (the default if no options are specified). CMake can usually find OpenBLAS
+automatically when `USE_OPENBLAS=true`, but if it fails then you may need to manually specify the
+path to the OpenBLAS installation via the `CMAKE_PREFIX_PATH` variable.
+
+OpenBLAS can either run in multithreaded or single-threaded mode, depending on how the library was
+compiled. In order to get actual multithreading, OpenBLAS must have been compiled with *both*
+"multithreading" and "OpenMP" support, otherwise it will run on a single CPU core when called by
+AMBiT to avoid deadlocks with the OpenMP runtime. See [this GitHub 
+issue](https://github.com/OpenMathLib/OpenBLAS/issues/2543) or the [OpenBLAS 
+FAQ](https://github.com/OpenMathLib/OpenBLAS/wiki/Faq#wronglibrary) for more info.
+
+If you are not building OpenMP from source, the build-options
+will have been handled by your OS's package manager or cluster's administrators. Even in 
+single-threaded, OpenBLAS will typically be faster than the default BLAS/LAPACK libraries.
+
 ## Building with MKL
 Intel's Math Kernel Library (MKL) can provide substantial speedups for linear algebra operations,
 but it has many configuration options and can be difficult to link against. Fortunately, MKL
@@ -234,6 +259,15 @@ While it is technically possible to "mix and match" libraries, the safest choice
 `MKL_THREADING=gnu_thread` if you're using GCC, or `MKL_THREADING=intel_thread` if you're using the
 Intel compilers. If no value is supplied then it will default to using
 `MKL_THREADING=intel_thread`
+
+## Building with an alternative BLAS library
+It's possible to force Eigen to use an external BLAS library of your choosing by setting
+`EIGEN_USE_BLAS=true`, which tells Eigen not to use it's internal libraries and to instead defer
+the choice of BLAS library to link-time options. This means you will need to manually specify the
+compile and link options (for example, by adding them to `CMAKE_CXX_FLAGS`) rather than letting
+CMake handle them, but it allows you to use any library with a compatible BLAS interface if, for
+example, your system does not support OpenBLAS or MKL. See this page in the Eigen documentation for
+more information: <https://eigen.tuxfamily.org/dox/TopicUsingBlasLapack.html>.
 
 ## Building the test suite
 AMBiT has a set of automated unit and regression tests via 
@@ -344,7 +378,8 @@ location (e.g. not in `/usr/lib` or similar global locations). It also occurs if
 **Fix**: All of AMBiT's external dependencies have native support for CMake, so ensure the
 directories where the problem package is installed has one of the `.cmake` files mentioned in the
 error message (they'll usually be installed in something like `/path/to/installation/lib/cmake`)
-and modify the `CMAKE_PREFIX_PATH` build option to include this path.
+and modify the `[lib]_DIR` (where `[lib]` is the library name reported by CMake, e.g. `absl_DIR`)
+or `CMAKE_PREFIX_PATH` build options to include this path.
 
 ### AMBiT crashes on a segmentation fault when calling into MKL functions
 

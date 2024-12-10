@@ -16,8 +16,16 @@ find_package(Boost REQUIRED)
 find_package(absl CONFIG REQUIRED)
 
 # LAPACK and BLAS
-# First, check to see if we need to use MKL
-set(USE_MKL OFF CACHE BOOL "Use Intel MKL for BLAS/LAPACK subroutines")
+# First, check to see if we need to use MKL or OpenBLAS. Can't use both at once, so error out if
+# both are set.
+set(USE_MKL OFF CACHE BOOL "Use Intel MKL for libear algebra subroutines")
+set(USE_OPENBLAS OFF CACHE BOOL "Use OpenBLAS for linear algebra subroutines")
+
+if(USE_MKL AND USE_OPENBLAS)
+    message(FATAL_ERROR "Cannot use both MKL and OpenBLAS for linear algebra. Only enable one at a
+    time.")
+endif()
+
 if(USE_MKL)
   # MKL 2021.3 and later has a nice CMake support, so make sure we use that
   # Documentation can be found here:
@@ -30,6 +38,14 @@ if(USE_MKL)
   # Also tell Eigen to use MKL as its backend
   target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
 else() # Use vanilla BLAS/LAPACK
+
+    if(USE_OPENBLAS)
+        # Need to tell Eigen to use external BLAS lib via -DEIGEN_USE_BLAS, then manually pass the
+        # openblas linker flags through CMake's "BLA_VENDOR" config variable
+        # See this page in the Eigen documentation for an explanation of this process: https://eigen.tuxfamily.org/dox/TopicUsingBlasLapack.html
+        set(BLA_VENDOR OpenBLAS)
+        target_compile_definitions(ambit PRIVATE -DEIGEN_USE_BLAS)
+    endif()
   find_package(LAPACK REQUIRED)
 
   target_link_libraries(ambit PRIVATE LAPACK::LAPACK)
