@@ -30,19 +30,22 @@ class HamiltonianMatrix : public Matrix
 {
 public:
     /** Hamiltonian with one and two-body operators. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk = 4);
     /** Hamiltonian with additional effective three-body operator. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk = 4);
     virtual ~HamiltonianMatrix();
 
     virtual void MatrixMultiply(int m, double* b, double* c) const;
     virtual void GetDiagonal(double* diag) const;
 
     /** Generate Hamiltonian matrix. */
-    virtual void GenerateMatrix(unsigned int configs_per_chunk = 4);
+    virtual void GenerateMatrix();
 
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
+
+    /** Read binary file if it exists. Return success. */
+    virtual bool Read(const std::string& filename);
 
     /** Write binary file. */
     virtual void Write(const std::string& filename) const;

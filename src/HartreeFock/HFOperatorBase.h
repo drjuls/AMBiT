@@ -182,6 +182,11 @@ public:
         return ret;
     }
 
+    /** Get wrapped HFOperator or HFOperatorDecorator. */
+    virtual pHFOperator GetWrapped()
+    {   return wrapped;
+    }
+
     /** Extend/reduce direct potential to match lattice size.
         Note that wrapped object will itself be registered, so there is no need to pass this along.
      */

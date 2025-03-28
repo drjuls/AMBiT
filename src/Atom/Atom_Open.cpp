@@ -23,19 +23,9 @@ namespace Ambit
 {
 void Atom::MakeMBPTIntegrals()
 {
-    bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
     bool check_sizes = user_input.search("--check-sizes");
     bool one_body_mbpt = user_input.search(3, "-s1", "-s12", "-s123");
     bool two_body_mbpt = user_input.search(4, "-s2", "-s12", "-s23", "-s123");
-
-    // First make any Brueckner orbitals, and use these everywhere
-    if(user_input.search("MBPT/--brueckner") && !check_sizes)
-    {
-        GenerateBruecknerOrbitals(make_new_integrals);
-    }
-
-    if(!make_new_integrals && !check_sizes)
-        return;
 
     // Bare integrals for MBPT
     pHFIntegrals bare_one_body_integrals = std::make_shared<HFIntegrals>(orbitals, hf);
@@ -178,7 +168,7 @@ void Atom::MakeMBPTIntegrals()
     }
 }
 
-void Atom::MakeIntegrals()
+void Atom::MakeCIIntegrals()
 {
     ClearIntegrals();
 
@@ -297,7 +287,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     {
         ConfigGenerator gen(orbitals, user_input);
         if(twobody_electron == nullptr)
-            MakeIntegrals();
+            MakeCIIntegrals();
         allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
 
         // Create empty level set
@@ -346,7 +336,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
         ConfigGenerator gen(orbitals, user_input);
 
         if(twobody_electron == nullptr)
-            MakeIntegrals();
+            MakeCIIntegrals();
 
         if(twobody_electron)
             allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
@@ -480,7 +470,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     levels = std::make_shared<LevelMap>(identifier, angular_library);
 
     // CI integrals
-    MakeIntegrals();
+    MakeCIIntegrals();
 
     // Generate configurations again; don't read from disk. */
     ConfigGenerator gen(orbitals, user_input);
@@ -608,7 +598,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                            || user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
                         {
                             if(twobody_electron == nullptr)
-                                MakeIntegrals();
+                                MakeCIIntegrals();
 
                             allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
                         }
@@ -631,28 +621,31 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         if(do_CI)
         {
             if(twobody_electron == nullptr)
-                MakeIntegrals();
+                MakeCIIntegrals();
+
+            // If we're using OpenMP then the chunksize should be a multiple of the number of threads
+            int chunksize = user_input("CI/ChunkSize", 4);
 
             std::unique_ptr<HamiltonianMatrix> H;
             if(threebody_electron)
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs, chunksize));
             else
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs, chunksize));
 
-            // If we're using OpenMP then the chunksize should be a multiple of the number of threads
-            int default_chunksize = 4;
+            // Generate filename
+            std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
+            // Convert spaces to underscores in filename
+            std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
+                            [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
 
-            H->GenerateMatrix(user_input("CI/ChunkSize", default_chunksize));
-            //H->PollMatrix();
-
-            if(user_input.search("CI/Output/--write-hamiltonian"))
+            // Read Hamiltonian if available
+            if(!H->Read(hamiltonian_filename))
             {
-                std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
+                H->GenerateMatrix();
+                //H->PollMatrix();
 
-                // Convert spaces to underscores in filename
-                std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
-                                [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
-                H->Write(hamiltonian_filename);
+                if(user_input.search("CI/Output/--write-hamiltonian"))
+                    H->Write(hamiltonian_filename);
             }
 
             if(user_input.search("CI/Output/--print-hamiltonian"))
@@ -781,7 +774,7 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
         return levelvec;
 
     if(hf_electron == nullptr)
-        MakeIntegrals();
+        MakeCIIntegrals();
 
     double eigenvector = 1.;
 

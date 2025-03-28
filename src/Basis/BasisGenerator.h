@@ -6,7 +6,7 @@
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/NucleusDecorator.h"
 #include "HartreeFock/HartreeY.h"
-#include "ExternalField/RadiativePotential.h"
+#include "MBPT/BruecknerDecorator.h"
 #include "OrbitalManager.h"
 #include <list>
 
@@ -28,22 +28,27 @@ public:
      */
     virtual pCore GenerateHFCore(pCoreConst open_shell_core = pCoreConst());
 
-    /** Update any non-self-consistent screening operators in hf (e.g. radiative potentials).
-        Warning: Because these are not self-consistent, it is not possible to exactly recreate the hf operator
-                 to match saved orbitals.
-     */
-    virtual void UpdateNonSelfConsistentOperators();
-
     /** Generate excited states.
         PRE: core must have been built using GenerateHFCore() already.
      */
     virtual pOrbitalManagerConst GenerateBasis();
+
+    /** Update orbitals by converging HF operator.
+        PRE: requested orbitals must be in "existing" and already be a good approximation.
+     */
+    virtual void UpdateHFOrbitals(const std::vector<int>& max_pqn, pOrbitalMap existing);
 
     /** Build open-shell core, Hartree-Fock operator, and basis using read orbitals and the input file.
         This function will not change orbital_manager->all, but may change other OrbitalMaps.
         Returns open-shell HF operator.
      */
     virtual pHFOperator RecreateBasis(pOrbitalManager orbital_manager);
+
+    /** Update hf operator and requested orbitals to include Brueckner Sigma potential.
+        PRE: this should only be used after GenerateBasis() or RecreateBasis(), and
+             brueckner should wrap open-core hf operator.
+     */
+    virtual void CreateBruecknerOrbitals(pBruecknerDecorator brueckner);
 
     /** Get open-shell Hartree-Fock operator. */
     virtual pHFOperatorConst GetOpenHFOperator() const { return hf; }
@@ -88,6 +93,13 @@ protected:
               this->open_core has correct occupancies.
      */
     virtual void InitialiseHF(pHFOperator& undressed_hf);
+
+    /** Update any non-self-consistent screening operators in hf (e.g. radiative potentials).
+        This is pretty niche, and should be carefully tested if used.
+        Warning: Because these are not self-consistent, it is not possible to exactly recreate the hf operator
+                 to match saved orbitals.
+     */
+    virtual void UpdateNonSelfConsistentOperators();
 
     /** Set orbital maps core, valence, etc according to user input.
         PRE:  orbitals->all and indexes must be up to date and include all states.
@@ -137,12 +149,10 @@ protected:
     pHFOperator hf;     //!< Open-shell hf operator
     pHartreeY hartreeY; //!< Dressed HartreeY operator
 
-    // Useful decorators to track if used
     pNucleusDecorator nucleus;
-    pUehlingDecorator uehling;
-    pMagneticSelfEnergyDecorator magneticQED;
-    pElectricSelfEnergyDecorator electricQED;
 };
+
+typedef std::shared_ptr<BasisGenerator> pBasisGenerator;
 
 }
 #endif
