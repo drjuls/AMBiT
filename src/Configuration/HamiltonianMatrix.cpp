@@ -98,12 +98,12 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         chunks_work_sizes.push_back(current_chunk_work_units);
     }
 
-    /* EVK Note:
+    /* Note:
      * Now work out some statistics about the distribution of work among chunks. We want to
-     * get the median amount of work per chunk, as well as the Croux-Rousseuw Qn measure of 
+     * get the median amount of work per chunk, as well as the Croux-Rousseuw Qn measure of
      * spread (which is more robust when dealing with highly-skewed distributions like this one)
      * to identify chunks which are particularly bad for workload balancing. See this paper for
-     * more info on this measure: 
+     * more info on this measure:
      * https://wis.kuleuven.be/stat/robust/papers/publications-1993/rousseeuwcroux-alternativestomedianad-jasa-1993.pdf
      *
      * Also see the GSL manual for information on how it's implemented in GSL:
@@ -126,16 +126,16 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
       median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, total_num_chunks);
 
-      /* EVK note: 
+      /* Note:
        * The magic factor of 1.566 is necessary here because Qn includes a magic weighting
        * factor based on the assumed distribution of the data. GSL uses the magic constant for a
-       * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew. 
+       * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew.
        * It sort of looks exponential if you squint at it, so that's the value I'm using here
        */
       Qn = 1.566*gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, total_num_chunks, gsl_work.data(), gsl_work_int.data());
     }
 
-    /* EVK note: 
+    /* Note:
      * Now calculate the outlier threshold: any chunk with more than median + 9.0*Qn work units is
      * considered to be a "big chunk". Note that this threshold is somewhat arbitrary, but seems to
      * work okay (think of it as an analogy to the 1.5*IQR rule, but designed for highly-skewed
@@ -143,7 +143,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     */
     size_t outlier_threshold = median + 9.0*Qn;
 
-    // Now do another passthrough and actually construct this rank's chunks  
+    // Now do another passthrough and actually construct this rank's chunks
     std::vector<size_t> processor_work_sizes(NumProcessors, 0); // Work assigned to each MPI rank
     config_it = configs->begin();
     config_index = 0;
@@ -205,7 +205,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     *logstream << "Minimum workload: " << *min_work_it << std::endl;
     *logstream << "Maximum workload: " << *max_work_it << std::endl;
     *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
-    
+
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
