@@ -30,16 +30,16 @@ class HamiltonianMatrix : public Matrix
 {
 public:
     /** Hamiltonian with one and two-body operators. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk = 4);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs);
     /** Hamiltonian with additional effective three-body operator. */
-    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk = 4);
+    HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs);
     virtual ~HamiltonianMatrix();
 
     virtual void MatrixMultiply(int m, double* b, double* c) const;
     virtual void GetDiagonal(double* diag) const;
 
     /** Generate Hamiltonian matrix. */
-    virtual void GenerateMatrix();
+    virtual void GenerateMatrix(unsigned int configs_per_chunk = 4);
 
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
@@ -92,8 +92,8 @@ protected:
     class MatrixChunk
     {
     public:
-        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall):
-            start_row(row_start), num_rows(num_rows)
+        MatrixChunk(unsigned int config_index_start, unsigned int config_index_end, unsigned int row_start, unsigned int num_rows, unsigned int Nsmall, bool big_chunk):
+            start_row(row_start), num_rows(num_rows), is_big_chunk(big_chunk)
         {
             config_indices.first = config_index_start;
             config_indices.second = config_index_end;
@@ -110,6 +110,7 @@ protected:
         unsigned int num_rows;
         RowMajorMatrix chunk;
         RowMajorMatrix diagonal;
+        bool is_big_chunk;
 
         /** Make upper triangle part of the matrix chunk match the lower. */
         void Symmetrize()
