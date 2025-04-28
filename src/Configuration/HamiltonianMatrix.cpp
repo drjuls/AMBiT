@@ -1,9 +1,12 @@
 #include "Include.h"
 #include "HamiltonianMatrix.h"
 #include "HartreeFock/Orbital.h"
+#include "Projection.h"
 #include "Universal/Eigensolver.h"
 #include "Universal/MathConstant.h"
 #include "Universal/ScalapackMatrix.h"
+#include <gsl/gsl_statistics_ulong.h>
+#include <memory>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -11,6 +14,7 @@
 #ifdef AMBIT_USE_OPENMP
 #include<omp.h>
 #endif
+
 
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
@@ -21,7 +25,7 @@
 
 namespace Ambit
 {
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk):
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pRelativisticConfigList relconfigs):
     H_two_body(nullptr), H_three_body(nullptr), configs(relconfigs), most_chunk_rows(0)
 {
     // Set up Hamiltonian operator
@@ -33,7 +37,7 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 
     if(Nsmall != N)
     {
-        *logstream << " " << N << "x" << Nsmall << std::flush;
+        *logstream << " " << N << "x" << Nsmall << std::endl;
         *outstream << " Number of CSFs = " << N << " x " << Nsmall << std::flush;
     }
     else
@@ -41,6 +45,22 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
         *logstream << " " << N << " " << std::flush;
         *outstream << " Number of CSFs = " << N << std::flush;
     }
+}
+
+HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs):
+    HamiltonianMatrix(hf, coulomb, relconfigs)
+{
+    // Set up three-body operator
+    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
+    leading_configs = leadconfigs;
+}
+
+HamiltonianMatrix::~HamiltonianMatrix()
+{}
+
+void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
+{
+    chunks.clear();
 
     if(N <= SMALL_MATRIX_LIM)
     {
@@ -54,13 +74,19 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
     auto config_it = configs->begin();
     unsigned int config_index = 0;
     unsigned int csf_start = 0;
+
+    // Loop through the chunks but don't actually construct any yet. We just want to work out the
+    // load-balancing among MPI ranks and assign chunks to ranks
+    std::vector<size_t> chunks_work_sizes; // Work for each chunk
     for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
     {
         // Get chunk num_rows and number of configs. Allocates resources for the chunks.
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
+        size_t current_chunk_work_units = 0;
         while(config_it != configs->end() && current_num_configs < configs_per_chunk)
         {
+            current_chunk_work_units += config_it->projection_size()*config_it->projection_size()*config_it->NumCSFs();
             current_num_rows += config_it->NumCSFs();
             current_num_configs++;
             config_it++;
@@ -69,40 +95,128 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
         if(current_num_rows == 0)
             break;
 
-        // Make chunk
-        if(chunk_index%NumProcessors == ProcessorRank)
-            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start, current_num_rows, Nsmall);
+        chunks_work_sizes.push_back(current_chunk_work_units);
+    }
+
+    /* Note:
+     * Now work out some statistics about the distribution of work among chunks. We want to
+     * get the median amount of work per chunk, as well as the Croux-Rousseuw Qn measure of
+     * spread (which is more robust when dealing with highly-skewed distributions like this one)
+     * to identify chunks which are particularly bad for workload balancing. See this paper for
+     * more info on this measure:
+     * https://wis.kuleuven.be/stat/robust/papers/publications-1993/rousseeuwcroux-alternativestomedianad-jasa-1993.pdf
+     *
+     * Also see the GSL manual for information on how it's implemented in GSL:
+     * https://www.gnu.org/software/gsl/doc/html/statistics.html#robust-scale-estimates
+     */
+    double median, Qn;
+
+    // New scope to ensure tmp arrays are deallocated ASAP
+    {
+      // Temporary workspace arrays for GSL
+      std::vector<size_t> gsl_work(3*total_num_chunks);
+      std::vector<int> gsl_work_int(5*total_num_chunks);
+
+      // Need to make a deep copy of the data since it must be sorted in ascending order for GSL to
+      // calculate the stats
+      std::vector<size_t> tmp = chunks_work_sizes;
+      std::sort(tmp.begin(), tmp.end());
+      // GSL needs a raw pointer to the work size data
+      size_t* worksize_pointer = tmp.data();
+
+      median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, total_num_chunks);
+
+      /* Note:
+       * The magic factor of 1.566 is necessary here because Qn includes a magic weighting
+       * factor based on the assumed distribution of the data. GSL uses the magic constant for a
+       * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew.
+       * It sort of looks exponential if you squint at it, so that's the value I'm using here
+       */
+      Qn = 1.566*gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, total_num_chunks, gsl_work.data(), gsl_work_int.data());
+    }
+
+    /* Note:
+     * Now calculate the outlier threshold: any chunk with more than median + 9.0*Qn work units is
+     * considered to be a "big chunk". Note that this threshold is somewhat arbitrary, but seems to
+     * work okay (think of it as an analogy to the 1.5*IQR rule, but designed for highly-skewed
+     * data)
+    */
+    size_t outlier_threshold = median + 9.0*Qn;
+
+    // Now do another passthrough and actually construct this rank's chunks
+    std::vector<size_t> processor_work_sizes(NumProcessors, 0); // Work assigned to each MPI rank
+    config_it = configs->begin();
+    config_index = 0;
+    csf_start = 0;
+    int num_big_chunks = 0;
+
+    for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
+    {
+        // Get chunk num_rows and number of configs. Allocates resources for the chunks.
+        unsigned int current_num_rows = 0;
+        unsigned int current_num_configs = 0;
+        size_t current_chunk_work_units = 0;
+        while(config_it != configs->end() && current_num_configs < configs_per_chunk)
+        {
+            current_chunk_work_units += config_it->projection_size()*config_it->projection_size()*config_it->NumCSFs();
+            current_num_rows += config_it->NumCSFs();
+            current_num_configs++;
+            config_it++;
+        }
+
+        if(current_num_rows == 0)
+            break;
+
+        // Assign this chunk to whichever process currently has the least work
+        auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+        int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
+        // Now make the chunk if it's ours
+        if(assigned_process == ProcessorRank)
+        {
+            bool is_big_chunk; 
+            if (current_chunk_work_units >= outlier_threshold){
+                is_big_chunk = true;
+                num_big_chunks++;
+            }
+            else
+            {
+                is_big_chunk = false;
+            }
+            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
+                                current_num_rows, Nsmall, is_big_chunk);
+        }
+        // This needs to be outside the conditional so it gets executed by each rank. Every process
+        // needs to know how much work has already been assigned to the others
+        processor_work_sizes[assigned_process] += current_chunk_work_units;
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
         most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
     }
-}
+    // Print some diagnostics about the workload balancing
+    // What is this process's chunk workload?
+    *logstream << "This process has " << processor_work_sizes[ProcessorRank] << " work units and " << num_big_chunks << " big chunks" << std::endl;
 
-HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperator coulomb, pSigma3Calculator sigma3, pConfigListConst leadconfigs, pRelativisticConfigList relconfigs, unsigned int configs_per_chunk):
-    HamiltonianMatrix(hf, coulomb, relconfigs, configs_per_chunk)
-{
-    // Set up three-body operator
-    H_three_body = std::make_shared<ThreeBodyHamiltonianOperator>(hf, coulomb, sigma3);
-    leading_configs = leadconfigs;
-}
+    // How big is the workload imbalance?
+    auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+    auto max_work_it = std::max_element(processor_work_sizes.begin(), processor_work_sizes.end());
+    double imbalance = 100.0*((double) (*max_work_it) - (double) (*min_work_it))/((double) (*min_work_it));
 
-HamiltonianMatrix::~HamiltonianMatrix()
-{}
-
-void HamiltonianMatrix::GenerateMatrix()
-{
+    *logstream << "Minimum workload: " << *min_work_it << std::endl;
+    *logstream << "Maximum workload: " << *max_work_it << std::endl;
+    *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
-    unsigned int chunk_index;
-    auto config_it = configs->begin();
-
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for default(shared) private(chunk_index, config_it) schedule(dynamic)
+    #pragma omp parallel private(config_it)
+    {
+    #pragma omp single nowait
+    {
+    #pragma omp taskloop
 #endif
-    for(chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
+    for(size_t chunk_index = 0; chunk_index < chunks.size(); chunk_index++)
     {
         auto& current_chunk = chunks[chunk_index];
         Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& M = current_chunk.chunk;
@@ -124,6 +238,14 @@ void HamiltonianMatrix::GenerateMatrix()
             else
                 config_jend = configsubsetend_it;
 
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task untied \
+                             default(none) \
+                             shared(M) \
+                             firstprivate(leading_config_i, config_it, config_jt, config_jend, \
+                                          current_chunk)
+            {
+#endif
             while(config_jt != config_jend)
             {
                 bool leading_config_j = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_jt));
@@ -187,11 +309,21 @@ void HamiltonianMatrix::GenerateMatrix()
                     }
                 }
                 config_jt++;
-            }
+            } // while (config_jt)
+#ifdef AMBIT_USE_OPENMP
+            } // OMP task
+#endif
 
             // Diagonal
             if(config_index >= configs->small_size())
             {
+#ifdef AMBIT_USE_OPENMP
+                #pragma omp task untied \
+                                 default(none) \
+                                 shared(D) \
+                                 firstprivate(current_chunk, config_it)
+                {
+#endif
                 int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
 
                 // Loop through projections
@@ -233,11 +365,18 @@ void HamiltonianMatrix::GenerateMatrix()
                         proj_jt++;
                     }
                     proj_it++;
-                }
-            }
+                } // while (proj_it)
+#ifdef AMBIT_USE_OPENMP
+                } // OMP task
+#endif
+            } // Conditional for diagonal elements
             config_it++;
         } // Configs in chunk
-    } // Chunks
+    } // Chunks loop
+#ifdef AMBIT_USE_OPENMP
+    } // OMP single
+    }  // OMP Parallel
+#endif
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();

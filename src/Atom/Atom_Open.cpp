@@ -628,9 +628,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             std::unique_ptr<HamiltonianMatrix> H;
             if(threebody_electron)
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs, chunksize));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, threebody_electron, leading_configs, configs));
             else
-                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs, chunksize));
+                H.reset(new HamiltonianMatrix(hf_electron, twobody_electron, configs));
 
             // Generate filename
             std::string hamiltonian_filename = identifier + "." + hID->Name() + ".matrix";
@@ -641,7 +641,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             // Read Hamiltonian if available
             if(!H->Read(hamiltonian_filename))
             {
-                H->GenerateMatrix();
+                H->GenerateMatrix(chunksize);
                 //H->PollMatrix();
 
                 if(user_input.search("CI/Output/--write-hamiltonian"))

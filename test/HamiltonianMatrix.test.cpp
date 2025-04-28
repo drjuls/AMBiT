@@ -6,6 +6,7 @@
 #include "Basis/BasisGenerator.h"
 #include "Configuration/ConfigGenerator.h"
 #include "Configuration/GFactor.h"
+#include "Configuration/LevelMap.h"
 #include "Atom/MultirunOptions.h"
 
 using namespace Ambit;

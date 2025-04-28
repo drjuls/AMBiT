@@ -277,7 +277,6 @@ public:
     }
 };
 
-/**************************** EVK *****************************/
 // Comparator to sort configurations based on the approximate amount of work required to generate
 // their corresponding matrix elements. Hopefully useful for load balancing between MPI ranks and
 // OpenMP threads
