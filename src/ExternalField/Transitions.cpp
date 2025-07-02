@@ -181,25 +181,18 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     }
 
     // Scale operator
-    scale = user_input("RPA/Scale", 1.0);
+    scale = user_input("RPA/Scale", std::numeric_limits<double>::quiet_NaN());
+    if(std::isnan(scale))
+    {
+        if(rpa->IsStaticRPA())
+            scale = 1.0;
+        else    // Scale EM transitions by default
+            scale = 0.01;
+    }
     rpa->SetScale(scale);
 
     DebugOptions.LogHFIterations(true);
-    if(rpa->IsStaticRPA())
-    {   rpa->SolveRPA();
-        variable_frequency_op = false;
-    }
-    else
-    {
-        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
-        if(std::isnan(omega))
-        {   variable_frequency_op = true;
-        }
-        else
-        {   rpa->SetFrequency(omega);
-            variable_frequency_op = false;
-        }
-    }
+    rpa->SolveRPA();
 
     return rpa;
 }
@@ -233,79 +226,31 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
                 return 0.;
             }
 
-            pTimeDependentSpinorOperator tdop = std::dynamic_pointer_cast<TimeDependentSpinorOperator>(op);
-            if(variable_frequency_op && tdop)
+            if(integrals == nullptr)
             {
-                // Clear integrals if frequency has changed
-                const Level& left_level = *(left_levels.levels[left.second]);
-                const Level& right_level = *(right_levels.levels[right.second]);
-                double freq = left_level.GetEnergy() - right_level.GetEnergy();
-
-                if(fabs(tdop->GetFrequency() - freq) > 1.e-6 || integrals == nullptr)
-                {
-                    tdop->SetFrequency(freq);
-                    auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
-                    if(rpa)
-                        rpa->SolveRPA();
-
-                    if(integrals == nullptr)
-                    {
-                        // Create new TransitionIntegrals object and calculate integrals
-                        integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
-                    }
-
-                    integrals->clear();
-                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-                }
-
-                ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
-
-                // Get matrix elements for all transitions with same HamiltonianIDs
-                std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
-
-                // Add to matrix_elements map
-                return_value = values[left.second * right_levels.levels.size() + right.second];
-                matrix_elements.insert(std::make_pair(id, return_value/scale));
+                // Create new TransitionIntegrals object and calculate integrals
+                integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
+                integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
             }
-            else
-            {   // Get transition integrals
-                if(integrals == nullptr)
+
+            ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
+
+            // Get matrix elements for all transitions with same HamiltonianIDs
+            std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
+
+            // Add to matrix_elements map
+            auto value_iterator = values.begin();
+            for(int i = 0; i < left_levels.levels.size(); i++)
+            {
+                for(int j = 0; j < right_levels.levels.size(); j++)
                 {
-                    if(tdop)
-                    {
-                        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
-                        if(!std::isnan(omega))
-                            tdop->SetFrequency(omega);
-
-                        auto rpa = std::dynamic_pointer_cast<RPAOperator>(tdop);
-                        if(rpa)
-                            rpa->SolveRPA();
-                    }
-
-                    // Create new TransitionIntegrals object and calculate integrals
-                    integrals = std::make_shared<TransitionIntegrals>(orbitals, op);
-                    integrals->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+                    TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
+                    matrix_elements.insert(std::make_pair(current_id, *value_iterator/scale));
+                    value_iterator++;
                 }
-
-                ManyBodyOperator<pTransitionIntegrals> many_body_operator(integrals);
-
-                // Get matrix elements for all transitions with same HamiltonianIDs
-                std::vector<double> values = many_body_operator.GetMatrixElement(left_levels, right_levels);
-
-                // Add to matrix_elements map
-                auto value_iterator = values.begin();
-                for(int i = 0; i < left_levels.levels.size(); i++)
-                {
-                    for(int j = 0; j < right_levels.levels.size(); j++)
-                    {
-                        TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
-                        matrix_elements.insert(std::make_pair(current_id, *value_iterator/scale));
-                        value_iterator++;
-                    }
-                }
-
-                return_value = matrix_elements[id];
             }
+
+            return_value = matrix_elements[id];
         }
     }
 

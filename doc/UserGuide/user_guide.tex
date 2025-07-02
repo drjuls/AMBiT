@@ -2324,9 +2324,9 @@ List of specific transition matrix elements to calculate, e.g.
 Calculates all matrix elements between states with energy less than this value.
 \end{adjustwidth}
 
-\texttt{Frequency} \uline{Real}
+\texttt{Frequency} \uline{Real} [0.1]
 \begin{adjustwidth}{1cm}{}
-Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators. If not specified the default is to use the Dirac-Fock transition frequency; RPA must then be recalculated for each transition.
+Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators. The default value of 0.1 a.u. (approximately 2.7 eV or 456 nm) is just set to correspond to an optical transition. The dependence on frequency is usually fairly weak anyway.
 \end{adjustwidth}
 
 \texttt{{-}{-}reduced-elements} 

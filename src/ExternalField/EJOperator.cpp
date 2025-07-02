@@ -187,24 +187,14 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
     else
         op = std::make_shared<MJOperator>(J, hf->GetIntegrator());
 
-    variable_frequency_op = true;
+    // Default frequency 0.1 au = 2.7 eV = 456 nm
+    double omega = user_input("Frequency", 0.1);
+    std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
+
     if(user_input.search("--rpa"))
     {
         auto op_rpa = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
-        double scale = user_input("RPA/Scale", 0.01);
-        op_rpa->SetScale(scale);
         op = op_rpa;
-    }
-    else
-    {
-        double omega = user_input("Frequency", std::numeric_limits<double>::quiet_NaN());
-        if(std::isnan(omega))
-        {   variable_frequency_op = true;
-        }
-        else
-        {   std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
-            variable_frequency_op = false;
-        }
     }
 }
 
@@ -227,24 +217,20 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     int twoj2 = right.first->GetTwoJ();
     double value = matrix_element/math->Electron3j(twoj2, twoj1, J, twoj2, -twoj1);
 
-    double scale = 1.;
-    pRPAOperator rpa = std::dynamic_pointer_cast<RPAOperator>(op);
-    if(rpa)
-        scale = rpa->GetScale();
-
     // Read over the user input to see if we need to print the reduced matrix
     // elements or the transition line strengths
     if(user_input.search("--reduced-elements"))
     {
         *outstream << "  " << Ambit::Name(left) << " -> " << Ambit::Name(right)
-                   << " = " << std::setprecision(6) << value/scale << std::endl;
+                   << " = " << std::setprecision(6) << value << std::endl;
     }
     else
     {
         *outstream << "  " << Ambit::Name(left) << " -> " << Ambit::Name(right)
-                   << " = " << std::setprecision(6) << gsl_pow_2(value/scale) << std::endl;
+                   << " = " << std::setprecision(6) << gsl_pow_2(value) << std::endl;
     }
 
+    pRPAOperator rpa = std::dynamic_pointer_cast<RPAOperator>(op);
     if(rpa && user_input.search("RPA/--print-field"))
     {
         auto fp = fopen("RPAField.txt", "wt");
