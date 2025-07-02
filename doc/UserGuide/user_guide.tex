@@ -35,9 +35,8 @@ high-performance and accuracy on both personal workstations and HPC clusters (su
 
 This guide focuses on the mechanics of \ambit\ from an end-user perspective, i.e. how to actually use the
 code to do physics. This guide assumes \emph{some} knowledge of both general atomic structure theory and
-CI+MBPT specifically; see the \href{link_goes_here}{\textit{Computer Physics Communications} paper on 
-\ambit} and Walter Johnson's \textit{Lectures on Atomic Physics} 
-(\href{https://www3.nd.edu/~johnson/Publications/book.pdf}{available here}) for a more thorough 
+CI+MBPT specifically; see the \href{https://doi.org/10.1016/j.cpc.2018.12.014}{\textit{Computer Physics Communications} paper on 
+\ambit} and Walter Johnson's \textit{Lectures on Atomic Physics} for a more thorough 
 introduction to the physics involved. Additionally, this guide does \emph{not} cover information 
 specific to developing \ambit\ -- that information is covered on the \ambit\  
 \href{https://github.com/drjuls/AMBiT}{GitHub repository}.
@@ -1480,24 +1479,20 @@ temporary files, as well as stored basis functions, MBPT integrals and energy le
 Filename (and path) of input file containing options to be passed to \ambit. 
 \end{adjustwidth}
 
-\texttt{NuclearInverseMass} \uline{Real}
+\texttt{NuclearInverseMass} \uline{Real} [0.0]
 \begin{adjustwidth}{1cm}{}
 Inverse mass of the nucleus in atomic units. Used when calculating mass shift.
 \end{adjustwidth}
 
-\texttt{NuclearRadius} \uline{Real}
+\texttt{NuclearRadius} \uline{Real} [4.0]
 \begin{adjustwidth}{1cm}{}
 Radius parameter of a Fermi distribution for nuclear charge. This value is 
-used to compute the nuclear RMS radius, which is not specified directly. If neither 
-\texttt{NuclearRadius} or \texttt{NuclearThickness} are set then the nucleus is treated as a point 
-charge.
+used to compute the nuclear RMS radius, which is not specified directly.
 \end{adjustwidth}
 
-\texttt{NuclearThickness} \uline{Real}
+\texttt{NuclearThickness} \uline{Real} [2.3]
 \begin{adjustwidth}{1cm}{}
-Specifies the density parameter of a Fermi distribution for nuclear charge. 
-If neither \texttt{NuclearRadius} or \texttt{NuclearThickness} are set then the nucleus is treated as a 
-point charge.
+Specifies the density parameter of a Fermi distribution for nuclear charge.
 \end{adjustwidth}
 
 \texttt{AlphaSquaredVariation} \uline{Real}

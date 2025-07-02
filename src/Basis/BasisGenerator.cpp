@@ -76,8 +76,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     hf = undressed_hf;
 
     // Add nuclear potential
-    double nuclear_radius = user_input("NuclearRadius", 0.0);
-    if(nuclear_radius)
+    double nuclear_radius = user_input("NuclearRadius", 4.0);
+    if(nuclear_radius > 0.01)
     {
         nucleus = std::make_shared<NucleusDecorator>(hf, coulomb, integrator);
         double nuclear_thickness = user_input("NuclearThickness", 2.3);
