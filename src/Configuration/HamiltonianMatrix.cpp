@@ -15,7 +15,6 @@
 #include<omp.h>
 #endif
 
-
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
 
@@ -173,7 +172,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         // Now make the chunk if it's ours
         if(assigned_process == ProcessorRank)
         {
-            bool is_big_chunk; 
+            bool is_big_chunk;
             if (current_chunk_work_units >= outlier_threshold){
                 is_big_chunk = true;
                 num_big_chunks++;
@@ -393,63 +392,67 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
     {
         *outstream << "\nNo solutions" << std::endl;
     }
-    else
-    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
-        {
+    else if((N <= SMALL_MATRIX_LIM || NumSolutions > MANY_LEVELS_LIM) && NumProcessors == 1)
+    {
+        RowMajorMatrix M;
+        RowMajorMatrix* pM;
+
+        if(N <= SMALL_MATRIX_LIM)
+        {   // There is only a single chunk: no need to copy
             *outstream << "; Finding solutions using Eigen..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
-
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
-            const Eigen::VectorXd& E = es.eigenvalues();
-            const Eigen::MatrixXd& V = es.eigenvectors();
-
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
-            }
+            pM = &chunks.front().chunk;
         }
-        else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
-        {
-            *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
+        else
+        {   // Copy all chunks to a single matrix.
+           *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..."
+                       << std::endl;
 
-            RowMajorMatrix M = RowMajorMatrix::Zero(N, N);
+            M = RowMajorMatrix::Zero(N, N);
+            pM = &M;
+
             for(auto& chunk: chunks)
             {
                 M.block(chunk.start_row, 0, chunk.chunk.rows(), chunk.chunk.cols()) = chunk.chunk;
-            }
-
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
-            const Eigen::VectorXd& E = es.eigenvalues();
-            const Eigen::MatrixXd& V = es.eigenvectors();
-
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+                if(chunk.diagonal.size())
+                {
+                    int diag_offset = chunk.start_row + chunk.num_rows - chunk.diagonal.rows();
+                    M.block(diag_offset, diag_offset, chunk.diagonal.rows(), chunk.diagonal.cols()) = chunk.diagonal;
+                }
             }
         }
-        else
-        {   *outstream << "; Finding solutions using Davidson..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
 
-            double* V = new double[NumSolutions * N];
-            double* E = new double[NumSolutions];
+        levelvec.levels.reserve(NumSolutions);
 
-            Eigensolver solver;
-            #ifdef AMBIT_USE_MPI
-                solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
-            #else
-                solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
-            #endif
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
+        const Eigen::VectorXd& E = es.eigenvalues();
+        const Eigen::MatrixXd& V = es.eigenvectors();
 
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
-            }
-
-            delete[] E;
-            delete[] V;
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
         }
+    }
+    else
+    {   *outstream << "; Finding solutions using Davidson..." << std::endl;
+        levelvec.levels.reserve(NumSolutions);
+
+        double* V = new double[NumSolutions * N];
+        double* E = new double[NumSolutions];
+
+        Eigensolver solver;
+        #ifdef AMBIT_USE_MPI
+            solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #else
+            solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #endif
+
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
+        }
+
+        delete[] E;
+        delete[] V;
     }
 
     return levelvec;
