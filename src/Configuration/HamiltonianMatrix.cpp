@@ -7,6 +7,8 @@
 #include "Universal/ScalapackMatrix.h"
 #include <gsl/gsl_statistics_ulong.h>
 #include <memory>
+#include <chrono>
+
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -56,6 +58,14 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 
 HamiltonianMatrix::~HamiltonianMatrix()
 {}
+
+struct configbyconfig
+{
+    int config_diff_num = 0;
+    bool do_three_body = false;
+
+    std::chrono::microseconds duration{};
+};
 
 void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 {
@@ -204,6 +214,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     *logstream << "Minimum workload: " << *min_work_it << std::endl;
     *logstream << "Maximum workload: " << *max_work_it << std::endl;
     *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
+
+    std::vector<configbyconfig> workloadData(configs->size() * configs->size());
+
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
@@ -229,6 +242,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
             // Loop through the rest of the configs
             auto config_jt = configs->begin();
+            auto config_j_index = 0;
             RelativisticConfigList::const_iterator config_jend;
             if(config_index < configsubsetend)
             {   config_jend = config_it;
@@ -240,9 +254,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
                              default(none) \
-                             shared(M) \
+                             shared(M, workloadData) \
                              firstprivate(leading_config_i, config_it, config_jt, config_jend, \
-                                          current_chunk)
+                                          current_chunk, config_index, config_j_index)
             {
 #endif
             while(config_jt != config_jend)
@@ -255,6 +269,12 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 // Check that the number of differences is small enough
                 if(do_three_body || (config_diff_num <= 2))
                 {
+                    auto& workload = workloadData[config_index * configs->size() + config_j_index];
+                    workload.config_diff_num = config_diff_num;
+                    workload.do_three_body = do_three_body;
+
+                    auto start_time = std::chrono::high_resolution_clock::now();
+
                     // Loop through projections
                     auto proj_it = config_it.projection_begin();
                     while(proj_it != config_it.projection_end())
@@ -306,8 +326,12 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                         }
                         proj_it++;
                     }
+
+                    auto end_time = std::chrono::high_resolution_clock::now();
+                    workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
                 }
                 config_jt++;
+                config_j_index++;
             } // while (config_jt)
 #ifdef AMBIT_USE_OPENMP
             } // OMP task
@@ -319,11 +343,17 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
                 #pragma omp task untied \
                                  default(none) \
-                                 shared(D) \
-                                 firstprivate(current_chunk, config_it)
+                                 shared(D, workloadData) \
+                                 firstprivate(current_chunk, config_it, config_index)
                 {
 #endif
                 int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
+
+                auto& workload = workloadData[config_index * configs->size() + config_index];
+                workload.config_diff_num = 0;
+                workload.do_three_body = false;
+
+                auto start_time = std::chrono::high_resolution_clock::now();
 
                 // Loop through projections
                 auto proj_it = config_it.projection_begin();
@@ -365,6 +395,10 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                     }
                     proj_it++;
                 } // while (proj_it)
+
+                auto end_time = std::chrono::high_resolution_clock::now();
+                workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
 #ifdef AMBIT_USE_OPENMP
                 } // OMP task
 #endif
@@ -379,6 +413,34 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
+
+    // Write workload data to file
+    std::ofstream workloadfile("workload.csv");
+    const std::string sep(", ");
+    int i = 0;
+    for(auto config_it = configs->begin(); config_it != configs->end(); config_it++)
+    {
+        int j = 0;
+        auto jit_end = config_it;
+        jit_end++;
+        for(auto config_jt = configs->begin(); config_jt != jit_end; config_jt++)
+        {
+            const auto& workload = workloadData[i * configs->size() + j];
+            if(workload.duration.count())
+            {
+                workloadfile << i << sep << j << sep;
+                workloadfile << config_it->NumCSFs() << sep << config_it->projection_size() << sep
+                             << config_jt->NumCSFs() << sep << config_jt->projection_size() << sep
+                             << workload.config_diff_num << sep << workload.do_three_body << sep
+                             << workload.duration.count() << sep;
+                workloadfile << config_it->Name() << sep << config_jt->Name() << "\n";
+            }
+
+            j++;
+        }
+        i++;
+    }
+    workloadfile.close();
 }
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
