@@ -222,6 +222,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     unsigned int configsubsetend = configs->small_size();
 
 #ifdef AMBIT_USE_OPENMP
+    Eigen::setNbThreads(1);
     #pragma omp parallel private(config_it)
     {
     #pragma omp single nowait
@@ -245,9 +246,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             auto config_j_index = 0;
             RelativisticConfigList::const_iterator config_jend;
             if(config_index < configsubsetend)
-            {   config_jend = config_it;
-                ++config_jend;
-            }
+                config_jend = config_it;
             else
                 config_jend = configsubsetend_it;
 
@@ -259,6 +258,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                                           current_chunk, config_index, config_j_index)
             {
 #endif
+            // All configs up to the diagonal (or smallsize)
             while(config_jt != config_jend)
             {
                 bool leading_config_j = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_jt));
@@ -337,78 +337,71 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             } // OMP task
 #endif
 
-            // Diagonal
-            if(config_index >= configs->small_size())
+            RowMajorMatrix H_proj;
+
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task untied \
+                             default(none) \
+                             shared(M, D, workloadData) \
+                             firstprivate(current_chunk, config_it, config_index, leading_config_i, configsubsetend, H_proj)
             {
-#ifdef AMBIT_USE_OPENMP
-                #pragma omp task untied \
-                                 default(none) \
-                                 shared(D, workloadData) \
-                                 firstprivate(current_chunk, config_it, config_index)
-                {
 #endif
+            auto& workload = workloadData[config_index * configs->size() + config_index];
+            workload.config_diff_num = 0;
+
+            auto start_time = std::chrono::high_resolution_clock::now();
+
+            // Create matrix <proj_i | H | proj_j>
+            H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_it->projection_size());
+            workload.do_three_body = leading_config_i;
+
+            // Loop through projections to get upper part of matrix H_proj
+            auto proj_it = config_it.projection_begin();
+            int pi = 0;
+            while(proj_it != config_it.projection_end())
+            {
+                auto proj_jt = proj_it;
+                int pj = pi;
+                while (proj_jt != config_it.projection_end())
+                {
+                    if (leading_config_i)
+                        H_proj(pi, pj) = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                    else
+                        H_proj(pi, pj) = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                    proj_jt++; pj++;
+                }
+                proj_it++; pi++;
+            }
+
+            // Get CSF data
+            Eigen::Map<const RowMajorMatrix> angular_mapped(config_it->GetCSFs(), config_it->projection_size(), config_it->NumCSFs());
+
+            if(config_index < configsubsetend)
+            {
+                M.block(config_it.csf_offset()-current_chunk.start_row, config_it.csf_offset(), config_it->NumCSFs(), config_it->NumCSFs())
+                    = angular_mapped.transpose() * H_proj.selfadjointView<Eigen::Upper>() * angular_mapped;
+            }
+            else
+            {
                 int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
+                D.block(config_it.csf_offset()-diag_offset, config_it.csf_offset()-diag_offset, config_it->NumCSFs(), config_it->NumCSFs())
+                    = angular_mapped.transpose() * H_proj.selfadjointView<Eigen::Upper>() * angular_mapped;
+            }
 
-                auto& workload = workloadData[config_index * configs->size() + config_index];
-                workload.config_diff_num = 0;
-                workload.do_three_body = false;
-
-                auto start_time = std::chrono::high_resolution_clock::now();
-
-                // Loop through projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
-                {
-                    RelativisticConfiguration::const_projection_iterator proj_jt = proj_it;
-
-                    while(proj_jt != config_it.projection_end())
-                    {
-                        double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
-                        if(fabs(operatorH) > 1.e-15)
-                        {
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                            {
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                if(proj_it == proj_jt)
-                                    start_j = coeff_i;
-
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                {
-                                    // See notes for an explanation
-                                    int i = coeff_i.index();
-                                    int j = coeff_j.index();
-
-                                    if(i > j)
-                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(i < j)
-                                        D(j - diag_offset, i - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(proj_it == proj_jt)
-                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else
-                                        D(i - diag_offset, j - diag_offset) += 2. * operatorH * (*coeff_i) * (*coeff_j);
-                                }
-                            }
-                        }
-                        proj_jt++;
-                    }
-                    proj_it++;
-                } // while (proj_it)
-
-                auto end_time = std::chrono::high_resolution_clock::now();
-                workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
 #ifdef AMBIT_USE_OPENMP
-                } // OMP task
+            } // OMP diagonal task
 #endif
-            } // Conditional for diagonal elements
             config_it++;
         } // Configs in chunk
     } // Chunks loop
 #ifdef AMBIT_USE_OPENMP
     } // OMP single
     }  // OMP Parallel
+    Eigen::setNbThreads(0);
 #endif
 
     for(auto& matrix_section: chunks)
