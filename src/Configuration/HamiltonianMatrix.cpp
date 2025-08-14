@@ -250,12 +250,14 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
             else
                 config_jend = configsubsetend_it;
 
+            RowMajorMatrix H_proj;
+
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
                              default(none) \
                              shared(M, workloadData) \
                              firstprivate(leading_config_i, config_it, config_jt, config_jend, \
-                                          current_chunk, config_index, config_j_index)
+                                          current_chunk, config_index, config_j_index, H_proj)
             {
 #endif
             // All configs up to the diagonal (or smallsize)
@@ -275,57 +277,35 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
                     auto start_time = std::chrono::high_resolution_clock::now();
 
+                    H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_jt->projection_size());
+
                     // Loop through projections
                     auto proj_it = config_it.projection_begin();
+                    int pi = 0;
+
                     while(proj_it != config_it.projection_end())
                     {
-                        RelativisticConfiguration::const_projection_iterator proj_jt;
-                        if(config_jt == config_it)
-                            proj_jt = proj_it;
-                        else
-                            proj_jt = config_jt.projection_begin();
+                        auto proj_jt = config_jt.projection_begin();
+                        int pj = 0;
 
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double operatorH;
                             if(do_three_body)
-                            {
-                                operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
-                            }
+                                H_proj(pi, pj) = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
                             else
-                            {
-                                operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-                            }
-                            if(fabs(operatorH) > 1.e-15)
-                            {
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                {
-                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+                                H_proj(pi, pj) = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
 
-                                    if(proj_it == proj_jt)
-                                        start_j = coeff_i;
-
-                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                    {
-                                        // See notes for an explanation
-                                        int i = coeff_i.index();
-                                        int j = coeff_j.index();
-
-                                        if(i > j)
-                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(i < j)
-                                            M(j - current_chunk.start_row, i) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(proj_it == proj_jt)
-                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else
-                                            M(i - current_chunk.start_row, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
-                                    }
-                                }
-                            }
-                            proj_jt++;
+                            proj_jt++; pj++;
                         }
-                        proj_it++;
+                        proj_it++; pi++;
                     }
+
+                    // Get CSF data
+                    Eigen::Map<const RowMajorMatrix> angular_i_mapped(config_it->GetCSFs(), config_it->projection_size(), config_it->NumCSFs());
+                    Eigen::Map<const RowMajorMatrix> angular_j_mapped(config_jt->GetCSFs(), config_jt->projection_size(), config_jt->NumCSFs());
+
+                    M.block(config_it.csf_offset()-current_chunk.start_row, config_jt.csf_offset(), config_it->NumCSFs(), config_jt->NumCSFs())
+                        = angular_i_mapped.transpose() * H_proj * angular_j_mapped;
 
                     auto end_time = std::chrono::high_resolution_clock::now();
                     workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
@@ -336,8 +316,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
             } // OMP task
 #endif
-
-            RowMajorMatrix H_proj;
 
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
