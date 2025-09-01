@@ -7,7 +7,6 @@
 #include "Universal/ScalapackMatrix.h"
 #include <gsl/gsl_statistics_ulong.h>
 #include <memory>
-#include <chrono>
 
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
@@ -215,8 +214,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     *logstream << "Maximum workload: " << *max_work_it << std::endl;
     *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
 
-    std::vector<configbyconfig> workloadData(configs->size() * configs->size());
-
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
@@ -255,7 +252,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
                              default(none) \
-                             shared(M, workloadData) \
+                             shared(M) \
                              firstprivate(leading_config_i, config_it, config_jt, config_jend, \
                                           current_chunk, config_index, config_j_index, H_proj)
             {
@@ -271,10 +268,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 // Check that the number of differences is small enough
                 if(do_three_body || (config_diff_num <= 2))
                 {
-                    auto& workload = workloadData[config_index * configs->size() + config_j_index];
-                    workload.config_diff_num = config_diff_num;
-                    workload.do_three_body = do_three_body;
-
                     auto start_time = std::chrono::high_resolution_clock::now();
 
                     H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_jt->projection_size());
@@ -306,9 +299,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
                     M.block(config_it.csf_offset()-current_chunk.start_row, config_jt.csf_offset(), config_it->NumCSFs(), config_jt->NumCSFs())
                         = angular_i_mapped.transpose() * H_proj * angular_j_mapped;
-
-                    auto end_time = std::chrono::high_resolution_clock::now();
-                    workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
                 }
                 config_jt++;
                 config_j_index++;
@@ -320,18 +310,14 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
                              default(none) \
-                             shared(M, D, workloadData) \
+                             shared(M, D) \
                              firstprivate(current_chunk, config_it, config_index, leading_config_i, configsubsetend, H_proj)
             {
 #endif
-            auto& workload = workloadData[config_index * configs->size() + config_index];
-            workload.config_diff_num = 0;
-
             auto start_time = std::chrono::high_resolution_clock::now();
 
             // Create matrix <proj_i | H | proj_j>
             H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_it->projection_size());
-            workload.do_three_body = leading_config_i;
 
             // Loop through projections to get upper part of matrix H_proj
             auto proj_it = config_it.projection_begin();
@@ -366,10 +352,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 D.block(config_it.csf_offset()-diag_offset, config_it.csf_offset()-diag_offset, config_it->NumCSFs(), config_it->NumCSFs())
                     = angular_mapped.transpose() * H_proj.selfadjointView<Eigen::Upper>() * angular_mapped;
             }
-
-            auto end_time = std::chrono::high_resolution_clock::now();
-            workload.duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
 #ifdef AMBIT_USE_OPENMP
             } // OMP diagonal task
 #endif
@@ -384,34 +366,6 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
-
-    // Write workload data to file
-    std::ofstream workloadfile("workload.csv");
-    const std::string sep(", ");
-    int i = 0;
-    for(auto config_it = configs->begin(); config_it != configs->end(); config_it++)
-    {
-        int j = 0;
-        auto jit_end = config_it;
-        jit_end++;
-        for(auto config_jt = configs->begin(); config_jt != jit_end; config_jt++)
-        {
-            const auto& workload = workloadData[i * configs->size() + j];
-            if(workload.duration.count())
-            {
-                workloadfile << i << sep << j << sep;
-                workloadfile << config_it->NumCSFs() << sep << config_it->projection_size() << sep
-                             << config_jt->NumCSFs() << sep << config_jt->projection_size() << sep
-                             << workload.config_diff_num << sep << workload.do_three_body << sep
-                             << workload.duration.count() << sep;
-                workloadfile << config_it->Name() << sep << config_jt->Name() << "\n";
-            }
-
-            j++;
-        }
-        i++;
-    }
-    workloadfile.close();
 }
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
