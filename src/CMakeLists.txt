@@ -20,23 +20,38 @@ find_package(absl CONFIG REQUIRED)
 # both are set.
 set(USE_MKL OFF CACHE BOOL "Use Intel MKL for libear algebra subroutines")
 set(USE_OPENBLAS OFF CACHE BOOL "Use OpenBLAS for linear algebra subroutines")
+set(USE_SCALAPACK OFF CACHE BOOL "Use ScaLAPACK when calculating the CI matrix eigenvalues")
 
+# Verification to make sure there are no conflicting linear algebra libraries
 if(USE_MKL AND USE_OPENBLAS)
     message(FATAL_ERROR "Cannot use both MKL and OpenBLAS for linear algebra. Only enable one at a
     time.")
 endif()
 
+if(USE_SCALAPACK AND NOT USE_MPI)
+    message(FATAL_ERROR "Must enable MPI to use ScaLAPACK.")
+endif()
+
 if(USE_MKL)
-  # MKL 2021.3 and later has a nice CMake support, so make sure we use that
-  # Documentation can be found here:
-  # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/cmake-config-for-onemkl.html
-  # and
-  # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-cmake-config-file.html
-  # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
-  find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
-  target_link_libraries(ambit PRIVATE MKL::MKL)
-  # Also tell Eigen to use MKL as its backend
-  target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
+    # MKL 2021.3 and later has a nice CMake support, so make sure we use that
+    # Documentation can be found here:
+    # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/cmake-config-for-onemkl.html
+    # and
+    # https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-cmake-config-file.html
+    # Get the path from the shell or CMake command-line options (e.g. set -DMKL_ROOT=/path/to/MKL)
+    find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
+    target_link_libraries(ambit PRIVATE MKL::MKL)
+    # Also tell Eigen to use MKL as its backend
+    target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
+
+    # Use the MKL ScaLAPACK backend if requested
+    if(USE_SCALAPACK)
+        target_compile_definitions(ambit PRIVATE -DAMBIT_USE_SCALAPACK)
+        set(ENABLE_SCALAPACK true)
+        set(ENABLE_BLACS true)
+        target_link_libraries(ambit PRIVATE MKL::MKL_SCALAPACK)
+    endif()
+
 else() # Use vanilla BLAS/LAPACK
 
     if(USE_OPENBLAS)
@@ -46,11 +61,18 @@ else() # Use vanilla BLAS/LAPACK
         set(BLA_VENDOR OpenBLAS)
         target_compile_definitions(ambit PRIVATE -DEIGEN_USE_BLAS)
     endif()
-  find_package(LAPACK REQUIRED)
+    find_package(LAPACK REQUIRED)
 
-  target_link_libraries(ambit PRIVATE LAPACK::LAPACK)
-  find_package(BLAS REQUIRED)
-  target_link_libraries(ambit PRIVATE BLAS::BLAS)
+    target_link_libraries(ambit PRIVATE LAPACK::LAPACK)
+    find_package(BLAS REQUIRED)
+    target_link_libraries(ambit PRIVATE BLAS::BLAS)
+
+    if(USE_SCALAPACK)
+        target_compile_definitions(ambit PRIVATE -DAMBIT_USE_SCALAPACK)
+        find_package(scalapack REQUIRED)
+        target_link_libraries(ambit PRIVATE scalapack)
+    endif()
+
 endif()
 
 # MPI options

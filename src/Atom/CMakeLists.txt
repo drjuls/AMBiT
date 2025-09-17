@@ -19,4 +19,15 @@ if(USE_OPENMP)
   target_link_libraries(atom PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+if(USE_SCALAPACK)
+  target_compile_definitions(atom PRIVATE -DAMBIT_USE_SCALAPACK)
+  if(USE_MKL)
+    target_link_libraries(atom PRIVATE MKL::MKL_SCALAPACK)
+  else()
+    find_package(scalapack REQUIRED)
+    target_link_libraries(atom PUBLIC scalapack)
+  endif()
+endif()
+
+
 target_link_libraries(atom PUBLIC externalfield)
