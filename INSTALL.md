@@ -154,6 +154,10 @@ Here is a short list of CMake options for AMBiT:
 - `EIGEN_USE_BLAS`: (when set to `true`) use an external BLAS library for linear algebra. When this
   option is enabled, you'll need to manually provide compile and link flags for a suitable library
   with a BLAS-compatible interface.
+- `USE_SCALAPACK`: toggle whether to enable ScaLAPACK as a solver for the CI matrix. `USE_MPI` must be enabled when
+  using this option. If `USE_MKL` is enabled then AMBiT will use MKL's ScaLAPACK implementation (which is usually
+  higher-performing than the open-source options), otherwise it will search for a "plain" (i.e. Netlib) ScaLAPACK
+  installation.
 - `CMAKE_BUILD_TYPE`: choose the build type. Options include
   - `Release` (`-DCMAKE_BUILD_TYPE=Release`) the default, optimised build
   - `Debug`
@@ -244,7 +248,7 @@ oneMKL](https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linu
 - [Using the ILP64 Interface vs. LP64 Interface](https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-0/using-the-ilp64-interface-vs-lp64-interface.html),
 - [Using Intel MKL from Eigen](https://eigen.tuxfamily.org/dox/TopicUsingIntelMKL.html)
 
-Finally, MKL supports using multithreading to do linear algebra operations in parallel, which can
+MKL supports using multithreading to do linear algebra operations in parallel, which can
 provide substantial speedups when enabled. There are multiple supported backends, but it's
 important to select one that's compatible with the compiler you are using to build AMBiT. You can
 specify which backend MKL should use by setting the `MKL_THREADING` CMake variable to one of the
@@ -258,7 +262,21 @@ following values:
 While it is technically possible to "mix and match" libraries, the safest choice is to set
 `MKL_THREADING=gnu_thread` if you're using GCC, or `MKL_THREADING=intel_thread` if you're using the
 Intel compilers. If no value is supplied then it will default to using
-`MKL_THREADING=intel_thread`
+`MKL_THREADING=intel_thread`.
+
+Lastly, when building with MPI, it can be useful to explicitly tell MKL which MPI library to link against. Usually,
+the default option MKL picks will be fine, but not all MPI implementations are mutually compatible, which can cause
+run-time crashes or performance degradations. To pass the MPI implementation to MKL, use the CMake variable 
+`-DMKL_MPI`, which accepts the following values:
+
+- `intelmpi`: Intel MPI
+- `mpich`: MPICH
+- `openmpi`: OpenMPI
+- `mshpc`: Mirosoft HPC Pack
+- `msmpi`: Microsoft MPI (Note: Microsoft MPI is now called MS HPC. The `msmpi` option is only kept around for
+  compatibility with legacy systems)
+
+Check with your cluster's documentation to see which MPI library you should use here.
 
 ## Building with an alternative BLAS library
 It's possible to force Eigen to use an external BLAS library of your choosing by setting
