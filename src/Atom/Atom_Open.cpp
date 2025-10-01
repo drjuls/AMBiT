@@ -558,6 +558,11 @@ pLevelStore Atom::CalculateEnergies()
 
 LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 {
+    // Check whether to reuse levels and matrix files
+    bool use_read = true;
+    if(user_input.search(2, "--clean", "-c"))
+        use_read = false;
+
     // This function is public and can call the other CalculateEnergies variants.
     LevelVector levelvec = levels->GetLevels(hID);
     std::string filename = identifier + ".levels";
@@ -638,8 +643,18 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             std::replace_if(hamiltonian_filename.begin(), hamiltonian_filename.end(),
                             [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
 
-            // Read Hamiltonian if available
-            if(!H->Read(hamiltonian_filename))
+            // Read Hamiltonian if available, but only if we don't have the "-c" flag
+            bool generate_matrix = true;
+            // If reading from a checkpoint file, make sure the file exists and is valid, then
+            // read
+            if(use_read)
+            {
+                generate_matrix = !H->Read(hamiltonian_filename, chunksize);
+            }
+
+            // Only generate if we're doing a clean run or if reading from the matrix checkpoint
+            // file failed for some reason
+            if(generate_matrix)
             {
                 H->GenerateMatrix(chunksize);
                 //H->PollMatrix();
