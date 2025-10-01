@@ -645,11 +645,15 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
+            // If reading from a checkpoint file, make sure the file exists and is valid, then
+            // read
             if(use_read)
             {
-                generate_matrix = !H->Read(hamiltonian_filename);
+                generate_matrix = !H->Read(hamiltonian_filename, chunksize);
             }
 
+            // Only generate if we're doing a clean run or if reading from the matrix checkpoint
+            // file failed for some reason
             if(generate_matrix)
             {
                 H->GenerateMatrix(chunksize);

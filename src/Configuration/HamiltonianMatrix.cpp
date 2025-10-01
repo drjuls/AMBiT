@@ -549,11 +549,65 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
     return stream;
 }
 
-bool HamiltonianMatrix::Read(const std::string& filename)
+bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_per_chunk)
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
         return false;
+
+    // NOTE: The processes don't yet know which chunks they "own", nor which rows that corresponds
+    // to because that's all calculated in HamiltonianMatrix::GenerateMatrix() and this function is
+    // intended to help us avoid having to call that. We'll need to re-calculate the chunk
+    // distribution which may or may not be different from what we used in the run that generated
+    // the `.matrix` file (e.g. if we wrote the file using N processes and are reading with M != N
+    // processes). Fortunately, if we're reading a complete matrix, then we clearly don't need to
+    // worry about workload imbalances in GenerateMatrix() (it's already been generated!), so we
+    // can just do a really simply round-robin assignment of chunks to processes.
+    if(chunks.empty())
+    {
+        if(N <= SMALL_MATRIX_LIM)
+        {
+            configs_per_chunk = configs->size();
+        }
+
+        // Total number of chunks = ceiling(number of configs/configs_per_chunk)
+        unsigned int total_num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
+        // Now loop through and construct this rank's chunks (i.e. allocate the space but don't
+        // actually read anything yet)
+        auto config_it = configs->begin();
+        unsigned int config_index = 0;
+        unsigned int csf_start = 0;
+
+        for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
+        {
+            // Get chunk num_rows and number of configs. Allocates resources for the chunks.
+            unsigned int current_num_rows = 0;
+            unsigned int current_num_configs = 0;
+            size_t current_chunk_work_units = 0;
+            while(config_it != configs->end() && current_num_configs < configs_per_chunk)
+            {
+                current_chunk_work_units += config_it->projection_size()*config_it->projection_size()*config_it->NumCSFs();
+                current_num_rows += config_it->NumCSFs();
+                current_num_configs++;
+                config_it++;
+            }
+
+            if(current_num_rows == 0)
+                break;
+
+            // Assign this chunk to whichever process currently has the least work
+            // Now make the chunk if it's ours
+            if(chunk_index%NumProcessors == ProcessorRank)
+            {
+                bool is_big_chunk = false;
+                chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
+                                    current_num_rows, Nsmall, is_big_chunk);
+            }
+            config_index += current_num_configs;
+            csf_start += current_num_rows;
+            most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
+        }
+    }
 
     // Read size of matrix
     unsigned int matrix_N;

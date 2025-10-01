@@ -45,7 +45,7 @@ public:
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
 
     /** Read binary file if it exists. Return success. */
-    virtual bool Read(const std::string& filename);
+    virtual bool Read(const std::string& filename, unsigned int configs_per_chunk = 4);
 
     /** Write binary file. */
     virtual void Write(const std::string& filename) const;
