@@ -1,5 +1,7 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "gtest/gtest.h"
+#include <memory>
+#include "Configuration/Level.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
@@ -94,6 +96,149 @@ TEST(HamiltonianMatrixTester, MgILevels)
     EXPECT_NEAR(21870, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
 }
 
+TEST(HamiltonianMatrixTester, MgISaveMatrix)
+{
+    DebugOptions.LogHFIterations(true);
+    DebugOptions.OutputHFExcited(true);
+
+    pLattice lattice(new Lattice(1000, 1.e-6, 50.));
+
+    // MgI
+    std::string user_input_string = std::string() +
+        "NuclearRadius = 3.7188\n" +
+        "NuclearThickness = 2.3\n" +
+        "Z = 12\n" +
+        "[HF]\n" +
+        "N = 10\n" +
+        "Configuration = '1s2 2s2 2p6'\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis = 6spdf\n" +
+        "BSpline/Rmax = 45.0\n" +
+        "[CI]\n" +
+        "LeadingConfigurations = '3s2, 3s1 3p1'\n" +
+        "ElectronExcitations = 1\n" +
+        "EvenParityTwoJ = '0'\n" +
+        "OddParityTwoJ = '0, 2'\n" +
+        "NumSolutions = 3\n" +
+        "Output/--write-hamiltonian\n";
+
+    std::stringstream user_input_stream(user_input_string);
+    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+
+    std::string even_filename = "MgITest.e.matrix";
+    std::string odd_filename = "MgITest.o.matrix";
+    
+    // Energies we got when (w)riting and (r)eading. These should be identical, as reading the
+    // matrix from the file should have the same results as generating from scratch
+    double wground_state_energy = 0., wexcited_state_energy = 0.; // Energy when writing
+    double rground_state_energy = 0., rexcited_state_energy = 0.; // Energy when reading
+
+    // Generate matrix and configurations, then save to disk
+    {
+        // Get core and excited basis
+        BasisGenerator basis_generator(lattice, userInput);
+        pCore core = basis_generator.GenerateHFCore();
+        pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+
+        // Generate integrals
+        pHFOperator hf = basis_generator.GetClosedHFOperator();
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
+        hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+
+        pCoulombOperator coulomb(new CoulombOperator(lattice));
+        pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
+        integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
+        ConfigGenerator config_generator(orbitals, userInput);
+
+        pRelativisticConfigList relconfigs;
+        Symmetry sym(0, Parity::even);
+
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+
+        auto configs = config_generator.GenerateConfigurations();
+        relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
+        auto H_even = std::make_shared<HamiltonianMatrix>(hf_electron, twobody_electron, relconfigs);
+        H_even->GenerateMatrix();
+        // Write to disk
+        H_even->Write(even_filename);
+        // Solve matrix
+        LevelVector levels = H_even->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
+        levels.Print();
+        wground_state_energy = levels.levels[0]->GetEnergy();
+
+        // Rinse and repeat for excited state
+        sym = Symmetry(2, Parity::odd);
+        relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
+
+        auto H_odd = std::make_shared<HamiltonianMatrix> (hf_electron, twobody_electron, relconfigs);
+        H_odd->GenerateMatrix();
+        // Write to disk
+        H_odd->Write(odd_filename);
+        // Solve
+        levels = H_odd->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
+        GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
+        g_factors.CalculateGFactors(levels);
+        levels.Print();
+        wexcited_state_energy = levels.levels[0]->GetEnergy();
+    }
+    // Now read back from disk and check we get the correct values
+    {
+        // Get core and excited basis
+        BasisGenerator basis_generator(lattice, userInput);
+        pCore core = basis_generator.GenerateHFCore();
+        pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
+
+        // Generate integrals
+        pHFOperator hf = basis_generator.GetClosedHFOperator();
+        pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
+        hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
+
+        pCoulombOperator coulomb(new CoulombOperator(lattice));
+        pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
+        pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
+        integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
+        ConfigGenerator config_generator(orbitals, userInput);
+
+        pRelativisticConfigList relconfigs;
+        Symmetry sym(0, Parity::even);
+
+        pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
+
+        auto configs = config_generator.GenerateConfigurations();
+        relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
+        pTwoElectronCoulombOperator twobody_electron = std::make_shared<TwoElectronCoulombOperator>(integrals);
+        auto H_even = std::make_shared<HamiltonianMatrix>(hf_electron, twobody_electron, relconfigs);
+        bool read_success;
+        read_success = H_even->Read(even_filename);
+        EXPECT_TRUE(read_success);
+        // Solve matrix
+        LevelVector levels = H_even->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
+        levels.Print();
+        rground_state_energy = levels.levels[0]->GetEnergy();
+
+        // Rinse and repeat for excited state
+        sym = Symmetry(2, Parity::odd);
+        relconfigs = config_generator.GenerateRelativisticConfigurations(configs, sym, angular_library);
+
+        auto H_odd = std::make_shared<HamiltonianMatrix>(hf_electron, twobody_electron, relconfigs);
+        read_success = H_odd->Read(odd_filename);
+        EXPECT_TRUE(read_success);
+        // Solve
+        levels = H_odd->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
+        GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
+        g_factors.CalculateGFactors(levels);
+        levels.Print();
+        rexcited_state_energy = levels.levels[0]->GetEnergy();
+
+        EXPECT_NEAR(1.5, levels.levels[0]->GetgFactor(), 0.001);
+
+        // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
+        EXPECT_NEAR((wexcited_state_energy - wground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), (rexcited_state_energy - rground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
+    }
+}
 TEST(HamiltonianMatrixTester, HolesOnly)
 {
     DebugOptions.LogHFIterations(true);

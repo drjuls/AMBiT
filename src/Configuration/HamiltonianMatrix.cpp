@@ -615,6 +615,7 @@ bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_p
 
     if(matrix_N != N)
     {   *errstream << "HamiltonianMatrix::Read: matrix has incorrect dimension (number of CSFs)." << std::endl;
+        *errstream << "Expected " << N << " but got " << matrix_N << std::endl;
         file_err_handler->fclose(fp);
         return false;
     }
