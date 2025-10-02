@@ -7,6 +7,7 @@
 #include "Universal/ScalapackMatrix.h"
 #include <gsl/gsl_statistics_ulong.h>
 #include <memory>
+
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -14,7 +15,6 @@
 #ifdef AMBIT_USE_OPENMP
 #include<omp.h>
 #endif
-
 
 // Don't bother with davidson method if smaller than this limit
 #define SMALL_MATRIX_LIM 200
@@ -57,6 +57,14 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 
 HamiltonianMatrix::~HamiltonianMatrix()
 {}
+
+struct configbyconfig
+{
+    int config_diff_num = 0;
+    bool do_three_body = false;
+
+    std::chrono::microseconds duration{};
+};
 
 void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 {
@@ -173,7 +181,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         // Now make the chunk if it's ours
         if(assigned_process == ProcessorRank)
         {
-            bool is_big_chunk; 
+            bool is_big_chunk;
             if (current_chunk_work_units >= outlier_threshold){
                 is_big_chunk = true;
                 num_big_chunks++;
@@ -205,11 +213,13 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     *logstream << "Minimum workload: " << *min_work_it << std::endl;
     *logstream << "Maximum workload: " << *max_work_it << std::endl;
     *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
+
     // Loop through my chunks
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
 #ifdef AMBIT_USE_OPENMP
+    Eigen::setNbThreads(1);
     #pragma omp parallel private(config_it)
     {
     #pragma omp single nowait
@@ -230,22 +240,24 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
             // Loop through the rest of the configs
             auto config_jt = configs->begin();
+            auto config_j_index = 0;
             RelativisticConfigList::const_iterator config_jend;
             if(config_index < configsubsetend)
-            {   config_jend = config_it;
-                ++config_jend;
-            }
+                config_jend = config_it;
             else
                 config_jend = configsubsetend_it;
+
+            RowMajorMatrix H_proj;
 
 #ifdef AMBIT_USE_OPENMP
             #pragma omp task untied \
                              default(none) \
                              shared(M) \
                              firstprivate(leading_config_i, config_it, config_jt, config_jend, \
-                                          current_chunk)
+                                          current_chunk, config_index, config_j_index, H_proj)
             {
 #endif
+            // All configs up to the diagonal (or smallsize)
             while(config_jt != config_jend)
             {
                 bool leading_config_j = H_three_body && std::binary_search(leading_configs->first.begin(), leading_configs->first.end(), NonRelConfiguration(*config_jt));
@@ -256,126 +268,100 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 // Check that the number of differences is small enough
                 if(do_three_body || (config_diff_num <= 2))
                 {
+                    auto start_time = std::chrono::high_resolution_clock::now();
+
+                    H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_jt->projection_size());
+
                     // Loop through projections
                     auto proj_it = config_it.projection_begin();
+                    int pi = 0;
+
                     while(proj_it != config_it.projection_end())
                     {
-                        RelativisticConfiguration::const_projection_iterator proj_jt;
-                        if(config_jt == config_it)
-                            proj_jt = proj_it;
-                        else
-                            proj_jt = config_jt.projection_begin();
+                        auto proj_jt = config_jt.projection_begin();
+                        int pj = 0;
 
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double operatorH;
                             if(do_three_body)
-                            {
-                                operatorH = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
-                            }
+                                H_proj(pi, pj) = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
                             else
-                            {
-                                operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-                            }
-                            if(fabs(operatorH) > 1.e-15)
-                            {
-                                for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                {
-                                    RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
+                                H_proj(pi, pj) = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
 
-                                    if(proj_it == proj_jt)
-                                        start_j = coeff_i;
-
-                                    for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                    {
-                                        // See notes for an explanation
-                                        int i = coeff_i.index();
-                                        int j = coeff_j.index();
-
-                                        if(i > j)
-                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(i < j)
-                                            M(j - current_chunk.start_row, i) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else if(proj_it == proj_jt)
-                                            M(i - current_chunk.start_row, j) += operatorH * (*coeff_i) * (*coeff_j);
-                                        else
-                                            M(i - current_chunk.start_row, j) += 2. * operatorH * (*coeff_i) * (*coeff_j);
-                                    }
-                                }
-                            }
-                            proj_jt++;
+                            proj_jt++; pj++;
                         }
-                        proj_it++;
+                        proj_it++; pi++;
                     }
+
+                    // Get CSF data
+                    Eigen::Map<const RowMajorMatrix> angular_i_mapped(config_it->GetCSFs(), config_it->projection_size(), config_it->NumCSFs());
+                    Eigen::Map<const RowMajorMatrix> angular_j_mapped(config_jt->GetCSFs(), config_jt->projection_size(), config_jt->NumCSFs());
+
+                    M.block(config_it.csf_offset()-current_chunk.start_row, config_jt.csf_offset(), config_it->NumCSFs(), config_jt->NumCSFs())
+                        = angular_i_mapped.transpose() * H_proj * angular_j_mapped;
                 }
                 config_jt++;
+                config_j_index++;
             } // while (config_jt)
 #ifdef AMBIT_USE_OPENMP
             } // OMP task
 #endif
 
-            // Diagonal
-            if(config_index >= configs->small_size())
+#ifdef AMBIT_USE_OPENMP
+            #pragma omp task untied \
+                             default(none) \
+                             shared(M, D) \
+                             firstprivate(current_chunk, config_it, config_index, leading_config_i, configsubsetend, H_proj)
             {
-#ifdef AMBIT_USE_OPENMP
-                #pragma omp task untied \
-                                 default(none) \
-                                 shared(D) \
-                                 firstprivate(current_chunk, config_it)
-                {
 #endif
+            auto start_time = std::chrono::high_resolution_clock::now();
+
+            // Create matrix <proj_i | H | proj_j>
+            H_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_it->projection_size());
+
+            // Loop through projections to get upper part of matrix H_proj
+            auto proj_it = config_it.projection_begin();
+            int pi = 0;
+            while(proj_it != config_it.projection_end())
+            {
+                auto proj_jt = proj_it;
+                int pj = pi;
+                while (proj_jt != config_it.projection_end())
+                {
+                    if (leading_config_i)
+                        H_proj(pi, pj) = H_three_body->GetMatrixElement(*proj_it, *proj_jt);
+                    else
+                        H_proj(pi, pj) = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
+
+                    proj_jt++; pj++;
+                }
+                proj_it++; pi++;
+            }
+
+            // Get CSF data
+            Eigen::Map<const RowMajorMatrix> angular_mapped(config_it->GetCSFs(), config_it->projection_size(), config_it->NumCSFs());
+
+            if(config_index < configsubsetend)
+            {
+                M.block(config_it.csf_offset()-current_chunk.start_row, config_it.csf_offset(), config_it->NumCSFs(), config_it->NumCSFs())
+                    = angular_mapped.transpose() * H_proj.selfadjointView<Eigen::Upper>() * angular_mapped;
+            }
+            else
+            {
                 int diag_offset = current_chunk.start_row + current_chunk.num_rows - current_chunk.diagonal.rows();
-
-                // Loop through projections
-                auto proj_it = config_it.projection_begin();
-                while(proj_it != config_it.projection_end())
-                {
-                    RelativisticConfiguration::const_projection_iterator proj_jt = proj_it;
-
-                    while(proj_jt != config_it.projection_end())
-                    {
-                        double operatorH = H_two_body->GetMatrixElement(*proj_it, *proj_jt);
-
-                        if(fabs(operatorH) > 1.e-15)
-                        {
-                            for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                            {
-                                RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                if(proj_it == proj_jt)
-                                    start_j = coeff_i;
-
-                                for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                {
-                                    // See notes for an explanation
-                                    int i = coeff_i.index();
-                                    int j = coeff_j.index();
-
-                                    if(i > j)
-                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(i < j)
-                                        D(j - diag_offset, i - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else if(proj_it == proj_jt)
-                                        D(i - diag_offset, j - diag_offset) += operatorH * (*coeff_i) * (*coeff_j);
-                                    else
-                                        D(i - diag_offset, j - diag_offset) += 2. * operatorH * (*coeff_i) * (*coeff_j);
-                                }
-                            }
-                        }
-                        proj_jt++;
-                    }
-                    proj_it++;
-                } // while (proj_it)
+                D.block(config_it.csf_offset()-diag_offset, config_it.csf_offset()-diag_offset, config_it->NumCSFs(), config_it->NumCSFs())
+                    = angular_mapped.transpose() * H_proj.selfadjointView<Eigen::Upper>() * angular_mapped;
+            }
 #ifdef AMBIT_USE_OPENMP
-                } // OMP task
+            } // OMP diagonal task
 #endif
-            } // Conditional for diagonal elements
             config_it++;
         } // Configs in chunk
     } // Chunks loop
 #ifdef AMBIT_USE_OPENMP
     } // OMP single
     }  // OMP Parallel
+    Eigen::setNbThreads(0);
 #endif
 
     for(auto& matrix_section: chunks)
@@ -393,63 +379,67 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
     {
         *outstream << "\nNo solutions" << std::endl;
     }
-    else
-    {   if(N <= SMALL_MATRIX_LIM && NumProcessors == 1 && Nsmall == N)
-        {
+    else if((N <= SMALL_MATRIX_LIM || NumSolutions > MANY_LEVELS_LIM) && NumProcessors == 1)
+    {
+        RowMajorMatrix M;
+        RowMajorMatrix* pM;
+
+        if(N <= SMALL_MATRIX_LIM)
+        {   // There is only a single chunk: no need to copy
             *outstream << "; Finding solutions using Eigen..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
-
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(chunks.front().chunk);
-            const Eigen::VectorXd& E = es.eigenvalues();
-            const Eigen::MatrixXd& V = es.eigenvectors();
-
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
-            }
+            pM = &chunks.front().chunk;
         }
-        else if(NumSolutions > MANY_LEVELS_LIM && Nsmall == N)
-        {
-            *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
+        else
+        {   // Copy all chunks to a single matrix.
+           *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..."
+                       << std::endl;
 
-            RowMajorMatrix M = RowMajorMatrix::Zero(N, N);
+            M = RowMajorMatrix::Zero(N, N);
+            pM = &M;
+
             for(auto& chunk: chunks)
             {
                 M.block(chunk.start_row, 0, chunk.chunk.rows(), chunk.chunk.cols()) = chunk.chunk;
-            }
-
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
-            const Eigen::VectorXd& E = es.eigenvalues();
-            const Eigen::MatrixXd& V = es.eigenvectors();
-
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+                if(chunk.diagonal.size())
+                {
+                    int diag_offset = chunk.start_row + chunk.num_rows - chunk.diagonal.rows();
+                    M.block(diag_offset, diag_offset, chunk.diagonal.rows(), chunk.diagonal.cols()) = chunk.diagonal;
+                }
             }
         }
-        else
-        {   *outstream << "; Finding solutions using Davidson..." << std::endl;
-            levelvec.levels.reserve(NumSolutions);
 
-            double* V = new double[NumSolutions * N];
-            double* E = new double[NumSolutions];
+        levelvec.levels.reserve(NumSolutions);
 
-            Eigensolver solver;
-            #ifdef AMBIT_USE_MPI
-                solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
-            #else
-                solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
-            #endif
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
+        const Eigen::VectorXd& E = es.eigenvalues();
+        const Eigen::MatrixXd& V = es.eigenvectors();
 
-            for(unsigned int i = 0; i < NumSolutions; i++)
-            {
-                levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
-            }
-
-            delete[] E;
-            delete[] V;
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
         }
+    }
+    else
+    {   *outstream << "; Finding solutions using Davidson..." << std::endl;
+        levelvec.levels.reserve(NumSolutions);
+
+        double* V = new double[NumSolutions * N];
+        double* E = new double[NumSolutions];
+
+        Eigensolver solver;
+        #ifdef AMBIT_USE_MPI
+            solver.MPISolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #else
+            solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
+        #endif
+
+        for(unsigned int i = 0; i < NumSolutions; i++)
+        {
+            levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
+        }
+
+        delete[] E;
+        delete[] V;
     }
 
     return levelvec;
