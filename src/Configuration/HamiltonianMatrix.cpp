@@ -16,11 +16,10 @@
 #include<omp.h>
 #endif
 
-// Don't bother with davidson method if smaller than this limit
+// Don't bother with splitting matrix if smaller than this limit
 #define SMALL_MATRIX_LIM 200
 
 // Don't bother with davidson method if number of solutions requested is larger than this
-// and ScaLAPACK is available.
 #define MANY_LEVELS_LIM   50
 
 namespace Ambit
@@ -58,14 +57,6 @@ HamiltonianMatrix::HamiltonianMatrix(pHFIntegrals hf, pTwoElectronCoulombOperato
 HamiltonianMatrix::~HamiltonianMatrix()
 {}
 
-struct configbyconfig
-{
-    int config_diff_num = 0;
-    bool do_three_body = false;
-
-    std::chrono::microseconds duration{};
-};
-
 void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 {
     chunks.clear();
@@ -75,35 +66,15 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         configs_per_chunk = configs->size();
     }
 
-    // Total number of chunks = ceiling(number of configs/configs_per_chunk)
-    unsigned int total_num_chunks = (configs->size() + configs_per_chunk - 1)/configs_per_chunk;
-
-    // Divide up chunks
+    // Estimate workloads per configuration
+    // We just want to work out the load-balancing among MPI ranks and assign chunks to ranks
+    std::vector<size_t> config_work;    // Work for each configuration
+    config_work.reserve(configs->size());
     auto config_it = configs->begin();
-    unsigned int config_index = 0;
-    unsigned int csf_start = 0;
-
-    // Loop through the chunks but don't actually construct any yet. We just want to work out the
-    // load-balancing among MPI ranks and assign chunks to ranks
-    std::vector<size_t> chunks_work_sizes; // Work for each chunk
-    for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
+    while(config_it != configs->end())
     {
-        // Get chunk num_rows and number of configs. Allocates resources for the chunks.
-        unsigned int current_num_rows = 0;
-        unsigned int current_num_configs = 0;
-        size_t current_chunk_work_units = 0;
-        while(config_it != configs->end() && current_num_configs < configs_per_chunk)
-        {
-            current_chunk_work_units += config_it->projection_size()*config_it->projection_size()*config_it->NumCSFs();
-            current_num_rows += config_it->NumCSFs();
-            current_num_configs++;
-            config_it++;
-        }
-
-        if(current_num_rows == 0)
-            break;
-
-        chunks_work_sizes.push_back(current_chunk_work_units);
+        config_work.push_back(config_it->projection_size() * config_it->projection_size() * config_it->NumCSFs());
+        config_it++;
     }
 
     /* Note:
@@ -122,17 +93,18 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     // New scope to ensure tmp arrays are deallocated ASAP
     {
       // Temporary workspace arrays for GSL
-      std::vector<size_t> gsl_work(3*total_num_chunks);
-      std::vector<int> gsl_work_int(5*total_num_chunks);
+      std::vector<size_t> gsl_work(3*config_work.size());
+      std::vector<int> gsl_work_int(5*config_work.size());
 
       // Need to make a deep copy of the data since it must be sorted in ascending order for GSL to
-      // calculate the stats
-      std::vector<size_t> tmp = chunks_work_sizes;
+      // calculate the stats. We reverse the ordering to begin with since the config list is probably already
+      // sorted by workload
+      std::vector<size_t> tmp(config_work.rbegin(), config_work.rend());
       std::sort(tmp.begin(), tmp.end());
       // GSL needs a raw pointer to the work size data
       size_t* worksize_pointer = tmp.data();
 
-      median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, total_num_chunks);
+      median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, config_work.size());
 
       /* Note:
        * The magic factor of 1.566 is necessary here because Qn includes a magic weighting
@@ -140,7 +112,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
        * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew.
        * It sort of looks exponential if you squint at it, so that's the value I'm using here
        */
-      Qn = 1.566*gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, total_num_chunks, gsl_work.data(), gsl_work_int.data());
+      Qn = 1.566*gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, config_work.size(), gsl_work.data(), gsl_work_int.data());
     }
 
     /* Note:
@@ -153,54 +125,79 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
     // Now do another passthrough and actually construct this rank's chunks
     std::vector<size_t> processor_work_sizes(NumProcessors, 0); // Work assigned to each MPI rank
+    unsigned int config_index = 0;
+    unsigned int csf_start = 0;
+    int num_big_chunks = 0;
+
+    // Start with big chunks, one config at a time
+    config_it = configs->begin();
+    while(config_it != configs->end())
+    {
+        if(config_work[config_index] >= outlier_threshold)
+        {
+            // Assign this chunk to whichever process currently has the least work
+            auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+            int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
+            // Now make the chunk if it's ours
+            if(assigned_process == ProcessorRank)
+            {
+                num_big_chunks++;
+                chunks.emplace_back(config_index, config_index+1, csf_start, config_it->NumCSFs(), Nsmall);
+            }
+
+            // This needs to be outside the conditional so it gets executed by each rank. Every process
+            // needs to know how much work has already been assigned to the others
+            processor_work_sizes[assigned_process] += config_work[config_index];
+        }
+        csf_start += config_it->NumCSFs();
+        config_index++;
+        config_it++;
+    }
+
+    // Do the rest of the chunks according to configs_per_chunk suggestion
     config_it = configs->begin();
     config_index = 0;
     csf_start = 0;
-    int num_big_chunks = 0;
-
-    for(int chunk_index = 0; chunk_index < total_num_chunks; chunk_index++)
+    while(config_it != configs->end())
     {
-        // Get chunk num_rows and number of configs. Allocates resources for the chunks.
+        if(config_work[config_index] >= outlier_threshold)
+        {   csf_start += config_it->NumCSFs();
+            config_index++;
+            config_it++;
+            continue;
+        }
+
         unsigned int current_num_rows = 0;
         unsigned int current_num_configs = 0;
         size_t current_chunk_work_units = 0;
-        while(config_it != configs->end() && current_num_configs < configs_per_chunk)
+        while(config_it != configs->end() && current_num_configs < configs_per_chunk
+            && config_work[config_index+current_num_configs] < outlier_threshold)
         {
-            current_chunk_work_units += config_it->projection_size()*config_it->projection_size()*config_it->NumCSFs();
+            current_chunk_work_units += config_work[config_index+current_num_configs];
             current_num_rows += config_it->NumCSFs();
             current_num_configs++;
             config_it++;
         }
 
-        if(current_num_rows == 0)
-            break;
-
-        // Assign this chunk to whichever process currently has the least work
-        auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
-        int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
-        // Now make the chunk if it's ours
-        if(assigned_process == ProcessorRank)
-        {
-            bool is_big_chunk;
-            if (current_chunk_work_units >= outlier_threshold){
-                is_big_chunk = true;
-                num_big_chunks++;
-            }
-            else
+        if(current_num_rows > 0)
+        {   // Assign this chunk to whichever process currently has the least work
+            auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+            int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
+            // Now make the chunk if it's ours
+            if(assigned_process == ProcessorRank)
             {
-                is_big_chunk = false;
+                chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
+                                    current_num_rows, Nsmall);
             }
-            chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
-                                current_num_rows, Nsmall, is_big_chunk);
+
+            processor_work_sizes[assigned_process] += current_chunk_work_units;
         }
-        // This needs to be outside the conditional so it gets executed by each rank. Every process
-        // needs to know how much work has already been assigned to the others
-        processor_work_sizes[assigned_process] += current_chunk_work_units;
 
         config_index += current_num_configs;
         csf_start += current_num_rows;
         most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
     }
+
     // Print some diagnostics about the workload balancing
     // What is this process's chunk workload?
     *logstream << "This process has " << processor_work_sizes[ProcessorRank] << " work units and " << num_big_chunks << " big chunks" << std::endl;
@@ -589,9 +586,8 @@ bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_p
             // Now make the chunk if it's ours
             if(chunk_index%NumProcessors == ProcessorRank)
             {
-                bool is_big_chunk = false;
                 chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
-                                    current_num_rows, Nsmall, is_big_chunk);
+                                    current_num_rows, Nsmall);
             }
             config_index += current_num_configs;
             csf_start += current_num_rows;
