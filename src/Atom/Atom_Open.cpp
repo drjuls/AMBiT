@@ -690,7 +690,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 if(user_input.VariableExists("CI/MaxEnergy"))
                 {
                     double max_energy = user_input("CI/MaxEnergy", 0.0);
-                    levelvec = H->SolveMatrixScalapack(hID, N, hamiltonian_filename, max_energy);
+                    levelvec = H->SolveMatrixScalapack(hID, configs->NumCSFs(), hamiltonian_filename, max_energy);
                 }
                 else
                 {

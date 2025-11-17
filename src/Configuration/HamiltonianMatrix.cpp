@@ -423,6 +423,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             // Read to single processor
             *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
             Read(filename, configs->size(), true);
+            pM = &chunks.front().chunk;
 #endif
         }
         levelvec.levels.reserve(NumSolutions);
@@ -487,7 +488,7 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         SM.Diagonalise(E);
 
         // Cut off num_solutions
-        if(use_energy_limit)
+        if(energy_limit)
             for(int i = 0; i < NumSolutions; i++)
             {
                 if(E[i] > energy_limit)
