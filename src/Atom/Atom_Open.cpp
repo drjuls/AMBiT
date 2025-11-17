@@ -683,19 +683,23 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             #ifdef AMBIT_USE_SCALAPACK
             if(user_input.search("CI/--scalapack"))
             {
+                // Write matrix if it hasn't already been written
+                if(!user_input.search("CI/Output/--write-hamiltonian"))
+                    H->Write(hamiltonian_filename);
+
                 if(user_input.VariableExists("CI/MaxEnergy"))
                 {
                     double max_energy = user_input("CI/MaxEnergy", 0.0);
-                    levelvec = H->SolveMatrixScalapack(hID, max_energy);
+                    levelvec = H->SolveMatrixScalapack(hID, N, hamiltonian_filename, max_energy);
                 }
                 else
                 {
-                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, false);
+                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, hamiltonian_filename);
                 }
             }
             else
             #endif
-            levelvec = H->SolveMatrix(hID, num_solutions);
+            levelvec = H->SolveMatrix(hID, num_solutions, hamiltonian_filename);
             levels->Store(hID, levelvec);
         }
 

@@ -44,8 +44,10 @@ public:
     /** Print upper triangular part of matrix (text). Lower triangular part is zeroed. */
     friend std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix);
 
-    /** Read binary file if it exists. Return success. */
-    virtual bool Read(const std::string& filename, unsigned int configs_per_chunk = 4);
+    /** Read binary file if it exists, and distribute the matrix among all processes.
+     *  If only_root_process, then attempt to read the matrix into a single N*N matrix on the root node.
+     *  Returns success (file exists, was read, fit in memory). */
+    virtual bool Read(const std::string& filename, unsigned int configs_per_chunk = 4, bool only_root_process = false);
 
     /** Write binary file. */
     virtual void Write(const std::string& filename) const;
@@ -53,18 +55,16 @@ public:
     /** Return proportion of elements that have magnitude greater than epsilon. */
     virtual double PollMatrix(double epsilon = 1.e-15) const;
 
-    /** Solve the matrix that has been generated. Note that this may destroy the matrix. */
-    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions);
+    /** Solve the matrix that has been generated. Note that this may destroy the matrix.
+     *  The filename is only used to redistribute the matrix if required.
+     */
+    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename);
 
 #ifdef AMBIT_USE_SCALAPACK
     /** Solve using ScaLAPACK. Note that this destroys the matrix.
         If use_energy_limit is true, only return eigenvalues below energy_limit (up to num_solutions of them).
      */
-    virtual LevelVector SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit = 0.0);
-
-    virtual LevelVector SolveMatrixScalapack(pHamiltonianID hID, double energy_limit)
-    {   return SolveMatrixScalapack(hID, N, true, energy_limit);
-    }
+    virtual LevelVector SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename, std::optional<double> energy_limit = std::nullopt);
 #endif
 
     /** Clear matrix and recover memory. */

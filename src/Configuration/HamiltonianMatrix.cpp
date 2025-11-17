@@ -62,156 +62,163 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     chunks.clear();
 
     if(N <= SMALL_MATRIX_LIM)
-    {
-        configs_per_chunk = configs->size();
+    {   // Place whole matrix in a single chunk
+        if(ProcessorRank == 0)
+            chunks.emplace_back(0, configs->size(), 0, N, Nsmall);
     }
-
-    // Estimate workloads per configuration
-    // We just want to work out the load-balancing among MPI ranks and assign chunks to ranks
-    std::vector<size_t> config_work;    // Work for each configuration
-    config_work.reserve(configs->size());
-    auto config_it = configs->begin();
-    while(config_it != configs->end())
-    {
-        config_work.push_back(config_it->projection_size() * config_it->projection_size() * config_it->NumCSFs());
-        config_it++;
-    }
-
-    /* Note:
-     * Now work out some statistics about the distribution of work among chunks. We want to
-     * get the median amount of work per chunk, as well as the Croux-Rousseuw Qn measure of
-     * spread (which is more robust when dealing with highly-skewed distributions like this one)
-     * to identify chunks which are particularly bad for workload balancing. See this paper for
-     * more info on this measure:
-     * https://wis.kuleuven.be/stat/robust/papers/publications-1993/rousseeuwcroux-alternativestomedianad-jasa-1993.pdf
-     *
-     * Also see the GSL manual for information on how it's implemented in GSL:
-     * https://www.gnu.org/software/gsl/doc/html/statistics.html#robust-scale-estimates
-     */
-    double median, Qn;
-
-    // New scope to ensure tmp arrays are deallocated ASAP
-    {
-      // Temporary workspace arrays for GSL
-      std::vector<size_t> gsl_work(3*config_work.size());
-      std::vector<int> gsl_work_int(5*config_work.size());
-
-      // Need to make a deep copy of the data since it must be sorted in ascending order for GSL to
-      // calculate the stats. We reverse the ordering to begin with since the config list is probably already
-      // sorted by workload
-      std::vector<size_t> tmp(config_work.rbegin(), config_work.rend());
-      std::sort(tmp.begin(), tmp.end());
-      // GSL needs a raw pointer to the work size data
-      size_t* worksize_pointer = tmp.data();
-
-      median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, config_work.size());
-
-      /* Note:
-       * The magic factor of 1.566 is necessary here because Qn includes a magic weighting
-       * factor based on the assumed distribution of the data. GSL uses the magic constant for a
-       * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew.
-       * It sort of looks exponential if you squint at it, so that's the value I'm using here
-       */
-      Qn = 1.566*gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, config_work.size(), gsl_work.data(), gsl_work_int.data());
-    }
-
-    /* Note:
-     * Now calculate the outlier threshold: any chunk with more than median + 9.0*Qn work units is
-     * considered to be a "big chunk". Note that this threshold is somewhat arbitrary, but seems to
-     * work okay (think of it as an analogy to the 1.5*IQR rule, but designed for highly-skewed
-     * data)
-    */
-    size_t outlier_threshold = median + 9.0*Qn;
-
-    // Now do another passthrough and actually construct this rank's chunks
-    std::vector<size_t> processor_work_sizes(NumProcessors, 0); // Work assigned to each MPI rank
-    unsigned int config_index = 0;
-    unsigned int csf_start = 0;
-    int num_big_chunks = 0;
-
-    // Start with big chunks, one config at a time
-    config_it = configs->begin();
-    while(config_it != configs->end())
-    {
-        if(config_work[config_index] >= outlier_threshold)
+    else
+    {   // Estimate workloads per configuration
+        // We just want to work out the load-balancing among MPI ranks and assign chunks to ranks
+        std::vector<size_t> config_work;    // Work for each configuration
+        config_work.reserve(configs->size());
+        auto config_it = configs->begin();
+        while (config_it != configs->end())
         {
-            // Assign this chunk to whichever process currently has the least work
-            auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
-            int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
-            // Now make the chunk if it's ours
-            if(assigned_process == ProcessorRank)
-            {
-                num_big_chunks++;
-                chunks.emplace_back(config_index, config_index+1, csf_start, config_it->NumCSFs(), Nsmall);
-            }
-
-            // This needs to be outside the conditional so it gets executed by each rank. Every process
-            // needs to know how much work has already been assigned to the others
-            processor_work_sizes[assigned_process] += config_work[config_index];
+            config_work.push_back(config_it->projection_size() * config_it->projection_size() * config_it->NumCSFs());
+            config_it++;
         }
-        csf_start += config_it->NumCSFs();
-        config_index++;
-        config_it++;
-    }
 
-    // Do the rest of the chunks according to configs_per_chunk suggestion
-    config_it = configs->begin();
-    config_index = 0;
-    csf_start = 0;
-    while(config_it != configs->end())
-    {
-        if(config_work[config_index] >= outlier_threshold)
-        {   csf_start += config_it->NumCSFs();
+        /* Note:
+         * Now work out some statistics about the distribution of work among chunks. We want to
+         * get the median amount of work per chunk, as well as the Croux-Rousseuw Qn measure of
+         * spread (which is more robust when dealing with highly-skewed distributions like this one)
+         * to identify chunks which are particularly bad for workload balancing. See this paper for
+         * more info on this measure:
+         * https://wis.kuleuven.be/stat/robust/papers/publications-1993/rousseeuwcroux-alternativestomedianad-jasa-1993.pdf
+         *
+         * Also see the GSL manual for information on how it's implemented in GSL:
+         * https://www.gnu.org/software/gsl/doc/html/statistics.html#robust-scale-estimates
+         */
+        double median, Qn;
+
+        // New scope to ensure tmp arrays are deallocated ASAP
+        {
+            // Temporary workspace arrays for GSL
+            std::vector<size_t> gsl_work(3 * config_work.size());
+            std::vector<int> gsl_work_int(5 * config_work.size());
+
+            // Need to make a deep copy of the data since it must be sorted in ascending order for GSL to
+            // calculate the stats. We reverse the ordering to begin with since the config list is probably already
+            // sorted by workload
+            std::vector<size_t> tmp(config_work.rbegin(), config_work.rend());
+            std::sort(tmp.begin(), tmp.end());
+            // GSL needs a raw pointer to the work size data
+            size_t *worksize_pointer = tmp.data();
+
+            median = gsl_stats_ulong_median_from_sorted_data(tmp.data(), 1, config_work.size());
+
+            /* Note:
+             * The magic factor of 1.566 is necessary here because Qn includes a magic weighting
+             * factor based on the assumed distribution of the data. GSL uses the magic constant for a
+             * Gaussian distribution, but the workload data is EXTREMELY non-Gaussian due to its skew.
+             * It sort of looks exponential if you squint at it, so that's the value I'm using here
+             */
+            Qn = 1.566 * gsl_stats_ulong_Qn_from_sorted_data(tmp.data(), 1, config_work.size(), gsl_work.data(),
+                                                             gsl_work_int.data());
+        }
+
+        /* Note:
+         * Now calculate the outlier threshold: any chunk with more than median + 9.0*Qn work units is
+         * considered to be a "big chunk". Note that this threshold is somewhat arbitrary, but seems to
+         * work okay (think of it as an analogy to the 1.5*IQR rule, but designed for highly-skewed
+         * data)
+        */
+        size_t outlier_threshold = median + 9.0 * Qn;
+
+        // Now do another passthrough and actually construct this rank's chunks
+        std::vector<size_t> processor_work_sizes(NumProcessors, 0); // Work assigned to each MPI rank
+        unsigned int config_index = 0;
+        unsigned int csf_start = 0;
+        int num_big_chunks = 0;
+
+        // Start with big chunks, one config at a time
+        config_it = configs->begin();
+        while (config_it != configs->end())
+        {
+            if (config_work[config_index] >= outlier_threshold)
+            {
+                // Assign this chunk to whichever process currently has the least work
+                auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+                int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
+                // Now make the chunk if it's ours
+                if (assigned_process == ProcessorRank)
+                {
+                    num_big_chunks++;
+                    chunks.emplace_back(config_index, config_index + 1, csf_start, config_it->NumCSFs(), Nsmall);
+                }
+
+                // This needs to be outside the conditional so it gets executed by each rank. Every process
+                // needs to know how much work has already been assigned to the others
+                processor_work_sizes[assigned_process] += config_work[config_index];
+            }
+            csf_start += config_it->NumCSFs();
             config_index++;
             config_it++;
-            continue;
         }
 
-        unsigned int current_num_rows = 0;
-        unsigned int current_num_configs = 0;
-        size_t current_chunk_work_units = 0;
-        while(config_it != configs->end() && current_num_configs < configs_per_chunk
-            && config_work[config_index+current_num_configs] < outlier_threshold)
+        // Do the rest of the chunks according to configs_per_chunk suggestion
+        config_it = configs->begin();
+        config_index = 0;
+        csf_start = 0;
+        while (config_it != configs->end())
         {
-            current_chunk_work_units += config_work[config_index+current_num_configs];
-            current_num_rows += config_it->NumCSFs();
-            current_num_configs++;
-            config_it++;
-        }
-
-        if(current_num_rows > 0)
-        {   // Assign this chunk to whichever process currently has the least work
-            auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
-            int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
-            // Now make the chunk if it's ours
-            if(assigned_process == ProcessorRank)
+            if (config_work[config_index] >= outlier_threshold)
             {
-                chunks.emplace_back(config_index, config_index+current_num_configs, csf_start,
-                                    current_num_rows, Nsmall);
+                csf_start += config_it->NumCSFs();
+                config_index++;
+                config_it++;
+                continue;
             }
 
-            processor_work_sizes[assigned_process] += current_chunk_work_units;
+            unsigned int current_num_rows = 0;
+            unsigned int current_num_configs = 0;
+            size_t current_chunk_work_units = 0;
+            while (config_it != configs->end() && current_num_configs < configs_per_chunk
+                   && config_work[config_index + current_num_configs] < outlier_threshold)
+            {
+                current_chunk_work_units += config_work[config_index + current_num_configs];
+                current_num_rows += config_it->NumCSFs();
+                current_num_configs++;
+                config_it++;
+            }
+
+            if (current_num_rows > 0)
+            {   // Assign this chunk to whichever process currently has the least work
+                auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+                int assigned_process = std::distance(processor_work_sizes.begin(), min_work_it);
+                // Now make the chunk if it's ours
+                if (assigned_process == ProcessorRank)
+                {
+                    chunks.emplace_back(config_index, config_index + current_num_configs, csf_start,
+                                        current_num_rows, Nsmall);
+                }
+
+                processor_work_sizes[assigned_process] += current_chunk_work_units;
+            }
+
+            config_index += current_num_configs;
+            csf_start += current_num_rows;
+            most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
         }
 
-        config_index += current_num_configs;
-        csf_start += current_num_rows;
-        most_chunk_rows = mmax(most_chunk_rows, current_num_rows);
+        // Print some diagnostics about the workload balancing
+        // What is this process's chunk workload?
+        *logstream << "\nThis process has " << processor_work_sizes[ProcessorRank] << " work units and "
+                   << num_big_chunks
+                   << " big chunks.\n";
+
+        // How big is the workload imbalance?
+        auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
+        auto max_work_it = std::max_element(processor_work_sizes.begin(), processor_work_sizes.end());
+        double imbalance = 100.0 * ((double) (*max_work_it) - (double) (*min_work_it)) / ((double) (*max_work_it));
+
+        *logstream << "Minimum workload: " << *min_work_it;
+        *logstream << "\nMaximum workload: " << *max_work_it;
+        *logstream << "\nThe relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
     }
 
-    // Print some diagnostics about the workload balancing
-    // What is this process's chunk workload?
-    *logstream << "This process has " << processor_work_sizes[ProcessorRank] << " work units and " << num_big_chunks << " big chunks" << std::endl;
-
-    // How big is the workload imbalance?
-    auto min_work_it = std::min_element(processor_work_sizes.begin(), processor_work_sizes.end());
-    auto max_work_it = std::max_element(processor_work_sizes.begin(), processor_work_sizes.end());
-    double imbalance = 100.0*((double) (*max_work_it) - (double) (*min_work_it))/((double) (*min_work_it));
-
-    *logstream << "Minimum workload: " << *min_work_it << std::endl;
-    *logstream << "Maximum workload: " << *max_work_it << std::endl;
-    *logstream << "The relative workload imbalance across MPI processes is " << imbalance << "%" << std::endl;
-
     // Loop through my chunks
+    auto config_it = configs->begin();
     RelativisticConfigList::const_iterator configsubsetend_it = configs->small_end();
     unsigned int configsubsetend = configs->small_size();
 
@@ -365,7 +372,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
         matrix_section.Symmetrize();
 }
 
-LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions)
+LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename)
 {
     LevelVector levelvec(hID);
     levelvec.configs = configs;
@@ -376,8 +383,9 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
     {
         *outstream << "\nNo solutions" << std::endl;
     }
-    else if((N <= SMALL_MATRIX_LIM || NumSolutions > MANY_LEVELS_LIM) && NumProcessors == 1)
+    else if(N <= SMALL_MATRIX_LIM || NumSolutions > MANY_LEVELS_LIM)
     {
+        // Use Eigen or SCALAPACK
         RowMajorMatrix M;
         RowMajorMatrix* pM;
 
@@ -386,10 +394,9 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             *outstream << "; Finding solutions using Eigen..." << std::endl;
             pM = &chunks.front().chunk;
         }
-        else
+        else if(NumProcessors == 1)
         {   // Copy all chunks to a single matrix.
-           *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..."
-                       << std::endl;
+           *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
 
             M = RowMajorMatrix::Zero(N, N);
             pM = &M;
@@ -404,7 +411,20 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
                 }
             }
         }
+        else
+        {   // Write matrix file, clear current Hamiltonian to make space,
+            Write(filename);
+            Clear();
 
+#ifdef AMBIT_USE_SCALAPACK
+            // Read and solve using ScalapackMatrix
+            return SolveMatrixScalapack(hID, num_solutions, filename);
+#else
+            // Read to single processor
+            *outstream << "; Attempting to reallocate matrix and find solutions using Eigen..." << std::endl;
+            Read(filename, configs->size(), true);
+#endif
+        }
         levelvec.levels.reserve(NumSolutions);
 
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
@@ -443,7 +463,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 }
 
 #ifdef AMBIT_USE_SCALAPACK
-LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, bool use_energy_limit, double energy_limit)
+LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename, std::optional<double> energy_limit)
 {
     LevelVector levelvec;
     levelvec.hID = hID;
@@ -457,16 +477,6 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
     }
     else
     {   *outstream << "; Finding solutions using ScaLAPACK ..." << std::endl;
-
-        // Write temporary matrix file, clear current Hamiltonian to make space,
-        // then read in to ScalapackMatrix
-        char* jobid = getenv("PBS_JOBID");
-        std::string filename = "temp";
-        if(jobid)
-            filename += jobid;
-        filename += ".matrix";
-
-        Write(filename);
         Clear();
 
         ScalapackMatrix SM(N);
@@ -536,7 +546,7 @@ std::ostream& operator<<(std::ostream& stream, const HamiltonianMatrix& matrix)
     return stream;
 }
 
-bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_per_chunk)
+bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_per_chunk, bool only_root_process)
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
@@ -552,7 +562,7 @@ bool HamiltonianMatrix::Read(const std::string& filename, unsigned int configs_p
     // can just do a really simply round-robin assignment of chunks to processes.
     if(chunks.empty())
     {
-        if(N <= SMALL_MATRIX_LIM)
+        if((N <= SMALL_MATRIX_LIM) || only_root_process)
         {
             configs_per_chunk = configs->size();
         }
