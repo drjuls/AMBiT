@@ -645,7 +645,10 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
-            // If reading from a checkpoint file, make sure the file exists and is valid, then
+            // Do not solve the matrix, just generate Hamiltonian and write to file
+            bool dont_solve_matrix = user_input.search(2, "--no-diagonalisation", "--no-diagonalization");
+
+                // If reading from a checkpoint file, make sure the file exists and is valid, then
             // read
             if(use_read)
             {
@@ -659,7 +662,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 H->GenerateMatrix(chunksize);
                 //H->PollMatrix();
 
-                if(user_input.search("CI/Output/--write-hamiltonian"))
+                if(user_input.search("CI/Output/--write-hamiltonian") || dont_solve_matrix)
                     H->Write(hamiltonian_filename);
             }
 
@@ -678,6 +681,11 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
                 *outstream << std::setprecision(12);
                 *outstream << "Matrix Before:\n" << *H << std::endl;
+            }
+
+            if(dont_solve_matrix)
+            {   *outstream << "\n";
+                return {};  // Return empty levelvector
             }
 
             #ifdef AMBIT_USE_SCALAPACK
