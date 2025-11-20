@@ -428,15 +428,25 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         }
         levelvec.Resize(NumSolutions, N);
 
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
-        const Eigen::VectorXd& E = es.eigenvalues();
-        const Eigen::MatrixXd& V = es.eigenvectors();
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
+        if(ProcessorRank == 0)
         {
-            levelvec.eigenvalues[i] = E(i);
-            levelvec.eigenvectors.row(i) = V.col(i);
+            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
+            const Eigen::VectorXd& E = es.eigenvalues();
+            const Eigen::MatrixXd& V = es.eigenvectors();
+
+            for(unsigned int i = 0; i < NumSolutions; i++)
+            {
+                levelvec.eigenvalues[i] = E(i);
+                levelvec.eigenvectors.row(i) = V.col(i);
+            }
         }
+#ifdef AMBIT_USE_MPI
+        if(NumProcessors > 1)
+        {   // broadcast results
+            MPI_Bcast(levelvec.eigenvalues.data(), NumSolutions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(levelvec.eigenvectors.data(), NumSolutions * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        }
+#endif
     }
     else
     {   *outstream << "; Finding solutions using Davidson..." << std::endl;
