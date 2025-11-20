@@ -713,7 +713,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 
 #ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(total.size(), 0.);
-    MPI_Allreduce(total.data(), reduced_total.data(), return_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(total.data(), reduced_total.data(), total.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;
 #else
     return total;
