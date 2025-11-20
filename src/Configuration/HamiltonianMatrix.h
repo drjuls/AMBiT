@@ -4,7 +4,6 @@
 #include "RelativisticConfiguration.h"
 #include "NonRelConfiguration.h"
 #include "HartreeFock/HFOperator.h"
-#include "Level.h"
 #include "Universal/Enums.h"
 #include "Universal/Matrix.h"
 #include "ManyBodyOperator.h"
@@ -58,7 +57,7 @@ public:
     /** Solve the matrix that has been generated. Note that this may destroy the matrix.
      *  The filename is only used to redistribute the matrix if required.
      */
-    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename);
+    virtual LevelVector SolveMatrix(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename = "");
 
 #ifdef AMBIT_USE_SCALAPACK
     /** Solve using ScaLAPACK. Note that this destroys the matrix.

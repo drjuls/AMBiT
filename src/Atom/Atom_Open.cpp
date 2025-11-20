@@ -572,7 +572,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
     if(soID)
     {
-        if(levelvec.levels.empty())
+        if(levelvec.NumLevels() == 0)
             levelvec = SingleElectronConfigurations(hID);
     }
     else
@@ -622,7 +622,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         // Only continue if we don't have enough levels
         int num_solutions = user_input("CI/NumSolutions", 6);
         num_solutions = (num_solutions? mmin(num_solutions, configs->NumCSFs()): configs->NumCSFs());
-        bool do_CI = (levelvec.levels.size() < num_solutions);
+        bool do_CI = (levelvec.NumLevels() < num_solutions);
         if(do_CI)
         {
             if(twobody_electron == nullptr)
@@ -758,9 +758,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         {   // Truncate display at max energy
             double max_energy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
             if(ShowRelConfigPercentages)
-                levelvec.PrintInline<RelativisticConfiguration>(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline<RelativisticConfiguration>(ShowPercentages, ShowgFactors, sep, max_energy);
             else
-                levelvec.PrintInline(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline(ShowPercentages, ShowgFactors, sep, max_energy);
         }
         else
         {   if(ShowRelConfigPercentages)
@@ -797,13 +797,11 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
 {
     LevelVector levelvec = levels->GetLevels(sym);
 
-    if(levelvec.levels.size())
+    if(levelvec.NumLevels())
         return levelvec;
 
     if(hf_electron == nullptr)
         MakeCIIntegrals();
-
-    double eigenvector = 1.;
 
     OrbitalInfo info(dynamic_cast<SingleOrbitalID*>(sym.get())->GetOrbitalInfo());
     // Make relativistic configuration
@@ -817,7 +815,9 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     levelvec.hID = sym;
     levelvec.configs = std::make_shared<RelativisticConfigList>(config);
     double energy = hf_electron->GetMatrixElement(info, info);
-    levelvec.levels.emplace_back(std::make_shared<Level>(energy, &eigenvector, sym, 1));
+    levelvec.Resize(1, 1);
+    levelvec.eigenvalues[0] = energy;
+    levelvec.eigenvectors(0, 0) = 1;
     levels->Store(sym, levelvec);
 
     return levelvec;

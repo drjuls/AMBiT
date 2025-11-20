@@ -374,9 +374,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
 
 LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename)
 {
-    LevelVector levelvec(hID);
-    levelvec.configs = configs;
-
+    LevelVector levelvec(hID, configs);
     unsigned int NumSolutions = mmin(num_solutions, N);
 
     if(NumSolutions == 0)
@@ -413,6 +411,8 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         }
         else
         {   // Write matrix file, clear current Hamiltonian to make space,
+            if(filename.empty())
+                return levelvec;
             Write(filename);
             Clear();
 
@@ -426,7 +426,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
             pM = &chunks.front().chunk;
 #endif
         }
-        levelvec.levels.reserve(NumSolutions);
+        levelvec.Resize(NumSolutions, N);
 
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(*pM);
         const Eigen::VectorXd& E = es.eigenvalues();
@@ -434,15 +434,16 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 
         for(unsigned int i = 0; i < NumSolutions; i++)
         {
-            levelvec.levels.push_back(std::make_shared<Level>(E(i), V.col(i).data(), hID, N));
+            levelvec.eigenvalues[i] = E(i);
+            levelvec.eigenvectors.row(i) = V.col(i);
         }
     }
     else
     {   *outstream << "; Finding solutions using Davidson..." << std::endl;
-        levelvec.levels.reserve(NumSolutions);
+        levelvec.Resize(NumSolutions, N);
 
-        double* V = new double[NumSolutions * N];
-        double* E = new double[NumSolutions];
+        double* V = levelvec.eigenvectors.data();
+        double* E = levelvec.eigenvalues.data();
 
         Eigensolver solver;
         #ifdef AMBIT_USE_MPI
@@ -450,14 +451,6 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
         #else
             solver.SolveLargeSymmetric(this, E, V, N, NumSolutions);
         #endif
-
-        for(unsigned int i = 0; i < NumSolutions; i++)
-        {
-            levelvec.levels.push_back(std::make_shared<Level>(E[i], (V + N * i), hID, N));
-        }
-
-        delete[] E;
-        delete[] V;
     }
 
     return levelvec;

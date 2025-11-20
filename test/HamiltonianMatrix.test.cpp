@@ -1,7 +1,6 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "gtest/gtest.h"
 #include <memory>
-#include "Configuration/Level.h"
 #include "Include.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
@@ -76,7 +75,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
     // Solve matrix
     LevelVector levels = H_even.SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
     levels.Print();
-    ground_state_energy = levels.levels[0]->GetEnergy();
+    ground_state_energy = levels.eigenvalues[0];
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
@@ -88,9 +87,9 @@ TEST(HamiltonianMatrixTester, MgILevels)
     GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
     g_factors.CalculateGFactors(levels);
     levels.Print();
-    excited_state_energy = levels.levels[0]->GetEnergy();
+    excited_state_energy = levels.eigenvalues[0];
 
-    EXPECT_NEAR(1.5, levels.levels[0]->GetgFactor(), 0.001);
+    EXPECT_NEAR(1.5, levels.g_factors[0], 0.001);
 
     // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
     EXPECT_NEAR(21870, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
@@ -128,7 +127,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
 
     std::string even_filename = "MgITest.e.matrix";
     std::string odd_filename = "MgITest.o.matrix";
-    
+
     // Energies we got when (w)riting and (r)eading. These should be identical, as reading the
     // matrix from the file should have the same results as generating from scratch
     double wground_state_energy = 0., wexcited_state_energy = 0.; // Energy when writing
@@ -167,7 +166,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         // Solve matrix
         LevelVector levels = H_even->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
         levels.Print();
-        wground_state_energy = levels.levels[0]->GetEnergy();
+        wground_state_energy = levels.eigenvalues[0];
 
         // Rinse and repeat for excited state
         sym = Symmetry(2, Parity::odd);
@@ -182,7 +181,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
         g_factors.CalculateGFactors(levels);
         levels.Print();
-        wexcited_state_energy = levels.levels[0]->GetEnergy();
+        wexcited_state_energy = levels.eigenvalues[0];
     }
     // Now read back from disk and check we get the correct values
     {
@@ -217,7 +216,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         // Solve matrix
         LevelVector levels = H_even->SolveMatrix(std::make_shared<HamiltonianID>(sym), 3);
         levels.Print();
-        rground_state_energy = levels.levels[0]->GetEnergy();
+        rground_state_energy = levels.eigenvalues[0];
 
         // Rinse and repeat for excited state
         sym = Symmetry(2, Parity::odd);
@@ -231,9 +230,9 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         GFactorCalculator g_factors(hf->GetIntegrator(), orbitals);
         g_factors.CalculateGFactors(levels);
         levels.Print();
-        rexcited_state_energy = levels.levels[0]->GetEnergy();
+        rexcited_state_energy = levels.eigenvalues[0];
 
-        EXPECT_NEAR(1.5, levels.levels[0]->GetgFactor(), 0.001);
+        EXPECT_NEAR(1.5, levels.g_factors[0], 0.001);
 
         // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
         EXPECT_NEAR((wexcited_state_energy - wground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), (rexcited_state_energy - rground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
@@ -367,20 +366,20 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).eigenvalues[0];
+    double hole_base = hole_levels->GetLevels(key).eigenvalues[0];
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
 
-        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
+        ASSERT_EQ(elv.NumLevels(), hlv.NumLevels());
 
-        for(int i = 0; i < elv.levels.size(); i++)
+        for(int i = 0; i < elv.NumLevels(); i++)
         {
-            double e = elv.levels[i]->GetEnergy() - electron_base;
-            double h = hlv.levels[i]->GetEnergy() - hole_base;
+            double e = elv.eigenvalues[i] - electron_base;
+            double h = hlv.eigenvalues[i] - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -516,20 +515,20 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
 
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).eigenvalues[0];
+    double hole_base = hole_levels->GetLevels(key).eigenvalues[0];
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
 
-        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
+        ASSERT_EQ(elv.NumLevels(), hlv.NumLevels());
 
-        for(int i = 0; i < elv.levels.size(); i++)
+        for(int i = 0; i < elv.NumLevels(); i++)
         {
-            double e = elv.levels[i]->GetEnergy() - electron_base;
-            double h = hlv.levels[i]->GetEnergy() - hole_base;
+            double e = elv.eigenvalues[i] - electron_base;
+            double h = hlv.eigenvalues[i] - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -540,7 +539,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
 {
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(true);
-    
+
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     std::vector<Symmetry> symmetries;
     symmetries.emplace_back(0, Parity::even);
@@ -565,21 +564,21 @@ TEST(HamiltonianMatrixTester, LiPlus)
         "[CI]\n" +
         "LeadingConfigurations = '1s2'\n" +
         "ElectronExcitations = 1\n";
-        
+
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-        
+
         // Get core and excited basis
         BasisGenerator basis_generator(lattice, userInput);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
         ConfigGenerator gen(orbitals, userInput);
-        
+
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
         pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        
+
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
@@ -602,7 +601,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
             levels.Print();
         }
     }
-    
+
     // LiII - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
@@ -621,21 +620,21 @@ TEST(HamiltonianMatrixTester, LiPlus)
         "LeadingConfigurations = '0'\n" +
         "ElectronExcitations = 1\n" +
         "HoleExcitations = 1\n";
-        
+
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-        
+
         // Get core and excited basis
         BasisGenerator basis_generator(lattice, userInput);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
         ConfigGenerator gen(orbitals, userInput);
-        
+
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
         pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        
+
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
@@ -658,24 +657,24 @@ TEST(HamiltonianMatrixTester, LiPlus)
             levels.Print();
         }
     }
-    
+
     ASSERT_EQ(electron_levels->keys.size(), hole_levels->keys.size());
-    
+
     pHamiltonianID key = std::make_shared<HamiltonianID>(symmetries[0]);
-    double electron_base = electron_levels->GetLevels(key).levels[0]->GetEnergy();
-    double hole_base = hole_levels->GetLevels(key).levels[0]->GetEnergy();
+    double electron_base = electron_levels->GetLevels(key).eigenvalues[0];
+    double hole_base = hole_levels->GetLevels(key).eigenvalues[0];
 
     for(auto& key: *electron_levels)
     {
         LevelVector elv = electron_levels->GetLevels(key);
         LevelVector hlv = hole_levels->GetLevels(key);
-        
-        ASSERT_EQ(elv.levels.size(), hlv.levels.size());
 
-        for(int i = 0; i < elv.levels.size(); i++)
+        ASSERT_EQ(elv.NumLevels(), hlv.NumLevels());
+
+        for(int i = 0; i < elv.NumLevels(); i++)
         {
-            double e = elv.levels[i]->GetEnergy() - electron_base;
-            double h = hlv.levels[i]->GetEnergy() - hole_base;
+            double e = elv.eigenvalues[i] - electron_base;
+            double h = hlv.eigenvalues[i] - hole_base;
 
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
@@ -687,16 +686,16 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     // Testing levels when M != J
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
-    
+
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
     std::vector<Symmetry> symmetries;
     symmetries.emplace_back(1, Parity::even);
     symmetries.emplace_back(3, Parity::even);
-    
+
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
     pLevelStore stretched_levels = std::make_shared<LevelMap>(angular_library);
     pLevelStore m_levels = std::make_shared<LevelMap>(angular_library);
-    
+
     // CuIII - stretched state
     {   // Block for reusing names
         std::string user_input_string = std::string() +
@@ -715,16 +714,16 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         "LeadingConfigurations = '3d-1'\n" +
         "ElectronExcitations = 1\n" +
         "HoleExcitations = 1\n";
-        
+
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-        
+
         // Get core and excited basis
         BasisGenerator basis_generator(lattice, userInput);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
         ConfigGenerator gen(orbitals, userInput);
-        
+
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
         pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
@@ -751,7 +750,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
     DebugOptions.LogHFIterations(false);
     DebugOptions.OutputHFExcited(false);
-    
+
     // CuIII - non-stretched state
     {   // Block for reusing names
         std::string user_input_string = std::string() +
@@ -770,21 +769,21 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         "LeadingConfigurations = '3d-1'\n" +
         "ElectronExcitations = 1\n" +
         "HoleExcitations = 1\n";
-        
+
         std::stringstream user_input_stream(user_input_string);
         MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-        
+
         // Get core and excited basis
         BasisGenerator basis_generator(lattice, userInput);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
         ConfigGenerator gen(orbitals, userInput);
-        
+
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
         pHFIntegrals hf_electron(new HFIntegrals(orbitals, hf));
         hf_electron->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-        
+
         pCoulombOperator coulomb(new CoulombOperator(lattice));
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
@@ -811,11 +810,11 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         LevelVector slv = stretched_levels->GetLevels(key);
         LevelVector mlv = m_levels->GetLevels(key);
 
-        for(int i = 0; i < slv.levels.size(); i++)
+        for(int i = 0; i < slv.NumLevels(); i++)
         {
-            double e = slv.levels[i]->GetEnergy();
-            double h = mlv.levels[i]->GetEnergy();
-        
+            double e = slv.eigenvalues[i];
+            double h = mlv.eigenvalues[i];
+
             EXPECT_NEAR(e, h, mmax(1.e-5 * fabs(e), 1.e-12));
         }
     }

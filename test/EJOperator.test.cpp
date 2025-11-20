@@ -256,7 +256,7 @@ TEST(EJOperatorTester, HeTransitions)
     auto hID = std::make_shared<HamiltonianID>(sym);
     auto Even3 = H_even.SolveMatrix(hID, 3);
     Even3.Print();
-    ground_state_energy = Even3.levels[0]->GetEnergy();
+    ground_state_energy = Even3.eigenvalues[0];
 
     // Rinse and repeat for excited state
     sym = Symmetry(2, Parity::odd);
@@ -270,11 +270,11 @@ TEST(EJOperatorTester, HeTransitions)
     g_factors.CalculateGFactors(Odd3);
     Odd3.Print();
 
-    pLevel singlet_P = Odd3.levels[1];
-    pLevel triplet_P = Odd3.levels[0];
-    excited_state_energy = Odd3.levels[1]->GetEnergy();
-    EXPECT_NEAR(1.5, triplet_P->GetgFactor(), 0.001);
-    EXPECT_NEAR(1.0, singlet_P->GetgFactor(), 0.001);
+    unsigned int singlet_P_index = 1;
+    unsigned int triplet_P_index = 0;
+    excited_state_energy = Odd3.eigenvalues[1];
+    EXPECT_NEAR(1.5, Odd3.g_factors[triplet_P_index], 0.001);
+    EXPECT_NEAR(1.0, Odd3.g_factors[singlet_P_index], 0.001);
 
     // Check energy 1s2 -> 1s2p 3P1 (should be within 10%)
     EXPECT_NEAR(171160, (excited_state_energy - ground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 17000);
@@ -292,23 +292,23 @@ TEST(EJOperatorTester, HeTransitions)
     double matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[1];
     double reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(2, 0, 1, 2, 0);
     *logstream << "1s2 -> 1s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
-    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.levels.size() * 1 + 0];
+    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.NumLevels() * 1 + 0];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "1s2p 1P1 -> 1s2: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(0.5311, reduced_matrix_element * reduced_matrix_element, 0.05);
 
-    E1->SetFrequency(Even3.levels[1]->GetEnergy() - excited_state_energy);
+    E1->SetFrequency(Even3.eigenvalues[1] - excited_state_energy);
     E1_matrix_elements->clear();
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
-    matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[Odd3.levels.size() * 1 + 1];
+    matrix_element = E1_many_body.GetMatrixElement(Even3, Odd3)[Odd3.NumLevels() * 1 + 1];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "1s2s 1S0 -> 1s2p 1P1: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
-    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.levels.size() * 1 + 1];
+    matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[Even3.NumLevels() * 1 + 1];
     reduced_matrix_element = matrix_element/MathConstant::Instance()->Electron3j(0, 2, 1, 0, -2);
     *logstream << "1s2p 1P1 -> 1s2s 1S0: S_E1 = " << reduced_matrix_element * reduced_matrix_element << std::endl;
     EXPECT_NEAR(25.52, reduced_matrix_element * reduced_matrix_element, 2.5);
 
-    E1->SetFrequency(triplet_P->GetEnergy() - ground_state_energy);
+    E1->SetFrequency(Odd3.eigenvalues[triplet_P_index] - ground_state_energy);
     E1_matrix_elements->clear();
     E1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
     matrix_element = E1_many_body.GetMatrixElement(Odd3, Even3)[0];
@@ -380,12 +380,12 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         // Calculate transition
         pTimeDependentSpinorOperator M1 = std::make_shared<MJOperator>(1, hf->GetIntegrator());
-        M1->SetFrequency(levels.levels[2]->GetEnergy() - levels.levels[1]->GetEnergy());
+        M1->SetFrequency(levels.eigenvalues[2] - levels.eigenvalues[1]);
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
-        m1_electron = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
+        m1_electron = M1_many_body.GetMatrixElement(levels, levels)[levels.NumLevels() * 2 + 1];
 
         // Convert to strength = (reduced matrix element)^2
         m1_electron = m1_electron/math->Electron3j(sym.GetTwoJ(), sym.GetTwoJ(), 1, sym.GetTwoJ(), -sym.GetTwoJ());
@@ -445,12 +445,12 @@ TEST(MJOperatorTester, HolesVsElectrons)
         // Calculate transition
         pIntegrator integrator(new SimpsonsIntegrator(lattice));
         pTimeDependentSpinorOperator M1 = std::make_shared<MJOperator>(1, integrator);
-        M1->SetFrequency(levels.levels[2]->GetEnergy() - levels.levels[1]->GetEnergy());
+        M1->SetFrequency(levels.eigenvalues[2] - levels.eigenvalues[1]);
         pTransitionIntegrals M1_matrix_elements(new TransitionIntegrals(orbitals, M1));
         M1_matrix_elements->CalculateOneElectronIntegrals(orbitals->valence, orbitals->valence);
         ManyBodyOperator<pTransitionIntegrals> M1_many_body(M1_matrix_elements);
 
-        m1_hole = M1_many_body.GetMatrixElement(levels, levels)[levels.levels.size() * 2 + 1];
+        m1_hole = M1_many_body.GetMatrixElement(levels, levels)[levels.NumLevels() * 2 + 1];
 
         // Convert to strength = (reduced matrix element)^2
         m1_hole = m1_hole/math->Electron3j(sym.GetTwoJ(), sym.GetTwoJ(), 1, sym.GetTwoJ(), -sym.GetTwoJ());

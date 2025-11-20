@@ -24,7 +24,7 @@ void Atom::InternalConversion(const LevelVector& source)
     }
 
     // Add nuclear_energy to source level energy
-    nuclear_energy += source.levels[0]->GetEnergy();
+    nuclear_energy += source.eigenvalues[0];
 
     user_input.set_prefix(std::string("IC"));
     GeneralisedHyperfineCalculator calculon(user_input, *this);
@@ -71,10 +71,6 @@ void Atom::InternalConversion(const LevelVector& source)
         Symmetry sym = key->GetSymmetry();
         auto levelvec = levels->GetLevels(key);
 
-        // One final level at a time. Create a copy of the final level for summation over M.
-        LevelVector final_copy(levelvec.configs, levelvec.levels[0]);
-        final_copy.hID = key;
-
         // Create copies of final_configs with different two_M
         std::vector<pRelativisticConfigList> final_configs;
         final_configs.reserve(2 * sym.GetTwoJ() + 1);
@@ -87,13 +83,13 @@ void Atom::InternalConversion(const LevelVector& source)
 
         // Loop over all levels
         int level_index = 0;
-        for(auto level_it = levelvec.levels.begin(); level_it != levelvec.levels.end(); level_it++)
+        for(unsigned int level_index = 0; level_index < levelvec.NumLevels(); level_index++)
         {
-            // Create final
-            final_copy.levels[0] = *level_it;
+            // One final level at a time. Create a copy of the final level for summation over M.
+            auto final_copy = levelvec.getSubset(level_index);
 
             // Build continuum
-            double eps_energy = nuclear_energy - (*level_it)->GetEnergy();
+            double eps_energy = nuclear_energy - final_copy.eigenvalues.front();
             if(eps_energy <= 1.e-4)
                 break;
 
@@ -209,10 +205,7 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
     // Get source level occupancies
     Configuration<OrbitalInfo, double> source_occupancies;
 
-    auto& level = source.levels.front();
-    const std::vector<double>& eigenvector = level->GetEigenvector();
-
-    const double* eigenvector_csf = eigenvector.data();
+    const double* eigenvector_csf = source.eigenvectors.row(0).data();
     for(auto& rconfig: *source.configs)
     {
         double contribution = 0.0;
@@ -345,7 +338,7 @@ void Atom::Autoionization(const LevelVector& target)
 
     // Target information
     Symmetry target_symmetry(target.hID->GetSymmetry());
-    LevelVector target_copy(target.configs, target.levels[0]);
+    LevelVector target_copy = target.getSubset(0);
 
     // Create copies of target_configs with different two_M
     std::vector<pRelativisticConfigList> target_configs;
@@ -386,19 +379,16 @@ void Atom::Autoionization(const LevelVector& target)
         Symmetry sym = key->GetSymmetry();
         auto levelvec = levels->GetLevels(key);
 
-        // Compound target
-        LevelVector levelvec_single(levelvec.configs, levelvec.levels[0]);
-        levelvec_single.hID = key;
 
         // Loop over all levels
         int level_index = 0;
-        for(auto level_it = levelvec.levels.begin(); level_it != levelvec.levels.end(); level_it++)
+        for(unsigned int level_index = 0; level_index < levelvec.NumLevels(); level_index++)
         {
-            // Create target
-            levelvec_single.levels[0] = *level_it;
+            // Compound target
+            LevelVector levelvec_single = levelvec.getSubset(level_index);
 
             // Build continuum
-            double eps_energy = (*level_it)->GetEnergy() - ionization_energy;
+            double eps_energy = levelvec_single.eigenvalues[0] - ionization_energy;
             if(eps_energy <= 0.)
             {
                 level_index++;
@@ -616,19 +606,18 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
         LevelVector levelvec = levels->GetLevels(key);
 
         // Group levels that use the same continuum energy
-        auto level_it = levelvec.levels.begin();
         unsigned int level_index = 0;
         for(int energy_grid_point = 0; energy_grid_point < energy_grid.size(); energy_grid_point++)
         {
-            if(level_it == levelvec.levels.end() ||
-               (energy_limit > 0.0 && (*level_it)->GetEnergy() > energy_limit + ionization_energy))
+            if(level_index >= levelvec.NumLevels() ||
+               (energy_limit > 0.0 && levelvec.eigenvalues[level_index] > energy_limit + ionization_energy))
                 break;
             pqn = pqn_offset + energy_grid_point;
 
             // Get levels in the energy range
-            auto level_end_of_energy_range = level_it;
+            unsigned int level_end_of_energy_range = level_index;
             if((energy_grid_point == energy_grid.size() - 1) && (energy_limit <= 0.0)) // Last point and no energy limit
-                level_end_of_energy_range = levelvec.levels.end();
+                level_end_of_energy_range = levelvec.NumLevels();
             else
             {   double max_energy;
                 if(energy_grid_point == energy_grid.size() - 1)
@@ -636,20 +625,17 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
                 else
                     max_energy = 0.5 * (energy_grid[energy_grid_point] + energy_grid[energy_grid_point+1]) + ionization_energy;
 
-                while(level_end_of_energy_range != levelvec.levels.end()
-                      && (*level_end_of_energy_range)->GetEnergy() < max_energy)
+                while(level_end_of_energy_range != levelvec.NumLevels()
+                      && levelvec.eigenvalues[level_end_of_energy_range] < max_energy)
                 {
                     level_end_of_energy_range++;
                 }
             }
 
-            unsigned int num_levels = level_end_of_energy_range - level_it;
+            unsigned int num_levels = level_end_of_energy_range - level_index;
             if(num_levels != 0)
             {
-                LevelVector level_subset;
-                level_subset.hID = levelvec.hID;
-                level_subset.configs = levelvec.configs;
-                level_subset.levels.insert(level_subset.levels.begin(), level_it, level_end_of_energy_range);
+                LevelVector level_subset = levelvec.getSubset(level_index, num_levels);
 
                 unsigned int solution;
                 std::vector<double> rate(num_levels, 0.0);
@@ -666,7 +652,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 
                 // continuum J should not be less than (sym.J - target.J)
                 min_eps_twoJ = mmax(min_eps_twoJ, abs(sym.GetTwoJ() - target_symmetry.GetTwoJ()));
-                
+
                 // Maximum L and Parity -> Maximum J
                 int max_eps_twoJ;
                 if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
@@ -720,7 +706,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
                     char sep = ' ';
                     for(solution = 0; solution < num_levels; solution++)
                     {
-                        double eps_energy = level_subset.levels[solution]->GetEnergy() - ionization_energy;
+                        double eps_energy = level_subset.eigenvalues[solution] - ionization_energy;
                         *outstream << std::setprecision(5);
                         *outstream << eps_energy * energy_unit_conversion << sep
                                    << rate[solution] * rate_unit_conversion << sep
@@ -730,7 +716,6 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
                 }
             }
 
-            level_it = level_end_of_energy_range;
             level_index += num_levels;
         }
     }
@@ -741,8 +726,7 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
     // Get fractional occupations of target orbitals
     OccupationMap target_occ;
 
-    const std::vector<double>& eigenvector = target.levels[0]->GetEigenvector();
-    const double* eigenvector_csf = eigenvector.data();
+    const double* eigenvector_csf = target.eigenvectors.row(0).data();
     for(auto& rconfig: *target.configs)
     {
         double contribution = 0.0;
@@ -775,7 +759,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     // Create relativistic target
     RelativisticConfiguration rtarget;
-    for(const auto& pair: target)
+    for (const auto &pair: target)
     {
         rtarget.insert(std::make_pair(pair.first, int(std::floor(target.GetOccupancy(pair.first) + 0.1))));
     }
@@ -783,11 +767,11 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     // Select orbitals in target wavefunction
     std::set<OrbitalInfo> target_info_set;
     pOrbitalMap target_map(new OrbitalMap(lattice));
-    for(const auto& pair: target)
+    for (const auto &pair: target)
     {
         target_info_set.insert(pair.first);
     }
-    for(const auto& info: target_info_set)
+    for (const auto &info: target_info_set)
     {
         target_map->AddState(valence->GetState(info));
     }
@@ -797,12 +781,13 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
     std::string config = user_input("DR/ContinuumResidue", "");
-    if(config == "")
+    if (config == "")
         hf_continuum = hf_open;
     else
-    {   hf_continuum = hf_open->Clone();
+    {
+        hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, config));
-        for(auto& orbital: *continuum_core)
+        for (auto &orbital: *continuum_core)
         {
             pOrbital basis_state = orbitals->all->GetState(orbital.first);
             continuum_core->AddState(basis_state);
@@ -817,7 +802,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     // Get target including core for occupancy
     OccupationMap target_with_core;
-    for(const auto& orb: *orbitals->core)
+    for (const auto &orb: *orbitals->core)
     {
         target_with_core.insert(std::make_pair(orb.first, orb.first.MaxNumElectrons()));
     }
@@ -830,76 +815,78 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns-1)
 
     // Loop over all configurations
-    for(auto& rconfig: *allconfigs)
+    for (auto &rconfig: *allconfigs)
     {
         // Subtract target from configurations to get differences
         auto rdiff = rconfig - rtarget;
 
         // Check that this nrconfig is a valid double-excitation of target
-        if(rdiff.ParticleNumber() != 3)
+        if (rdiff.ParticleNumber() != 3)
             continue;
 
         Parity eps_parity = rconfig.GetParity() * rtarget.GetParity();
 
         // Build continuum
         double eps_energy = 0;
-        if(use_single_particle_energy)
+        if (use_single_particle_energy)
         {
-            for(auto& pair: rdiff)
+            for (auto &pair: rdiff)
                 eps_energy += valence->GetState(pair.first)->Energy() * pair.second;
-        }
-        else
-        {   OccupationMap rcompound = target + rdiff;
-            eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf_electron, twobody_electron->GetIntegrals()) - ionization_energy;
+        } else
+        {
+            OccupationMap rcompound = target + rdiff;
+            eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf_electron,
+                                                             twobody_electron->GetIntegrals()) - ionization_energy;
         }
 
-        if(energy_limit > 0.0 && (eps_energy > energy_limit))
+        if (energy_limit > 0.0 && (eps_energy > energy_limit))
             continue;
         double eps_energy_calculated = eps_energy;
-        if(eps_energy_calculated <= grid_min)
+        if (eps_energy_calculated <= grid_min)
             eps_energy_calculated = grid_min;
 
         // Get participating electrons:
         //     a -> h and b -> eps
-        const OrbitalInfo* electrons[2] = {nullptr, nullptr};
-        const OrbitalInfo* h = nullptr;
+        const OrbitalInfo *electrons[2] = {nullptr, nullptr};
+        const OrbitalInfo *h = nullptr;
 
         bool double_occupancy_excitation = (rdiff.size() == 2);
 
         auto it = rdiff.begin();
-        while(it != rdiff.end())
+        while (it != rdiff.end())
         {
-            if(it->second < 0)
-            {   h = &(it->first);
+            if (it->second < 0)
+            {
+                h = &(it->first);
                 it++;
-            }
-            else if(electrons[0] == nullptr)
-            {   electrons[0] = &(it->first);
-                if(!double_occupancy_excitation) // Do not increase iterator if it->second == 2.
+            } else if (electrons[0] == nullptr)
+            {
+                electrons[0] = &(it->first);
+                if (!double_occupancy_excitation) // Do not increase iterator if it->second == 2.
                     it++;
-            }
-            else
-            {   electrons[1] = &(it->first);
+            } else
+            {
+                electrons[1] = &(it->first);
                 it++;
             }
         }
 
         double rate = 0.0;
 
-        for(int choose_electron_a = 0; choose_electron_a < (double_occupancy_excitation? 1: 2); choose_electron_a++)
+        for (int choose_electron_a = 0; choose_electron_a < (double_occupancy_excitation ? 1 : 2); choose_electron_a++)
         {
-            const OrbitalInfo* a = electrons[choose_electron_a];
-            const OrbitalInfo* b = electrons[1 - choose_electron_a];
+            const OrbitalInfo *a = electrons[choose_electron_a];
+            const OrbitalInfo *b = electrons[1 - choose_electron_a];
 
             // Get largest k1 which inform eps_twoJ
             int max_k1_overall = a->L() + h->L();
-            if(2 * max_k1_overall > a->TwoJ() + h->TwoJ())
+            if (2 * max_k1_overall > a->TwoJ() + h->TwoJ())
                 max_k1_overall -= 2;
 
             // Get epsilon
             // Minimum L and Parity -> Minimum J
             int min_eps_twoJ;
-            if(eps_parity == (min_continuum_l%2? Parity::odd: Parity::even))
+            if (eps_parity == (min_continuum_l % 2 ? Parity::odd : Parity::even))
                 min_eps_twoJ = mmax(2 * min_continuum_l - 1, 1);
             else
                 min_eps_twoJ = 2 * min_continuum_l + 1;
@@ -908,17 +895,17 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
             // Maximum L and Parity -> Maximum J
             int max_eps_twoJ;
-            if(eps_parity == (max_continuum_l%2? Parity::odd: Parity::even))
+            if (eps_parity == (max_continuum_l % 2 ? Parity::odd : Parity::even))
                 max_eps_twoJ = 2 * max_continuum_l + 1;
             else
                 max_eps_twoJ = 2 * max_continuum_l - 1;
 
             max_eps_twoJ = mmin(max_eps_twoJ, b->TwoJ() + 2 * max_k1_overall);
 
-            for(int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ+=2)
+            for (int eps_twoJ = min_eps_twoJ; eps_twoJ <= max_eps_twoJ; eps_twoJ += 2)
             {
                 // Kappa = (-1)^(j+1/2 + l) (j + 1/2) = (-1)^(j+1/2).P.(j+1/2)
-                int eps_kappa = (eps_twoJ + 1)/2;
+                int eps_kappa = (eps_twoJ + 1) / 2;
                 eps_kappa = math->minus_one_to_the_power(eps_kappa) * Sign(eps_parity) * eps_kappa;
 
                 OrbitalInfo eps_info(100, eps_kappa);
@@ -937,7 +924,8 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 two_body_integrals->CalculateTwoElectronIntegrals(continuum_map, target_map, valence, valence);
 
                 // Create operator for autoionization
-                pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(two_body_integrals);
+                pTwoElectronCoulombOperator two_body_operator = std::make_shared<TwoElectronCoulombOperator>(
+                        two_body_integrals);
 
                 // Sum_k1 < a, b || V^k1 || h, eps > * multiplier
                 // multiplier = < a, b || V^k1 || h, eps > / (2k1 + 1)
@@ -948,22 +936,22 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 int min_k1 = mmax(abs(b->L() - eps_info.L()), abs(a->L() - h->L()));
                 int max_k1 = mmin(b->L() + eps_info.L(), abs(a->L() + h->L()));
 
-                for(int k1 = min_k1; k1 <= max_k1; k1 += 2)
+                for (int k1 = min_k1; k1 <= max_k1; k1 += 2)
                 {
                     double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
 
-                    if(fabs(Vah) > 1.e-15)
+                    if (fabs(Vah) > 1.e-15)
                     {
-                        double multiplier = Vah / (2*k1 + 1);
+                        double multiplier = Vah / (2 * k1 + 1);
 
                         // Exchange part
                         int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
                         int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
 
-                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                        for (int k2 = min_k2; k2 <= max_k2; k2 += 2)
                         {
                             double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
-                            if(partial_k2)
+                            if (partial_k2)
                             {
                                 double Vbh = two_body_operator->GetReducedMatrixElement(k2, *a, *b, eps_info, *h);
                                 partial_k2 *= math->minus_one_to_the_power(k1 + k2) * Vbh;
@@ -978,11 +966,11 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
             }
         }
 
-        rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h)/h->MaxNumElectrons()
-                * (1. - target_with_core.GetOccupancy(*electrons[0])/electrons[0]->MaxNumElectrons())
-                * (1. - target_with_core.GetOccupancy(*electrons[1])/electrons[1]->MaxNumElectrons());
+        rate *= 2. * math->Pi() * target_with_core.GetOccupancy(*h) / h->MaxNumElectrons()
+                * (1. - target_with_core.GetOccupancy(*electrons[0]) / electrons[0]->MaxNumElectrons())
+                * (1. - target_with_core.GetOccupancy(*electrons[1]) / electrons[1]->MaxNumElectrons());
 
-        if(ProcessorRank == 0)
+        if (ProcessorRank == 0)
         {
             char sep = ' ';
             *outstream << std::setprecision(8) << eps_energy * energy_unit_conversion << sep

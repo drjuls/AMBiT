@@ -2,7 +2,7 @@
 #define TRANSITIONS_H
 
 #include "Atom/Atom.h"
-#include "Configuration/Level.h"
+#include "Configuration/LevelVector.h"
 #include "Universal/Enums.h"
 #include "RPAOperator.h"
 #include <map>

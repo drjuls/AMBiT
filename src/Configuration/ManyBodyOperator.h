@@ -52,11 +52,11 @@ public:
         IndirectProjection sorted_p1, sorted_p2;
     };
 
-    /** Rearrange indirects.left and indirects.right so that differences are at the beginning (up to 
+    /** Rearrange indirects.left and indirects.right so that differences are at the beginning (up to
         max differences).
         abs(return value) is number of differences found.
         sign(return value) indicates number of permutations (+ve is even number, -ve is odd).
-        If skipped_right_electron != nullptr, assume indirects.right is one electron smaller than 
+        If skipped_right_electron != nullptr, assume indirects.right is one electron smaller than
         indirects.left; the last element of indirects.right is the skipped electron which we can
         assume is not present in indirects.left.
 
@@ -64,7 +64,7 @@ public:
      */
     template<int max_diffs>
     inline int GetProjectionDifferences(IndirectProjectionStruct& indirects, const ElectronInfo* skipped_p2_electron = nullptr) const;
- 
+
     inline void make_indirect_projection(const Projection& proj, IndirectProjection& indirect_proj) const;
 
     /** Matrix element between two projections.
@@ -74,7 +74,7 @@ public:
      */
     inline double GetMatrixElement(const Projection& proj_left, const Projection& proj_right, const ElectronInfo* epsilon = nullptr) const;
 
-    /** Equivalent to calculating GetMatrixElement(level, level) for each level in vector.
+    /** Get diagonal matrix elements of GetMatrixElement(level, level) for each level in vector.
         Return vector of matrix elements.
      */
     inline std::vector<double> GetMatrixElement(const LevelVector& levels) const;
@@ -521,120 +521,99 @@ int ManyBodyOperator<pElectronOperators...>::GetProjectionDifferences(IndirectPr
 template<typename... pElectronOperators>
 std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& levelvec) const
 {
-    std::vector<const double*> eigenvector;
+    std::vector<double> total(levelvec.NumLevels(), 0.);
+    if(levelvec.NumLevels() == 0)
+        return total;
 
     auto& configs = levelvec.configs;
-    auto& levels = levelvec.levels;
+    auto& levels = levelvec.eigenvectors;
 
-    eigenvector.reserve(levels.size());
-    for(auto it = levels.begin(); it != levels.end(); it++)
-        eigenvector.push_back((*it)->GetEigenvector().data());
-
-    if(eigenvector.empty())
-        return std::vector<double>();
-
-    std::vector<double> total(eigenvector.size(), 0.);
+    // Returns diagonal of matrix, which for Eigen is a column vector
+    Eigen::Map<ColMajorMatrix> M_total(total.data(), levelvec.NumLevels(),1);
 
 #ifdef AMBIT_USE_OPENMP
-    /* Make a vector to hold the running total for each thread. This needs to be shared so its contents 
-     * persist across different OpenMP tasks (N.B. this is only here because gcc and clang have 
-     * different ideas about whether the value of private variables should persist across tasks executed 
+    /* Make a vector to hold the running total for each thread. This needs to be shared so its contents
+     * persist across different OpenMP tasks (N.B. this is only here because gcc and clang have
+     * different ideas about whether the value of private variables should persist across tasks executed
      * by the same thread).
      */
-    std::vector<double> my_total(eigenvector.size() * omp_get_max_threads(), 0.);
+//    std::vector<double> my_total(eigenvector.size() * omp_get_max_threads(), 0.);
 #endif
 
 #ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for default(none) \
-                             shared(my_total, configs, eigenvector) \
-                             schedule(dynamic)
+//    #pragma omp parallel for default(none) \
+//                             shared(my_total, configs, eigenvector) \
+//                             schedule(dynamic)
 #endif
-    for(unsigned long long ii = 0; ii < configs->size(); ii++)
+    unsigned int config_index = 0;
+    for(auto config_it = configs->begin(); config_it != configs->end(); config_it++)
     {
-        // Increment config_it to bring it up to our loop variable. This isn't a great approach, but
-        // OpenMP doesn't play nicely with non-random-access iterators
-        auto config_it = configs->begin();
-        std::advance(config_it, ii);
-
-        unsigned long long config_index = ii * configs->size();
-
-        auto config_jt = config_it;
-        while(config_jt != configs->end())
+        for(auto config_jt = config_it; config_jt != configs->end(); config_jt++)
         {
             if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
                 if(IsMyJob(config_index))
                 {
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
+                    // Iterate over projections and get matrix elements
+                    RowMajorMatrix Op_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_jt->projection_size());
+
+                    // Loop through projections
+#ifdef AMBIT_USE_OPENMP
+                    #pragma omp parallel for default(none) \
+                                             shared(Op_proj, config_it, config_jt)\
+                                             schedule(dynamic)
+#endif
+                    for(int pi = 0; pi < config_it.projection_size(); pi++)
                     {
-                        RelativisticConfiguration::const_projection_iterator proj_jt;
+                        auto proj_it = config_it.projection_begin();
+                        std::advance(proj_it, pi);
+
+                        auto proj_jt = config_jt.projection_begin();
+                        int pj = 0;
                         if(config_it == config_jt)
-                            proj_jt = proj_it;
-                        else
-                            proj_jt = config_jt.projection_begin();
+                        {   proj_jt = proj_it;
+                            pj = pi;
+                        }
 
                         while(proj_jt != config_jt.projection_end())
                         {
-                            // This thread's running total will get stored at this offset
-#ifdef AMBIT_USE_OPENMP
-                            int my_offset = omp_get_thread_num() * eigenvector.size();
-#endif
-
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt);
-
-                            // coefficients
-                            if(matrix_element)
-                            {
-                                // If the projections are different, count twice
-                                if(proj_it != proj_jt)
-                                {   matrix_element *= 2.;
-                                }
-
-                                for(int solution = 0; solution < eigenvector.size(); solution++)
-                                {
-                                    for(auto coeff_i = proj_it.CSF_begin(); coeff_i != proj_it.CSF_end(); coeff_i++)
-                                    {
-                                        double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * eigenvector[solution][coeff_i.index()];
-
-                                        RelativisticConfigList::const_CSF_iterator start_j = proj_jt.CSF_begin();
-
-                                        const double* pright = &eigenvector[solution][start_j.index()];
-                                        for(auto coeff_j = start_j; coeff_j != proj_jt.CSF_end(); coeff_j++)
-                                        {
-#ifdef AMBIT_USE_OPENMP
-                                            my_total[my_offset + solution] += left_coeff_and_matrix_element
-                                                                * (*coeff_j) * (*pright);
-#else
-                                            total[solution] += left_coeff_and_matrix_element
-                                                                * (*coeff_j) * (*pright);
-#endif
-                                            pright++;
-                                        }
-                                    }
-                                }
-                            }
-                            proj_jt++;
+                            Op_proj(pi, pj) = GetMatrixElement(*proj_it, *proj_jt);
+                            proj_jt++; pj++;
                         }
-                    proj_it++;
+                    }
+
+                    if(config_it == config_jt)
+                    {
+                        Eigen::Map<const RowMajorMatrix> angular_i_mapped(config_it->GetCSFs(),
+                                                                          config_it->projection_size(),
+                                                                          config_it->NumCSFs());
+
+                        // Add contribution to total
+                        M_total += (levels.middleCols(config_it.csf_offset(), config_it->NumCSFs())
+                                    * angular_i_mapped.transpose() * Op_proj.selfadjointView<Eigen::Upper>() * angular_i_mapped
+                                    * levels.middleCols(config_jt.csf_offset(), config_jt->NumCSFs()).transpose()
+                                    ).diagonal();
+                    }
+                    else
+                    {   // Get CSF data
+                        Eigen::Map<const RowMajorMatrix> angular_i_mapped(config_it->GetCSFs(),
+                                                                          config_it->projection_size(),
+                                                                          config_it->NumCSFs());
+                        Eigen::Map<const RowMajorMatrix> angular_j_mapped(config_jt->GetCSFs(),
+                                                                          config_jt->projection_size(),
+                                                                          config_jt->NumCSFs());
+
+                        // Add contribution to total
+                        M_total += 2. * (levels.middleCols(config_it.csf_offset(), config_it->NumCSFs())
+                                  * angular_i_mapped.transpose() * Op_proj * angular_j_mapped
+                                  * levels.middleCols(config_jt.csf_offset(), config_jt->NumCSFs()).transpose()
+                                  ).diagonal();
                     }
                 } // MPI work distribution
-
                 config_index++;
             }
-            config_jt++;
         }
-    } // config_it + OpenMP single region
-
-#ifdef AMBIT_USE_OPENMP
-    // Gather all the partial sums 
-    for(int proc = 0; proc < omp_get_max_threads(); ++proc)
-        for(int ii = 0; ii < eigenvector.size(); ++ii)
-        {
-            total[ii] += my_total[proc * eigenvector.size() + ii];
-        }
-#endif
+    }
 
 #ifdef AMBIT_USE_MPI
     std::vector<double> reduced_total(total.size(), 0.);
@@ -648,132 +627,92 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 template<typename... pElectronOperators>
 std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(const LevelVector& left_levelvec, const LevelVector& right_levelvec, const ElectronInfo* epsilon) const
 {
-    std::vector<const double*> left_eigenvector;
-    std::vector<const double*> right_eigenvector;
+    std::vector<double> total(left_levelvec.NumLevels() * right_levelvec.NumLevels(), 0.0);
+    if(total.size() == 0)
+        return total;
 
-    auto& left_levels = left_levelvec.levels;
-    auto& right_levels = right_levelvec.levels;
+    auto& left_levels = left_levelvec.eigenvectors;
+    auto& right_levels = right_levelvec.eigenvectors;
     auto& configs_left = left_levelvec.configs;
     auto& configs_right = right_levelvec.configs;
 
-    left_eigenvector.reserve(left_levels.size());
-    for(auto it = left_levels.begin(); it != left_levels.end(); it++)
-        left_eigenvector.push_back((*it)->GetEigenvector().data());
-
-    right_eigenvector.reserve(right_levels.size());
-    for(auto it = right_levels.begin(); it != right_levels.end(); it++)
-        right_eigenvector.push_back((*it)->GetEigenvector().data());
-
-    unsigned int return_size = left_eigenvector.size() * right_eigenvector.size();
-    if(return_size == 0)
-        return std::vector<double>();
-
-    std::vector<double> total(return_size, 0.);
+    Eigen::Map<RowMajorMatrix> M_total(total.data(), left_levelvec.NumLevels(), right_levelvec.NumLevels());
 
 #ifdef AMBIT_USE_OPENMP
-    /* Make a vector to hold the running total for each thread. This needs to be shared so its contents 
-     * persist across different OpenMP tasks (N.B. this is only here because gcc and clang have 
-     * different ideas about whether the value of private variables should 
+    /* Make a vector to hold the running total for each thread. This needs to be shared so its contents
+     * persist across different OpenMP tasks (N.B. this is only here because gcc and clang have
+     * different ideas about whether the value of private variables should
      * persist across tasks executed by the same thread)
     */
-    std::vector<double> my_total(return_size * omp_get_max_threads(), 0.);
-
-    #pragma omp parallel for default(none) \
-                             shared(my_total, configs_left, configs_right, left_eigenvector, \
-                                    right_eigenvector, epsilon, return_size)\
-                             schedule(dynamic)
+//    std::vector<double> my_total(return_size * omp_get_max_threads(), 0.);
+//
+//    #pragma omp parallel for default(none) \
+//                             shared(my_total, configs_left, configs_right, left_eigenvector, \
+//                                    right_eigenvector, epsilon, return_size)\
+//                             schedule(dynamic)
 #endif
-    for(unsigned long long ii = 0; ii < configs_left->size(); ii++)
+    unsigned int config_index = 0;
+    for(auto config_it = configs_left->begin(); config_it != configs_left->end(); config_it++)
     {
-        // Increment config_it to keep it in step with our loop variable. This isn't a great 
+        // Increment config_it to keep it in step with our loop variable. This isn't a great
         // approach, but OpenMP doesn't play nicely with non-random-access iterators so we don't
         // have much of a choice
-        auto config_it = configs_left->begin();
-        std::advance(config_it, ii);
+//        auto config_it = configs_left->begin();
+//        std::advance(config_it, ii);
 
-        unsigned long long config_index = ii * configs_left->size();
+//        unsigned long long config_index = ii * configs_left->size();
 
-        auto config_jt = configs_right->begin();
-        while(config_jt != configs_right->end())
+//        auto config_jt = configs_right->begin();
+//        while(config_jt != configs_right->end())
+        for(auto config_jt = configs_right->begin(); config_jt != configs_right->end(); config_jt++)
         {
             if(config_it->GetConfigDifferencesCount(*config_jt) <= sizeof...(pElectronOperators))
             {
                 if(IsMyJob(config_index))
                 {
 #ifdef AMBIT_USE_OPENMP
-                    int my_offset = omp_get_thread_num() * return_size;
+//                    int my_offset = omp_get_thread_num() * return_size;
 #endif
-                    // Iterate over projections
-                    auto proj_it = config_it.projection_begin();
-                    while(proj_it != config_it.projection_end())
+                    // Iterate over projections and get matrix elements
+                    RowMajorMatrix Op_proj = RowMajorMatrix::Zero(config_it->projection_size(), config_jt->projection_size());
+
+                    // Loop through projections
+#ifdef AMBIT_USE_OPENMP
+                    #pragma omp parallel for default(none) \
+                                             shared(Op_proj, config_it, config_jt, epsilon)\
+                                             schedule(dynamic)
+#endif
+                    for(int pi = 0; pi < config_it.projection_size(); pi++)
                     {
-                        int left_start_CSF_index = proj_it.CSF_begin().index();
-                        int left_end_CSF_index = proj_it.CSF_end().index();
+                        auto proj_it = config_it.projection_begin();
+                        std::advance(proj_it, pi);
 
                         auto proj_jt = config_jt.projection_begin();
+                        int pj = 0;
                         while(proj_jt != config_jt.projection_end())
                         {
-                            double matrix_element = GetMatrixElement(*proj_it, *proj_jt, epsilon);
-
-                            // coefficients
-                            if(matrix_element)
-                            {
-                                int right_start_CSF_index = proj_jt.CSF_begin().index();
-                                int right_end_CSF_index = proj_jt.CSF_end().index();
-
-                                int solution = 0;
-                                for(unsigned int left_index = 0; left_index < left_eigenvector.size(); left_index++)
-                                {
-                                    for(unsigned int right_index = 0; right_index < right_eigenvector.size(); right_index++)
-                                    {
-                                        auto coeff_i = proj_it.CSF_begin();
-                                        for(const double* pleft = &left_eigenvector[left_index][left_start_CSF_index];
-                                            pleft != &left_eigenvector[left_index][left_end_CSF_index]; pleft++)
-                                        {
-                                            double left_coeff_and_matrix_element = matrix_element * (*coeff_i) * (*pleft);
-
-                                            auto coeff_j = proj_jt.CSF_begin();
-                                            for(const double* pright = &right_eigenvector[right_index][right_start_CSF_index];
-                                                pright != &right_eigenvector[right_index][right_end_CSF_index]; pright++)
-                                            {
-#ifdef AMBIT_USE_OPENMP
-                                                my_total[my_offset + solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
-#else
-                                                total[solution] += left_coeff_and_matrix_element * (*coeff_j) * (*pright);
-#endif
-                                                coeff_j++;
-                                            }
-                                            coeff_i++;
-                                        }
-
-                                        solution++;
-                                    }
-                                }
-                            }
-                            proj_jt++;
+                            Op_proj(pi, pj) = GetMatrixElement(*proj_it, *proj_jt, epsilon);
+                            proj_jt++; pj++;
                         }
-                        proj_it++;
                     }
 
-                } // MPI work distribution
+                    // Get CSF data
+                    Eigen::Map<const RowMajorMatrix> angular_i_mapped(config_it->GetCSFs(), config_it->projection_size(), config_it->NumCSFs());
+                    Eigen::Map<const RowMajorMatrix> angular_j_mapped(config_jt->GetCSFs(), config_jt->projection_size(), config_jt->NumCSFs());
 
+                    // Add contribution to total
+                    M_total += left_levels.middleCols(config_it.csf_offset(), config_it->NumCSFs())
+                                * angular_i_mapped.transpose() * Op_proj * angular_j_mapped
+                                * right_levels.middleCols(config_jt.csf_offset(), config_jt->NumCSFs()).transpose();
+
+                } // MPI work distribution
                 config_index++;
             }
-            config_jt++;
         } // config_jt loop
     } // config_it loop
 
-#ifdef AMBIT_USE_OPENMP
-    // Gather all the partial sums 
-    for(int proc = 0; proc < omp_get_max_threads(); ++proc)
-        for(int ii = 0; ii < return_size; ++ii)
-        {
-            total[ii] += my_total[proc * return_size + ii];
-        }
-#endif
-
 #ifdef AMBIT_USE_MPI
-    std::vector<double> reduced_total(return_size, 0.);
+    std::vector<double> reduced_total(total.size(), 0.);
     MPI_Allreduce(total.data(), reduced_total.data(), return_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     return reduced_total;
 #else

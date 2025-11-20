@@ -502,14 +502,12 @@ void AmbitInterface::Recombination()
     LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
 
     int target_level_index = user_input("DR/Target/Index", 0);
-    if(target_level_vec.levels.size() <= target_level_index)
+    if(target_level_index < target_level_vec.NumLevels())
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
 
-    auto keep = std::next(target_level_vec.levels.begin(), target_level_index);
-    target_level_vec.levels.erase(target_level_vec.levels.begin(), keep);
-    target_level_vec.levels.resize(1);
+    target_level_vec = target_level_vec.getSubset(target_level_index);
 
     // Get widths of current levels
     if(user_input.search("--configuration-average"))
@@ -567,14 +565,11 @@ void AmbitInterface::InternalConversion()
     LevelVector source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
 
     int source_level_index = user_input("IC/Source/Index", 0);
-    if(source_level_vec.levels.size() <= source_level_index)
+    if(source_level_index < source_level_vec.NumLevels())
     {   *errstream << "IC: Cannot find source level." << std::endl;
         exit(1);
     }
-
-    auto keep = std::next(source_level_vec.levels.begin(), source_level_index);
-    source_level_vec.levels.erase(source_level_vec.levels.begin(), keep);
-    source_level_vec.levels.resize(1);
+    source_level_vec = source_level_vec.getSubset(source_level_index);
 
     if(user_input.search("--configuration-average"))
         atoms[first_run_index].InternalConversionConfigurationAveraged(source_level_vec);
