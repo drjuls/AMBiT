@@ -483,13 +483,11 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         ScalapackMatrix SM(N);
         SM.ReadLowerTriangle(filename);
 
-	*outstream << "Read." << std::endl;
         // Diagonalise
         levelvec.eigenvalues.resize(N); // All eigenvalues
         double* E = levelvec.eigenvalues.data();
         SM.Diagonalise(E);
 
-	*outstream << "Diagonalised." << std::endl;
         // Cut off num_solutions
         if(energy_limit)
             for(int i = 0; i < NumSolutions; i++)
