@@ -469,10 +469,7 @@ LevelVector HamiltonianMatrix::SolveMatrix(pHamiltonianID hID, unsigned int num_
 #ifdef AMBIT_USE_SCALAPACK
 LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned int num_solutions, const std::string& filename, std::optional<double> energy_limit)
 {
-    LevelVector levelvec;
-    levelvec.hID = hID;
-    levelvec.configs = configs;
-
+    LevelVector levelvec(hID, configs);
     unsigned int NumSolutions = mmin(num_solutions, N);
 
     if(NumSolutions == 0)
@@ -486,10 +483,13 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         ScalapackMatrix SM(N);
         SM.ReadLowerTriangle(filename);
 
+	*outstream << "Read." << std::endl;
         // Diagonalise
-        double* E = new double[N];  // All eigenvalues
+        levelvec.eigenvalues.resize(N); // All eigenvalues
+        double* E = levelvec.eigenvalues.data();
         SM.Diagonalise(E);
 
+	*outstream << "Diagonalised." << std::endl;
         // Cut off num_solutions
         if(energy_limit)
             for(int i = 0; i < NumSolutions; i++)
@@ -501,28 +501,25 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
                 }
             };
 
-        // Get levels. Using a larger buffer is generally better, so
-        // choose something around 1M * 8 bytes (small enough to be "in the noise")
-        levelvec.levels.reserve(NumSolutions);
+        // Get levels
+        levelvec.Resize(NumSolutions, N);
+
+        // Do a few sets of eigenvectors at a time, order 10M elements
+        // Scalapack returns column-major vectors
         unsigned int column_begin = 0;
-        unsigned int num_columns_per_step = 1000000/N;
-        double* V = new double[N * num_columns_per_step];  // Eigenvectors
+        unsigned int num_columns_per_step = mmax(10000000/N, 1);
+
+        ColMajorMatrix V(N, num_columns_per_step);
 
         while(column_begin < NumSolutions)
         {
             unsigned int column_end = mmin(column_begin + num_columns_per_step, NumSolutions);
-            SM.GetColumns(column_begin, column_end, V);
+            SM.GetColumns(column_begin, column_end, V.data());
+            unsigned int num_eigenvectors = column_end-column_begin;
 
-            double* pV = V;
-            while(column_begin < column_end)
-            {   levelvec.levels.push_back(std::make_shared<Level>(E[column_begin], pV, hID, N));
-                column_begin++;
-                pV += N;
-            }
+            levelvec.eigenvectors.middleRows(column_begin, num_eigenvectors) = V.leftCols(num_eigenvectors).transpose();
+            column_begin = column_end;
         }
-
-        delete[] E;
-        delete[] V;
     }
 
     return levelvec;
