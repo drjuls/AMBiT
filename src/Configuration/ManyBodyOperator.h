@@ -561,7 +561,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 #ifdef AMBIT_USE_OPENMP
                     #pragma omp parallel for default(none) \
                                              shared(Op_proj, config_it, config_jt)\
-                                             schedule(dynamic)
+                                             schedule(static)
 #endif
                     for(int pi = 0; pi < config_it.projection_size(); pi++)
                     {
@@ -680,7 +680,7 @@ std::vector<double> ManyBodyOperator<pElectronOperators...>::GetMatrixElement(co
 #ifdef AMBIT_USE_OPENMP
                     #pragma omp parallel for default(none) \
                                              shared(Op_proj, config_it, config_jt, epsilon)\
-                                             schedule(dynamic)
+                                             schedule(static)
 #endif
                     for(int pi = 0; pi < config_it.projection_size(); pi++)
                     {
