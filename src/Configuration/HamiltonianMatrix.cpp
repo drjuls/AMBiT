@@ -150,6 +150,7 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
                 // This needs to be outside the conditional so it gets executed by each rank. Every process
                 // needs to know how much work has already been assigned to the others
                 processor_work_sizes[assigned_process] += config_work[config_index];
+                most_chunk_rows = mmax(most_chunk_rows, config_it->NumCSFs());
             }
             csf_start += config_it->NumCSFs();
             config_index++;
@@ -368,6 +369,9 @@ void HamiltonianMatrix::GenerateMatrix(unsigned int configs_per_chunk)
     Eigen::setNbThreads(0);
 #endif
 
+    std::sort(chunks.begin(), chunks.end(), [](const MatrixChunk& left, const MatrixChunk& right) -> bool
+        {   return (left.start_row < right.start_row); });
+
     for(auto& matrix_section: chunks)
         matrix_section.Symmetrize();
 }
@@ -481,12 +485,15 @@ LevelVector HamiltonianMatrix::SolveMatrixScalapack(pHamiltonianID hID, unsigned
         Clear();
 
         ScalapackMatrix SM(N);
+        *logstream << "ScalapackMatrix allocated..." << std::flush;
         SM.ReadLowerTriangle(filename);
+        *logstream << " read..." << std::flush;
 
         // Diagonalise
         levelvec.eigenvalues.resize(N); // All eigenvalues
         double* E = levelvec.eigenvalues.data();
         SM.Diagonalise(E);
+        *logstream << " diagonalised." << std::endl;
 
         // Cut off num_solutions
         if(energy_limit)
@@ -678,7 +685,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
         double diagbuf[most_chunk_rows * most_chunk_rows];
     #endif
 
-        int row = 0;
+        long long int row = 0;
         while(row < N)
         {
             int num_rows = 0;
@@ -700,18 +707,22 @@ void HamiltonianMatrix::Write(const std::string& filename) const
 
                 // Receive chunk
                 MPI_Status status;
-                MPI_Recv(&buf, Nsmall*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
+                int err;
+                err = MPI_Recv(&buf, Nsmall*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row, MPI_COMM_WORLD, &status);
+                if(err)
+                    *errstream << "HamiltonianMatrix::Write: MPI_Error " << err << std::endl;
 
                 // Get number of rows in chunk
                 int data_count;
                 MPI_Get_count(&status, MPI_DOUBLE, &data_count);
-                if(data_count >= int(Nsmall) * (int(Nsmall) - row))
+                if(data_count/Nsmall > int(Nsmall) - row)
                     num_rows = data_count/Nsmall;
                 else
-                    num_rows = (-row + sqrt(row * row + 4 * data_count))/2;
+                    num_rows = (-row + sqrtl(row * row + 4LL * (long long int)(data_count)))/2;
 
                 if(num_rows * mmin(row + num_rows, Nsmall) != data_count)
                 {   *errstream << "HamiltonianMatrix::Write: received incorrect chunk size." << std::endl;
+                    *errstream << "  row=" << row << " num_rows=" << num_rows << " Nsmall=" << Nsmall << " data_count=" << data_count << std::endl;
                     exit(1);
                 }
 
@@ -720,7 +731,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
                 // Receive diagonal
                 if(row + num_rows > Nsmall)
                 {
-                    MPI_Recv(&diagbuf, most_chunk_rows*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row+1, MPI_COMM_WORLD, &status);
+                    MPI_Recv(&diagbuf, most_chunk_rows*most_chunk_rows, MPI_DOUBLE, MPI_ANY_SOURCE, row+N, MPI_COMM_WORLD, &status);
 
                     // Check diagonal size
                     diag_rows = mmin(num_rows, row + num_rows - Nsmall);
@@ -779,7 +790,7 @@ void HamiltonianMatrix::Write(const std::string& filename) const
 
                 // Send diagonal if it exists
                 if(chunk_it->diagonal.size())
-                    MPI_Send(chunk_it->diagonal.data(), chunk_it->diagonal.size(), MPI_DOUBLE, 0, row+1, MPI_COMM_WORLD);
+                    MPI_Send(chunk_it->diagonal.data(), chunk_it->diagonal.size(), MPI_DOUBLE, 0, row+N, MPI_COMM_WORLD);
 
                 chunk_it++;
             }
