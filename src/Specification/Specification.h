@@ -6,9 +6,69 @@
 #include <optional>
 #include <memory>
 #include "SpecificationMap.h"
+#include "parapara/parapara.h"
+
+namespace P = parapara;
 
 namespace Ambit
 {
+
+// Generic options for CI and CI/SmallSide
+class CIBaseSpecification
+{
+public:
+    std::string leading_configurations;
+    std::string leading_rel_configurations;
+    std::string extra_configurations;
+    std::string extra_rel_configurations;
+
+    /* TODO EVK: This is really annoying, because the spec says that it can be *either* an integer
+     * (e.g. CI/ElectronExcitations=2) or a string (e.g. ElectronExcitations = '1,5spdf,2,5spd')
+     * and this is really annoying to deal with. My current approach of splitting it into two fields
+     * (one for the number of excitations, and one for the bounds) completely breaks backwards
+     * compatibility with the old style of user input parsing.
+     *
+     * The alternative would be to use a std::variant, which would rule because
+     * algebraic types rule, but std::variant's actual implementation in C++ is kind of yucky.
+     * Also, the existing "list" form of arguments ('1, 5spdf, 2, 5spd') also has multiple types
+     * within a single list (an integer followed by a string), which kind of inherently requires
+     * weird type wrangling to get it to work.
+    */
+    unsigned electron_excitations;
+    std::optional<std::vector<std::string>> electron_bounds;
+    std::optional<std::vector<std::string>> hole_bounds;
+    unsigned hole_excitations = 0;
+    bool print_configurations = false;
+    bool print_rel_configurations = false;
+    std::optional<std::pair<double, double> > configuration_average_energy_range;
+};
+
+// This is used for the "full" CI options, as it includes extra stuff not in SmallSide (mainly
+// around how many and which solutions to generate
+class CISpecification: public CIBaseSpecification
+{
+public:
+    std::vector<unsigned> even_parity_twoj;
+    std::vector<unsigned> odd_parity_twoj;
+    unsigned num_solutions = 6;
+    bool all_symmetries = false;
+    bool gfactors = false;
+    bool no_gfactors = false;
+    bool memory_saver = false;
+    bool single_configuration_ci = false;
+    bool scalapack = false;
+    std::optional<double> max_energy;
+    unsigned chunksize = 4;
+    bool sort_matrix_by_configuration = false;
+    bool output_print_hamiltonian = false;
+    bool output_write_hamiltonian = false;
+    std::optional<double> output_max_displayed_energy;
+    std::optional<double> output_min_displayed_percent;
+    bool output_print_inline = false;
+    std::optional<std::string> output_separator;
+    bool output_print_relativistic_configurations = false;
+    bool output_no_configs = false;
+};
 
 class GlobalSpecification {
 
@@ -28,6 +88,22 @@ public:
 
 protected:
     GlobalSpecification();
+
+    // Helper functions for parsing
+    //template <typename R, typename X>
+    //void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr, std::string key_pfx, const std::vector<P::specification<X>>& x_specs, std::string desc_pfx = "");
+    
+    template <typename T>
+    std::vector<P::specification<T>> make_ci_base_specification();
+
+    template <typename T>
+    std::vector<P::specification<T>> make_ci_specification();
+
+
+public:
+    // Make the vector containing pairs mapping from the CLI option to their corresponding
+    // fields in a GlobalSpecification struct.
+    void MakeGlobalSpecificationsMappings();
 
 public: 
     // Ungrouped options
@@ -110,62 +186,11 @@ public:
     double basis_bspline_N = 40;
     std::string basis_bspline_splinetype;
     // CI
-    std::string ci_leading_configurations;
-    std::string ci_leading_rel_configurations;
-    std::string ci_extra_configurations;
-    std::string ci_extra_rel_configurations;
-
-    /* TODO EVK: This is really annoying, because the spec says that it can be *either* an integer
-     * (e.g. CI/ElectronExcitations=2) or a string (e.g. ElectronExcitations = '1,5spdf,2,5spd')
-     * and this is really annoying to deal with. My current approach of splitting it into two fields
-     * (one for the number of excitations, and one for the bounds) completely breaks backwards
-     * compatibility with the old style of user input parsing.
-     *
-     * The alternative would be to use a std::variant, which would rule because
-     * algebraic types rule, but std::variant's actual implementation in C++ is kind of yucky.
-     * Also, the existing "list" form of arguments ('1, 5spdf, 2, 5spd') also has multiple types
-     * within a single list (an integer followed by a string), which kind of inherently requires
-     * weird type wrangling to get it to work.
-    */
-    unsigned ci_electron_excitations;
-    std::optional<std::vector<std::string>> ci_electron_bounds;
-    std::optional<std::vector<std::string>> ci_hole_bounds;
-    unsigned ci_hole_excitations = 0;
-    std::vector<unsigned> ci_even_parity_twoj;
-    std::vector<unsigned> ci_odd_parity_twoj;
-    unsigned ci_num_solutions = 6;
-    bool ci_all_symmetries = false;
-    bool ci_gfactors = false;
-    bool ci_no_gfactors = false;
-    bool ci_memory_saver = false;
-    bool ci_single_configuration_ci = false;
-    bool ci_print_configurations = false;
-    bool ci_print_rel_configurations = false;
-    bool ci_scalapack = false;
-    std::optional<double> ci_max_energy;
-    std::optional<std::pair<double, double> > ci_configuration_average_energy_range;
-    unsigned ci_chunksize = 4;
-    bool ci_sort_matrix_by_configuration = false;
-    // CI/Output
-    bool ci_output_print_hamiltonian = false;
-    bool ci_output_write_hamiltonian = false;
-    std::optional<double> ci_output_max_displayed_energy;
-    std::optional<double> ci_output_min_displayed_percent;
-    bool ci_output_print_inline = false;
-    std::optional<std::string> ci_output_separator;
-    bool ci_output_print_relativistic_configurations = false;
-    bool ci_output_no_configs = false;
+    CISpecification ci;
+    // CI/Output is also in CISpecification
     // CI/SmallSide
-    bool ci_do_smallside = false;
-    std::string ci_smallside_leading_configurations;
-    std::string ci_smallside_leading_rel_configurations;
-    unsigned ci_smallside_electron_excitations;
-    std::optional<std::vector<std::string>> ci_smallside_electron_bounds;
-    std::optional<std::vector<std::string>> ci_smallside_hole_bounds;
-    unsigned ci_smallside_hole_excitations = 0;
-    bool ci_smallside_print_configurations = false;
-    bool ci_smallside_print_rel_configurations = false;
-    std::optional<std::pair<double, double> > ci_smallside_configuration_average_energy_range;
+    bool ci_do_smallside;
+    CIBaseSpecification ci_smallside;
     // MBPT
     std::optional<std::string> mbpt_basis;
     std::optional<std::string> mbpt_energy_denom_orbitals;
@@ -200,6 +225,7 @@ public:
     // TODO EVK: Really want to be able to make these private, but GlobalSpecification is declared
     // globally, so it doesn't work. Probably need to move the parsing stuff into a separate class
     // so I can make it a friend
+protected:
     bool _s1 = false;
     bool _s2 = false;
     bool _s3 = false;
@@ -207,10 +233,15 @@ public:
     bool _s12 = false;
     bool _s13 = false;
     bool _s23 = false;
+public:
+    std::vector<P::specification<GlobalSpecification>> global_specifications_mappings;
+    // Nice std::map-like interface for retrieving global_specifications fields based on
+    // their CLI arguments
+    //P::specification_map<GlobalSpecification> global_specifications_dict;
 };
+
 // On success, return empty string.
 // On failure, return (long) error message.
-
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName);
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment);
 

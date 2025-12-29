@@ -3,6 +3,7 @@
 #include <istream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Specification.h"
 #include "parapara/parapara.h"
@@ -17,7 +18,6 @@ P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Rec
 
 inline auto positive = P::greater_than(0, "must be positive");
 
-
 GlobalSpecification* GlobalSpecification::Instance()
 {
     static GlobalSpecification instance;
@@ -26,9 +26,82 @@ GlobalSpecification* GlobalSpecification::Instance()
 
 GlobalSpecification::GlobalSpecification()
 {
+    // Create the mappings from CLI arguments to GlobalSpecification fields
+    MakeGlobalSpecificationsMappings();
 }
 
-P::specification<GlobalSpecification> global_specifications[] = {
+
+// Helper methods for the polymorphic "delegated" parsing (so we can e.g. re-use common options
+// between [Transition] operators. Much of this is derived from "ex-delegate.cc" in the parapara
+// examples: https://github.com/halfflat/parapara/blob/main/ex/ex-delegate.cc
+
+// A bit of syntactic sugar for inheritance (even if it does involve some copies):
+template <typename C>
+C extend(C&& container, const std::initializer_list<typename C::value_type>& il) {
+    std::copy(std::begin(il), std::end(il), std::back_inserter(container));
+    return container;
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_ci_base_specification() {
+    return {
+        {"LeadingConfigurations",                &X::leading_configurations},
+        {"LeadingRelativisticConfigurations",    &X::leading_rel_configurations},
+        {"ElectronExcitations",                  &X::electron_excitations},
+        {"ElectronBounds",                       &X::electron_bounds},
+        {"HoleExcitations",                      &X::hole_excitations},
+        {"HoleBounds",                           &X::hole_bounds},
+        {"--print-configurations",               &X::print_configurations},
+        {"--print-relativistic-configurations",  &X::print_rel_configurations},
+        {"ConfigurationAverageEnergyRange",      &X::configuration_average_energy_range},
+    };
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
+    return extend(make_ci_base_specification<X>(), {
+        {"EvenParityTwoJ",                       &X::even_parity_twoj},
+        {"OddParityTwoJ",                        &X::odd_parity_twoj},
+        {"NumSolutions",                         &X::num_solutions},
+        {"--all-symmetries",                     &X::all_symmetries},
+        {"--gfactors",                           &X::gfactors},
+        {"--no-gfactors",                        &X::no_gfactors},
+        {"--memory-saver",                       &X::memory_saver},
+        {"--single-configuration-CI",            &X::single_configuration_ci},
+        {"--scalapack",                                     &X::scalapack},
+        {"MaxEnergy",                                       &X::max_energy},
+        {"ChunkSize",                                       &X::chunksize},
+        {"--sort-matrix-by-configuration",                  &X::sort_matrix_by_configuration}, 
+        {"Output/--write-hamiltonian",                      &X::output_write_hamiltonian}, 
+        {"Output/--print-hamiltonian",                      &X::output_print_hamiltonian}, 
+        {"Output/--print-inline",                           &X::output_print_inline}, 
+        {"Output/--print-relativistic-configurations",      &X::output_print_relativistic_configurations}, 
+        {"Output/--no-configs",                             &X::output_no_configs}, 
+        {"Output/MaxDisplayedEnergy",                       &X::output_max_displayed_energy}, 
+        {"Output/MinDisplayedPercent",                      &X::output_min_displayed_percent}, 
+        {"Output/Separator",                                &X::output_separator}, 
+     });
+}
+
+
+// Add specifications for members of record subobjects that have their own sets of specifications.
+// Keys and field descriptions are given a prefix as supplied.
+
+template <typename R, typename X>
+void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr, std::string key_pfx, const std::vector<P::specification<X>>& x_specs, std::string desc_pfx = "")
+{
+    for (const auto& x_spec: x_specs) {
+        specs.emplace_back(key_pfx+x_spec.key, field_ptr, x_spec, desc_pfx+x_spec.description);
+    }
+}
+
+// Now for the Global options
+// Need to whack this in a function to programmatically generate the delegated options
+
+// TODO: This should be a member function of global_specifications or something
+void GlobalSpecification::MakeGlobalSpecificationsMappings()
+{
+    global_specifications_mappings = {
     // Ungrouped options
     {"ID",                      &GlobalSpecification::ID, P::nonempty()},
     {"Z",                       &GlobalSpecification::Z, positive},
@@ -118,46 +191,9 @@ P::specification<GlobalSpecification> global_specifications[] = {
     {"Basis/BSpline/N",             &GlobalSpecification::basis_bspline_N},
     {"Basis/BSpline/SplineType",    &GlobalSpecification::basis_bspline_splinetype},
     // CI
-    {"CI/LeadingConfigurations",                &GlobalSpecification::ci_leading_configurations},
-    {"CI/LeadingRelativisticConfigurations",    &GlobalSpecification::ci_leading_rel_configurations},
-    {"CI/ExtraConfigurations",                  &GlobalSpecification::ci_extra_configurations},
-    {"CI/ExtraRelativisticConfigurations",      &GlobalSpecification::ci_extra_rel_configurations},
-    {"CI/ElectronExcitations",                  &GlobalSpecification::ci_electron_excitations},
-    {"CI/ElectronBounds",                       &GlobalSpecification::ci_electron_bounds},
-    {"CI/HoleExcitations",                      &GlobalSpecification::ci_hole_excitations},
-    {"CI/HoleBounds",                           &GlobalSpecification::ci_hole_bounds},
-    {"CI/EvenParityTwoJ",                       &GlobalSpecification::ci_even_parity_twoj},
-    {"CI/OddParityTwoJ",                        &GlobalSpecification::ci_odd_parity_twoj},
-    {"CI/NumSolutions",                         &GlobalSpecification::ci_num_solutions},
-    {"CI/--all-symmetries",                     &GlobalSpecification::ci_all_symmetries},
-    {"CI/--gfactors",                           &GlobalSpecification::ci_gfactors},
-    {"CI/--no-gfactors",                        &GlobalSpecification::ci_no_gfactors},
-    {"CI/--memory-saver",                       &GlobalSpecification::ci_memory_saver},
-    {"CI/--single-configuration-CI",            &GlobalSpecification::ci_single_configuration_ci},
-    {"CI/--print-configurations",               &GlobalSpecification::ci_print_configurations},
-    {"CI/--print-relativistic-configurations",  &GlobalSpecification:: ci_print_rel_configurations},
-    {"CI/--scalapack",                                     &GlobalSpecification::ci_scalapack},
-    {"CI/MaxEnergy",                                       &GlobalSpecification::ci_max_energy},
-    {"CI/ConfigurationAverageEnergyRange",                 &GlobalSpecification::ci_configuration_average_energy_range},
-    {"CI/ChunkSize",                                       &GlobalSpecification::ci_chunksize},
-    {"CI/--sort-matrix-by-configuration",                  &GlobalSpecification::ci_sort_matrix_by_configuration}, 
-    {"CI/Output/--write-hamiltonian",                      &GlobalSpecification::ci_output_write_hamiltonian}, 
-    {"CI/Output/--print-hamiltonian",                      &GlobalSpecification::ci_output_print_hamiltonian}, 
-    {"CI/Output/--print-inline",                          &GlobalSpecification::ci_output_print_inline}, 
-    {"CI/Output/--print-relativistic-configurations",     &GlobalSpecification::ci_output_print_relativistic_configurations}, 
-    {"CI/Output/--no-configs",                            &GlobalSpecification::ci_output_no_configs}, 
-    {"CI/Output/MaxDisplayedEnergy",                      &GlobalSpecification::ci_output_max_displayed_energy}, 
-    {"CI/Output/MinDisplayedPercent",                     &GlobalSpecification::ci_output_min_displayed_percent}, 
-    {"CI/Output/Separator",                               &GlobalSpecification::ci_output_separator}, 
 // CI/SmallSide
-    {"CI/SmallSide",                                      &GlobalSpecification::ci_do_smallside},
-    {"CI/SmallSide/LeadingConfigurations",                &GlobalSpecification::ci_smallside_leading_configurations},
-    {"CI/SmallSide/LeadingRelativisticConfigurations",    &GlobalSpecification::ci_smallside_leading_rel_configurations},
-    {"CI/SmallSide/ElectronExcitations",                  &GlobalSpecification::ci_smallside_electron_excitations},
-    {"CI/SmallSide/ElectronBounds",                       &GlobalSpecification::ci_smallside_electron_bounds},
-    {"CI/SmallSide/HoleExcitations",                      &GlobalSpecification::ci_smallside_hole_excitations},
-// MBPT
-    {"CI/SmallSide/HoleBounds",                           &GlobalSpecification::ci_smallside_hole_bounds},
+    {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
+    // MBPT
     {"MBPT/Basis",                             &GlobalSpecification::mbpt_basis}, 
     {"MBPT/EnergyDenomOrbitals",               &GlobalSpecification::mbpt_energy_denom_orbitals}, 
     {"MBPT/--use-valence",                     &GlobalSpecification::mbpt_use_valence}, 
@@ -170,15 +206,22 @@ P::specification<GlobalSpecification> global_specifications[] = {
     {"MBPT/TwoBody/StorageLimits",            &GlobalSpecification::mbpt_twobody_storage_limits}, 
     {"MBPT/OneBody/Scaling",                  &GlobalSpecification::mbpt_onebody_scaling}, 
     {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner}
-
 };
 
-P::specification_map<GlobalSpecification> global_specifications_dict(global_specifications, P::keys_lc_nows);
+    // CI and CI/SmallSide specs
+    auto ci_specs = make_ci_specification<CISpecification>();
+    auto ci_smallside_specs = make_ci_base_specification<CIBaseSpecification>();
+
+    // Delegates
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci, "CI/", ci_specs, "CI full: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci_smallside, "CI/SmallSide", ci_smallside_specs, "CI SmallSide: ");
+}
 
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName) {
     std::ifstream in(fileName);
     if (!in) return "unable to open input file '"+fileName+"'";
 
+    P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
     auto h = custom_import_ini(*gs, global_specifications_dict, in);
     if (!h) return P::explain(h.error(), true);
 
@@ -186,6 +229,7 @@ std::string importSpecificationFile(GlobalSpecification* gs, const std::string& 
 }
 
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment) {
+    P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
     auto h = P::import_k_eq_v(*gs, global_specifications_dict, assignment);
     if (!h) return P::explain(h.error(), true);
     else return "";
@@ -241,40 +285,40 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     }
     
     // Must specify LevelDirectory if using CI/--memory-saver
-    if(ci_memory_saver && !level_directory)
+    if(ci.memory_saver && !level_directory)
         return "Must specify LevelDirectory when using CI/--memory-saver";
     // Can't request both CI/--gfactors and CI/--no-gfactors
-    if (ci_gfactors && ci_no_gfactors)
+    if (ci.gfactors && ci.no_gfactors)
         return "CI/--gfactors and CI/--no-gfactors cannot both be set at the same time";
 
     // The number of electron/hole excitation bounds must be equal to the number of
     // electron/hole excitations
-    if(ci_electron_bounds)
+    if(ci.electron_bounds)
     {
-        if(ci_electron_bounds.value().size() != ci_electron_excitations)
+        if(ci.electron_bounds.value().size() != ci.electron_excitations)
         {
             return "Incorrect number of arguments to CI/ElectronBounds";
         }
     }
-    if(ci_hole_bounds)
+    if(ci.hole_bounds)
     {
-        if(ci_hole_bounds.value().size() != ci_hole_excitations)
+        if(ci.hole_bounds.value().size() != ci.hole_excitations)
         {
             return "Incorrect number of arguments to CI/HoleBounds";
         }
     }
 
     // Same for SmallSide
-    if(ci_smallside_electron_bounds)
+    if(ci_smallside.electron_bounds)
     {
-        if(ci_smallside_electron_bounds.value().size() != ci_smallside_electron_excitations)
+        if(ci_smallside.electron_bounds.value().size() != ci_smallside.electron_excitations)
         {
             return "Incorrect number of arguments to CI/SmallSide/ElectronBounds";
         }
     }    
-    if(ci_smallside_hole_bounds)
+    if(ci_smallside.hole_bounds)
     {
-        if(ci_smallside_hole_bounds.value().size() != ci_smallside_hole_excitations)
+        if(ci_smallside.hole_bounds.value().size() != ci_smallside.hole_excitations)
         {
             return "Incorrect number of arguments to CI/SmallSide/HoleBounds";
         }
@@ -289,7 +333,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
 // the parsing and validation
 SpecificationMap get_config_map_view(GlobalSpecification& gs)
 {
-    keyed_record_view<GlobalSpecification> config_map(global_specifications, gs);
+    keyed_record_view<GlobalSpecification> config_map(gs.global_specifications_mappings, gs);
     return(config_map);
 }
 
