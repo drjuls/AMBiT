@@ -235,19 +235,15 @@ protected:
     bool _s23 = false;
 public:
     std::vector<P::specification<GlobalSpecification>> global_specifications_mappings;
-    // Nice std::map-like interface for retrieving global_specifications fields based on
-    // their CLI arguments
-    //P::specification_map<GlobalSpecification> global_specifications_dict;
 };
+
+
+// Miscellaneous utility functions
 
 // On success, return empty string.
 // On failure, return (long) error message.
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName);
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment);
-
-// Perform global validation of specifications. Return non-empty error message on failure.
-//std::string validateAndNormaliseSpecification(GlobalSpecification* gs);
-
 
 // Return a map-like interface to the configuration, which lets us do nice things like 
 // config_map["key"] = "value"

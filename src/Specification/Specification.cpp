@@ -13,11 +13,13 @@ namespace P = parapara;
 namespace Ambit
 {
 
+// Use a custom line-by-line ini importer to handle relative section headings
 template <typename Record>
 P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Record>& specs, std::istream& in);
 
 inline auto positive = P::greater_than(0, "must be positive");
 
+/********************* GlobalSpecification methods *********************/
 GlobalSpecification* GlobalSpecification::Instance()
 {
     static GlobalSpecification instance;
@@ -30,7 +32,7 @@ GlobalSpecification::GlobalSpecification()
     MakeGlobalSpecificationsMappings();
 }
 
-
+/********************* Parsing methods *********************/
 // Helper methods for the polymorphic "delegated" parsing (so we can e.g. re-use common options
 // between [Transition] operators. Much of this is derived from "ex-delegate.cc" in the parapara
 // examples: https://github.com/halfflat/parapara/blob/main/ex/ex-delegate.cc
@@ -59,7 +61,9 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_base_specification
 
 template <typename X>
 std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
+    // Extend from the base specification class
     return extend(make_ci_base_specification<X>(), {
+        // Now add the extras on top
         {"EvenParityTwoJ",                       &X::even_parity_twoj},
         {"OddParityTwoJ",                        &X::odd_parity_twoj},
         {"NumSolutions",                         &X::num_solutions},
@@ -86,7 +90,6 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
 
 // Add specifications for members of record subobjects that have their own sets of specifications.
 // Keys and field descriptions are given a prefix as supplied.
-
 template <typename R, typename X>
 void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr, std::string key_pfx, const std::vector<P::specification<X>>& x_specs, std::string desc_pfx = "")
 {
@@ -96,9 +99,6 @@ void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr
 }
 
 // Now for the Global options
-// Need to whack this in a function to programmatically generate the delegated options
-
-// TODO: This should be a member function of global_specifications or something
 void GlobalSpecification::MakeGlobalSpecificationsMappings()
 {
     global_specifications_mappings = {
@@ -217,6 +217,19 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci_smallside, "CI/SmallSide", ci_smallside_specs, "CI SmallSide: ");
 }
 
+// Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
+// nice key-value interface for usability. Therefore, it has to be called *after* we've done all
+// the parsing and validation
+SpecificationMap get_config_map_view(GlobalSpecification& gs)
+{
+    keyed_record_view<GlobalSpecification> config_map(gs.global_specifications_mappings, gs);
+    return(config_map);
+}
+
+
+/********************************************************************** 
+ * Actual parsing happens here 
+ **********************************************************************/
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName) {
     std::ifstream in(fileName);
     if (!in) return "unable to open input file '"+fileName+"'";
@@ -235,6 +248,7 @@ std::string importSpecificationKV(GlobalSpecification* gs, const std::string& as
     else return "";
 }
 
+/**************************** Validation *******************************/
 // Perform global validation of specifications. Return non-empty error message on failure.
 std::string GlobalSpecification::validateAndNormaliseSpecification() {
     // Check for consistent Lattice settings:
@@ -328,17 +342,9 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     return "";
 }
 
-// Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
-// nice key-value interface for usability. Therefore, it has to be called *after* we've done all
-// the parsing and validation
-SpecificationMap get_config_map_view(GlobalSpecification& gs)
-{
-    keyed_record_view<GlobalSpecification> config_map(gs.global_specifications_mappings, gs);
-    return(config_map);
-}
-
-// Custom INI import implementation:
-
+/********************************************************************** 
+ * Custom INI import implementation:
+ *********************************************************************/
 using P::ini_record;
 using P::ini_record_kind;
 
