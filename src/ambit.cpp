@@ -14,8 +14,7 @@
 #include "ExternalField/KineticEnergy.h"
 #include "ExternalField/LorentzInvarianceT2.h"
 #include "ExternalField/NormalMassShiftDecorator.h"
-
-#include <absl/time/time.h>
+#include "Universal/Profiler.h"
 
 // Headers to get stack-traces
 #ifdef UNIX
@@ -96,8 +95,9 @@ int main(int argc, char* argv[])
 
     OutStreams::InitialiseStreams();
 
-    // Start the timer
-    absl::Time start_time = absl::Now();
+    // Start the global timer
+    auto profiler = Profiler::Instance();
+    profiler->total.start();
 
     // Write the number of threads to the log file. This is useful for debugging.
     #ifdef AMBIT_USE_OPENMP
@@ -201,9 +201,25 @@ int main(int argc, char* argv[])
     #endif
 
     // Print timing information now that all processes have finished
-    absl::Time end_time = absl::Now();
-    auto duration = end_time - start_time;
-    *logstream << "AMBiT process " << ProcessorRank << " completed in: " << duration << std::endl;
+    profiler->total.stop();
+    *logstream << "================================================" << std::endl;
+    *logstream << "Profiling and timing information for rank " << ProcessorRank << ":" 
+               << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "Hartree-Fock and basis set: " << profiler->hf.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "Two-electron Slater integrals: " << profiler->slater.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "One-body MBPT integrals: " << profiler->one_body_mbpt.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "Two-body MBPT integrals: " << profiler->two_body_mbpt.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "CI: " << profiler->ci.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "Transition matrix elements: " << profiler->transitions.elapsed() << std::endl;
+    *logstream << "------------------------------------------------" << std::endl;
+    *logstream << "Total walltime: " << profiler->total.elapsed() << std::endl;
+    *logstream << "================================================" << std::endl;
 
     #ifdef AMBIT_USE_MPI
         MPI_Finalize();
@@ -378,6 +394,10 @@ void AmbitInterface::EnergyCalculations()
         if(user_input.search(2, "--ci-complete", "--CI-complete"))
             return;
 
+        // Start the CI timer
+        auto profiler = Profiler::Instance();
+        profiler->ci.start();
+
         for(int i = 1; i < run_indexes.size(); i++)
         {   user_input.SetRun(run_indexes[i]);
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
@@ -395,6 +415,9 @@ void AmbitInterface::EnergyCalculations()
                 atoms[i].CalculateEnergies(key);
             }
         }
+
+        // Stop the CI timer
+        profiler->ci.stop();
     }
 }
 
@@ -414,6 +437,10 @@ do { \
 
 void AmbitInterface::TransitionCalculations()
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->transitions.start();
+
     Atom& atom = atoms[first_run_index];
 
     // EM types
@@ -463,6 +490,9 @@ void AmbitInterface::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(NMS, NormalMassShiftCalculator);
 
     user_input.set_prefix("");
+    
+    // Stop the timer
+    profiler->transitions.stop();
 }
 
 #undef RUN_AND_STORE_TRANSITION

@@ -18,6 +18,7 @@
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HamiltonianTypes.h"
+#include "Universal/Profiler.h"
 
 namespace Ambit
 {
@@ -154,15 +155,29 @@ void Atom::MakeMBPTIntegrals()
     {
         if(one_body_mbpt)
         {
+            // Start the timer
+            auto profiler = Profiler::Instance();
+            profiler->one_body_mbpt.start();
+
             mbpt_integrals_one->Read(identifier + ".one.int");
             unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+
+            // Stop the timer
+            profiler->one_body_mbpt.stop();
             *logstream << "One-body MBPT integrals complete: size = " << size << std::endl;
         }
 
         if(two_body_mbpt)
         {
+            // Start the timer
+            auto profiler = Profiler::Instance();
+            profiler->two_body_mbpt.start();
+
             mbpt_integrals_two->Read(identifier + ".two.int");
             unsigned int size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
+
+            // Stop the timer
+            profiler->two_body_mbpt.stop();
             *logstream << "Two-body MBPT integrals complete: size = " << size << std::endl;
         }
     }
@@ -170,6 +185,10 @@ void Atom::MakeMBPTIntegrals()
 
 void Atom::MakeCIIntegrals()
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->slater.start();
+
     ClearIntegrals();
 
     pSlaterIntegrals two_body_integrals;
@@ -200,6 +219,7 @@ void Atom::MakeCIIntegrals()
        && !user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
+        
         *outstream << "\nNum Coulomb integrals: " << size << std::endl;
 
         if(three_body_mbpt)
@@ -253,6 +273,9 @@ void Atom::MakeCIIntegrals()
                 *outstream << "\nSigma3 Coulomb integrals: " << threebody_electron->GetStorageSize() << std::endl;
         }
     }
+
+    // Stop the timer
+    profiler->slater.stop();
 }
 
 void Atom::ClearIntegrals()

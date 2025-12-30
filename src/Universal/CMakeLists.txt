@@ -8,6 +8,7 @@ set(MODS_UNIVERSAL  Eigensolver.cpp
                     PhysicalConstant.cpp
                     ScalapackMatrix.cpp
                     SpinorFunction.cpp
+                    Profiler.cpp
                     Davidson.f
                     CACHE INTERNAL "")
 
@@ -43,4 +44,5 @@ endif()
 target_link_libraries(universal PUBLIC Eigen3::Eigen)
 target_link_libraries(universal PUBLIC GSL::gsl)
 target_link_libraries(universal PUBLIC absl::flat_hash_map)
+target_link_libraries(universal PUBLIC absl::time)
 target_include_directories(universal PRIVATE ${Boost_INCLUDE_DIRS})

@@ -8,6 +8,7 @@
 #include "Universal/ExpLattice.h"
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "Universal/Profiler.h"
 
 namespace Ambit
 {
@@ -20,6 +21,9 @@ Atom::~Atom(void)
 
 pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->hf.start();
     bool use_read = true;
     if(user_input.search(2, "--clean", "-c"))
         use_read = false;
@@ -77,6 +81,8 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
     MPI_Barrier(MPI_COMM_WORLD);
     ReadBasis();
 #endif
+    // Stop the timer
+    profiler->hf.stop();
 
     return open_core;
 }
