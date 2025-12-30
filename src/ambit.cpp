@@ -6,14 +6,16 @@
 #include "gitInfo.h"
 #include "ambit.h"
 #include "Atom/Atom.h"
-#include "ExternalField/EJOperator.h"
 #include "ExternalField/Hyperfine.h"
 #include "ExternalField/FieldShift.h"
+#include "ExternalField/EJOperator.h"
 #include "ExternalField/RadiativePotential.h"
 #include "ExternalField/YukawaPotential.h"
 #include "ExternalField/KineticEnergy.h"
 #include "ExternalField/LorentzInvarianceT2.h"
 #include "ExternalField/NormalMassShiftDecorator.h"
+
+#include <absl/time/time.h>
 
 // Headers to get stack-traces
 #ifdef UNIX
@@ -93,6 +95,9 @@ int main(int argc, char* argv[])
     #endif
 
     OutStreams::InitialiseStreams();
+
+    // Start the timer
+    absl::Time start_time = absl::Now();
 
     // Write the number of threads to the log file. This is useful for debugging.
     #ifdef AMBIT_USE_OPENMP
@@ -193,7 +198,14 @@ int main(int argc, char* argv[])
             int cont = 1;
             blacs_exit_(&cont);
         #endif
+    #endif
 
+    // Print timing information now that all processes have finished
+    absl::Time end_time = absl::Now();
+    auto duration = end_time - start_time;
+    *logstream << "AMBiT process " << ProcessorRank << " completed in: " << duration << std::endl;
+
+    #ifdef AMBIT_USE_MPI
         MPI_Finalize();
     #endif
 

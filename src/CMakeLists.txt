@@ -15,6 +15,10 @@ find_package(GSL REQUIRED)
 find_package(Boost REQUIRED)
 find_package(absl CONFIG REQUIRED)
 
+# Abseil timing code for coarse-grained profiling
+target_link_libraries(ambit PUBLIC absl::time)
+
+
 # LAPACK and BLAS
 # First, check to see if we need to use MKL or OpenBLAS. Can't use both at once, so error out if
 # both are set.

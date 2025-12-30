@@ -15,6 +15,9 @@
 #include <memory>
 #include <gsl/gsl_math.h>
 
+// Timing with Abseil
+#include <absl/time/time.h>
+
 #include "Atom/Debug.h"
 #include "Atom/OutStreams.h"
 
