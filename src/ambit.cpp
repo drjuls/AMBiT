@@ -1,3 +1,5 @@
+#include <absl/strings/str_format.h>
+#include <absl/time/time.h>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -202,24 +204,54 @@ int main(int argc, char* argv[])
 
     // Print timing information now that all processes have finished
     profiler->total.stop();
-    *logstream << "================================================" << std::endl;
-    *logstream << "Profiling and timing information for rank " << ProcessorRank << ":" 
+    *logstream << "\n|=========================================================|" << std::endl;
+    *logstream << absl::StreamFormat("|%-35s %21d|", "Profiling information for rank", ProcessorRank)
                << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "Hartree-Fock and basis set: " << profiler->hf.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "Two-electron Slater integrals: " << profiler->slater.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "One-body MBPT integrals: " << profiler->one_body_mbpt.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "Two-body MBPT integrals: " << profiler->two_body_mbpt.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "CI: " << profiler->ci.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "Transition matrix elements: " << profiler->transitions.elapsed() << std::endl;
-    *logstream << "------------------------------------------------" << std::endl;
-    *logstream << "Total walltime: " << profiler->total.elapsed() << std::endl;
-    *logstream << "================================================" << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Hartree-Fock and basis set")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->hf.elapsed())) 
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-electron Slater integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->slater.elapsed())) 
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "One-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->one_body_mbpt.elapsed())) 
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->two_body_mbpt.elapsed())) 
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "CI")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed())) 
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Transition matrix elements")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->transitions.elapsed())) 
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Total wall time")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->total.elapsed())) 
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
 
     #ifdef AMBIT_USE_MPI
         MPI_Finalize();
