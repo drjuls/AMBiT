@@ -14,6 +14,8 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(GSL REQUIRED)
 find_package(Boost REQUIRED)
 find_package(absl CONFIG REQUIRED)
+target_link_libraries(ambit PRIVATE absl::strings)
+target_link_libraries(ambit PRIVATE absl::str_format)
 
 # LAPACK and BLAS
 # First, check to see if we need to use MKL or OpenBLAS. Can't use both at once, so error out if
