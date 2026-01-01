@@ -234,11 +234,13 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
 }
 
 template <class MapType>
-void SlaterIntegrals<MapType>::Read(const std::string& filename)
+bool SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-        return;
+    {
+        return false;
+    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -298,6 +300,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
     }
 
     file_err_handler->fclose(fp);
+    return true;
 }
 
 template <class MapType>

@@ -233,7 +233,39 @@ void Atom::MakeCIIntegrals()
         // Don't need two body integrals if we're not doing CI
         if(!user_input.search(2, "--no-ci", "--no-CI"))
         {
-            two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+            // Check if we can read existing Slater Integrals from disk
+            bool use_read = true;
+            if(user_input.search(2, "--clean", "-c"))
+                use_read = false;
+
+            // Generate filename
+            std::string slater_filename = identifier + ".coulomb.int";
+            // Convert spaces to underscores in filename
+            std::replace_if(slater_filename.begin(), slater_filename.end(),
+                            [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
+
+            // Read Slater integrals if available, but only if we don't have the "-c" flag
+            bool generate_integrals = true;
+
+            // If reading from a checkpoint file, make sure the file exists and is
+            // valid, then read
+            if(use_read)
+            {
+                generate_integrals = !two_body_integrals->Read(slater_filename);
+            }
+
+            // Generate the integrals if reading from file failed, or if we're doing a
+            // clean run
+            if(generate_integrals)
+            {
+                *outstream << "Generating Slater Integrals..." << std::endl;
+                two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+
+                // And write the resulting integrals to the file
+                two_body_integrals->Write(slater_filename);
+            }
+
+            // Print size of integrals if requested
             if(user_input.search("--check-sizes"))
                 *outstream << "\nNum Coulomb integrals: " << two_body_integrals->size() << std::endl;
         }

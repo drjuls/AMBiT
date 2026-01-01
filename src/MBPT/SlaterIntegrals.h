@@ -64,7 +64,7 @@ public:
         |       |       |   (double)    |       |   (double)    |
         -------------------------------------------------------------
      */
-    virtual void Read(const std::string& filename) = 0;
+    virtual bool Read(const std::string& filename) = 0;
     virtual void Write(const std::string& filename) const = 0;
 
 protected:
@@ -131,7 +131,7 @@ public:
     virtual pHartreeY GetHartreeY() { return hartreeY_operator; }
 
     /** Read integrals, adding to existing keys or creating new ones. */
-    virtual void Read(const std::string& filename) override;
+    virtual bool Read(const std::string& filename) override;
     virtual void Write(const std::string& filename) const override;
 
 protected:
