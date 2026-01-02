@@ -215,7 +215,7 @@ void Atom::MakeCIIntegrals()
     if(user_input.search("--check-sizes")
        && !user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
        && !user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
-       && !user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
+    src/Atom/Atom_Open.cpp   && !user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
        && !user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
@@ -252,13 +252,16 @@ void Atom::MakeCIIntegrals()
             if(use_read)
             {
                 generate_integrals = !two_body_integrals->Read(slater_filename);
+                if(!generate_integrals)
+                    *logstream << "Read Slater integrals from file "
+                               << slater_filename << std::endl;
             }
 
             // Generate the integrals if reading from file failed, or if we're doing a
             // clean run
             if(generate_integrals)
             {
-                *outstream << "Generating Slater Integrals..." << std::endl;
+                *logstream << "Generating Slater integrals..." << std::endl;
                 two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
 
                 // And write the resulting integrals to the file
