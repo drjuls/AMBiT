@@ -215,7 +215,7 @@ void Atom::MakeCIIntegrals()
     if(user_input.search("--check-sizes")
        && !user_input.VariableExists("CI/ConfigurationAverageEnergyRange")
        && !user_input.VariableExists("CI/SmallSide/ConfigurationAverageEnergyRange")
-    src/Atom/Atom_Open.cpp   && !user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
+       && !user_input.search(2, "CI/--print-relativistic-configurations", "CI/--print-configurations")
        && !user_input.search(2, "CI/SmallSide/--print-relativistic-configurations", "CI/SmallSide/--print-configurations"))
     {
         unsigned int size = two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence, true);
