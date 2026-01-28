@@ -145,13 +145,12 @@ unsigned int CoreValenceIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbit
                                         {
                                     #endif
                                             keys.push_back(key);
-                                            // We need to store the actual orbital indices as well as the keys, since translating 
-                                            // between key and orbitals is not its own inverse (i.e. it doesn't preserve the order of
-                                            // the orbitals in the integral) and this can slightly affect the result. This will 
-                                            // increase the memory consumption within this subroutine, but these arrays will be 
-                                            // freed once we move on, si the overall effect on memory footprint should be small.
-                                            // TODO: Check with Julian as to whether the ordering of the orbitals *should* be 
-                                            // significant or is this a bug?
+/* We need to store the actual orbital indices as well as the keys, since translating
+ * between key and orbitals is not its own inverse (i.e. it doesn't preserve the order of
+ * the orbitals in the integral) and this can slightly affect the result. This will
+ * increase the memory consumption within this subroutine, but these arrays will be
+ * freed once we move on, so the overall effect on memory footprint should be small.
+ */
                                             expanded_keys.push_back(std::make_tuple<int, unsigned, unsigned, unsigned, unsigned>\
                                                     (std::move(k), std::move(i1), std::move(i2), std::move(i3), std::move(i4)));
 

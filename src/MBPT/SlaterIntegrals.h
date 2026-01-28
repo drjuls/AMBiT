@@ -6,6 +6,8 @@
 #include <map>
 #include <unordered_map>
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+#include <absl/container/btree_map.h>
 
 namespace Ambit
 {
@@ -151,6 +153,7 @@ protected:
 
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
 typedef SlaterIntegrals<absl::flat_hash_map<unsigned long long int, double>> SlaterIntegralsFlatHash;
+typedef SlaterIntegrals<absl::btree_map<unsigned long long int, double>> SlaterIntegralsBTree;
 }
 
 #include "SlaterIntegrals.cpp"
