@@ -47,12 +47,29 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     int k;
     pOrbitalConst s1, s2, s3, s4;
 
-
-    // First, run over the orbital indices and calculate some de-duplicated set of valid
-    // integrals, then store their "expanded keys" (a.k.a. a tuple of orbital indices
-    // plus k). Do not calculate any integrals at this point - that comes later
-    std::vector<KeyType> keys;
-    std::vector<std::tuple<int, unsigned, unsigned, unsigned, unsigned>> expanded_keys;
+    /* First, run over the orbital indices and calculate some de-duplicated set of valid
+     * integrals (as well as eliminating integrals which are zero by symmetry
+     * requirments), then store their "expanded keys" (a.k.a. a tuple of orbital indices
+     * plus k). Do not calculate any integrals at this point - that comes later. The
+     * reason for splitting this step out and doing it in serial is because we store the
+     * calculated integrals in a shared hash table and we want to avoid lock contention
+     * between lots of OpenMP threads. 
+     *
+     * We therefore calculate which integrals need to be calculated (represented by
+     * orbital indices in a tuple (k, i1, i2, i3, i4)) and essentially pre-bake a set
+     * of tasks, which can later be executed in parallel (via OpenMP task parallelism).
+     *
+     * The only wrinkle is that we have a weak set of ordering constraints, due to the
+     * fact that we can re-use some of the results between integrals with shared
+     * (k, i1, i3), as implemented in the HartreeY (Hartree Screening) operator. As a
+     * result, we want to group all integrals with common (k, i1, i3) and ensure they
+     * are all calculated in a block to reuse the common HartreeY components. Currently,
+     * this we do this via an ordered map (using Abseil's B-Tree implementation) where
+     * we map (k, i1, i3) tuples to a list of all the (i2, i4) orbital indices such that
+     * (k, i1, i2, i3, i4) is a nonzero and unique Slater integral. This can then be
+     * iterated over in parallel, with each (k, i1, i3) key corresponding to a single
+     * OpenMP task.
+     */
     absl::btree_map<std::tuple<int, unsigned, unsigned>, std::list<std::pair<unsigned, unsigned>>> iteration_tree;
     std::vector<double> values;
 
@@ -124,16 +141,12 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
 
     hartreeY_operator->SetLightWeightMode(false);
     size_t num_integrals = found_keys.size();
-    *logstream << "Nonzero integrals: " << num_integrals << " out of " << 
-               orbital_map_1->size() * orbital_map_2->size() * orbital_map_3->size()\
-               * orbital_map_4->size() 
-               << std::endl;
 
     // If we're only checking the number of integrals, then we're done so return early
     if(check_size_only)
         return(num_integrals);
 
-    // Now actually calculate the integrals
+    // Now actually calculate the integrals in parallel, via OpenMP tasks
 #ifdef AMBIT_USE_OPENMP
     // The HartreeY operator is not thread-safe, so make a separate clone for each thread
     std::vector<pHartreeY> hartreeY_operators;
