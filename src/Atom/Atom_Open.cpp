@@ -857,10 +857,7 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     config.insert(std::make_pair(info, 1));
     config.GetProjections(angular_library, sym->GetSymmetry(), sym->GetTwoJ());
 
-    auto profiler = Profiler::Instance();
-    profiler->angular_momentum.start();
     angular_library->GenerateCSFs();
-    profiler->angular_momentum.stop();
 
     // Make "level"
     levelvec.hID = sym;

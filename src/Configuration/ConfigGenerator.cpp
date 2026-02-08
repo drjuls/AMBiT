@@ -1,7 +1,6 @@
 #include "Include.h"
 #include "ConfigGenerator.h"
 #include "HartreeFock/ConfigurationParser.h"
-#include "Universal/Profiler.h"
 #include <numeric>
 
 namespace Ambit
@@ -552,11 +551,7 @@ void ConfigGenerator::GenerateProjections(pRelativisticConfigList rlist, const S
             it = rlist->erase(it);
     }
 
-    auto profiler = Profiler::Instance();
-    profiler->angular_momentum.start();
-    *logstream << "Calling GenerateCSFs from ConfigGenerator" << std::endl;
     angular_library->GenerateCSFs();
-    profiler->angular_momentum.stop();
 
     // Write even if there are no CSFs for a given J since this is not so obvious
     angular_library->Write();

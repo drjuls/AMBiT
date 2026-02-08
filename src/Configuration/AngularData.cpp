@@ -6,7 +6,6 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/sharable_lock.hpp>
-#include <iterator>
 #include <numeric>
 #ifdef AMBIT_USE_MPI
     #include <mpi.h>
@@ -203,6 +202,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
         return 0;
 
     // Generate the matrix
+    unsigned int i, j;
     Eigen::MatrixXd M = Eigen::MatrixXd::Zero(N, N);
 
     // Make vector of Projections.
@@ -211,20 +211,16 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     for(const auto& p: projections)
         real_Projection_list.push_back(Projection(config, p));
 
+    auto i_it = real_Projection_list.begin();
+    auto j_it = i_it;
+
     ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
 
-#ifdef AMBIT_USE_OPENMP
-    #pragma omp parallel for schedule (dynamic) \
-                             default(none) \
-                             shared(real_Projection_list, J_squared, M)
-#endif
-    for(int i = 0; i < real_Projection_list.size(); i++)
+    i = 0;
+    while(i_it != real_Projection_list.end())
     {
-        auto i_it = real_Projection_list.begin() + i;
-        auto j_it = i_it;
-
         j_it = i_it;
-        int j = i;
+        j = i;
         while(j_it != real_Projection_list.end())
         {
             double matrix_element = J_squared.GetMatrixElement(*i_it, *j_it);
@@ -232,7 +228,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
             j_it++; j++;
         }
 
-        //i_it++; i++;
+        i_it++; i++;
     }
 
     // Solve the matrix
@@ -243,7 +239,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     // Count number of good eigenvalues
     double JSquared = double(two_j * (two_j + 2.)) / 4.;
     num_CSFs = 0;
-    for(int i=0; i<N; i++)
+    for(i=0; i<N; i++)
     {   // Check that all eigenvalues are good
         // j^2 + j - V = 0
         double TwoJ = (std::sqrt(1. + 4. * V[i]) - 1.);
@@ -264,11 +260,11 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     {
         CSFs = new double[N * num_CSFs];
         unsigned int count = 0;
-        for(int i=0; i < N && count < num_CSFs; i++)
+        for(i=0; i < N && count < num_CSFs; i++)
         {
             if(fabs(V[i] - JSquared) < 1.e-6)
             {
-                for(int j = 0; j < N; j++)
+                for(j = 0; j < N; j++)
                     CSFs[j * num_CSFs + count] = eigenvectors(j, i);
 
                 count++;
