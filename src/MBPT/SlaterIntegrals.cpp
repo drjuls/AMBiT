@@ -1,4 +1,10 @@
+#include "Basis/OrbitalManager.h"
+#include "HartreeFock/Orbital.h"
+#include "HartreeFock/OrbitalInfo.h"
 #include "Include.h"
+#include <absl/container/btree_map.h>
+#include <tuple>
+#include <utility>
 
 #ifdef AMBIT_USE_OPENMP
     #include <omp.h>
@@ -41,22 +47,35 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
     int k;
     pOrbitalConst s1, s2, s3, s4;
 
-    std::set<KeyType> found_keys;   // For check_size_only
-    if(check_size_only)
-        hartreeY_operator->SetLightWeightMode(true);
+    /* First, run over the orbital indices and calculate some de-duplicated set of valid
+     * integrals (as well as eliminating integrals which are zero by symmetry
+     * requirments), then store their "expanded keys" (a.k.a. a tuple of orbital indices
+     * plus k). Do not calculate any integrals at this point - that comes later. The
+     * reason for splitting this step out and doing it in serial is because we store the
+     * calculated integrals in a shared hash table and we want to avoid lock contention
+     * between lots of OpenMP threads. 
+     *
+     * We therefore calculate which integrals need to be calculated (represented by
+     * orbital indices in a tuple (k, i1, i2, i3, i4)) and essentially pre-bake a set
+     * of tasks, which can later be executed in parallel (via OpenMP task parallelism).
+     *
+     * The only wrinkle is that we have a weak set of ordering constraints, due to the
+     * fact that we can re-use some of the results between integrals with shared
+     * (k, i1, i3), as implemented in the HartreeY (Hartree Screening) operator. As a
+     * result, we want to group all integrals with common (k, i1, i3) and ensure they
+     * are all calculated in a block to reuse the common HartreeY components. Currently,
+     * this we do this via an ordered map (using Abseil's B-Tree implementation) where
+     * we map (k, i1, i3) tuples to a list of all the (i2, i4) orbital indices such that
+     * (k, i1, i2, i3, i4) is a nonzero and unique Slater integral. This can then be
+     * iterated over in parallel, with each (k, i1, i3) key corresponding to a single
+     * OpenMP task.
+     */
+    absl::btree_map<std::tuple<int, unsigned, unsigned>, std::list<std::pair<unsigned, unsigned>>> iteration_tree;
+    std::vector<double> values;
 
-#ifdef AMBIT_USE_OPENMP
-    // The HartreeY operator is not thread-safe, so make a separate clone for each thread
-    std::vector<pHartreeY> hartreeY_operators;
-    for(int ii = 0; ii < omp_get_max_threads(); ++ii){
-        hartreeY_operators.emplace_back(hartreeY_operator->Clone());
-    }
-    #pragma omp parallel for schedule(dynamic, 4) if(!check_size_only) default(none) \
-    private(k, i1, i2, i3, i4, s1, s2, s3, s4) \
-    shared(hartreeY_operators, orbitals, orbital_map_1, orbital_map_2, \
-           orbital_map_3, orbital_map_4, TwoElectronIntegrals, found_keys, \
-           check_size_only)
-#endif
+    absl::flat_hash_set<KeyType> found_keys;   // For check_size_only
+    hartreeY_operator->SetLightWeightMode(true);
+
     for(auto it_1 = orbital_map_1->begin(); it_1 < orbital_map_1->end(); it_1++)
     {
         i1 = orbitals->state_index.at(it_1->first);
@@ -73,14 +92,13 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
             i3 = orbitals->state_index.at(it_3->first);
             s3 = it_3->second;
 
-            // Limits on k. This is the expensive part to calculate
-#ifdef AMBIT_USE_OPENMP
-            k = hartreeY_operators[omp_get_thread_num()]->SetOrbitals(s3, s1);
-#else
+            // Limits on k. Only doing this in "lightweight" mode for now
             k = hartreeY_operator->SetOrbitals(s3, s1);
-#endif
             while(k != -1)
             {
+                auto key_tuple = std::make_tuple(k, i1, i3);
+                iteration_tree[key_tuple] = std::list<std::pair<unsigned, unsigned> >{0};
+
                 auto it_2 = orbital_map_2->begin();
                 while(it_2 != orbital_map_2->end())
                 {
@@ -100,50 +118,99 @@ unsigned int SlaterIntegrals<MapType>::CalculateTwoElectronIntegrals(pOrbitalMap
                         {
                             KeyType key = GetKey(k, i1, i2, i3, i4);
 
-                            if(check_size_only)
+                            // Check if we actually inserted a new key into the set
+                            bool inserted = found_keys.insert(key).second;
+                            if(inserted)
                             {
-                                found_keys.insert(key);
-                            }
-                            else
-                            {   // Check that this integral doesn't already exist
-#ifdef AMBIT_USE_OPENMP
-                                #pragma omp critical(TWO_ELECTRON_SLATER)
-                                {
-#endif
-                                if(TwoElectronIntegrals.find(key) == TwoElectronIntegrals.end())
-                                {
-#ifdef AMBIT_USE_OPENMP
-                                    double radial = hartreeY_operators[omp_get_thread_num()]->GetMatrixElement(*s4, *s2);
-#else
-                                    double radial = hartreeY_operator->GetMatrixElement(*s4, *s2);
-#endif
-                                    TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, radial));
-                                }
-#ifdef AMBIT_USE_OPENMP
-                                } // Critical section
-#endif
+                                // Store the expanded key *in-order* so we can amortise
+                                // shared integral elements
+                                iteration_tree[key_tuple].push_back(std::make_pair(i2, i4));
+                                // Also insert a placeholder entry in the main hashtable
+                                TwoElectronIntegrals.insert(std::pair<KeyType, double>(key, 0.0));
                             }
                         }
                         it_4++;
                     }
                     it_2++;
                 }
-#ifdef AMBIT_USE_OPENMP
-                k = hartreeY_operators[omp_get_thread_num()]->NextK();
-#else
                 k = hartreeY_operator->NextK();
-#endif
             } // K loop
             it_3++;
         }
     }
 
+    hartreeY_operator->SetLightWeightMode(false);
+    size_t num_integrals = found_keys.size();
+
+    // If we're only checking the number of integrals, then we're done so return early
     if(check_size_only)
-    {   hartreeY_operator->SetLightWeightMode(false);
-        return found_keys.size();
+        return(num_integrals);
+
+    // Now actually calculate the integrals in parallel, via OpenMP tasks
+#ifdef AMBIT_USE_OPENMP
+    // The HartreeY operator is not thread-safe, so make a separate clone for each thread
+    std::vector<pHartreeY> hartreeY_operators;
+    for(int ii = 0; ii < omp_get_max_threads(); ++ii){
+        hartreeY_operators.emplace_back(hartreeY_operator->Clone());
     }
-    else
-        return TwoElectronIntegrals.size();
+#pragma omp parallel
+{
+#pragma omp single nowait
+    {
+#endif
+    for(auto it = iteration_tree.begin(); it != iteration_tree.end(); it++)
+    {
+#ifdef AMBIT_USE_OPENMP
+#pragma omp task default(none) \
+                 firstprivate(it) \
+                 shared(hartreeY_operators, orbital_map_1, orbital_map_2, \
+                        orbital_map_3, orbital_map_4, orbitals, TwoElectronIntegrals)
+        {
+#endif
+        auto key = it->first;
+        int k = std::get<0>(key);
+        unsigned i1 = std::get<1>(key);
+        unsigned i3 = std::get<2>(key);
+
+        OrbitalInfo s1 = orbitals->reverse_state_index.at(i1);
+        OrbitalInfo s3 = orbitals->reverse_state_index.at(i3);
+
+        pOrbitalConst orb1 = orbital_map_1->GetState(s1);
+        pOrbitalConst orb3 = orbital_map_3->GetState(s3);
+
+#ifdef AMBIT_USE_OPENMP
+        hartreeY_operators[omp_get_thread_num()]->SetParameters(k, orb3, orb1);
+#else
+        hartreeY_operator->SetParameters(k, orb3, orb1);
+#endif
+
+        auto list = it->second;
+        for(auto item : list)
+        {
+            unsigned i2 = item.first;
+            unsigned i4 = item.second;
+            
+            OrbitalInfo s2 = orbitals->reverse_state_index.at(i2);
+            OrbitalInfo s4 = orbitals->reverse_state_index.at(i4);
+
+            pOrbitalConst orb2 = orbital_map_2->GetState(s2);
+            pOrbitalConst orb4 = orbital_map_4->GetState(s4);
+
+#ifdef AMBIT_USE_OPENMP
+            double radial = hartreeY_operators[omp_get_thread_num()]->GetMatrixElement(*orb4, *orb2);
+#else
+            double radial = hartreeY_operator->GetMatrixElement(*orb4, *orb2);
+#endif
+            KeyType key = GetKey(k, i1, i2, i3, i4);
+            TwoElectronIntegrals[key] = radial;
+        }
+    }
+#ifdef AMBIT_USE_OPENMP
+        } // omp task
+    } // omp single
+} // omp parallel
+#endif
+    return TwoElectronIntegrals.size();
 }
 
 template <class MapType>
@@ -234,11 +301,13 @@ double SlaterIntegrals<MapType>::GetTwoElectronIntegral(unsigned int k, const Or
 }
 
 template <class MapType>
-void SlaterIntegrals<MapType>::Read(const std::string& filename)
+bool SlaterIntegrals<MapType>::Read(const std::string& filename)
 {
     FILE* fp = file_err_handler->fopen(filename.c_str(), "rb");
     if(!fp)
-        return;
+    {
+        return false;
+    }
 
     OrbitalIndex old_state_index;
     ReadOrbitalIndexes(old_state_index, fp);
@@ -298,6 +367,7 @@ void SlaterIntegrals<MapType>::Read(const std::string& filename)
     }
 
     file_err_handler->fclose(fp);
+    return true;
 }
 
 template <class MapType>

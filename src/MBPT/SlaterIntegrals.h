@@ -6,6 +6,8 @@
 #include <map>
 #include <unordered_map>
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+#include <absl/container/btree_map.h>
 
 namespace Ambit
 {
@@ -64,7 +66,7 @@ public:
         |       |       |   (double)    |       |   (double)    |
         -------------------------------------------------------------
      */
-    virtual void Read(const std::string& filename) = 0;
+    virtual bool Read(const std::string& filename) = 0;
     virtual void Write(const std::string& filename) const = 0;
 
 protected:
@@ -131,7 +133,7 @@ public:
     virtual pHartreeY GetHartreeY() { return hartreeY_operator; }
 
     /** Read integrals, adding to existing keys or creating new ones. */
-    virtual void Read(const std::string& filename) override;
+    virtual bool Read(const std::string& filename) override;
     virtual void Write(const std::string& filename) const override;
 
 protected:
@@ -151,6 +153,7 @@ protected:
 
 typedef SlaterIntegrals<std::map<unsigned long long int, double>> SlaterIntegralsMap;
 typedef SlaterIntegrals<absl::flat_hash_map<unsigned long long int, double>> SlaterIntegralsFlatHash;
+typedef SlaterIntegrals<absl::btree_map<unsigned long long int, double>> SlaterIntegralsBTree;
 }
 
 #include "SlaterIntegrals.cpp"
