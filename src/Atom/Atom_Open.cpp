@@ -630,7 +630,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
     if(soID)
     {
-        if(levelvec.levels.empty())
+        if(levelvec.NumLevels() == 0)
             levelvec = SingleElectronConfigurations(hID);
     }
     else
@@ -680,7 +680,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         // Only continue if we don't have enough levels
         int num_solutions = user_input("CI/NumSolutions", 6);
         num_solutions = (num_solutions? mmin(num_solutions, configs->NumCSFs()): configs->NumCSFs());
-        bool do_CI = (levelvec.levels.size() < num_solutions);
+        bool do_CI = (levelvec.NumLevels() < num_solutions);
         if(do_CI)
         {
             if(twobody_electron == nullptr)
@@ -703,7 +703,10 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
-            // If reading from a checkpoint file, make sure the file exists and is valid, then
+            // Do not solve the matrix, just generate Hamiltonian and write to file
+            bool dont_solve_matrix = user_input.search(2, "--no-diagonalisation", "--no-diagonalization");
+
+                // If reading from a checkpoint file, make sure the file exists and is valid, then
             // read
             if(use_read)
             {
@@ -717,7 +720,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 H->GenerateMatrix(chunksize);
                 //H->PollMatrix();
 
-                if(user_input.search("CI/Output/--write-hamiltonian"))
+                if(user_input.search("CI/Output/--write-hamiltonian") || dont_solve_matrix)
                     H->Write(hamiltonian_filename);
             }
 
@@ -738,22 +741,31 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << "Matrix Before:\n" << *H << std::endl;
             }
 
+            if(dont_solve_matrix)
+            {   *outstream << "\n";
+                return {};  // Return empty levelvector
+            }
+
             #ifdef AMBIT_USE_SCALAPACK
             if(user_input.search("CI/--scalapack"))
             {
+                // Write matrix if it hasn't already been written
+                if(!user_input.search("CI/Output/--write-hamiltonian"))
+                    H->Write(hamiltonian_filename);
+
                 if(user_input.VariableExists("CI/MaxEnergy"))
                 {
                     double max_energy = user_input("CI/MaxEnergy", 0.0);
-                    levelvec = H->SolveMatrixScalapack(hID, max_energy);
+                    levelvec = H->SolveMatrixScalapack(hID, configs->NumCSFs(), hamiltonian_filename, max_energy);
                 }
                 else
                 {
-                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, false);
+                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, hamiltonian_filename);
                 }
             }
             else
             #endif
-            levelvec = H->SolveMatrix(hID, num_solutions);
+            levelvec = H->SolveMatrix(hID, num_solutions, hamiltonian_filename);
             levels->Store(hID, levelvec);
         }
 
@@ -804,9 +816,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         {   // Truncate display at max energy
             double max_energy = user_input("CI/Output/MaxDisplayedEnergy", 0.);
             if(ShowRelConfigPercentages)
-                levelvec.PrintInline<RelativisticConfiguration>(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline<RelativisticConfiguration>(ShowPercentages, ShowgFactors, sep, max_energy);
             else
-                levelvec.PrintInline(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline(ShowPercentages, ShowgFactors, sep, max_energy);
         }
         else
         {   if(ShowRelConfigPercentages)
@@ -843,13 +855,11 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
 {
     LevelVector levelvec = levels->GetLevels(sym);
 
-    if(levelvec.levels.size())
+    if(levelvec.NumLevels())
         return levelvec;
 
     if(hf_electron == nullptr)
         MakeCIIntegrals();
-
-    double eigenvector = 1.;
 
     OrbitalInfo info(dynamic_cast<SingleOrbitalID*>(sym.get())->GetOrbitalInfo());
     // Make relativistic configuration
@@ -863,7 +873,9 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     levelvec.hID = sym;
     levelvec.configs = std::make_shared<RelativisticConfigList>(config);
     double energy = hf_electron->GetMatrixElement(info, info);
-    levelvec.levels.emplace_back(std::make_shared<Level>(energy, &eigenvector, sym, 1));
+    levelvec.Resize(1, 1);
+    levelvec.eigenvalues[0] = energy;
+    levelvec.eigenvectors(0, 0) = 1;
     levels->Store(sym, levelvec);
 
     return levelvec;

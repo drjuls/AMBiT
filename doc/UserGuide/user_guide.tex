@@ -20,7 +20,7 @@
 
 \begin{document}
 
-\title{AMBiT 3.2\\User Guide}
+\title{AMBiT 3.3\\User Guide}
 \author{Emily Kahl, Julian Berengut}
 \date{}
 \maketitle
@@ -1555,6 +1555,11 @@ exist in the precalculated levels file.
 \texttt{--no-ci, --no-CI}
 \begin{adjustwidth}{1cm}{}
 Do not do any CI calculations, such as when doing one-electron calculations.
+\end{adjustwidth}
+
+\texttt{--no-diagonalisation}
+\begin{adjustwidth}{1cm}{}
+Do not diagonalise CI matrix, just generate and write the matrices to a file. Useful if you want to use a different run setup for generating and solving. \ambit\ always checks to see if \texttt{*.matrix} files exist before generating, so simply running again without this flag will move directly to the diagonalisation stage.
 \end{adjustwidth}
 
 \texttt{{-}{-}configuration-average}

@@ -1,7 +1,6 @@
 #ifndef LEVEL_MAP_H
 #define LEVEL_MAP_H
 
-#include "Level.h"
 #include "LevelVector.h"
 #include "NonRelConfiguration.h"
 #include <vector>
@@ -63,7 +62,7 @@ public:
 
     /** Store LevelVector (and generally write to file, although this is implementation dependent). */
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) = 0;
-    
+
     /** Check whether we need to calculate g-factors. Returns false if the store has g-factors */
     bool GFactorsNeeded()
     {   return gfactors_needed;
@@ -71,7 +70,6 @@ public:
 
 protected:
     bool gfactors_needed = true;
-
 };
 
 typedef std::shared_ptr<LevelStore> pLevelStore;
@@ -93,7 +91,7 @@ public:
 
     /** Get LevelVector corresponding to key. */
     virtual LevelVector GetLevels(pHamiltonianID key) override;
-    
+
     /** Store LevelVector and write to file. */
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
 
@@ -119,7 +117,7 @@ public:
 
     /** Get LevelVector corresponding to key. */
     virtual LevelVector GetLevels(pHamiltonianID key) override;
-    
+
     /** Store LevelVector and write to file. */
     virtual void Store(pHamiltonianID key, const LevelVector& level_vector) override;
 

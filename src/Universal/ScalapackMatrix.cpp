@@ -22,8 +22,8 @@
 
 // Blocking parameters for division of global matrix.
 // MB(NB) is the number of rows(columns) in the blocks used to distribute the global matrix.
-const static int MB = 32;
-const static int NB = 32;
+const static int MB = 512;
+const static int NB = 512;
 // RSRC(CSRC) is the process row(col) over which the first row(col) of the global matrix is distributed.
 // Set these to one so that root processor has the smallest local array possible.
 // Unfortunately pdsyevd only works when they are set to zero.
@@ -77,7 +77,7 @@ ScalapackMatrix::ScalapackMatrix(unsigned int size):
     // Initialise array descriptor (DESC) for dense matrix
     descinit_(DESC, (const int*)&N, (const int*)&N, &MB, &NB, &RSRC, &CSRC, &ICTXT, (const int*)&M_rows, &info);
 
-    M = new double[M_rows * M_cols];
+    M = new double[(std::size_t)M_rows * (std::size_t)M_cols];
     M_row_numbers = new unsigned int[M_rows];
     M_col_numbers = new unsigned int[M_cols];
 
@@ -142,7 +142,7 @@ ScalapackMatrix::~ScalapackMatrix(void)
 
 void ScalapackMatrix::Clear()
 {
-    memset(M, 0, M_rows*M_cols*sizeof(double));
+    memset(M, 0, (std::size_t)M_rows*(std::size_t)M_cols*sizeof(double));
 }
 
 /** Multiply matrix by another matrix, size N*M.
@@ -161,20 +161,20 @@ void ScalapackMatrix::MatrixMultiply(int m, double* b, double* c) const
         // Fill buffer
         memset(buffer, 0, sizeof(double) * N);
 
-        unsigned int M_i, M_j;
+        std::size_t M_i, M_j;
         M_i = 0;
 
-        for(unsigned int i = 0; i < N; i++)
+        for(std::size_t i = 0; i < N; i++)
         {
             if(M_row_numbers[M_i] == i)
             {
                 M_j = 0;
-                unsigned int j_count = 0;
-                unsigned int j = M_col_numbers[M_j];
+                std::size_t j_count = 0;
+                std::size_t j = M_col_numbers[M_j];
 
                 while(M_j < M_cols)
                 {
-                    buffer[i] += M[M_i + M_j*M_rows] * b[k*N + j + j_count];
+                    buffer[i] += M[M_i + M_j*(std::size_t)M_rows] * b[k*N + j + j_count];
                     M_j++; j_count++;
                     if(j_count >= NB)
                     {   j = j + num_proc_cols*NB;
@@ -197,16 +197,16 @@ void ScalapackMatrix::GetDiagonal(double* diag) const
     memset(buffer, 0, sizeof(double) * N);
     memset(diag, 0, sizeof(double) * N);
 
-    unsigned int M_i = 0;
-    unsigned int M_j = 0;
+    std::size_t M_i = 0;
+    std::size_t M_j = 0;
 
-    unsigned int i = 0;
+    std::size_t i = 0;
     while(i < N && M_i < M_rows && M_j < M_cols)
     {
         if(M_row_numbers[M_i] == i)
         {
             if(M_col_numbers[M_j] == i)
-                buffer[i] = M[M_j * M_rows + M_i];
+                buffer[i] = M[M_j * (std::size_t)M_rows + M_i];
 
             M_i++;
         }
@@ -241,9 +241,9 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
     }
 
     // Read line by line and store our parts.
-    unsigned int i, j;      // Position in global array
-    unsigned int j_end;     // End of current block in global array
-    unsigned int M_i, M_j;  // Position of start of line local array
+    std::size_t i, j;      // Position in global array
+    std::size_t j_end;     // End of current block in global array
+    std::size_t M_i, M_j;  // Position of start of line local array
     double* M_pos;          // Running position in local array
 
     double* buffer = new double[N];
@@ -261,12 +261,12 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
             j_end = mmin((j/NB + 1)*NB, N);
 
             // First position in local array
-            M_pos = &M[M_j * M_rows + M_i];
+            M_pos = &M[M_j * (std::size_t)M_rows + M_i];
 
             while(j < j_end)
             {
                 // need to use blas here
-                for(unsigned int count =0; count < j_end-j; count++)
+                for(std::size_t count = 0; count < j_end-j; count++)
                     *(M_pos+count*M_rows) = buffer[j+count];
                 M_pos += (j_end - j) * M_rows;
                 j = j_end + (num_proc_cols - 1) * NB;
@@ -282,7 +282,7 @@ void ScalapackMatrix::ReadUpperTriangle(const std::string& filename)
             j = M_row_numbers[M_i];
             j_end = mmin((j/MB + 1)*MB, N);
 
-            M_pos = &M[M_j*M_rows + M_i];
+            M_pos = &M[M_j*(std::size_t)M_rows + M_i];
 
             while(j < j_end)
             {
@@ -325,8 +325,8 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
     }
 
     // Read line by line and store our parts.
-    unsigned int i, j;      // Position in global array
-    unsigned int M_i, M_j;  // Position of end of line local array
+    std::size_t i, j;      // Position in global array
+    std::size_t M_i, M_j;  // Position of end of line local array
 
     double* buffer = new double[N];
 
@@ -343,10 +343,10 @@ void ScalapackMatrix::ReadLowerTriangle(const std::string& filename)
         {
             // Get first start/end point
             j = M_row_numbers[0];
-            unsigned int j_end = (M_i < M_rows? M_row_numbers[M_i]: N); // End of current line
-            unsigned int j_current_end = mmin(j + MB, j_end);   // End of current block in global array
+            std::size_t j_end = (M_i < M_rows? M_row_numbers[M_i]: N); // End of current line
+            std::size_t j_current_end = mmin(j + MB, j_end);   // End of current block in global array
 
-            double* M_pos = &M[M_j*M_rows + 0]; // Running position in local array
+            double* M_pos = &M[M_j*(std::size_t)M_rows + 0]; // Running position in local array
 
             while(j < j_current_end)
             {
@@ -440,7 +440,7 @@ void ScalapackMatrix::Diagonalise(double* eigenvalues)
     // Allocate the output (eigenvector) matrix
     int DESC_V[9];
     descinit_(DESC_V, (const int*)&N, (const int*)&N, &MB, &NB, &RSRC, &CSRC, &ICTXT, (const int*)&M_rows, &ierr);
-    double* V = new double[M_rows * M_cols];
+    double* V = new double[(std::size_t)M_rows * (std::size_t)M_cols];
 
     double worksize;
     int lwork = -1;
@@ -464,6 +464,7 @@ void ScalapackMatrix::Diagonalise(double* eigenvalues)
     // Calculate workspace size
     pdsyev_(&jobz, &uplo, &size, M, &IA, &IA, DESC, eigenvalues, V, &IA, &IA,
             DESC_V, &worksize, &lwork, &ierr);
+    *logstream << " (worksize=" << worksize << ") " << std::flush;
     lwork = (int)worksize;
 
     double* work = new double[lwork];
@@ -499,7 +500,7 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
     double* buffer = new double[N];
 
     unsigned int i, j;
-    unsigned int M_i, M_j;
+    std::size_t M_i, M_j;
 
     // Reset buffer
     memset(buffer, 0, sizeof(double) * N);
@@ -517,7 +518,7 @@ void ScalapackMatrix::GetRow(unsigned int row_number, double* row) const
         j = M_col_numbers[M_j];
 
         while(M_j < M_cols)
-        {   buffer[j+k] = M[M_i + M_j*M_rows];
+        {   buffer[j+k] = M[M_i + M_j*(std::size_t)M_rows];
             M_j++; k++;
             if(k >= NB)
             {   j = j + num_proc_cols*NB;
@@ -540,7 +541,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
 
     unsigned int i, j;
     unsigned int i_end;
-    unsigned int M_i, M_j;
+    std::size_t M_i, M_j;
     double* M_pos;
 
     // Reset buffer
@@ -559,7 +560,7 @@ void ScalapackMatrix::GetColumn(unsigned int col_number, double* col) const
         M_i = 0;
         i = M_row_numbers[M_i];
         i_end = mmin((i/MB + 1)*MB, N);
-        M_pos = &M[M_j*M_rows + M_i];
+        M_pos = &M[M_j*(std::size_t)M_rows + M_i];
 
         while(i < i_end)
         {

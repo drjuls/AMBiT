@@ -1,4 +1,4 @@
-#include "Level.h"
+#include "HamiltonianID.h"
 #include "Include.h"
 #include "Universal/MathConstant.h"
 #include "NonRelConfiguration.h"
@@ -54,12 +54,5 @@ void HamiltonianID::Read(FILE* fp)
     file_err_handler->fread(&two_j, sizeof(int), 1, fp);
     file_err_handler->fread(&P, sizeof(Parity), 1, fp);
     sym = Symmetry(two_j, P);
-}
-
-Level::Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs):
-    eigenvalue(energy), eigenvector(numCSFs), hamiltonian(hamiltonian_id)
-{
-    memcpy(eigenvector.data(), csf_eigenvector, numCSFs * sizeof(double));
-    gFactor = std::numeric_limits<double>::quiet_NaN();
 }
 }
