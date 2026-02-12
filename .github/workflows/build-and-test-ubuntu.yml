@@ -20,7 +20,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    # Install packages for basic dependencies: Eigen, abseil, gsl, boost, and BLAS/LAPACK
+    - name: Update Ubuntu repositories
+      run: sudo apt update && sudo apt upgrade -y
+      
+     # Install packages for basic dependencies: Eigen, abseil, gsl, boost, and BLAS/LAPACK      
     - name: Install Dependencies
       run: sudo apt install -y libeigen3-dev libabsl-dev libgsl-dev libboost-all-dev libblas-dev liblapack-dev
       
