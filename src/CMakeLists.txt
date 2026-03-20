@@ -55,6 +55,7 @@ if(USE_MKL)
     find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
     target_link_libraries(ambit PRIVATE MKL::MKL)
     # Also tell Eigen to use MKL as its backend
+    target_compile_definitions(ambit PRIVATE -DEIGEN_USE_LAPACKE)
     target_compile_definitions(ambit PRIVATE -DEIGEN_USE_MKL_ALL)
 
     # Use the MKL ScaLAPACK backend if requested
@@ -73,6 +74,7 @@ else() # Use vanilla BLAS/LAPACK
         # See this page in the Eigen documentation for an explanation of this process: https://eigen.tuxfamily.org/dox/TopicUsingBlasLapack.html
         set(BLA_VENDOR OpenBLAS)
         target_compile_definitions(ambit PRIVATE -DEIGEN_USE_BLAS)
+        target_compile_definitions(ambit PRIVATE -DEIGEN_USE_LAPACKE)
     endif()
     find_package(LAPACK REQUIRED)
 

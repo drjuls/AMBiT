@@ -3,6 +3,7 @@
 #include "RelativisticConfiguration.h"
 #include <Eigen/Eigen>
 #include "ManyBodyOperator.h"
+#include "Universal/Profiler.cpp"
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/sharable_lock.hpp>
@@ -10,6 +11,9 @@
 #ifdef AMBIT_USE_MPI
     #include <mpi.h>
 #endif
+
+#include <absl/time/clock.h>
+#include <absl/time/time.h>
 
 namespace Ambit
 {
@@ -211,30 +215,40 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     for(const auto& p: projections)
         real_Projection_list.push_back(Projection(config, p));
 
-    auto i_it = real_Projection_list.begin();
-    auto j_it = i_it;
 
     ManyBodyOperator<const JSquaredOperator*, const JSquaredOperator*> J_squared(&J_squared_operator, &J_squared_operator);
 
     i = 0;
-    while(i_it != real_Projection_list.end())
+    *logstream << "Gen J^2, N = " << N << std::endl;
+    auto generate_start = absl::Now();
+    #pragma omp parallel for \
+                         default(none) \
+                         shared(real_Projection_list, M, J_squared, N) \
+                         collapse(2)                        
+    for(int ii = 0; ii < N; ii++)
     {
-        j_it = i_it;
-        j = i;
-        while(j_it != real_Projection_list.end())
+        for(int jj = ii; jj < N; jj++)
         {
+            auto i_it = real_Projection_list.begin() + ii;
+            auto j_it = real_Projection_list.begin() + jj;
             double matrix_element = J_squared.GetMatrixElement(*i_it, *j_it);
-            M(i, j) = M(j, i) = matrix_element;
-            j_it++; j++;
+            M(ii, jj) = M(jj, ii) = matrix_element;
         }
-
-        i_it++; i++;
     }
+    auto generate_stop = absl::Now();
+    auto generate_elapsed = generate_stop - generate_start;
+    *logstream << "Generated N = " << N << " in " 
+               << absl::StreamFormat("%5gs", absl::ToDoubleSeconds(generate_elapsed)) << std::endl;
 
     // Solve the matrix
+    auto solve_start = absl::Now();
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
     const Eigen::MatrixXd& eigenvectors = es.eigenvectors();
     const Eigen::VectorXd& V = es.eigenvalues();
+    auto solve_stop = absl::Now();
+    auto solve_elapsed = solve_stop - solve_start;
+    *logstream << "Solved N = " << N << " in " 
+               << absl::StreamFormat("%5gs", absl::ToDoubleSeconds(solve_elapsed)) << std::endl;
 
     // Count number of good eigenvalues
     double JSquared = double(two_j * (two_j + 2.)) / 4.;
@@ -463,6 +477,9 @@ int AngularDataLibrary::GetElectronNumber(const KeyType& key)
 
 void AngularDataLibrary::GenerateCSFs()
 {
+    auto timer = Profiler::Instance();
+    timer->angular_momentum.start();
+
     // First, for all keys with no CSFs, generate entries in the library with higher M,
     // recursively until CSFs are found or M = J.
     for(auto& pair: library)
@@ -615,6 +632,7 @@ void AngularDataLibrary::GenerateCSFs()
             }
         }
     }
+    timer->angular_momentum.stop();
 }
 
 /** Structure of *.angular files:
