@@ -104,6 +104,13 @@ public:
     pAngularDataLibrary GetAngularDataLibrary() { return angular_library; }
 
 public:
+    /** Calculate Hamiltonian matrix elements <left | H | right> for levels.
+        This should be zero for off-diagonal matrix elements of eigenstates of H, but we may
+        want off-diagonal matrix elements between sub-matrices.
+        PRE: ChooseHamiltoniansAndRead() must have been run.
+     */
+    void ResidualCoulomb() const;
+
     /** For all levels requested, create continuum wave and calculate autoionization width.
         PRE: ChooseHamiltoniansAndRead() must have been run.
      */

@@ -8,9 +8,56 @@
 #include <mpi.h>
 #endif
 #include "ExternalField/Hyperfine.h"
+#include "Configuration/HamiltonianMatrix.h"
 
 namespace Ambit
 {
+void Atom::ResidualCoulomb() const
+{
+    double energy_limit;
+    if(user_input.VariableExists("Transitions/H/AllBelow"))
+        energy_limit = user_input("H/AllBelow", 0.0);
+    else
+        return;
+
+    TwoBodyHamiltonianOperator two_body(hf_electron, twobody_electron);
+
+    *outstream << "\nMatrix elements of the Hamiltonian (a.u.):" << std::endl;
+
+    // Loop over all HamiltonianIDs
+    for(auto left_key_it = levels->keys.begin(); left_key_it != levels->keys.end(); left_key_it++)
+    {
+        auto left_levelvec = levels->GetLevels(*left_key_it);
+
+        if(left_levelvec.NumLevels() && (left_levelvec.eigenvalues[0] < energy_limit))
+        {
+            Symmetry sym = (*left_key_it)->GetSymmetry();
+
+            auto right_key_it = left_key_it;
+            right_key_it++;
+            while(right_key_it != levels->keys.end())
+            {
+                if((*right_key_it)->GetSymmetry() == sym)
+                {
+                    auto right_levelvec = levels->GetLevels(*right_key_it);
+                    if(right_levelvec.NumLevels() && (right_levelvec.eigenvalues[0] < energy_limit))
+                    {
+                        auto values = two_body.GetMatrixElement(left_levelvec, right_levelvec);
+
+                        for(int i = 0; i < left_levelvec.NumLevels(); i++)
+                            for(int j = 0; j < right_levelvec.NumLevels(); j++)
+                                *outstream << "  " << left_levelvec.hID->Name() << ":" << i << " -> "
+                                           << right_levelvec.hID->Name() << ":" << j << " = "
+                                           << values[i * right_levelvec.NumLevels() + j] << "\n";
+                    }
+                }
+
+                right_key_it++;
+            }
+        }
+    }
+}
+
 void Atom::InternalConversion(const LevelVector& source)
 {
     auto math = MathConstant::Instance();

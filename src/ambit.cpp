@@ -211,43 +211,43 @@ int main(int argc, char* argv[])
     *logstream << "|=========================================================|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "Hartree-Fock and basis set")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->hf.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->hf.elapsed()))
                << std::endl;
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "Two-electron Slater integrals")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->slater.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->slater.elapsed()))
                << std::endl;
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "One-body MBPT integrals")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->one_body_mbpt.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->one_body_mbpt.elapsed()))
                << std::endl;
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "Two-body MBPT integrals")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->two_body_mbpt.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->two_body_mbpt.elapsed()))
                << std::endl;
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "CI")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed()))
                << std::endl;
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "Transition matrix elements")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->transitions.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->transitions.elapsed()))
                << std::endl;
 
     *logstream << "|=========================================================|"
                << std::endl;
     *logstream << absl::StreamFormat("|%-35s", "Total wall time")
-               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->total.elapsed())) 
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->total.elapsed()))
                << std::endl;
 
     *logstream << "|=========================================================|"
@@ -522,7 +522,10 @@ void AmbitInterface::TransitionCalculations()
     RUN_AND_STORE_TRANSITION(NMS, NormalMassShiftCalculator);
 
     user_input.set_prefix("");
-    
+
+    // Calculate additional Hamiltonian matrix elements
+    atom.ResidualCoulomb();
+
     // Stop the timer
     profiler->transitions.stop();
 }

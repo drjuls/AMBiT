@@ -40,10 +40,10 @@ public:
     inline void absorb(const MultirunOptions& That);
 
     /** Check if variable name is present in GetPot. */
-    inline bool VariableExists(const std::string& variable);
+    inline bool VariableExists(const std::string& variable) const;
 
     /** Check if section is present in GetPot. */
-    inline bool SectionExists(const std::string& section_name);
+    inline bool SectionExists(const std::string& section_name) const;
 
     inline int GetNumRuns() const;      //!< Get number of runs indicated by Multirun variable
     inline void SetRun(int run_index);
@@ -145,12 +145,12 @@ inline void MultirunOptions::absorb(const MultirunOptions& other)
     subsection_list.shrink_to_fit();
 }
 
-bool MultirunOptions::VariableExists(const std::string& variable)
+bool MultirunOptions::VariableExists(const std::string& variable) const
 {
     return (vector_variable_size(variable.c_str()) != 0);
 }
 
-bool MultirunOptions::SectionExists(const std::string& section_name)
+bool MultirunOptions::SectionExists(const std::string& section_name) const
 {
     return std::binary_search(subsection_list.begin(), subsection_list.end(), section_name);
 }
