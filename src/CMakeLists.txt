@@ -1,7 +1,18 @@
-# First, generate the gitinfo header file and dummy target
-execute_process(COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/getGitInfo.sh" 
-                OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h")
-add_custom_target(generate_gitinfo ALL DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h")
+# Generate gitInfo.h at build time (not configure time) so it stays up-to-date on every rebuild.
+# file(WRITE) creates the helper script in the build dir at configure time; the custom target
+# invokes it on every cmake --build (add_custom_target is always considered out-of-date).
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/RunGetGitInfo.cmake"
+    "execute_process(\n"
+    "    COMMAND bash \"${CMAKE_CURRENT_SOURCE_DIR}/getGitInfo.sh\"\n"
+    "    OUTPUT_FILE \"${CMAKE_CURRENT_SOURCE_DIR}/gitInfo.h\"\n"
+    "    WORKING_DIRECTORY \"${CMAKE_CURRENT_SOURCE_DIR}\"\n"
+    ")\n"
+)
+add_custom_target(generate_gitinfo ALL
+    COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/RunGetGitInfo.cmake"
+    COMMENT "Generating gitInfo.h"
+    VERBATIM
+)
 
 # Main ambit exe
 add_executable(ambit ambit.cpp ambit.h)
