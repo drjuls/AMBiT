@@ -224,7 +224,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     #pragma omp parallel for \
                          default(none) \
                          shared(real_Projection_list, M, J_squared, N) \
-                         collapse(2)                        
+                         collapse(2)
     for(int ii = 0; ii < N; ii++)
     {
         for(int jj = ii; jj < N; jj++)
@@ -237,7 +237,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     }
     auto generate_stop = absl::Now();
     auto generate_elapsed = generate_stop - generate_start;
-    *logstream << "Generated N = " << N << " in " 
+    *logstream << "Generated N = " << N << " in "
                << absl::StreamFormat("%5gs", absl::ToDoubleSeconds(generate_elapsed)) << std::endl;
 
     // Solve the matrix
@@ -247,7 +247,7 @@ int AngularData::GenerateCSFs(const RelativisticConfiguration& config, int two_j
     const Eigen::VectorXd& V = es.eigenvalues();
     auto solve_stop = absl::Now();
     auto solve_elapsed = solve_stop - solve_start;
-    *logstream << "Solved N = " << N << " in " 
+    *logstream << "Solved N = " << N << " in "
                << absl::StreamFormat("%5gs", absl::ToDoubleSeconds(solve_elapsed)) << std::endl;
 
     // Count number of good eigenvalues
