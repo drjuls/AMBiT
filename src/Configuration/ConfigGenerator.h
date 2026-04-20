@@ -7,6 +7,7 @@
 #include "RelativisticConfigList.h"
 #include "Projection.h"
 #include "HartreeFock/NonRelInfo.h"
+#include "Specification/Specification.h"
 #include "Symmetry.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/TwoElectronCoulombOperator.h"
@@ -70,8 +71,10 @@ protected:
     /** Generate non-relativistic configs based on the current input file section.
         This may include limiting the non-relativistic configurations based on configuration average energies,
         provided one_body and two_body operators are provided.
+
+        This function takes a pointer to Specification::CIBaseSpecification for its input arguments, meaning it can take either the SmallSide or full CI sections of the input.
      */
-    pRelativisticConfigList ParseAndGenerateConfigurations(pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
+    pRelativisticConfigList ParseAndGenerateConfigurations(CIBaseSpecification* ci_spec, pHFIntegrals one_body = nullptr, pSlaterIntegrals two_body = nullptr);
 
     /** Generate all configurations possible by exciting one electron of the original list.
         Append the new configurations to the list.

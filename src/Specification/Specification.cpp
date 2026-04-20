@@ -214,7 +214,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 
     // Delegates
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci, "CI/", ci_specs, "CI full: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci_smallside, "CI/SmallSide", ci_smallside_specs, "CI SmallSide: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci_smallside, "CI/SmallSide/", ci_smallside_specs, "CI SmallSide: ");
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -297,7 +297,14 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     {
         mbpt_three_body = true;
     }
-    
+   
+    // We must have at least one leading configuration for CI and CI/SmallSide
+    if(ci.leading_configurations.empty())
+        return "Must have at least one config in CI/LeadingConfigurations";
+
+    if(ci_do_smallside && ci_smallside.leading_configurations.empty())
+        return "Must have at least one config in CI/SmallSide/LeadingConfigurations";
+
     // Must specify LevelDirectory if using CI/--memory-saver
     if(ci.memory_saver && !level_directory)
         return "Must specify LevelDirectory when using CI/--memory-saver";

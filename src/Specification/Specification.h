@@ -17,10 +17,10 @@ namespace Ambit
 class CIBaseSpecification
 {
 public:
-    std::string leading_configurations;
-    std::string leading_rel_configurations;
-    std::string extra_configurations;
-    std::string extra_rel_configurations;
+    std::vector<std::string> leading_configurations;
+    std::optional<std::vector<std::string>> leading_rel_configurations;
+    std::optional<std::vector<std::string>> extra_configurations;
+    std::optional<std::vector<std::string>> extra_rel_configurations;
 
     /* TODO EVK: This is really annoying, because the spec says that it can be *either* an integer
      * (e.g. CI/ElectronExcitations=2) or a string (e.g. ElectronExcitations = '1,5spdf,2,5spd')
@@ -34,7 +34,7 @@ public:
      * within a single list (an integer followed by a string), which kind of inherently requires
      * weird type wrangling to get it to work.
     */
-    unsigned electron_excitations;
+    unsigned electron_excitations = 2;
     std::optional<std::vector<std::string>> electron_bounds;
     std::optional<std::vector<std::string>> hole_bounds;
     unsigned hole_excitations = 0;

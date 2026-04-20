@@ -1,7 +1,7 @@
 #include "Include.h"
 #include "ConfigGenerator.h"
 #include "HartreeFock/ConfigurationParser.h"
-#include <numeric>
+#include "Specification/Specification.h"
 
 namespace Ambit
 {
@@ -21,16 +21,15 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 
 pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
+    auto config = GlobalSpecification::Instance();
     // Do sublist first since leading_configs should come from CI, rather than CI/SmallSide
     pRelativisticConfigList sublist = nullptr;
-    if(user_input.SectionExists("CI/SmallSide"))
+    if(config->ci_do_smallside)
     {
-        user_input.set_prefix("CI/SmallSide");
-        sublist = ParseAndGenerateConfigurations(one_body, two_body);
+        sublist = ParseAndGenerateConfigurations(&(config->ci_smallside), one_body, two_body);
     }
 
-    user_input.set_prefix("CI");
-    pRelativisticConfigList biglist = ParseAndGenerateConfigurations(one_body, two_body);
+    pRelativisticConfigList biglist = ParseAndGenerateConfigurations(&(config->ci),one_body, two_body);
 
     // Join sublist and biglist by getting set difference and appending to sublist.
     if(sublist)
@@ -43,72 +42,28 @@ pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFIntegrals one
         biglist->append(*setdiff);
     }
 
-    user_input.set_prefix("");
-
     return biglist;
 }
 
-pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
+pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(CIBaseSpecification* ci_spec, pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
     pRelativisticConfigList rlist = std::make_shared<RelativisticConfigList>();
 
-    int electron_excitations = 0;
-    int hole_excitations = 0;
-    int num_electron_excitation_inputs = user_input.vector_variable_size("ElectronExcitations");
-    int num_hole_excitation_inputs = user_input.vector_variable_size("HoleExcitations");
-    
-    // Default if no input detected is 2 electron excitations.
-    // If input is detected it can either be a number, which would set electron_excitations and use ValenceBasis to determine states to excite to,
-    // otherwise if input is of the form 'X, Y, ...' where X is the pqn and Y is the string with the basis (eg. 8spdf) then the code will
-    // allow X excitations to the states in Y
-    if(num_electron_excitation_inputs < 1)
-    {
-        num_electron_excitation_inputs = 1;
-        electron_excitations = 2;
-    }
-    else if(num_electron_excitation_inputs == 1 && user_input("ElectronExcitations", 2) >= 0)
-    {
-        electron_excitations = user_input("ElectronExcitations", 2);
-    }
-    else if(num_electron_excitation_inputs%2 == 0)  // Input should come in pairs
-    {
-        electron_excitations = num_electron_excitation_inputs/2;
-    }
-    else
-    {
-        *errstream << "USAGE: CI/ElectronExcitations incorrectly specified." << std::endl;
-        exit(1);
-    }
-    
-    // Holes have default 0 excitations.
-    if(num_hole_excitation_inputs < 1)
-    {
-        num_hole_excitation_inputs = 1;
-        hole_excitations = 0;
-    }
-    else if(num_hole_excitation_inputs == 1 && user_input("HoleExcitations", 0) >= 0)
-    {
-        hole_excitations = user_input("HoleExcitations", 0);
-    }
-    else if(num_hole_excitation_inputs%2 == 0)  // Input should come in pairs
-    {
-        hole_excitations = num_hole_excitation_inputs/2;
-    }
-    else
-    {
-        *errstream << "USAGE: CI/HoleExcitations incorrectly specified." << std::endl;
-        exit(1);
-    }
+    int electron_excitations = ci_spec->electron_excitations;
+    int hole_excitations = ci_spec->hole_excitations;
     
     // Get leading configurations
     leading_configs->first.clear();
     int numValenceElectrons = 0;
     
-    int num_configs = user_input.vector_variable_size("LeadingConfigurations");
+    // We must have at least one leading configuration for a well-formed calculation. All
+    // other "leading config" or "extra config" inputs are optional
+    unsigned num_configs = ci_spec->leading_configurations.size();
+    auto spec_lcs = ci_spec->leading_configurations;
     leading_configs->first.reserve(num_configs);
-    for(int i = 0; i < num_configs; i++)
+    for(unsigned i = 0; i < num_configs; i++)
     {
-        const std::string name = user_input("LeadingConfigurations", "", i);
+        const std::string name = spec_lcs[i];
         NonRelConfiguration config(name);
 
         // Check that the configuration gels with the number of electrons
@@ -127,12 +82,15 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     rlist->append(*GenerateRelativisticConfigurations(leading_configs));
 
     // Get any leading relativistic configurations
-    num_configs = user_input.vector_variable_size("LeadingRelativisticConfigurations");
-    if(num_configs)
+
+    if(ci_spec->leading_rel_configurations)
     {
-        for(int i = 0; i < num_configs; i++)
+        auto spec_rlcs = ci_spec->leading_rel_configurations.value();
+        num_configs = spec_rlcs.size();
+
+        for(unsigned i = 0; i < num_configs; i++)
         {
-            const std::string name = user_input("LeadingRelativisticConfigurations", "", i);
+            const std::string name = spec_rlcs[i];
             RelativisticConfiguration config(name);
 
             // Check that the configuration gels with the number of electrons
@@ -154,10 +112,10 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     // Get maxenergy
     bool use_maxenergy = false;
     double upper_energy = 0.0;
-    if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
+    if(one_body && two_body && ci_spec->configuration_average_energy_range)
     {
         use_maxenergy = true;
-        upper_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 1);
+        upper_energy = ci_spec->configuration_average_energy_range.value().second;
     }
 
     // Total number of excitation steps
@@ -173,9 +131,10 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
         {
             valence_electrons = *orbitals->particle;
 
-            if(num_electron_excitation_inputs > 1)
+            if(ci_spec->electron_bounds)
             {
-                std::string CI_basis_string = user_input("ElectronExcitations", "", 2*excitation_step + 1);
+                auto bounds = ci_spec->electron_bounds.value();
+                std::string CI_basis_string = bounds[excitation_step];
                 // Limits here are in the form of ValenceBasis (pqn up to and including limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
 
@@ -199,9 +158,10 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
         {
             valence_holes = *orbitals->hole;
 
-            if(num_hole_excitation_inputs > 1)
+            if(ci_spec->hole_bounds)
             {
-                std::string CI_basis_string = user_input("HoleExcitations", "", 2*excitation_step + 1);
+                auto bounds = ci_spec->hole_bounds.value();
+                std::string CI_basis_string = bounds[excitation_step];
                 // Limits here are in the form of FrozenCore (pqn should be bigger than limit)
                 std::vector<int> limits = ConfigurationParser::ParseBasisSize(CI_basis_string);
                 
@@ -230,9 +190,9 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     }
 
     // Trim configurations outside of ConfigurationAverageEnergyRange
-    if(one_body && two_body && user_input.vector_variable_size("ConfigurationAverageEnergyRange") == 2)
+    if(one_body && two_body && ci_spec->configuration_average_energy_range)
     {
-        double lower_energy = user_input("ConfigurationAverageEnergyRange", 0.0, 0);
+        double lower_energy = ci_spec->configuration_average_energy_range.value().first;
 
         auto newend = std::remove_if(rlist->begin(), rlist->end(),
                         [&](RelativisticConfiguration& item){
@@ -244,14 +204,16 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
 
     // Add extra configurations not to be considered leading configurations.
     // These are added regardless of ConfigurationAverageEnergyRange
-    int num_extra_configs = user_input.vector_variable_size("ExtraConfigurations");
-    if(num_extra_configs)
+    if(ci_spec->extra_configurations)
     {
+        auto spec_extra_configs = ci_spec->extra_configurations.value();
+        unsigned num_extra_configs = spec_extra_configs.size();
+
         pConfigList nrlist = std::make_shared<ConfigList>();
         nrlist->first.reserve(num_extra_configs);
-        for(int i = 0; i < num_extra_configs; i++)
+        for(unsigned i = 0; i < num_extra_configs; i++)
         {
-            const std::string extraname = user_input("ExtraConfigurations", "", i);
+            const std::string extraname = spec_extra_configs[i];
             NonRelConfiguration extraconfig(extraname);
             
             if(extraconfig.ElectronNumber() != numValenceElectrons)
@@ -271,12 +233,15 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     }
 
     // Add extra relativistic configurations not to be considered leading configurations for the purpose of configuration generation.
-    num_extra_configs = user_input.vector_variable_size("ExtraRelativisticConfigurations");
-    if(num_extra_configs)
+    if(ci_spec->extra_rel_configurations)
     {
-        for(int i = 0; i < num_extra_configs; i++)
+
+        auto spec_extra_rconfigs = ci_spec->extra_rel_configurations.value();
+        unsigned num_extra_configs = spec_extra_rconfigs.size();
+
+        for(unsigned i = 0; i < num_extra_configs; i++)
         {
-            const std::string extraname = user_input("ExtraRelativisticConfigurations", "", i);
+            const std::string extraname = spec_extra_rconfigs[i];
             RelativisticConfiguration extraconfig(extraname);
 
             if(extraconfig.ElectronNumber() != numValenceElectrons)
@@ -295,14 +260,14 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
     rlist->SetSmallSize(rlist->size());
 
     // Print configuration list if requested
-    if(user_input.search(2, "--print-relativistic-configurations", "--print-configurations"))
+    if(ci_spec->print_configurations || ci_spec->print_rel_configurations)
     {
         // Include energies
         if(one_body && two_body)
         {
             *outstream << "\nConfigurations; E; N:" << std::setprecision(6) << "\n";
 
-            if(user_input.search("--print-relativistic-configurations"))
+            if(ci_spec->print_rel_configurations)
             {
                 for(auto& config: *rlist)
                 {
@@ -327,7 +292,7 @@ pRelativisticConfigList ConfigGenerator::ParseAndGenerateConfigurations(pHFInteg
         {
             *outstream << "\nConfigurations; N:" << std::endl;
 
-            if(user_input.search("--print-relativistic-configurations"))
+            if(ci_spec->print_rel_configurations)
             {
                 for(auto& config: *rlist)
                 {
@@ -391,6 +356,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pRelativisticConfigLis
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRelativisticConfigListConst rlist, const Symmetry& sym, pAngularDataLibrary angular_library) const
 {
+    auto config = GlobalSpecification::Instance();
     pRelativisticConfigList prlist = std::make_shared<RelativisticConfigList>();
     RelativisticConfigList& returnedlist = *prlist;
 
@@ -430,7 +396,8 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
     if(angular_library)
         GenerateProjections(prlist, sym, sym.GetTwoJ(), angular_library);
 
-    if(user_input.search("CI/--sort-matrix-by-configuration"))
+    //if(user_input.search("CI/--sort-matrix-by-configuration"))
+    if(config->ci.sort_matrix_by_configuration)
         returnedlist.sort(ConfigurationComparator());
     else
         returnedlist.sort(MostWorkFirstComparator());
