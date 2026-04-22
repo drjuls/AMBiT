@@ -37,7 +37,7 @@ void Atom::InternalConversion(const LevelVector& source)
     char sep = ' ';
     *outstream << std::setprecision(5);
 
-    ConfigGenerator gen(orbitals, user_input);
+    ConfigGenerator gen(orbitals);
 
     // Source information
     Symmetry source_symmetry(source.hID->GetSymmetry());
@@ -325,7 +325,7 @@ void Atom::Autoionization(const LevelVector& target)
 
     auto math = MathConstant::Instance();
 
-    ConfigGenerator gen(orbitals, user_input);
+    ConfigGenerator gen(orbitals);
     pOrbitalMap valence(new OrbitalMap(*orbitals->valence));
 
     // Select orbitals in target wavefunction
@@ -517,7 +517,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
     double energy_unit_conversion = math->HartreeEnergyIneV();
     double rate_unit_conversion = math->AtomicFrequencySI() * 1.e-9;    // (ns);
 
-    ConfigGenerator gen(orbitals, user_input);
+    ConfigGenerator gen(orbitals);
     pOrbitalMap valence(new OrbitalMap(*orbitals->valence));
 
     // Select orbitals in target wavefunction
@@ -768,7 +768,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     auto math = MathConstant::Instance();
 
-    ConfigGenerator gen(orbitals, user_input);
+    ConfigGenerator gen(orbitals);
     pOrbitalMap valence(new OrbitalMap(*orbitals->valence));
 
     *outstream << "\nTarget occupancy:\n  " << target.Name() << std::endl;

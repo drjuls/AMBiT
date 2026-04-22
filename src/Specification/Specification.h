@@ -70,6 +70,26 @@ public:
     bool output_no_configs = false;
 };
 
+// Transitions
+// Base class from which all transition operators define their CLI spec
+class TransitionsBaseSpecification
+{
+public:
+    std::optional<std::vector<std::string>> matrix_elements;
+    std::optional<double> all_below;
+    bool reduced_elements = false;
+    bool print_integrals = false;
+    bool do_rpa = false;
+};
+
+class TransitionsEJSpecification: public TransitionsBaseSpecification
+{
+public:
+    double frequency = 0.1;
+    bool velocity_gauge = false;
+};
+
+
 class GlobalSpecification {
 
 public:
@@ -93,11 +113,19 @@ protected:
     //template <typename R, typename X>
     //void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr, std::string key_pfx, const std::vector<P::specification<X>>& x_specs, std::string desc_pfx = "");
     
+    // CI
     template <typename T>
     std::vector<P::specification<T>> make_ci_base_specification();
 
     template <typename T>
     std::vector<P::specification<T>> make_ci_specification();
+
+    // Transitions
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_base_specification();
+
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_ej_specification();
 
 
 public:
@@ -217,14 +245,14 @@ public:
     bool mbpt_brueckner_use_lower = false;
     bool mbpt_brueckner_use_lower_lower = false;
     bool mbpt_brueckner_excited = false;
-    // We need to explicitly enumerate the options for MBPT diagrams: s1, s2, s3, s12, s123, s13
-    // and s23. It's kind of clunky to use these directly in the main body of the code, so we
-    // obfuscate them here and then, during the spec validation, set the more general attributes:
-    // mbpt_one_body, mbpt_two_body, mbpt_three_body as appropriate
-    // NOTE: Don't use these directly in AMBiT, use GlobalSpecification::mbpt_one_body and friends
-    // TODO EVK: Really want to be able to make these private, but GlobalSpecification is declared
-    // globally, so it doesn't work. Probably need to move the parsing stuff into a separate class
-    // so I can make it a friend
+
+    // Transitions
+    TransitionsEJSpecification transitions_e1;
+    TransitionsEJSpecification transitions_e2;
+    TransitionsEJSpecification transitions_e3;
+    TransitionsEJSpecification transitions_m1;
+    TransitionsEJSpecification transitions_m2;
+
 protected:
     bool _s1 = false;
     bool _s2 = false;

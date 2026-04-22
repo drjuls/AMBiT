@@ -292,7 +292,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
 
     if(specification->configuration_average)
     {
-        ConfigGenerator gen(orbitals, user_input);
+        ConfigGenerator gen(orbitals);
         if(twobody_electron == nullptr)
             MakeCIIntegrals();
         allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
@@ -342,7 +342,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
     }
     else
     {   // Generate non-rel configurations and hence choose Hamiltonians
-        ConfigGenerator gen(orbitals, user_input);
+        ConfigGenerator gen(orbitals);
 
         if(twobody_electron == nullptr)
             MakeCIIntegrals();
@@ -384,7 +384,7 @@ pLevelStore Atom::ChooseHamiltonians(pRelativisticConfigList rlist)
     // Single configuration CI: each Hamiltonian only uses one non-rel configuration
     if(specification->ci.single_configuration_ci)
     {
-        ConfigGenerator gen(orbitals, user_input);
+        ConfigGenerator gen(orbitals);
         pConfigList nrlist = gen.GenerateNonRelConfigurations(rlist);
 
         if(specification->ci.all_symmetries)
@@ -484,7 +484,7 @@ void Atom::CheckMatrixSizes(pAngularDataLibrary angular_lib)
     MakeCIIntegrals();
 
     // Generate configurations again; don't read from disk. */
-    ConfigGenerator gen(orbitals, user_input);
+    ConfigGenerator gen(orbitals);
     if(twobody_electron)
         allconfigs = gen.GenerateConfigurations(hf_electron, twobody_electron->GetIntegrals());
     else
@@ -593,7 +593,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
         if(configs == nullptr)
         {
-            ConfigGenerator gen(orbitals, user_input);
+            ConfigGenerator gen(orbitals);
 
             if(nrID)
             {

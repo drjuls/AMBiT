@@ -1,5 +1,6 @@
 #include "EJOperator.h"
 #include "Include.h"
+#include "Specification/Specification.h"
 #include "Universal/PhysicalConstant.h"
 #include "Universal/MathConstant.h"
 #include <boost/math/special_functions/bessel.hpp>
@@ -178,6 +179,8 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
 EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom):
     TransitionCalculator(user_input, atom), type(type), J(J)
 {
+    auto config = GlobalSpecification::Instance();
+
     pHFOperatorConst hf = atom.GetHFOperator();
 
     auto gauge = (user_input.search("--velocity-gauge")? TransitionGauge::Velocity: TransitionGauge::Length);

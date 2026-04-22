@@ -24,7 +24,7 @@ namespace Ambit
 class ConfigGenerator
 {
 public:
-    ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput);
+    ConfigGenerator(pOrbitalManagerConst orbitals);
 
     /** Get list of leading configurations. */
     pConfigList GetLeadingConfigs();
@@ -83,7 +83,6 @@ protected:
 
 protected:
     // Inputs
-    MultirunOptions& user_input;
     pOrbitalManagerConst orbitals;
 
     pConfigList leading_configs;

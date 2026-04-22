@@ -44,6 +44,7 @@ C extend(C&& container, const std::initializer_list<typename C::value_type>& il)
     return container;
 }
 
+/****************************** CI ****************************/
 template <typename X>
 std::vector<P::specification<X>> GlobalSpecification::make_ci_base_specification() {
     return {
@@ -87,7 +88,28 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
      });
 }
 
+/****************************** Transitions ****************************/
 
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_base_specification() {
+    return {
+        {"MatrixElements",                  &X::matrix_elements},
+        {"AllBelow",                        &X::all_below},
+        {"--reduced_elements",              &X::reduced_elements},
+        {"--print-integrals",               &X::print_integrals},
+        {"--rpa",                           &X::do_rpa},
+    };
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_ej_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"Frequency",                       &X::frequency},
+        {"--velocity-gauge",                &X::velocity_gauge},
+    });
+}
+/***************************** Delegated parsing *************************/
 // Add specifications for members of record subobjects that have their own sets of specifications.
 // Keys and field descriptions are given a prefix as supplied.
 template <typename R, typename X>
@@ -208,6 +230,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner}
 };
 
+/**************************** Delegated parsing (CI and transitions) ***********/
     // CI and CI/SmallSide specs
     auto ci_specs = make_ci_specification<CISpecification>();
     auto ci_smallside_specs = make_ci_base_specification<CIBaseSpecification>();
@@ -215,6 +238,15 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // Delegates
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci, "CI/", ci_specs, "CI full: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ci_smallside, "CI/SmallSide/", ci_smallside_specs, "CI SmallSide: ");
+
+    // Transition matrix elements
+    // Base specs common to EJ/MJ operators
+    auto ej_specs = make_transitions_ej_specification<TransitionsEJSpecification>();
+
+    // Now delegate the parsing for each multipole operator
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e1, "Transitions/E1/", ej_specs, "E1 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e2, "Transitions/E2/", ej_specs, "E2 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e3, "Transitions/E3/", ej_specs, "E3 transition operator: ");
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -283,7 +315,19 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
         if(count != 1)
             return "Must specify exactly one of HF/Yukawa/Mass, HF/Yukawa/MassEV, or HF/Yukawa/Rc when using HF/Yukawa";
     }
+
+    // One type of basis at a time
+    unsigned basis_type_count = 0;
+    if(basis_bspline)
+        basis_type_count++;
+    if(basis_xr)
+        basis_type_count++;
+    if(basis_hf)
+        basis_type_count++;
     
+    if(basis_type_count > 1)
+        return "Must specify exactly one of Basis/--bspline-basis, Basis/--xr-basis, or Basis/--hf-basis";
+
     // Set the general MBPT (one|two|three)_body_integral variables
     if(_s1 || _s12 || _s13 || _s123)
     {

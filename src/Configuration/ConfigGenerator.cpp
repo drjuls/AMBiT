@@ -5,8 +5,8 @@
 
 namespace Ambit
 {
-ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals, MultirunOptions& userInput):
-    orbitals(orbitals), user_input(userInput)
+ConfigGenerator::ConfigGenerator(pOrbitalManagerConst orbitals):
+    orbitals(orbitals)
 {
     leading_configs = std::make_shared<ConfigList>();
 }
