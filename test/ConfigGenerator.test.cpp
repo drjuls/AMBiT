@@ -18,11 +18,9 @@ TEST(ConfigGeneratorTester, CountConfigurations)
     std::string user_input_string = std::string() +
       "-c \n" +
       "ID = test\n" + 
-      "Multirun = 'AlphaSquaredVariation'\n" +
       "NuclearRadius = 3.7188\n" +
       "NuclearThickness = 2.3\n" +
       "Z = 20\n" +
-      "AlphaSquaredVariation = '-0.1, 0.0, 0.1'\n" 
       "[Lattice]\n" +
       "NumPoints = 1000\n" +
       "StartPoint = 1.e-6\n" +
@@ -56,9 +54,9 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
 
@@ -91,7 +89,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     int total_non_rel = 0;
     int total_rel = 0;
-    ConfigGenerator gen(orbitals, userInput);
+    ConfigGenerator gen(orbitals);
 
     pRelativisticConfigList configs = gen.GenerateConfigurations();
     total_non_rel += gen.GenerateNonRelConfigurations(configs)->first.size();
@@ -158,9 +156,9 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
 
@@ -174,7 +172,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     BasisGenerator basis_generator(lattice);
     basis_generator.GenerateHFCore();
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-    ConfigGenerator gen(orbitals, userInput);
+    ConfigGenerator gen(orbitals);
 
     auto configs = gen.GenerateConfigurations();
     pRelativisticConfigList relconfigs = gen.GenerateRelativisticConfigurations(configs, Symmetry(0, Parity::even));
@@ -207,9 +205,9 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     // comparison
     //auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    perr = importSpecificationKV(specification, holes_input_string);
+    perr = importSpecificationINIString(specification, holes_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -222,7 +220,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
     BasisGenerator holes_basis_generator(lattice);
     holes_basis_generator.GenerateHFCore();
     pOrbitalManagerConst holes_orbitals = holes_basis_generator.GenerateBasis();
-    ConfigGenerator holes_gen(holes_orbitals, holesInput);
+    ConfigGenerator holes_gen(holes_orbitals);
 
     auto holes_configs = holes_gen.GenerateConfigurations();
     pRelativisticConfigList holes_relconfigs = holes_gen.GenerateRelativisticConfigurations(holes_configs, Symmetry(0, Parity::even));
@@ -255,14 +253,16 @@ TEST(ConfigGeneratorTester, NonSquare)
         "NumSolutions = 1\n" +
         "[CI/SmallSide]\n" +
         "LeadingConfigurations = '3d-2'\n" +
-        "ElectronExcitations = '1, 4spd'\n" +
-        "HoleExcitations = '1, 2sp'\n";
+        "ElectronExcitations = 1 \n" +
+        "ElectronBounds = '4spd' \n" +
+        "HoleExcitations = 1\n" +
+        "HoleBounds = '2sp'\n";
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
 
@@ -273,7 +273,7 @@ TEST(ConfigGeneratorTester, NonSquare)
     BasisGenerator basis_generator(lattice);
     basis_generator.GenerateHFCore();
     pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-    ConfigGenerator gen(orbitals, userInput);
+    ConfigGenerator gen(orbitals);
 
     auto configs = gen.GenerateConfigurations();
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();

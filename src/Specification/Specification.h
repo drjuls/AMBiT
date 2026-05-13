@@ -206,7 +206,7 @@ public:
     std::optional<std::vector<std::string>> basis_inject_orbitals;
     bool basis_reorthogonalise = false;
     bool basis_hf = false;
-    bool basis_bspline = true;
+    bool basis_bspline = false;
     bool basis_xr = false;
     std::optional<std::string> basis_hf_orbitals;
     std::optional<std::vector<std::string> > basis_xr_custom_orbitals;

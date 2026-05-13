@@ -254,7 +254,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Lattice/--exp-lattice",       &GlobalSpecification::lattice_exponential},
     {"Lattice/H",                   &GlobalSpecification::lattice_H,             positive},
     // HF
-    {"HF/N",                            &GlobalSpecification::hf_N, positive},
+    {"HF/N",                            &GlobalSpecification::hf_N, nonegative},
     {"HF/Charge",                       &GlobalSpecification::hf_charge},
     {"HF/Configuration",                &GlobalSpecification::hf_configuration},
     {"HF/--breit",                      &GlobalSpecification::hf_breit},
@@ -494,7 +494,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
         basis_type_count++;
     
     if(basis_type_count > 1)
-        return "Must specify exactly one of Basis/--bspline-basis, Basis/--xr-basis, or Basis/--hf-basis";
+        return "Must specify at most one of Basis/--bspline-basis, Basis/--xr-basis, or Basis/--hf-basis";
 
     // Set the general MBPT (one|two|three)_body_integral variables
     if(_s1 || _s12 || _s13 || _s123)
@@ -511,11 +511,11 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     }
    
     // We must have at least one leading configuration for CI and CI/SmallSide
-    if(ci.leading_configurations.empty())
-        return "Must have at least one config in CI/LeadingConfigurations";
+    //if(ci.leading_configurations.empty())
+    //    return "Must have at least one config in CI/LeadingConfigurations";
 
-    if(ci_do_smallside && ci_smallside.leading_configurations.empty())
-        return "Must have at least one config in CI/SmallSide/LeadingConfigurations";
+    //if(ci_do_smallside && ci_smallside.leading_configurations.empty())
+    //    return "Must have at least one config in CI/SmallSide/LeadingConfigurations";
 
     // Must specify LevelDirectory if using CI/--memory-saver
     if(ci.memory_saver && !level_directory)
