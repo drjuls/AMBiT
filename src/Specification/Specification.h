@@ -6,6 +6,7 @@
 #include <optional>
 #include <memory>
 #include "SpecificationMap.h"
+#include "TransitionSpecifications.h"
 #include "parapara/parapara.h"
 
 namespace P = parapara;
@@ -13,7 +14,7 @@ namespace P = parapara;
 namespace Ambit
 {
 
-// Generic options for CI and CI/SmallSide
+/************************** CI ***********************/
 class CIBaseSpecification
 {
 public:
@@ -70,25 +71,7 @@ public:
     bool output_no_configs = false;
 };
 
-// Transitions
-// Base class from which all transition operators define their CLI spec
-class TransitionsBaseSpecification
-{
-public:
-    std::optional<std::vector<std::string>> matrix_elements;
-    std::optional<double> all_below;
-    bool reduced_elements = false;
-    bool print_integrals = false;
-    bool do_rpa = false;
-};
-
-class TransitionsEJSpecification: public TransitionsBaseSpecification
-{
-public:
-    double frequency = 0.1;
-    bool velocity_gauge = false;
-};
-
+/************************** GlobalSpecification ***********************/
 
 class GlobalSpecification {
 
@@ -126,6 +109,26 @@ protected:
 
     template <typename T>
     std::vector<P::specification<T>> make_transitions_ej_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_hfs1_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_hfs2_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_hfsi_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_fs_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_qed_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_yukawa_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_ke_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_llit2_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_transitions_nms_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_ic_specification();
 
 
 public:
@@ -246,12 +249,59 @@ public:
     bool mbpt_brueckner_use_lower_lower = false;
     bool mbpt_brueckner_excited = false;
 
-    // Transitions
+    // Bools for whether to do a given transition type
+    bool transitions_do_e1 = false;
+    bool transitions_do_e2 = false;
+    bool transitions_do_e3 = false;
+    bool transitions_do_e4 = false;
+    bool transitions_do_m1 = false;
+    bool transitions_do_m2 = false;
+    bool transitions_do_m3 = false;
+    bool transitions_do_m4 = false;
+    bool transitions_do_hfs1 = false;
+    bool transitions_do_hfs2 = false;
+    bool transitions_do_hfsi = false;
+    bool transitions_do_fs = false;
+    bool transitions_do_qed = false;
+    bool transitions_do_yukawa = false;
+    bool transitions_do_ke = false;
+    bool transitions_do_llit2 = false;
+    bool transitions_do_nms = false;
+
+    // Transitions specification objects
+    // EJ transitions
     TransitionsEJSpecification transitions_e1;
     TransitionsEJSpecification transitions_e2;
     TransitionsEJSpecification transitions_e3;
+    TransitionsEJSpecification transitions_e4;
     TransitionsEJSpecification transitions_m1;
     TransitionsEJSpecification transitions_m2;
+    TransitionsEJSpecification transitions_m3;
+    TransitionsEJSpecification transitions_m4;
+
+    // Everything else
+    TransitionsHFS1Specification transitions_hfs1;
+    TransitionsHFS2Specification transitions_hfs2;
+    TransitionsHFSISpecification transitions_hfsi;
+    TransitionsFSSpecification transitions_fs;
+    TransitionsQEDSpecification transitions_qed;
+    TransitionsYukawaSpecification transitions_yukawa;
+    TransitionsKESpecification transitions_ke;
+    TransitionsLLIT2Specification transitions_llit2;
+    TransitionsNMSSpecification transitions_nms;
+
+    // Autoionization
+    ICSpecification ic;
+    
+    double dr_ionization_energy = 0.0;
+    std::optional<double> dr_energy_limit;
+    unsigned dr_continuum_l_min = 0;
+    unsigned dr_continuum_l_max = 6;
+    std::optional<std::string> dr_continuum_residue;
+    double dr_energygrid_min = 0.003675;
+    double dr_energygrid_max = 3.675;
+    double dr_energygrid_step = 0.03675;
+    bool dr_use_single_particle_energy = false;
 
 protected:
     bool _s1 = false;
@@ -271,6 +321,7 @@ public:
 // On success, return empty string.
 // On failure, return (long) error message.
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName);
+std::string importSpecificationINIString(GlobalSpecification* gs, const std::string& ini_string);
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment);
 
 // Return a map-like interface to the configuration, which lets us do nice things like 

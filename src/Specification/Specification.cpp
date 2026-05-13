@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <fstream>
 #include <istream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "Specification.h"
+#include "Specification/TransitionSpecifications.h"
 #include "parapara/parapara.h"
 
 namespace P = parapara;
@@ -18,6 +20,8 @@ template <typename Record>
 P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Record>& specs, std::istream& in);
 
 inline auto positive = P::greater_than(0, "must be positive");
+inline auto nonegative = P::at_least(0, "must be positive");
+inline auto zero_to_1 = P::between(0, 1, "must be positive");
 
 /********************* GlobalSpecification methods *********************/
 GlobalSpecification* GlobalSpecification::Instance()
@@ -34,7 +38,7 @@ GlobalSpecification::GlobalSpecification()
 
 /********************* Parsing methods *********************/
 // Helper methods for the polymorphic "delegated" parsing (so we can e.g. re-use common options
-// between [Transition] operators. Much of this is derived from "ex-delegate.cc" in the parapara
+// between [Transition] operators. This is lifted from "ex-delegate.cc" in the parapara
 // examples: https://github.com/halfflat/parapara/blob/main/ex/ex-delegate.cc
 
 // A bit of syntactic sugar for inheritance (even if it does involve some copies):
@@ -98,6 +102,17 @@ std::vector<P::specification<X>> GlobalSpecification::make_transitions_base_spec
         {"--reduced_elements",              &X::reduced_elements},
         {"--print-integrals",               &X::print_integrals},
         {"--rpa",                           &X::do_rpa},
+        {"RPA/Scale",                       &X::rpa_scale},
+        {"RPA/Weighting",                   &X::rpa_weighting, zero_to_1},
+        {"RPA/MaxDeltaK",                   &X::rpa_max_delta_k, positive},
+        {"RPA/MaxIterations",               &X::rpa_max_iterations, positive},
+        {"RPA/Configuration",               &X::rpa_configuration},
+        {"RPA/--no-negative-states",        &X::rpa_no_negative_states},
+        {"RPA/--print-field",               &X::rpa_print_field},
+        {"RPA/BSpline/N",                   &X::rpa_bspline_n},
+        {"RPA/BSpline/K",                   &X::rpa_bspline_k},
+        {"RPA/BSpline/Rmax",                &X::rpa_bspline_rmax},
+        {"RPA/BSpline/R0",                  &X::rpa_bspline_r0},
     };
 }
 
@@ -109,6 +124,88 @@ std::vector<P::specification<X>> GlobalSpecification::make_transitions_ej_specif
         {"--velocity-gauge",                &X::velocity_gauge},
     });
 }
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfs1_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"NuclearMagneticRadius",           &X::nuclear_magnetic_radius},
+        {"gOnI",                            &X::g_on_i},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfs2_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"NuclearQuadrupoleRadius",         &X::nuclear_quadrupole_radius},
+        {"Q",                               &X::q},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfsi_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"NuclearRadius",           &X::nuclear_radius},
+        {"Operator",                &X::op},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_fs_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"DeltaNuclearRadius",              &X::delta_nuclear_radius},
+        {"DeltaNuclearThickness",           &X::delta_nuclear_thickness},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_qed_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+    {"QED/--uehling",                   &X::uehling},
+    {"QED/--self-energy",               &X::self_energy},
+    {"QED/--use-nuclear-density",       &X::use_nuclear_density},
+    {"QED/NuclearRMSRadius",            &X::nuclear_rms_radius, P::nonzero()},
+    {"QED/--no-magnetic",               &X::no_magnetic},
+    {"QED/--no-electric",               &X::no_electric},
+    {"QED/--skip-offmass",              &X::skip_offmass},
+    {"QED/--use-electron-screening",    &X::use_electron_screening},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_yukawa_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"Mass",            &X::mass},
+        {"MassEV",          &X::massev},
+        {"Rc",              &X::rc},
+    });
+}
+
+// Don't need anything for KE or LLIT2 because they have no options beyond the base spec
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_nms_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_base_specification<X>(), {
+        {"--only-relativistic-nms",             &X::only_relativistic_nms},
+        {"--nonrelativistic--mass-shift",       &X::nonrelativistic_mass_shift},
+    });
+}
+
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
+    // Start with the base transitions specification and add extras on top
+    return extend(make_transitions_hfsi_specification<X>(), {
+        {"NuclearEnergyEv",         &X::nuclear_energy_ev, positive},
+        {"ContinuumLMin",           &X::continuum_l_min},
+        {"ContinuumLMax",           &X::continuum_l_max},
+    });
+}
+
 /***************************** Delegated parsing *************************/
 // Add specifications for members of record subobjects that have their own sets of specifications.
 // Keys and field descriptions are given a prefix as supplied.
@@ -227,7 +324,33 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"MBPT/Delta",                            &GlobalSpecification::mbpt_delta}, 
     {"MBPT/TwoBody/StorageLimits",            &GlobalSpecification::mbpt_twobody_storage_limits}, 
     {"MBPT/OneBody/Scaling",                  &GlobalSpecification::mbpt_onebody_scaling}, 
-    {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner}
+    {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner},
+    {"Transitions/E1",                         &GlobalSpecification::transitions_do_e1},
+    {"Transitions/E2",                         &GlobalSpecification::transitions_do_e2},
+    {"Transitions/E3",                         &GlobalSpecification::transitions_do_e3},
+    {"Transitions/E4",                         &GlobalSpecification::transitions_do_e4},
+    {"Transitions/M1",                         &GlobalSpecification::transitions_do_m1},
+    {"Transitions/M2",                         &GlobalSpecification::transitions_do_m2},
+    {"Transitions/M3",                         &GlobalSpecification::transitions_do_m3},
+    {"Transitions/M4",                         &GlobalSpecification::transitions_do_m4},
+    {"Transitions/HFS1",                       &GlobalSpecification::transitions_do_hfs1},
+    {"Transitions/HFS2",                       &GlobalSpecification::transitions_do_hfs2},
+    {"Transitions/HFSI",                       &GlobalSpecification::transitions_do_hfsi},
+    {"Transitions/FS",                        &GlobalSpecification::transitions_do_fs},
+    {"Transitions/QED",                       &GlobalSpecification::transitions_do_qed},
+    {"Transitions/Yukawa",                    &GlobalSpecification::transitions_do_yukawa},
+    {"Transitions/KE",                        &GlobalSpecification::transitions_do_ke},
+    {"Transitions/LLIT2",                     &GlobalSpecification::transitions_do_llit2},
+    {"Transitions/NMS",                       &GlobalSpecification::transitions_do_nms},
+    {"DR/IonizationEnergy",                 &GlobalSpecification::dr_ionization_energy},
+    {"DR/EnergyLimit",                      &GlobalSpecification::dr_energy_limit},
+    {"DR/ContinuumLMin",                    &GlobalSpecification::dr_continuum_l_min},
+    {"DR/ContinuumLMax",                    &GlobalSpecification::dr_continuum_l_max},
+    {"DR/ContinuumResidue",                 &GlobalSpecification::dr_continuum_residue},
+    {"DR/EnergyGrid/Min",                   &GlobalSpecification::dr_energygrid_min},
+    {"DR/EnergyGrid/Max",                   &GlobalSpecification::dr_energygrid_max},
+    {"DR/EnergyGrid/Step",                  &GlobalSpecification::dr_energygrid_step},
+    {"DR/--single-particle-energy",         &GlobalSpecification::dr_use_single_particle_energy},
 };
 
 /**************************** Delegated parsing (CI and transitions) ***********/
@@ -242,11 +365,44 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // Transition matrix elements
     // Base specs common to EJ/MJ operators
     auto ej_specs = make_transitions_ej_specification<TransitionsEJSpecification>();
+    auto hfs1_specs = make_transitions_hfs1_specification<TransitionsHFS1Specification>();
+    auto hfs2_specs = make_transitions_hfs2_specification<TransitionsHFS2Specification>();
+    auto hfsi_specs = make_transitions_hfsi_specification<TransitionsHFSISpecification>();
+    auto fs_specs = make_transitions_fs_specification<TransitionsFSSpecification>();
+    auto qed_specs = make_transitions_qed_specification<TransitionsQEDSpecification>();
+    auto yukawa_specs = make_transitions_yukawa_specification<TransitionsYukawaSpecification>();
+    auto ke_specs = make_transitions_base_specification<TransitionsKESpecification>();
+    auto llit2_specs = make_transitions_base_specification<TransitionsLLIT2Specification>();
+    auto nms_specs = make_transitions_nms_specification<TransitionsNMSSpecification>();
 
-    // Now delegate the parsing for each multipole operator
+    auto ic_specs = make_ic_specification<ICSpecification>();
+
+    // Now delegate the parsing for each EJ multipole operator
+    // NOTE: The trailing "/"s in the key prefixes are signification (e.g. it's
+    // "Transitions/E1/" *not "Transitions/E1")
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e1, "Transitions/E1/", ej_specs, "E1 transition operator: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e2, "Transitions/E2/", ej_specs, "E2 transition operator: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e3, "Transitions/E3/", ej_specs, "E3 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e4, "Transitions/E4/", ej_specs, "E4 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m1, "Transitions/M1/", ej_specs, "M1 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m2, "Transitions/M2/", ej_specs, "M2 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m3, "Transitions/M3/", ej_specs, "M3 transition operator: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m4, "Transitions/M4/", ej_specs, "M4 transition operator: ");
+
+    // And the rest...
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs1, "Transitions/HFS1/", hfs1_specs , "HFS dipole transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs2, "Transitions/HFS2/", hfs2_specs , "HFS quadrupole transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfsi, "Transitions/HFSI/", hfsi_specs , "Generalised HFS transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_fs, "Transitions/FS/", fs_specs , "Field shift transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_qed, "Transitions/QED/", qed_specs , "QED radiative potential transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_yukawa, "Transitions/Yukawa/", yukawa_specs , "Yukawa potential transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_ke, "Transitions/KE/", ke_specs , "Kinetic energy transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_llit2, "Transitions/LLIT2/", llit2_specs , "Local-Lorentz Invariance T2 transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_nms, "Transitions/NMS/", nms_specs , "Nuclear mass-shift (NMS) transitions: ");
+
+    // Autoionization
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::ic, "IC/", ic_specs, "Internal Conversion (IC):");
+
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -272,6 +428,18 @@ std::string importSpecificationFile(GlobalSpecification* gs, const std::string& 
 
     return "";
 }
+
+// Read a full INI from a string, rather than a file. Mostly useful for unit testing
+std::string importSpecificationINIString(GlobalSpecification* gs, const std::string& ini_string) {
+
+    std::istringstream in(ini_string);
+    P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
+    auto h = custom_import_ini(*gs, global_specifications_dict, in);
+    if (!h) return P::explain(h.error(), true);
+
+    return "";
+}
+
 
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment) {
     P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
