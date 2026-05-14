@@ -2,6 +2,7 @@
 #define LORENTZ_INVARIANCE_T2_H
 
 #include "HartreeFock/SpinorOperator.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -31,7 +32,7 @@ protected:
 class LorentzInvarianceT2Calculator : public TransitionCalculator
 {
 public:
-    LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom);
+    LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

@@ -1,5 +1,6 @@
 #include "Hyperfine.h"
 #include "Include.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Universal/MathConstant.h"
 
 namespace Ambit
@@ -84,8 +85,8 @@ SpinorFunction HyperfineMJOperator::ReducedApplyTo(const SpinorFunction& a, int 
     return ret * prefactor;
 }
 
-HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS1Specification& config):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
@@ -121,8 +122,8 @@ void HyperfineDipoleCalculator::PrintTransition(const LevelID& left, const Level
                << " = " << std::setprecision(6) << value << std::endl;
 }
 
-HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS2Specification& config):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
@@ -156,8 +157,8 @@ void HyperfineQuadrupoleCalculator::PrintTransition(const LevelID& left, const L
                << " = " << std::setprecision(6) << value << std::endl;
 }
 
-GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFSISpecification& config):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
 {
     MathConstant* math = MathConstant::Instance();
     pHFOperatorConst hf = atom.GetHFOperator();

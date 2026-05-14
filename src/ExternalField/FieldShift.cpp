@@ -1,6 +1,7 @@
 #include "FieldShift.h"
 #include "Include.h"
 #include "HartreeFock/NucleusDecorator.h"
+#include "Specification/TransitionSpecifications.h"
 
 namespace Ambit
 {
@@ -27,8 +28,8 @@ FieldShiftDecorator::FieldShiftDecorator(pHFOperator wrapped_hf, double R0, doub
         *outstream << "Change in nuclear R4         = " << std::setprecision(6) << dR4 << std::endl;
 }
 
-FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom)
+FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsFSSpecification& config):
+    TransitionCalculator(user_input, atom, config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

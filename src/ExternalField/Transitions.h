@@ -3,6 +3,7 @@
 
 #include "Atom/Atom.h"
 #include "Configuration/Level.h"
+#include "Specification/Specification.h"
 #include "Universal/Enums.h"
 #include "RPAOperator.h"
 #include <map>
@@ -26,17 +27,24 @@ typedef std::pair<LevelID, LevelID> TransitionID;
         - PrintTransition()
     TransitionCalculator provides generic RPA routines for authors of subclasses.
     When constructing the operator use something like
-        if(user_input.search("--rpa"))
+        if(config.do_rpa)
             op = MakeRPA(op, hf, hartreeY);
+
+    This has to take a TransitionsBaseSpecification object for the CLI arguments, since
+    each TransitionCalculator is associated with a specific operator, so we need to
+    explicitly tell it which CLI args belong to it. The CLI Specifications belonging
+    to any given operator will be derived from TransitionsBaseSpecification, so we can
+    always let them decay to this type, which contains just the arguments common to all
+    transition operators.
  */
 class TransitionCalculator
 {
 public:
-    TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), scale(1.0)
+    TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels, TransitionsBaseSpecification& config):
+        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), scale(1.0), config(config)
     {}
-    TransitionCalculator(MultirunOptions& user_input, Atom& atom):
-        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+    TransitionCalculator(MultirunOptions& user_input, Atom& atom, TransitionsBaseSpecification& config):
+        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
     {}
 
     /** Parse user_input for transition requests, calculate and print.
@@ -107,6 +115,7 @@ protected:
 
 protected:
     MultirunOptions& user_input;
+    TransitionsBaseSpecification config;
     pOrbitalManagerConst orbitals;
     pLevelStore levels;
     pSpinorMatrixElement op = nullptr;

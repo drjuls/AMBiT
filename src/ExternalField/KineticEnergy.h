@@ -2,6 +2,7 @@
 #define KINETIC_ENERGY_H
 
 #include "HartreeFock/ExchangeDecorator.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -21,7 +22,7 @@ public:
 class KineticEnergyCalculator : public TransitionCalculator
 {
 public:
-    KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom);
+    KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

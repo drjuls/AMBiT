@@ -5,6 +5,7 @@
 #include "Universal/PhysicalConstant.h"
 #include "Universal/Enums.h"
 #include "Transitions.h"
+#include "Specification/Specification.h"
 
 namespace Ambit
 {
@@ -54,7 +55,7 @@ public:
 class EMCalculator : public TransitionCalculator
 {
 public:
-    EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom);
+    EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -64,6 +65,7 @@ public:
 protected:
     MultipolarityType type;
     int J;
+    TransitionsEJSpecification config;
 };
 
 }

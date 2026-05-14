@@ -2,6 +2,7 @@
 #define YUKAWA_POTENTIAL_H
 
 #include "HartreeFock/LocalPotentialDecorator.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -27,7 +28,7 @@ protected:
 class YukawaCalculator : public TransitionCalculator
 {
 public:
-    YukawaCalculator(MultirunOptions& user_input, Atom& atom);
+    YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

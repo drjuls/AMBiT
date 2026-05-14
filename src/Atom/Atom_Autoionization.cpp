@@ -4,6 +4,8 @@
 #include "Configuration/ManyBodyOperator.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Configuration/ConfigGenerator.h"
+#include "Specification/Specification.h"
+#include <optional>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -13,22 +15,17 @@ namespace Ambit
 {
 void Atom::InternalConversion(const LevelVector& source)
 {
+    auto config = GlobalSpecification::Instance();
     auto math = MathConstant::Instance();
-    double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
-    int min_continuum_l = user_input("IC/ContinuumLMin", 0);
-    int max_continuum_l = user_input("IC/ContinuumLMax", 6);    // Default maximum L = 6
-
-    if(nuclear_energy <= 0.0)
-    {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
-        exit(1);
-    }
+    double nuclear_energy = config->ic.nuclear_energy_ev/math->HartreeEnergyIneV();;
+    int min_continuum_l = config->ic.continuum_l_min; 
+    int max_continuum_l = config->ic.continuum_l_max; 
 
     // Add nuclear_energy to source level energy
     nuclear_energy += source.levels[0]->GetEnergy();
 
-    user_input.set_prefix(std::string("IC"));
-    GeneralisedHyperfineCalculator calculon(user_input, *this);
-    user_input.set_prefix("");
+    GeneralisedHyperfineCalculator calculon(user_input, *this, config->ic);
+    //user_input.set_prefix("");
     auto op = calculon.GetOperator();
 
     pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
@@ -44,12 +41,10 @@ void Atom::InternalConversion(const LevelVector& source)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("IC/Residue", "");
-    if(config == "")
-        hf_continuum = hf_open;
-    else
+    std::optional<std::string> residue = config->ic.residue;
+    if(residue)
     {   hf_continuum = hf_open->Clone();
-        pCore continuum_core(new Core(lattice, config));
+        pCore continuum_core(new Core(lattice, residue.value()));
         for(auto& orbital: *continuum_core)
         {
             pOrbital basis_state = orbitals->all->GetState(orbital.first);
@@ -57,6 +52,10 @@ void Atom::InternalConversion(const LevelVector& source)
         }
 
         hf_continuum->SetCore(continuum_core);
+    }
+    else
+    {
+        hf_continuum = hf_open;
     }
 
     *outstream << "\nInternal conversion rates/B(M->G):"
@@ -185,19 +184,13 @@ void Atom::InternalConversion(const LevelVector& source)
 
 void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 {
+    auto config = GlobalSpecification::Instance();
     auto math = MathConstant::Instance();
-    double nuclear_energy = user_input("IC/NuclearEnergyEV", -1.0)/math->HartreeEnergyIneV();
-    int min_continuum_l = user_input("IC/ContinuumLMin", 0);
-    int max_continuum_l = user_input("IC/ContinuumLMax", 6);    // Default maximum L = 6
+    double nuclear_energy = config->ic.nuclear_energy_ev/math->HartreeEnergyIneV();
+    int min_continuum_l = config->ic.continuum_l_min;
+    int max_continuum_l = config->ic.continuum_l_max;
 
-    if(nuclear_energy <= 0.0)
-    {   *outstream << "Required to set IC/NuclearEnergyEV to a positive value." << std::endl;
-        exit(1);
-    }
-
-    user_input.set_prefix(std::string("IC"));
-    GeneralisedHyperfineCalculator calculon(user_input, *this);
-    user_input.set_prefix("");
+    GeneralisedHyperfineCalculator calculon(user_input, *this, config->ic);
     auto op = calculon.GetOperator();
 
     pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
@@ -245,12 +238,10 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
     {
         // Create operator for construction of continuum field
         pHFOperator hf_continuum;
-        std::string config = user_input("IC/Residue", "");
-        if(config == "")
-            hf_continuum = hf_open;
-        else
+        std::optional<std::string> residue = config->ic.residue;
+        if(residue)
         {   hf_continuum = hf_open->Clone();
-            pCore continuum_core(new Core(lattice, config));
+            pCore continuum_core(new Core(lattice, residue.value()));
             for(auto& orbital: *continuum_core)
             {
                 pOrbital basis_state = orbitals->all->GetState(orbital.first);
@@ -259,7 +250,10 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 
             hf_continuum->SetCore(continuum_core);
         }
-
+        else
+        {
+            hf_continuum = hf_open;
+        }
         auto initial = orbitals->all->GetState(initialpair.first);
 
         // Get continuum wave (eps)
@@ -318,10 +312,11 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 
 void Atom::Autoionization(const LevelVector& target)
 {
-    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
-    double energy_limit = user_input("DR/EnergyLimit", -1.0);   // Default no limit
-    int min_continuum_l = user_input("DR/ContinuumLMin", 0);
-    int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
+    auto config = GlobalSpecification::Instance();
+    double ionization_energy = config->dr_ionization_energy;
+    std::optional<double> energy_limit = config->dr_energy_limit;
+    unsigned min_continuum_l = config->dr_continuum_l_min;
+    unsigned max_continuum_l = config->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -359,12 +354,10 @@ void Atom::Autoionization(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumResidue", "");
-    if(config == "")
-        hf_continuum = hf_open;
-    else
+    std::optional<std::string> residue = config->dr_continuum_residue;
+    if(residue)
     {   hf_continuum = hf_open->Clone();
-        pCore continuum_core(new Core(lattice, config));
+        pCore continuum_core(new Core(lattice, residue.value()));
         for(auto& orbital: *continuum_core)
         {
             pOrbital basis_state = orbitals->all->GetState(orbital.first);
@@ -372,6 +365,10 @@ void Atom::Autoionization(const LevelVector& target)
         }
 
         hf_continuum->SetCore(continuum_core);
+    }
+    else
+    {
+        hf_continuum = hf_open;
     }
 
     *outstream << "\nAutoionization rates:"
@@ -404,7 +401,7 @@ void Atom::Autoionization(const LevelVector& target)
                 level_index++;
                 continue;
             }
-            else if(energy_limit > 0.0 && (eps_energy > energy_limit))
+            else if(energy_limit && (eps_energy > energy_limit.value()))
                 break;
 
             double rate = 0.0;
@@ -500,14 +497,15 @@ void Atom::Autoionization(const LevelVector& target)
 
 void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 {
-    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
-    double energy_limit = user_input("DR/EnergyLimit", -1.0);     // Default no limit
-    double grid_min = user_input("DR/EnergyGrid/Min", 0.003675);  // Default 0.1eV
-    double grid_max = user_input("DR/EnergyGrid/Max", 3.675);     // Default 100eV
-    double grid_step = user_input("DR/EnergyGrid/Step", 0.03675); // Default 1eV
+    auto config = GlobalSpecification::Instance();
+    double ionization_energy = config->dr_ionization_energy;
+    std::optional<double> energy_limit = config->dr_energy_limit;
+    double grid_min = config->dr_energygrid_min;
+    double grid_max = config->dr_energygrid_max;
+    double grid_step = config->dr_energygrid_step;
     std::vector<double> energy_grid;
-    int min_continuum_l = user_input("DR/ContinuumLMin", 0);
-    int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
+    unsigned min_continuum_l = config->dr_continuum_l_min;
+    unsigned max_continuum_l = config->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -541,12 +539,10 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumResidue", "");
-    if(config == "")
-        hf_continuum = hf_open;
-    else
+    std::optional<std::string> residue = config->dr_continuum_residue;
+    if(residue)
     {   hf_continuum = hf_open->Clone();
-        pCore continuum_core(new Core(lattice, config));
+        pCore continuum_core(new Core(lattice, residue.value()));
         for(auto& orbital: *continuum_core)
         {
             pOrbital basis_state = orbitals->all->GetState(orbital.first);
@@ -554,6 +550,10 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
         }
 
         hf_continuum->SetCore(continuum_core);
+    }
+    else
+    {
+        hf_continuum = hf_open;
     }
 
     // Create continuum waves
@@ -563,8 +563,8 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
     HartreeFocker HF_Solver(ode_solver);
 
     int pqn_offset = 100;
-    if(energy_limit > 0.0 && energy_limit < grid_max)
-        grid_max = energy_limit;
+    if(energy_limit && energy_limit.value() < grid_max)
+        grid_max = energy_limit.value();
     energy_grid.reserve((grid_max - grid_min)/grid_step + 1);
 
     int pqn = pqn_offset;
@@ -621,18 +621,18 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
         for(int energy_grid_point = 0; energy_grid_point < energy_grid.size(); energy_grid_point++)
         {
             if(level_it == levelvec.levels.end() ||
-               (energy_limit > 0.0 && (*level_it)->GetEnergy() > energy_limit + ionization_energy))
+               (energy_limit && (*level_it)->GetEnergy() > energy_limit.value() + ionization_energy))
                 break;
             pqn = pqn_offset + energy_grid_point;
 
             // Get levels in the energy range
             auto level_end_of_energy_range = level_it;
-            if((energy_grid_point == energy_grid.size() - 1) && (energy_limit <= 0.0)) // Last point and no energy limit
+            if((energy_grid_point == energy_grid.size() - 1) && (!energy_limit)) // Last point and no energy limit
                 level_end_of_energy_range = levelvec.levels.end();
             else
             {   double max_energy;
                 if(energy_grid_point == energy_grid.size() - 1)
-                    max_energy = energy_limit + ionization_energy;
+                    max_energy = energy_limit.value() + ionization_energy;
                 else
                     max_energy = 0.5 * (energy_grid[energy_grid_point] + energy_grid[energy_grid_point+1]) + ionization_energy;
 
@@ -759,12 +759,13 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
 
 void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 {
-    double ionization_energy = user_input("DR/IonizationEnergy", 0.0);
-    double energy_limit = user_input("DR/EnergyLimit", -1.0);   // Default no limit
-    int min_continuum_l = user_input("DR/ContinuumLMin", 0);
-    int max_continuum_l = user_input("DR/ContinuumLMax", 6);    // Default maximum L = 6
-    double grid_min = user_input("DR/EnergyGrid/Min", 0.003675);  // Default 0.1eV
-    bool use_single_particle_energy = user_input.search("DR/--single-particle-energy");
+    auto config = GlobalSpecification::Instance();
+    double ionization_energy = config->dr_ionization_energy;
+    std::optional<double> energy_limit = config->dr_energy_limit;
+    unsigned min_continuum_l = config->dr_continuum_l_min;
+    unsigned max_continuum_l = config->dr_continuum_l_max;
+    double grid_min = config->dr_energygrid_min;
+    bool use_single_particle_energy = config->dr_use_single_particle_energy;
 
     auto math = MathConstant::Instance();
 
@@ -796,12 +797,10 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::string config = user_input("DR/ContinuumResidue", "");
-    if(config == "")
-        hf_continuum = hf_open;
-    else
+    std::optional<std::string> residue = config->dr_continuum_residue;
+    if(residue)
     {   hf_continuum = hf_open->Clone();
-        pCore continuum_core(new Core(lattice, config));
+        pCore continuum_core(new Core(lattice, residue.value()));
         for(auto& orbital: *continuum_core)
         {
             pOrbital basis_state = orbitals->all->GetState(orbital.first);
@@ -809,6 +808,10 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
         }
 
         hf_continuum->SetCore(continuum_core);
+    }
+    else
+    {
+        hf_continuum = hf_open;
     }
 
     // HF solver for making continuum
@@ -853,7 +856,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
             eps_energy = CalculateConfigurationAverageEnergy(rcompound, orbitals->valence, hf_electron, twobody_electron->GetIntegrals()) - ionization_energy;
         }
 
-        if(energy_limit > 0.0 && (eps_energy > energy_limit))
+        if(energy_limit && (eps_energy > energy_limit.value()))
             continue;
         double eps_energy_calculated = eps_energy;
         if(eps_energy_calculated <= grid_min)

@@ -2,6 +2,7 @@
 #define FIELD_SHIFT_H
 
 #include "HartreeFock/LocalPotentialDecorator.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -23,7 +24,7 @@ protected:
 class FieldShiftCalculator : public TransitionCalculator
 {
 public:
-    FieldShiftCalculator(MultirunOptions& user_input, Atom& atom);
+    FieldShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsFSSpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

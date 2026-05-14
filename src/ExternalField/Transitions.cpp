@@ -16,9 +16,11 @@ std::string Name(const LevelID& levelid)
 void TransitionCalculator::CalculateAndPrint()
 {
     // Get all named matrix elements
-    int num_transitions = user_input.vector_variable_size("MatrixElements");
-    bool all_below = user_input.VariableExists("AllBelow");
-    bool print_integrals = user_input.search("--print-integrals");
+    int num_transitions = 0;
+    if(config.matrix_elements)
+        num_transitions = config.matrix_elements.value().size();
+    bool all_below = config.all_below.has_value();
+    bool print_integrals = config.print_integrals;
 
     *outstream << "\n";
     PrintHeader();
@@ -30,7 +32,7 @@ void TransitionCalculator::CalculateAndPrint()
     }
 
     for(int i = 0; i < num_transitions; i++)
-        CalculateTransition(user_input("MatrixElements", "", i));
+        CalculateTransition(config.matrix_elements.value()[i]);
 
     if(!all_below)
     {
@@ -41,7 +43,7 @@ void TransitionCalculator::CalculateAndPrint()
     }
 
     // Calculate all transitions of a certain type below a given energy
-    double max_energy = user_input("AllBelow", 0.0);
+    double max_energy = config.all_below.value_or(0.0);
     bool found_one = false;
 
     auto left_it = levels->begin();
@@ -113,8 +115,8 @@ void TransitionCalculator::PrintIntegrals()
             const auto& orb2 = it2->first;
 
             if(op->IsNonZero(orb1, orb2))
-            *outstream << "  " << orb1.Name() << " -> " << orb2.Name()
-                       << " = " << integrals->GetReducedMatrixElement(orb1, orb2) << std::endl;
+                *outstream << "  " << orb1.Name() << " -> " << orb2.Name()
+                           << " = " << integrals->GetReducedMatrixElement(orb1, orb2) << std::endl;
 
             ++it2;
         }
@@ -125,11 +127,19 @@ void TransitionCalculator::PrintIntegrals()
 pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperatorConst hf, pHartreeY hartreeY)
 {
     // Get BSplineBasis parameters and make RPA solver
-    int N = user_input("RPA/BSpline/N", 40);
-    int K = user_input("RPA/BSpline/K", 7);
-    double Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
-    Rmax = user_input("RPA/BSpline/Rmax", Rmax);
-    double dR0 = user_input("RPA/BSpline/R0", 0.0);     // Use default
+    int N = config.rpa_bspline_n;
+    int K = config.rpa_bspline_n;
+    double Rmax;
+    if(config.rpa_bspline_rmax)
+    {
+        Rmax = config.rpa_bspline_rmax.value();
+    }
+    else
+    {
+        Rmax = hf->GetLattice()->R(hf->GetCore()->LargestOrbitalSize());
+    }
+
+    double dR0 = config.rpa_bspline_r0;
 
     // TODO EVK: This uses the default SplineType (Reno), but should probably be upgraded to get
     // this value from Specification. Would need to change the spec, since currently there's no
@@ -137,41 +147,29 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     pBSplineBasis basis_maker = std::make_shared<BSplineBasis>(hf->GetLattice(), N, K, Rmax, dR0, SplineType::Reno);
 
     bool use_negative_states = true;
-    if(user_input.search("RPA/--no-negative-states"))
+    if(config.rpa_no_negative_states)
         use_negative_states = false;
 
     pRPASolver rpa_solver = std::make_shared<RPASolver>(basis_maker, use_negative_states);
 
-    double propnew = user_input("RPA/Weighting", std::numeric_limits<double>::quiet_NaN());
-    if(!std::isnan(propnew))
+    double propnew;
+    if(config.rpa_weighting)
     {
-        if(propnew > 0 && propnew <= 1.0)
-            rpa_solver->SetTDHFWeighting(propnew);
-        else
-            *errstream << "RPA/Weighting must be in the range (0, 1] (ignoring).\n";
+        propnew = config.rpa_weighting.value();
+        rpa_solver->SetTDHFWeighting(propnew);
     }
 
-    if(user_input.VariableExists("RPA/MaxDeltaK"))
+    if(config.rpa_max_delta_k)
     {
-        int deltaKlimit = user_input("RPA/MaxDeltaK", -1);
-        if(deltaKlimit >= 0)
-            rpa_solver->SetLimitDeltaK(deltaKlimit);
-        else
-            *errstream << "RPA/MaxDeltaK must be greater than or equal to 0 (ignoring).\n";
+        int deltaKlimit = config.rpa_max_delta_k.value();
+        rpa_solver->SetLimitDeltaK(deltaKlimit);
     }
 
-    if(user_input.VariableExists("RPA/MaxIterations"))
-    {
-        int max_iterations = user_input("RPA/MaxIterations", -1);
-        if(max_iterations > 0)
-            rpa_solver->SetMaxRPAIterations(max_iterations);
-        else
-            *errstream << "RPA/MaxIterations must be greater than or equal to 0 (ignoring).\n";
-    }
+    int max_iterations = config.rpa_max_iterations;
 
     // Limit RPA orbitals if requested
     // Make RPA operator
-    std::string rpa_configuration = user_input("RPA/Configuration", "");
+    std::string rpa_configuration = config.rpa_configuration;
     pRPAOperator rpa;
     if(rpa_configuration.empty())
     {
@@ -184,13 +182,16 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     }
 
     // Scale operator
-    scale = user_input("RPA/Scale", std::numeric_limits<double>::quiet_NaN());
-    if(std::isnan(scale))
+    if(!config.rpa_scale)
     {
         if(rpa->IsStaticRPA())
             scale = 1.0;
         else    // Scale EM transitions by default
             scale = 0.01;
+    }
+    else
+    {
+        scale = config.rpa_scale.value();
     }
     rpa->SetScale(scale);
 

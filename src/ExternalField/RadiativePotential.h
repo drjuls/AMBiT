@@ -4,6 +4,7 @@
 #include "HartreeFock/HFOperator.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
 #include "LimitApplicabilityWrapper.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -119,7 +120,7 @@ typedef std::shared_ptr<ElectricSelfEnergyDecorator> pElectricSelfEnergyDecorato
 class QEDCalculator : public TransitionCalculator
 {
 public:
-    QEDCalculator(MultirunOptions& user_input, Atom& atom);
+    QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

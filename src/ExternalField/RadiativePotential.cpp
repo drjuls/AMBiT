@@ -1,5 +1,6 @@
 #include "RadiativePotential.h"
 #include "Include.h"
+#include "Specification/TransitionSpecifications.h"
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_sf_expint.h>
@@ -1242,8 +1243,8 @@ void ElectricSelfEnergyDecorator::Initialize()
     BfitD  = 0.056 + 0.050 * Za + 0.195 * Za2;
 }
 
-QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom)
+QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& config):
+    TransitionCalculator(user_input, atom, config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

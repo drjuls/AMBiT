@@ -1,5 +1,6 @@
 #include "NormalMassShiftDecorator.h"
 #include "Include.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Universal/MathConstant.h"
 #include "Universal/PhysicalConstant.h"
 
@@ -183,8 +184,8 @@ SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, 
     return ret * std::sqrt(a.TwoJ() + 1);
 }
 
-NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& config):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
 {
     auto hf = atom.GetHFOperator();
     op = std::make_shared<NormalMassShiftOperator>(hf, user_input.search("--only-relativistic-nms"), user_input.search("--nonrelativistic-mass-shift"));

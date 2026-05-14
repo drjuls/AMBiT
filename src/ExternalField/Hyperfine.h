@@ -2,6 +2,7 @@
 #define HYPERFINE_H
 
 #include "HartreeFock/SpinorOperator.h"
+#include "Specification/TransitionSpecifications.h"
 #include "Transitions.h"
 
 namespace Ambit
@@ -51,7 +52,7 @@ protected:
 class HyperfineDipoleCalculator : public TransitionCalculator
 {
 public:
-    HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom);
+    HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS1Specification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -63,7 +64,7 @@ protected:
 class HyperfineQuadrupoleCalculator : public TransitionCalculator
 {
 public:
-    HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom);
+    HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS2Specification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -75,7 +76,7 @@ protected:
 class GeneralisedHyperfineCalculator : public TransitionCalculator
 {
 public:
-    GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom);
+    GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFSISpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

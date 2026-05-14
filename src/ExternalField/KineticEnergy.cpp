@@ -1,4 +1,5 @@
 #include "KineticEnergy.h"
+#include "Specification/TransitionSpecifications.h"
 
 namespace Ambit
 {
@@ -29,8 +30,8 @@ SpinorFunction KineticEnergyDecorator::CalculateExtraExchange(const SpinorFuncti
     return exchange;
 }
 
-KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom)
+KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& config):
+    TransitionCalculator(user_input, atom, config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

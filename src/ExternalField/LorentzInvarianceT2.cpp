@@ -1,4 +1,5 @@
 #include "LorentzInvarianceT2.h"
+#include "Specification/TransitionSpecifications.h"
 
 namespace Ambit
 {
@@ -110,8 +111,8 @@ SpinorFunction LorentzInvarianceT2Operator::ReducedApplyTo(const SpinorFunction&
     return ret;
 }
 
-LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels())
+LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& config):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
 {
     auto hf = atom.GetHFOperator();
     op = std::make_shared<LorentzInvarianceT2Operator>(hf->GetIntegrator());

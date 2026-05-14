@@ -3,6 +3,7 @@
 
 #include "HartreeFock/ExchangeDecorator.h"
 #include "ExternalField/Transitions.h"
+#include "Specification/TransitionSpecifications.h"
 
 namespace Ambit
 {
@@ -57,7 +58,7 @@ protected:
 class NormalMassShiftCalculator : public TransitionCalculator
 {
 public:
-    NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom);
+    NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& config);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

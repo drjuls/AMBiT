@@ -1,4 +1,5 @@
 #include "YukawaPotential.h"
+#include "Specification/TransitionSpecifications.h"
 
 namespace Ambit
 {
@@ -28,8 +29,8 @@ void YukawaDecorator::Alert()
     GenerateYukawaPotential(mass);
 }
 
-YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom):
-    TransitionCalculator(user_input, atom)
+YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& config):
+    TransitionCalculator(user_input, atom, config)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
