@@ -25,9 +25,9 @@ TEST(RadiativePotentialTester, Uehling)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -89,9 +89,9 @@ TEST(RadiativePotentialTester, UehlingCs)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -159,9 +159,9 @@ TEST(RadiativePotentialTester, Magnetic)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -224,9 +224,9 @@ TEST(RadiativePotentialTester, ElectricSlow)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();

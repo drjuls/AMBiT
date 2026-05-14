@@ -17,16 +17,16 @@ TEST(BSplineBasisTester, Rb)
     "Z = 37\n" +
     "[HF]\n" +
     "N = 36\n" +
-    "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6'\n" +
+    "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6'" + "\n" +
     "[Basis]\n" +
     "--bspline-basis\n" +
     "ValenceBasis = 10s\n";
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();

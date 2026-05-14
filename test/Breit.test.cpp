@@ -26,9 +26,9 @@ TEST(BreitTester, LiLikeNe)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -101,13 +101,15 @@ TEST(BreitTester, HgSlow)
         "Z = 80\n" +
         "[HF]\n" +
         "N = 80\n" +
-        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14 5s2 5p6 5d10 6s2'\n";
+        "Configuration = '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 4f14 5s2 5p6 5d10 6s2'\n" +
+        "[Basis]\n" +
+        "--bspline-basis";
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();

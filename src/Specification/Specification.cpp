@@ -496,6 +496,13 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     if(basis_type_count > 1)
         return "Must specify at most one of Basis/--bspline-basis, Basis/--xr-basis, or Basis/--hf-basis";
 
+    // Default to bsplines if no options specified
+    // Can't do this as a default value in the specification struct because there's no way
+    // to "turn off" a basis type (so if we default to basis_bspline = true, then it will
+    // *always* be true)
+    if(basis_type_count == 0)
+        basis_bspline = true;
+
     // Set the general MBPT (one|two|three)_body_integral variables
     if(_s1 || _s12 || _s13 || _s123)
     {

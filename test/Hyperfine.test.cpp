@@ -33,9 +33,9 @@ TEST(HyperfineTester, Rb)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -85,9 +85,9 @@ TEST(HyperfineTester, Na)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -194,9 +194,9 @@ TEST(HyperfineTester, CsRPA)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();

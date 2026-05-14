@@ -47,9 +47,9 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -137,7 +137,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     // Do CI-only first
-    ConfigGenerator config_generator(orbitals, userInput);
+    ConfigGenerator config_generator(orbitals);
     pRelativisticConfigList relconfigs;
     Symmetry sym(1, Parity::even);
     double CI_energy = 0.;
@@ -216,9 +216,9 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
    
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -306,7 +306,7 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     // Do CI-only first
-    ConfigGenerator config_generator(orbitals, userInput);
+    ConfigGenerator config_generator(orbitals);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     double CI_energy = 0.;

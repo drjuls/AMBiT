@@ -41,9 +41,9 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -72,7 +72,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     EXPECT_EQ(31747, integrals->size());
 
-    ConfigGenerator config_generator(orbitals, userInput);
+    ConfigGenerator config_generator(orbitals);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     double ground_state_energy = 0., excited_state_energy = 0.;
@@ -136,6 +136,19 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         "NumSolutions = 3\n" +
         "Output/--write-hamiltonian\n";
 
+    auto specification = GlobalSpecification::Instance();
+    // Can parse the user_input_string directly via parapara
+    std::string perr = importSpecificationINIString(specification, user_input_string);
+    if (!perr.empty()) {
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
+        exit(1);
+    }
+    perr = specification->validateAndNormaliseSpecification();
+    if (!perr.empty()) {
+        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
+        exit(1);
+    }
+
     std::stringstream user_input_stream(user_input_string);
     MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
@@ -163,7 +176,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        ConfigGenerator config_generator(orbitals, userInput);
+        ConfigGenerator config_generator(orbitals);
 
         pRelativisticConfigList relconfigs;
         Symmetry sym(0, Parity::even);
@@ -213,7 +226,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         pHartreeY hartreeY(new HartreeY(hf->GetIntegrator(), coulomb));
         pSlaterIntegrals integrals(new SlaterIntegralsFlatHash(orbitals, hartreeY));
         integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
-        ConfigGenerator config_generator(orbitals, userInput);
+        ConfigGenerator config_generator(orbitals);
 
         pRelativisticConfigList relconfigs;
         Symmetry sym(0, Parity::even);
@@ -285,9 +298,9 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -303,7 +316,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -356,9 +369,9 @@ TEST(HamiltonianMatrixTester, HolesOnly)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -374,7 +387,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -460,9 +473,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -478,7 +491,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -531,9 +544,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -549,7 +562,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -633,9 +646,9 @@ TEST(HamiltonianMatrixTester, LiPlus)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -651,7 +664,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -702,9 +715,9 @@ TEST(HamiltonianMatrixTester, LiPlus)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -720,7 +733,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -809,9 +822,9 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -827,7 +840,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -877,9 +890,9 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -896,7 +909,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
         
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();

@@ -34,9 +34,9 @@ TEST(EJOperatorTester, LiTransitions)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -123,9 +123,9 @@ TEST(EJOperatorTester, NaTransitions)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -210,9 +210,9 @@ TEST(MJOperatorTester, LiTransitions)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -261,9 +261,9 @@ TEST(EJOperatorTester, HeTransitions)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -292,7 +292,7 @@ TEST(EJOperatorTester, HeTransitions)
     integrals->CalculateTwoElectronIntegrals(orbitals->valence, orbitals->valence, orbitals->valence, orbitals->valence);
 
     pAngularDataLibrary angular_library = std::make_shared<AngularDataLibrary>();
-    ConfigGenerator config_generator(orbitals, userInput);
+    ConfigGenerator config_generator(orbitals);
     pRelativisticConfigList relconfigs;
     Symmetry sym(0, Parity::even);
     double ground_state_energy = 0., excited_state_energy = 0.;
@@ -405,9 +405,9 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -423,7 +423,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -480,9 +480,9 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationKV(specification, user_input_string);
+        std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
-            *errstream << "importSpecificationKV:\n" << perr << std::endl;
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
             exit(1);
         }
         perr = specification->validateAndNormaliseSpecification();
@@ -498,7 +498,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
         pOrbitalManagerConst orbitals = basis_generator.GenerateBasis();
-        ConfigGenerator gen(orbitals, userInput);
+        ConfigGenerator gen(orbitals);
 
         // Generate integrals
         pHFOperator hf = basis_generator.GetClosedHFOperator();
@@ -557,9 +557,9 @@ TEST(EJOperatorTester, Screening)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
@@ -610,9 +610,9 @@ TEST(EJOperatorTester, XeScreening)
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
-    std::string perr = importSpecificationKV(specification, user_input_string);
+    std::string perr = importSpecificationINIString(specification, user_input_string);
     if (!perr.empty()) {
-        *errstream << "importSpecificationKV:\n" << perr << std::endl;
+        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
     perr = specification->validateAndNormaliseSpecification();
