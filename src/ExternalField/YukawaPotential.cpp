@@ -35,18 +35,18 @@ YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom, Tran
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
 
-    if(user_input.VariableExists("Mass"))
-        mass = user_input("Mass", 1.0);
-    else if(user_input.VariableExists("MassEV"))
-        mass = user_input("MassEV", 1.0)/MathConstant::Instance()->ElectronMassInEV;
-    else if(user_input.VariableExists("Rc"))
-        mass = 1./(atom.GetPhysicalConstants()->GetAlpha() * user_input("Rc", 1.0));
+    if(config.mass)
+        mass = config.mass.value();
+    else if(config.massev)
+        mass = config.massev.value()/MathConstant::Instance()->ElectronMassInEV;
+    else if(config.rc)
+        mass = 1./(atom.GetPhysicalConstants()->GetAlpha() * config.rc.value());
 
-    double scale = user_input("Scale", 1.);
+    double scale = config.scale;
 
     auto yukawa_decorator = std::make_shared<YukawaDecorator>(zero, mass, scale, hf->GetIntegrator());
 
-    if(user_input.search("--rpa"))
+    if(config.do_rpa)
         op = MakeRPA(yukawa_decorator, hf, atom.GetHartreeY());
     else
         op = yukawa_decorator;

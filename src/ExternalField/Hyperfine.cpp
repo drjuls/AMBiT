@@ -90,9 +90,16 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    double magnetic_radius = user_input("NuclearMagneticRadius", -1.0);
-    if(magnetic_radius < 0.0)
-    {   pNucleusDecorator nuc = atom.GetNucleusDecorator();
+    //double magnetic_radius = user_input("NuclearMagneticRadius", -1.0);
+    double magnetic_radius;
+    auto radius_opt = config.nuclear_magnetic_radius;
+    if(radius_opt)
+    {
+        magnetic_radius = radius_opt.value();
+    }
+    else
+    {   
+        pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
         else
@@ -100,9 +107,9 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input
     }
     op = std::make_shared<HyperfineMJOperator>(1, hf->GetIntegrator(), magnetic_radius);
 
-    g_I = user_input("gOnI", 1.0);
+    g_I = config.g_on_i;
 
-    if(user_input.search("--rpa"))
+    if(config.do_rpa)
         op = MakeRPA(std::static_pointer_cast<HyperfineMJOperator>(op), hf, atom.GetHartreeY());
 }
 
@@ -127,9 +134,15 @@ HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& us
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    double magnetic_radius = user_input("NuclearQuadrupoleRadius", -1.0);
-    if(magnetic_radius < 0.0)
-    {   pNucleusDecorator nuc = atom.GetNucleusDecorator();
+    double magnetic_radius;
+    auto radius_opt = config.nuclear_quadrupole_radius;
+    if(radius_opt)
+    {
+        magnetic_radius = radius_opt.value();
+    }
+    else
+    {   
+        pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
         else
@@ -137,9 +150,9 @@ HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& us
     }
     op = std::make_shared<HyperfineEJOperator>(2, hf->GetIntegrator(), magnetic_radius);
 
-    Q = user_input("Q", 1.0);
+    Q = config.q;
 
-    if(user_input.search("--rpa"))
+    if(config.do_rpa)
         op = MakeRPA(std::static_pointer_cast<HyperfineEJOperator>(op), hf, atom.GetHartreeY());
 }
 
@@ -163,16 +176,22 @@ GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& 
     MathConstant* math = MathConstant::Instance();
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    double magnetic_radius = user_input("NuclearRadius", -1.0);
-    if(magnetic_radius < 0.0)
-    {   pNucleusDecorator nuc = atom.GetNucleusDecorator();
+    double magnetic_radius;
+    auto radius_opt = config.nuclear_radius;
+    if(radius_opt)
+    {
+        magnetic_radius = radius_opt.value();
+    }
+    else
+    {   
+        pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
         else
             magnetic_radius = 0.;
     }
 
-    std::string type = user_input("Operator", "");
+    std::string type = config.op.value_or("");
     int k = 0;
     if(type.size() >= 2 && (type[0] == 'E' || type[0] == 'M'))
     {
@@ -194,20 +213,20 @@ GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& 
     if(EorM == MultipolarityType::E)
     {
         op = std::make_shared<HyperfineEJOperator>(k, hf->GetIntegrator(), magnetic_radius);
-        if(user_input.search("--rpa"))
+        if(config.do_rpa)
             op = MakeRPA(std::static_pointer_cast<HyperfineEJOperator>(op), hf, atom.GetHartreeY());
     }
     else
     {
         op = std::make_shared<HyperfineMJOperator>(k, hf->GetIntegrator(), magnetic_radius);
-        if(user_input.search("--rpa"))
+        if(config.do_rpa)
             op = MakeRPA(std::static_pointer_cast<HyperfineMJOperator>(op), hf, atom.GetHartreeY());
     }
 }
 
 void GeneralisedHyperfineCalculator::PrintHeader() const
 {
-    if(user_input.search("--reduced-elements"))
+    if(config.reduced_elements)
         *outstream << "Hyperfine-" << Name(EorM) << op->GetK() << " reduced matrix elements (a.u.): " << std::endl;
     else
         *outstream << "Hyperfine-" << Name(EorM) << op->GetK() << " matrix elements (stretched states) in a.u.: " << std::endl;
@@ -217,7 +236,7 @@ void GeneralisedHyperfineCalculator::PrintTransition(const LevelID& left, const 
 {
     MathConstant* math = MathConstant::Instance();
     double value = matrix_element;
-    if(user_input.search("--reduced-elements"))
+    if(config.reduced_elements)
     {   int twoj1 = left.first->GetTwoJ();
         int twoj2 = right.first->GetTwoJ();
         value = value/math->Electron3j(twoj2, twoj1, op->GetK(), twoj2, -twoj1);

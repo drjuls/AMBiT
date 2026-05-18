@@ -45,14 +45,14 @@ FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& at
     }
 
     // Change in nuclear radius: default 0.1
-    double dR = user_input("DeltaNuclearRadius", 0.1);
-    double dt = user_input("DeltaNuclearThickness", 0.0);
+    double dR = config.delta_nuclear_radius;
+    double dt = config.delta_nuclear_thickness;
     std::shared_ptr<FieldShiftDecorator> field_shift = std::make_shared<FieldShiftDecorator>(zero, R0, dR, t, dt);
 
-    double scale = user_input("Scale", 1.);
+    double scale = config.scale;
     field_shift->SetScale(scale);
 
-    if(user_input.search("--rpa"))
+    if(config.do_rpa)
         op = MakeRPA(field_shift, hf, atom.GetHartreeY());
     else
         op = field_shift;

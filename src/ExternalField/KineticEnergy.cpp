@@ -37,10 +37,10 @@ KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, At
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
     auto rke = std::make_shared<KineticEnergyDecorator>(zero);
 
-    double scale = user_input("Scale", 1.);
+    double scale = config.scale;
     rke->SetScale(scale);
 
-    if(user_input.search("--rpa"))
+    if(config.do_rpa)
         op = MakeRPA(rke, hf, atom.GetHartreeY());
     else
         op = rke;
