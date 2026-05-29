@@ -20,9 +20,14 @@ namespace Ambit
 template <typename Record>
 P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Record>& specs, std::istream& in);
 
-inline auto positive = P::greater_than(0, "must be positive");
+
+template <typename Value>
+auto between(Value min, Value max, std::string constraint = "value between upper and lower bounds (x in (min, max] )") {
+    return P::validator([min = std::move(min), max = std::move(max)](auto x) { return (x>min && x <= max); }, std::move(constraint));
+
+}inline auto positive = P::greater_than(0, "must be positive");
 inline auto nonegative = P::at_least(0, "must be positive");
-inline auto zero_to_1 = P::between(0, 1, "must be positive");
+inline auto zero_to_1 = between(0, 1, "must be positive");
 
 /********************* GlobalSpecification methods *********************/
 GlobalSpecification* GlobalSpecification::Instance()
