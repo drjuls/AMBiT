@@ -88,7 +88,7 @@ public:
 
     // Perform global validation of specifications. Return non-empty error message on failure.
     std::string validateAndNormaliseSpecification();
-
+    P::hopefully<void> PrintSpecification();
 protected:
     GlobalSpecification();
 

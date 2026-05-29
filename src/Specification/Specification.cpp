@@ -9,6 +9,7 @@
 #include "Specification.h"
 #include "Specification/TransitionSpecifications.h"
 #include "parapara/parapara.h"
+#include "Include.h"
 
 namespace P = parapara;
 
@@ -414,6 +415,65 @@ SpecificationMap get_config_map_view(GlobalSpecification& gs)
     return(config_map);
 }
 
+// Print the specification key-value pairs to "outstream"
+// Modified from export_ini in parapara, but modified to better reflect AMBiT's I/O needs
+P::hopefully<void> GlobalSpecification::PrintSpecification()
+{
+    //P::export_ini(*this, global_specifications_mappings, P::default_writer(), *outstream);
+
+    auto record = *this;
+    auto specs = global_specifications_mappings;
+    auto wtr = P::default_writer();
+    std::string secsep = "/";
+
+    constexpr auto npos = std::string::npos;
+    std::map<std::string, std::stringstream> section_content;
+
+    for (const auto& spec: specs) {
+        std::string section;
+        std::string_view key(spec.key);
+
+        if (auto j = key.find(secsep); j!=npos) {
+            section = key.substr(0, j);
+            key.remove_prefix(j+1);
+        }
+
+        std::stringstream& content = section_content[section];
+        if (content.tellp()) content << '\n';
+
+        if (auto hs = spec.write(record, wtr)) {
+            // Don't print the value if it's a "--" flag: the fact that it's present
+            // implies it's true
+            auto minus_idx = key.find("--");
+            if(minus_idx != std::string::npos)
+            {
+                content << key;
+            }
+            else
+            {
+                content << key << " = " << hs.value();
+            }
+        }
+        else if (hs.error().error == P::failure::empty_optional) {
+            continue;
+        }
+        else {
+            return P::unexpected(hs.error());
+        }
+    }
+
+    //if (section_content.count("")) {
+    //    *outstream << section_content[""].rdbuf(); //<< '\n';
+    //}
+
+    for (const auto& [section, content]: section_content) {
+        if (section.empty()) continue;
+
+        *outstream << '[' << section << "]\n\n" << content.rdbuf() << '\n';
+    }
+
+    return {};
+}
 
 /********************************************************************** 
  * Actual parsing happens here 

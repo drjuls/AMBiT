@@ -248,25 +248,29 @@ namespace Ambit
 AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& identifier):
     user_input(user_input), identifier(identifier)
 {
+    auto config = GlobalSpecification::Instance();
     if(ProcessorRank == 0)
     {
         *outstream << "----------------------------------------------------------"
                    << "\ninput:"
                    << "\n----------------------------------------------------------\n";
+        // Use GetPot printing for now, since parapara's isn't done cooking
         user_input.print();
+        //config->PrintSpecification();
         *outstream << "----------------------------------------------------------" << std::endl;
     }
 }
 
 void AmbitInterface::EnergyCalculations()
 {
-    int Z = user_input("Z", 0);
+    auto config = GlobalSpecification::Instance();
+    int Z = config->Z;
     if(Z <= 0)
     {   *errstream << "Z not specified correctly." << std::endl;
         exit(1);
     }
 
-    bool check_sizes = user_input.search("--check-sizes");
+    bool check_sizes = config->check_sizes;
 
     // Multirun disabled at least while we're transitioning to parapara
 #if 0
@@ -370,7 +374,7 @@ void AmbitInterface::EnergyCalculations()
             atoms[index].MakeBasis(hf_open_core);
 
     // Print basis option
-    if(user_input.search(2, "--print-basis", "-p"))
+    if(config->print_basis)
     {
         auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
@@ -388,13 +392,13 @@ void AmbitInterface::EnergyCalculations()
     for(unsigned int index = 0; index < run_indexes.size(); index++)
     {
         auto& atom = atoms[index];
-        bool make_new_integrals = !user_input.search(1, "--no-new-mbpt");
-        bool mbpt_use_breuckner = user_input.search("MBPT/--mbpt-use-brueckner");
+        bool make_new_integrals = !config->no_new_mbpt;
+        bool mbpt_use_breuckner = config->mbpt_brueckner;
 
         if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
             atom.MakeMBPTIntegrals();
 
-        if (user_input.search("MBPT/--brueckner") && !check_sizes)
+        if (config->mbpt_brueckner && !check_sizes)
         {   // Show details of HF iterated Brueckner orbitals
             DebugOptions.OutputHFExcited(index == first_run_index);
             atom.GenerateBruecknerOrbitals(make_new_integrals);
@@ -405,14 +409,14 @@ void AmbitInterface::EnergyCalculations()
     }
 
     // CI
-    if(user_input.search("--check-sizes"))
+    if(config->check_sizes)
         atoms[0].CheckMatrixSizes();
     else
     {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
         pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
 
         // Don't calculate extra levels
-        if(user_input.search(2, "--ci-complete", "--CI-complete"))
+        if(config->ci_complete)
             return;
 
         for(int i = 1; i < run_indexes.size(); i++)
@@ -574,6 +578,7 @@ void AmbitInterface::TransitionCalculations()
 
 void AmbitInterface::Recombination()
 {
+    auto config = GlobalSpecification::Instance();
     std::string target_file = user_input("DR/Target/Filename", "");
     if(target_file.length() == 0)
         return;
