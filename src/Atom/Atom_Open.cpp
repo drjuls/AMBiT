@@ -286,9 +286,7 @@ pLevelStore Atom::ChooseHamiltoniansAndRead(pAngularDataLibrary angular_lib)
 {
     auto specification = GlobalSpecification::Instance();
     // Read existing levels?
-    bool use_read = true;
-    if(specification->clean_run)
-        use_read = false;
+    bool use_read = !specification->clean_run;
 
     if(specification->configuration_average)
     {
@@ -571,9 +569,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 {
     auto specification = GlobalSpecification::Instance();
     // Check whether to reuse levels and matrix files
-    bool use_read = true;
-    if(specification->clean_run)
-        use_read = false;
+    bool use_read = !specification->clean_run;
 
     // This function is public and can call the other CalculateEnergies variants.
     LevelVector levelvec = levels->GetLevels(hID);
