@@ -1243,15 +1243,15 @@ void ElectricSelfEnergyDecorator::Initialize()
     BfitD  = 0.056 + 0.050 * Za + 0.195 * Za2;
 }
 
-QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& config):
-    TransitionCalculator(user_input, atom, config)
+QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& specification):
+    TransitionCalculator(user_input, atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
     pNucleusDecorator nucleus = atom.GetNucleusDecorator();
 
     double nuclear_rms_radius;
-    auto radius_opt = config.nuclear_rms_radius;
+    auto radius_opt = specification.nuclear_rms_radius;
     if(radius_opt)
     {
         nuclear_rms_radius = radius_opt.value();
@@ -1265,35 +1265,35 @@ QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom, Transition
 
     pHFOperator qed = zero;
 
-    if(config.uehling)
+    if(specification.uehling)
     {
-        if(nucleus && config.use_nuclear_density)
+        if(nucleus && specification.use_nuclear_density)
             qed = std::make_shared<UehlingDecorator>(qed, nucleus->GetNuclearDensity());
         else
             qed = std::make_shared<UehlingDecorator>(qed, nuclear_rms_radius);
     }
 
-    if(config.self_energy)
+    if(specification.self_energy)
     {
-        if(nucleus && config.use_nuclear_density)
+        if(nucleus && specification.use_nuclear_density)
         {
-            if(!config.no_magnetic)
+            if(!specification.no_magnetic)
                 qed = std::make_shared<MagneticSelfEnergyDecorator>(qed, nucleus->GetNuclearDensity());
-            if(!config.no_electric)
+            if(!specification.no_electric)
                 qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nucleus->GetNuclearDensity());
         }
         else
         {
-            if(!config.no_magnetic)
+            if(!specification.no_magnetic)
                 qed = std::make_shared<MagneticSelfEnergyDecorator>(qed, nuclear_rms_radius);
-            if(!config.no_electric)
-            {   bool skip_offmass = config.skip_offmass;
+            if(!specification.no_electric)
+            {   bool skip_offmass = specification.skip_offmass;
                 qed = std::make_shared<ElectricSelfEnergyDecorator>(qed, nuclear_rms_radius, !skip_offmass);
             }
         }
     }
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
         op = MakeRPA(qed, hf, atom.GetHartreeY());
     else
         op = qed;

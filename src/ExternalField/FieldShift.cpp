@@ -28,8 +28,8 @@ FieldShiftDecorator::FieldShiftDecorator(pHFOperator wrapped_hf, double R0, doub
         *outstream << "Change in nuclear R4         = " << std::setprecision(6) << dR4 << std::endl;
 }
 
-FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsFSSpecification& config):
-    TransitionCalculator(user_input, atom, config)
+FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsFSSpecification& specification):
+    TransitionCalculator(user_input, atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
@@ -45,14 +45,14 @@ FieldShiftCalculator::FieldShiftCalculator(MultirunOptions& user_input, Atom& at
     }
 
     // Change in nuclear radius: default 0.1
-    double dR = config.delta_nuclear_radius;
-    double dt = config.delta_nuclear_thickness;
+    double dR = specification.delta_nuclear_radius;
+    double dt = specification.delta_nuclear_thickness;
     std::shared_ptr<FieldShiftDecorator> field_shift = std::make_shared<FieldShiftDecorator>(zero, R0, dR, t, dt);
 
-    double scale = config.scale;
+    double scale = specification.scale;
     field_shift->SetScale(scale);
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
         op = MakeRPA(field_shift, hf, atom.GetHartreeY());
     else
         op = field_shift;

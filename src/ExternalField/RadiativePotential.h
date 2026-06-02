@@ -120,7 +120,7 @@ typedef std::shared_ptr<ElectricSelfEnergyDecorator> pElectricSelfEnergyDecorato
 class QEDCalculator : public TransitionCalculator
 {
 public:
-    QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& config);
+    QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

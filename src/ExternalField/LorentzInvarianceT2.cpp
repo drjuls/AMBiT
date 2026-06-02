@@ -111,22 +111,22 @@ SpinorFunction LorentzInvarianceT2Operator::ReducedApplyTo(const SpinorFunction&
     return ret;
 }
 
-LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& config):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
+LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& specification):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
 {
     auto hf = atom.GetHFOperator();
     op = std::make_shared<LorentzInvarianceT2Operator>(hf->GetIntegrator());
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
     {   op = MakeRPA(std::static_pointer_cast<LorentzInvarianceT2Operator>(op), hf, atom.GetHartreeY());
-        double scale = config.scale;
+        double scale = specification.scale;
         std::static_pointer_cast<RPAOperator>(op)->SetScale(scale);
     }
 }
 
 void LorentzInvarianceT2Calculator::PrintHeader() const
 {
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
         *outstream << "Lorentz reduced matrix elements (a.u.): " << std::endl;
     else
         *outstream << "Lorentz matrix elements (stretched states) in a.u.: " << std::endl;
@@ -136,7 +136,7 @@ void LorentzInvarianceT2Calculator::PrintTransition(const LevelID& left, const L
 {
     MathConstant* math = MathConstant::Instance();
     double value = matrix_element;
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
     {   int twoj1 = left.first->GetTwoJ();
         int twoj2 = right.first->GetTwoJ();
         value = value/math->Electron3j(twoj2, twoj1, op->GetK(), twoj2, -twoj1);

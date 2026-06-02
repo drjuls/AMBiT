@@ -55,7 +55,7 @@ public:
 class EMCalculator : public TransitionCalculator
 {
 public:
-    EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& config);
+    EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -65,7 +65,7 @@ public:
 protected:
     MultipolarityType type;
     int J;
-    TransitionsEJSpecification config;
+    TransitionsEJSpecification specification;
 };
 
 }

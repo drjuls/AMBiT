@@ -21,15 +21,15 @@ pConfigListConst ConfigGenerator::GetLeadingConfigs() const
 
 pRelativisticConfigList ConfigGenerator::GenerateConfigurations(pHFIntegrals one_body, pSlaterIntegrals two_body)
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification = GlobalSpecification::Instance();
     // Do sublist first since leading_configs should come from CI, rather than CI/SmallSide
     pRelativisticConfigList sublist = nullptr;
-    if(config->ci_do_smallside)
+    if(specification->ci_do_smallside)
     {
-        sublist = ParseAndGenerateConfigurations(&(config->ci_smallside), one_body, two_body);
+        sublist = ParseAndGenerateConfigurations(&(specification->ci_smallside), one_body, two_body);
     }
 
-    pRelativisticConfigList biglist = ParseAndGenerateConfigurations(&(config->ci),one_body, two_body);
+    pRelativisticConfigList biglist = ParseAndGenerateConfigurations(&(specification->ci),one_body, two_body);
 
     // Join sublist and biglist by getting set difference and appending to sublist.
     if(sublist)
@@ -356,7 +356,7 @@ pConfigList ConfigGenerator::GenerateNonRelConfigurations(pRelativisticConfigLis
 
 pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRelativisticConfigListConst rlist, const Symmetry& sym, pAngularDataLibrary angular_library) const
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification = GlobalSpecification::Instance();
     pRelativisticConfigList prlist = std::make_shared<RelativisticConfigList>();
     RelativisticConfigList& returnedlist = *prlist;
 
@@ -397,7 +397,7 @@ pRelativisticConfigList ConfigGenerator::GenerateRelativisticConfigurations(pRel
         GenerateProjections(prlist, sym, sym.GetTwoJ(), angular_library);
 
     //if(user_input.search("CI/--sort-matrix-by-configuration"))
-    if(config->ci.sort_matrix_by_configuration)
+    if(specification->ci.sort_matrix_by_configuration)
         returnedlist.sort(ConfigurationComparator());
     else
         returnedlist.sort(MostWorkFirstComparator());

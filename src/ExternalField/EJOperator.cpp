@@ -176,13 +176,13 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
     return ret;
 }
 
-EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& config):
-    TransitionCalculator(user_input, atom, config), type(type), J(J), config(config)
+EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& specification):
+    TransitionCalculator(user_input, atom, specification), type(type), J(J), specification(specification)
 {
 
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    auto gauge = (config.velocity_gauge? TransitionGauge::Velocity: TransitionGauge::Length);
+    auto gauge = (specification.velocity_gauge? TransitionGauge::Velocity: TransitionGauge::Length);
 
     if(type == MultipolarityType::E)
         op = std::make_shared<EJOperator>(J, hf->GetIntegrator(), gauge);
@@ -190,10 +190,10 @@ EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_
         op = std::make_shared<MJOperator>(J, hf->GetIntegrator());
 
     // Default frequency 0.1 au = 2.7 eV = 456 nm
-    double omega = config.frequency;
+    double omega = specification.frequency;
     std::static_pointer_cast<TimeDependentSpinorOperator>(op)->SetFrequency(omega);
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
     {
         auto op_rpa = MakeRPA(std::static_pointer_cast<TimeDependentSpinorOperator>(op), hf, atom.GetHartreeY());
         op = op_rpa;
@@ -205,7 +205,7 @@ void EMCalculator::PrintHeader() const
     // Print the appropriate header for the type of transitions we're printing:
     // either reduced matrix elements of transition line strengths (the
     // default)
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
       *outstream << Name() << " reduced matrix elements (T):\n";
     else
       *outstream << Name() << " transition strengths (S):\n";
@@ -221,7 +221,7 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
 
     // Read over the user input to see if we need to print the reduced matrix
     // elements or the transition line strengths
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
     {
         *outstream << "  " << Ambit::Name(left) << " -> " << Ambit::Name(right)
                    << " = " << std::setprecision(6) << value << std::endl;
@@ -233,7 +233,7 @@ void EMCalculator::PrintTransition(const LevelID& left, const LevelID& right, do
     }
 
     pRPAOperator rpa = std::dynamic_pointer_cast<RPAOperator>(op);
-    if(rpa && config.rpa_print_field)
+    if(rpa && specification.rpa_print_field)
     {
         auto fp = fopen("RPAField.txt", "wt");
 

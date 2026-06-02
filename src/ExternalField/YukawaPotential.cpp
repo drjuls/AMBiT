@@ -29,24 +29,24 @@ void YukawaDecorator::Alert()
     GenerateYukawaPotential(mass);
 }
 
-YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& config):
-    TransitionCalculator(user_input, atom, config)
+YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& specification):
+    TransitionCalculator(user_input, atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
 
-    if(config.mass)
-        mass = config.mass.value();
-    else if(config.massev)
-        mass = config.massev.value()/MathConstant::Instance()->ElectronMassInEV;
-    else if(config.rc)
-        mass = 1./(atom.GetPhysicalConstants()->GetAlpha() * config.rc.value());
+    if(specification.mass)
+        mass = specification.mass.value();
+    else if(specification.massev)
+        mass = specification.massev.value()/MathConstant::Instance()->ElectronMassInEV;
+    else if(specification.rc)
+        mass = 1./(atom.GetPhysicalConstants()->GetAlpha() * specification.rc.value());
 
-    double scale = config.scale;
+    double scale = specification.scale;
 
     auto yukawa_decorator = std::make_shared<YukawaDecorator>(zero, mass, scale, hf->GetIntegrator());
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
         op = MakeRPA(yukawa_decorator, hf, atom.GetHartreeY());
     else
         op = yukawa_decorator;

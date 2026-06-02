@@ -15,16 +15,16 @@ namespace Ambit
 {
 void Atom::InternalConversion(const LevelVector& source)
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification = GlobalSpecification::Instance();
     auto math = MathConstant::Instance();
-    double nuclear_energy = config->ic.nuclear_energy_ev/math->HartreeEnergyIneV();;
-    int min_continuum_l = config->ic.continuum_l_min; 
-    int max_continuum_l = config->ic.continuum_l_max; 
+    double nuclear_energy = specification->ic.nuclear_energy_ev/math->HartreeEnergyIneV();;
+    int min_continuum_l = specification->ic.continuum_l_min; 
+    int max_continuum_l = specification->ic.continuum_l_max; 
 
     // Add nuclear_energy to source level energy
     nuclear_energy += source.levels[0]->GetEnergy();
 
-    GeneralisedHyperfineCalculator calculon(user_input, *this, config->ic);
+    GeneralisedHyperfineCalculator calculon(user_input, *this, specification->ic);
     //user_input.set_prefix("");
     auto op = calculon.GetOperator();
 
@@ -41,7 +41,7 @@ void Atom::InternalConversion(const LevelVector& source)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::optional<std::string> residue = config->ic.residue;
+    std::optional<std::string> residue = specification->ic.residue;
     if(residue)
     {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, residue.value()));
@@ -184,13 +184,13 @@ void Atom::InternalConversion(const LevelVector& source)
 
 void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification= GlobalSpecification::Instance();
     auto math = MathConstant::Instance();
-    double nuclear_energy = config->ic.nuclear_energy_ev/math->HartreeEnergyIneV();
-    int min_continuum_l = config->ic.continuum_l_min;
-    int max_continuum_l = config->ic.continuum_l_max;
+    double nuclear_energy = specification->ic.nuclear_energy_ev/math->HartreeEnergyIneV();
+    int min_continuum_l = specification->ic.continuum_l_min;
+    int max_continuum_l = specification->ic.continuum_l_max;
 
-    GeneralisedHyperfineCalculator calculon(user_input, *this, config->ic);
+    GeneralisedHyperfineCalculator calculon(user_input, *this, specification->ic);
     auto op = calculon.GetOperator();
 
     pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
@@ -238,7 +238,7 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
     {
         // Create operator for construction of continuum field
         pHFOperator hf_continuum;
-        std::optional<std::string> residue = config->ic.residue;
+        std::optional<std::string> residue = specification->ic.residue;
         if(residue)
         {   hf_continuum = hf_open->Clone();
             pCore continuum_core(new Core(lattice, residue.value()));
@@ -312,11 +312,11 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 
 void Atom::Autoionization(const LevelVector& target)
 {
-    auto config = GlobalSpecification::Instance();
-    double ionization_energy = config->dr_ionization_energy;
-    std::optional<double> energy_limit = config->dr_energy_limit;
-    unsigned min_continuum_l = config->dr_continuum_l_min;
-    unsigned max_continuum_l = config->dr_continuum_l_max;
+    auto specification= GlobalSpecification::Instance();
+    double ionization_energy = specification->dr_ionization_energy;
+    std::optional<double> energy_limit = specification->dr_energy_limit;
+    unsigned min_continuum_l = specification->dr_continuum_l_min;
+    unsigned max_continuum_l = specification->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -354,7 +354,7 @@ void Atom::Autoionization(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::optional<std::string> residue = config->dr_continuum_residue;
+    std::optional<std::string> residue = specification->dr_continuum_residue;
     if(residue)
     {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, residue.value()));
@@ -497,15 +497,15 @@ void Atom::Autoionization(const LevelVector& target)
 
 void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 {
-    auto config = GlobalSpecification::Instance();
-    double ionization_energy = config->dr_ionization_energy;
-    std::optional<double> energy_limit = config->dr_energy_limit;
-    double grid_min = config->dr_energygrid_min;
-    double grid_max = config->dr_energygrid_max;
-    double grid_step = config->dr_energygrid_step;
+    auto specification= GlobalSpecification::Instance();
+    double ionization_energy = specification->dr_ionization_energy;
+    std::optional<double> energy_limit = specification->dr_energy_limit;
+    double grid_min = specification->dr_energygrid_min;
+    double grid_max = specification->dr_energygrid_max;
+    double grid_step = specification->dr_energygrid_step;
     std::vector<double> energy_grid;
-    unsigned min_continuum_l = config->dr_continuum_l_min;
-    unsigned max_continuum_l = config->dr_continuum_l_max;
+    unsigned min_continuum_l = specification->dr_continuum_l_min;
+    unsigned max_continuum_l = specification->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -539,7 +539,7 @@ void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::optional<std::string> residue = config->dr_continuum_residue;
+    std::optional<std::string> residue = specification->dr_continuum_residue;
     if(residue)
     {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, residue.value()));
@@ -759,13 +759,13 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
 
 void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 {
-    auto config = GlobalSpecification::Instance();
-    double ionization_energy = config->dr_ionization_energy;
-    std::optional<double> energy_limit = config->dr_energy_limit;
-    unsigned min_continuum_l = config->dr_continuum_l_min;
-    unsigned max_continuum_l = config->dr_continuum_l_max;
-    double grid_min = config->dr_energygrid_min;
-    bool use_single_particle_energy = config->dr_use_single_particle_energy;
+    auto specification= GlobalSpecification::Instance();
+    double ionization_energy = specification->dr_ionization_energy;
+    std::optional<double> energy_limit = specification->dr_energy_limit;
+    unsigned min_continuum_l = specification->dr_continuum_l_min;
+    unsigned max_continuum_l = specification->dr_continuum_l_max;
+    double grid_min = specification->dr_energygrid_min;
+    bool use_single_particle_energy = specification->dr_use_single_particle_energy;
 
     auto math = MathConstant::Instance();
 
@@ -797,7 +797,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 
     // Create operator for construction of continuum field
     pHFOperator hf_continuum;
-    std::optional<std::string> residue = config->dr_continuum_residue;
+    std::optional<std::string> residue = specification->dr_continuum_residue;
     if(residue)
     {   hf_continuum = hf_open->Clone();
         pCore continuum_core(new Core(lattice, residue.value()));

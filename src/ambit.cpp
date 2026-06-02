@@ -248,7 +248,7 @@ namespace Ambit
 AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& identifier):
     user_input(user_input), identifier(identifier)
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification = GlobalSpecification::Instance();
     if(ProcessorRank == 0)
     {
         *outstream << "----------------------------------------------------------"
@@ -256,21 +256,21 @@ AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& i
                    << "\n----------------------------------------------------------\n";
         // Use GetPot printing for now, since parapara's isn't done cooking
         user_input.print();
-        //config->PrintSpecification();
+        //specification->PrintSpecification();
         *outstream << "----------------------------------------------------------" << std::endl;
     }
 }
 
 void AmbitInterface::EnergyCalculations()
 {
-    auto config = GlobalSpecification::Instance();
-    int Z = config->Z;
+    auto specification= GlobalSpecification::Instance();
+    int Z = specification->Z;
     if(Z <= 0)
     {   *errstream << "Z not specified correctly." << std::endl;
         exit(1);
     }
 
-    bool check_sizes = config->check_sizes;
+    bool check_sizes = specification->check_sizes;
 
     // Multirun disabled at least while we're transitioning to parapara
 #if 0
@@ -374,7 +374,7 @@ void AmbitInterface::EnergyCalculations()
             atoms[index].MakeBasis(hf_open_core);
 
     // Print basis option
-    if(config->print_basis)
+    if(specification->print_basis)
     {
         auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
@@ -392,13 +392,13 @@ void AmbitInterface::EnergyCalculations()
     for(unsigned int index = 0; index < run_indexes.size(); index++)
     {
         auto& atom = atoms[index];
-        bool make_new_integrals = !config->no_new_mbpt;
-        bool mbpt_use_breuckner = config->mbpt_brueckner;
+        bool make_new_integrals = !specification->no_new_mbpt;
+        bool mbpt_use_breuckner = specification->mbpt_brueckner;
 
         if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
             atom.MakeMBPTIntegrals();
 
-        if (config->mbpt_brueckner && !check_sizes)
+        if (specification->mbpt_brueckner && !check_sizes)
         {   // Show details of HF iterated Brueckner orbitals
             DebugOptions.OutputHFExcited(index == first_run_index);
             atom.GenerateBruecknerOrbitals(make_new_integrals);
@@ -409,14 +409,14 @@ void AmbitInterface::EnergyCalculations()
     }
 
     // CI
-    if(config->check_sizes)
+    if(specification->check_sizes)
         atoms[0].CheckMatrixSizes();
     else
     {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
         pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
 
         // Don't calculate extra levels
-        if(config->ci_complete)
+        if(specification->ci_complete)
             return;
 
         for(int i = 1; i < run_indexes.size(); i++)
@@ -453,13 +453,13 @@ do { \
   } \
 } while(0)
 
-template<typename ConfigOptType, typename CalculatorType>
-void run_and_store_transitions(ConfigOptType config_opt, Atom atom, MultirunOptions user_input)
+template<typename SpecificationOptType, typename CalculatorType>
+void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom, MultirunOptions user_input)
 {
-    if(config_opt)
+    if(specification_opt)
     {
-        auto config = config_opt.value();
-        CalculatorType calculon(user_input, atom, config);
+        auto specification = specification_opt.value();
+        CalculatorType calculon(user_input, atom, specification);
         calculon.CalculateAndPrint();
         calculon.PrintAll();
     }
@@ -467,20 +467,20 @@ void run_and_store_transitions(ConfigOptType config_opt, Atom atom, MultirunOpti
 
 void AmbitInterface::TransitionCalculations()
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification= GlobalSpecification::Instance();
     Atom& atom = atoms[first_run_index];
 
     // EM types
     using EJTransitionsOpt = std::optional<TransitionsEJSpecification>;
     std::array<std::tuple<EJTransitionsOpt, MultipolarityType, int>, 8> EM_transition_types =
-           {std::make_tuple(config->transitions_do_e1 ? EJTransitionsOpt{config->transitions_e1} : std::nullopt, MultipolarityType::E, 1),
-            std::make_tuple(config->transitions_do_e2 ? EJTransitionsOpt{config->transitions_e2} : std::nullopt, MultipolarityType::M, 1),
-            std::make_tuple(config->transitions_do_e3 ? EJTransitionsOpt{config->transitions_e3} : std::nullopt, MultipolarityType::E, 2),
-            std::make_tuple(config->transitions_do_e4 ? EJTransitionsOpt{config->transitions_e4} : std::nullopt, MultipolarityType::M, 2),
-            std::make_tuple(config->transitions_do_m1 ? EJTransitionsOpt{config->transitions_m1} : std::nullopt, MultipolarityType::E, 3),
-            std::make_tuple(config->transitions_do_m2 ? EJTransitionsOpt{config->transitions_m2} : std::nullopt, MultipolarityType::M, 3),
-            std::make_tuple(config->transitions_do_m3 ? EJTransitionsOpt{config->transitions_m3} : std::nullopt, MultipolarityType::E, 4),
-            std::make_tuple(config->transitions_do_m4 ? EJTransitionsOpt{config->transitions_m4} : std::nullopt, MultipolarityType::M, 4),
+           {std::make_tuple(specification->transitions_do_e1 ? EJTransitionsOpt{specification->transitions_e1} : std::nullopt, MultipolarityType::E, 1),
+            std::make_tuple(specification->transitions_do_e2 ? EJTransitionsOpt{specification->transitions_e2} : std::nullopt, MultipolarityType::M, 1),
+            std::make_tuple(specification->transitions_do_e3 ? EJTransitionsOpt{specification->transitions_e3} : std::nullopt, MultipolarityType::E, 2),
+            std::make_tuple(specification->transitions_do_e4 ? EJTransitionsOpt{specification->transitions_e4} : std::nullopt, MultipolarityType::M, 2),
+            std::make_tuple(specification->transitions_do_m1 ? EJTransitionsOpt{specification->transitions_m1} : std::nullopt, MultipolarityType::E, 3),
+            std::make_tuple(specification->transitions_do_m2 ? EJTransitionsOpt{specification->transitions_m2} : std::nullopt, MultipolarityType::M, 3),
+            std::make_tuple(specification->transitions_do_m3 ? EJTransitionsOpt{specification->transitions_m3} : std::nullopt, MultipolarityType::E, 4),
+            std::make_tuple(specification->transitions_do_m4 ? EJTransitionsOpt{specification->transitions_m4} : std::nullopt, MultipolarityType::M, 4),
            };
 
     std::vector<std::unique_ptr<EMCalculator>> calculators;
@@ -489,8 +489,8 @@ void AmbitInterface::TransitionCalculations()
     {
         if(std::get<0>(types))
         {
-            auto config = std::get<0>(types).value();
-            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom, config));
+            auto specification = std::get<0>(types).value();
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom, specification));
 
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
@@ -528,47 +528,47 @@ void AmbitInterface::TransitionCalculations()
 
     run_and_store_transitions<HFS1Opt, 
                               HyperfineDipoleCalculator>
-                             (config->transitions_do_hfs1 ? HFS1Opt{config->transitions_hfs1} : std::nullopt,
+                             (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<HFS2Opt, 
                               HyperfineQuadrupoleCalculator>
-                             (config->transitions_do_hfs2 ? HFS2Opt{config->transitions_hfs2} : std::nullopt,
+                             (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<HFSIOpt, 
                               GeneralisedHyperfineCalculator>
-                             (config->transitions_do_hfsi ? HFSIOpt{config->transitions_hfsi} : std::nullopt,
+                             (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<FSOpt, 
                               FieldShiftCalculator>
-                             (config->transitions_do_fs ? FSOpt{config->transitions_fs} : std::nullopt,
+                             (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<QEDOpt, 
                               QEDCalculator>
-                             (config->transitions_do_qed ? QEDOpt{config->transitions_qed} : std::nullopt,
+                             (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<YukawaOpt, 
                               YukawaCalculator>
-                             (config->transitions_do_yukawa ? YukawaOpt{config->transitions_yukawa} : std::nullopt,
+                             (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<KEOpt, 
                               KineticEnergyCalculator>
-                             (config->transitions_do_ke ? KEOpt{config->transitions_ke} : std::nullopt,
+                             (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<LLIT2Opt, 
                               LorentzInvarianceT2Calculator>
-                             (config->transitions_do_llit2 ? LLIT2Opt{config->transitions_llit2} : std::nullopt,
+                             (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt,
                               atom, user_input);
 
     run_and_store_transitions<NMSOpt, 
                               NormalMassShiftCalculator>
-                             (config->transitions_do_nms ? NMSOpt{config->transitions_nms} : std::nullopt,
+                             (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt,
                               atom, user_input);
 
     user_input.set_prefix("");
@@ -578,7 +578,7 @@ void AmbitInterface::TransitionCalculations()
 
 void AmbitInterface::Recombination()
 {
-    auto config = GlobalSpecification::Instance();
+    auto specification= GlobalSpecification::Instance();
     std::string target_file = user_input("DR/Target/Filename", "");
     if(target_file.length() == 0)
         return;

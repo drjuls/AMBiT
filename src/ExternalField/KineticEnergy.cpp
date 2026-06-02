@@ -30,17 +30,17 @@ SpinorFunction KineticEnergyDecorator::CalculateExtraExchange(const SpinorFuncti
     return exchange;
 }
 
-KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& config):
-    TransitionCalculator(user_input, atom, config)
+KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& specification):
+    TransitionCalculator(user_input, atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);
     auto rke = std::make_shared<KineticEnergyDecorator>(zero);
 
-    double scale = config.scale;
+    double scale = specification.scale;
     rke->SetScale(scale);
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
         op = MakeRPA(rke, hf, atom.GetHartreeY());
     else
         op = rke;

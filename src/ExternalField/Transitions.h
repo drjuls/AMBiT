@@ -27,7 +27,7 @@ typedef std::pair<LevelID, LevelID> TransitionID;
         - PrintTransition()
     TransitionCalculator provides generic RPA routines for authors of subclasses.
     When constructing the operator use something like
-        if(config.do_rpa)
+        if(specification.do_rpa)
             op = MakeRPA(op, hf, hartreeY);
 
     This has to take a TransitionsBaseSpecification object for the CLI arguments, since
@@ -40,11 +40,11 @@ typedef std::pair<LevelID, LevelID> TransitionID;
 class TransitionCalculator
 {
 public:
-    TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels, TransitionsBaseSpecification& config):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), scale(1.0), config(config)
+    TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels, TransitionsBaseSpecification& specification):
+        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), scale(1.0), specification(specification)
     {}
-    TransitionCalculator(MultirunOptions& user_input, Atom& atom, TransitionsBaseSpecification& config):
-        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
+    TransitionCalculator(MultirunOptions& user_input, Atom& atom, TransitionsBaseSpecification& specification):
+        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
     {}
 
     /** Parse user_input for transition requests, calculate and print.
@@ -115,7 +115,7 @@ protected:
 
 protected:
     MultirunOptions& user_input;
-    TransitionsBaseSpecification config;
+    TransitionsBaseSpecification specification;
     pOrbitalManagerConst orbitals;
     pLevelStore levels;
     pSpinorMatrixElement op = nullptr;

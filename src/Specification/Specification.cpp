@@ -414,10 +414,10 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
 // nice key-value interface for usability. Therefore, it has to be called *after* we've done all
 // the parsing and validation
-SpecificationMap get_config_map_view(GlobalSpecification& gs)
+SpecificationMap get_specification_map_view(GlobalSpecification& gs)
 {
-    keyed_record_view<GlobalSpecification> config_map(gs.global_specifications_mappings, gs);
-    return(config_map);
+    keyed_record_view<GlobalSpecification> specification_map(gs.global_specifications_mappings, gs);
+    return(specification_map);
 }
 
 // Print the specification key-value pairs to "outstream"

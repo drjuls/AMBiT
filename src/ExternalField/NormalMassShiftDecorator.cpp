@@ -184,22 +184,22 @@ SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, 
     return ret * std::sqrt(a.TwoJ() + 1);
 }
 
-NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& config):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), config)
+NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& specification):
+    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
 {
     auto hf = atom.GetHFOperator();
-    op = std::make_shared<NormalMassShiftOperator>(hf, config.only_relativistic_nms, config.nonrelativistic_mass_shift);
+    op = std::make_shared<NormalMassShiftOperator>(hf, specification.only_relativistic_nms, specification.nonrelativistic_mass_shift);
 
-    if(config.do_rpa)
+    if(specification.do_rpa)
     {   op = MakeRPA(std::static_pointer_cast<NormalMassShiftOperator>(op), hf, atom.GetHartreeY());
-        double scale = config.scale;
+        double scale = specification.scale;
         std::static_pointer_cast<RPAOperator>(op)->SetScale(scale);
     }
 }
 
 void NormalMassShiftCalculator::PrintHeader() const
 {
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
         *outstream << "NMS reduced matrix elements (a.u.): " << std::endl;
     else
         *outstream << "NMS matrix elements (stretched states) in a.u.: " << std::endl;
@@ -209,7 +209,7 @@ void NormalMassShiftCalculator::PrintTransition(const LevelID& left, const Level
 {
     MathConstant* math = MathConstant::Instance();
     double value = matrix_element;
-    if(config.reduced_elements)
+    if(specification.reduced_elements)
     {   int twoj1 = left.first->GetTwoJ();
         int twoj2 = right.first->GetTwoJ();
         value = value/math->Electron3j(twoj2, twoj1, op->GetK(), twoj2, -twoj1);
