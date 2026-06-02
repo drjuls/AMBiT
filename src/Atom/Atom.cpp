@@ -21,7 +21,7 @@ Atom::~Atom(void)
 pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 {
     auto specification = GlobalSpecification::Instance();
-    bool use_read = specification->clean_run;
+    bool use_read = !specification->clean_run;
 
     if((ProcessorRank == 0) && (!use_read || !ReadBasis()))
     {
