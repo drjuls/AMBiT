@@ -20,13 +20,13 @@ namespace Ambit
 template <typename Record>
 P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Record>& specs, std::istream& in);
 
-
 template <typename Value>
-auto between(Value min, Value max, std::string constraint = "value between upper and lower bounds (x in (min, max] )") {
-    return P::validator([min = std::move(min), max = std::move(max)](auto x) { return (x>min && x <= max); }, std::move(constraint));
+auto between(Value min, Value max, std::string constraint = "value between upper and lower bounds (x in (min, max] )")
+{   return P::validator([min = std::move(min), max = std::move(max)](auto x) { return (x>min && x <= max); }, std::move(constraint));
+}
 
-}inline auto positive = P::greater_than(0, "must be positive");
-inline auto nonegative = P::at_least(0, "must be positive");
+inline auto positive = P::greater_than(0, "must be positive");
+inline auto nonnegative = P::at_least(0, "must be positive");
 inline auto zero_to_1 = between(0, 1, "must be positive");
 
 /********************* GlobalSpecification methods *********************/
@@ -86,15 +86,15 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
         {"--scalapack",                                     &X::scalapack},
         {"MaxEnergy",                                       &X::max_energy},
         {"ChunkSize",                                       &X::chunksize},
-        {"--sort-matrix-by-configuration",                  &X::sort_matrix_by_configuration}, 
-        {"Output/--write-hamiltonian",                      &X::output_write_hamiltonian}, 
-        {"Output/--print-hamiltonian",                      &X::output_print_hamiltonian}, 
-        {"Output/--print-inline",                           &X::output_print_inline}, 
-        {"Output/--print-relativistic-configurations",      &X::output_print_relativistic_configurations}, 
-        {"Output/--no-configs",                             &X::output_no_configs}, 
-        {"Output/MaxDisplayedEnergy",                       &X::output_max_displayed_energy}, 
-        {"Output/MinDisplayedPercent",                      &X::output_min_displayed_percent}, 
-        {"Output/Separator",                                &X::output_separator}, 
+        {"--sort-matrix-by-configuration",                  &X::sort_matrix_by_configuration},
+        {"Output/--write-hamiltonian",                      &X::output_write_hamiltonian},
+        {"Output/--print-hamiltonian",                      &X::output_print_hamiltonian},
+        {"Output/--print-inline",                           &X::output_print_inline},
+        {"Output/--print-relativistic-configurations",      &X::output_print_relativistic_configurations},
+        {"Output/--no-configs",                             &X::output_no_configs},
+        {"Output/MaxDisplayedEnergy",                       &X::output_max_displayed_energy},
+        {"Output/MinDisplayedPercent",                      &X::output_min_displayed_percent},
+        {"Output/Separator",                                &X::output_separator},
      });
 }
 
@@ -256,13 +256,13 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"NuclearInverseMass",      &GlobalSpecification::nuclear_inverse_mass},
     {"AlphaSquaredVariation",   &GlobalSpecification::alpha_squared_variation},
     // Lattice
-    {"Lattice/NumPoints",           &GlobalSpecification::lattice_num_points,    P::nonzero()},
-    {"Lattice/StartPoint",          &GlobalSpecification::lattice_start_point,   positive},
-    {"Lattice/EndPoint",            &GlobalSpecification::lattice_end_point,     positive},
+    {"Lattice/NumPoints",           &GlobalSpecification::lattice_num_points,  P::nonzero()},
+    {"Lattice/StartPoint",          &GlobalSpecification::lattice_start_point, positive},
+    {"Lattice/EndPoint",            &GlobalSpecification::lattice_end_point,   positive},
     {"Lattice/--exp-lattice",       &GlobalSpecification::lattice_exponential},
-    {"Lattice/H",                   &GlobalSpecification::lattice_H,             positive},
+    {"Lattice/H",                   &GlobalSpecification::lattice_H,           positive},
     // HF
-    {"HF/N",                            &GlobalSpecification::hf_N, nonegative},
+    {"HF/N",                            &GlobalSpecification::hf_N,            nonnegative},
     {"HF/Charge",                       &GlobalSpecification::hf_charge},
     {"HF/Configuration",                &GlobalSpecification::hf_configuration},
     {"HF/--breit",                      &GlobalSpecification::hf_breit},
@@ -321,17 +321,17 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 // CI/SmallSide
     {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
     // MBPT
-    {"MBPT/Basis",                             &GlobalSpecification::mbpt_basis}, 
-    {"MBPT/EnergyDenomOrbitals",               &GlobalSpecification::mbpt_energy_denom_orbitals}, 
-    {"MBPT/--use-valence",                     &GlobalSpecification::mbpt_use_valence}, 
-    {"MBPT/--no-core",                         &GlobalSpecification::mbpt_no_core}, 
-    {"MBPT/--use-subtraction",                 &GlobalSpecification::mbpt_use_subtraction}, 
-    {"MBPT/--no-subtraction",                  &GlobalSpecification::mbpt_no_subtraction}, 
-    {"MBPT/--no-extra-box",                    &GlobalSpecification::mbpt_no_extra_box}, 
-    {"MBPT/EnergyDenomFloor",                 &GlobalSpecification::mbpt_energy_denom_floor}, 
-    {"MBPT/Delta",                            &GlobalSpecification::mbpt_delta}, 
-    {"MBPT/TwoBody/StorageLimits",            &GlobalSpecification::mbpt_twobody_storage_limits}, 
-    {"MBPT/OneBody/Scaling",                  &GlobalSpecification::mbpt_onebody_scaling}, 
+    {"MBPT/Basis",                             &GlobalSpecification::mbpt_basis},
+    {"MBPT/EnergyDenomOrbitals",               &GlobalSpecification::mbpt_energy_denom_orbitals},
+    {"MBPT/--use-valence",                     &GlobalSpecification::mbpt_use_valence},
+    {"MBPT/--no-core",                         &GlobalSpecification::mbpt_no_core},
+    {"MBPT/--use-subtraction",                 &GlobalSpecification::mbpt_use_subtraction},
+    {"MBPT/--no-subtraction",                  &GlobalSpecification::mbpt_no_subtraction},
+    {"MBPT/--no-extra-box",                    &GlobalSpecification::mbpt_no_extra_box},
+    {"MBPT/EnergyDenomFloor",                 &GlobalSpecification::mbpt_energy_denom_floor},
+    {"MBPT/Delta",                            &GlobalSpecification::mbpt_delta},
+    {"MBPT/TwoBody/StorageLimits",            &GlobalSpecification::mbpt_twobody_storage_limits},
+    {"MBPT/OneBody/Scaling",                  &GlobalSpecification::mbpt_onebody_scaling},
     {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner},
     {"Transitions/E1",                         &GlobalSpecification::transitions_do_e1},
     {"Transitions/E2",                         &GlobalSpecification::transitions_do_e2},
@@ -482,8 +482,8 @@ P::hopefully<void> GlobalSpecification::PrintSpecification()
     return {};
 }
 
-/********************************************************************** 
- * Actual parsing happens here 
+/**********************************************************************
+ * Actual parsing happens here
  **********************************************************************/
 std::string importSpecificationFile(GlobalSpecification* gs, const std::string& fileName) {
     std::ifstream in(fileName);
@@ -498,7 +498,6 @@ std::string importSpecificationFile(GlobalSpecification* gs, const std::string& 
 
 // Read a full INI from a string, rather than a file. Mostly useful for unit testing
 std::string importSpecificationINIString(GlobalSpecification* gs, const std::string& ini_string) {
-
     std::istringstream in(ini_string);
     P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
     auto h = custom_import_ini(*gs, global_specifications_dict, in);
@@ -507,8 +506,8 @@ std::string importSpecificationINIString(GlobalSpecification* gs, const std::str
     return "";
 }
 
-
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment) {
+    *outstream << assignment << '\n';
     P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
     auto h = P::import_k_eq_v(*gs, global_specifications_dict, assignment);
     if (!h) return P::explain(h.error(), true);
@@ -530,7 +529,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     // Must have at least one of HF/N and HF/Charge, so error out if these are missing
     if((!hf_charge) && (!hf_N))
         return "Must specify at least one of HF/N or HF/Charge";
-    
+
     // Yukawa interaction has three possible parameters to determine its mass: Mass, MassEV and
     // rc, which are logically equivalent but differ in units. The input file must have exactly one
     // of these defined.
@@ -559,7 +558,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
         basis_type_count++;
     if(basis_hf)
         basis_type_count++;
-    
+
     if(basis_type_count > 1)
         return "Must specify at most one of Basis/--bspline-basis, Basis/--xr-basis, or Basis/--hf-basis";
 
@@ -583,7 +582,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     {
         mbpt_three_body = true;
     }
-   
+
     // We must have at least one leading configuration for CI and CI/SmallSide
     //if(ci.leading_configurations.empty())
     //    return "Must have at least one config in CI/LeadingConfigurations";
@@ -622,7 +621,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
         {
             return "Incorrect number of arguments to CI/SmallSide/ElectronBounds";
         }
-    }    
+    }
     if(ci_smallside.hole_bounds)
     {
         if(ci_smallside.hole_bounds.value().size() != ci_smallside.hole_excitations)
@@ -635,7 +634,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification() {
     return "";
 }
 
-/********************************************************************** 
+/**********************************************************************
  * Custom INI import implementation:
  *********************************************************************/
 using P::ini_record;
@@ -755,13 +754,19 @@ P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Rec
         std::string prev_sec{importer.section()};
         auto h = importer.run_one(rec, specs, P::default_reader(), "/");
 
-        // Ignore unrecognized keys until specification coverage is complete
-        if (!h) {
-             if (h.error().error!=P::failure::unrecognized_key) return P::unexpected(h.error());
-             else continue; 
-        }
+        if (!h)
+            return P::unexpected(h.error());
 
-        if (h.value() != P::ini_record_kind::section) continue;
+        if (h.value() == P::ini_record_kind::eof)
+            break;
+
+        if (h.value() != P::ini_record_kind::section)
+        {   // Print key and value
+            *outstream << prev_sec << '/' << importer.context().record << '\n';
+            continue;
+        }
+        else
+            *outstream << importer.context().record << '\n';
 
         std::string_view new_sec = importer.section();
         if (new_sec.substr(0, 2)=="./") {

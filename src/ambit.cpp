@@ -526,47 +526,47 @@ void AmbitInterface::TransitionCalculations()
     using LLIT2Opt = std::optional<TransitionsLLIT2Specification>;
     using NMSOpt = std::optional<TransitionsNMSSpecification>;
 
-    run_and_store_transitions<HFS1Opt, 
+    run_and_store_transitions<HFS1Opt,
                               HyperfineDipoleCalculator>
                              (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<HFS2Opt, 
+    run_and_store_transitions<HFS2Opt,
                               HyperfineQuadrupoleCalculator>
                              (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<HFSIOpt, 
+    run_and_store_transitions<HFSIOpt,
                               GeneralisedHyperfineCalculator>
                              (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<FSOpt, 
+    run_and_store_transitions<FSOpt,
                               FieldShiftCalculator>
                              (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<QEDOpt, 
+    run_and_store_transitions<QEDOpt,
                               QEDCalculator>
                              (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<YukawaOpt, 
+    run_and_store_transitions<YukawaOpt,
                               YukawaCalculator>
                              (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<KEOpt, 
+    run_and_store_transitions<KEOpt,
                               KineticEnergyCalculator>
                              (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<LLIT2Opt, 
+    run_and_store_transitions<LLIT2Opt,
                               LorentzInvarianceT2Calculator>
                              (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt,
                               atom, user_input);
 
-    run_and_store_transitions<NMSOpt, 
+    run_and_store_transitions<NMSOpt,
                               NormalMassShiftCalculator>
                              (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt,
                               atom, user_input);
