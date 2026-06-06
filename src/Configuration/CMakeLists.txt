@@ -1,8 +1,8 @@
 set(MODS_CONFIGURATION  AngularData.cpp
                         ConfigGenerator.cpp
                         ElectronInfo.cpp
+                        HamiltonianID.cpp
                         HamiltonianMatrix.cpp
-                        Level.cpp
                         LevelMap.cpp
                         NonRelConfiguration.cpp
                         Projection.cpp

@@ -1,5 +1,3 @@
-#include "Atom/MultirunOptions.h"
-#include <optional>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -19,6 +17,7 @@
 #include "Specification/Specification.h"
 #include "Specification/TransitionSpecifications.h"
 #include "Specification/SpecificationMap.h"
+#include "Universal/Profiler.h"
 
 // Headers to get stack-traces
 #ifdef UNIX
@@ -98,6 +97,10 @@ int main(int argc, char* argv[])
     #endif
 
     OutStreams::InitialiseStreams();
+
+    // Start the global timer
+    auto profiler = Profiler::Instance();
+    profiler->total.start();
 
     // Write the number of threads to the log file. This is useful for debugging.
     #ifdef AMBIT_USE_OPENMP
@@ -233,7 +236,60 @@ int main(int argc, char* argv[])
             int cont = 1;
             blacs_exit_(&cont);
         #endif
+    #endif
 
+    // Print timing information now that all processes have finished
+    profiler->total.stop();
+    *logstream << "\n|=========================================================|" << std::endl;
+    *logstream << absl::StreamFormat("|%-35s %21d|", "Profiling information for rank", ProcessorRank)
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Hartree-Fock and basis set")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->hf.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-electron Slater integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->slater.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "One-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->one_body_mbpt.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->two_body_mbpt.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "CI")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Transition matrix elements")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->transitions.elapsed()))
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Total wall time")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->total.elapsed()))
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+
+    #ifdef AMBIT_USE_MPI
         MPI_Finalize();
     #endif
 
@@ -254,9 +310,7 @@ AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& i
         *outstream << "----------------------------------------------------------"
                    << "\ninput:"
                    << "\n----------------------------------------------------------\n";
-        // Use GetPot printing for now, since parapara's isn't done cooking
         user_input.print();
-        //specification->PrintSpecification();
         *outstream << "----------------------------------------------------------" << std::endl;
     }
 }
@@ -419,6 +473,10 @@ void AmbitInterface::EnergyCalculations()
         if(specification->ci_complete)
             return;
 
+        // Start the CI timer
+        auto profiler = Profiler::Instance();
+        profiler->ci.start();
+
         for(int i = 1; i < run_indexes.size(); i++)
         {   user_input.SetRun(run_indexes[i]);
             atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
@@ -436,6 +494,9 @@ void AmbitInterface::EnergyCalculations()
                 atoms[i].CalculateEnergies(key);
             }
         }
+
+        // Stop the CI timer
+        profiler->ci.stop();
     }
 }
 
@@ -467,6 +528,10 @@ void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom
 
 void AmbitInterface::TransitionCalculations()
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->transitions.start();
+
     auto specification= GlobalSpecification::Instance();
     Atom& atom = atoms[first_run_index];
 
@@ -572,6 +637,12 @@ void AmbitInterface::TransitionCalculations()
                               atom, user_input);
 
     user_input.set_prefix("");
+
+    // Calculate additional Hamiltonian matrix elements
+    atom.ResidualCoulomb();
+
+    // Stop the timer
+    profiler->transitions.stop();
 }
 
 #undef RUN_AND_STORE_TRANSITION
@@ -624,14 +695,12 @@ void AmbitInterface::Recombination()
     LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
 
     int target_level_index = user_input("DR/Target/Index", 0);
-    if(target_level_vec.levels.size() <= target_level_index)
+    if(target_level_index < target_level_vec.NumLevels())
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
 
-    auto keep = std::next(target_level_vec.levels.begin(), target_level_index);
-    target_level_vec.levels.erase(target_level_vec.levels.begin(), keep);
-    target_level_vec.levels.resize(1);
+    target_level_vec = target_level_vec.getSubset(target_level_index);
 
     // Get widths of current levels
     if(user_input.search("--configuration-average"))
@@ -689,14 +758,11 @@ void AmbitInterface::InternalConversion()
     LevelVector source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
 
     int source_level_index = user_input("IC/Source/Index", 0);
-    if(source_level_vec.levels.size() <= source_level_index)
+    if(source_level_index < source_level_vec.NumLevels())
     {   *errstream << "IC: Cannot find source level." << std::endl;
         exit(1);
     }
-
-    auto keep = std::next(source_level_vec.levels.begin(), source_level_index);
-    source_level_vec.levels.erase(source_level_vec.levels.begin(), keep);
-    source_level_vec.levels.resize(1);
+    source_level_vec = source_level_vec.getSubset(source_level_index);
 
     if(user_input.search("--configuration-average"))
         atoms[first_run_index].InternalConversionConfigurationAveraged(source_level_vec);

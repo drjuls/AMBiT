@@ -1,70 +1,81 @@
 #ifndef LEVEL_VECTOR_PRINT_H
 #define LEVEL_VECTOR_PRINT_H
 
-#include "Level.h"
+#include "HamiltonianID.h"
 #include "NonRelConfiguration.h"
+#include <Eigen/Eigen>
 #include <iostream>
 
 namespace Ambit
 {
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrix;
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMajorMatrix;
+
 /** LevelVector consists of Hamiltonian that levels come from,
-    common relativistic config list, and vector of levels.
+    common relativistic config list, and a set of levels including
+    energies, coefficients, and g-factors.
+    Internally the coefficients are stored as a matrix for efficient processing of operators.
  */
 class LevelVector
 {
 public:
-    LevelVector(pHamiltonianID hID = nullptr): hID(hID) {}
-    LevelVector(pHamiltonianID hID, pRelativisticConfigList configs, pLevel level):
-        hID(hID), configs(configs), levels(1, level) {}
-    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level)
-    {
-        if(level)
-            hID = level->GetHamiltonianID();
-    }
+    LevelVector(pHamiltonianID hID = nullptr, pRelativisticConfigList rconfigs = nullptr):
+        hID(hID), configs(rconfigs) {}
+//    LevelVector(pHamiltonianID hID, pRelativisticConfigList configs, pLevel level):
+//        hID(hID), configs(configs), levels(1, level) {}
+//    LevelVector(pRelativisticConfigList configs, pLevel level): configs(configs), levels(1, level)
+//    {
+//        if(level)
+//            hID = level->GetHamiltonianID();
+//    }
 
+    // All data is open, but don't break it. The number of rows in eigenvectors should match the number of elements
+    // in eigenvectors and g_factors (unless g_factors is empty).
+    // There are functions if you prefer to use them.
     pHamiltonianID hID {nullptr};
     pRelativisticConfigList configs {nullptr};
-    std::vector<pLevel> levels;
+    RowMajorMatrix eigenvectors;
+    std::vector<double> eigenvalues;
+    std::vector<double> g_factors;
+
+    inline void Resize(unsigned int num_levels, unsigned int num_csfs, bool allocate_gfactors = false)
+    {
+        eigenvectors.resize(num_levels, num_csfs);
+        eigenvalues.resize(num_levels);
+        if(allocate_gfactors)
+            g_factors.resize(num_levels);
+    }
+    inline unsigned int NumLevels() const { return eigenvectors.rows(); }
+
+    /** Return a new LevelVector including a subset of the current levels. */
+    LevelVector getSubset(unsigned int start_index, unsigned int num_levels = 1) const
+    {
+        assert(start_index + num_levels <= eigenvalues.size());
+        LevelVector subset(hID, configs);
+        subset.Resize(num_levels, configs->NumCSFs());
+        subset.eigenvectors = eigenvectors.middleRows(start_index, num_levels);
+        std::copy(eigenvalues.begin()+start_index, eigenvalues.begin()+start_index+num_levels,subset.eigenvalues.begin());
+        if(start_index + num_levels < g_factors.size())
+        {
+            subset.g_factors.resize(num_levels);
+            std::copy(g_factors.begin()+start_index, g_factors.begin()+start_index+num_levels, subset.g_factors.begin());
+        }
+        return subset;
+    }
 
     /** Print levels to outstream. min_percentages outside of the range (0, 100] will switch off the printing of configurations. */
     template<typename ConfigPrintType = NonRelConfiguration>
-    inline void Print(double min_percentage = 1.0) const;
-
-    template<typename ConfigPrintType = NonRelConfiguration>
-    inline void Print(double min_percentage, double max_energy) const;
+    inline void Print(double min_percentage = 1.0, std::optional<double> max_energy = std::nullopt) const;
 
     /** Print one line per level: J, P, index, E, g, Largest configuration, HamiltonianID. */
     template<typename ConfigPrintType = NonRelConfiguration>
-    inline void PrintInline(bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
-
-    template<typename ConfigPrintType = NonRelConfiguration>
-    inline void PrintInline(double max_energy, bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ") const;
-
-protected:
-    /** Print LevelVector to outstream, with all possible options for printing.
-        All other print functions call this one.
-     */
-    template<typename ConfigPrintType = NonRelConfiguration>
-    inline void Print(double min_percentage, bool use_max_energy, double max_energy) const;
-
-    template<typename ConfigPrintType = NonRelConfiguration>
-    inline void PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator = " ") const;
+    inline void PrintInline(bool print_leading_configuration = true, bool print_gfactors = true, std::string separator = " ", std::optional<double> max_energy = std::nullopt) const;
 };
 
 template<typename ConfigPrintType>
-void LevelVector::Print(double min_percentage) const
-{   Print<ConfigPrintType>(min_percentage, false, 0.0);
-}
-
-template<typename ConfigPrintType>
-void LevelVector::Print(double min_percentage, double max_energy) const
-{   Print<ConfigPrintType>(min_percentage, true, max_energy);
-}
-
-template<typename ConfigPrintType>
-void LevelVector::Print(double min_percentage, bool use_max_energy, double max_energy) const
+void LevelVector::Print(double min_percentage, std::optional<double> max_energy) const
 {
-    if(levels.size() == 0 || ProcessorRank != 0)
+    if(eigenvectors.size() == 0 || ProcessorRank != 0)
         return;
 
     if(!configs || !configs->size())
@@ -79,18 +90,16 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
         {   percentages[rconfig] = 0.0; // Auto instantiate NonRelConfiguration from RelativisticConfiguration.
         }
 
-    auto solution_it = levels.begin();
     *outstream << "Solutions for " << hID << " (N = " << configs->NumCSFs();
     if(configs->NumCSFsSmall() != configs->NumCSFs())
         *outstream << " x " << configs->NumCSFsSmall();
     *outstream << "):\n";
 
-    unsigned int index = 0;
-    while(solution_it != levels.end() &&
-          (!use_max_energy || (*solution_it)->GetEnergy() < max_energy))
+    for(unsigned int index = 0; index < NumLevels(); index++)
     {
-        double energy = (*solution_it)->GetEnergy();
-        const std::vector<double>& eigenvector = (*solution_it)->GetEigenvector();
+        double energy = eigenvalues[index];
+        if(max_energy && (energy > max_energy))
+            break;
 
         *outstream << index << ": " << std::setprecision(8) << energy << "    "
                    << std::setprecision(12) << energy * MathConstant::Instance()->HartreeEnergyInInvCm() << " /cm\n";
@@ -101,7 +110,7 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
             for(auto& pair: percentages)
                 pair.second = 0.0;
 
-            const double* eigenvector_csf = eigenvector.data();
+            const double* eigenvector_csf = eigenvectors.row(index).data();
             for(auto& rconfig: *configs)
             {
                 double contribution = 0.0;
@@ -124,33 +133,20 @@ void LevelVector::Print(double min_percentage, bool use_max_energy, double max_e
             outstream->unsetf(std::ios_base::floatfield);
         }
 
-        if(hID->GetTwoJ() != 0)
+        if(hID->GetTwoJ() != 0 && index < g_factors.size())
         {
-            const double& gfactor = (*solution_it)->GetgFactor();
-            if(!std::isnan(gfactor))
-                *outstream << "    g-factor = " << std::setprecision(5) << gfactor << "\n";
+            if(!std::isnan(g_factors[index]))
+                *outstream << "    g-factor = " << std::setprecision(5) << g_factors[index] << "\n";
         }
 
         *outstream << std::endl;
-        solution_it++;
-        index++;
     }
 }
 
 template<typename ConfigPrintType>
-void LevelVector::PrintInline(bool print_leading_configuration, bool print_gfactors, std::string separator) const
-{   PrintInline<ConfigPrintType>(false, 0.0, print_leading_configuration, print_gfactors, separator);
-}
-
-template<typename ConfigPrintType>
-void LevelVector::PrintInline(double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator) const
-{   PrintInline<ConfigPrintType>(true, max_energy, print_leading_configuration, print_gfactors, separator);
-}
-
-template<typename ConfigPrintType>
-void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print_leading_configuration, bool print_gfactors, std::string separator) const
+void LevelVector::PrintInline(bool print_leading_configuration, bool print_gfactors, std::string separator, std::optional<double> max_energy) const
 {
-    if(levels.size() == 0 || ProcessorRank != 0)
+    if(eigenvectors.size() == 0 || ProcessorRank != 0)
         return;
 
     if(!configs || !configs->size())
@@ -167,23 +163,20 @@ void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print
         {   percentages[rconfig] = 0.0; // Auto instantiate NonRelConfiguration from RelativisticConfiguration.
         };
 
-    auto solution_it = levels.begin();
-    unsigned int index = 0;
-    while(solution_it != levels.end() &&
-          (!use_max_energy || (*solution_it)->GetEnergy() < max_energy))
+    for(unsigned int index = 0; index < NumLevels(); index++)
     {
-        double energy = (*solution_it)->GetEnergy();
-        const std::vector<double>& eigenvector = (*solution_it)->GetEigenvector();
+        double energy = eigenvalues[index];
+        if(max_energy && (energy > max_energy))
+            break;
 
         *outstream << J << separator << Sign(P) << separator << index << separator
                    << std::setprecision(12) << energy;
 
         if(print_gfactors)
         {
-            if(hID->GetTwoJ() != 0)
+            if(hID->GetTwoJ() != 0 && g_factors.size())
             {
-                const double& gfactor = (*solution_it)->GetgFactor();
-                *outstream << separator << std::setprecision(5) << gfactor;
+                *outstream << separator << std::setprecision(5) << g_factors[index];
             }
             else
                 *outstream << separator << 0.0;
@@ -195,7 +188,7 @@ void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print
             for(auto& pair: percentages)
                 pair.second = 0.0;
 
-            const double* eigenvector_csf = eigenvector.data();
+            const double* eigenvector_csf = eigenvectors.row(index).data();
             for(auto& rconfig: *configs)
             {
                 double contribution = 0.0;
@@ -218,9 +211,6 @@ void LevelVector::PrintInline(bool use_max_energy, double max_energy, bool print
         }
 
         *outstream << separator << hID->Name() << std::endl;
-
-        solution_it++;
-        index++;
     }
 }
 

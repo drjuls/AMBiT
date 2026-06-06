@@ -8,6 +8,7 @@
 #include "Universal/ExpLattice.h"
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/ConfigurationParser.h"
+#include "Universal/Profiler.h"
 
 namespace Ambit
 {
@@ -20,6 +21,9 @@ Atom::~Atom(void)
 
 pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->hf.start();
     auto specification = GlobalSpecification::Instance();
     bool use_read = !specification->clean_run;
 
@@ -31,14 +35,14 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
     //        ReadGraspMCDF("MCDF.DAT");
         }
         else
-        {   
+        {
             if(specification->lattice_exponential)
             {
                 unsigned num_points = specification->lattice_num_points;
                 double start_point = specification->lattice_start_point;
                 double h = specification->lattice_H;
                 lattice = pLattice(new ExpLattice(num_points, start_point, h));
-            } 
+            }
             else
             {
                 unsigned num_points = specification->lattice_num_points;
@@ -74,6 +78,8 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
     MPI_Barrier(MPI_COMM_WORLD);
     ReadBasis();
 #endif
+    // Stop the timer
+    profiler->hf.stop();
 
     return open_core;
 }
@@ -119,7 +125,7 @@ bool Atom::ReadBasis()
     if(basis_size)
     {
         all_states = basis_size.value();
-    } 
+    }
     else if (mbpt_basis)
     {
         all_states = mbpt_basis.value();
@@ -131,7 +137,7 @@ bool Atom::ReadBasis()
 
     std::vector<int> max_pqn_per_l = ConfigurationParser::ParseBasisSize(all_states);
 
-    // Make a set to hold all of the PQN and L combinations in our basis so we can compare it against 
+    // Make a set to hold all of the PQN and L combinations in our basis so we can compare it against
     // what the user has specified in the input file
     auto all_orbs = orbitals->all;
     auto orb_it = all_orbs->begin();

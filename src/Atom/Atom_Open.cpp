@@ -1,4 +1,3 @@
-#include "Specification/Specification.h"
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -19,6 +18,7 @@
 #include "MBPT/BruecknerDecorator.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "HamiltonianTypes.h"
+#include "Universal/Profiler.h"
 
 namespace Ambit
 {
@@ -157,15 +157,29 @@ void Atom::MakeMBPTIntegrals()
     {
         if(one_body_mbpt)
         {
+            // Start the timer
+            auto profiler = Profiler::Instance();
+            profiler->one_body_mbpt.start();
+
             mbpt_integrals_one->Read(identifier + ".one.int");
             unsigned int size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
+
+            // Stop the timer
+            profiler->one_body_mbpt.stop();
             *logstream << "One-body MBPT integrals complete: size = " << size << std::endl;
         }
 
         if(two_body_mbpt)
         {
+            // Start the timer
+            auto profiler = Profiler::Instance();
+            profiler->two_body_mbpt.start();
+
             mbpt_integrals_two->Read(identifier + ".two.int");
             unsigned int size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
+
+            // Stop the timer
+            profiler->two_body_mbpt.stop();
             *logstream << "Two-body MBPT integrals complete: size = " << size << std::endl;
         }
     }
@@ -173,6 +187,10 @@ void Atom::MakeMBPTIntegrals()
 
 void Atom::MakeCIIntegrals()
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->slater.start();
+
     auto specification = GlobalSpecification::Instance();
     ClearIntegrals();
 
@@ -217,7 +235,42 @@ void Atom::MakeCIIntegrals()
         // Don't need two body integrals if we're not doing CI
         if(!specification->no_ci)
         {
-            two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+            // Check if we can read existing Slater Integrals from disk
+            bool use_read = true;
+            if(user_input.search(2, "--clean", "-c"))
+                use_read = false;
+
+            // Generate filename
+            std::string slater_filename = identifier + ".coulomb.int";
+            // Convert spaces to underscores in filename
+            std::replace_if(slater_filename.begin(), slater_filename.end(),
+                            [](char c){ return (c =='\r' || c =='\t' || c == ' ' || c == '\n');}, '_');
+
+            // Read Slater integrals if available, but only if we don't have the "-c" flag
+            bool generate_integrals = true;
+
+            // If reading from a checkpoint file, make sure the file exists and is
+            // valid, then read
+            if(use_read)
+            {
+                generate_integrals = !two_body_integrals->Read(slater_filename);
+                if(!generate_integrals)
+                    *logstream << "Read Slater integrals from file "
+                               << slater_filename << std::endl;
+            }
+
+            // Generate the integrals if reading from file failed, or if we're doing a
+            // clean run
+            if(generate_integrals)
+            {
+                *logstream << "Generating Slater integrals..." << std::endl;
+                two_body_integrals->CalculateTwoElectronIntegrals(valence, valence, valence, valence);
+
+                // And write the resulting integrals to the file
+                two_body_integrals->Write(slater_filename);
+            }
+
+            // Print size of integrals if requested
             if(specification->check_sizes)
                 *outstream << "\nNum Coulomb integrals: " << two_body_integrals->size() << std::endl;
         }
@@ -257,6 +310,9 @@ void Atom::MakeCIIntegrals()
                 *outstream << "\nSigma3 Coulomb integrals: " << threebody_electron->GetStorageSize() << std::endl;
         }
     }
+
+    // Stop the timer
+    profiler->slater.stop();
 }
 
 void Atom::ClearIntegrals()
@@ -580,7 +636,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
     if(soID)
     {
-        if(levelvec.levels.empty())
+        if(levelvec.NumLevels() == 0)
             levelvec = SingleElectronConfigurations(hID);
     }
     else
@@ -630,7 +686,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         // Only continue if we don't have enough levels
         int num_solutions = specification->ci.num_solutions;
         num_solutions = (num_solutions? mmin(num_solutions, configs->NumCSFs()): configs->NumCSFs());
-        bool do_CI = (levelvec.levels.size() < num_solutions);
+        bool do_CI = (levelvec.NumLevels() < num_solutions);
         if(do_CI)
         {
             if(twobody_electron == nullptr)
@@ -653,6 +709,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
 
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
+            // Do not solve the matrix, just generate Hamiltonian and write to file
+            bool dont_solve_matrix = user_input.search(2, "--no-diagonalisation", "--no-diagonalization");
+
             // If reading from a checkpoint file, make sure the file exists and is valid, then
             // read
             if(use_read)
@@ -667,7 +726,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 H->GenerateMatrix(chunksize);
                 //H->PollMatrix();
 
-                if(specification->ci.output_write_hamiltonian)
+                if(specification->ci.output_write_hamiltonian || dont_solve_matrix)
                     H->Write(hamiltonian_filename);
             }
 
@@ -688,22 +747,31 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
                 *outstream << "Matrix Before:\n" << *H << std::endl;
             }
 
+            if(dont_solve_matrix)
+            {   *outstream << "\n";
+                return {};  // Return empty levelvector
+            }
+
             #ifdef AMBIT_USE_SCALAPACK
             if(specification->ci.scalapack)
             {
+                // Write matrix if it hasn't already been written
+                if(!user_input.search("CI/Output/--write-hamiltonian"))
+                    H->Write(hamiltonian_filename);
+
                 if(specification->ci.max_energy)
                 {
-                    double max_energy = specification->ci.max_energy.value();
-                    levelvec = H->SolveMatrixScalapack(hID, max_energy);
+                    double max_energy = specification->ci.max_energy.value());
+                    levelvec = H->SolveMatrixScalapack(hID, configs->NumCSFs(), hamiltonian_filename, max_energy);
                 }
                 else
                 {
-                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, false);
+                    levelvec = H->SolveMatrixScalapack(hID, num_solutions, hamiltonian_filename);
                 }
             }
             else
             #endif
-            levelvec = H->SolveMatrix(hID, num_solutions);
+            levelvec = H->SolveMatrix(hID, num_solutions, hamiltonian_filename);
             levels->Store(hID, levelvec);
         }
 
@@ -754,9 +822,9 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
         {   // Truncate display at max energy
             double max_energy = specification->ci.output_max_displayed_energy.value();
             if(ShowRelConfigPercentages)
-                levelvec.PrintInline<RelativisticConfiguration>(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline<RelativisticConfiguration>(ShowPercentages, ShowgFactors, sep, max_energy);
             else
-                levelvec.PrintInline(max_energy, ShowPercentages, ShowgFactors, sep);
+                levelvec.PrintInline(ShowPercentages, ShowgFactors, sep, max_energy);
         }
         else
         {   if(ShowRelConfigPercentages)
@@ -793,13 +861,11 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
 {
     LevelVector levelvec = levels->GetLevels(sym);
 
-    if(levelvec.levels.size())
+    if(levelvec.NumLevels())
         return levelvec;
 
     if(hf_electron == nullptr)
         MakeCIIntegrals();
-
-    double eigenvector = 1.;
 
     OrbitalInfo info(dynamic_cast<SingleOrbitalID*>(sym.get())->GetOrbitalInfo());
     // Make relativistic configuration
@@ -813,7 +879,9 @@ LevelVector Atom::SingleElectronConfigurations(pHamiltonianID sym)
     levelvec.hID = sym;
     levelvec.configs = std::make_shared<RelativisticConfigList>(config);
     double energy = hf_electron->GetMatrixElement(info, info);
-    levelvec.levels.emplace_back(std::make_shared<Level>(energy, &eigenvector, sym, 1));
+    levelvec.Resize(1, 1);
+    levelvec.eigenvalues[0] = energy;
+    levelvec.eigenvectors(0, 0) = 1;
     levels->Store(sym, levelvec);
 
     return levelvec;

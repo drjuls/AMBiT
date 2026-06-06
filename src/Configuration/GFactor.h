@@ -69,7 +69,7 @@ public:
             }
             val = val * overlap;
         }
-        
+
         return val;
     }
 
@@ -99,20 +99,17 @@ public:
 
     inline void CalculateGFactors(LevelVector& levels) const
     {
-        if(levels.levels.size() == 0 || levels.hID->GetTwoJ() == 0)
+        if (levels.NumLevels() == 0 || levels.hID->GetTwoJ() == 0)
             return;
 
-        double J = double(levels.hID->GetTwoJ())/2.;
+        double J = double(levels.hID->GetTwoJ()) / 2.;
 
         std::vector<double> total_Sz = Sz.GetMatrixElement(levels);
+        levels.g_factors.resize(levels.NumLevels());
 
-        auto Sz_it = total_Sz.begin();
-        auto it = levels.levels.begin();
-        while(it != levels.levels.end() && Sz_it != total_Sz.end())
+        for (int i = 0; i < levels.NumLevels(); i++)
         {
-            (*it)->SetgFactor(*Sz_it/J + 1.);
-            it++;
-            Sz_it++;
+            levels.g_factors[i] = total_Sz[i]/J + 1.;
         }
     }
 

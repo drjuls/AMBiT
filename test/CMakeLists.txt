@@ -1,12 +1,17 @@
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   
-  # Boilerplate for setting up googletest
-  # Download gtest from GitHub
-  include(FetchContent)
+  # Use system-installed GoogleTest if available, otherwise fetch from GitHub.
+  # This avoids header/library ABI mismatches when a system gtest is on the
+  # default include path (the system headers would otherwise override the
+  # FetchContent ones at compile time while the FetchContent library is linked).
+  find_package(GTest QUIET)
+  if(NOT GTest_FOUND)
+    include(FetchContent)
     FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip)
-  FetchContent_MakeAvailable(googletest)
+      googletest
+      URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip)
+    FetchContent_MakeAvailable(googletest)
+  endif()
 
   # Actual ambit testing libraries
   set(MODS_TESTING AngularData.test.cpp
