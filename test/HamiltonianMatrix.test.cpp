@@ -50,9 +50,6 @@ TEST(HamiltonianMatrixTester, MgILevels)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -146,9 +143,6 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     std::string even_filename = "MgITest.e.matrix";
     std::string odd_filename = "MgITest.o.matrix";

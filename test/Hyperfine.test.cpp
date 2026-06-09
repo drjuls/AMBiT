@@ -5,7 +5,6 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "Basis/BasisGenerator.h"
-#include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/SlaterIntegrals.h"
 #include "MBPT/BruecknerDecorator.h"
@@ -43,9 +42,6 @@ TEST(HyperfineTester, Rb)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -95,9 +91,6 @@ TEST(HyperfineTester, Na)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -204,9 +197,6 @@ TEST(HyperfineTester, CsRPA)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

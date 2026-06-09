@@ -15,6 +15,7 @@
 #include <boost/bind.hpp>
 
 #include <gtest/gtest.h>
+#include "Specification/Specification.h"
 
 
 #ifdef AMBIT_USE_MPI
@@ -37,6 +38,14 @@ Ambit::Debug Ambit::DebugOptions;
 
 void PrintHelp(const std::string& ApplicationName);
 
+class GlobalSpecificationResetter: public testing::EmptyTestEventListener
+{
+    void OnTestStart(const testing::TestInfo&) override
+    {
+        Ambit::GlobalSpecification::Instance()->Reset();
+    }
+};
+
 int main(int argc, char* argv[])
 {
     using namespace Ambit;
@@ -53,6 +62,8 @@ int main(int argc, char* argv[])
     outstream = logstream;
 
     testing::InitGoogleTest(&argc, argv);
+    testing::TestEventListeners& listeners = testing::UnitTest::GetInstance()->listeners();
+    listeners.Append(new GlobalSpecificationResetter);
     int ret = RUN_ALL_TESTS();
 
     OutStreams::FinaliseStreams();

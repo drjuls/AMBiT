@@ -5,7 +5,6 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
 #include "Configuration/ConfigGenerator.h"
-#include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronMBPT.h"
 #include "MBPT/CoreValenceIntegrals.h"
 #include "Specification/Specification.h"
@@ -23,6 +22,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
 
     // CsI - we want to set up the MBPT options, even though we'll only use them for one component
     std::string user_input_string = std::string() +
+        "ID = Cs_gtest" +
         "NuclearRadius=5.675\n" +
         "Z = 55\n" +
         "-s12\n" +
@@ -58,9 +58,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-    std::string identifier = "Cs_gtest";
+    std::string identifier = specification->ID;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -89,12 +87,12 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     int max_pqn_in_core = 5;
     bool is_open_shell = false;
 
-    bool use_box = !userInput.search("MBPT/--no-extra-box");
-    bool include_core = !userInput.search("MBPT/--no-core");
+    bool use_box = !specification->mbpt_no_extra_box;
+    bool include_core = !specification->mbpt_no_core;
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
     mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
 
-    bool include_valence = userInput.search("MBPT/--use-valence");
+    bool include_valence = specification->mbpt_use_valence;
     mbpt_integrals_one->IncludeValence(include_valence && is_open_shell);
     mbpt_integrals_two->IncludeValence(include_valence, include_valence && is_open_shell, include_valence && use_box);
 
@@ -227,9 +225,7 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-    std::string identifier = "He_gtest";
+    std::string identifier = specification->ID;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -258,12 +254,12 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     int max_pqn_in_core = 5;
     bool is_open_shell = false;
 
-    bool use_box = !userInput.search("MBPT/--no-extra-box");
-    bool include_core = !userInput.search("MBPT/--no-core");
+    bool use_box = !specification->mbpt_no_extra_box;
+    bool include_core = !specification->mbpt_no_core;
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
     mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
 
-    bool include_valence = userInput.search("MBPT/--use-valence");
+    bool include_valence = specification->mbpt_use_valence;
     mbpt_integrals_one->IncludeValence(include_valence && is_open_shell);
     mbpt_integrals_two->IncludeValence(include_valence, include_valence && is_open_shell, include_valence && use_box);
 

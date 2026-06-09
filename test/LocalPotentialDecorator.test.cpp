@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
-#include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 #include "Specification/Specification.h"
 
@@ -41,9 +40,6 @@ TEST(LocalPotentialDecoratorTester, CoreHartree)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -87,9 +83,6 @@ TEST(LocalPotentialDecoratorTester, DiracHartree)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -135,9 +128,6 @@ TEST(LocalPotentialDecoratorTester, KohnSham)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -181,9 +171,6 @@ TEST(LocalPotentialDecoratorTester, DiracSlater)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

@@ -17,7 +17,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
 
     std::string user_input_string = std::string() +
       "-c \n" +
-      "ID = test\n" + 
+      "ID = test\n" +
       "NuclearRadius = 3.7188\n" +
       "NuclearThickness = 2.3\n" +
       "Z = 20\n" +
@@ -39,18 +39,7 @@ TEST(ConfigGeneratorTester, CountConfigurations)
       "HoleExcitations = 1\n" +
       "EvenParityTwoJ = '0'\n" +
       "OddParityTwoJ =  '0, 2'\n" +
-      "NumSolutions = 3\n" +
-      "[./Output]\n" +
-      "Type = Standard\n" +
-      "ShowgFactors = 1\n" +
-      "ShowPercentages = 1\n" +
-      "NumLeadingConfigurations = 5\n" +
-      "MinimumDisplayedPercentage = 1\n" +
-      "MaxDisplayedEnergy = -10\n" +
-      "[Transitions]\n" +
-      "[./Output]\n" +
-      "ShowLifetime = 1\n" +
-      "ShowProbability = 1\n";
+      "NumSolutions = 3";
 
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
@@ -59,9 +48,12 @@ TEST(ConfigGeneratorTester, CountConfigurations)
         *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
+    perr = specification->validateAndNormaliseSpecification();
+    if (!perr.empty()) {
+        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
+        exit(1);
+    }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
     pCore core(new Core(lattice));
     core->SetOccupancies(occ);
 
@@ -151,9 +143,6 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
         "ElectronExcitations = 2\n" +
         "NumSolutions = 1\n";
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
@@ -198,13 +187,11 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
         "HoleExcitations = 2\n" +
         "NumSolutions = 1\n";
 
-    std::stringstream holes_input_stream(holes_input_string);
-    MultirunOptions holesInput(holes_input_stream, "//", "\n", ",");
-
     // Note: this will override the previsous specification, but we've already saved the values for
     // comparison
-    //auto specification = GlobalSpecification::Instance();
+    // auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
+    specification->Reset();
     perr = importSpecificationINIString(specification, holes_input_string);
     if (!perr.empty()) {
         *errstream << "importSpecificationINIString:\n" << perr << std::endl;
@@ -265,9 +252,6 @@ TEST(ConfigGeneratorTester, NonSquare)
         *errstream << "importSpecificationINIString:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

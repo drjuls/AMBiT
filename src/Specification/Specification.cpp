@@ -42,6 +42,11 @@ GlobalSpecification::GlobalSpecification()
     MakeGlobalSpecificationsMappings();
 }
 
+void GlobalSpecification::Reset()
+{
+    *this = GlobalSpecification();
+}
+
 /********************* Parsing methods *********************/
 // Helper methods for the polymorphic "delegated" parsing (so we can e.g. re-use common options
 // between [Transition] operators. This is lifted from "ex-delegate.cc" in the parapara
@@ -60,6 +65,8 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_base_specification
     return {
         {"LeadingConfigurations",                &X::leading_configurations},
         {"LeadingRelativisticConfigurations",    &X::leading_rel_configurations},
+        {"ExtraConfigurations",                  &X::extra_configurations},
+        {"ExtraRelativisticConfigurations",      &X::extra_rel_configurations},
         {"ElectronExcitations",                  &X::electron_excitations},
         {"ElectronBounds",                       &X::electron_bounds},
         {"HoleExcitations",                      &X::hole_excitations},

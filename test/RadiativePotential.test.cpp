@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "ExternalField/RadiativePotential.h"
-#include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 #include "Specification/Specification.h"
 
@@ -35,9 +34,6 @@ TEST(RadiativePotentialTester, Uehling)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -99,9 +95,6 @@ TEST(RadiativePotentialTester, UehlingCs)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -170,9 +163,6 @@ TEST(RadiativePotentialTester, Magnetic)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -234,9 +224,6 @@ TEST(RadiativePotentialTester, ElectricSlow)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

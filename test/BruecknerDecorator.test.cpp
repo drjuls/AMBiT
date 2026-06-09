@@ -1,7 +1,6 @@
 #include "MBPT/BruecknerDecorator.h"
 #include "gtest/gtest.h"
 #include "Include.h"
-#include "Atom/MultirunOptions.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ODESolver.h"
 #include "Universal/PhysicalConstant.h"

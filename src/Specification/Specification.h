@@ -89,6 +89,9 @@ public:
     // Perform global validation of specifications. Return non-empty error message on failure.
     std::string validateAndNormaliseSpecification();
     P::hopefully<void> PrintSpecification();
+
+    // Reset all fields to their default values (useful for test isolation).
+    void Reset();
 protected:
     GlobalSpecification();
 

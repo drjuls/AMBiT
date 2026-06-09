@@ -2,9 +2,7 @@
 #include "Include.h"
 #include "ExternalField/EJOperator.h"
 #include "HartreeFock/Core.h"
-#include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
-#include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/SlaterIntegrals.h"
 #include "Configuration/HamiltonianMatrix.h"
@@ -44,9 +42,6 @@ TEST(EJOperatorTester, LiTransitions)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -133,8 +128,6 @@ TEST(EJOperatorTester, NaTransitions)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -221,9 +214,6 @@ TEST(MJOperatorTester, LiTransitions)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -271,9 +261,6 @@ TEST(EJOperatorTester, HeTransitions)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -416,9 +403,6 @@ TEST(MJOperatorTester, HolesVsElectrons)
             exit(1);
         }
 
-        std::stringstream user_input_stream(user_input_string);
-        MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
@@ -480,6 +464,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
 
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
+        specification->Reset();
         std::string perr = importSpecificationINIString(specification, user_input_string);
         if (!perr.empty()) {
             *errstream << "importSpecificationINIString:\n" << perr << std::endl;
@@ -490,9 +475,6 @@ TEST(MJOperatorTester, HolesVsElectrons)
             *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
             exit(1);
         }
-
-        std::stringstream user_input_stream(user_input_string);
-        MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -568,9 +550,6 @@ TEST(EJOperatorTester, Screening)
         exit(1);
     }
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -620,9 +599,6 @@ TEST(EJOperatorTester, XeScreening)
         *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
         exit(1);
     }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
 
     // Get core and excited basis
     DebugOptions.LogHFIterations(true);

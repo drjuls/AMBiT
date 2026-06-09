@@ -8,85 +8,71 @@ using namespace Ambit;
 class BasisGeneratorTester : public ::testing::Test
 {
 protected:
-    // Per-test-case set-up.
-    // Called before the first test in this test case.
-    // Can be omitted if not needed.
     static void SetUpTestCase() {
         lattice = pLattice(new Lattice(1000, 1.e-6, 50.));
 
         DebugOptions.LogFirstBuild(true);
         DebugOptions.LogHFIterations(true);
 
-        std::string user_input_strings = std::string() +
-        "-c\n" +
-        "ID = test \n" +
-        "NuclearRadius = 3.7188 \n" +
-        "NuclearThickness = 2.3 \n" +
-        "Z = 20 \n" +
-        "[Lattice] \n" +
-        "NumPoints = 1000 \n" +
-        "StartPoint = 1.e-6 \n" +
-        "EndPoint = 50. \n" +
-        "[HF] \n" +
-        "N = 18 \n" +
-        "Configuration = '1s2 2s2 2p6 3s2 3p6' \n" +
-        "[Basis] \n" +
-        "--bspline-basis\n" +
-        "ValenceBasis = 6spdf \n" +
-        "FrozenCore = 3s2p \n" +
-        "BSpline/Rmax = 50.0 \n" +
-        "[CI] \n" +
-        "LeadingConfigurations = '4s2, 4s1 4p1' \n" +
-        "ExtraConfigurations   = '4p2' \n" +
-        "ElectronExcitations = 2 \n" +
-        "HoleExcitations = 1 \n" +
-        "EvenParityTwoJ = '0' \n" +
-        "OddParityTwoJ =  '0, 2' \n" +
-        "NumSolutions = 3 \n" +
-        "[CI/Output] \n" +
-        "Type = Standard \n" +
-        "ShowgFactors = 1 \n" +
-        "ShowPercentages = 1 \n" +
-        "NumLeadingConfigurations = 5 \n" +
-        "MinimumDisplayedPercentage = 1 \n" +
-        "MaxDisplayedEnergy = -10 \n" +
-        "[Transitions] \n" +
-        "[Transitions/Output] \n" +
-        "ShowLifetime = 1 \n" +
-        "ShowProbability = 1";
-
-        auto specification = GlobalSpecification::Instance();
-        // Can parse the user_input_string directly via parapara
-        std::string perr = importSpecificationINIString(specification, user_input_strings);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
-
-        perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
-
+        ImportSpec();
         core_generator = new BasisGenerator(lattice);
         core = core_generator->GenerateHFCore();
     }
 
-    // Per-test-case tear-down.
-    // Called after the last test in this test case.
-    // Can be omitted if not needed.
     static void TearDownTestCase() {
         delete core_generator;
         core_generator = NULL;
     }
 
-    // Some expensive resource shared by all tests.
+    // Re-import the suite spec after each per-test Reset().
+    void SetUp() override { ImportSpec(); }
+
+    static void ImportSpec() {
+        auto specification = GlobalSpecification::Instance();
+        std::string perr = importSpecificationINIString(specification, user_input_strings);
+        if (!perr.empty()) {
+            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
+            exit(1);
+        }
+        perr = specification->validateAndNormaliseSpecification();
+        if (!perr.empty()) {
+            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
+            exit(1);
+        }
+    }
+
+    static const std::string user_input_strings;
     static pLattice lattice;
     static pCore core;
     static BasisGenerator* core_generator;
 };
 
+const std::string BasisGeneratorTester::user_input_strings = std::string() +
+    "-c\n" +
+    "ID = test \n" +
+    "NuclearRadius = 3.7188 \n" +
+    "NuclearThickness = 2.3 \n" +
+    "Z = 20 \n" +
+    "[Lattice] \n" +
+    "NumPoints = 1000 \n" +
+    "StartPoint = 1.e-6 \n" +
+    "EndPoint = 50. \n" +
+    "[HF] \n" +
+    "N = 18 \n" +
+    "Configuration = '1s2 2s2 2p6 3s2 3p6' \n" +
+    "[Basis] \n" +
+    "--bspline-basis\n" +
+    "ValenceBasis = 6spdf \n" +
+    "FrozenCore = 3s2p \n" +
+    "BSpline/Rmax = 50.0 \n" +
+    "[CI] \n" +
+    "LeadingConfigurations = '4s2, 4s1 4p1' \n" +
+    "ExtraConfigurations   = '4p2' \n" +
+    "ElectronExcitations = 2 \n" +
+    "HoleExcitations = 1 \n" +
+    "EvenParityTwoJ = '0' \n" +
+    "OddParityTwoJ =  '0, 2' \n" +
+    "NumSolutions = 3";
 pLattice BasisGeneratorTester::lattice = pLattice();
 pCore BasisGeneratorTester::core = pCore();
 BasisGenerator* BasisGeneratorTester::core_generator = NULL;
@@ -133,13 +119,13 @@ TEST_F(BasisGeneratorTester, HFBasis)
     pHFOperatorConst hf = core_generator->GetOpenHFOperator();
     pIntegrator integrator = hf->GetIntegrator();
     pOrbitalMapConst excited = core_generator->GenerateBasis()->excited;
-    
+
     // Check that < 4s | h | 4s > = h.Energy()
     pOrbitalConst valence_state = excited->GetState(OrbitalInfo(4, -1));
     ASSERT_FALSE(valence_state == NULL);
     EXPECT_NEAR(1.0, valence_state->Norm(integrator), 1.e-8);
     EXPECT_NEAR(-0.41663136, valence_state->Energy(), 1.e-3 * 0.41663136);
-    
+
     EXPECT_NEAR(-0.10135097, excited->GetState(OrbitalInfo(5, 2))->Energy(), 1.e-3 * 0.10135097);   // 5d
     EXPECT_NEAR(-0.080142532, excited->GetState(OrbitalInfo(5, -4))->Energy(), 1.e-3 * 0.080142532);  // 5f*
     EXPECT_NEAR(-0.095195645, excited->GetState(OrbitalInfo(6, 1))->Energy(), 1.e-3 * 0.095195645);   // 6p

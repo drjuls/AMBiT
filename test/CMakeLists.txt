@@ -1,5 +1,5 @@
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-  
+
   # Use system-installed GoogleTest if available, otherwise fetch from GitHub.
   # This avoids header/library ABI mismatches when a system gtest is on the
   # default include path (the system headers would otherwise override the
@@ -31,7 +31,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
                    ManyBodyOperator.test.cpp
                    MassShiftDecorator.test.cpp
                    MathConstant.test.cpp
-                   # MultirunOptions.test.cpp    # test is failing
                    RadiativePotential.test.cpp
                    ambit.test.cpp
                    CACHE INTERNAL "")
@@ -56,7 +55,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   find_package(GSL REQUIRED)
 
   if(USE_MKL)
-    find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})  
+    find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
     target_link_libraries(ambit_test PUBLIC MKL::MKL)
     # Also tell Eigen to use MKL as its backend
     target_compile_definitions(ambit_test PRIVATE -DEIGEN_USE_MKL_ALL)
