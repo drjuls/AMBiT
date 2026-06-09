@@ -40,15 +40,9 @@ TEST(HamiltonianMatrixTester, MgILevels)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -134,15 +128,9 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     std::string even_filename = "MgITest.e.matrix";
     std::string odd_filename = "MgITest.o.matrix";
@@ -291,15 +279,9 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
         basis_generator.GenerateHFCore();
@@ -358,15 +340,9 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -459,15 +435,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -527,15 +497,9 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
         auto specification = GlobalSpecification::Instance();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -625,15 +589,9 @@ TEST(HamiltonianMatrixTester, LiPlus)
 
         auto specification = GlobalSpecification::Instance();
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -690,15 +648,9 @@ TEST(HamiltonianMatrixTester, LiPlus)
 
         auto specification = GlobalSpecification::Instance();
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -793,15 +745,9 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         auto specification = GlobalSpecification::Instance();
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);
@@ -857,15 +803,9 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
 
         auto specification = GlobalSpecification::Instance();
         std::string perr = importSpecificationINIString(specification, user_input_string);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
         // Get core and excited basis
         BasisGenerator basis_generator(lattice);

@@ -25,15 +25,9 @@ TEST(RadiativePotentialTester, Uehling)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -86,15 +80,9 @@ TEST(RadiativePotentialTester, UehlingCs)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -153,15 +141,9 @@ TEST(RadiativePotentialTester, Magnetic)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -215,15 +197,9 @@ TEST(RadiativePotentialTester, ElectricSlow)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

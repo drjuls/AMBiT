@@ -30,15 +30,9 @@ protected:
     static void ImportSpec() {
         auto specification = GlobalSpecification::Instance();
         std::string perr = importSpecificationINIString(specification, user_input_strings);
-        if (!perr.empty()) {
-            *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
-        if (!perr.empty()) {
-            *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-            exit(1);
-        }
+        ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
     }
 
     static const std::string user_input_strings;

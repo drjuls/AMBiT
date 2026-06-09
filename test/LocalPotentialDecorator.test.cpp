@@ -31,15 +31,9 @@ TEST(LocalPotentialDecoratorTester, CoreHartree)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -74,15 +68,9 @@ TEST(LocalPotentialDecoratorTester, DiracHartree)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -118,15 +106,9 @@ TEST(LocalPotentialDecoratorTester, KohnSham)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -162,15 +144,9 @@ TEST(LocalPotentialDecoratorTester, DiracSlater)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

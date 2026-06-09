@@ -48,15 +48,9 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     std::string identifier = specification->ID;
 
@@ -215,15 +209,9 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     std::string identifier = specification->ID;
 
