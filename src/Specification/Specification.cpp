@@ -30,10 +30,13 @@ inline auto nonnegative = P::at_least(0, "must be positive");
 inline auto zero_to_1 = between(0, 1, "must be positive");
 
 /********************* GlobalSpecification methods *********************/
+GlobalSpecification* GlobalSpecification::s_override = nullptr;
+
 GlobalSpecification* GlobalSpecification::Instance()
 {
-    static GlobalSpecification instance;
-    return &instance;
+    if (s_override) return s_override;
+    static GlobalSpecification default_instance;
+    return &default_instance;
 }
 
 GlobalSpecification::GlobalSpecification()
@@ -213,6 +216,10 @@ template <typename X>
 std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
     // Start with the base transitions specification and add extras on top
     return extend(make_transitions_hfsi_specification<X>(), {
+        {"Source/Filename",         &X::source_filename},
+        {"Source/TwoJ",             &X::source_twoj, nonnegative},
+        {"Source/Parity",           &X::source_parity},
+        {"Source/Index",            &X::source_index, nonnegative},
         {"NuclearEnergyEv",         &X::nuclear_energy_ev, positive},
         {"ContinuumLMin",           &X::continuum_l_min},
         {"ContinuumLMax",           &X::continuum_l_max},
@@ -364,11 +371,15 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Transitions/LLIT2",           &GlobalSpecification::transitions_do_llit2},
     {"Transitions/NMS",             &GlobalSpecification::transitions_do_nms},
     {"Transitions/ResidualCoulomb", &GlobalSpecification::transitions_do_residual_coulomb},
-    {"DR/IonizationEnergy",         &GlobalSpecification::dr_ionization_energy},
+    {"DR/Target/Filename",          &GlobalSpecification::dr_target_file},
+    {"DR/Target/TwoJ",              &GlobalSpecification::dr_target_twoj, nonnegative},
+    {"DR/Target/Parity",            &GlobalSpecification::dr_target_parity},
+    {"DR/Target/Index",             &GlobalSpecification::dr_target_index, nonnegative},
     {"DR/EnergyLimit",              &GlobalSpecification::dr_energy_limit},
     {"DR/ContinuumLMin",            &GlobalSpecification::dr_continuum_l_min},
     {"DR/ContinuumLMax",            &GlobalSpecification::dr_continuum_l_max},
     {"DR/ContinuumResidue",         &GlobalSpecification::dr_continuum_residue},
+    {"DR/--energy-grid",            &GlobalSpecification::dr_use_energygrid},
     {"DR/EnergyGrid/Min",           &GlobalSpecification::dr_energygrid_min},
     {"DR/EnergyGrid/Max",           &GlobalSpecification::dr_energygrid_max},
     {"DR/EnergyGrid/Step",          &GlobalSpecification::dr_energygrid_step},
@@ -777,7 +788,9 @@ P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Rec
 
         if (h.value() != P::ini_record_kind::section)
         {   // Print key and value
-            *outstream << prev_sec << '/' << importer.context().record << '\n';
+            if(!prev_sec.empty())
+                *outstream << prev_sec << '/';
+            *outstream << importer.context().record << '\n';
             continue;
         }
         else

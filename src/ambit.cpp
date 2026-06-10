@@ -196,8 +196,8 @@ int main(int argc, char* argv[])
         if(!specification->check_sizes)
         {
             ambit.TransitionCalculations();
-            //ambit.Recombination();
-            //ambit.InternalConversion();
+            ambit.Recombination();
+            ambit.InternalConversion();
         }
     }
     catch(std::bad_alloc& ba)
@@ -479,21 +479,20 @@ void AmbitInterface::TransitionCalculations()
 }
 
 #undef RUN_AND_STORE_TRANSITION
-#if 0
 void AmbitInterface::Recombination()
 {
     auto specification= GlobalSpecification::Instance();
-    std::string target_file = user_input("DR/Target/Filename", "");
-    if(target_file.length() == 0)
+    std::string target_file = specification->dr_target_file;
+    if(target_file.empty())
         return;
 
-    int target_two_j = user_input("DR/Target/TwoJ", -1);
-    if(target_two_j < 0)
+    std::optional<int> target_two_j = specification->dr_target_twoj;
+    if(!target_two_j)
     {   *errstream << "DR/Target/TwoJ must be set in input file." << std::endl;
         exit(1);
     }
 
-    std::string parity_string = user_input("DR/Target/Parity", "");
+    std::string parity_string = specification->dr_target_parity;
     Parity target_parity;
     if(parity_string == "even")
         target_parity = Parity::even;
@@ -505,29 +504,30 @@ void AmbitInterface::Recombination()
     }
 
     // Get target atom
-    MultirunOptions target_input(target_file.c_str(), "//", "\n", ",");
-    std::string target_id = target_input("ID", "");
-    if(target_id == "")
-    {   if(target_file.find(".input") != std::string::npos)
-           target_id = target_file.substr(0, target_file.find(".input"));
-       else
-       {   *errstream << "No ID could be found." << std::endl;
-           exit(1);
-       }
+    GlobalSpecification target_specification;
+    importSpecificationFile(&target_specification, target_file);
+    target_specification.validateAndNormaliseSpecification();
+
+    LevelVector target_level_vec;
+
+    // Scope the second instance of GlobalSpecification
+    {
+        GlobalSpecification::ScopedOverride guard(&target_specification);
+
+        *outstream << "\n----------------------------------------------------------";
+        *outstream << "\nDR Target:" << std::endl;
+        AmbitInterface target_calculator(target_specification.Z, target_specification.ID);
+        target_calculator.EnergyCalculations();
+        *outstream << "----------------------------------------------------------" << std::endl;
+
+        Atom& target_atom = target_calculator.atom;
+
+        // Get target level
+        pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j.value(), target_parity);
+        target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
     }
 
-    *outstream << "\nTarget:" << std::endl;
-    AmbitInterface target_calculator(target_input, target_id);
-    target_calculator.EnergyCalculations();
-    *outstream << "----------------------------------------------------------" << std::endl;
-
-    Atom& target_atom = target_calculator.atoms[target_calculator.first_run_index];
-
-    // Get target level
-    pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
-    LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
-
-    int target_level_index = user_input("DR/Target/Index", 0);
+    int target_level_index = specification->dr_target_index;
     if(target_level_index < target_level_vec.NumLevels())
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
@@ -536,27 +536,28 @@ void AmbitInterface::Recombination()
     target_level_vec = target_level_vec.getSubset(target_level_index);
 
     // Get widths of current levels
-    if(user_input.search("--configuration-average"))
-        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
-    else if(user_input.search("DR/--energy-grid"))
-        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
+    if(specification->configuration_average)
+        atom.AutoionizationConfigurationAveraged(target_level_vec);
+    else if(specification->dr_use_energygrid)
+        atom.AutoionizationEnergyGrid(target_level_vec);
     else
-        atoms[first_run_index].Autoionization(target_level_vec);
+        atom.Autoionization(target_level_vec);
 }
 
 void AmbitInterface::InternalConversion()
 {
-    std::string source_file = user_input("IC/Source/Filename", "");
-    if(source_file.length() == 0)
+    auto specification= GlobalSpecification::Instance();
+    std::string source_file = specification->ic.source_filename;
+    if(source_file.empty())
         return;
 
-    int source_two_j = user_input("IC/Source/TwoJ", -1);
-    if(source_two_j < 0)
+    std::optional<int> source_two_j = specification->ic.source_twoj;
+    if(!source_two_j)
     {   *errstream << "IC/Source/TwoJ must be set in input file." << std::endl;
         exit(1);
     }
 
-    std::string parity_string = user_input("IC/Source/Parity", "");
+    std::string parity_string = specification->ic.source_parity;
     Parity source_parity;
     if(parity_string == "even")
         source_parity = Parity::even;
@@ -568,42 +569,42 @@ void AmbitInterface::InternalConversion()
     }
 
     // Get source atom and level
-    MultirunOptions source_input(source_file.c_str(), "//", "\n", ",");
-    std::string source_id = source_input("ID", "");
-    if(source_id == "")
-    {   if(source_file.find(".input") != std::string::npos)
-           source_id = source_file.substr(0, source_file.find(".input"));
-       else
-       {   *errstream << "No ID could be found." << std::endl;
-           exit(1);
-       }
+    GlobalSpecification source_specification;
+    importSpecificationFile(&source_specification, source_file);
+    source_specification.validateAndNormaliseSpecification();
+
+    LevelVector source_level_vec;
+
+    // Scope the second instance of GlobalSpecification
+    {
+        GlobalSpecification::ScopedOverride guard(&source_specification);
+
+        *outstream << "\n----------------------------------------------------------";
+        *outstream << "\nIC Source:" << std::endl;
+        AmbitInterface source_calculator(source_specification.Z, source_specification.ID);
+        source_calculator.EnergyCalculations();
+        *outstream << "----------------------------------------------------------" << std::endl;
+
+        Atom& source_atom = source_calculator.atom;
+
+        // Get source level
+        pHamiltonianID source_key = std::make_shared<HamiltonianID>(source_two_j.value(), source_parity);
+        source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
     }
 
-    *outstream << "\nSource:" << std::endl;
-    AmbitInterface source_calculator(source_input, source_id);
-    source_calculator.EnergyCalculations();
-    *outstream << "----------------------------------------------------------" << std::endl;
-
-    Atom& source_atom = source_calculator.atoms[source_calculator.first_run_index];
-
-    // Get source level
-    pHamiltonianID source_key = std::make_shared<HamiltonianID>(source_two_j, source_parity);
-    LevelVector source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
-
-    int source_level_index = user_input("IC/Source/Index", 0);
+    int source_level_index = specification->ic.source_index;
     if(source_level_index < source_level_vec.NumLevels())
     {   *errstream << "IC: Cannot find source level." << std::endl;
         exit(1);
     }
     source_level_vec = source_level_vec.getSubset(source_level_index);
 
-    if(user_input.search("--configuration-average"))
-        atoms[first_run_index].InternalConversionConfigurationAveraged(source_level_vec);
+    if(specification->configuration_average)
+        atom.InternalConversionConfigurationAveraged(source_level_vec);
     else
-        atoms[first_run_index].InternalConversion(source_level_vec);
+        atom.InternalConversion(source_level_vec);
 }
 
-#endif
 void AmbitInterface::PrintHelp(const std::string& ApplicationName)
 {
     *outstream << ApplicationName << std::endl;

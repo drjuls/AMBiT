@@ -92,7 +92,19 @@ public:
 
     // Reset all fields to their default values (useful for test isolation).
     void Reset();
-protected:
+
+    // RAII guard that redirects Instance() to a caller-supplied object for the duration of a scope.
+    // Nesting is supported: the previous override (or nullptr) is restored on destruction.
+    class ScopedOverride {
+    public:
+        explicit ScopedOverride(GlobalSpecification* gs) : previous_(s_override) { s_override = gs; }
+        ~ScopedOverride() { s_override = previous_; }
+        ScopedOverride(const ScopedOverride&) = delete;
+        ScopedOverride& operator=(const ScopedOverride&) = delete;
+    private:
+        GlobalSpecification* previous_;
+    };
+
     GlobalSpecification();
 
     // Helper functions for parsing
@@ -300,15 +312,26 @@ public:
     ICSpecification ic;
     ResidualCoulombSpecification residual_coulomb;
 
+    // Recombination
+    std::string dr_target_file;
+    std::optional<int> dr_target_twoj;
+    std::string dr_target_parity;
+    int dr_target_index = 0;
+
     double dr_ionization_energy = 0.0;
     std::optional<double> dr_energy_limit;
     unsigned dr_continuum_l_min = 0;
     unsigned dr_continuum_l_max = 6;
     std::optional<std::string> dr_continuum_residue;
+
+    bool dr_use_energygrid = false;
     double dr_energygrid_min = 0.003675;
     double dr_energygrid_max = 3.675;
     double dr_energygrid_step = 0.03675;
     bool dr_use_single_particle_energy = false;
+
+private:
+    static GlobalSpecification* s_override;
 
 protected:
     bool _s1 = false;

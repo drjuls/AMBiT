@@ -111,6 +111,10 @@ public:
 class ICSpecification : public TransitionsHFSISpecification
 {
 public:
+    std::string source_filename;
+    std::optional<int> source_twoj;
+    std::string source_parity;
+    int source_index;
     double nuclear_energy_ev;
     unsigned continuum_l_min = 0;
     unsigned continuum_l_max = 6;
