@@ -184,8 +184,8 @@ SpinorFunction NormalMassShiftOperator::ReducedApplyTo(const SpinorFunction& a, 
     return ret * std::sqrt(a.TwoJ() + 1);
 }
 
-NormalMassShiftCalculator::NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& specification):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+NormalMassShiftCalculator::NormalMassShiftCalculator(Atom& atom, TransitionsNMSSpecification& specification):
+    TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
 {
     auto hf = atom.GetHFOperator();
     op = std::make_shared<NormalMassShiftOperator>(hf, specification.only_relativistic_nms, specification.nonrelativistic_mass_shift);

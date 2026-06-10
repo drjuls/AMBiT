@@ -236,9 +236,7 @@ void Atom::MakeCIIntegrals()
         if(!specification->no_ci)
         {
             // Check if we can read existing Slater Integrals from disk
-            bool use_read = true;
-            if(user_input.search(2, "--clean", "-c"))
-                use_read = false;
+            bool use_read = !specification->clean_run;
 
             // Generate filename
             std::string slater_filename = identifier + ".coulomb.int";
@@ -710,7 +708,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
             // Do not solve the matrix, just generate Hamiltonian and write to file
-            bool dont_solve_matrix = user_input.search(2, "--no-diagonalisation", "--no-diagonalization");
+            bool dont_solve_matrix = specification->dont_diagonalise_H;
 
             // If reading from a checkpoint file, make sure the file exists and is valid, then
             // read

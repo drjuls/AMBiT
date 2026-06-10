@@ -37,8 +37,8 @@ public:
     */
     unsigned electron_excitations = 2;
     std::optional<std::vector<std::string>> electron_bounds;
-    std::optional<std::vector<std::string>> hole_bounds;
     unsigned hole_excitations = 0;
+    std::optional<std::vector<std::string>> hole_bounds;
     bool print_configurations = false;
     bool print_rel_configurations = false;
     std::optional<std::pair<double, double> > configuration_average_energy_range;
@@ -98,7 +98,7 @@ protected:
     // Helper functions for parsing
     //template <typename R, typename X>
     //void add_delegates_for(std::vector<P::specification<R>>& specs, X R::* field_ptr, std::string key_pfx, const std::vector<P::specification<X>>& x_specs, std::string desc_pfx = "");
-    
+
     // CI
     template <typename T>
     std::vector<P::specification<T>> make_ci_base_specification();
@@ -132,14 +132,15 @@ protected:
     std::vector<P::specification<T>> make_transitions_nms_specification();
     template <typename T>
     std::vector<P::specification<T>> make_ic_specification();
-
+    template <typename T>
+    std::vector<P::specification<T>> make_residual_coulomb_specification();
 
 public:
     // Make the vector containing pairs mapping from the CLI option to their corresponding
     // fields in a GlobalSpecification struct.
     void MakeGlobalSpecificationsMappings();
 
-public: 
+public:
     // Ungrouped options
     std::string ID;
     unsigned Z = 0;
@@ -151,6 +152,7 @@ public:
     bool ci_complete = false;
     bool no_ci = false;
     bool configuration_average = false;
+    bool dont_diagonalise_H = false;
     double alpha_squared_variation = 0;
     double nuclear_inverse_mass = 0;
     double nuclear_radius = 0;
@@ -214,7 +216,7 @@ public:
     std::optional<std::string> basis_hf_orbitals;
     std::optional<std::vector<std::string> > basis_xr_custom_orbitals;
     // Basis/BSpline
-    std::optional<double> basis_bspline_rmax; 
+    std::optional<double> basis_bspline_rmax;
     double basis_bspline_r0 = 0;
     double basis_bspline_k = 7;
     double basis_bspline_N = 40;
@@ -270,6 +272,7 @@ public:
     bool transitions_do_ke = false;
     bool transitions_do_llit2 = false;
     bool transitions_do_nms = false;
+    bool transitions_do_residual_coulomb = false;
 
     // Transitions specification objects
     // EJ transitions
@@ -295,7 +298,8 @@ public:
 
     // Autoionization
     ICSpecification ic;
-    
+    ResidualCoulombSpecification residual_coulomb;
+
     double dr_ionization_energy = 0.0;
     std::optional<double> dr_energy_limit;
     unsigned dr_continuum_l_min = 0;
@@ -327,7 +331,7 @@ std::string importSpecificationFile(GlobalSpecification* gs, const std::string& 
 std::string importSpecificationINIString(GlobalSpecification* gs, const std::string& ini_string);
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment);
 
-// Return a map-like interface to the configuration, which lets us do nice things like 
+// Return a map-like interface to the configuration, which lets us do nice things like
 // config_map["key"] = "value"
 typedef keyed_record_view<GlobalSpecification> SpecificationMap;
 typedef std::shared_ptr<SpecificationMap> pSpecificationMap;

@@ -28,7 +28,7 @@ protected:
 class YukawaCalculator : public TransitionCalculator
 {
 public:
-    YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& specification);
+    YukawaCalculator(Atom& atom, TransitionsYukawaSpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

@@ -108,93 +108,80 @@ int main(int argc, char* argv[])
     #endif
 
     try
-    {   MultirunOptions lineInput(argc, argv, ",");
-        auto specification = GlobalSpecification::Instance();
-
-        // Check for help message
-        if(lineInput.size() == 1 || lineInput.search(2, "--help", "-h"))
-        {   Ambit::AmbitInterface::PrintHelp(lineInput[0]);
-            return 0;
-        }
-
-        if(ProcessorRank == 0)
+    {   if(ProcessorRank == 0)
         {
             *outstream << "AMBiT  Copyright (C) 2018  Julian Berengut\n"
-                       << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n\n";
-            *outstream << "AMBiT version:    " << GIT_LAST_TAG << std::endl;
-            *outstream << "      git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
-            *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
+                       << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n";
+            *outstream << "\nAMBiT version:    " << GIT_LAST_TAG;
+            *outstream << "\n      git branch: " << GIT_SOURCE_DESCRIPTION;
+            *outstream << "\n      compiled:   " << COMPILE_DATE << std::endl;
 
             // Print git diff output
             if(strlen(GIT_DIFF_OUTPUT))
             {   *outstream << "\n----------------------------------------------------------"
-                << "\ngit diff:"
-                << "\n----------------------------------------------------------\n";
-                *outstream << GIT_DIFF_OUTPUT;
+                           << "\ngit diff:"
+                           << "\n----------------------------------------------------------\n";
+                *outstream << GIT_DIFF_OUTPUT << std::flush;
             }
         }
-
-        if(lineInput.search("--version"))
-            return 0;
 
         // Find .input file
-        std::string inputFileName = "";
+        std::string input_file_name;
         const std::string extension = ".input";
+        std::vector<std::string> line_args;
 
-        if(lineInput.search("-f"))
-        {   inputFileName = lineInput.next("");
-            if(inputFileName == "")
-                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
-        }
-        else
-        {   // Else look for .input arguments
-            bool foundFile = false;
-            bool endOfInput = false;
-            while(!foundFile && !endOfInput)
-            {
-                inputFileName = lineInput.next_nominus();
-                if(inputFileName == "")
-                    endOfInput = true;
-                else if(inputFileName.find(extension) != std::string::npos)
-                    foundFile = true;
+        // Grab super-urgent argv options, wait for the rest
+        for(char **argp = &argv[1]; *argp; ++argp)
+        {
+            std::string_view arg(*argp);
+
+            if(arg == "-h" || arg == "--help")
+            {   Ambit::AmbitInterface::PrintHelp(argv[0]);
+                return 0;
             }
-
-            if(endOfInput && !lineInput.search("--recursive-build"))
-            {   *errstream << "Input file not found" << std::endl;
-                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
+            else if(arg == "--version")
+                return 0;
+            else if(arg == "-f")
+            {   ++argp;
+                if (!*argp)
+                    break;
+                else
+                    input_file_name = arg;
             }
+            else if(arg.length() >= extension.length() && arg.substr(arg.length()-extension.length()) == extension)
+                input_file_name = arg;
+            else
+                line_args.emplace_back(arg);
         }
 
-        MultirunOptions fileInput(inputFileName.c_str(), "//", "\n", ",");
-        fileInput.absorb(lineInput);
+        if(input_file_name.empty())
+        {   Ambit::AmbitInterface::PrintHelp(argv[0]);
+            return 0;
+        }
 
-        // Also read input into parapara-based parameter handling..
-        std::string perr = importSpecificationFile(specification, inputFileName);
+        // We print the user specification as we read it into GlobalSpecification.
+        *outstream << "\n----------------------------------------------------------"
+                   << "\ninput (" << input_file_name << " and command line):"
+                   << "\n----------------------------------------------------------" << std::endl;
+
+        // Read input into parapara-based parameter handling.
+        auto specification = GlobalSpecification::Instance();
+
+        std::string perr = importSpecificationFile(specification, input_file_name);
         if (!perr.empty()) {
             *errstream << "importSpecificationFile:\n" << perr << std::endl;
             exit(1);
         }
-
-        // For parapara, grab relevant argv options too.
-        for (char **argp = &argv[1]; *argp; ++argp) {
-            std::string_view arg(*argp);
-
-            if(arg == "-f")
-            {   ++argp;
-                if (!*argp) break;
-                else continue;
-            }
-
-            std::size_t ext_length = extension.length();
-            if(arg.length() >= ext_length && arg.substr(arg.length() - ext_length) == extension)
-                continue;
-
-            perr = importSpecificationKV(specification, std::string(arg));
-            if (!perr.empty()) {
+        for(auto arg: line_args)
+        {
+            perr = importSpecificationKV(specification, arg);
+            if(!perr.empty())
+            {
                 *errstream << "importSpecificationKV:\n" << perr << std::endl;
                 exit(1);
             }
         }
+        *outstream << "----------------------------------------------------------" << std::endl;
 
         // Validate and normalise the spec
         perr = specification->validateAndNormaliseSpecification();
@@ -202,26 +189,15 @@ int main(int argc, char* argv[])
             *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
             exit(1);
         }
-        // Identifier
-        std::string identifier = fileInput("ID", "");
-        if(identifier == "")
-        {
-            if(inputFileName.find(extension) != std::string::npos)
-                identifier = inputFileName.substr(0, inputFileName.find(extension));
-            else
-            {   *errstream << "No ID could be found." << std::endl;
-                exit(1);
-            }
-        }
 
-        Ambit::AmbitInterface ambit(fileInput, identifier);
+        Ambit::AmbitInterface ambit(specification->Z, specification->ID);
         ambit.EnergyCalculations();
 
-        if(!fileInput.search("--check-sizes"))
+        if(!specification->check_sizes)
         {
             ambit.TransitionCalculations();
-            ambit.Recombination();
-            ambit.InternalConversion();
+            //ambit.Recombination();
+            //ambit.InternalConversion();
         }
     }
     catch(std::bad_alloc& ba)
@@ -301,106 +277,9 @@ int main(int argc, char* argv[])
 
 namespace Ambit
 {
-AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& identifier):
-    user_input(user_input), identifier(identifier)
-{
-    auto specification = GlobalSpecification::Instance();
-    if(ProcessorRank == 0)
-    {
-        *outstream << "----------------------------------------------------------"
-                   << "\ninput:"
-                   << "\n----------------------------------------------------------\n";
-        user_input.print();
-        *outstream << "----------------------------------------------------------" << std::endl;
-    }
-}
-
 void AmbitInterface::EnergyCalculations()
 {
     auto specification= GlobalSpecification::Instance();
-    int Z = specification->Z;
-    if(Z <= 0)
-    {   *errstream << "Z not specified correctly." << std::endl;
-        exit(1);
-    }
-
-    bool check_sizes = specification->check_sizes;
-
-    // Multirun disabled at least while we're transitioning to parapara
-#if 0
-    // Choose which of the multiple runs are being done in the current calculation
-    unsigned int total_run_selections = user_input.vector_variable_size("-r");
-
-    if((user_input.GetNumRuns() <= 1) || check_sizes)
-    {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
-        run_indexes.push_back(0);
-    }
-    else if(total_run_selections)
-    {
-        for(int i = 0; i < total_run_selections; i++)
-        {
-            int selection = user_input("-r", 0, i);
-
-            if(selection == 0)
-            {   // "-r=0" is shorthand for "just do the zero variation variety"
-                if(total_run_selections > 1)
-                {   *outstream << "USAGE: \"-r=0\" can only be used by itself." << std::endl;
-                    exit(1);
-                }
-
-                // Try to find a good candidate for -r=0
-                auto pair = user_input.FindZeroParameterRun();
-                if(pair.second < 0)
-                {   *errstream << "ERROR: Multiple run option couldn't find zero-variation option." << std::endl;
-                    exit(1);
-                }
-                else
-                {   *outstream << "Running case " << pair.second+1 << ": " << pair.first << " = 0.\n" << std::endl;
-                    run_indexes.push_back(pair.second);
-                }
-            }
-            else if((selection < 0) || (selection > user_input.GetNumRuns()))
-            {   *outstream << "USAGE: Option \"-r\" included index outside of multiple run range." << std::endl;
-                exit(1);
-            }
-            else
-            {   // Subtract one from the user's selection to make it start at zero
-                run_indexes.push_back(selection-1);
-            }
-        }
-    }
-    else
-    {   // If "-r" is not found, do all of the multiple run options
-        for(int i = 0; i < user_input.GetNumRuns(); i++)
-            run_indexes.push_back(i);
-    }
-#else
-    run_indexes = { 0 };
-#endif
-
-    // That's all we need to start the Atom class
-    for(int run: run_indexes)
-    {
-        user_input.SetRun(run);
-        std::string id = identifier + "_" + itoa(run);
-        atoms.emplace_back(user_input, Z, id);      // This copies the user_input, so each atom has its own.
-    }
-
-#if 0
-    // Start with -r=0 if possible, otherwise just first one
-    int zero_index = user_input.FindZeroParameterRun().second;
-    first_run_index = run_indexes.size();
-    if(zero_index > 0)
-    {   // Check whether it is in current runs
-        for(first_run_index = 0; first_run_index < run_indexes.size(); first_run_index++)
-            if(run_indexes[first_run_index] == zero_index)
-                break;
-    }
-    if(first_run_index >= run_indexes.size())   // -r=0 not found
-        first_run_index = 0;
-#else
-    first_run_index = 0;
-#endif
 
     // Log first build
     DebugOptions.LogFirstBuild(true);
@@ -408,32 +287,21 @@ void AmbitInterface::EnergyCalculations()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    user_input.SetRun(run_indexes[first_run_index]);        // Just for the printing (each atom has its own user_input)
-    user_input.PrintCurrentRunCondition(*outstream, "\n");
-    pCoreConst hf_open_core = atoms[first_run_index].MakeBasis();
+    pCoreConst hf_open_core = atom.MakeBasis();
     *outstream << "Core orbitals: \n";
     hf_open_core->Print();
 
     *outstream << "Excited orbitals: \n";
-    atoms[first_run_index].GetBasis()->excited->Print();
+    atom.GetBasis()->excited->Print();
     *outstream << std::endl;
-
-    // Don't output the others
-    DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(false);
-    DebugOptions.OutputHFExcited(false);
-
-    for(unsigned int index = 0; index < run_indexes.size(); index++)
-        if(index != first_run_index)
-            atoms[index].MakeBasis(hf_open_core);
 
     // Print basis option
     if(specification->print_basis)
     {
         auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
-        auto lattice = atoms[first_run_index].GetLattice();
-        for(auto& var: *atoms[first_run_index].GetBasis()->all)
+        auto lattice = atom.GetLattice();
+        for(auto& var: *atom.GetBasis()->all)
         {
             // Print pqn, kappa, Energy, number of points
             fprintf(fp, "  %i %i %12.6f %i\n", var.first.PQN(), var.first.Kappa(), var.second->Energy(), var.second->size());
@@ -443,31 +311,28 @@ void AmbitInterface::EnergyCalculations()
     }
 
     // Generate MBPT integrals and Brueckner orbitals
-    for(unsigned int index = 0; index < run_indexes.size(); index++)
-    {
-        auto& atom = atoms[index];
-        bool make_new_integrals = !specification->no_new_mbpt;
-        bool mbpt_use_breuckner = specification->mbpt_brueckner;
+    bool make_new_integrals = !specification->no_new_mbpt;
+    bool mbpt_use_breuckner = specification->mbpt_brueckner;
+    bool check_sizes = specification->check_sizes;
 
-        if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
+    if((!mbpt_use_breuckner && make_new_integrals) || specification->check_sizes)
             atom.MakeMBPTIntegrals();
 
-        if (specification->mbpt_brueckner && !check_sizes)
-        {   // Show details of HF iterated Brueckner orbitals
-            DebugOptions.OutputHFExcited(index == first_run_index);
-            atom.GenerateBruecknerOrbitals(make_new_integrals);
-        }
-
-        if(mbpt_use_breuckner && make_new_integrals && !check_sizes)
-            atom.MakeMBPTIntegrals();
+    if (mbpt_use_breuckner && !check_sizes)
+    {   // Show details of HF iterated Brueckner orbitals
+        DebugOptions.OutputHFExcited(true);
+        atom.GenerateBruecknerOrbitals(make_new_integrals);
     }
 
+    if(mbpt_use_breuckner && make_new_integrals && !check_sizes)
+        atom.MakeMBPTIntegrals();
+
     // CI
-    if(specification->check_sizes)
-        atoms[0].CheckMatrixSizes();
+    if(check_sizes)
+        atom.CheckMatrixSizes();
     else
-    {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
-        pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
+    {   pLevelStore levels = atom.ChooseHamiltoniansAndRead();
+        pAngularDataLibrary angular_data_lib = atom.GetAngularDataLibrary();
 
         // Don't calculate extra levels
         if(specification->ci_complete)
@@ -477,22 +342,11 @@ void AmbitInterface::EnergyCalculations()
         auto profiler = Profiler::Instance();
         profiler->ci.start();
 
-        for(int i = 1; i < run_indexes.size(); i++)
-        {   user_input.SetRun(run_indexes[i]);
-            atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
-        }
+        atom.ChooseHamiltoniansAndRead(angular_data_lib);
 
         for(auto& key: levels->keys)
         {
-            for(int i = 0; i < run_indexes.size(); i++)
-            {
-                // This if statement is just to switch off printing the run condition for only one run
-                if(user_input.GetNumRuns() > 1)
-                {   user_input.SetRun(run_indexes[i]);
-                    user_input.PrintCurrentRunCondition(*outstream, "\n");
-                }
-                atoms[i].CalculateEnergies(key);
-            }
+            atom.CalculateEnergies(key);
         }
 
         // Stop the CI timer
@@ -515,12 +369,12 @@ do { \
 } while(0)
 
 template<typename SpecificationOptType, typename CalculatorType>
-void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom, MultirunOptions user_input)
+void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom)
 {
     if(specification_opt)
     {
         auto specification = specification_opt.value();
-        CalculatorType calculon(user_input, atom, specification);
+        CalculatorType calculon(atom, specification);
         calculon.CalculateAndPrint();
         calculon.PrintAll();
     }
@@ -533,7 +387,6 @@ void AmbitInterface::TransitionCalculations()
     profiler->transitions.start();
 
     auto specification= GlobalSpecification::Instance();
-    Atom& atom = atoms[first_run_index];
 
     // EM types
     using EJTransitionsOpt = std::optional<TransitionsEJSpecification>;
@@ -555,7 +408,7 @@ void AmbitInterface::TransitionCalculations()
         if(std::get<0>(types))
         {
             auto specification = std::get<0>(types).value();
-            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom, specification));
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), atom, specification));
 
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
@@ -591,52 +444,32 @@ void AmbitInterface::TransitionCalculations()
     using LLIT2Opt = std::optional<TransitionsLLIT2Specification>;
     using NMSOpt = std::optional<TransitionsNMSSpecification>;
 
-    run_and_store_transitions<HFS1Opt,
-                              HyperfineDipoleCalculator>
-                             (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFS1Opt, HyperfineDipoleCalculator>
+        (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt, atom);
 
-    run_and_store_transitions<HFS2Opt,
-                              HyperfineQuadrupoleCalculator>
-                             (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFS2Opt, HyperfineQuadrupoleCalculator>
+        (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt, atom);
 
-    run_and_store_transitions<HFSIOpt,
-                              GeneralisedHyperfineCalculator>
-                             (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFSIOpt, GeneralisedHyperfineCalculator>
+        (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt, atom);
 
-    run_and_store_transitions<FSOpt,
-                              FieldShiftCalculator>
-                             (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<FSOpt, FieldShiftCalculator>
+        (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt, atom);
 
-    run_and_store_transitions<QEDOpt,
-                              QEDCalculator>
-                             (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<QEDOpt, QEDCalculator>
+        (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt, atom);
 
-    run_and_store_transitions<YukawaOpt,
-                              YukawaCalculator>
-                             (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<YukawaOpt, YukawaCalculator>
+        (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt, atom);
 
-    run_and_store_transitions<KEOpt,
-                              KineticEnergyCalculator>
-                             (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<KEOpt, KineticEnergyCalculator>
+        (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt, atom);
 
-    run_and_store_transitions<LLIT2Opt,
-                              LorentzInvarianceT2Calculator>
-                             (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<LLIT2Opt, LorentzInvarianceT2Calculator>
+        (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt, atom);
 
-    run_and_store_transitions<NMSOpt,
-                              NormalMassShiftCalculator>
-                             (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt,
-                              atom, user_input);
-
-    user_input.set_prefix("");
+    run_and_store_transitions<NMSOpt, NormalMassShiftCalculator>
+        (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt, atom);
 
     // Calculate additional Hamiltonian matrix elements
     atom.ResidualCoulomb();
@@ -646,7 +479,7 @@ void AmbitInterface::TransitionCalculations()
 }
 
 #undef RUN_AND_STORE_TRANSITION
-
+#if 0
 void AmbitInterface::Recombination()
 {
     auto specification= GlobalSpecification::Instance();
@@ -770,18 +603,17 @@ void AmbitInterface::InternalConversion()
         atoms[first_run_index].InternalConversion(source_level_vec);
 }
 
+#endif
 void AmbitInterface::PrintHelp(const std::string& ApplicationName)
 {
     *outstream << ApplicationName << std::endl;
     *outstream
-        << "AMBiT  Copyright (C) 2018  Julian Berengut\n"
-        << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n\n"
         << "usage: ambit [--version] [-f] <file.input>\n"
         << "             <options> <atomic data and commands>\n"
         << "\n"
         << "Input file must be specified either with \"-f anyfile\" or \"file.input\".\n"
         << "Options may be specified in the command line or input file.\n"
-        << "Consult the user guide in ./Documentation for usage information.\n"
+        << "Consult the user guide in doc/UserGuide for usage information.\n"
         << "Sample input files are included with the documentation." << std::endl;
 }
 }

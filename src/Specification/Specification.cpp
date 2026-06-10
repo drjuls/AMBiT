@@ -219,6 +219,12 @@ std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
     });
 }
 
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_residual_coulomb_specification() {
+    // Start with the base transitions specification and add extras on top
+    return make_transitions_base_specification<X>();
+}
+
 /***************************** Delegated parsing *************************/
 // Add specifications for members of record subobjects that have their own sets of specifications.
 // Keys and field descriptions are given a prefix as supplied.
@@ -241,13 +247,13 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // NOTE: Don't check "GlobalSpecification::s1" and friends in the main body of the code, use
     // "GlobalSpecification::mbpt_one_body" etc instead; it's much cleaner to figure out which
     // integrals to include once when normalising the spec
-    {"-m",                       &GlobalSpecification::m},
-    {"-s1",                      &GlobalSpecification::_s1},
-    {"-s2",                      &GlobalSpecification::_s2},
-    {"-s3",                      &GlobalSpecification::_s3},
-    {"-s12",                     &GlobalSpecification::_s12},
-    {"-s13",                     &GlobalSpecification::_s13},
-    {"-s23",                     &GlobalSpecification::_s23},
+    {"-m",                      &GlobalSpecification::m},
+    {"-s1",                     &GlobalSpecification::_s1},
+    {"-s2",                     &GlobalSpecification::_s2},
+    {"-s3",                     &GlobalSpecification::_s3},
+    {"-s12",                    &GlobalSpecification::_s12},
+    {"-s13",                    &GlobalSpecification::_s13},
+    {"-s23",                    &GlobalSpecification::_s23},
     {"-s123",                   &GlobalSpecification::_s123},
     {"--no-new-mbpt",           &GlobalSpecification::no_new_mbpt},
     {"--check-sizes",           &GlobalSpecification::check_sizes},
@@ -258,16 +264,17 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"--ci-complete",           &GlobalSpecification::ci_complete},
     {"--no-ci",                 &GlobalSpecification::no_ci},
     {"--configuration-average", &GlobalSpecification::configuration_average},
+    {"--dont-diagonalise",      &GlobalSpecification::dont_diagonalise_H},
     {"NuclearRadius",           &GlobalSpecification::nuclear_radius},
     {"NuclearThickness",        &GlobalSpecification::nuclear_thickness},
     {"NuclearInverseMass",      &GlobalSpecification::nuclear_inverse_mass},
     {"AlphaSquaredVariation",   &GlobalSpecification::alpha_squared_variation},
     // Lattice
-    {"Lattice/NumPoints",           &GlobalSpecification::lattice_num_points,  P::nonzero()},
-    {"Lattice/StartPoint",          &GlobalSpecification::lattice_start_point, positive},
-    {"Lattice/EndPoint",            &GlobalSpecification::lattice_end_point,   positive},
-    {"Lattice/--exp-lattice",       &GlobalSpecification::lattice_exponential},
-    {"Lattice/H",                   &GlobalSpecification::lattice_H,           positive},
+    {"Lattice/NumPoints",       &GlobalSpecification::lattice_num_points,  P::nonzero()},
+    {"Lattice/StartPoint",      &GlobalSpecification::lattice_start_point, positive},
+    {"Lattice/EndPoint",        &GlobalSpecification::lattice_end_point,   positive},
+    {"Lattice/--exp-lattice",   &GlobalSpecification::lattice_exponential},
+    {"Lattice/H",               &GlobalSpecification::lattice_H,           positive},
     // HF
     {"HF/N",                            &GlobalSpecification::hf_N,            nonnegative},
     {"HF/Charge",                       &GlobalSpecification::hf_charge},
@@ -291,9 +298,9 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"HF/QED/--skip-offmass",           &GlobalSpecification::hf_qed_skip_offmass},
     {"HF/QED/--use-electron-screening", &GlobalSpecification::hf_qed_use_electron_screening},
     // HF/NuclearPolarisability
-    {"HF/NuclearPolarisability",     &GlobalSpecification::hf_do_nuclear_polarisability},
-    {"HF/NuclearPolarisability/AlphaE",     &GlobalSpecification::hf_nuclear_polarisability_alpha_e, P::nonzero()},
-    {"HF/NuclearPolarisability/EbarMeV",    &GlobalSpecification::hf_nuclear_polarisability_ebar_mev, P::nonzero()},
+    {"HF/NuclearPolarisability",        &GlobalSpecification::hf_do_nuclear_polarisability},
+    {"HF/NuclearPolarisability/AlphaE", &GlobalSpecification::hf_nuclear_polarisability_alpha_e, P::nonzero()},
+    {"HF/NuclearPolarisability/EbarMeV",&GlobalSpecification::hf_nuclear_polarisability_ebar_mev, P::nonzero()},
     // HF/Yukawa
     {"HF/Yukawa",           &GlobalSpecification::hf_do_yukawa},
     {"HF/Yukawa/Mass",      &GlobalSpecification::hf_yukawa_mass},
@@ -317,7 +324,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Basis/--bspline-basis",   &GlobalSpecification::basis_bspline},
     {"Basis/--xr-basis",        &GlobalSpecification::basis_xr},
     {"Basis/HFOrbitals",        &GlobalSpecification::basis_hf_orbitals},
-    {"Basis/XR/CustomOrbitals",    &GlobalSpecification::basis_xr_custom_orbitals},
+    {"Basis/XR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
     // Basis/BSpline
     {"Basis/BSpline/Rmax",          &GlobalSpecification::basis_bspline_rmax},
     {"Basis/BSpline/R0",            &GlobalSpecification::basis_bspline_r0},
@@ -325,47 +332,47 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Basis/BSpline/N",             &GlobalSpecification::basis_bspline_N},
     {"Basis/BSpline/SplineType",    &GlobalSpecification::basis_bspline_splinetype},
     // CI
-// CI/SmallSide
     {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
     // MBPT
-    {"MBPT/Basis",                             &GlobalSpecification::mbpt_basis},
-    {"MBPT/EnergyDenomOrbitals",               &GlobalSpecification::mbpt_energy_denom_orbitals},
-    {"MBPT/--use-valence",                     &GlobalSpecification::mbpt_use_valence},
-    {"MBPT/--no-core",                         &GlobalSpecification::mbpt_no_core},
-    {"MBPT/--use-subtraction",                 &GlobalSpecification::mbpt_use_subtraction},
-    {"MBPT/--no-subtraction",                  &GlobalSpecification::mbpt_no_subtraction},
-    {"MBPT/--no-extra-box",                    &GlobalSpecification::mbpt_no_extra_box},
-    {"MBPT/EnergyDenomFloor",                 &GlobalSpecification::mbpt_energy_denom_floor},
-    {"MBPT/Delta",                            &GlobalSpecification::mbpt_delta},
-    {"MBPT/TwoBody/StorageLimits",            &GlobalSpecification::mbpt_twobody_storage_limits},
-    {"MBPT/OneBody/Scaling",                  &GlobalSpecification::mbpt_onebody_scaling},
-    {"MBPT/--brueckner",                      &GlobalSpecification::mbpt_brueckner},
-    {"Transitions/E1",                         &GlobalSpecification::transitions_do_e1},
-    {"Transitions/E2",                         &GlobalSpecification::transitions_do_e2},
-    {"Transitions/E3",                         &GlobalSpecification::transitions_do_e3},
-    {"Transitions/E4",                         &GlobalSpecification::transitions_do_e4},
-    {"Transitions/M1",                         &GlobalSpecification::transitions_do_m1},
-    {"Transitions/M2",                         &GlobalSpecification::transitions_do_m2},
-    {"Transitions/M3",                         &GlobalSpecification::transitions_do_m3},
-    {"Transitions/M4",                         &GlobalSpecification::transitions_do_m4},
-    {"Transitions/HFS1",                       &GlobalSpecification::transitions_do_hfs1},
-    {"Transitions/HFS2",                       &GlobalSpecification::transitions_do_hfs2},
-    {"Transitions/HFSI",                       &GlobalSpecification::transitions_do_hfsi},
-    {"Transitions/FS",                        &GlobalSpecification::transitions_do_fs},
-    {"Transitions/QED",                       &GlobalSpecification::transitions_do_qed},
-    {"Transitions/Yukawa",                    &GlobalSpecification::transitions_do_yukawa},
-    {"Transitions/KE",                        &GlobalSpecification::transitions_do_ke},
-    {"Transitions/LLIT2",                     &GlobalSpecification::transitions_do_llit2},
-    {"Transitions/NMS",                       &GlobalSpecification::transitions_do_nms},
-    {"DR/IonizationEnergy",                 &GlobalSpecification::dr_ionization_energy},
-    {"DR/EnergyLimit",                      &GlobalSpecification::dr_energy_limit},
-    {"DR/ContinuumLMin",                    &GlobalSpecification::dr_continuum_l_min},
-    {"DR/ContinuumLMax",                    &GlobalSpecification::dr_continuum_l_max},
-    {"DR/ContinuumResidue",                 &GlobalSpecification::dr_continuum_residue},
-    {"DR/EnergyGrid/Min",                   &GlobalSpecification::dr_energygrid_min},
-    {"DR/EnergyGrid/Max",                   &GlobalSpecification::dr_energygrid_max},
-    {"DR/EnergyGrid/Step",                  &GlobalSpecification::dr_energygrid_step},
-    {"DR/--single-particle-energy",         &GlobalSpecification::dr_use_single_particle_energy},
+    {"MBPT/Basis",                  &GlobalSpecification::mbpt_basis},
+    {"MBPT/EnergyDenomOrbitals",    &GlobalSpecification::mbpt_energy_denom_orbitals},
+    {"MBPT/--use-valence",          &GlobalSpecification::mbpt_use_valence},
+    {"MBPT/--no-core",              &GlobalSpecification::mbpt_no_core},
+    {"MBPT/--use-subtraction",      &GlobalSpecification::mbpt_use_subtraction},
+    {"MBPT/--no-subtraction",       &GlobalSpecification::mbpt_no_subtraction},
+    {"MBPT/--no-extra-box",         &GlobalSpecification::mbpt_no_extra_box},
+    {"MBPT/EnergyDenomFloor",       &GlobalSpecification::mbpt_energy_denom_floor},
+    {"MBPT/Delta",                  &GlobalSpecification::mbpt_delta},
+    {"MBPT/TwoBody/StorageLimits",  &GlobalSpecification::mbpt_twobody_storage_limits},
+    {"MBPT/OneBody/Scaling",        &GlobalSpecification::mbpt_onebody_scaling},
+    {"MBPT/--brueckner",            &GlobalSpecification::mbpt_brueckner},
+    {"Transitions/E1",              &GlobalSpecification::transitions_do_e1},
+    {"Transitions/E2",              &GlobalSpecification::transitions_do_e2},
+    {"Transitions/E3",              &GlobalSpecification::transitions_do_e3},
+    {"Transitions/E4",              &GlobalSpecification::transitions_do_e4},
+    {"Transitions/M1",              &GlobalSpecification::transitions_do_m1},
+    {"Transitions/M2",              &GlobalSpecification::transitions_do_m2},
+    {"Transitions/M3",              &GlobalSpecification::transitions_do_m3},
+    {"Transitions/M4",              &GlobalSpecification::transitions_do_m4},
+    {"Transitions/HFS1",            &GlobalSpecification::transitions_do_hfs1},
+    {"Transitions/HFS2",            &GlobalSpecification::transitions_do_hfs2},
+    {"Transitions/HFSI",            &GlobalSpecification::transitions_do_hfsi},
+    {"Transitions/FS",              &GlobalSpecification::transitions_do_fs},
+    {"Transitions/QED",             &GlobalSpecification::transitions_do_qed},
+    {"Transitions/Yukawa",          &GlobalSpecification::transitions_do_yukawa},
+    {"Transitions/KE",              &GlobalSpecification::transitions_do_ke},
+    {"Transitions/LLIT2",           &GlobalSpecification::transitions_do_llit2},
+    {"Transitions/NMS",             &GlobalSpecification::transitions_do_nms},
+    {"Transitions/ResidualCoulomb", &GlobalSpecification::transitions_do_residual_coulomb},
+    {"DR/IonizationEnergy",         &GlobalSpecification::dr_ionization_energy},
+    {"DR/EnergyLimit",              &GlobalSpecification::dr_energy_limit},
+    {"DR/ContinuumLMin",            &GlobalSpecification::dr_continuum_l_min},
+    {"DR/ContinuumLMax",            &GlobalSpecification::dr_continuum_l_max},
+    {"DR/ContinuumResidue",         &GlobalSpecification::dr_continuum_residue},
+    {"DR/EnergyGrid/Min",           &GlobalSpecification::dr_energygrid_min},
+    {"DR/EnergyGrid/Max",           &GlobalSpecification::dr_energygrid_max},
+    {"DR/EnergyGrid/Step",          &GlobalSpecification::dr_energygrid_step},
+    {"DR/--single-particle-energy", &GlobalSpecification::dr_use_single_particle_energy},
 };
 
 /**************************** Delegated parsing (CI and transitions) ***********/
@@ -391,6 +398,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     auto nms_specs = make_transitions_nms_specification<TransitionsNMSSpecification>();
 
     auto ic_specs = make_ic_specification<ICSpecification>();
+    auto residual_coulomb_specs = make_residual_coulomb_specification<ResidualCoulombSpecification>();
 
     // Now delegate the parsing for each EJ multipole operator
     // NOTE: The trailing "/"s in the key prefixes are signification (e.g. it's
@@ -417,7 +425,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 
     // Autoionization
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ic, "IC/", ic_specs, "Internal Conversion (IC):");
-
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::residual_coulomb, "Transitions/H/", residual_coulomb_specs, "ResidualCoulomb:");
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -523,9 +531,9 @@ std::string importSpecificationKV(GlobalSpecification* gs, const std::string& as
 
 /**************************** Validation *******************************/
 // Perform global validation of specifications. Return non-empty error message on failure.
-std::string GlobalSpecification::validateAndNormaliseSpecification() {
+std::string GlobalSpecification::validateAndNormaliseSpecification()
+{
     // Check for consistent Lattice settings:
-
     if (lattice_exponential && lattice_end_point>0)
         return "Lattice/EndPoint is ignored if Lattice/--exp-lattice is set";
 

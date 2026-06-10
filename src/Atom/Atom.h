@@ -1,7 +1,6 @@
 #ifndef ATOM_H
 #define ATOM_H
 
-#include "GetPot"
 #include "Configuration/HamiltonianMatrix.h"
 #include "HartreeFock/Core.h"
 #include "Basis/BasisGenerator.h"
@@ -22,7 +21,7 @@ class Sigma3Calculator;
 class Atom
 {
 public:
-    Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier);
+    Atom(unsigned int atomic_number, const std::string& atom_identifier);
     ~Atom();
 
     /** Read existing basis or perform Hartree-Fock calculation
@@ -160,8 +159,6 @@ public:
     void WriteGraspMcdfOrbital(FILE* fp, pOrbitalConst ds, unsigned int lattice_size) const;
 
 protected:
-    MultirunOptions user_input;
-
     std::string identifier;
     double Z;         // Nuclear charge
 

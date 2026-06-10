@@ -22,7 +22,7 @@ public:
 class KineticEnergyCalculator : public TransitionCalculator
 {
 public:
-    KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& specification);
+    KineticEnergyCalculator(Atom& atom, TransitionsKESpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

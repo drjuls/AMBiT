@@ -12,8 +12,8 @@
 
 namespace Ambit
 {
-Atom::Atom(const MultirunOptions userInput, unsigned int atomic_number, const std::string& atom_identifier):
-    user_input(userInput), Z(atomic_number), identifier(atom_identifier)
+Atom::Atom(unsigned int atomic_number, const std::string& atom_identifier):
+    Z(atomic_number), identifier(atom_identifier)
 {}
 
 Atom::~Atom(void)
@@ -29,27 +29,19 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
 
     if((ProcessorRank == 0) && (!use_read || !ReadBasis()))
     {
-        // TODO: Really should implement this, plus maybe some other common codes
-        if(user_input.search("HF/--read-grasp0"))
-        {   // Read lattice and core and basis orbitals
-    //        ReadGraspMCDF("MCDF.DAT");
+        if(specification->lattice_exponential)
+        {
+            unsigned num_points = specification->lattice_num_points;
+            double start_point = specification->lattice_start_point;
+            double h = specification->lattice_H;
+            lattice = pLattice(new ExpLattice(num_points, start_point, h));
         }
         else
         {
-            if(specification->lattice_exponential)
-            {
-                unsigned num_points = specification->lattice_num_points;
-                double start_point = specification->lattice_start_point;
-                double h = specification->lattice_H;
-                lattice = pLattice(new ExpLattice(num_points, start_point, h));
-            }
-            else
-            {
-                unsigned num_points = specification->lattice_num_points;
-                double start_point = specification->lattice_start_point;
-                double end_point = specification->lattice_end_point;
-                lattice = pLattice(new Lattice(num_points, start_point, end_point));
-            }
+            unsigned num_points = specification->lattice_num_points;
+            double start_point = specification->lattice_start_point;
+            double end_point = specification->lattice_end_point;
+            lattice = pLattice(new Lattice(num_points, start_point, end_point));
         }
 
         // Relativistic Hartree-Fock

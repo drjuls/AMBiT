@@ -176,8 +176,8 @@ SpinorFunction MJOperator::ReducedApplyTo(const SpinorFunction& a, int kappa_b) 
     return ret;
 }
 
-EMCalculator::EMCalculator(MultipolarityType type, int J, MultirunOptions& user_input, Atom& atom, TransitionsEJSpecification& specification):
-    TransitionCalculator(user_input, atom, specification), type(type), J(J), specification(specification)
+EMCalculator::EMCalculator(MultipolarityType type, int J, Atom& atom, TransitionsEJSpecification& specification):
+    TransitionCalculator(atom, specification), type(type), J(J), specification(specification)
 {
 
     pHFOperatorConst hf = atom.GetHFOperator();

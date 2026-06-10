@@ -58,7 +58,7 @@ protected:
 class NormalMassShiftCalculator : public TransitionCalculator
 {
 public:
-    NormalMassShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsNMSSpecification& specification);
+    NormalMassShiftCalculator(Atom& atom, TransitionsNMSSpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

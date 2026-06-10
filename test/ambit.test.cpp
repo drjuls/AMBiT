@@ -5,7 +5,6 @@
 #include "Atom/OutStreams.h"
 #include "gitInfo.h"
 #include "Universal/Enums.h"
-#include "Atom/GetPot"
 #include <boost/math/special_functions/bessel.hpp>
 
 #include <string>
@@ -16,7 +15,6 @@
 
 #include <gtest/gtest.h>
 #include "Specification/Specification.h"
-
 
 #ifdef AMBIT_USE_MPI
     #ifdef AMBIT_USE_SCALAPACK
@@ -57,7 +55,7 @@ int main(int argc, char* argv[])
         NumProcessors = 1;
         ProcessorRank = 0;
     #endif
-    
+
     OutStreams::InitialiseStreams();
     outstream = logstream;
 

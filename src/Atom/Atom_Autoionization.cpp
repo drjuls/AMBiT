@@ -16,12 +16,11 @@ namespace Ambit
 {
 void Atom::ResidualCoulomb() const
 {
-    double energy_limit;
-    if(user_input.VariableExists("Transitions/H/AllBelow"))
-        energy_limit = user_input("H/AllBelow", 0.0);
-    else
+    auto specification = GlobalSpecification::Instance();
+    if(!specification->transitions_do_residual_coulomb)
         return;
 
+    double energy_limit = specification->residual_coulomb.all_below.value_or(0.0);
     TwoBodyHamiltonianOperator two_body(hf_electron, twobody_electron);
 
     *outstream << "\nMatrix elements of the Hamiltonian (a.u.):" << std::endl;
@@ -71,7 +70,7 @@ void Atom::InternalConversion(const LevelVector& source)
     // Add nuclear_energy to source level energy
     nuclear_energy += source.eigenvalues[0];
 
-    GeneralisedHyperfineCalculator calculon(user_input, *this, specification->ic);
+    GeneralisedHyperfineCalculator calculon(*this, specification->ic);
     auto op = calculon.GetOperator();
 
     pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());
@@ -231,7 +230,7 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
     int min_continuum_l = specification->ic.continuum_l_min;
     int max_continuum_l = specification->ic.continuum_l_max;
 
-    GeneralisedHyperfineCalculator calculon(user_input, *this, specification->ic);
+    GeneralisedHyperfineCalculator calculon(*this, specification->ic);
     auto op = calculon.GetOperator();
 
     pODESolver ode_solver = std::make_shared<AdamsSolver>(hf_open->GetIntegrator());

@@ -17,7 +17,7 @@ public:
     std::optional<double> all_below;
     bool reduced_elements = false;
     bool print_integrals = false;
-   
+
     double scale = 1.0;
 
     // RPA options
@@ -33,7 +33,6 @@ public:
     int rpa_bspline_k = 7;
     std::optional<double> rpa_bspline_rmax;
     double rpa_bspline_r0 = 0.0;
-
 };
 
 class TransitionsEJSpecification: public TransitionsBaseSpecification
@@ -117,6 +116,9 @@ public:
     unsigned continuum_l_max = 6;
     std::optional<std::string> residue;
 };
+
+class ResidualCoulombSpecification: public TransitionsBaseSpecification
+{};
 
 }
 #endif

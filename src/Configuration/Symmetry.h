@@ -2,9 +2,9 @@
 #define SYMMETRY_H
 
 #include "Universal/Enums.h"
-#include "Atom/MultirunOptions.h"
 #include "HartreeFock/OrbitalInfo.h"
 #include <iostream>
+#include <sstream>
 #include <set>
 
 namespace Ambit
