@@ -167,8 +167,8 @@ public:
     bool dont_diagonalise_H = false;
     double alpha_squared_variation = 0;
     double nuclear_inverse_mass = 0;
-    double nuclear_radius = 0;
-    double nuclear_thickness = 0;
+    double nuclear_radius = 4.0;
+    double nuclear_thickness = 2.3;
     bool m = false;
     // Lattice
     unsigned lattice_num_points = 0;
@@ -200,8 +200,8 @@ public:
     bool hf_qed_use_electron_screening = false;
     // HF/NuclearPolarisability
     bool hf_do_nuclear_polarisability = false;
-    double hf_nuclear_polarisability_alpha_e;
-    double hf_nuclear_polarisability_ebar_mev;
+    double hf_nuclear_polarisability_alpha_e = 0.0;
+    double hf_nuclear_polarisability_ebar_mev = 8.0;
     // HF/Yukawa
     bool hf_do_yukawa = false;
     std::optional<double> hf_yukawa_mass;

@@ -128,7 +128,7 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
 {
     // Get BSplineBasis parameters and make RPA solver
     int N = specification.rpa_bspline_n;
-    int K = specification.rpa_bspline_n;
+    int K = specification.rpa_bspline_k;
     double Rmax;
     if(specification.rpa_bspline_rmax)
     {
@@ -166,6 +166,7 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     }
 
     int max_iterations = specification.rpa_max_iterations;
+    rpa_solver->SetMaxRPAIterations(max_iterations);
 
     // Limit RPA orbitals if requested
     // Make RPA operator

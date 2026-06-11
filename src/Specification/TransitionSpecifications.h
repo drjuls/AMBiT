@@ -29,7 +29,7 @@ public:
     std::string rpa_configuration;
     bool rpa_no_negative_states = false;
     bool rpa_print_field = false;
-    int rpa_bspline_n = 100;
+    int rpa_bspline_n = 40;
     int rpa_bspline_k = 7;
     std::optional<double> rpa_bspline_rmax;
     double rpa_bspline_r0 = 0.0;
@@ -46,7 +46,7 @@ class TransitionsHFS1Specification: public TransitionsBaseSpecification
 {
 public:
     std::optional<double> nuclear_magnetic_radius;
-    double g_on_i = 0.0;
+    double g_on_i = 1.0;
 };
 
 class TransitionsHFS2Specification: public TransitionsBaseSpecification

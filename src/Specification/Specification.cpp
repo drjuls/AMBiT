@@ -656,6 +656,10 @@ std::string GlobalSpecification::validateAndNormaliseSpecification()
         }
     }
 
+    // BSpline order K must be strictly less than basis size N
+    if(basis_bspline && basis_bspline_k >= basis_bspline_N)
+        return "Basis/BSpline/K must be less than Basis/BSpline/N";
+
     // Oll Korrect
     return "";
 }
