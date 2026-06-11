@@ -175,10 +175,6 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
         "HoleExcitations = 2\n" +
         "NumSolutions = 1\n";
 
-    // Note: this will override the previsous specification, but we've already saved the values for
-    // comparison
-    // auto specification = GlobalSpecification::Instance();
-    // Can parse the user_input_string directly via parapara
     specification->Reset();
     perr = importSpecificationINIString(specification, holes_input_string);
     ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;

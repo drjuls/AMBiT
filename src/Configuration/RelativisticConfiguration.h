@@ -46,7 +46,7 @@ public:
     unsigned int NumCSFs() const;
 
     /** Get the CSFs that have been calculated. */
-    const double* GetCSFs() const { return angular_data->GetCSFs(); }
+    const double* GetCSFs() const;
 
     /** Calculate the largest projection possible for this configuration. */
     int GetTwiceMaxProjection() const;

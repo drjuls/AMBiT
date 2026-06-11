@@ -31,7 +31,7 @@ AngularData::AngularData(const RelativisticConfiguration& config, int two_m, int
 }
 
 AngularData::AngularData(const AngularData& other):
-    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections)
+    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections), CSFs(nullptr)
 {
     if(have_CSFs)
     {
@@ -41,7 +41,7 @@ AngularData::AngularData(const AngularData& other):
 }
 
 AngularData::AngularData(AngularData&& other):
-    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections)
+    two_m(other.two_m), two_j(other.two_j), num_CSFs(other.num_CSFs), have_CSFs(other.have_CSFs), projections(other.projections), CSFs(nullptr)
 {
     if(have_CSFs)
     {

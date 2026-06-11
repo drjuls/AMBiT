@@ -1,5 +1,6 @@
 #include "Configuration/HamiltonianMatrix.h"
 #include "gtest/gtest.h"
+#include <filesystem>
 #include <memory>
 #include "Include.h"
 #include "HartreeFock/Core.h"
@@ -244,7 +245,11 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
         // Check energy 3s2 -> 3s3p J = 1 (should be within 20%)
         EXPECT_NEAR((wexcited_state_energy - wground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), (rexcited_state_energy - rground_state_energy) * MathConstant::Instance()->HartreeEnergyInInvCm(), 4000);
     }
+
+    std::filesystem::remove(even_filename);
+    std::filesystem::remove(odd_filename);
 }
+
 TEST(HamiltonianMatrixTester, HolesOnly)
 {
     DebugOptions.LogHFIterations(true);
@@ -338,6 +343,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
         "HoleExcitations = 2\n";
 
         auto specification = GlobalSpecification::Instance();
+        specification->Reset();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
         ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
@@ -433,6 +439,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
             "ElectronExcitations = 1\n";
 
         auto specification = GlobalSpecification::Instance();
+        specification->Reset();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
         ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
@@ -495,6 +502,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
             "HoleExcitations = 1\n";
 
         auto specification = GlobalSpecification::Instance();
+        specification->Reset();
         // Can parse the user_input_string directly via parapara
         std::string perr = importSpecificationINIString(specification, user_input_string);
         ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
@@ -647,6 +655,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
         "HoleExcitations = 1\n";
 
         auto specification = GlobalSpecification::Instance();
+        specification->Reset();
         std::string perr = importSpecificationINIString(specification, user_input_string);
         ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
@@ -802,6 +811,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
         "HoleExcitations = 1\n";
 
         auto specification = GlobalSpecification::Instance();
+        specification->Reset();
         std::string perr = importSpecificationINIString(specification, user_input_string);
         ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
         perr = specification->validateAndNormaliseSpecification();
