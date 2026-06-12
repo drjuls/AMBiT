@@ -338,8 +338,8 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Basis/BSpline/K",             &GlobalSpecification::basis_bspline_k},
     {"Basis/BSpline/N",             &GlobalSpecification::basis_bspline_N},
     {"Basis/BSpline/SplineType",    &GlobalSpecification::basis_bspline_splinetype},
-    // Basis/XR
-    {"Basis/XR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
+    // Basis/xR
+    {"Basis/xR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
     // CI
     {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
     // MBPT
@@ -629,11 +629,11 @@ std::string GlobalSpecification::validateAndNormaliseSpecification()
     }
 
     // We must have at least one leading configuration for CI and CI/SmallSide
-    //if(ci.leading_configurations.empty())
-    //    return "Must have at least one config in CI/LeadingConfigurations";
+    if(!no_ci && ci.leading_configurations.empty())
+        return "Must have at least one config in CI/LeadingConfigurations";
 
-    //if(ci_do_smallside && ci_smallside.leading_configurations.empty())
-    //    return "Must have at least one config in CI/SmallSide/LeadingConfigurations";
+    if(ci_do_smallside && ci_smallside.leading_configurations.empty())
+        return "Must have at least one config in CI/SmallSide/LeadingConfigurations";
 
     // Must specify LevelDirectory if using CI/--memory-saver
     if(ci.memory_saver && !level_directory)

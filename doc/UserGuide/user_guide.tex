@@ -1357,9 +1357,7 @@ equivalent:
 \texttt{ambit file.input}
 \end{itemize}
 
-Currently, misspelled or erroneous arguments are not automatically handled by \ambit\ 
-and will be either be ignored (for typos) or cause the corresponding part of the calculation to fail 
-(for errors or incorrect arguments).
+Options are not case-sensitive: we present CamelCase options only for readability.
 
 \subsection{Conventions used throughout this chapter}
 
@@ -1391,19 +1389,9 @@ Finally, the value of all numerical parameters must be given in atomic units unl
 \label{sec:multirun}
 
 It is sometimes necessary to run multiple almost identical CI+MBPT calculations which differ only in
-some varying parameter, such as the nuclear mass or radius in field-shift calculations. To facilitate
-this use-case, \ambit\ supports multiple runs via the \texttt{Multirun} ungrouped input option, which
-accepts a string containing the parameter to vary. The varying parameters values are then provided via 
-the usual input options, except they must be given as a list of values the parameter may take. For 
-example:
+some varying parameter, such as the nuclear mass or radius in field-shift calculations. Previous versions of \ambit\ handled this internally, but with expanding computational requirements we now leave this to script files or array jobs in HPC environments.
 
-\texttt{Multirun = 'AlphaSquaredVariation'}
-\texttt{AlphaSquaredVariation = '-0.1, 0.0, 0.1'}
-
-will perform three runs with $\alpha^2 \to (1 + \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$.
-
-The resulting energy levels and transition matrix elements are for each run are all grouped according to
-$J^{\pi}$ symmetry and printed to standard output. And example output file might look like:
+As an example, consider a ``finite field'' calculation of the relativistic shift, where the user requires three separate runs with  $\alpha^2 \to (1 + \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$. (Here $\alpha^2$ is the square of the fine-structure constant.)
 
 \begin{verbatim}
 
@@ -1768,18 +1756,18 @@ Summary of mass shift options for relativistic and nonrelativistic operators:
 
 \subsection{HF/Yukawa}
 
-\texttt{Mass} \uline{Real}[1.0]
+\texttt{Mass} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Mass (in atomic units) of the particle coupled via the Yukawa interaction. Cannot be used with \texttt{Yukawa/MassEV} or \texttt{Yukawa/Rc}.
 \end{adjustwidth}
 
-\texttt{MassEV} \uline{Real}[1.0]
+\texttt{MassEV} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Mass (in electron volts) of the particle coupled via the Yukawa potential. Cannot be used with
 \texttt{Yukawa/Mass} or \texttt{Yukawa/Rc}.
 \end{adjustwidth}
 
-\texttt{Rc} \uline{Real}[1.0]
+\texttt{Rc} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Parameter determining the cutoff radius of the Yukawa interaction. Cannot be used if \texttt{Yukawa/Mass} or \texttt{Yukawa/MassEV} is specified.
 \end{adjustwidth}
@@ -1901,11 +1889,11 @@ Maximum number of splines to generate.
 Type of spline to use for basis functions. Default value is \texttt{Reno}
 \end{adjustwidth}
 
-\subsection{Basis/XR}
+\subsection{Basis/xR}
 
 \texttt{CustomOrbitals} \uline{String}
 \begin{adjustwidth}{1cm}{}
-	Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.
+	Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/xR/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.
 \end{adjustwidth}
 
 \section{CI}

@@ -201,6 +201,7 @@ TEST(ConfigGeneratorTester, NonSquare)
 
     // CuIII
     std::string user_input_string = std::string() +
+        "ID = CuIII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +
@@ -228,6 +229,8 @@ TEST(ConfigGeneratorTester, NonSquare)
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
     ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
+    perr = specification->validateAndNormaliseSpecification();
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
