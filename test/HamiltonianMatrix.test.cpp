@@ -21,6 +21,7 @@ TEST(HamiltonianMatrixTester, MgILevels)
 
     // MgI
     std::string user_input_string = std::string() +
+        "ID = Mg" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 12\n" +
@@ -108,6 +109,7 @@ TEST(HamiltonianMatrixTester, MgISaveMatrix)
 
     // MgI
     std::string user_input_string = std::string() +
+        "ID = Mg\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 12\n" +
@@ -267,6 +269,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     // CuIV - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID = CuIV\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +
@@ -326,6 +329,7 @@ TEST(HamiltonianMatrixTester, HolesOnly)
     // CuIV - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID = CuIV\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +
@@ -424,6 +428,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     // CuIII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+            "ID = CuIII\n" +
             "NuclearRadius = 3.7188\n" +
             "NuclearThickness = 2.3\n" +
             "Z = 29\n" +
@@ -485,6 +490,7 @@ TEST(HamiltonianMatrixTester, HolesVsElectrons)
     // CuIII - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+            "ID = CuIII\n" +
             "NuclearRadius = 3.7188\n" +
             "NuclearThickness = 2.3\n" +
             "Z = 29\n" +
@@ -581,6 +587,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
     // LiII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID = LiII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 3\n" +
@@ -638,6 +645,7 @@ TEST(HamiltonianMatrixTester, LiPlus)
     // LiII - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID = LiII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 3\n" +
@@ -736,6 +744,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     // CuIII - stretched state
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID=CuIII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +
@@ -794,6 +803,7 @@ TEST(HamiltonianMatrixTester, NonStretchedStates)
     // CuIII - non-stretched state
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+        "ID = CuIII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +

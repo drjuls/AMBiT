@@ -1,6 +1,5 @@
 #include "Configuration/ConfigGenerator.h"
 #include "gtest/gtest.h"
-#include "Include.h"
 #include "HartreeFock/Core.h"
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
@@ -122,6 +121,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
 
     // CuII - old electron way
     std::string user_input_string = std::string() +
+        "ID = CuII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +
@@ -158,6 +158,7 @@ TEST(ConfigGeneratorTester, HolesVsElectrons)
 
     // CuII - using holes now
     std::string holes_input_string = std::string() +
+        "ID = CuII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 29\n" +

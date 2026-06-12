@@ -19,7 +19,7 @@
 namespace Ambit
 {
 BasisGenerator::BasisGenerator(pLattice lat, pPhysicalConstant physical_constant):
-    lattice(lat), physical_constant(physical_constant), 
+    lattice(lat), physical_constant(physical_constant),
     open_core(nullptr)
 {
     orbitals = pOrbitalManager(new OrbitalManager(lattice));
@@ -42,8 +42,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     if(Charge_opt)
     {
         Charge = Charge_opt.value();
-    } 
-    else 
+    }
+    else
     {   if(N && Z >= N.value())
         {
             Charge = Z - N.value();
@@ -52,8 +52,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
         }
     }
 
-    //TODO: Error message if Charge or N is missing or incorrect.
-    std::string config = specification->hf_configuration;
+    std::string config = specification->hf_configuration.value();
 
     // Get orbitals and occupancies
     std::string open_shell_string;
@@ -110,14 +109,14 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     hartreeY = pHartreeY(new HartreeY(integrator, coulomb));
 
     // Add additional operators
-    double NuclearInverseMass = specification->nuclear_inverse_mass;
+    double NuclearInverseMass = specification->hf_ms_nuclear_inverse_mass;
     if(NuclearInverseMass)
     {
-        bool do_nms = specification->hf_nms;
-        bool do_sms = specification->hf_sms;
-        bool nonrel_ms = specification->hf_nonrel_mass_shift;
-        bool relativistic_nms = specification->hf_only_rel_nms;
-        bool lower_sms = specification->hf_include_lower_mass;
+        bool do_nms = specification->hf_ms_nms;
+        bool do_sms = specification->hf_ms_sms;
+        bool nonrel_ms = specification->hf_ms_nonrel_mass_shift;
+        bool relativistic_nms = specification->hf_ms_only_rel_nms;
+        bool lower_sms = specification->hf_ms_include_lower_sms;
 
         // Default: do specific mass shift
         if(!do_nms && !do_sms && !relativistic_nms)
@@ -170,7 +169,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     if(specification->hf_do_qed)
     {
         // Get the nuclear RMS radius to use for QED calculations. This will be either a user
-        // specified value (QED/NuclearRMSRadius) or the value used in the rest of the calculation 
+        // specified value (QED/NuclearRMSRadius) or the value used in the rest of the calculation
         double nuclear_rms_radius;
         std::optional<double> rms_opt = specification->hf_qed_nuclear_rms_radius;
         if(rms_opt)
@@ -184,11 +183,11 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
             pUehlingDecorator uehling;
 
             if(specification->hf_qed_use_nuclear_density)
-            {   
+            {
                 uehling.reset(new UehlingDecorator(hf, nucleus->GetNuclearDensity()));
             }
             else
-            {   
+            {
                 uehling.reset(new UehlingDecorator(hf, nuclear_rms_radius));
             }
 
@@ -205,26 +204,26 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
             if(specification->hf_qed_use_nuclear_density)
             {
                 if(specification->hf_qed_no_magnetic)
-                {   
+                {
                     magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                     hf = magneticQED;
                 }
                 if(specification->hf_qed_no_electric)
-                {   
+                {
                     electricQED.reset(new ElectricSelfEnergyDecorator(hf, nucleus->GetNuclearDensity()));
                     hf = electricQED;
                 }
             }
             // Use a user-specified value for nuclear density/RMS
             else
-            {                   
+            {
                 if(specification->hf_qed_no_magnetic)
-                {   
+                {
                     magneticQED.reset(new MagneticSelfEnergyDecorator(hf, nuclear_rms_radius));
                     hf = magneticQED;
                 }
                 if(specification->hf_qed_no_electric)
-                {   
+                {
                     bool skip_offmass = specification->hf_qed_skip_offmass;
                     electricQED.reset(new ElectricSelfEnergyDecorator(hf, nuclear_rms_radius, !skip_offmass));
                     hf = electricQED;
@@ -557,7 +556,7 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     {
         hf->SetCore(open_core);
     }
-    else 
+    else
     {
         std::string residue = res.value();
         size_t colon_pos = residue.find(':');
@@ -574,19 +573,11 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     }
 
     // Generate excited states
-    std::optional<std::string> basis_size = specification->basis_size;
-
     std::optional<std::string> mbpt_basis = specification->mbpt_basis;
     std::optional<std::string> valence_basis = specification->basis_valence;
 
-    // If we haven't got an explicit basis size, then get this from either the MBPT or Valence
-    // Basis input options, or an empty string, in that order of preference
     std::string all_states;
-    if(basis_size)
-    {
-        all_states = basis_size.value();
-    } 
-    else if (mbpt_basis)
+    if(mbpt_basis)
     {
         all_states = mbpt_basis.value();
     }
@@ -605,9 +596,9 @@ pOrbitalManagerConst BasisGenerator::GenerateBasis()
     if(specification->basis_hf)
     {
         excited = GenerateHFExcited(max_pqn_per_l);
-    } 
+    }
     else if(specification->basis_xr)
-    { 
+    {
         excited = GenerateXRExcited(max_pqn_per_l);
     }
     else if(specification->basis_bspline)
@@ -742,7 +733,7 @@ void BasisGenerator::CreateBruecknerOrbitals(pBruecknerDecorator brueckner)
     hf = brueckner;
 
     pOrbitalMap orbitals_to_update = orbitals->valence;
-    if(specification->mbpt_brueckner && specification->mbpt_brueckner_excited)
+    if(specification->mbpt_brueckner && specification->mbpt_use_brueckner)
         orbitals_to_update = orbitals->excited;
 
     // Get max PQN for l

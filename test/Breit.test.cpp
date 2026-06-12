@@ -13,6 +13,7 @@ TEST(BreitTester, LiLikeNe)
 
     // Li-like Ne - comparison with Walter Johnson book page 208
     std::string user_input_string = std::string() +
+        "ID = LiLikeNe\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 10\n" +
@@ -90,6 +91,7 @@ TEST(BreitTester, HgSlow)
 
     //Hg - comparison with Lindroth et al. J. Phys. B 22, 2447 (1989)
     std::string user_input_string = std::string() +
+        "ID = Hg\n" +
         "NuclearRadius = 6.0\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 80\n" +

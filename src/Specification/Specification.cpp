@@ -115,12 +115,12 @@ std::vector<P::specification<X>> GlobalSpecification::make_transitions_base_spec
     return {
         {"MatrixElements",                  &X::matrix_elements},
         {"AllBelow",                        &X::all_below},
-        {"--reduced_elements",              &X::reduced_elements},
+        {"--reduced-elements",              &X::reduced_elements},
         {"--print-integrals",               &X::print_integrals},
         {"--rpa",                           &X::do_rpa},
         {"RPA/Scale",                       &X::rpa_scale},
         {"RPA/Weighting",                   &X::rpa_weighting, zero_to_1},
-        {"RPA/MaxDeltaK",                   &X::rpa_max_delta_k, positive},
+        {"RPA/MaxDeltaK",                   &X::rpa_max_delta_k, nonnegative},
         {"RPA/MaxIterations",               &X::rpa_max_iterations, positive},
         {"RPA/Configuration",               &X::rpa_configuration},
         {"RPA/--no-negative-states",        &X::rpa_no_negative_states},
@@ -220,7 +220,7 @@ std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
         {"Source/TwoJ",             &X::source_twoj, nonnegative},
         {"Source/Parity",           &X::source_parity},
         {"Source/Index",            &X::source_index, nonnegative},
-        {"NuclearEnergyEv",         &X::nuclear_energy_ev, positive},
+        {"NuclearEnergyEV",         &X::nuclear_energy_ev, positive},
         {"ContinuumLMin",           &X::continuum_l_min},
         {"ContinuumLMax",           &X::continuum_l_max},
     });
@@ -271,10 +271,9 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"--ci-complete",           &GlobalSpecification::ci_complete},
     {"--no-ci",                 &GlobalSpecification::no_ci},
     {"--configuration-average", &GlobalSpecification::configuration_average},
-    {"--dont-diagonalise",      &GlobalSpecification::dont_diagonalise_H},
+    {"--no_diagonalisation",    &GlobalSpecification::no_diagonalisation},
     {"NuclearRadius",           &GlobalSpecification::nuclear_radius},
     {"NuclearThickness",        &GlobalSpecification::nuclear_thickness},
-    {"NuclearInverseMass",      &GlobalSpecification::nuclear_inverse_mass},
     {"AlphaSquaredVariation",   &GlobalSpecification::alpha_squared_variation},
     // Lattice
     {"Lattice/NumPoints",       &GlobalSpecification::lattice_num_points,  P::nonzero()},
@@ -287,11 +286,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"HF/Charge",                       &GlobalSpecification::hf_charge},
     {"HF/Configuration",                &GlobalSpecification::hf_configuration},
     {"HF/--breit",                      &GlobalSpecification::hf_breit},
-    {"HF/--sms",                        &GlobalSpecification::hf_sms},
-    {"HF/--nms",                        &GlobalSpecification::hf_nms},
-    {"HF/--only-relativistic-nms",      &GlobalSpecification::hf_only_rel_nms},
-    {"HF/--nonrelativistic-mass-shift", &GlobalSpecification::hf_nonrel_mass_shift},
-    {"HF/--include-lower-mass",         &GlobalSpecification::hf_include_lower_mass},
+    {"HF/--qed",                        &GlobalSpecification::hf_qed},
     {"HF/--local-exchange",             &GlobalSpecification::hf_local_exchange},
     {"HF/Xalpha",                       &GlobalSpecification::hf_xalpha},
     // HF/QED
@@ -304,6 +299,13 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"HF/QED/--no-electric",            &GlobalSpecification::hf_qed_no_electric},
     {"HF/QED/--skip-offmass",           &GlobalSpecification::hf_qed_skip_offmass},
     {"HF/QED/--use-electron-screening", &GlobalSpecification::hf_qed_use_electron_screening},
+    // HF/MassShift
+    {"HF/MassShift/NuclearInverseMass",           &GlobalSpecification::hf_ms_nuclear_inverse_mass},
+    {"HF/MassShift/--sms",                        &GlobalSpecification::hf_ms_sms},
+    {"HF/MassShift/--nms",                        &GlobalSpecification::hf_ms_nms},
+    {"HF/MassShift/--only-relativistic-nms",      &GlobalSpecification::hf_ms_only_rel_nms},
+    {"HF/MassShift/--nonrelativistic-mass-shift", &GlobalSpecification::hf_ms_nonrel_mass_shift},
+    {"HF/MassShift/--include-lower-sms",          &GlobalSpecification::hf_ms_include_lower_sms},
     // HF/NuclearPolarisability
     {"HF/NuclearPolarisability",        &GlobalSpecification::hf_do_nuclear_polarisability},
     {"HF/NuclearPolarisability/AlphaE", &GlobalSpecification::hf_nuclear_polarisability_alpha_e, P::nonzero()},
@@ -319,8 +321,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"HF/AddLocalPotential/Filename",   &GlobalSpecification::hf_addlocal_filename},
     {"HF/AddLocalPotential/Scale",      &GlobalSpecification::hf_addlocal_scale},
     // Basis
-    {"Basis/BasisSize",         &GlobalSpecification::basis_size},
-    {"Basis/ValenceBasis",      &GlobalSpecification::basis_valence},
+    {"Basis/ValenceBasis",      &GlobalSpecification::basis_valence, P::nonempty()},
     {"Basis/FrozenCore",        &GlobalSpecification::basis_frozen_core},
     {"Basis/IncludeValence",    &GlobalSpecification::basis_include_valence},
     {"Basis/ExcludeValence",    &GlobalSpecification::basis_exclude_valence},
@@ -331,13 +332,14 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Basis/--bspline-basis",   &GlobalSpecification::basis_bspline},
     {"Basis/--xr-basis",        &GlobalSpecification::basis_xr},
     {"Basis/HFOrbitals",        &GlobalSpecification::basis_hf_orbitals},
-    {"Basis/XR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
     // Basis/BSpline
     {"Basis/BSpline/Rmax",          &GlobalSpecification::basis_bspline_rmax},
     {"Basis/BSpline/R0",            &GlobalSpecification::basis_bspline_r0},
     {"Basis/BSpline/K",             &GlobalSpecification::basis_bspline_k},
     {"Basis/BSpline/N",             &GlobalSpecification::basis_bspline_N},
     {"Basis/BSpline/SplineType",    &GlobalSpecification::basis_bspline_splinetype},
+    // Basis/XR
+    {"Basis/XR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
     // CI
     {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
     // MBPT
@@ -345,7 +347,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"MBPT/EnergyDenomOrbitals",    &GlobalSpecification::mbpt_energy_denom_orbitals},
     {"MBPT/--use-valence",          &GlobalSpecification::mbpt_use_valence},
     {"MBPT/--no-core",              &GlobalSpecification::mbpt_no_core},
-    {"MBPT/--use-subtraction",      &GlobalSpecification::mbpt_use_subtraction},
+    {"MBPT/--force-subtraction",    &GlobalSpecification::mbpt_force_subtraction},
     {"MBPT/--no-subtraction",       &GlobalSpecification::mbpt_no_subtraction},
     {"MBPT/--no-extra-box",         &GlobalSpecification::mbpt_no_extra_box},
     {"MBPT/EnergyDenomFloor",       &GlobalSpecification::mbpt_energy_denom_floor},
@@ -353,6 +355,13 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"MBPT/TwoBody/StorageLimits",  &GlobalSpecification::mbpt_twobody_storage_limits},
     {"MBPT/OneBody/Scaling",        &GlobalSpecification::mbpt_onebody_scaling},
     {"MBPT/--brueckner",            &GlobalSpecification::mbpt_brueckner},
+    {"MBPT/--mbpt-use-brueckner",   &GlobalSpecification::mbpt_use_brueckner},
+    {"MBPT/Brueckner/StartPoint",   &GlobalSpecification::mbpt_brueckner_startpoint},
+    {"MBPT/Brueckner/EndPoint",     &GlobalSpecification::mbpt_brueckner_endpoint},
+    {"MBPT/Brueckner/Stride",       &GlobalSpecification::mbpt_brueckner_stride},
+    {"MBPT/Brueckner/Scaling",      &GlobalSpecification::mbpt_brueckner_scaling},
+    {"MBPT/Brueckner/--use-lower",  &GlobalSpecification::mbpt_brueckner_use_lower},
+    {"MBPT/Brueckner/--use-lower-lower",&GlobalSpecification::mbpt_brueckner_use_lower_lower},
     {"Transitions/E1",              &GlobalSpecification::transitions_do_e1},
     {"Transitions/E2",              &GlobalSpecification::transitions_do_e2},
     {"Transitions/E3",              &GlobalSpecification::transitions_do_e3},
@@ -375,6 +384,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"DR/Target/TwoJ",              &GlobalSpecification::dr_target_twoj, nonnegative},
     {"DR/Target/Parity",            &GlobalSpecification::dr_target_parity},
     {"DR/Target/Index",             &GlobalSpecification::dr_target_index, nonnegative},
+    {"DR/IonizationEnergy",         &GlobalSpecification::dr_ionization_energy, nonnegative},
     {"DR/EnergyLimit",              &GlobalSpecification::dr_energy_limit},
     {"DR/ContinuumLMin",            &GlobalSpecification::dr_continuum_l_min},
     {"DR/ContinuumLMax",            &GlobalSpecification::dr_continuum_l_max},
@@ -544,17 +554,30 @@ std::string importSpecificationKV(GlobalSpecification* gs, const std::string& as
 // Perform global validation of specifications. Return non-empty error message on failure.
 std::string GlobalSpecification::validateAndNormaliseSpecification()
 {
+    // Check for critical stuff
+    if(ID.empty())
+        return "ID must be specified.";
+
+    if(Z == 0)
+        return "Z must be specified.";
+
     // Check for consistent Lattice settings:
-    if (lattice_exponential && lattice_end_point>0)
-        return "Lattice/EndPoint is ignored if Lattice/--exp-lattice is set";
+    if(lattice_exponential && lattice_end_point>0)
+        return "Lattice/EndPoint is ignored if Lattice/--exp-lattice is set. Use Lattice/H instead.";
 
     // Check for consistency in HF decorators (e.g. cannot request both nonrelativistic and
     // relativistic-only constraints)
-    if (hf_only_rel_nms && hf_nonrel_mass_shift)
+    if (hf_ms_only_rel_nms && hf_ms_nonrel_mass_shift)
         return "HF/--only-relativistic-nms and HF/--nonrelativistic-mass-shift cannot both be set at the same time";
     // Must have at least one of HF/N and HF/Charge, so error out if these are missing
     if((!hf_charge) && (!hf_N))
         return "Must specify at least one of HF/N or HF/Charge";
+    else if(hf_N)
+        hf_charge = Z - hf_N.value();
+    else if(hf_charge)
+        hf_N = Z - hf_charge.value();
+    if(!hf_configuration)
+        return "HF/Configuration must be set (can be set to '' or 0 for no-core case).";
 
     // Yukawa interaction has three possible parameters to determine its mass: Mass, MassEV and
     // rc, which are logically equivalent but differ in units. The input file must have exactly one

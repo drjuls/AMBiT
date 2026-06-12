@@ -312,13 +312,14 @@ void AmbitInterface::EnergyCalculations()
 
     // Generate MBPT integrals and Brueckner orbitals
     bool make_new_integrals = !specification->no_new_mbpt;
-    bool mbpt_use_breuckner = specification->mbpt_brueckner;
+    bool make_brueckner = specification->mbpt_brueckner;
+    bool mbpt_use_breuckner = specification->mbpt_use_brueckner;
     bool check_sizes = specification->check_sizes;
 
-    if((!mbpt_use_breuckner && make_new_integrals) || specification->check_sizes)
-            atom.MakeMBPTIntegrals();
+    if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
+        atom.MakeMBPTIntegrals();
 
-    if (mbpt_use_breuckner && !check_sizes)
+    if (make_brueckner && !check_sizes)
     {   // Show details of HF iterated Brueckner orbitals
         DebugOptions.OutputHFExcited(true);
         atom.GenerateBruecknerOrbitals(make_new_integrals);

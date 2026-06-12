@@ -1479,11 +1479,6 @@ temporary files, as well as stored basis functions, MBPT integrals and energy le
 Filename (and path) of input file containing options to be passed to \ambit. 
 \end{adjustwidth}
 
-\texttt{NuclearInverseMass} \uline{Real} [0.0]
-\begin{adjustwidth}{1cm}{}
-Inverse mass of the nucleus in atomic units. Used when calculating mass shift.
-\end{adjustwidth}
-
 \texttt{NuclearRadius} \uline{Real} [4.0]
 \begin{adjustwidth}{1cm}{}
 Radius parameter of a Fermi distribution for nuclear charge. This value is 
@@ -1499,12 +1494,6 @@ Specifies the density parameter of a Fermi distribution for nuclear charge.
 \begin{adjustwidth}{1cm}{}
 Vary the value of the fine-structure constant by some factor $\Delta$ such that 
 $\alpha^2 \to (1 + \Delta)\alpha^2$. 
-\end{adjustwidth}
-
-\texttt{AngularDataDirectory} \uline{String}
-\begin{adjustwidth}{1cm}{}
-Alternative directory used to store and read angular data files. This option overrides the angular data
-directory set by the \texttt{-DANGULAR\_DATA\_DIRECTORY} compile-time option.
 \end{adjustwidth}
 
 \texttt{LevelDirectory} \uline{String}
@@ -1546,13 +1535,13 @@ Print basis orbitals in plain (ASCII) text. Orbitals are currently always writte
 \texttt{Orbitals.txt}, which is overwritten if it already exists.
 \end{adjustwidth}
 
-\texttt{--ci-complete, --CI-complete}
+\texttt{--CI-complete}
 \begin{adjustwidth}{1cm}{}
 Do not calculate extra energy levels if more levels are requested via \texttt{CI/NumSolutions} than
 exist in the precalculated levels file.
 \end{adjustwidth}
 
-\texttt{--no-ci, --no-CI}
+\texttt{--no-CI}
 \begin{adjustwidth}{1cm}{}
 Do not do any CI calculations, such as when doing one-electron calculations.
 \end{adjustwidth}
@@ -1646,55 +1635,9 @@ Open shells may be specified using relativistic notation, for example \texttt{'.
 \begin{adjustwidth}{1cm}{}
 Include effects of the Breit interaction.
 \end{adjustwidth}
-\texttt{--sms} 
+\texttt{--qed} 
 \begin{adjustwidth}{1cm}{}
-Include specific mass-shift operator (for use when calculating isotope shifts).
-\end{adjustwidth}
-\texttt{--nms} 
-\begin{adjustwidth}{1cm}{}
-Include normal mass-shift operator (for use when calculating isotope shifts).
-\end{adjustwidth}
-\texttt{--only-relativistic-nms} 
-\begin{adjustwidth}{1cm}{}
-Only include relativistic contribution to normal mass-shift operator.
-\end{adjustwidth}
-\texttt{--nonrelativistic-mass-shift}
-\begin{adjustwidth}{1cm}{}
-Only include non-relativistic contribution to a mass-shift operator.
-\end{adjustwidth}
-
-\texttt{--include-lower-sms}
-\begin{adjustwidth}{1cm}{}
-Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
-This can produce unphysical results, and is not recommended.
-\end{adjustwidth}
-
-Summary of mass shift options for relativistic and nonrelativistic operators:
-\begin{adjustwidth}{1cm}{}
-\begin{tabular}{|l|l|l|}
-\cline{2-3}
-\multicolumn{1}{c|}{} & Normal Mass Shift & Specific Mass Shift \\
-\hline
-Relativistic & \texttt{--nms} & \texttt{--sms} \\
-\cline{2-2}
- & Only include relativistic contribution: & \\
- & \texttt{--nms} & \\
- & \texttt{--only-relativistic-nms} & \\
-\hline
-Nonrelativistic & \texttt{--nms} & \texttt{--sms} \\
- & \texttt{--nonrelativistic-mass-shift} & \texttt{--nonrelativistic-mass-shift} \\
-\cline{3-3}
- & & Include lower part of Dirac spinors: \\
- & & \texttt{--sms} \\
- & & \texttt{--nonrelativistic-mass-shift} \\
- & & \texttt{--include-lower-sms} \\
-\hline
-\end{tabular}
-\end{adjustwidth}
-
-\texttt{--read-grasp0}
-\begin{adjustwidth}{1cm}{}
-(No longer used) Use lattice and basis orbitals from the output of a GRASP MCDF calculation.
+Alias for including both \texttt{HF/QED/--uehling} and \texttt{HF/QED/--self-energy} under default parameters. Usually good enough, but if it doesn't converge try removing the offmass term with \texttt{HF/QED/--skip-offmass} (see Sec.~\ref{subsec:QED}).
 \end{adjustwidth}
 
 \texttt{--local-exchange}
@@ -1712,6 +1655,7 @@ corresponds to the Core-Hartree potential.
 \end{adjustwidth}
 
 \subsection{HF/QED}
+\label{subsec:QED}
 \texttt{--uehling}
 \begin{adjustwidth}{1cm}{}
 Include the Uehling (vacuum polarisation) QED correction.
@@ -1760,7 +1704,61 @@ Used to estimate the effect of electron screening of the nucleus (due to the cha
 on the radiative potential.
 \end{adjustwidth}
 
+\subsection{HF/MassShift}
+
+\texttt{NuclearInverseMass} \uline{Real}
+\begin{adjustwidth}{1cm}{}
+	Inverse mass of the nucleus in atomic units.
+\end{adjustwidth}
+
+\texttt{--sms} 
+\begin{adjustwidth}{1cm}{}
+	Include specific mass-shift operator (for use when calculating isotope shifts).
+\end{adjustwidth}
+\texttt{--nms} 
+\begin{adjustwidth}{1cm}{}
+	Include normal mass-shift operator (for use when calculating isotope shifts).
+\end{adjustwidth}
+\texttt{--only-relativistic-nms} 
+\begin{adjustwidth}{1cm}{}
+	Only include relativistic contribution to normal mass-shift operator.
+\end{adjustwidth}
+\texttt{--nonrelativistic-mass-shift}
+\begin{adjustwidth}{1cm}{}
+	Only include non-relativistic contribution to a mass-shift operator.
+\end{adjustwidth}
+
+\texttt{--include-lower-sms}
+\begin{adjustwidth}{1cm}{}
+	Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
+	This can produce unphysical results, and is not recommended.
+\end{adjustwidth}
+
+Summary of mass shift options for relativistic and nonrelativistic operators:
+\begin{adjustwidth}{1cm}{}
+	\begin{tabular}{|l|l|l|}
+		\cline{2-3}
+		\multicolumn{1}{c|}{} & Normal Mass Shift & Specific Mass Shift \\
+		\hline
+		Relativistic & \texttt{--nms} & \texttt{--sms} \\
+		\cline{2-2}
+		& Only include relativistic contribution: & \\
+		& \texttt{--nms} & \\
+		& \texttt{--only-relativistic-nms} & \\
+		\hline
+		Nonrelativistic & \texttt{--nms} & \texttt{--sms} \\
+		& \texttt{--nonrelativistic-mass-shift} & \texttt{--nonrelativistic-mass-shift} \\
+		\cline{3-3}
+		& & Include lower part of Dirac spinors: \\
+		& & \texttt{--sms} \\
+		& & \texttt{--nonrelativistic-mass-shift} \\
+		& & \texttt{--include-lower-sms} \\
+		\hline
+	\end{tabular}
+\end{adjustwidth}
+
 \subsection{HF/Yukawa}
+
 \texttt{Mass} \uline{Real}[1.0]
 \begin{adjustwidth}{1cm}{}
 Mass (in atomic units) of the particle coupled via the Yukawa interaction. Overrides any value set by
@@ -1800,9 +1798,9 @@ Scale factor of the included local potential.
 
 \section{Basis}
 
-\texttt{ValenceBasis, BasisSize} \uline{Basis string}
+\texttt{ValenceBasis} \uline{Basis string}
 \begin{adjustwidth}{1cm}{}
-(Mandatory for CI) The maximum principal quantum number, $n$, and orbital angular momentum, $l$, of
+(Mandatory) The maximum principal quantum number, $n$, and orbital angular momentum, $l$, of
 the orbitals included in CI calculations. For example, 
 \texttt{Basis/ValenceBasis = 10spdf} will include orbitals with $0 \leq l \leq 3$ and $n \leq 10$ for
 each partial wave. It is also possible to specify different values of $n$ for each partial wave, so, for
@@ -1848,28 +1846,23 @@ Force all basis functions to be re-orthogonalised once generated.
 
 \texttt{--hf-basis}
 \begin{adjustwidth}{1cm}{}
-Use Hartree-Fock in the field of the core to calculate excited basis states. This may fail for orbitals with high angular momentum or high principal quantum number, and will definitely fail unless $\texttt{HF/N} < \texttt{Z}$.
+Use Hartree-Fock in the field of the core to calculate excited basis states. This may fail for orbitals with high angular momentum or high principal quantum number, and will definitely fail unless $\texttt{HF/N} < \texttt{Z}$. Typically a better approach is to use a B-spline basis and use \texttt{HFOrbitals} to convert specific orbitals to HF.
 \end{adjustwidth}
 
 \texttt{--bspline-basis} 
 \begin{adjustwidth}{1cm}{}
-Use B-Splines to generate single-particle basis functions.
+Use B-splines to generate single-particle basis functions.
 \end{adjustwidth}
 
 \texttt{--xr-basis} 
 \begin{adjustwidth}{1cm}{}
 Generate valence orbitals $\phi_{nlj}$ from lower-energy orbitals by multiplying the upper component by simple functions. By default, the lowest valence orbital in each wave is generated using Hartree-Fock. Then the next is generated by multiplying the previous by $r$: $f_{n+1\,lj} = r f_{nlj}$. The lower component is generated from the upper using the Hartree-Fock equations, then the orbital is orthogonalized to the lower core and valence orbitals.
-Higher orbitals are generated by successively multiplying the previous orbital (with principal quantum number one lower) by the radial function $\sin(kr)$, then $r$, then $\sin(kr)$, and so on. Here $k = \pi/R_n$ where $R_n$ is the size of the previous orbital. At each step the orbital is orthogonalized to the lower core and valence orbitals. This can be customised using \texttt{Basis/CustomOrbitals}.
+Higher orbitals are generated by successively multiplying the previous orbital (with principal quantum number one lower) by the radial function $\sin(kr)$, then $r$, then $\sin(kr)$, and so on. Here $k = \pi/R_n$ where $R_n$ is the size of the previous orbital. At each step the orbital is orthogonalized to the lower core and valence orbitals. This can be customised using \texttt{Basis/XR/CustomOrbitals}.
 \end{adjustwidth}
 
 \texttt{HFOrbitals} \uline{Basis string}
 \begin{adjustwidth}{1cm}{}
 Generates Hartree-Fock orbitals calculated in the HF potential for orbitals up to those specified by the basis string. Can be used in conjunction with another method, e.g. B-Splines, for the remaining orbitals.
-\end{adjustwidth}
-
-\texttt{CustomOrbitals} \uline{String}
-\begin{adjustwidth}{1cm}{}
-Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.
 \end{adjustwidth}
 
 \subsection{Basis/BSpline}
@@ -1899,6 +1892,13 @@ Maximum number of splines to generate.
 \texttt{SplineType} \uline{Reno, Vanderbilt, NotreDame}[Reno]
 \begin{adjustwidth}{1cm}{}
 Type of spline to use for basis functions. Default value is \texttt{Reno}
+\end{adjustwidth}
+
+\subsection{Basis/XR}
+
+\texttt{CustomOrbitals} \uline{String}
+\begin{adjustwidth}{1cm}{}
+	Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.
 \end{adjustwidth}
 
 \section{CI}
@@ -2065,13 +2065,13 @@ with filename \texttt{<ID>\_<run>.<2J><parity>.matrix}, where \texttt{ID} is the
 \texttt{parity} is either \texttt{e} or \texttt{o}.
 \end{adjustwidth}
 
-\texttt{MaxDisplayedEnergy} \uline{Real}[0.0]
+\texttt{MaxDisplayedEnergy} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Maximum energy solution to print. Requested solutions above this energy will still be generated, but
 will not be displayed.
 \end{adjustwidth}
 
-\texttt{MinimumDisplayedPercentage} \uline{Real} [1.0]
+\texttt{MinDisplayedPercentage} \uline{Real} [1.0]
 \begin{adjustwidth}{1cm}{}
 Configurations which make up a percentage of a given solution less than this value will not be
 displayed.
@@ -2165,7 +2165,7 @@ and below \texttt{MBPT/Basis}.
 Do not include core-valence MBPT corrections.
 \end{adjustwidth}
 
-\texttt{{-}{-}use-subtraction}
+\texttt{{-}{-}force-subtraction}
 \begin{adjustwidth}{1cm}{}
 Force the calculation of subtraction diagrams, even if the atomic configuration would not automatically
 require them.
@@ -2212,11 +2212,16 @@ Kappa-dependent prefactor for one-body MBPT. This modifies $\Sigma^{(1)} \to \la
 
 \texttt{{-}{-}brueckner}
 \begin{adjustwidth}{1cm}{}
-Generate and use Br\"{u}ckner orbitals throughout the calculation. This only makes sense for
-single-valence-electron calculations.
+Generate and use Br\"{u}ckner orbitals (see Sec.~\ref{subsec:brueckner}).
+\end{adjustwidth}
+
+\texttt{{-}{-}mbpt-use-brueckner}
+\begin{adjustwidth}{1cm}{}
+	Use Br\"{u}ckner orbitals also for high-lying states (i.e. non-valence excited states) and throughout the MBPT diagrams.
 \end{adjustwidth}
 
 \subsection{Brueckner}
+\label{subsec:brueckner}
 
 Br\"{u}ckner MBPT generates orbitals via a nonlocal ``Sigma'' potential, which is used to approximate
 the effects of core-polarisation. This potential is represented in matrix 
@@ -2266,14 +2271,6 @@ of 4 will only include every 4th lattice point in the sigma matrix.
 \begin{adjustwidth}{1cm}{}
 Adds a $\kappa$-dependent prefactor to the (Br\"{u}ckner) sigma potential so $\Sigma \to
 \lambda_{\kappa}\Sigma$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.
-\end{adjustwidth}
-
-\texttt{EnergyScaling} \uline{List of reals}
-\begin{adjustwidth}{1cm}{}
-Attempt to find a value of $\lambda_{\kappa}$ (as in \texttt{MBPT/Brueckner/Scaling}) such that the resulting
-single-particle energy $\varepsilon$ of the orbital $nl$ in equation \ref{eq:brueckner} is equal to $\mu_{\kappa}$ (in
-atomic units). Input consists of a list of consecutive
-$nl, \mu_{\kappa}$ pairs, where $nl$ is, for example, \texttt{6s}, \texttt{5d}, \texttt{5d+}, etc.
 \end{adjustwidth}
 
 \texttt{{-}{-}use-lower}

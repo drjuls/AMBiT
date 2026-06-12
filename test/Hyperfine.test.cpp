@@ -20,6 +20,7 @@ TEST(HyperfineTester, Rb)
 
     // Rb - comparison with Walter Johnson book
     std::string user_input_string = std::string() +
+        "ID = Rb\n" +
         "NuclearRadius = 4.8708\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 37\n" +
@@ -61,6 +62,7 @@ TEST(HyperfineTester, Na)
 
     // Na
     std::string user_input_string = std::string() +
+        "ID = Na\n" +
         "NuclearRadius = 2.8853\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 11\n" +
@@ -163,6 +165,7 @@ TEST(HyperfineTester, CsRPA)
     // Cs - Comparison with Dzuba code
     // [private communication; similar to Dzuba, Flambaum, Sushkov, JPB 17, 1953 (1984)]
     std::string user_input_string = std::string() +
+        "ID = Cs\n" +
         "NuclearRadius = 5.6748\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 55\n" +

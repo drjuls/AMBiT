@@ -164,28 +164,23 @@ public:
     bool ci_complete = false;
     bool no_ci = false;
     bool configuration_average = false;
-    bool dont_diagonalise_H = false;
+    bool no_diagonalisation = false;
     double alpha_squared_variation = 0;
-    double nuclear_inverse_mass = 0;
     double nuclear_radius = 4.0;
     double nuclear_thickness = 2.3;
     bool m = false;
     // Lattice
-    unsigned lattice_num_points = 0;
-    double lattice_start_point = 0;
-    double lattice_end_point = 0;
+    unsigned lattice_num_points = 1000;
+    double lattice_start_point = 1.e-6;
+    double lattice_end_point = 50.0;
     bool lattice_exponential = false;
     double lattice_H = 0.05;
     // HF
     std::optional<unsigned> hf_N;
     std::optional<int> hf_charge;
-    std::string hf_configuration;
+    std::optional<std::string> hf_configuration;
     bool hf_breit = false;
-    bool hf_sms = false;
-    bool hf_nms = false;
-    bool hf_only_rel_nms = false;
-    bool hf_nonrel_mass_shift = false;
-    bool hf_include_lower_mass = false;
+    bool hf_qed = false; // Alias for hf_qed_uehling and hf_qed_self_energy
     bool hf_local_exchange = false;
     double hf_xalpha = 1.0;
     // HF/QED
@@ -198,6 +193,13 @@ public:
     bool hf_qed_no_electric = false;
     bool hf_qed_skip_offmass = false;
     bool hf_qed_use_electron_screening = false;
+    // HF/MassShift
+    double hf_ms_nuclear_inverse_mass = 0;
+    bool hf_ms_sms = false;
+    bool hf_ms_nms = false;
+    bool hf_ms_only_rel_nms = false;
+    bool hf_ms_nonrel_mass_shift = false;
+    bool hf_ms_include_lower_sms = false;
     // HF/NuclearPolarisability
     bool hf_do_nuclear_polarisability = false;
     double hf_nuclear_polarisability_alpha_e = 0.0;
@@ -215,8 +217,6 @@ public:
     // Basis
     std::string basis_valence;
     std::optional<std::string> basis_frozen_core;
-    std::optional<std::string> basis_size;
-    // TODO EVK: Should this be a std::optional?
     std::vector<std::string> basis_include_valence;
     std::vector<std::string> basis_exclude_valence;
     std::optional<std::string> basis_residue;
@@ -230,9 +230,9 @@ public:
     // Basis/BSpline
     std::optional<double> basis_bspline_rmax;
     double basis_bspline_r0 = 0;
-    double basis_bspline_k = 7;
-    double basis_bspline_N = 40;
-    std::string basis_bspline_splinetype;
+    unsigned basis_bspline_k = 7;
+    unsigned basis_bspline_N = 40;
+    std::string basis_bspline_splinetype = "Reno";
     // CI
     CISpecification ci;
     // CI/Output is also in CISpecification
@@ -244,7 +244,7 @@ public:
     std::optional<std::string> mbpt_energy_denom_orbitals;
     bool mbpt_use_valence = false;
     bool mbpt_no_core = false;
-    bool mbpt_use_subtraction = false;
+    bool mbpt_force_subtraction = false;
     bool mbpt_no_subtraction = false;
     bool mbpt_no_extra_box = false;
     double mbpt_energy_denom_floor = 0.01;
@@ -252,6 +252,7 @@ public:
     std::optional<std::vector<unsigned> > mbpt_twobody_storage_limits;
     std::optional<std::vector<double> > mbpt_onebody_scaling;
     bool mbpt_brueckner = false;
+    bool mbpt_use_brueckner = false;
     // NOTE: Always use these when checking which MBPT diagrams to include
     bool mbpt_one_body = false;
     bool mbpt_two_body = false;
@@ -261,10 +262,8 @@ public:
     double mbpt_brueckner_endpoint = 8.0;
     unsigned mbpt_brueckner_stride = 4;
     std::vector<double> mbpt_brueckner_scaling;
-    std::vector<double> mbpt_brueckner_energy_scaling;
     bool mbpt_brueckner_use_lower = false;
     bool mbpt_brueckner_use_lower_lower = false;
-    bool mbpt_brueckner_excited = false;
 
     // Bools for whether to do a given transition type
     bool transitions_do_e1 = false;

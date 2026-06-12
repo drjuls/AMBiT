@@ -16,6 +16,7 @@ TEST(LocalPotentialDecoratorTester, CoreHartree)
 
     // Na
     std::string user_input_string = std::string() +
+    "ID = Na\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 11\n" +
@@ -52,6 +53,7 @@ TEST(LocalPotentialDecoratorTester, DiracHartree)
 
     // Na
     std::string user_input_string = std::string() +
+    "ID = Na\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 11\n" +
@@ -90,6 +92,7 @@ TEST(LocalPotentialDecoratorTester, KohnSham)
 
     // K
     std::string user_input_string = std::string() +
+    "ID = K\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 19\n" +
@@ -128,6 +131,7 @@ TEST(LocalPotentialDecoratorTester, DiracSlater)
 
     // Cs
     std::string user_input_string = std::string() +
+    "ID = Cs\n" +
     "NuclearRadius = 6.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 55\n" +

@@ -12,6 +12,7 @@ TEST(BSplineBasisTester, Rb)
     pLattice lattice(new Lattice(1000, 1.e-6, 50.));
 
     std::string user_input_string = std::string() +
+    "ID = Rb\n" +
     "NuclearRadius = 4.8708\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 37\n" +

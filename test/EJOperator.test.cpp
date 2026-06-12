@@ -19,6 +19,7 @@ TEST(EJOperatorTester, LiTransitions)
 
     // Li - comparison with Walter Johnson book page 239 (Table 8.1)
     std::string user_input_string = std::string() +
+        "ID = Li\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 3\n" +
@@ -99,6 +100,7 @@ TEST(EJOperatorTester, NaTransitions)
 
     // Na - comparison with Walter Johnson book page 239 (Table 8.1)
     std::string user_input_string = std::string() +
+        "ID = Na\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 11\n" +
@@ -178,6 +180,7 @@ TEST(MJOperatorTester, LiTransitions)
 
     // Li fine-structure - comparison with Walter Johnson book page 163
     std::string user_input_string = std::string() +
+        "ID = Li\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 3\n" +
@@ -218,11 +221,13 @@ TEST(EJOperatorTester, HeTransitions)
 
     // He line strengths - comparison with Walter Johnson book page 229
     std::string user_input_string = std::string() +
+        "ID = He\n" +
         "NuclearRadius = 1.5\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 2\n" +
         "[HF]\n" +
         "N = 0\n" +
+        "Configuration = 0\n" +
         "[Basis]\n" +
         "--bspline-basis\n" +
         "ValenceBasis = 14spd\n" +
@@ -352,6 +357,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
     // CuIII - old electron way
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+            "ID = CuIII\n" +
             "NuclearRadius = 3.7188\n" +
             "NuclearThickness = 2.3\n" +
             "Z = 29\n" +
@@ -416,6 +422,7 @@ TEST(MJOperatorTester, HolesVsElectrons)
     // CuIII - using holes now
     {   // Block for reusing names
         std::string user_input_string = std::string() +
+            "ID = CuIII\n" +
             "NuclearRadius = 3.7188\n" +
             "NuclearThickness = 2.3\n" +
             "Z = 29\n" +
@@ -490,6 +497,7 @@ TEST(EJOperatorTester, Screening)
 
     // Ne
     std::string user_input_string = std::string() +
+        "ID = Ne\n" +
         "NuclearRadius = 3.5\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 10\n" +
@@ -534,6 +542,7 @@ TEST(EJOperatorTester, XeScreening)
 
     // Xe
     std::string user_input_string = std::string() +
+        "ID = Xe\n" +
         "NuclearRadius = 5.7\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 54\n" +

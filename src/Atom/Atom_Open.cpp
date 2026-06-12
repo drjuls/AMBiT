@@ -57,7 +57,7 @@ void Atom::MakeMBPTIntegrals()
     }
 
     // We can always force subtraction diagrams, and it's always a good idea if there have been injected orbitals
-    if(specification->mbpt_use_subtraction || specification->basis_inject_orbitals)
+    if(specification->mbpt_force_subtraction || specification->basis_inject_orbitals)
         is_open_shell = true;
     if(specification->mbpt_no_subtraction)
         is_open_shell = false;
@@ -327,11 +327,6 @@ void Atom::InitialiseAngularDataLibrary(pAngularDataLibrary trial)
     else if(angular_library == nullptr)
     {
         std::string angular_directory = string_macro(ANGULAR_DATA_DIRECTORY);
-        // TODO EVK: Does anyone even use this functionality? Hard-coding the angular data
-        // directory at compile time is almost certainly fine
-        //if(user_input.VariableExists("AngularDataDirectory"))
-        //    angular_directory = user_input("AngularDataDirectory", "");
-
         angular_library = std::make_shared<AngularDataLibrary>(angular_directory);
     }
 }
@@ -708,7 +703,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             // Read Hamiltonian if available, but only if we don't have the "-c" flag
             bool generate_matrix = true;
             // Do not solve the matrix, just generate Hamiltonian and write to file
-            bool dont_solve_matrix = specification->dont_diagonalise_H;
+            bool dont_solve_matrix = specification->no_diagonalisation;
 
             // If reading from a checkpoint file, make sure the file exists and is valid, then
             // read

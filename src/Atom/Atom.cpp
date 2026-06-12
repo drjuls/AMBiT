@@ -108,17 +108,12 @@ bool Atom::ReadBasis()
 
     // Finally, go over the orbitals we've read and make sure they're consistent with the user input
     // First, parse the largest basis string in the user input
-    std::optional<std::string> basis_size = specification->basis_size;
     std::optional<std::string> mbpt_basis = specification->mbpt_basis;
     std::optional<std::string> valence_basis = specification->basis_valence;
     // If we haven't got an explicit basis size, then get this from either the MBPT or Valence
     // Basis input options, or an empty string, in that order of preference
     std::string all_states;
-    if(basis_size)
-    {
-        all_states = basis_size.value();
-    }
-    else if (mbpt_basis)
+    if (mbpt_basis)
     {
         all_states = mbpt_basis.value();
     }
@@ -171,7 +166,7 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     brueckner->SetMatrixParameters(stride, sigma_start_r, sigma_end_r);
 
     pOrbitalMap orbitals_to_update = orbitals->valence;
-    if(specification->mbpt_brueckner_excited)
+    if(specification->mbpt_use_brueckner)
         orbitals_to_update = orbitals->excited;
 
     // Attempt to read all requested kappas
@@ -196,7 +191,7 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
         }
     }
 
-    // Get scalings or energies
+    // Get scalings
     unsigned int scaling_length = specification->mbpt_brueckner_scaling.size();
 
     // Run this one unless MBPT/Brueckner/EnergyScaling option is used
@@ -204,7 +199,7 @@ void Atom::GenerateBruecknerOrbitals(bool generate_sigmas)
     {
         for(int i = 0; i < scaling_length-1; i+=2)
         {
-            int kappa = specification->mbpt_brueckner_energy_scaling[i];
+            int kappa = specification->mbpt_brueckner_scaling[i];
             double scale = specification->mbpt_brueckner_scaling[i+1];
             brueckner->SetSigmaScaling(kappa, scale);
         }

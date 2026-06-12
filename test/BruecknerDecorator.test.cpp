@@ -21,6 +21,7 @@ TEST(BruecknerDecoratorTester, MgIISlow)
 
     // MgII
     std::string user_input_string = std::string() +
+        "ID = MgII\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 12\n" +
