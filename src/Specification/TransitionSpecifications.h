@@ -56,7 +56,7 @@ public:
     double q = 1.0;
 };
 
-class TransitionsHFSISpecification: public TransitionsBaseSpecification
+class TransitionsHFISpecification: public TransitionsBaseSpecification
 {
 public:
     std::optional<double> nuclear_radius;
@@ -106,9 +106,9 @@ public:
 };
 
 // Atom_Autoionization stuff
-// IC options should be a subclass of the HFSI specification, since it gets used to
+// IC options should be a subclass of the HFI specification, since it gets used to
 // initialise a GeneralisedHyperfine calculator
-class ICSpecification : public TransitionsHFSISpecification
+class ICSpecification : public TransitionsHFISpecification
 {
 public:
     std::string source_filename;

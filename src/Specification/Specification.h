@@ -64,11 +64,11 @@ public:
     bool output_print_hamiltonian = false;
     bool output_write_hamiltonian = false;
     std::optional<double> output_max_displayed_energy;
-    std::optional<double> output_min_displayed_percent;
+    std::optional<double> output_min_displayed_percentage;
     bool output_print_inline = false;
     std::optional<std::string> output_separator;
     bool output_print_relativistic_configurations = false;
-    bool output_no_configs = false;
+    bool output_no_configurations = false;
 };
 
 /************************** GlobalSpecification ***********************/
@@ -129,7 +129,7 @@ public:
     template <typename T>
     std::vector<P::specification<T>> make_transitions_hfs2_specification();
     template <typename T>
-    std::vector<P::specification<T>> make_transitions_hfsi_specification();
+    std::vector<P::specification<T>> make_transitions_hfi_specification();
     template <typename T>
     std::vector<P::specification<T>> make_transitions_fs_specification();
     template <typename T>
@@ -168,16 +168,15 @@ public:
     double alpha_squared_variation = 0;
     double nuclear_radius = 4.0;
     double nuclear_thickness = 2.3;
-    bool m = false;
     // Lattice
     unsigned lattice_num_points = 1000;
     double lattice_start_point = 1.e-6;
     double lattice_end_point = 50.0;
+    double lattice_beta = 4.0;
     bool lattice_exponential = false;
-    double lattice_H = 0.05;
+    double lattice_h = 0.05;
     // HF
     std::optional<unsigned> hf_N;
-    std::optional<int> hf_charge;
     std::optional<std::string> hf_configuration;
     bool hf_breit = false;
     bool hf_qed = false; // Alias for hf_qed_uehling and hf_qed_self_energy
@@ -276,7 +275,7 @@ public:
     bool transitions_do_m4 = false;
     bool transitions_do_hfs1 = false;
     bool transitions_do_hfs2 = false;
-    bool transitions_do_hfsi = false;
+    bool transitions_do_hfi  = false;
     bool transitions_do_fs = false;
     bool transitions_do_qed = false;
     bool transitions_do_yukawa = false;
@@ -299,7 +298,7 @@ public:
     // Everything else
     TransitionsHFS1Specification transitions_hfs1;
     TransitionsHFS2Specification transitions_hfs2;
-    TransitionsHFSISpecification transitions_hfsi;
+    TransitionsHFISpecification transitions_hfi;
     TransitionsFSSpecification transitions_fs;
     TransitionsQEDSpecification transitions_qed;
     TransitionsYukawaSpecification transitions_yukawa;

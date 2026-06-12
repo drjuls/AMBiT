@@ -4,14 +4,14 @@
 
 namespace Ambit
 {
-Lattice::Lattice(unsigned int numpoints, double r_min, double r_max):
-    beta(4.0), num_points(numpoints), original_size(numpoints), rmin(r_min)
+Lattice::Lattice(unsigned int numpoints, double r_min, double r_max, double beta):
+    beta(beta), num_points(numpoints), original_size(numpoints), rmin(r_min)
 {
     r.resize(num_points);
     dr.resize(num_points);
-    
+
     h =(r_max - rmin + beta*log(r_max/rmin))/(num_points-1);
-    
+
     for(unsigned int i=0; i<num_points; i++)
     {   r[i] = lattice_to_real(i);
         dr[i] = calculate_dr(r[i]);

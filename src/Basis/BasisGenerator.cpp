@@ -34,24 +34,8 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
     auto specification = GlobalSpecification::Instance();
     unsigned int Z = specification->Z;
 
-    // HF/Charge and HF/N may or may not be present in the input file, so either grab the value if
-    // it exists, or calculate it based on the electronic parameters
-    int Charge;
-    std::optional<int> Charge_opt = specification->hf_charge;
-    std::optional<unsigned> N = specification->hf_N;
-    if(Charge_opt)
-    {
-        Charge = Charge_opt.value();
-    }
-    else
-    {   if(N && Z >= N.value())
-        {
-            Charge = Z - N.value();
-        } else {
-            Charge = 0;
-        }
-    }
-
+    // HF/N and HF/Configuration must be present in the input file
+    std::optional<unsigned> N = specification->hf_N.value();
     std::string config = specification->hf_configuration.value();
 
     // Get orbitals and occupancies
@@ -72,7 +56,7 @@ void BasisGenerator::InitialiseHF(pHFOperator& undressed_hf)
 
     // Set open_core occupancies
     open_core->SetOccupancies(open_shell_occupations);
-    if(open_core->NumElectrons() != Z - Charge)
+    if(open_core->NumElectrons() != N)
     {   *errstream << "Core::BuildFirstApproximation: Incorrect electron count in configuration." << std::endl;
         exit(1);
     }

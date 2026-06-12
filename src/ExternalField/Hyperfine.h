@@ -76,7 +76,7 @@ protected:
 class GeneralisedHyperfineCalculator : public TransitionCalculator
 {
 public:
-    GeneralisedHyperfineCalculator(Atom& atom, TransitionsHFSISpecification& specification);
+    GeneralisedHyperfineCalculator(Atom& atom, TransitionsHFISpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

@@ -801,7 +801,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
     }
 
     bool ShowPercentages = true;
-    if(specification->ci.output_no_configs || specification->ci.single_configuration_ci)
+    if(specification->ci.output_no_configurations || specification->ci.single_configuration_ci)
     {   ShowPercentages = false;
     }
 
@@ -829,7 +829,7 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
     else
     {   double min_percent_displayed = 101.;
         if(ShowPercentages)
-            min_percent_displayed = specification->ci.output_min_displayed_percent.value_or(1.0);
+            min_percent_displayed = specification->ci.output_min_displayed_percentage.value_or(1.0);
 
         if(specification->ci.output_max_displayed_energy)
         {   // Truncate display at max energy

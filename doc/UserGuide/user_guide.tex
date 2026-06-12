@@ -624,7 +624,7 @@ recommend using whenever possible.
 
 The options controlling transition calculations are in the \texttt{[Transitions]} sections and divided
 into sections for each operator, e.g. \texttt{Transitions/E2/{-}{-}reduced-elements} or 
-\texttt{Transitions/M2/Transitions}. Each subsection accepts the same set of possible arguments, but 
+\texttt{Transitions/M1/MatrixElements}. Each subsection accepts the same set of possible arguments, but 
 the arguments need not be the same for each requested operator. There are two ways of specifying which
 transitions to calculate. The first is to directly list the transitions with the option
 \texttt{<Operator>/MatrixElements}, which takes a list of transitions between levels of the form
@@ -1582,26 +1582,35 @@ Parameter to be varied when performing multiple runs. This is described in detai
 
 \section{Lattice}
 
-\texttt{NumPoints} \uline{Integer}[1000]
+The default lattice is a hybrid linear-exponential scheme where physical lattice points $r_i$ are generated from evenly-spaced lattice points $x_i$ according to the formula
+\[
+x_i = i \times h = (r_i - r_0) + \beta \log (r_i/r_0)
+\]
+where $\beta = 4$ and $r_0$ is the smallest lattice point.
+
+\texttt{NumPoints} \uline{Integer} [1000]
 \begin{adjustwidth}{1cm}{}
 Maximum number of points to include in the radial wavefunction lattice.
 \end{adjustwidth}
 
-\texttt{StartPoint} \uline{Real}[1.0e-6]
+\texttt{StartPoint} \uline{Real} [1.0e-6]
 \begin{adjustwidth}{1cm}{}
 Starting point of the lattice (in atomic units).
 \end{adjustwidth}
 
-\texttt{EndPoint} \uline{Real}[50.0]
+\texttt{EndPoint} \uline{Real} [50.0]
 \begin{adjustwidth}{1cm}{}
 End point of the lattice (in atomic units).
 \end{adjustwidth}
 
+\texttt{Beta} \uline{Real} [4.0]
+\begin{adjustwidth}{1cm}{}
+Determines how the lattice goes from exponential at small distances to linear at larger distances.
+\end{adjustwidth}
+
 \texttt{--exp-lattice}
 \begin{adjustwidth}{1cm}{}
-Use a lattice with strictly exponential spacing, rather than the default hybrid linear-exponential
-scheme. This changes the default value of \texttt{Lattice/NumPoints} to 300 and
-\texttt{Lattice/StartPoint} to 1.0e-5.
+Use a lattice with strictly exponential spacing $x_i = i \times h = \log(r_i/r_0)$, rather than the default hybrid linear-exponential scheme. Typically fewer points will be needed since the larger values will quickly get larger, however this may affect accuracy and stability, particularly for continuum functions. Try setting \texttt{Lattice/NumPoints} to 300 and \texttt{Lattice/StartPoint} to 1.e-5.
 \end{adjustwidth}
 
 \texttt{H} \uline{Real}[0.05]
@@ -1761,20 +1770,18 @@ Summary of mass shift options for relativistic and nonrelativistic operators:
 
 \texttt{Mass} \uline{Real}[1.0]
 \begin{adjustwidth}{1cm}{}
-Mass (in atomic units) of the particle coupled via the Yukawa interaction. Overrides any value set by
-\texttt{Yukawa/MassEV} or \texttt{Yukawa/Rc}.
+Mass (in atomic units) of the particle coupled via the Yukawa interaction. Cannot be used with \texttt{Yukawa/MassEV} or \texttt{Yukawa/Rc}.
 \end{adjustwidth}
 
 \texttt{MassEV} \uline{Real}[1.0]
 \begin{adjustwidth}{1cm}{}
-Mass (in electron volts) of the particle coupled via the Yukawa potential. Not used if
-\texttt{Yukawa/Mass} is specified.
+Mass (in electron volts) of the particle coupled via the Yukawa potential. Cannot be used with
+\texttt{Yukawa/Mass} or \texttt{Yukawa/Rc}.
 \end{adjustwidth}
 
 \texttt{Rc} \uline{Real}[1.0]
 \begin{adjustwidth}{1cm}{}
-Parameter determining the cutoff radius of the Yukawa interaction. Not used if \texttt{Yukawa/Mass}
-or \texttt{Yukawa/MassEV} is specified.
+Parameter determining the cutoff radius of the Yukawa interaction. Cannot be used if \texttt{Yukawa/Mass} or \texttt{Yukawa/MassEV} is specified.
 \end{adjustwidth}
 
 \texttt{Scale} \uline{Real}[1.0]
@@ -1791,7 +1798,7 @@ and contain a list of pairs of radial points $R$ and corresponding potentials $V
 pair per line. All \texttt{HF/AddLocalPotential} options are skipped if no \texttt{Filename} is provided.
 \end{adjustwidth}
 
-\texttt{Scale} \uline{Integer}[1.0]
+\texttt{Scale} \uline{Real} [1.0]
 \begin{adjustwidth}{1cm}{}
 Scale factor of the included local potential.
 \end{adjustwidth}
@@ -1839,7 +1846,7 @@ Use the InjectOrbitals technique to modify pathological basis functions. The det
 well beyond the scope of this document.
 \end{adjustwidth}
 
-\texttt{--reorthorgonalise}
+\texttt{--reorthogonalise}
 \begin{adjustwidth}{1cm}{}
 Force all basis functions to be re-orthogonalised once generated.
 \end{adjustwidth}
@@ -1916,9 +1923,9 @@ number, e.g. \texttt{CI/LeadingConfigurations='3d-1'} contains a hole in the 3d 
 
 \texttt{LeadingRelativisticConfigurations} \uline{String}
 \begin{adjustwidth}{1cm}{}
-List relativistic configurations from which to generate the CI matrix. Accepts a list of a similar form 
+List relativistic configurations from which to generate the CI matrix. Accepts a list of similar form 
 to \texttt{CI/LeadingConfigurations}, but consisting of relativistic configurations built from orbitals 
-of the form $nl$ or $nl+$, where $+$ corresponds to orbitals with $\kappa < -1$ (e.g. 4f1 5p$+$2).
+of the form $nl$ and $nl+$, corresponding to orbitals with $j = l - 1/2$ and $j = l + 1/2$, respectively. Examples: \texttt{4f1 5p+2} is $4f_{5/2}\,5p_{3/2}^2$, while \texttt{4f+1 5p 5p+} is $4f_{7/2}\,5p_{1/2}\,5p_{3/2}$.
 \end{adjustwidth}
 
 
@@ -1931,24 +1938,28 @@ electron- or hole-excitations. Accepts a list of the same form as \texttt{CI/Lea
 \texttt{ExtraRelativisticConfigurations} \uline{String}
 \begin{adjustwidth}{1cm}{}
 List of ``extra'' relativistic configurations to be included in the CI matrix, but which are not used 
-when generating electron- or hole-excitations. Accepts a list of a similar form to
-\texttt{CI/LeadingConfigurations}, but consisting of relativistic configurations built from orbitals of
-the form $nl$ or $nl+$, where $+$ corresponds to orbitals with $\kappa < -1$.
-%TODO: This last sentence is really clunky.
+when generating electron- or hole-excitations. Accepts a list of same form as \\
+\texttt{CI/LeadingRelativisticConfigurations}.
 \end{adjustwidth}
 
-\texttt{ElectronExcitations} \uline{Integer or String}[2]
+\texttt{ElectronExcitations} \uline{Integer} [2]
 \begin{adjustwidth}{1cm}{}
-Number of electron excitations to include in CI. 
-This option also accepts input as a string of the form \texttt{'1, <Size 1>, 2, <Size 2>, ...'},
-which specifies different limits on $pqn$ and $l$ for each electron. For example, the string
-\texttt{1,8spdf,2,6spd} will include all single-excitations up to 8spdf and all double-excitations up to 
-6spd.
+Number of electron excitations to include in CI. Configurations are generated by exciting up to this many electrons from leading configurations into all valence orbitals.
 \end{adjustwidth}
 
-\texttt{HoleExcitations} \uline{Integer}[0]
+\texttt{ElectronBounds} \uline{List of basis strings}
 \begin{adjustwidth}{1cm}{}
-Number of hole excitations to include in CI.
+Specifies different limits on principal quantum numbers $n$ and $l$ for excited electrons using a basis-type string. For example \texttt{'8spdf, 6spd'} will include all single-excitations up to 8spdf and all double-excitations up to 6spd. Must have the same number of elements as \texttt{ElectronExcitations}. These essentially act as limits on \texttt{Basis/ValenceBasis} for each electron being excited.
+\end{adjustwidth}
+
+\texttt{HoleExcitations} \uline{Integer} [0]
+\begin{adjustwidth}{1cm}{}
+Number of hole excitations to include in CI. Hole excitations can move down through the non-frozen core, or annihilate with valence electrons.
+\end{adjustwidth}
+
+\texttt{HoleBounds} \uline{List of basis strings}
+\begin{adjustwidth}{1cm}{}
+Specifies different limits on principal quantum numbers $n$ and $l$ for holes using a basis-type string. For example \texttt{'3sp, 4spd'} will treat the frozen core as $3sp$ for the first hole excitation and $4spd$ for the second. These essentially act as limits on \texttt{Basis/FrozenCore} for each electron being excited.
 \end{adjustwidth}
 
 \texttt{EvenParityTwoJ} \uline{String}
@@ -1994,7 +2005,7 @@ Immediately write CI solutions, wavefunctions and angular data for each $J^{\pi}
 complete, rather than keeping them in memory for the entire lifetime of the calculation. 
 \end{adjustwidth}
 
-\texttt{{-}{-}single-configuration-ci, {-}{-}single-configuration-CI}
+\texttt{--single-configuration-CI}
 \begin{adjustwidth}{1cm}{}
 Generate Hamiltonian matrices from a single nonrelativistic configuration. Used in many-body quantum
 chaos calculations where there is strong mixing between states.
@@ -2020,7 +2031,7 @@ OpenMP+MPI configuration. This flag is only available when \ambit\ has been comp
 \texttt{-DAMBIT\_USE\_SCALAPACK} compile-time flag.
 \end{adjustwidth}
 
-\texttt{MaxEnergy} \uline{Real}[0.0]
+\texttt{MaxEnergy} \uline{Real}
 \begin{adjustwidth}{1cm}{}
 Maximum energy solution to calculate when solving with \texttt{--scalapack}.
 \end{adjustwidth}
@@ -2063,6 +2074,11 @@ Write the lower-triangular component of the Hamiltonian matrix. The matrix is wr
 with filename \texttt{<ID>\_<run>.<2J><parity>.matrix}, where \texttt{ID} is the value of the 
 \texttt{ID} input option, \texttt{run} is the multirun index (0 if multirun is not used) and
 \texttt{parity} is either \texttt{e} or \texttt{o}.
+\end{adjustwidth}
+
+\texttt{--no-configurations}
+\begin{adjustwidth}{1cm}{}
+Do not display configuration information about levels.
 \end{adjustwidth}
 
 \texttt{MaxDisplayedEnergy} \uline{Real}
@@ -2298,13 +2314,14 @@ Transitions for the following operators are supported by \ambit:
 \item HFS1, HFS2 - Hyperfine dipole and quadrupole operators
 \item HFI - Generalised hyperfine interaction operators
 \item FS - Field shift calculator (rank 0 tensor)
+\item NMS - Normal mass shift calculator (rank 0 tensor)
 \item QED - QED shift calculator (rank 0 tensor)
 \item Yukawa - Yukawa calculator (rank 0 tensor)
 \item KE - Relativistic kinetic energy operator, $c\,\vec{\alpha}\cdot\vec{p}$
 \item LLIT2 - Local Lorentz invariance operator, $T^{(2)} = c\,(\vec{\alpha}\cdot\vec{p} - 3\,\alpha_z p_z)$
 \end{itemize}
 
-The field-shift, QED and Yukawa operators are rank zero tensors, so they do not have transitions
+The field-shift, NMS, QED, and Yukawa operators are rank zero tensors, so they do not have transitions
 associated with them. These prefixes will simply calculate the matrix elements of their respective
 decorators. Additionally, specifying these operators in \texttt{Transitions} only calculates their
 matrix elements and does not include them in CI+MBPT calculations for energy levels, so this
@@ -2509,15 +2526,15 @@ different to the combined system, so it's sometimes necessary to specify this di
 
 \subsection{DR/EnergyGrid}
 This prefix and its options control the continuum energy range over which to calculate autoionization
-rates. These options are only used if the \texttt{DR/{-}{-}energy-grid} flag is set.
+rates. These options are only used if the \texttt{DR/--energy-grid} flag is set.
 
 \texttt{Min} \uline{Real}
-\begin{adjustwidth}{1cm}{}[0.003675 (0.1eV)]
+\begin{adjustwidth}{1cm}{}[0.003675 (0.1 eV)]
 Minimum continuum wave energy energy in atomic units, relative to the ionization threshold specified in
 \texttt{DR/IonizationEnergy}.
 \end{adjustwidth}
 
-\texttt{Max} \uline{Real}[3.675 (1eV)]
+\texttt{Max} \uline{Real}[3.675 (100 eV)]
 \begin{adjustwidth}{1cm}{}
 Maximum continuum wave energy energy in atomic units, relative to the ionization threshold. Will be
 clamped to the value of \texttt{DR/EnergyLimit} if this value is greater than the one specified in
@@ -2548,9 +2565,9 @@ well as how to calculate its electronic structure.
 (Mandatory) Parity (odd or even) of the target state.
 \end{adjustwidth}
 
-\texttt{Index} \uline{Integer}
+\texttt{Index} \uline{Integer} [0]
 \begin{adjustwidth}{1cm}{}
-(Mandatory) Index of the target state in the energy-ordered $J^{\pi}$ CI solution for the target system. 
+Index of the target state in the energy-ordered $J^{\pi}$ CI solution for the target system. 
 For example, if the file specified in \texttt{Target/Filename} generates 5 CI solutions with the desired
 $J^{\pi}$, \texttt{DR/Target/Index = 1} will pick the second lowest energy solution.
 \end{adjustwidth}

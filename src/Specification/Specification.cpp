@@ -101,9 +101,9 @@ std::vector<P::specification<X>> GlobalSpecification::make_ci_specification() {
         {"Output/--print-hamiltonian",                      &X::output_print_hamiltonian},
         {"Output/--print-inline",                           &X::output_print_inline},
         {"Output/--print-relativistic-configurations",      &X::output_print_relativistic_configurations},
-        {"Output/--no-configs",                             &X::output_no_configs},
+        {"Output/--no-configurations",                      &X::output_no_configurations},
         {"Output/MaxDisplayedEnergy",                       &X::output_max_displayed_energy},
-        {"Output/MinDisplayedPercent",                      &X::output_min_displayed_percent},
+        {"Output/MinDisplayedPercentage",                   &X::output_min_displayed_percentage},
         {"Output/Separator",                                &X::output_separator},
      });
 }
@@ -118,6 +118,7 @@ std::vector<P::specification<X>> GlobalSpecification::make_transitions_base_spec
         {"--reduced-elements",              &X::reduced_elements},
         {"--print-integrals",               &X::print_integrals},
         {"--rpa",                           &X::do_rpa},
+        {"Scale",                           &X::scale},
         {"RPA/Scale",                       &X::rpa_scale},
         {"RPA/Weighting",                   &X::rpa_weighting, zero_to_1},
         {"RPA/MaxDeltaK",                   &X::rpa_max_delta_k, nonnegative},
@@ -160,7 +161,7 @@ std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfs2_spec
 }
 
 template <typename X>
-std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfsi_specification() {
+std::vector<P::specification<X>> GlobalSpecification::make_transitions_hfi_specification() {
     // Start with the base transitions specification and add extras on top
     return extend(make_transitions_base_specification<X>(), {
         {"NuclearRadius",           &X::nuclear_radius},
@@ -207,15 +208,15 @@ template <typename X>
 std::vector<P::specification<X>> GlobalSpecification::make_transitions_nms_specification() {
     // Start with the base transitions specification and add extras on top
     return extend(make_transitions_base_specification<X>(), {
-        {"--only-relativistic-nms",             &X::only_relativistic_nms},
-        {"--nonrelativistic--mass-shift",       &X::nonrelativistic_mass_shift},
+        {"--only-relativistic-nms",         &X::only_relativistic_nms},
+        {"--nonrelativistic-mass-shift",    &X::nonrelativistic_mass_shift},
     });
 }
 
 template <typename X>
 std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
     // Start with the base transitions specification and add extras on top
-    return extend(make_transitions_hfsi_specification<X>(), {
+    return extend(make_transitions_hfi_specification<X>(), {
         {"Source/Filename",         &X::source_filename},
         {"Source/TwoJ",             &X::source_twoj, nonnegative},
         {"Source/Parity",           &X::source_parity},
@@ -254,7 +255,6 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // NOTE: Don't check "GlobalSpecification::s1" and friends in the main body of the code, use
     // "GlobalSpecification::mbpt_one_body" etc instead; it's much cleaner to figure out which
     // integrals to include once when normalising the spec
-    {"-m",                      &GlobalSpecification::m},
     {"-s1",                     &GlobalSpecification::_s1},
     {"-s2",                     &GlobalSpecification::_s2},
     {"-s3",                     &GlobalSpecification::_s3},
@@ -271,19 +271,19 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"--ci-complete",           &GlobalSpecification::ci_complete},
     {"--no-ci",                 &GlobalSpecification::no_ci},
     {"--configuration-average", &GlobalSpecification::configuration_average},
-    {"--no_diagonalisation",    &GlobalSpecification::no_diagonalisation},
+    {"--no-diagonalisation",    &GlobalSpecification::no_diagonalisation},
     {"NuclearRadius",           &GlobalSpecification::nuclear_radius},
     {"NuclearThickness",        &GlobalSpecification::nuclear_thickness},
     {"AlphaSquaredVariation",   &GlobalSpecification::alpha_squared_variation},
     // Lattice
-    {"Lattice/NumPoints",       &GlobalSpecification::lattice_num_points,  P::nonzero()},
+    {"Lattice/NumPoints",       &GlobalSpecification::lattice_num_points,  positive},
     {"Lattice/StartPoint",      &GlobalSpecification::lattice_start_point, positive},
     {"Lattice/EndPoint",        &GlobalSpecification::lattice_end_point,   positive},
+    {"Lattice/Beta",            &GlobalSpecification::lattice_beta,        positive},
     {"Lattice/--exp-lattice",   &GlobalSpecification::lattice_exponential},
-    {"Lattice/H",               &GlobalSpecification::lattice_H,           positive},
+    {"Lattice/H",               &GlobalSpecification::lattice_h,           positive},
     // HF
-    {"HF/N",                            &GlobalSpecification::hf_N,            nonnegative},
-    {"HF/Charge",                       &GlobalSpecification::hf_charge},
+    {"HF/N",                            &GlobalSpecification::hf_N,        nonnegative},
     {"HF/Configuration",                &GlobalSpecification::hf_configuration},
     {"HF/--breit",                      &GlobalSpecification::hf_breit},
     {"HF/--qed",                        &GlobalSpecification::hf_qed},
@@ -372,7 +372,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Transitions/M4",              &GlobalSpecification::transitions_do_m4},
     {"Transitions/HFS1",            &GlobalSpecification::transitions_do_hfs1},
     {"Transitions/HFS2",            &GlobalSpecification::transitions_do_hfs2},
-    {"Transitions/HFSI",            &GlobalSpecification::transitions_do_hfsi},
+    {"Transitions/HFI",             &GlobalSpecification::transitions_do_hfi},
     {"Transitions/FS",              &GlobalSpecification::transitions_do_fs},
     {"Transitions/QED",             &GlobalSpecification::transitions_do_qed},
     {"Transitions/Yukawa",          &GlobalSpecification::transitions_do_yukawa},
@@ -380,7 +380,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"Transitions/LLIT2",           &GlobalSpecification::transitions_do_llit2},
     {"Transitions/NMS",             &GlobalSpecification::transitions_do_nms},
     {"Transitions/ResidualCoulomb", &GlobalSpecification::transitions_do_residual_coulomb},
-    {"DR/Target/Filename",          &GlobalSpecification::dr_target_file},
+    {"DR/Target/Filename",          &GlobalSpecification::dr_target_file, P::nonempty()},
     {"DR/Target/TwoJ",              &GlobalSpecification::dr_target_twoj, nonnegative},
     {"DR/Target/Parity",            &GlobalSpecification::dr_target_parity},
     {"DR/Target/Index",             &GlobalSpecification::dr_target_index, nonnegative},
@@ -410,7 +410,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     auto ej_specs = make_transitions_ej_specification<TransitionsEJSpecification>();
     auto hfs1_specs = make_transitions_hfs1_specification<TransitionsHFS1Specification>();
     auto hfs2_specs = make_transitions_hfs2_specification<TransitionsHFS2Specification>();
-    auto hfsi_specs = make_transitions_hfsi_specification<TransitionsHFSISpecification>();
+    auto hfi_specs = make_transitions_hfi_specification<TransitionsHFISpecification>();
     auto fs_specs = make_transitions_fs_specification<TransitionsFSSpecification>();
     auto qed_specs = make_transitions_qed_specification<TransitionsQEDSpecification>();
     auto yukawa_specs = make_transitions_yukawa_specification<TransitionsYukawaSpecification>();
@@ -436,7 +436,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // And the rest...
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs1, "Transitions/HFS1/", hfs1_specs , "HFS dipole transitions: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs2, "Transitions/HFS2/", hfs2_specs , "HFS quadrupole transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfsi, "Transitions/HFSI/", hfsi_specs , "Generalised HFS transitions: ");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfi, "Transitions/HFI/", hfi_specs , "Generalised HFS transitions: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_fs, "Transitions/FS/", fs_specs , "Field shift transitions: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_qed, "Transitions/QED/", qed_specs , "QED radiative potential transitions: ");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_yukawa, "Transitions/Yukawa/", yukawa_specs , "Yukawa potential transitions: ");
@@ -446,7 +446,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 
     // Autoionization
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ic, "IC/", ic_specs, "Internal Conversion (IC):");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::residual_coulomb, "Transitions/H/", residual_coulomb_specs, "ResidualCoulomb:");
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::residual_coulomb, "Transitions/ResidualCoulomb/", residual_coulomb_specs, "ResidualCoulomb:");
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -570,12 +570,8 @@ std::string GlobalSpecification::validateAndNormaliseSpecification()
     if (hf_ms_only_rel_nms && hf_ms_nonrel_mass_shift)
         return "HF/--only-relativistic-nms and HF/--nonrelativistic-mass-shift cannot both be set at the same time";
     // Must have at least one of HF/N and HF/Charge, so error out if these are missing
-    if((!hf_charge) && (!hf_N))
-        return "Must specify at least one of HF/N or HF/Charge";
-    else if(hf_N)
-        hf_charge = Z - hf_N.value();
-    else if(hf_charge)
-        hf_N = Z - hf_charge.value();
+    if(!hf_N)
+        return "Must specify HF/N, which must correspond to the electron count in HF/Configuration.";
     if(!hf_configuration)
         return "HF/Configuration must be set (can be set to '' or 0 for no-core case).";
 

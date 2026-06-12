@@ -33,15 +33,16 @@ pCore Atom::MakeBasis(pCoreConst hf_open_core_start)
         {
             unsigned num_points = specification->lattice_num_points;
             double start_point = specification->lattice_start_point;
-            double h = specification->lattice_H;
-            lattice = pLattice(new ExpLattice(num_points, start_point, h));
+            double h = specification->lattice_h;
+            lattice = std::make_shared<ExpLattice>(num_points, start_point, h);
         }
         else
         {
             unsigned num_points = specification->lattice_num_points;
             double start_point = specification->lattice_start_point;
             double end_point = specification->lattice_end_point;
-            lattice = pLattice(new Lattice(num_points, start_point, end_point));
+            double beta = specification->lattice_beta;
+            lattice = std::make_shared<Lattice>(num_points, start_point, end_point, beta);
         }
 
         // Relativistic Hartree-Fock

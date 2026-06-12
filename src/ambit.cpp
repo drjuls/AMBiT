@@ -437,7 +437,7 @@ void AmbitInterface::TransitionCalculations()
     // Convenient typedefs
     using HFS1Opt = std::optional<TransitionsHFS1Specification>;
     using HFS2Opt = std::optional<TransitionsHFS2Specification>;
-    using HFSIOpt = std::optional<TransitionsHFSISpecification>;
+    using HFIOpt = std::optional<TransitionsHFISpecification>;
     using FSOpt = std::optional<TransitionsFSSpecification>;
     using QEDOpt = std::optional<TransitionsQEDSpecification>;
     using YukawaOpt = std::optional<TransitionsYukawaSpecification>;
@@ -451,8 +451,8 @@ void AmbitInterface::TransitionCalculations()
     run_and_store_transitions<HFS2Opt, HyperfineQuadrupoleCalculator>
         (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt, atom);
 
-    run_and_store_transitions<HFSIOpt, GeneralisedHyperfineCalculator>
-        (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt, atom);
+    run_and_store_transitions<HFIOpt, GeneralisedHyperfineCalculator>
+        (specification->transitions_do_hfi ? HFIOpt{specification->transitions_hfi} : std::nullopt, atom);
 
     run_and_store_transitions<FSOpt, FieldShiftCalculator>
         (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt, atom);

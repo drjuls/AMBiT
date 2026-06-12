@@ -14,7 +14,7 @@ class LatticeObserver;
 
 /** The lattice class provides a conversion between a lattice with even spacing (x),
     and a "real" space which may not (r).
-        x = r + beta*ln(r/rmin)
+        x = r - rmin + beta*ln(r/rmin)
     Lattice equality is defined by type, and in this case, beta, h, and rmin.
     None of the public functions can change these (constructor aside), so it is safe
     to pass non-const lattice pointers around, which is useful since then the lattice
@@ -25,7 +25,7 @@ class LatticeObserver;
 class Lattice
 {
 public:
-    Lattice(unsigned int numpoints, double r_min, double r_max);
+    Lattice(unsigned int numpoints, double r_min, double r_max, double beta = 4.0);
     Lattice(FILE* binary_infile);
     virtual ~Lattice() {}
 
@@ -79,7 +79,7 @@ public:
 
     /** Calculate the lattice spacing at a point. */
     virtual double calculate_dr(double r_point) const;
-    
+
     /** Return spacing of transformed lattice x = rmin + i h,
         where i is the lattice point.
      */
