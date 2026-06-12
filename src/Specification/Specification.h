@@ -237,16 +237,16 @@ public:
     CISpecification ci;
     // CI/Output is also in CISpecification
     // CI/SmallSide
-    bool ci_do_smallside;
+    bool ci_do_smallside = false;
     CIBaseSpecification ci_smallside;
     // MBPT
     std::optional<std::string> mbpt_basis;
     std::optional<std::string> mbpt_energy_denom_orbitals;
-    bool mbpt_use_valence;
-    bool mbpt_no_core;
-    bool mbpt_use_subtraction;
-    bool mbpt_no_subtraction;
-    bool mbpt_no_extra_box;
+    bool mbpt_use_valence = false;
+    bool mbpt_no_core = false;
+    bool mbpt_use_subtraction = false;
+    bool mbpt_no_subtraction = false;
+    bool mbpt_no_extra_box = false;
     double mbpt_energy_denom_floor = 0.01;
     double mbpt_delta = 0.0;
     std::optional<std::vector<unsigned> > mbpt_twobody_storage_limits;

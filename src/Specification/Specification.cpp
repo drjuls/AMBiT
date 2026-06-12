@@ -249,7 +249,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     global_specifications_mappings = {
     // Ungrouped options
     {"ID",                      &GlobalSpecification::ID, P::nonempty()},
-    {"Z",                       &GlobalSpecification::Z, positive},
+    {"Z",                       &GlobalSpecification::Z, P::at_least(1)},
     {"LevelDirectory",          &GlobalSpecification::level_directory},
     // NOTE: Don't check "GlobalSpecification::s1" and friends in the main body of the code, use
     // "GlobalSpecification::mbpt_one_body" etc instead; it's much cleaner to figure out which
