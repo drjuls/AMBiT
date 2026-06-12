@@ -13,8 +13,22 @@
 \usepackage{anysize}
 \usepackage{braket}
 \usepackage{multirow}
+\usepackage{xparse}
 
-\newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}                   
+\newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}
+
+% \useroption{name}[type][default]{description}
+%   - name    (mandatory) option name, e.g. NuclearRadius, "-c, --clean", BSpline/N
+%   - type    (optional)  argument type, rendered underlined. Omit for flags.
+%   - default (optional)  default value, rendered in [brackets]. Omit if none.
+%   - body    (mandatory) description, placed inside an adjustwidth block.
+\NewDocumentCommand{\useroption}{m o o +m}{%
+  \texttt{#1}%
+  \IfValueT{#2}{ \uline{#2}}%
+  \IfValueT{#3}{ [#3]}%
+  \par
+  \begin{adjustwidth}{1cm}{}#4\end{adjustwidth}%
+}
 
 \graphicspath{{./figures/}}
 
@@ -130,16 +144,16 @@ which will simultaneously save the output to \texttt{ambitoutput.txt} and print 
 It is often useful to estimate the size of a calculation prior to running it. For example, most HPC 
 clusters require users to specify the resources required by a calculation when submitting it, and will
 kill the calculation if it exceeds these limits. \ambit\  can calculate the approximate size of a
-calculation via the \texttt{{-}{-}check-sizes} command-line option:
+calculation via the \texttt{--check-sizes} command-line option:
 
 \begin{verbatim}
 $ ./ambit --check-sizes Cr+.input
 \end{verbatim}
 
-Running with \texttt{{-}{-}check-sizes} will not actually do any CI or MBPT calculations (except for
+Running with \texttt{--check-sizes} will not actually do any CI or MBPT calculations (except for
 generating the Dirac-Fock basis functions), but will print the size of the CI matrices and the number of
 MBPT integrals to be calculated. For this example calculation, the CI and MBPT sections of the
-\texttt{{-}{-}check-sizes} output should look like:
+\texttt{--check-sizes} output should look like:
 
 \begin{verbatim}
 Num stored coulomb integrals for MBPT = 617242
@@ -163,7 +177,7 @@ is that the elements of the CI matrices are stored as double-precision floating-
 slightly more than 16 bytes per integral (since they are stored as key-value pairs in an associative
 container).
 
-Importantly, \texttt{{-}{-}check-sizes} will calculate the angular data for a calculation if it is not
+Importantly, \texttt{--check-sizes} will calculate the angular data for a calculation if it is not
 already saved to disk (in the directory specified in the \texttt{Angular data directory} compile-time
 option). Generating this data from scratch can be very expensive for open d- and f-shell systems, so it
 is best to compile against Intel \texttt{MKL} and run \ambit\  in parallel when using this option.
@@ -468,7 +482,7 @@ Each solution also contains a breakdown of the most important nonrelativistic co
 expansion in percentages $\displaystyle \sum_I |C_I|^2$, where $C_I$ is the expansion coefficient of
 each CSF corresponding to that configuration. Finally, the Land\`{e} g-factors are also presented to aid
 with the identification of levels. These are expensive to calculate and can be suppressed with the
-\texttt{CI/{-}{-}no-gfactors} flag.
+\texttt{CI/--no-gfactors} flag.
 
 CI contributes the most to the resulting energy and wavefunction of any step (in multi-electron atoms),
 so this it's important to expand the CI matrix to the largest basis your machine will support.
@@ -486,7 +500,7 @@ interrupted and re-started without needing to re-calculate energy levels which h
 Additionally, the fact that there are checkpoints before and after calculating g-factors means we can
 run a calculation without g-factors, re-use the levels file (which \ambit\  will do automatically if one 
 with the correct file name exists in the current directory) to avoid constructing and diagonalising 
-the CI matrices again, and calculate only the g-factors with \texttt{CI/{-}{-}gfactors}.
+the CI matrices again, and calculate only the g-factors with \texttt{CI/--gfactors}.
 
 \subsection{MBPT}
 
@@ -623,7 +637,7 @@ calculate so this section of the code is heavily parallelised with both OpenMP a
 recommend using whenever possible.
 
 The options controlling transition calculations are in the \texttt{[Transitions]} sections and divided
-into sections for each operator, e.g. \texttt{Transitions/E2/{-}{-}reduced-elements} or 
+into sections for each operator, e.g. \texttt{Transitions/E2/--reduced-elements} or 
 \texttt{Transitions/M1/MatrixElements}. Each subsection accepts the same set of possible arguments, but 
 the arguments need not be the same for each requested operator. There are two ways of specifying which
 transitions to calculate. The first is to directly list the transitions with the option
@@ -1373,14 +1387,11 @@ can be either a numeric value (an integer or a real number) or a text string enc
 double-quotes. Quotes may be omitted only in the special case of a string-type argument which is a
 single word, in which case \ambit\ will automatically treat the argument as a string (multi-word
 arguments are never automatically converted). Input flags, on the other hand, are written in lower case 
-and have the form \texttt{{-}{-}flag-option} (note the two leading-dashes). 
+and have the form \texttt{--flag-option} (note the two leading-dashes). 
 
 Definitions have the following form:
 
-\texttt{OptionName, Synonym} \uline{Type of arguments}[Default value]
-\begin{adjustwidth}{1cm}{}
-Short description of what the option does.
-\end{adjustwidth}
+\useroption{OptionName, Synonym}[Type of arguments][Default value]{Short description of what the option does.}
 
 Finally, the value of all numerical parameters must be given in atomic units unless otherwise specified.
 
@@ -1450,123 +1461,95 @@ used.
 \section{Ungrouped options}
 \label{sec:ungrouped}
 
-\texttt{ID} \uline{String}
-\begin{adjustwidth}{1cm}{}
-(Mandatory) String identifying the calculation. This string will be used to generate the names of 
-temporary files, as well as stored basis functions, MBPT integrals and energy levels 
-(allowing calculations to be reused or interrupted and resumed).
-\end{adjustwidth}
+\useroption{ID}[String]{%
+(Mandatory) String identifying the calculation. This string will be used to generate the names of
+temporary files, as well as stored basis functions, MBPT integrals and energy levels
+(allowing calculations to be reused or interrupted and resumed).%
+}
 
-\texttt{Z} \uline{Integer}
-\begin{adjustwidth}{1cm}{}
-(Mandatory) Atomic number of the target system. 
-\end{adjustwidth}
+\useroption{Z}[Integer]{(Mandatory) Atomic number of the target system.}
 
-\texttt{-f} \uline{filename}
-\begin{adjustwidth}{1cm}{}
-Filename (and path) of input file containing options to be passed to \ambit. 
-\end{adjustwidth}
+\useroption{-f}[filename]{Filename (and path) of input file containing options to be passed to \ambit.}
 
-\texttt{NuclearRadius} \uline{Real} [4.0]
-\begin{adjustwidth}{1cm}{}
-Radius parameter of a Fermi distribution for nuclear charge. This value is 
-used to compute the nuclear RMS radius, which is not specified directly.
-\end{adjustwidth}
+\useroption{NuclearRadius}[Real][4.0]{%
+Radius parameter of a Fermi distribution for nuclear charge. This value is
+used to compute the nuclear RMS radius, which is not specified directly.%
+}
 
-\texttt{NuclearThickness} \uline{Real} [2.3]
-\begin{adjustwidth}{1cm}{}
-Specifies the density parameter of a Fermi distribution for nuclear charge.
-\end{adjustwidth}
+\useroption{NuclearThickness}[Real][2.3]{%
+Specifies the density parameter of a Fermi distribution for nuclear charge.%
+}
 
-\texttt{AlphaSquaredVariation} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Vary the value of the fine-structure constant by some factor $\Delta$ such that 
-$\alpha^2 \to (1 + \Delta)\alpha^2$. 
-\end{adjustwidth}
+\useroption{AlphaSquaredVariation}[Real]{%
+Vary the value of the fine-structure constant by some factor $\Delta$ such that
+$\alpha^2 \to (1 + \Delta)\alpha^2$.%
+}
 
-\texttt{LevelDirectory} \uline{String}
-\begin{adjustwidth}{1cm}{}
-Directory to store energy levels when using \texttt{CI/{-}{-}memory-saver}.
-\end{adjustwidth}
+\useroption{LevelDirectory}[String]{%
+Directory to store energy levels when using \texttt{CI/--memory-saver}.%
+}
 
-\texttt{-s[123]} 
-\begin{adjustwidth}{1cm}{} 
-Specifies the number of particles to include in MBPT diagrams. Any combination of 1, 2 or 3 may follow 
-\texttt{s}, so e.g. \texttt{-s1} will generate one-body diagrams, while \texttt{-s123} will generate all 
-one-, two- and three-body diagrams. No MBPT corrections will be calculated if this flag is not present.
-\end{adjustwidth}
+\useroption{-s[123]}{%
+Specifies the number of particles to include in MBPT diagrams. Any combination of 1, 2 or 3 may follow
+\texttt{s}, so e.g. \texttt{-s1} will generate one-body diagrams, while \texttt{-s123} will generate all
+one-, two- and three-body diagrams. No MBPT corrections will be calculated if this flag is not present.%
+}
 
-\texttt{--no-new-mbpt}
-\begin{adjustwidth}{1cm}{} 
-Do not calculate any new MBPT integrals. Any integrals saved in \texttt{.int} files will still be read, 
+\useroption{--no-new-mbpt}{%
+Do not calculate any new MBPT integrals. Any integrals saved in \texttt{.int} files will still be read,
 but integrals which have been requested, but not present in the \texttt{.int} files will not be
-calculated.
-\end{adjustwidth}
+calculated.%
+}
 
-\texttt{--check-sizes}
-\begin{adjustwidth}{1cm}{}
+\useroption{--check-sizes}{%
 Calculate and print the number of Coulomb and MBPT integrals, as well as the size of the CI matrix for
 each symmetry $J^{\pi}$. Calculations with this option will also generate the angular data (if needed),
 which can be computationally expensive and often requires the calculation to be run with OpenMP
-parallelism. Used to determine the size of a calculation before running it in full.
-\end{adjustwidth}
+parallelism. Used to determine the size of a calculation before running it in full.%
+}
 
-\texttt{-c, --clean}
-\begin{adjustwidth}{1cm}{}
+\useroption{-c, --clean}{%
 Run the calculation without reading pre-calculated basis functions, MBPT integrals or energy levels (a
-``clean run'').
-\end{adjustwidth}
+``clean run'').%
+}
 
-\texttt{-p, --print-basis}
-\begin{adjustwidth}{1cm}{}
+\useroption{-p, --print-basis}{%
 Print basis orbitals in plain (ASCII) text. Orbitals are currently always written to
-\texttt{Orbitals.txt}, which is overwritten if it already exists.
-\end{adjustwidth}
+\texttt{Orbitals.txt}, which is overwritten if it already exists.%
+}
 
-\texttt{--CI-complete}
-\begin{adjustwidth}{1cm}{}
+\useroption{--CI-complete}{%
 Do not calculate extra energy levels if more levels are requested via \texttt{CI/NumSolutions} than
-exist in the precalculated levels file.
-\end{adjustwidth}
+exist in the precalculated levels file.%
+}
 
-\texttt{--no-CI}
-\begin{adjustwidth}{1cm}{}
-Do not do any CI calculations, such as when doing one-electron calculations.
-\end{adjustwidth}
+\useroption{--no-CI}{Do not do any CI calculations, such as when doing one-electron calculations.}
 
-\texttt{--no-diagonalisation}
-\begin{adjustwidth}{1cm}{}
-Do not diagonalise CI matrix, just generate and write the matrices to a file. Useful if you want to use a different run setup for generating and solving. \ambit\ always checks to see if \texttt{*.matrix} files exist before generating, so simply running again without this flag will move directly to the diagonalisation stage.
-\end{adjustwidth}
+\useroption{--no-diagonalisation}{%
+Do not diagonalise CI matrix, just generate and write the matrices to a file. Useful if you want to use a different run setup for generating and solving. \ambit\ always checks to see if \texttt{*.matrix} files exist before generating, so simply running again without this flag will move directly to the diagonalisation stage.%
+}
 
-\texttt{{-}{-}configuration-average}
-\begin{adjustwidth}{1cm}{}
-Use configuration average energy when generating the CI matrix.
-\end{adjustwidth}
+\useroption{--configuration-average}{%
+Use configuration average energy when generating the CI matrix.%
+}
 
-\texttt{-h}
-\begin{adjustwidth}{1cm}{}
-Print a help message.
-\end{adjustwidth}
+\useroption{-h}{Print a help message.}
 
-\texttt{--version}
-\begin{adjustwidth}{1cm}{}
-Print \ambit\ version information. Output includes a version number, git branch, and date and time of 
-compilation. This information is also printed in the output of all calculations.
-\end{adjustwidth}
+\useroption{--version}{%
+Print \ambit\ version information. Output includes a version number, git branch, and date and time of
+compilation. This information is also printed in the output of all calculations.%
+}
 
-\texttt{-r} \uline{List of values}
-\begin{adjustwidth}{1cm}{}
+\useroption{-r}[List of values]{%
 Select a subset of specified runs for this calculation. Only used when there are multiple runs specified
 (see section \ref{sec:multirun}); the calculation will be repeated for each value specified in this
-argument.
-\end{adjustwidth}
+argument.%
+}
 
-\texttt{Multirun} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{Multirun}[String]{%
 Parameter to be varied when performing multiple runs. This is described in detail in section
-\ref{sec:multirun}.
-\end{adjustwidth}
+\ref{sec:multirun}.%
+}
 
 \section{Lattice}
 
@@ -1576,160 +1559,119 @@ x_i = i \times h = (r_i - r_0) + \beta \log (r_i/r_0)
 \]
 where $\beta = 4$ and $r_0$ is the smallest lattice point.
 
-\texttt{NumPoints} \uline{Integer} [1000]
-\begin{adjustwidth}{1cm}{}
-Maximum number of points to include in the radial wavefunction lattice.
-\end{adjustwidth}
+\useroption{NumPoints}[Integer][1000]{%
+Maximum number of points to include in the radial wavefunction lattice.%
+}
 
-\texttt{StartPoint} \uline{Real} [1.0e-6]
-\begin{adjustwidth}{1cm}{}
-Starting point of the lattice (in atomic units).
-\end{adjustwidth}
+\useroption{StartPoint}[Real][1.0e-6]{Starting point of the lattice (in atomic units).}
 
-\texttt{EndPoint} \uline{Real} [50.0]
-\begin{adjustwidth}{1cm}{}
-End point of the lattice (in atomic units).
-\end{adjustwidth}
+\useroption{EndPoint}[Real][50.0]{End point of the lattice (in atomic units).}
 
-\texttt{Beta} \uline{Real} [4.0]
-\begin{adjustwidth}{1cm}{}
-Determines how the lattice goes from exponential at small distances to linear at larger distances.
-\end{adjustwidth}
+\useroption{Beta}[Real][4.0]{%
+Determines how the lattice goes from exponential at small distances to linear at larger distances.%
+}
 
-\texttt{--exp-lattice}
-\begin{adjustwidth}{1cm}{}
-Use a lattice with strictly exponential spacing $x_i = i \times h = \log(r_i/r_0)$, rather than the default hybrid linear-exponential scheme. Typically fewer points will be needed since the larger values will quickly get larger, however this may affect accuracy and stability, particularly for continuum functions. Try setting \texttt{Lattice/NumPoints} to 300 and \texttt{Lattice/StartPoint} to 1.e-5.
-\end{adjustwidth}
+\useroption{--exp-lattice}{%
+Use a lattice with strictly exponential spacing $x_i = i \times h = \log(r_i/r_0)$, rather than the default hybrid linear-exponential scheme. Typically fewer points will be needed since the larger values will quickly get larger, however this may affect accuracy and stability, particularly for continuum functions. Try setting \texttt{Lattice/NumPoints} to 300 and \texttt{Lattice/StartPoint} to 1.e-5.%
+}
 
-\texttt{H} \uline{Real}[0.05]
-\begin{adjustwidth}{1cm}{}
+\useroption{H}[Real][0.05]{%
 Parameter determining the spacing between points along the lattice. Only used in conjunction with
-\texttt{--exp-lattice}.
-\end{adjustwidth}
+\texttt{--exp-lattice}.%
+}
 
 \section{HF}
 
-\texttt{N} \uline{Integer}
-\begin{adjustwidth}{1cm}{}
-(Mandatory) Number of electrons to include in the Hartree-Fock procedure.
-\end{adjustwidth}
-\texttt{Configuration} \uline{String} 
-\begin{adjustwidth}{1cm}{}
+\useroption{N}[Integer]{(Mandatory) Number of electrons to include in the Hartree-Fock procedure.}
+
+\useroption{Configuration}[String]{%
 (Mandatory) Nonrelativistic configuration to be used for the
 Dirac-Fock calculations (can include valence as well as core electrons). The Fermi level can be specified
 with a colon (`:'), orbitals above which will be included in the CI and MBPT valence space $P$. If no
 Fermi level is specified it will default to immediately above the highest supplied orbital in this
 argument. Additionally, Valence holes can only appear in shells with energy below the Fermi level.
-                                                                               
+
 As an example, the string \texttt{HF/Configuration = '1s2 2s2 2p6 3s2:~3p3'} will include the configuration
 1s$^2$ 2s$^2$ 2p$^6$ 3s$^2$ $3p^3$, with 1s, 2s, 2p, and 3s shells below and 3p above the Fermi level.
 Configuration must have \texttt{HF/N} total electrons.
 
-Open shells may be specified using relativistic notation, for example \texttt{'...3s2:~3p1 3p+2'}, where the `\texttt{+}' indicates the subshell with $j = l+1/2$. The default behaviour is to first fill the subshell with $j = l-1/2$, so a simple \texttt{3p3} would be interpreted as \texttt{3p2 3p+1}. Floating point filling is also allowed here, e.g. \texttt{3p1.33 3p+2.67}.
-\end{adjustwidth}
+Open shells may be specified using relativistic notation, for example \texttt{'...3s2:~3p1 3p+2'}, where the `\texttt{+}' indicates the subshell with $j = l+1/2$. The default behaviour is to first fill the subshell with $j = l-1/2$, so a simple \texttt{3p3} would be interpreted as \texttt{3p2 3p+1}. Floating point filling is also allowed here, e.g. \texttt{3p1.33 3p+2.67}.%
+}
 
-\texttt{--breit} 
-\begin{adjustwidth}{1cm}{}
-Include effects of the Breit interaction.
-\end{adjustwidth}
-\texttt{--qed} 
-\begin{adjustwidth}{1cm}{}
-Alias for including both \texttt{HF/QED/--uehling} and \texttt{HF/QED/--self-energy} under default parameters. Usually good enough, but if it doesn't converge try removing the offmass term with \texttt{HF/QED/--skip-offmass} (see Sec.~\ref{subsec:QED}).
-\end{adjustwidth}
+\useroption{--breit}{Include effects of the Breit interaction.}
 
-\texttt{--local-exchange}
-\begin{adjustwidth}{1cm}{}
+\useroption{--qed}{%
+Alias for including both \texttt{HF/QED/--uehling} and \texttt{HF/QED/--self-energy} under default parameters. Usually good enough, but if it doesn't converge try removing the offmass term with \texttt{HF/QED/--skip-offmass} (see Sec.~\ref{subsec:QED}).%
+}
+
+\useroption{--local-exchange}{%
 Use a local approximation to the HF exchange operator. This is faster than using nonlocal exchange, but
 reduces accuracy. The type of local-approximation is specified by the value of \texttt{HF/Xalpha}, with
-a default value of 1 (Dirac-Slater potential).
-\end{adjustwidth}
+a default value of 1 (Dirac-Slater potential).%
+}
 
-\texttt{Xalpha} \uline{Real}[1.0]
-\begin{adjustwidth}{1cm}{}
+\useroption{Xalpha}[Real][1.0]{%
 Specifies the type of local exchange potential. \texttt{Xalpha=1} corresponds to the Dirac-Slater
 potential, \texttt{Xalpha=0.66} (2/3) corresponds to the Kohn-Sham potential and \texttt{Xalpha=0}
-corresponds to the Core-Hartree potential.
-\end{adjustwidth}
+corresponds to the Core-Hartree potential.%
+}
 
 \subsection{HF/QED}
 \label{subsec:QED}
-\texttt{--uehling}
-\begin{adjustwidth}{1cm}{}
-Include the Uehling (vacuum polarisation) QED correction.
-\end{adjustwidth}
+\useroption{--uehling}{Include the Uehling (vacuum polarisation) QED correction.}
 
-\texttt{--self-energy}
-\begin{adjustwidth}{1cm}{}
-Include the self-energy QED correction.
-\end{adjustwidth}
+\useroption{--self-energy}{Include the self-energy QED correction.}
 
-\texttt{--use-nuclear-density}
-\begin{adjustwidth}{1cm}{}
-Use the nuclear density (rather than the default of nuclear radius) for nuclear contribution to Uehling 
-corrections.
-\end{adjustwidth}
+\useroption{--use-nuclear-density}{%
+Use the nuclear density (rather than the default of nuclear radius) for nuclear contribution to Uehling
+corrections.%
+}
 
-\texttt{NuclearRMSRadius} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Nuclear RMS radius to use for nuclear contribution to Uehling corrections. Defaults to the value in 
-\texttt{NuclearRadius} if unspecified.
-\end{adjustwidth}
+\useroption{NuclearRMSRadius}[Real]{%
+Nuclear RMS radius to use for nuclear contribution to Uehling corrections. Defaults to the value in
+\texttt{NuclearRadius} if unspecified.%
+}
 
-\texttt{--no-magnetic}
-\begin{adjustwidth}{1cm}{}
+\useroption{--no-magnetic}{%
 Ignore the magnetic component of the self-energy correction, so only the electric (high- and
 low-frequency) components are included. If no \texttt{QED/--no-electric} is also passed then the self-energy
-correction will not be calculated.
-\end{adjustwidth}
+correction will not be calculated.%
+}
 
-\texttt{--no-electric}
-\begin{adjustwidth}{1cm}{}
+\useroption{--no-electric}{%
 Ignore the electric (high- and low-frequency) components of the self-energy correction, so only the
 magnetic component is included. If no \texttt{QED/--no-magnetic} is also passed then the self-energy
-correction will not be calculated.
-\end{adjustwidth}
+correction will not be calculated.%
+}
 
-\texttt{--skip-offmass}
-\begin{adjustwidth}{1cm}{}
+\useroption{--skip-offmass}{%
 Use an approximate method to calculate the radiative potential by taking the offmass term outside the self-energy integral.
-Black magic, but it tends to work.
-\end{adjustwidth}
+Black magic, but it tends to work.%
+}
 
-\texttt{--use-electron-screening}
-\begin{adjustwidth}{1cm}{}
+\useroption{--use-electron-screening}{%
 Used to estimate the effect of electron screening of the nucleus (due to the charge density of the electrons)
-on the radiative potential.
-\end{adjustwidth}
+on the radiative potential.%
+}
 
 \subsection{HF/MassShift}
 
-\texttt{NuclearInverseMass} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-	Inverse mass of the nucleus in atomic units.
-\end{adjustwidth}
+\useroption{NuclearInverseMass}[Real]{Inverse mass of the nucleus in atomic units.}
 
-\texttt{--sms} 
-\begin{adjustwidth}{1cm}{}
-	Include specific mass-shift operator (for use when calculating isotope shifts).
-\end{adjustwidth}
-\texttt{--nms} 
-\begin{adjustwidth}{1cm}{}
-	Include normal mass-shift operator (for use when calculating isotope shifts).
-\end{adjustwidth}
-\texttt{--only-relativistic-nms} 
-\begin{adjustwidth}{1cm}{}
-	Only include relativistic contribution to normal mass-shift operator.
-\end{adjustwidth}
-\texttt{--nonrelativistic-mass-shift}
-\begin{adjustwidth}{1cm}{}
-	Only include non-relativistic contribution to a mass-shift operator.
-\end{adjustwidth}
+\useroption{--sms}{Include specific mass-shift operator (for use when calculating isotope shifts).}
 
-\texttt{--include-lower-sms}
-\begin{adjustwidth}{1cm}{}
-	Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
-	This can produce unphysical results, and is not recommended.
-\end{adjustwidth}
+\useroption{--nms}{Include normal mass-shift operator (for use when calculating isotope shifts).}
+
+\useroption{--only-relativistic-nms}{Only include relativistic contribution to normal mass-shift operator.}
+
+\useroption{--nonrelativistic-mass-shift}{%
+Only include non-relativistic contribution to a mass-shift operator.%
+}
+
+\useroption{--include-lower-sms}{%
+Include the lower-component of the wavefunction when using the non-relativistic specific mass-shift operator.
+This can produce unphysical results, and is not recommended.%
+}
 
 Summary of mass shift options for relativistic and nonrelativistic operators:
 \begin{adjustwidth}{1cm}{}
@@ -1756,473 +1698,367 @@ Summary of mass shift options for relativistic and nonrelativistic operators:
 
 \subsection{HF/Yukawa}
 
-\texttt{Mass} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Mass (in atomic units) of the particle coupled via the Yukawa interaction. Cannot be used with \texttt{Yukawa/MassEV} or \texttt{Yukawa/Rc}.
-\end{adjustwidth}
+\useroption{Mass}[Real]{%
+Mass (in atomic units) of the particle coupled via the Yukawa interaction. Cannot be used with \texttt{Yukawa/MassEV} or \texttt{Yukawa/Rc}.%
+}
 
-\texttt{MassEV} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{MassEV}[Real]{%
 Mass (in electron volts) of the particle coupled via the Yukawa potential. Cannot be used with
-\texttt{Yukawa/Mass} or \texttt{Yukawa/Rc}.
-\end{adjustwidth}
+\texttt{Yukawa/Mass} or \texttt{Yukawa/Rc}.%
+}
 
-\texttt{Rc} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Parameter determining the cutoff radius of the Yukawa interaction. Cannot be used if \texttt{Yukawa/Mass} or \texttt{Yukawa/MassEV} is specified.
-\end{adjustwidth}
+\useroption{Rc}[Real]{%
+Parameter determining the cutoff radius of the Yukawa interaction. Cannot be used if \texttt{Yukawa/Mass} or \texttt{Yukawa/MassEV} is specified.%
+}
 
-\texttt{Scale} \uline{Real}[1.0]
-\begin{adjustwidth}{1cm}{}
-Scale-factor for the Yukawa interaction.
-\end{adjustwidth}
+\useroption{Scale}[Real][1.0]{Scale-factor for the Yukawa interaction.}
 
 \subsection{HF/AddLocalPotential}
 
-\texttt{Filename} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{Filename}[String]{%
 Include a custom, local HF potential contained in \texttt{Filename}. Imported file must be plain-text
 and contain a list of pairs of radial points $R$ and corresponding potentials $V(R)$, with exactly one
-pair per line. All \texttt{HF/AddLocalPotential} options are skipped if no \texttt{Filename} is provided.
-\end{adjustwidth}
+pair per line. All \texttt{HF/AddLocalPotential} options are skipped if no \texttt{Filename} is provided.%
+}
 
-\texttt{Scale} \uline{Real} [1.0]
-\begin{adjustwidth}{1cm}{}
-Scale factor of the included local potential.
-\end{adjustwidth}
+\useroption{Scale}[Real][1.0]{Scale factor of the included local potential.}
 
 \section{Basis}
 
-\texttt{ValenceBasis} \uline{Basis string}
-\begin{adjustwidth}{1cm}{}
+\useroption{ValenceBasis}[Basis string]{%
 (Mandatory) The maximum principal quantum number, $n$, and orbital angular momentum, $l$, of
-the orbitals included in CI calculations. For example, 
+the orbitals included in CI calculations. For example,
 \texttt{Basis/ValenceBasis = 10spdf} will include orbitals with $0 \leq l \leq 3$ and $n \leq 10$ for
 each partial wave. It is also possible to specify different values of $n$ for each partial wave, so, for
 example, \texttt{Basis/ValenceBasis = 10sp7d} will include s- and p-orbitals with $n \leq 10$ and
-d-orbitals with $n \leq 7$.
-\end{adjustwidth}
+d-orbitals with $n \leq 7$.%
+}
 
-\texttt{FrozenCore} \uline{Basis string}
-\begin{adjustwidth}{1cm}{}
+\useroption{FrozenCore}[Basis string]{%
 Sets a lower limit to the shells which can have hole-excitations. This argument accepts a string with
-the same format as as \texttt{Basis/ValenceBasis}, so \texttt{Basis/FrozenCore = 4sp3d} will not allow 
-holes in s- and p-shells with $n \leq 4$ and d-shells with $n \leq 3$.
-\end{adjustwidth}
+the same format as as \texttt{Basis/ValenceBasis}, so \texttt{Basis/FrozenCore = 4sp3d} will not allow
+holes in s- and p-shells with $n \leq 4$ and d-shells with $n \leq 3$.%
+}
 
-\texttt{IncludeValence} \uline{String}
-\begin{adjustwidth}{1cm}{}
-A list of core orbitals to include into the valence CI set (i.e. moves deep orbitals into valence holes). For example, \texttt{Basis/IncludeValence = '6s, 5d'} will unfreeze the $6s$ and $5d$ orbitals.
-\end{adjustwidth}
+\useroption{IncludeValence}[String]{%
+A list of core orbitals to include into the valence CI set (i.e. moves deep orbitals into valence holes). For example, \texttt{Basis/IncludeValence = '6s, 5d'} will unfreeze the $6s$ and $5d$ orbitals.%
+}
 
-\texttt{ExcludeValence} \uline{String}
-\begin{adjustwidth}{1cm}{}
-A list of valence orbitals to remove from the valence CI set (i.e. moves valence particle orbitals into high states). For example, \texttt{Basis/ExcludeValence = '6f, 7f'} will make these orbitals virtual for MBPT.
-\end{adjustwidth}
+\useroption{ExcludeValence}[String]{%
+A list of valence orbitals to remove from the valence CI set (i.e. moves valence particle orbitals into high states). For example, \texttt{Basis/ExcludeValence = '6f, 7f'} will make these orbitals virtual for MBPT.%
+}
 
-\texttt{Residue} \uline{Basis string}
-\begin{adjustwidth}{1cm}{}
+\useroption{Residue}[Basis string]{%
 Explicitly specify the which orbitals to include in the core. Used when calculating excited and core
 orbitals in different potentials. This will produce non-orthogonal orbitals, so it's generally good to
-use this in conjunction with \texttt{Basis/{-}{-}reorthogonalise}. Don't use this unless you've spoken
-with Julian.
-\end{adjustwidth}
+use this in conjunction with \texttt{Basis/--reorthogonalise}. Don't use this unless you've spoken
+with Julian.%
+}
 
-\texttt{InjectOrbitals} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{InjectOrbitals}[String]{%
 Use the InjectOrbitals technique to modify pathological basis functions. The details of this method are
-well beyond the scope of this document.
-\end{adjustwidth}
+well beyond the scope of this document.%
+}
 
-\texttt{--reorthogonalise}
-\begin{adjustwidth}{1cm}{}
-Force all basis functions to be re-orthogonalised once generated.
-\end{adjustwidth}
+\useroption{--reorthogonalise}{Force all basis functions to be re-orthogonalised once generated.}
 
-\texttt{--hf-basis}
-\begin{adjustwidth}{1cm}{}
-Use Hartree-Fock in the field of the core to calculate excited basis states. This may fail for orbitals with high angular momentum or high principal quantum number, and will definitely fail unless $\texttt{HF/N} < \texttt{Z}$. Typically a better approach is to use a B-spline basis and use \texttt{HFOrbitals} to convert specific orbitals to HF.
-\end{adjustwidth}
+\useroption{--hf-basis}{%
+Use Hartree-Fock in the field of the core to calculate excited basis states. This may fail for orbitals with high angular momentum or high principal quantum number, and will definitely fail unless $\texttt{HF/N} < \texttt{Z}$. Typically a better approach is to use a B-spline basis and use \texttt{HFOrbitals} to convert specific orbitals to HF.%
+}
 
-\texttt{--bspline-basis} 
-\begin{adjustwidth}{1cm}{}
-Use B-splines to generate single-particle basis functions.
-\end{adjustwidth}
+\useroption{--bspline-basis}{Use B-splines to generate single-particle basis functions.}
 
-\texttt{--xr-basis} 
-\begin{adjustwidth}{1cm}{}
+\useroption{--xr-basis}{%
 Generate valence orbitals $\phi_{nlj}$ from lower-energy orbitals by multiplying the upper component by simple functions. By default, the lowest valence orbital in each wave is generated using Hartree-Fock. Then the next is generated by multiplying the previous by $r$: $f_{n+1\,lj} = r f_{nlj}$. The lower component is generated from the upper using the Hartree-Fock equations, then the orbital is orthogonalized to the lower core and valence orbitals.
-Higher orbitals are generated by successively multiplying the previous orbital (with principal quantum number one lower) by the radial function $\sin(kr)$, then $r$, then $\sin(kr)$, and so on. Here $k = \pi/R_n$ where $R_n$ is the size of the previous orbital. At each step the orbital is orthogonalized to the lower core and valence orbitals. This can be customised using \texttt{Basis/XR/CustomOrbitals}.
-\end{adjustwidth}
+Higher orbitals are generated by successively multiplying the previous orbital (with principal quantum number one lower) by the radial function $\sin(kr)$, then $r$, then $\sin(kr)$, and so on. Here $k = \pi/R_n$ where $R_n$ is the size of the previous orbital. At each step the orbital is orthogonalized to the lower core and valence orbitals. This can be customised using \texttt{Basis/XR/CustomOrbitals}.%
+}
 
-\texttt{HFOrbitals} \uline{Basis string}
-\begin{adjustwidth}{1cm}{}
-Generates Hartree-Fock orbitals calculated in the HF potential for orbitals up to those specified by the basis string. Can be used in conjunction with another method, e.g. B-Splines, for the remaining orbitals.
-\end{adjustwidth}
+\useroption{HFOrbitals}[Basis string]{%
+Generates Hartree-Fock orbitals calculated in the HF potential for orbitals up to those specified by the basis string. Can be used in conjunction with another method, e.g. B-Splines, for the remaining orbitals.%
+}
 
 \subsection{Basis/BSpline}
 
-\texttt{Rmax} \uline{Real}[\texttt{Lattice/EndPoint}]
-\begin{adjustwidth}{1cm}{}
-Maximum radius of B-Spline functions (in atomic units). Defaults to \texttt{Lattice/EndPoint} if no 
-value is specified.
-\end{adjustwidth}
+\useroption{Rmax}[Real][\texttt{Lattice/EndPoint}]{%
+Maximum radius of B-Spline functions (in atomic units). Defaults to \texttt{Lattice/EndPoint} if no
+value is specified.%
+}
 
-\texttt{R0} \uline{Real}[0.0]
-\begin{adjustwidth}{1cm}{}
-Minimum radius of B-Spline functions in atomic units. 
-\end{adjustwidth}
+\useroption{R0}[Real][0.0]{Minimum radius of B-Spline functions in atomic units.}
 
-\texttt{K} \uline{Integer}[7]
-\begin{adjustwidth}{1cm}{}
+\useroption{K}[Integer][7]{%
 Maximum order of B-Splines used when generating basis functions. Default value is 7, but this will be
-automatically adjusted if $k < l_{\mathrm{max} + 3}$.
-\end{adjustwidth}
+automatically adjusted if $k < l_{\mathrm{max} + 3}$.%
+}
 
-\texttt{N} \uline{Integer}[40]
-\begin{adjustwidth}{1cm}{}
-Maximum number of splines to generate.
-\end{adjustwidth}
+\useroption{N}[Integer][40]{Maximum number of splines to generate.}
 
-\texttt{SplineType} \uline{Reno, Vanderbilt, NotreDame}[Reno]
-\begin{adjustwidth}{1cm}{}
-Type of spline to use for basis functions. Default value is \texttt{Reno}
-\end{adjustwidth}
+\useroption{SplineType}[Reno, Vanderbilt, NotreDame][Reno]{%
+Type of spline to use for basis functions. Default value is \texttt{Reno}%
+}
 
 \subsection{Basis/xR}
 
-\texttt{CustomOrbitals} \uline{String}
-\begin{adjustwidth}{1cm}{}
-	Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/xR/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.
-\end{adjustwidth}
+\useroption{CustomOrbitals}[String]{%
+Allows customisation of the ``$\times r$'' basis. The string lists valence orbitals that will differ from the default, and how they differ. For example, \texttt{Basis/xR/CustomOrbitals = '6s, 7s S 6s, 5f R 4f, 6f RS 5d'} means: calculate $6s$ orbital using Hartree-Fock; multiply the $6s$ orbital by $\sin(kr)$ and orthogonalise to obtain the $7s$ orbital; generate $5f$ from $4f$ using the radial function (here $4f$ could be a core or valence orbital); and generate $6f$ by multiplying the $5d$ orbital by $r\sin(kr)$.%
+}
 
 \section{CI}
 
-\texttt{LeadingConfigurations} \uline{String}
-\begin{adjustwidth}{1cm}{}
-(Mandatory)List of all configurations from which to generate many-body CSFs for the 
-Hamiltonian matrix. For example, \texttt{CI/LeadingConfigurations='4d5, 4d4 5s1'} will build the 
-Hamiltonian matrix by exciting electrons or holes from the two listed configurations (4d$^5$ and 
-4d$^4$6s). The list can contain arbitrarily many leading configurations, but all configurations must 
-conserve particle number and must explicitly specify the number of particles in each orbital. Holes in 
-an otherwise filled shell (i.e. located below the Fermi level) are denoted by a negative occupation 
-number, e.g. \texttt{CI/LeadingConfigurations='3d-1'} contains a hole in the 3d shell.
-\end{adjustwidth}
+\useroption{LeadingConfigurations}[String]{%
+(Mandatory)List of all configurations from which to generate many-body CSFs for the
+Hamiltonian matrix. For example, \texttt{CI/LeadingConfigurations='4d5, 4d4 5s1'} will build the
+Hamiltonian matrix by exciting electrons or holes from the two listed configurations (4d$^5$ and
+4d$^4$6s). The list can contain arbitrarily many leading configurations, but all configurations must
+conserve particle number and must explicitly specify the number of particles in each orbital. Holes in
+an otherwise filled shell (i.e. located below the Fermi level) are denoted by a negative occupation
+number, e.g. \texttt{CI/LeadingConfigurations='3d-1'} contains a hole in the 3d shell.%
+}
 
-\texttt{LeadingRelativisticConfigurations} \uline{String}
-\begin{adjustwidth}{1cm}{}
-List relativistic configurations from which to generate the CI matrix. Accepts a list of similar form 
-to \texttt{CI/LeadingConfigurations}, but consisting of relativistic configurations built from orbitals 
-of the form $nl$ and $nl+$, corresponding to orbitals with $j = l - 1/2$ and $j = l + 1/2$, respectively. Examples: \texttt{4f1 5p+2} is $4f_{5/2}\,5p_{3/2}^2$, while \texttt{4f+1 5p 5p+} is $4f_{7/2}\,5p_{1/2}\,5p_{3/2}$.
-\end{adjustwidth}
+\useroption{LeadingRelativisticConfigurations}[String]{%
+List relativistic configurations from which to generate the CI matrix. Accepts a list of similar form
+to \texttt{CI/LeadingConfigurations}, but consisting of relativistic configurations built from orbitals
+of the form $nl$ and $nl+$, corresponding to orbitals with $j = l - 1/2$ and $j = l + 1/2$, respectively. Examples: \texttt{4f1 5p+2} is $4f_{5/2}\,5p_{3/2}^2$, while \texttt{4f+1 5p 5p+} is $4f_{7/2}\,5p_{1/2}\,5p_{3/2}$.%
+}
 
-
-\texttt{ExtraConfigurations} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{ExtraConfigurations}[String]{%
 List of ``extra'' configurations to be included in the CI matrix, but which are not used when generating
-electron- or hole-excitations. Accepts a list of the same form as \texttt{CI/LeadingConfigurations}.
-\end{adjustwidth}
+electron- or hole-excitations. Accepts a list of the same form as \texttt{CI/LeadingConfigurations}.%
+}
 
-\texttt{ExtraRelativisticConfigurations} \uline{String}
-\begin{adjustwidth}{1cm}{}
-List of ``extra'' relativistic configurations to be included in the CI matrix, but which are not used 
+\useroption{ExtraRelativisticConfigurations}[String]{%
+List of ``extra'' relativistic configurations to be included in the CI matrix, but which are not used
 when generating electron- or hole-excitations. Accepts a list of same form as \\
-\texttt{CI/LeadingRelativisticConfigurations}.
-\end{adjustwidth}
+\texttt{CI/LeadingRelativisticConfigurations}.%
+}
 
-\texttt{ElectronExcitations} \uline{Integer} [2]
-\begin{adjustwidth}{1cm}{}
-Number of electron excitations to include in CI. Configurations are generated by exciting up to this many electrons from leading configurations into all valence orbitals.
-\end{adjustwidth}
+\useroption{ElectronExcitations}[Integer][2]{%
+Number of electron excitations to include in CI. Configurations are generated by exciting up to this many electrons from leading configurations into all valence orbitals.%
+}
 
-\texttt{ElectronBounds} \uline{List of basis strings}
-\begin{adjustwidth}{1cm}{}
-Specifies different limits on principal quantum numbers $n$ and $l$ for excited electrons using a basis-type string. For example \texttt{'8spdf, 6spd'} will include all single-excitations up to 8spdf and all double-excitations up to 6spd. Must have the same number of elements as \texttt{ElectronExcitations}. These essentially act as limits on \texttt{Basis/ValenceBasis} for each electron being excited.
-\end{adjustwidth}
+\useroption{ElectronBounds}[List of basis strings]{%
+Specifies different limits on principal quantum numbers $n$ and $l$ for excited electrons using a basis-type string. For example \texttt{'8spdf, 6spd'} will include all single-excitations up to 8spdf and all double-excitations up to 6spd. Must have the same number of elements as \texttt{ElectronExcitations}. These essentially act as limits on \texttt{Basis/ValenceBasis} for each electron being excited.%
+}
 
-\texttt{HoleExcitations} \uline{Integer} [0]
-\begin{adjustwidth}{1cm}{}
-Number of hole excitations to include in CI. Hole excitations can move down through the non-frozen core, or annihilate with valence electrons.
-\end{adjustwidth}
+\useroption{HoleExcitations}[Integer][0]{%
+Number of hole excitations to include in CI. Hole excitations can move down through the non-frozen core, or annihilate with valence electrons.%
+}
 
-\texttt{HoleBounds} \uline{List of basis strings}
-\begin{adjustwidth}{1cm}{}
-Specifies different limits on principal quantum numbers $n$ and $l$ for holes using a basis-type string. For example \texttt{'3sp, 4spd'} will treat the frozen core as $3sp$ for the first hole excitation and $4spd$ for the second. These essentially act as limits on \texttt{Basis/FrozenCore} for each electron being excited.
-\end{adjustwidth}
+\useroption{HoleBounds}[List of basis strings]{%
+Specifies different limits on principal quantum numbers $n$ and $l$ for holes using a basis-type string. For example \texttt{'3sp, 4spd'} will treat the frozen core as $3sp$ for the first hole excitation and $4spd$ for the second. These essentially act as limits on \texttt{Basis/FrozenCore} for each electron being excited.%
+}
 
-\texttt{EvenParityTwoJ} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{EvenParityTwoJ}[String]{%
 List of total angular momenta $2J$ of even parity to solve the CI problem for.
 For example, \texttt{CI/EvenParityTwoJ='0, 2, 4'} will generate and solve the Hamiltonian matrices for
-even parity states with $J = 0, 1, 2$. At least one of \texttt{CI/EvenParityTwoJ}, 
-\texttt{CI/OddParityTwoJ}, or \texttt{CI/{-}{-}all-symmetries} must be specified.
-\end{adjustwidth}
+even parity states with $J = 0, 1, 2$. At least one of \texttt{CI/EvenParityTwoJ},
+\texttt{CI/OddParityTwoJ}, or \texttt{CI/--all-symmetries} must be specified.%
+}
 
-\texttt{OddParityTwoJ} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{OddParityTwoJ}[String]{%
 List of total angular momenta $2J$ of odd parity to solve the CI problem for.
 For example, \texttt{CI/OddParityTwoJ='1, 3, 5'} will generate and solve the Hamiltonian matrices for
-odd parity states with $J = \frac{1}{2}, \frac{3}{2}, \frac{5}{2}$. At least one of \texttt{CI/EvenParityTwoJ}, 
-\texttt{CI/OddParityTwoJ}, or \texttt{CI/{-}{-}all-symmetries} must be specified.
-\end{adjustwidth}
+odd parity states with $J = \frac{1}{2}, \frac{3}{2}, \frac{5}{2}$. At least one of \texttt{CI/EvenParityTwoJ},
+\texttt{CI/OddParityTwoJ}, or \texttt{CI/--all-symmetries} must be specified.%
+}
 
-\texttt{NumSolutions} \uline{Integer}[6] 
-\begin{adjustwidth}{1cm}{}
-Number of solutions to generate for each symmetry $J^{\pi}$.
-\end{adjustwidth}
+\useroption{NumSolutions}[Integer][6]{Number of solutions to generate for each symmetry $J^{\pi}$.}
 
-\texttt{--all-symmetries} 
-\begin{adjustwidth}{1cm}{}
-Generate solutions for every valid $J^{\pi}$.
-\end{adjustwidth}
+\useroption{--all-symmetries}{Generate solutions for every valid $J^{\pi}$.}
 
-\texttt{--gfactors} 
-\begin{adjustwidth}{1cm}{}
-Calculate the Land\`{e} g-factors for each solution. This option is enabled by default unless 
-$\texttt{CI/NumSolutions} > 50$.
-\end{adjustwidth}
+\useroption{--gfactors}{%
+Calculate the Land\`{e} g-factors for each solution. This option is enabled by default unless
+$\texttt{CI/NumSolutions} > 50$.%
+}
 
-\texttt{--no-gfactors} 
-\begin{adjustwidth}{1cm}{}
-Do not calculate g-factors.
-\end{adjustwidth}
+\useroption{--no-gfactors}{Do not calculate g-factors.}
 
-\texttt{--memory-saver}
-\begin{adjustwidth}{1cm}{}
-Immediately write CI solutions, wavefunctions and angular data for each $J^{\pi}$ to disk once CI is 
-complete, rather than keeping them in memory for the entire lifetime of the calculation. 
-\end{adjustwidth}
+\useroption{--memory-saver}{%
+Immediately write CI solutions, wavefunctions and angular data for each $J^{\pi}$ to disk once CI is
+complete, rather than keeping them in memory for the entire lifetime of the calculation.%
+}
 
-\texttt{--single-configuration-CI}
-\begin{adjustwidth}{1cm}{}
+\useroption{--single-configuration-CI}{%
 Generate Hamiltonian matrices from a single nonrelativistic configuration. Used in many-body quantum
-chaos calculations where there is strong mixing between states.
-\end{adjustwidth}
+chaos calculations where there is strong mixing between states.%
+}
 
-\texttt{--print-configurations}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-configurations}{%
 Prints the non-relativistic configurations which are included in the CI matrix.
-Output includes the name, configuration-average energy and number of sub-levels of each configuration.
-\end{adjustwidth}
+Output includes the name, configuration-average energy and number of sub-levels of each configuration.%
+}
 
-\texttt{--print-relativistic-configurations}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-relativistic-configurations}{%
 Prints the relativistic configurations which are included in the CI matrix.
-Output includes the name, configuration-average energy and number of sub-levels of each configuration.
-\end{adjustwidth}
+Output includes the name, configuration-average energy and number of sub-levels of each configuration.%
+}
 
-\texttt{--scalapack}
-\begin{adjustwidth}{1cm}{}
-Solve the Hamiltonian matrix using ScaLAPACK routines (rather than the default Davidson algorithm). 
+\useroption{--scalapack}{%
+Solve the Hamiltonian matrix using ScaLAPACK routines (rather than the default Davidson algorithm).
 This approach directly diagonalises the matrix in parallel via MPI, so should not be used in hybrid
 OpenMP+MPI configuration. This flag is only available when \ambit\ has been compiled with the
-\texttt{-DAMBIT\_USE\_SCALAPACK} compile-time flag.
-\end{adjustwidth}
+\texttt{-DAMBIT\_USE\_SCALAPACK} compile-time flag.%
+}
 
-\texttt{MaxEnergy} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Maximum energy solution to calculate when solving with \texttt{--scalapack}.
-\end{adjustwidth}
+\useroption{MaxEnergy}[Real]{Maximum energy solution to calculate when solving with \texttt{--scalapack}.}
 
-\texttt{ConfigurationAverageEnergyRange} \uline{Real, Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{ConfigurationAverageEnergyRange}[Real, Real]{%
 List of two numbers to limit the energy range of non-relativistic configurations included in CI.
 Configurations with configuration average energies outside of this range are not included when building
-the CI matrix.
-\end{adjustwidth}
+the CI matrix.%
+}
 
-\texttt{ChunkSize} \uline{Integer}[4]
-\begin{adjustwidth}{1cm}{}
+\useroption{ChunkSize}[Integer][4]{%
 Number of configurations per ``chunk'' of the CI matrix, used when dividing the matrix between MPI
-processes. This option has no effect on the numerical 
-value of the outcome, but does affect the performance of generating and diagonalising the CI matrix. 
-The default value of 4 is good for most applications and changing this is not recommended without a 
-compelling reason (i.e. talk to Emily or Julian first).
-\end{adjustwidth}
+processes. This option has no effect on the numerical
+value of the outcome, but does affect the performance of generating and diagonalising the CI matrix.
+The default value of 4 is good for most applications and changing this is not recommended without a
+compelling reason (i.e. talk to Emily or Julian first).%
+}
 
-\texttt{--sort-matrix-by-configuration}
-\begin{adjustwidth}{1cm}{}
+\useroption{--sort-matrix-by-configuration}{%
 Specifies that relativistic configurations which make up the CI matrix should be sorted by configuration
 name (e.g. 2p$^5$3s$^1$ will come before 2p$^5$ 4p$^1$ in the CI matrix). Ordinarily the list of
 relativistic configurations is sorted so that configurations with the most projections appear first in
 the list. The default ordering provides better performance and load-balancing, so this option should
-only be used for debugging purposes.
-\end{adjustwidth}
+only be used for debugging purposes.%
+}
 
 \subsection{CI/Output}
 
-\texttt{--print-hamiltonian}
-\begin{adjustwidth}{1cm}{}
-Print the Hamiltonian matrix. 
-\end{adjustwidth}
+\useroption{--print-hamiltonian}{Print the Hamiltonian matrix.}
 
-\texttt{--write-hamiltonian}
-\begin{adjustwidth}{1cm}{}
+\useroption{--write-hamiltonian}{%
 Write the lower-triangular component of the Hamiltonian matrix. The matrix is written to the binary file
-with filename \texttt{<ID>\_<run>.<2J><parity>.matrix}, where \texttt{ID} is the value of the 
+with filename \texttt{<ID>\_<run>.<2J><parity>.matrix}, where \texttt{ID} is the value of the
 \texttt{ID} input option, \texttt{run} is the multirun index (0 if multirun is not used) and
-\texttt{parity} is either \texttt{e} or \texttt{o}.
-\end{adjustwidth}
+\texttt{parity} is either \texttt{e} or \texttt{o}.%
+}
 
-\texttt{--no-configurations}
-\begin{adjustwidth}{1cm}{}
-Do not display configuration information about levels.
-\end{adjustwidth}
+\useroption{--no-configurations}{Do not display configuration information about levels.}
 
-\texttt{MaxDisplayedEnergy} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{MaxDisplayedEnergy}[Real]{%
 Maximum energy solution to print. Requested solutions above this energy will still be generated, but
-will not be displayed.
-\end{adjustwidth}
+will not be displayed.%
+}
 
-\texttt{MinDisplayedPercentage} \uline{Real} [1.0]
-\begin{adjustwidth}{1cm}{}
+\useroption{MinDisplayedPercentage}[Real][1.0]{%
 Configurations which make up a percentage of a given solution less than this value will not be
-displayed.
-\end{adjustwidth}
+displayed.%
+}
 
-\texttt{--print-inline}
-\begin{adjustwidth}{1cm}{}
-Print CI solutions in a ``condensed'' format which is easier to parse via scripts.
-\end{adjustwidth}
+\useroption{--print-inline}{%
+Print CI solutions in a ``condensed'' format which is easier to parse via scripts.%
+}
 
-\texttt{Separator} \uline{String}[" " (single space)]
-\begin{adjustwidth}{1cm}{}
-String used to separate fields in output produced by \texttt{--print-inline}.
-\end{adjustwidth}
+\useroption{Separator}[String][" " (single space)]{%
+String used to separate fields in output produced by \texttt{--print-inline}.%
+}
 
-\texttt{--print-relativistic-configurations}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-relativistic-configurations}{%
 Show percentages of relativistic configurations for CI solutions. If this flag is not set then the
-percentages will be given in terms of non-relativistic configurations.
-\end{adjustwidth}
+percentages will be given in terms of non-relativistic configurations.%
+}
 
 \subsection{CI/SmallSide}
-\texttt{LeadingConfigurations} \uline{String}
-\begin{adjustwidth}{1cm}{}
-(Mandatory if using Emu CI) List of all configurations from which to generate many-body CSFs for the 
+\useroption{LeadingConfigurations}[String]{%
+(Mandatory if using Emu CI) List of all configurations from which to generate many-body CSFs for the
 ``small side'' of the Hamiltonian matrix. This option has identical syntax and semantics to
-\texttt{CI/LeadingConfigurations}.
-\end{adjustwidth}
+\texttt{CI/LeadingConfigurations}.%
+}
 
-\texttt{ElectronExcitations} \uline{Integer or String}[2]
-\begin{adjustwidth}{1cm}{}
+\useroption{ElectronExcitations}[Integer or String][2]{%
 (Mandatory) Number of electron excitations to include in the ``small side'' of the matrix. This option
 accepts the same input format as \texttt{CI/ElectronExcitations}. The \texttt{CI/SmallSide} subsection
 is only useful when the ``small side'' of the matrix is smaller than that specified in \texttt{CI}, so
-it is important to to ensure only the desired configurations are included here.
-\end{adjustwidth}
+it is important to to ensure only the desired configurations are included here.%
+}
 
-\texttt{HoleExcitations} \uline{Integer}[0]
-\begin{adjustwidth}{1cm}{}
-Number of hole excitations to include in the ``small side'' of the matrix.
-\end{adjustwidth}
+\useroption{HoleExcitations}[Integer][0]{%
+Number of hole excitations to include in the ``small side'' of the matrix.%
+}
 
-\texttt{--print-configurations}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-configurations}{%
 Prints the non-relativistic configurations which are included in the ``small side'' of the CI matrix.
-Output includes the name, configuration-average energy and number of sub-levels of each configuration.
-\end{adjustwidth}
+Output includes the name, configuration-average energy and number of sub-levels of each configuration.%
+}
 
-\texttt{--print-relativistic-configurations}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-relativistic-configurations}{%
 Prints the relativistic configurations which are included in the ``small side'' of the CI matrix.
-Output includes the name, configuration-average energy and number of sub-levels of each configuration.
-\end{adjustwidth}
+Output includes the name, configuration-average energy and number of sub-levels of each configuration.%
+}
 
-\texttt{ConfigurationAverageEnergyRange} \uline{Real, Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{ConfigurationAverageEnergyRange}[Real, Real]{%
 List of two numbers to limit the energy range of non-relativistic configurations included in the ``small
 side'' of the CI matrix.
 Configurations with configuration average energies outside of this range are not included when building
-the small side of the CI matrix.
-\end{adjustwidth}
+the small side of the CI matrix.%
+}
 
 \section{MBPT}
 
-\texttt{Basis} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{Basis}[String]{%
 Upper limit on the principle quantum number $n$ and orbital angular momentum $l$ of
 virtual orbitals to include in MBPT diagrams. Input string is of the same form as
 \texttt{Basis/ValenceBasis}, so \texttt{MBPT/Basis = 30spd20f} will include all s-, p- and d-orbitals
 with $n \leq 30$ and f-orbitals with $n \leq 20$. (Mandatory, must be a superset of
-\texttt{Basis/ValenceBasis})
-\end{adjustwidth}
+\texttt{Basis/ValenceBasis})%
+}
 
-\texttt{EnergyDenomOrbitals} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{EnergyDenomOrbitals}[String]{%
 Specifies which orbitals/shells to use when calculating the valence energy
-in the MBPT diagram energy denominators. Accepts an orbital string as input, so e.g. 
+in the MBPT diagram energy denominators. Accepts an orbital string as input, so e.g.
 \texttt{MBPT/EnergyDenomOrbitals = 5sp4df} will use the $5s$, $5p$, $4d$ and $4f$ orbitals to calculate
 the valence energy. If no value is specified, then \ambit\ will use the orbitals at the Fermi level for
-energy denominators.
-\end{adjustwidth}
+energy denominators.%
+}
 
-\texttt{{-}{-}use-valence}
-\begin{adjustwidth}{1cm}{}
-Include valence-valence MBPT diagrams for orbitals above the limit set in \texttt{Basis/ValenceBasis} 
-and below \texttt{MBPT/Basis}.
-\end{adjustwidth}
+\useroption{--use-valence}{%
+Include valence-valence MBPT diagrams for orbitals above the limit set in \texttt{Basis/ValenceBasis}
+and below \texttt{MBPT/Basis}.%
+}
 
-\texttt{{-}{-}no-core}
-\begin{adjustwidth}{1cm}{}
-Do not include core-valence MBPT corrections.
-\end{adjustwidth}
+\useroption{--no-core}{Do not include core-valence MBPT corrections.}
 
-\texttt{{-}{-}force-subtraction}
-\begin{adjustwidth}{1cm}{}
+\useroption{--force-subtraction}{%
 Force the calculation of subtraction diagrams, even if the atomic configuration would not automatically
-require them.
-\end{adjustwidth}
+require them.%
+}
 
-\texttt{{-}{-}no-subtraction}
-\begin{adjustwidth}{1cm}{}
+\useroption{--no-subtraction}{%
 Do not calculate subtraction diagrams, even if the atomic configuration would otherwise require their
-inclusion.
-\end{adjustwidth}
+inclusion.%
+}
 
-\texttt{{-}{-}no-extra-box}
-\begin{adjustwidth}{1cm}{}
-Do not include box-diagrams with wrong parity.
-\end{adjustwidth}
+\useroption{--no-extra-box}{Do not include box-diagrams with wrong parity.}
 
-\texttt{EnergyDenomFloor} \uline{Real}[0.01]
-\begin{adjustwidth}{1cm}{}
+\useroption{EnergyDenomFloor}[Real][0.01]{%
 Minimum allowed value of energy denominators in MBPT diagrams - any denominators smaller than this value
 will be clamped to this value. This is to catch large, non-perturbative diagrams which must be
-included via CI rather than MBPT. The default value for this option is usually sufficient for most 
-calculations.
-\end{adjustwidth}
+included via CI rather than MBPT. The default value for this option is usually sufficient for most
+calculations.%
+}
 
-\texttt{Delta} \uline{Real}[0.0]
-\begin{adjustwidth}{1cm}{}
-Adds a small constant $\delta$ to the energy denominator in all diagrams.
-\end{adjustwidth}
+\useroption{Delta}[Real][0.0]{Adds a small constant $\delta$ to the energy denominator in all diagrams.}
 
-\texttt{TwoBody/StorageLimits} \uline{List of integers}['2, 2, 2']
-\begin{adjustwidth}{1cm}{}
+\useroption{TwoBody/StorageLimits}[List of integers]['2, 2, 2']{%
 Specifies limits on the principal quantum number $n$ of
-valence orbitals included as external lines in two-body MBPT diagrams. Accepts input as a 
-comma-separated list of integers '$\mathrm{max}_1$, $\mathrm{max}_2$, $\mathrm{max}_3$', which can 
-contain up to three elements. This option constrains the principal quantum number for each electron $i$ 
-in a given two-body integral such that $n_i > \mathrm{max}_i$. Unspecified limits default to 2.
-\end{adjustwidth}
+valence orbitals included as external lines in two-body MBPT diagrams. Accepts input as a
+comma-separated list of integers '$\mathrm{max}_1$, $\mathrm{max}_2$, $\mathrm{max}_3$', which can
+contain up to three elements. This option constrains the principal quantum number for each electron $i$
+in a given two-body integral such that $n_i > \mathrm{max}_i$. Unspecified limits default to 2.%
+}
 
-\texttt{OneBody/Scaling} \uline{List of reals}
-\begin{adjustwidth}{1cm}{}
+\useroption{OneBody/Scaling}[List of reals]{%
 Kappa-dependent prefactor for one-body MBPT. This modifies $\Sigma^{(1)} \to \lambda_{\kappa}
-\Sigma^{(1)}$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.
-\end{adjustwidth}
+\Sigma^{(1)}$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.%
+}
 
-\texttt{{-}{-}brueckner}
-\begin{adjustwidth}{1cm}{}
-Generate and use Br\"{u}ckner orbitals (see Sec.~\ref{subsec:brueckner}).
-\end{adjustwidth}
+\useroption{--brueckner}{Generate and use Br\"{u}ckner orbitals (see Sec.~\ref{subsec:brueckner}).}
 
-\texttt{{-}{-}mbpt-use-brueckner}
-\begin{adjustwidth}{1cm}{}
-	Use Br\"{u}ckner orbitals also for high-lying states (i.e. non-valence excited states) and throughout the MBPT diagrams.
-\end{adjustwidth}
+\useroption{--mbpt-use-brueckner}{%
+Use Br\"{u}ckner orbitals also for high-lying states (i.e. non-valence excited states) and throughout the MBPT diagrams.%
+}
 
 \subsection{Brueckner}
 \label{subsec:brueckner}
@@ -2254,43 +2090,33 @@ self-consistently via:
 
 Where $h_{DF}$ is the usual Dirac-Fock operator and $\varepsilon$ is the single particle energy.
 
-\texttt{StartPoint} \uline{Real}[4.35e-5]
-\begin{adjustwidth}{1cm}{}
-Starting point (in lattice-space) to use when calculating the sigma matrices.
-\end{adjustwidth}
+\useroption{StartPoint}[Real][4.35e-5]{%
+Starting point (in lattice-space) to use when calculating the sigma matrices.%
+}
 
-\texttt{EndPoint} \uline{Real}[8.0]
-\begin{adjustwidth}{1cm}{}
-End point (in lattice-space) to use when calculating the sigma matrices.
-\end{adjustwidth}
+\useroption{EndPoint}[Real][8.0]{%
+End point (in lattice-space) to use when calculating the sigma matrices.%
+}
 
-\texttt{Stride} \uline{Integer}[4]
-\begin{adjustwidth}{1cm}{}
+\useroption{Stride}[Integer][4]{%
 Lattice-point spacing to use when calculating the sigma matrices. This is option does not directly
 control the lattice-space step-size, but rather dictates the stride of the lattice points, so a stride
-of 4 will only include every 4th lattice point in the sigma matrix.
-\end{adjustwidth}
+of 4 will only include every 4th lattice point in the sigma matrix.%
+}
 
-\texttt{Scaling} \uline{List of reals}
-\begin{adjustwidth}{1cm}{}
+\useroption{Scaling}[List of reals]{%
 Adds a $\kappa$-dependent prefactor to the (Br\"{u}ckner) sigma potential so $\Sigma \to
-\lambda_{\kappa}\Sigma$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.
-\end{adjustwidth}
+\lambda_{\kappa}\Sigma$. Input consists of a list of consecutive $\kappa, \lambda_{\kappa}$ pairs.%
+}
 
-\texttt{{-}{-}use-lower}
-\begin{adjustwidth}{1cm}{}
-Include the $fg$ and $gf$ sub-matrices when calculating $\Sigma$.
-\end{adjustwidth}
+\useroption{--use-lower}{Include the $fg$ and $gf$ sub-matrices when calculating $\Sigma$.}
 
-\texttt{{-}{-}use-lower-lower}
-\begin{adjustwidth}{1cm}{}
-Include the $gg$ sub-matrix when calculating $\Sigma$.
-\end{adjustwidth}
+\useroption{--use-lower-lower}{Include the $gg$ sub-matrix when calculating $\Sigma$.}
 
 \section{Transitions}
 
 This set of options controls transition calculations for different operators are specified in separate 
-subsections, e.g. \texttt{Transitions/E1/{-}{-}reduced-elements} or 
+subsections, e.g. \texttt{Transitions/E1/--reduced-elements} or 
 \texttt{Transitions/M2/RPA/BSpline/N}. Each subsection accepts the same set 
 of possible arguments, but the arguments need not be the same for each requested operator. 
 
@@ -2315,134 +2141,102 @@ decorators. Additionally, specifying these operators in \texttt{Transitions} onl
 matrix elements and does not include them in CI+MBPT calculations for energy levels, so this
 section mostly serves as a sanity check for these operators.
 
-\texttt{MatrixElements} \uline{String}
-\begin{adjustwidth}{1cm}{}
+\useroption{MatrixElements}[String]{%
 List of specific transition matrix elements to calculate, e.g.
-\texttt{Transitions/M1/MatrixElements = "1e:0 -}\textgreater \texttt{1e:1, 3o:2 -}\textgreater\texttt{ 3o:4"}.
-\end{adjustwidth}
+\texttt{Transitions/M1/MatrixElements = "1e:0 -}\textgreater \texttt{1e:1, 3o:2 -}\textgreater\texttt{ 3o:4"}.%
+}
 
-\texttt{AllBelow} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Calculates all matrix elements between states with energy less than this value.
-\end{adjustwidth}
+\useroption{AllBelow}[Real]{%
+Calculates all matrix elements between states with energy less than this value.%
+}
 
-\texttt{Frequency} \uline{Real} [0.1]
-\begin{adjustwidth}{1cm}{}
-Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators. The default value of 0.1 a.u. (approximately 2.7 eV or 456 nm) is just set to correspond to an optical transition. The dependence on frequency is usually fairly weak anyway.
-\end{adjustwidth}
+\useroption{Frequency}[Real][0.1]{%
+Frequency of the external field, in atomic units. This option is only used with EJ or MJ operators. The default value of 0.1 a.u. (approximately 2.7 eV or 456 nm) is just set to correspond to an optical transition. The dependence on frequency is usually fairly weak anyway.%
+}
 
-\texttt{{-}{-}reduced-elements} 
-\begin{adjustwidth}{1cm}{}
-Calculate the reduced matrix elements $T$ of EJ or MJ operators (default behaviour is to calculate the line strengths 
-$S = |T|^2$).
-\end{adjustwidth}
+\useroption{--reduced-elements}{%
+Calculate the reduced matrix elements $T$ of EJ or MJ operators (default behaviour is to calculate the line strengths
+$S = |T|^2$).%
+}
 
-\texttt{{-}{-}print-integrals} 
-\begin{adjustwidth}{1cm}{}
-Prints the raw value of the one-body integrals $\bra{b}\hat{O}\ket{a}$ for each pair of valence 
-orbitals $a$ and $b$.
-\end{adjustwidth}
+\useroption{--print-integrals}{%
+Prints the raw value of the one-body integrals $\bra{b}\hat{O}\ket{a}$ for each pair of valence
+orbitals $a$ and $b$.%
+}
 
-\texttt{{-}{-}rpa}
-\begin{adjustwidth}{1cm}{}
-Include random-phase approximation (RPA) corrections when calculating transition matrix elements. 
-\end{adjustwidth}
+\useroption{--rpa}{%
+Include random-phase approximation (RPA) corrections when calculating transition matrix elements.%
+}
 
 Additionally, Yukawa and QED transitions take the same input arguments as their HF decorator equivalents (with the appropriate \hbox{\texttt{Transitions/\textless{Operator}\textgreater}} prefix). Options for HFI are presented in Sec.~\ref{sec:HFI}, while HFS1, HFS2, and FS operators accept the following options:
 
-\texttt{HFS1/NuclearMagneticRadius} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{HFS1/NuclearMagneticRadius}[Real]{%
 Nuclear magnetic (dipole) radius used to calculate the hyperfine dipole matrix elements (in fm). If this is not
-specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.
-\end{adjustwidth}
+specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.%
+}
 
-\texttt{HFS1/gOnI} [1.0]
-Magnetic-dipole g-factor (in nuclear magnetons) divided by nuclear spin $g/I$.
+\useroption{HFS1/gOnI}[Real][1.0]{%
+Magnetic-dipole g-factor (in nuclear magnetons) divided by nuclear spin $g/I$.%
+}
 
-\texttt{HFS2/NuclearQuadrupoleRadius} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{HFS2/NuclearQuadrupoleRadius}[Real]{%
 Nuclear quadrupole radius used to calculate the hyperfine quadrupole matrix elements (in fm). If this is not
-specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.
-\end{adjustwidth}
+specified, then the default value of $\sqrt{5/3} ~ r_{\textrm{rms}}$ will be used.%
+}
 
-\texttt{HFS2/Q}[1.0]
-Nuclear quadrupole moment $Q_{zz}$ in barn.
+\useroption{HFS2/Q}[Real][1.0]{Nuclear quadrupole moment $Q_{zz}$ in barn.}
 
-\texttt{FS/Scale} \uline{Real} [1.0]
-\begin{adjustwidth}{1cm}{}
-Scale factor of the field-shift operator.
-\end{adjustwidth}
+\useroption{FS/Scale}[Real][1.0]{Scale factor of the field-shift operator.}
 
-\texttt{FS/DeltaNuclearRadius} \uline{Real} [0.1]
-\begin{adjustwidth}{1cm}{}
-Distance in fm by which to change the nuclear radius in the field-shift operator. 
-\end{adjustwidth}
+\useroption{FS/DeltaNuclearRadius}[Real][0.1]{%
+Distance in fm by which to change the nuclear radius in the field-shift operator.%
+}
 
-\texttt{FS/DeltaNuclearThickness} \uline{Real} [0.0]
-\begin{adjustwidth}{1cm}{}
-Change to the nuclear thickness parameter in the field-shift operator.
-\end{adjustwidth}
+\useroption{FS/DeltaNuclearThickness}[Real][0.0]{%
+Change to the nuclear thickness parameter in the field-shift operator.%
+}
 
 \subsection{RPA}
 
-\texttt{Scale} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Scale the RPA operator internally.
-\end{adjustwidth}
+\useroption{Scale}[Real]{Scale the RPA operator internally.}
 
-\texttt{Weighting} \uline{Real}
-\begin{adjustwidth}{1cm}{}
-Mix old and new wavefunctions at each step in RPA with this weighting factor.
-\end{adjustwidth}
+\useroption{Weighting}[Real]{%
+Mix old and new wavefunctions at each step in RPA with this weighting factor.%
+}
 
-\texttt{MaxDeltaK} \uline{Integer}
-\begin{adjustwidth}{1cm}{}
-	In the RPA procedure, each core orbital $\psi_\kappa$ is `dressed' with orbitals $\delta\psi_{\kappa'}$. Usually the change in angular momentum between the $\psi_\kappa$ and $\delta\psi_{\kappa'}$ is $|j' - j| \leq K$, where $K$ is the rank of the external operator.
-	This option limits the difference to $|j' - j|\leq \texttt{MaxDeltaK}$.
-\end{adjustwidth}
+\useroption{MaxDeltaK}[Integer]{%
+In the RPA procedure, each core orbital $\psi_\kappa$ is `dressed' with orbitals $\delta\psi_{\kappa'}$. Usually the change in angular momentum between the $\psi_\kappa$ and $\delta\psi_{\kappa'}$ is $|j' - j| \leq K$, where $K$ is the rank of the external operator.
+This option limits the difference to $|j' - j|\leq \texttt{MaxDeltaK}$.%
+}
 
-\texttt{MaxIterations} \uline{Integer} [100]
-\begin{adjustwidth}{1cm}{}
-	Adjust the maximum allowed number of iterations in the RPA procedure. Helpful if more iterations are needed for convergence. Users should always check that convergence is reached in the log files.
-\end{adjustwidth}
+\useroption{MaxIterations}[Integer][100]{%
+Adjust the maximum allowed number of iterations in the RPA procedure. Helpful if more iterations are needed for convergence. Users should always check that convergence is reached in the log files.%
+}
 
-\texttt{Configuration} \uline{String}
-\begin{adjustwidth}{1cm}{}
-	Choose the configuration to be included in the RPA core.
-\end{adjustwidth}
+\useroption{Configuration}[String]{Choose the configuration to be included in the RPA core.}
 
-\texttt{{-}{-}no-negative-states}
-\begin{adjustwidth}{1cm}{}
-Exclude basis states in the Dirac sea (i.e. negative energy states) from RPA corrections.
-\end{adjustwidth}
+\useroption{--no-negative-states}{%
+Exclude basis states in the Dirac sea (i.e. negative energy states) from RPA corrections.%
+}
 
-\texttt{{-}{-}print-field}
-\begin{adjustwidth}{1cm}{}
+\useroption{--print-field}{%
 Print the direct part of the change in the DF core to the file \texttt{RPAField.txt},
 which is overwritten if it already exists. The format of each line is
-\quad $r$\quad $\delta V(r)$\quad $\delta V'(r)$.
-\end{adjustwidth}
+\quad $r$\quad $\delta V(r)$\quad $\delta V'(r)$.%
+}
 
-\texttt{BSpline/N} \uline{Integer}[40]
-\begin{adjustwidth}{1cm}{}
-Number of B-Splines to use when calculating RPA corrections.
-\end{adjustwidth}
+\useroption{BSpline/N}[Integer][40]{Number of B-Splines to use when calculating RPA corrections.}
 
-\texttt{BSpline/K} \uline{Integer}[7]
-\begin{adjustwidth}{1cm}{}
-Order of B-Splines to use when calculating RPA corrections.
-\end{adjustwidth}
+\useroption{BSpline/K}[Integer][7]{Order of B-Splines to use when calculating RPA corrections.}
 
-\texttt{BSpline/Rmax} \uline{Real}[\texttt{Lattice/EndPoint}]
-\begin{adjustwidth}{1cm}{}
-Maximum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections. 
-Defaults to \texttt{Lattice/EndPoint} if no value is specified.
-\end{adjustwidth}
+\useroption{BSpline/Rmax}[Real][\texttt{Lattice/EndPoint}]{%
+Maximum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.
+Defaults to \texttt{Lattice/EndPoint} if no value is specified.%
+}
 
-\texttt{BSpline/R0} \uline{Real}[0.0]
-\begin{adjustwidth}{1cm}{}
-Minimum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.
-\end{adjustwidth}
+\useroption{BSpline/R0}[Real][0.0]{%
+Minimum radius (in atomic units) of B-Spline functions to use when calculating RPA corrections.%
+}
 
 \subsection{HFI}
 \label{sec:HFI}
@@ -2455,110 +2249,86 @@ t_{k,\mu} = \begin{dcases}
 \end{dcases}
 \]
 
-\texttt{Operator} \uline{String}
-\begin{adjustwidth}{1cm}{}
-Input string should be of the form \texttt{Ek} or \texttt{Mk} where $k$ is an integer (e.g. \texttt{M3}) for nuclear electric and magnetic $2^k$-pole operators, respectively.
-\end{adjustwidth}
+\useroption{Operator}[String]{%
+Input string should be of the form \texttt{Ek} or \texttt{Mk} where $k$ is an integer (e.g. \texttt{M3}) for nuclear electric and magnetic $2^k$-pole operators, respectively.%
+}
 
-\texttt{NuclearRadius} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{NuclearRadius}[Real]{%
 Nuclear multipole radius (in fm). If this is not specified, then the default value of $r_N = \sqrt{5/3} ~ r_{\textrm{rms}}$ will be used. The form of the radial cutoff is the same for all operators:
 \[
 t(r) = \begin{dcases}
 \frac{r}{r_N^{k+2}}, & r < r_N \\
 \frac{1}{r^{k+1}}, & r \geq r_N \\
 \end{dcases}
-\]
-\end{adjustwidth}
+\]%
+}
 
-\texttt{{-}{-}reduced-elements} 
-\begin{adjustwidth}{1cm}{}
-	Calculate the reduced matrix elements of $T_k$ (default behaviour is to calculate stretched states).
-\end{adjustwidth}
+\useroption{--reduced-elements}{%
+Calculate the reduced matrix elements of $T_k$ (default behaviour is to calculate stretched states).%
+}
 \section{DR} % Dielectronic recombination/autoionisation
 
-\texttt{IonizationEnergy} \uline{Real}[0.0]
-\begin{adjustwidth}{1cm}{}
-Absolute ionisation energy (in atomic units) of the target system.
-\end{adjustwidth}
+\useroption{IonizationEnergy}[Real][0.0]{%
+Absolute ionisation energy (in atomic units) of the target system.%
+}
 
-\texttt{ContinuumLMin} \uline{Integer}[0]
-\begin{adjustwidth}{1cm}{}
-Minimum orbital angular momentum of the continuum waves included in the calculation. 
-\end{adjustwidth}
+\useroption{ContinuumLMin}[Integer][0]{%
+Minimum orbital angular momentum of the continuum waves included in the calculation.%
+}
 
-\texttt{ContinuumLMax} \uline{Integer}[6]
-\begin{adjustwidth}{1cm}{}
-Maximum orbital angular momentum of the continuum waves included in the calculation. 
-\end{adjustwidth}
+\useroption{ContinuumLMax}[Integer][6]{%
+Maximum orbital angular momentum of the continuum waves included in the calculation.%
+}
 
-\texttt{EnergyLimit} \uline{Real}
-\begin{adjustwidth}{1cm}{}
+\useroption{EnergyLimit}[Real]{%
 Maximum energy of continuum waves included in the calculation. No limit will be applied if this is left
-unspecified.
-\end{adjustwidth}
+unspecified.%
+}
 
-\texttt{{-}{-}single-particle-energy}
-\begin{adjustwidth}{1cm}{}
+\useroption{--single-particle-energy}{%
 Calculate autoionization energies using the sum of individual single-particle energies in each
-relativistic configuration (i.e. ignoring interparticle interactions).
-\end{adjustwidth}
+relativistic configuration (i.e. ignoring interparticle interactions).%
+}
 
-\texttt{ContinuumResidue} \uline{String}
-\begin{adjustwidth}{1cm}{}
-This is similar in spirit to \texttt{Basis/Residue}: the target 
-is simply a ``level'' object, with some combination of CSFs and an energy, so the continuum electrons 
-don't know what the underlying potential looks like. This can be very complicated and potentially 
-different to the combined system, so it's sometimes necessary to specify this directly.
-\end{adjustwidth}
+\useroption{ContinuumResidue}[String]{%
+This is similar in spirit to \texttt{Basis/Residue}: the target
+is simply a ``level'' object, with some combination of CSFs and an energy, so the continuum electrons
+don't know what the underlying potential looks like. This can be very complicated and potentially
+different to the combined system, so it's sometimes necessary to specify this directly.%
+}
 
 \subsection{DR/EnergyGrid}
 This prefix and its options control the continuum energy range over which to calculate autoionization
 rates. These options are only used if the \texttt{DR/--energy-grid} flag is set.
 
-\texttt{Min} \uline{Real}
-\begin{adjustwidth}{1cm}{}[0.003675 (0.1 eV)]
+\useroption{Min}[Real][0.003675 (0.1 eV)]{%
 Minimum continuum wave energy energy in atomic units, relative to the ionization threshold specified in
-\texttt{DR/IonizationEnergy}.
-\end{adjustwidth}
+\texttt{DR/IonizationEnergy}.%
+}
 
-\texttt{Max} \uline{Real}[3.675 (100 eV)]
-\begin{adjustwidth}{1cm}{}
+\useroption{Max}[Real][3.675 (100 eV)]{%
 Maximum continuum wave energy energy in atomic units, relative to the ionization threshold. Will be
 clamped to the value of \texttt{DR/EnergyLimit} if this value is greater than the one specified in
-\texttt{DR/EnergyLimit}.
-\end{adjustwidth}
+\texttt{DR/EnergyLimit}.%
+}
 
-\texttt{Step} \uline{Real}[0.03675 (1eV)]
-\begin{adjustwidth}{1cm}{}
-Step size to use when calculating the energy grid.
-\end{adjustwidth}
+\useroption{Step}[Real][0.03675 (1eV)]{Step size to use when calculating the energy grid.}
 
 \subsection{DR/Target}
 This prefix and its options specify the ``target'' system (i.e. the atom's pre-recombination state), as
 well as how to calculate its electronic structure.
 
-\texttt{Filename} \uline{String}
-\begin{adjustwidth}{1cm}{}
-(Madatory) \ambit-style input file describing the target system
-\end{adjustwidth}
+\useroption{Filename}[String]{(Madatory) \ambit-style input file describing the target system}
 
-\texttt{TwoJ} \uline{Integer}
-\begin{adjustwidth}{1cm}{}
-(Mandatory) Defines (two times) the total angular momentum of the target state.
-\end{adjustwidth}
+\useroption{TwoJ}[Integer]{(Mandatory) Defines (two times) the total angular momentum of the target state.}
 
-\texttt{Parity} \uline{String: "odd" or "even"}
-\begin{adjustwidth}{1cm}{}
-(Mandatory) Parity (odd or even) of the target state.
-\end{adjustwidth}
+\useroption{Parity}[String: "odd" or "even"]{(Mandatory) Parity (odd or even) of the target state.}
 
-\texttt{Index} \uline{Integer} [0]
-\begin{adjustwidth}{1cm}{}
-Index of the target state in the energy-ordered $J^{\pi}$ CI solution for the target system. 
+\useroption{Index}[Integer][0]{%
+Index of the target state in the energy-ordered $J^{\pi}$ CI solution for the target system.
 For example, if the file specified in \texttt{Target/Filename} generates 5 CI solutions with the desired
-$J^{\pi}$, \texttt{DR/Target/Index = 1} will pick the second lowest energy solution.
-\end{adjustwidth}
+$J^{\pi}$, \texttt{DR/Target/Index = 1} will pick the second lowest energy solution.%
+}
 
 
 \end{document}
