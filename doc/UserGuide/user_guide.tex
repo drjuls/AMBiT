@@ -1395,69 +1395,77 @@ Definitions have the following form:
 
 Finally, the value of all numerical parameters must be given in atomic units unless otherwise specified.
 
-\section{Multirun Options}
+\section{Multiple runs}
 
 \label{sec:multirun}
 
 It is sometimes necessary to run multiple almost identical CI+MBPT calculations which differ only in
-some varying parameter, such as the nuclear mass or radius in field-shift calculations. Previous versions of \ambit\ handled this internally, but with expanding computational requirements we now leave this to script files or array jobs in HPC environments.
+some varying parameter, such as the nuclear mass or radius in field-shift calculations. Previous versions of \ambit\ handled this internally, but with expanding computational requirements we now leave this to script files or array jobs in HPC environments, so that ``trivial parallelisation'' can be achieved without overheads.
 
-As an example, consider a ``finite field'' calculation of the relativistic shift, where the user requires three separate runs with  $\alpha^2 \to (1 + \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$. (Here $\alpha^2$ is the square of the fine-structure constant.)
+As an example, consider a ``finite field'' calculation of the relativistic shift in magnesium, where the user requires three separate runs with  $\alpha^2 \to (1 + \Delta)\alpha^2$ for $\Delta = -0.1, 0.0, 0.1$. (Here $\alpha^2$ is the square of the fine-structure constant.) The user has a working input file, which does not have an \texttt{AlphaSquaredVariation} entry. It also does not have a \texttt{ID} entry. Since each run should be separate, we need to make a separate ID for each! An example script is below.
 
 \begin{verbatim}
+#!/usr/bin/env bash
+set -euo pipefail
 
-AlphaSquaredVariation = -0.1
- Number of CSFs = 332 x 15; Finding solutions using Davidson...
-    nloops=12
-Solutions for J = 1, P = even (N = 332):
-0: -0.63475278    -139312.133015 /cm
-             3s1 4s1  82.9916%
-             3s1 5s1  14.3713%
-             3p1 4p1  1.9466%
-    g-factor = 2
+alphasq=(-0.1 0.0 0.1)
 
-1: -0.60239174    -132209.70548 /cm
-             3s1 3d1  57.1468%
-             3s1 4d1  41.1429%
-    g-factor = 0.50001
-
-AlphaSquaredVariation = 0
- Number of CSFs = 332 x 15; Finding solutions using Davidson...
-    nloops=12
-Solutions for J = 1, P = even (N = 332):
-0: -0.63484229    -139331.777879 /cm
-             3s1 4s1  82.9909%
-             3s1 5s1  14.3737%
-             3p1 4p1  1.9449%
-    g-factor = 2
-
-1: -0.60247228    -132227.38166 /cm
-             3s1 3d1  57.1408%
-             3s1 4d1  41.1492%
-    g-factor = 0.50001
-
-AlphaSquaredVariation = 0.1
- Number of CSFs = 332 x 15; Finding solutions using Davidson...
-    nloops=12
-Solutions for J = 1, P = even (N = 332):
-0: -0.63493188    -139351.440654 /cm
-             3s1 4s1  82.9902%
-             3s1 5s1  14.3760%
-             3p1 4p1  1.9432%
-    g-factor = 2
-
-1: -0.60255289    -132245.074402 /cm
-             3s1 3d1  57.1348%
-             3s1 4d1  41.1555%
-    g-factor = 0.50001
-
+for (( i=0; i<${#alphasq[@]}; i++ )); do
+    asq=${alphasq[i]}
+    echo "=== Run ${i}: AlphaSquaredVariation=${asq} ==="
+    ambit Mg.input "AlphaSquaredVariation=${asq}" "ID=Mg_${i}" \
+        > "Mg_${asq}.txt"
+done
 \end{verbatim}
 
-Each run has its own separate basis, integral and levels files, which are distinguished by a suffix
-indicating the run number, such as \texttt{<ID>\_0.basis}, \texttt{<ID>\_1.basis}, 
-\texttt{<ID>\_2.basis} for the above calculation. The run number is always 0 if no multirun options are
-used.
+By making the \texttt{ID} different for each run, they all have their own separate basis, integral, and levels files, e.g. \texttt{Mg\_0.basis}, \texttt{Mg\_1.basis}, 
+\texttt{Mg\_2.basis} for the above calculations.
 
+Another option would be to run each instance in a separate directory, in which case \texttt{ID} can be the same for all:
+\begin{verbatim}
+#!/usr/bin/env bash
+set -euo pipefail
+	
+alphas=(-0.1 0.0 0.1)
+
+for (( i=0; i<${#alphas[@]}; i++ )); do
+    asq=${alphas[i]}
+    dir="Mg_${i}"
+    echo "=== Run ${i}: AlphaSquaredVariation=${asq} (dir: ${dir}) ==="
+    mkdir -p "${dir}"
+    (
+        cd "${dir}"
+        ambit ../Mg.input "AlphaSquaredVariation=${asq}" \
+            > "Mg_${asq}.txt"
+    )
+done
+\end{verbatim}
+
+In HPC environments, you should use array jobs (scheduled with PBS or Slurm). The exact syntax will differ between machines: check the user guide for the HPC you are using. The batch script will look something like this:
+
+\begin{verbatim}
+#!/usr/bin/env bash
+#PBS -N Mg_ambit_array_job
+#PBS -J 0-2
+#PBS -l select=1:ncpus=16:mem=92gb
+#PBS -l walltime=01:00:00
+
+cd "${PBS_O_WORKDIR}"
+
+alphas=(-0.1 0.0 0.1)
+asq=${alphas[${PBS_ARRAY_INDEX}]}
+dir="run_${PBS_ARRAY_INDEX}"
+
+mkdir -p "${dir}"
+cd "${dir}"
+ambit ../Mg.input "AlphaSquaredVariation=${asq}" \
+	> "Mg_${asq}.txt"
+\end{verbatim}
+Here ``\texttt{\#PBS -J 0-2}'' declares the array range. PBS will schedule three independent
+tasks with \texttt{PBS\_ARRAY\_INDEX} set to 0, 1, 2. Note that there is no outer for loop: the array itself is the loop. Each task picks its value of alpha squared by indexing the array with \texttt{PBS\_ARRAY\_INDEX}. 
+
+In this example we have separated the runs into different directories, but again we could choose to keep all runs in the same directory and use a different \texttt{ID} for each run instead.
+	
 \section{Ungrouped options}
 \label{sec:ungrouped}
 
