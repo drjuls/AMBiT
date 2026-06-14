@@ -233,6 +233,30 @@ std::vector<P::specification<X>> GlobalSpecification::make_residual_coulomb_spec
     return make_transitions_base_specification<X>();
 }
 
+template <typename X>
+std::vector<P::specification<X>> GlobalSpecification::make_deprecated_specification() {
+    // Deprecated keywords: parsed at the top level (empty key prefix), rejected during validation.
+    return {
+        {"Multirun",                             &X::multirun},
+        {"-r",                                   &X::r_flag},
+        {"NuclearInverseMass",                   &X::nuclear_inverse_mass},
+        {"HF/--sms",                             &X::hf_sms},
+        {"HF/--nms",                             &X::hf_nms},
+        {"HF/--only-relativistic-nms",           &X::hf_only_rel_nms},
+        {"HF/--nonrelativistic-mass-shift",      &X::hf_nonrel_mass_shift},
+        {"HF/--include-lower-sms",               &X::hf_include_lower_sms},
+        {"HF/Charge",                            &X::hf_charge},
+        {"Basis/BasisSize",                      &X::basis_size},
+        {"Basis/--custom-basis",                 &X::basis_custom_basis},
+        {"Basis/--r-basis",                      &X::basis_r_basis},
+        {"Basis/CustomOrbitals",                 &X::basis_custom_orbitals},
+        {"MBPT/--use-subtraction",               &X::mbpt_use_subtraction},
+        {"MBPT/Brueckner/--excited",             &X::mbpt_brueckner_excited},
+        {"CI/Output/--no-configs",               &X::ci_output_no_configs},
+        {"CI/Output/MinimumDisplayedPercentage", &X::ci_output_min_displayed_percent},
+    };
+}
+
 /***************************** Delegated parsing *************************/
 // Add specifications for members of record subobjects that have their own sets of specifications.
 // Keys and field descriptions are given a prefix as supplied.
@@ -447,6 +471,11 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // Autoionization
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ic, "IC/", ic_specs, "Internal Conversion (IC):");
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::residual_coulomb, "Transitions/ResidualCoulomb/", residual_coulomb_specs, "ResidualCoulomb:");
+
+    // Deprecated keywords: registered at the top level (empty prefix) so the parser accepts them,
+    // then rejected in validateAndNormaliseSpecification() with a pointer to the replacement.
+    auto deprecated_specs = make_deprecated_specification<DeprecatedSpecification>();
+    add_delegates_for(global_specifications_mappings, &GlobalSpecification::deprecated, "", deprecated_specs, "DEPRECATED: ");
 }
 
 // Note that this doesn't do any parsing, it just returns a view of the GlobalSpecification, with a
@@ -554,6 +583,51 @@ std::string importSpecificationKV(GlobalSpecification* gs, const std::string& as
 // Perform global validation of specifications. Return non-empty error message on failure.
 std::string GlobalSpecification::validateAndNormaliseSpecification()
 {
+    // Reject deprecated keywords with a message pointing at the replacement.
+    if(deprecated.multirun)
+        return "'Multirun' is no longer supported; see the 'Multiple runs' section of the user guide.";
+    if(deprecated.r_flag)
+        return "The '-r' option is no longer supported; see the 'Multiple runs' section of the user guide.";
+    if(deprecated.nuclear_inverse_mass)
+        return "'NuclearInverseMass' at the top level is no longer supported; "
+               "use 'HF/MassShift/NuclearInverseMass' instead.";
+    if(deprecated.hf_sms)
+        return "'HF/--sms' is no longer supported; use 'HF/MassShift/--sms' instead.";
+    if(deprecated.hf_nms)
+        return "'HF/--nms' is no longer supported; use 'HF/MassShift/--nms' instead.";
+    if(deprecated.hf_only_rel_nms)
+        return "'HF/--only-relativistic-nms' is no longer supported; "
+               "use 'HF/MassShift/--only-relativistic-nms' instead.";
+    if(deprecated.hf_nonrel_mass_shift)
+        return "'HF/--nonrelativistic-mass-shift' is no longer supported; "
+               "use 'HF/MassShift/--nonrelativistic-mass-shift' instead.";
+    if(deprecated.hf_include_lower_sms)
+        return "'HF/--include-lower-sms' is no longer supported; "
+               "use 'HF/MassShift/--include-lower-sms' instead.";
+    if(deprecated.hf_charge)
+        return "'HF/Charge' is no longer supported; specify 'HF/N' instead "
+               "(charge is derived as Z - HF/N).";
+    if(deprecated.basis_size)
+        return "'Basis/BasisSize' is no longer supported; "
+               "use 'Basis/ValenceBasis' (and 'MBPT/Basis' for the MBPT basis) instead.";
+    if(deprecated.basis_custom_basis)
+        return "'Basis/--custom-basis' is no longer supported; "
+               "use one of 'Basis/--hf-basis', 'Basis/--bspline-basis', or 'Basis/--xr-basis' instead.";
+    if(deprecated.basis_r_basis)
+        return "'Basis/--r-basis' is no longer supported; "
+               "use one of 'Basis/--hf-basis', 'Basis/--bspline-basis', or 'Basis/--xr-basis' instead.";
+    if(deprecated.basis_custom_orbitals)
+        return "'Basis/CustomOrbitals' is no longer supported; use 'Basis/xR/CustomOrbitals' instead.";
+    if(deprecated.mbpt_use_subtraction)
+        return "'MBPT/--use-subtraction' is no longer supported; use 'MBPT/--force-subtraction' instead.";
+    if(deprecated.mbpt_brueckner_excited)
+        return "'MBPT/Brueckner/--excited' is no longer supported; use 'MBPT/--mbpt-use-brueckner' instead.";
+    if(deprecated.ci_output_no_configs)
+        return "'CI/Output/--no-configs' is no longer supported; use 'CI/Output/--no-configurations' instead.";
+    if(deprecated.ci_output_min_displayed_percent)
+        return "'CI/Output/MinimumDisplayedPercentage' is no longer supported; "
+               "use 'CI/Output/MinDisplayedPercentage' instead.";
+
     // Check for critical stuff
     if(ID.empty())
         return "ID must be specified.";

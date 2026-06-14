@@ -23,18 +23,6 @@ public:
     std::optional<std::vector<std::string>> extra_configurations;
     std::optional<std::vector<std::string>> extra_rel_configurations;
 
-    /* TODO EVK: This is really annoying, because the spec says that it can be *either* an integer
-     * (e.g. CI/ElectronExcitations=2) or a string (e.g. ElectronExcitations = '1,5spdf,2,5spd')
-     * and this is really annoying to deal with. My current approach of splitting it into two fields
-     * (one for the number of excitations, and one for the bounds) completely breaks backwards
-     * compatibility with the old style of user input parsing.
-     *
-     * The alternative would be to use a std::variant, which would rule because
-     * algebraic types rule, but std::variant's actual implementation in C++ is kind of yucky.
-     * Also, the existing "list" form of arguments ('1, 5spdf, 2, 5spd') also has multiple types
-     * within a single list (an integer followed by a string), which kind of inherently requires
-     * weird type wrangling to get it to work.
-    */
     unsigned electron_excitations = 2;
     std::optional<std::vector<std::string>> electron_bounds;
     unsigned hole_excitations = 0;
@@ -71,20 +59,52 @@ public:
     bool output_no_configurations = false;
 };
 
+/************************** Deprecated ***********************/
+// Holds keywords that older input files may still set but that AMBiT no longer supports.
+// Listing them here lets the parser accept the keys without raising "unknown key" errors;
+// validateAndNormaliseSpecification() then rejects any that were actually used with a message
+// pointing the user at the replacement.
+//
+// To deprecate a new keyword: add a field below (use std::optional<T> for value-bearing keys,
+// plain bool for "--"/"-" flags), register it in MakeGlobalSpecificationsMappings(), and add
+// the rejection branch in validateAndNormaliseSpecification().
+class DeprecatedSpecification
+{
+public:
+    // Old internal multi-run driver, now replaced by shell scripts (commit e283584).
+    std::optional<std::string> multirun;
+    bool r_flag = false;
+
+    // HF mass-shift keys relocated under HF/MassShift/ (commit 54ab3c2).
+    std::optional<double> nuclear_inverse_mass;
+    bool hf_sms = false;
+    bool hf_nms = false;
+    bool hf_only_rel_nms = false;
+    bool hf_nonrel_mass_shift = false;
+    bool hf_include_lower_sms = false;
+
+    // HF / Basis structural removals.
+    std::optional<unsigned> hf_charge;
+    std::optional<std::string> basis_size;
+    bool basis_custom_basis = false;
+    bool basis_r_basis = false;
+    std::optional<std::vector<std::string>> basis_custom_orbitals;
+
+    // MBPT renames.
+    bool mbpt_use_subtraction = false;
+    bool mbpt_brueckner_excited = false;
+
+    // CI/Output renames.
+    bool ci_output_no_configs = false;
+    std::optional<double> ci_output_min_displayed_percent;
+};
+
 /************************** GlobalSpecification ***********************/
 
 class GlobalSpecification {
 
 public:
     static GlobalSpecification* Instance();
-
-    /*
-    // On success, return empty string.
-    // On failure, return (long) error message.
-
-    std::string importSpecificationFile(const std::string& fileName);
-    std::string importSpecificationKV(const std::string& assignment);
-    */
 
     // Perform global validation of specifications. Return non-empty error message on failure.
     std::string validateAndNormaliseSpecification();
@@ -146,6 +166,8 @@ public:
     std::vector<P::specification<T>> make_ic_specification();
     template <typename T>
     std::vector<P::specification<T>> make_residual_coulomb_specification();
+    template <typename T>
+    std::vector<P::specification<T>> make_deprecated_specification();
 
 public:
     // Make the vector containing pairs mapping from the CLI option to their corresponding
@@ -328,6 +350,8 @@ public:
     double dr_energygrid_step = 0.03675;
     bool dr_use_single_particle_energy = false;
 
+    // Deprecated keys (accepted by the parser, rejected during validation)
+    DeprecatedSpecification deprecated;
 private:
     static GlobalSpecification* s_override;
 
