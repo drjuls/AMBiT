@@ -255,6 +255,7 @@ public:
     unsigned basis_bspline_N = 40;
     std::string basis_bspline_splinetype = "Reno";
     // CI
+    bool do_ci = false;
     CISpecification ci;
     // CI/Output is also in CISpecification
     // CI/SmallSide

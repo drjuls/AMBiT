@@ -365,6 +365,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     // Basis/xR
     {"Basis/xR/CustomOrbitals", &GlobalSpecification::basis_xr_custom_orbitals},
     // CI
+    {"CI",              &GlobalSpecification::do_ci},
     {"CI/SmallSide",    &GlobalSpecification::ci_do_smallside},
     // MBPT
     {"MBPT/Basis",                  &GlobalSpecification::mbpt_basis},
@@ -703,7 +704,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification()
     }
 
     // We must have at least one leading configuration for CI and CI/SmallSide
-    if(!no_ci && ci.leading_configurations.empty())
+    if(!no_ci && do_ci && ci.leading_configurations.empty())
         return "Must have at least one config in CI/LeadingConfigurations";
 
     if(ci_do_smallside && ci_smallside.leading_configurations.empty())
