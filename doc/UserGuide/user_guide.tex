@@ -16,6 +16,7 @@
 \usepackage{xparse}
 
 \newcommand{\ambit}{\textsc{amb}{\footnotesize i}\textsc{t}}
+\newcommand{\cm}{cm$^{-1}$}
 
 % \useroption{name}[type][default]{description}
 %   - name    (mandatory) option name, e.g. NuclearRadius, "-c, --clean", BSpline/N
@@ -55,9 +56,9 @@ introduction to the physics involved. Additionally, this guide does \emph{not} c
 specific to developing \ambit\ -- that information is covered on the \ambit\  
 \href{https://github.com/drjuls/AMBiT}{GitHub repository}.
 
-\chapter{Tutorial calculations: Cr$^+$}
+\chapter{Tutorial calculations: Mg and Cr$^+$}
 
-This chapter contains a step-by-step tutorial for running CI+MBPT calculations for the spectrum of the
+This chapter contains a step-by-step tutorial for running CI+MBPT calculations for the spectrum of magnesium and 
 Cr$^+$ ion using \ambit. We will run through the three major sections of a CI+MBPT calculation:
 Dirac-Fock, calculating MBPT integrals, and generating and solving the CI matrix for calculations. We
 will provide the necessary \ambit\  input options for each step of the calculation, while the input file
@@ -101,16 +102,17 @@ unless otherwise specified.
 \section{Installation}
 Instructions to build \ambit\ can be found in the \texttt{INSTALL.md} file in the main repository.
 
-\section{Cr$^+$ calculations}
+\section{Mg calculations}
 
-In this section, we will go over an example calculation from start to finish, giving an outline of each
-section of the calculation. The input file for the full calculation is located at 
-\texttt{Documentation/ExampleCalculation/Cr+.input} and can by run by passing it as an option to
+To start, we will run \ambit\ for a relatively straightforward system: neutral magnesium. Our intention in this section is to get started without getting bogged down in the options: we will go into more detail when we come to the more involved Cr$^+$ calculations.
+
+The input file for the magnesium calculation is located at 
+\texttt{doc/Examples/MgI/Mg.input} and can by run by passing it as an option to
 \ambit:
 
 \begin{verbatim}
-$ cd /path/to/ambit
-$ ./ambit docs/Examples/Cr+.input
+	$ cd /path/to/ambit
+	$ ./ambit doc/Examples/Mg+.input
 \end{verbatim}
 
 If you've compiled \ambit\  with OpenMP support and would like to try parallel calculations (which run
@@ -118,26 +120,136 @@ significantly more quickly), set the \texttt{bash} environment variable \texttt{
 the desired number of threads and then run \ambit\  as usual:
 
 \begin{verbatim}
-$ export OMP_NUM_THREADS=3
-$ ./ambit docs/Examples/Cr+.input
+	$ export OMP_NUM_THREADS=8
+	$ ./ambit docs/Examples/Mg.input
 \end{verbatim}
 
+The number of threads should be less than or equal to the number of physical cores on your computer.
+
 We will no longer include the file path information in commands for the rest of this chapter, and will
-refer to the input file simply as \texttt{Cr+.input}
+refer to the input file simply as \texttt{Mg.input}
 
 \ambit\  will send all output to \textit{standard output} (i.e. print to the terminal), so it is often
 useful to redirect the output to a file, using either:
-
 \begin{verbatim}
-$ ./ambit Cr+.input > ambitoutput.txt
+	$ ./ambit Mg.input > ambitoutput.txt
 \end{verbatim}
-
 to send all output to the file \texttt{ambitoutput.txt}, or
 \begin{verbatim}
-$ ./ambit Cr+.input | tee ambitoutput.txt
+	$ ./ambit Mg.input | tee ambitoutput.txt
+\end{verbatim}
+which will simultaneously save the output to \texttt{ambitoutput.txt} and print to standard output.
+
+Run \ambit\ as explained above, and let's examine the output. Hopefully you got something similar to \texttt{doc/Examples/MgI/Mg\_CI.txt}.
+First, you will see \ambit\ version and build information (from \href{https://git-scm.com/}{Git}). Then all the user input is listed, whether from the \texttt{Mg.input} file or command-line options, so that this calculation can be (almost) exactly reproduced using only the information in the output file.
+
+Next, it will print the energy, size (in lattice points), and radial size (in atomic units) of the basis orbitals, which are then ordered by $l$ and then $n$. (It also prints the Nuclear RMS radius here, but we can ignore that for now.) Here is the output from this section (yours may be slightly different due to finite machine-precision):
+\begin{verbatim}
+Core orbitals: 
+    1s  E = -49.8647325247  size: (583) 7.331
+    2s  E = -4.49646475249  size: (621) 10.49
+    2p  E = -3.01335464826  size: (642) 12.38
+   2p+  E = -3.0017460426  size: (643) 12.47
+Excited orbitals: 
+    3s  E = -0.541402423823  size: (999) 50
+    4s  E = -0.231726111501  size: (999) 50
+    5s  E = -0.128645303315  size: (999) 50
+    6s  E = -0.0817742512479  size: (999) 50
+    7s  E = -0.056476796886  size: (999) 50
+...
 \end{verbatim}
 
-which will simultaneously save the output to \texttt{ambitoutput.txt} and print to standard output.
+Scrolling down, we eventually find the energy level output. Let's look in detail at the first lot:
+\begin{verbatim}
+ Number of CSFs = 1161; Finding solutions using Davidson...
+     nloops=21
+Solutions for J = 0, P = even (N = 1161):
+0: -0.81805822    -179543.025405 /cm
+             3s1 4s1  4.1016%
+                 3s2  88.5804%
+                 3p2  6.4446%
+
+1: -0.62365112    -136875.60047 /cm
+             3s1 4s1  66.2062%
+             3s1 5s1  29.3621%
+                 3s2  1.6920%
+             3p1 4p1  2.0216%
+
+2: -0.5827391    -127896.448952 /cm
+             3s1 4s1  8.4966%
+             3s1 5s1  27.8828%
+             3s1 6s1  61.2353%
+...
+\end{verbatim}
+
+For each symmetry (total angular momentum $J$ and parity $P$), \ambit\ first prints a ``header'' containing the size of the CI matrix (number of CSFs) and the algorithm used to compute the eigenvectors and eigenvalues (Davidson's algorithm, in this case), followed by the symmetry and maximum number of states which \emph{could} be calculated using this CI basis size.
+
+After this header, the actual solutions are ordered by energy (relative to the other states of this symmetry, \emph{not} relative to the ground-state of the atom) and the ``absolute'' energy is given,
+first in atomic units and then in cm$^{-1}$. It is important to note that these energies are not
+relative to the ionisation potential. They are related to the total energy of the valence electrons, but this is not precise either (core relaxation is not included). However, the \emph{relative} excitation energies have a physically meaningful value.
+
+Each solution also contains a breakdown of the most important nonrelativistic configurations in the CI expansion with their percentage contribution to the level.
+
+At this level of accuracy we would estimate the energy of the first excited state with $J = 0$ and $P = \mathrm{even}$, relative to the ground state that also has this symmetry, as ($-136876$ cm$^{-1}$) $-$ ($-179543$ cm$^{-1}$) $= 42667$ cm$^{-1}$. Comparison with experiment (you can find level data in the \href{https://www.nist.gov/pml/atomic-spectra-database}{NIST Atomic Spectra Database}) shows that this excited state corresponds to $3s4s\ ^1S_0$ at 43503 cm$^{-1}$.
+
+Let's scroll down until we find the solutions for $J = 1$, $P =$ even:
+\begin{verbatim}
+ Number of CSFs = 2538; Finding solutions using Davidson...
+    nloops=31
+Solutions for J = 1, P = odd (N = 2538):
+0: -0.72269224    -158612.613362 /cm
+             3s1 3p1  93.7102%
+             3s1 4p1  3.1580%
+             4s1 3p1  1.1780%
+             3p1 3d1  1.2692%
+    g-factor = 1.5
+
+1: -0.66090446    -145051.762647 /cm
+             3s1 3p1  70.7602%
+             3s1 4p1  23.0829%
+             3p1 3d1  5.3511%
+    g-factor = 1
+...
+\end{verbatim}
+
+For $J \neq 0$ we get Land\'e g-factors, which can also help to identify the level. The first of these, labelled `0' has a calculated energy relative to the ground state of $20930$~\cm and a g-factor of $1.5$. It is most likely $3s3p\ ^3P^o_1$, which has a tabulated energy of 21850~\cm. The second state, labelled `1', is the singlet state $3s3p\ ^1P^o_1$ with a calculated energy of $34491$~\cm (NIST reports $35051$~\cm).
+
+A few more results are tabulated in Table~\ref{tab:mg}.
+
+\begin{table}[tb]
+\caption{\label{tab:mg} Calculated energies for the lowest-lying levels (\cm) of magnesium compared with experimental values reported from NIST.}
+\begin{tabular}{lcrrr}
+\hline\hline
+	Level & $J$ & CI & CI+MBPT & Experiment \\
+\hline
+$3s^2\ ^1\!S$ & 0 & 0 & 0 & 0 \\
+$3s3p\ ^3\!P^o$ & 0 & 20910 & 21758 & 21850 \\
+	& 1 & 20930 & 21779 & 21870 \\
+	& 2 & 20971 & 21822 & 21911 \\
+	$3s3p\ ^1\!P^o$ & 1 & 34491& 35042 & 35051 \\
+	$3s4s\ ^3\!S_1$ & 1 & 40406 & 41116 & 41197 \\
+	$3s4s\ ^1\!S_1$ & 0 & 42667 & 43449 & 43503 \\
+\hline\hline
+\end{tabular}
+\end{table}
+
+Finally we will do a CI+MBPT calculation using the same input file. The basis is already built, but our new calculation should replace the file \texttt{MgI.levels}. \ambit\ does not do this by itself (this is to prevent accidental deletions after a long run on a supercomputer). So either we need to move to a new directory, or simply remove the levels file first with
+\texttt{rm MgI.levels}.
+
+Now we are ready to run the CI+MBPT calculation. We run the same way, specifying a different output file and with an additional flag `\texttt{-s12}' which we can add to the input file or the command line. We will add it to the command line:
+
+\begin{verbatim}
+	$ ./ambit Mg.input -s12 | tee CI+MBPT_output.txt
+\end{verbatim}
+
+This will take a lot longer to run! (Especially if you don't have OpenMP enabled.) That is because it needs to calculate lots of MBPT diagrams and store them (these are the \texttt{MgI.one.int} and \texttt{MgI.two.int} files you will see appear). Then it needs to do the CI calculation as before. The results are much better, as you can see in the Table~\ref{tab:mg}.
+
+\section{Cr$^+$ calculations}
+
+In this section, we will go over an example calculation from start to finish, giving an outline of each
+section of the user input. Ionised chromium is a difficult, open-level system, where obtaining accurate calculations is not easy. Our goal here will not be to reproduce experimental energies, but rather to show how we can build up to larger calculations in \ambit.
+The input file for the full calculation is located at 
+\texttt{doc/Examples/CrII/Cr+.input}.
 
 \subsection{Check the calculation size}
 
@@ -289,10 +401,6 @@ each partial wave. It is also possible to specify different values of $n$ for ea
 example, \texttt{Basis/ValenceBasis = 7sp5d} will include s- and p-orbitals with $n \leq 7$ and
 d-orbitals with $n \leq 5$.
 
-\texttt{FrozenCore} takes a string of the same form, but sets a \emph{lower} limit on $n$ and $l$ of
-valence hole-excitations. If any holes are required when building the CI matrix, they will be generated
-from orbitals above the frozen core but below the Fermi level.
-
 Running \ambit\  with the options included so far will produce a set of single-particle basis orbitals up
 to the value specified in \texttt{ValenceBasis} (7spdf in this case). \ambit\  will first print the 
 version information (from \href{https://git-scm.com/}{Git}) and then the input options we have specified
@@ -443,8 +551,7 @@ symmetries), so this calculation will calculate states with even parity and $J =
 no value is provided.
 
 Running \ambit\  with these options, plus the HF and Basis options in section \ref{sec:tut_DF} produces
-CI output similar to the following (we have elided the basis functions and truncated the output to one
-symmetry to save space):
+CI output similar to the following:
 
 \begin{verbatim}
 ...
@@ -467,21 +574,12 @@ Solutions for J = 0.5, P = even (N = 18540 x 4356):
 ...
 \end{verbatim}
 
-For each symmetry, \ambit\  first prints a ``header'' containing the number of CSFs 
-(the size of the CI matrix) and the algorithm used to compute the eigenvectors and eigenvalues 
-(Davidson's algorithm, in this case), followed by the total angular momentum $J$, parity $\pi$ and 
-maximum number of states which \textit{could} be calculated using this CI basis size.
-
-After this header, the actual solutions are ordered by energy (relative to the other states of this
-symmetry, \emph{not} relative to the ground-state of the atom) and the ``absolute'' energy is given,
-first in atomic units and then in cm$^{-1}$. It is important to note that these energies are not
-relative to the ionisation potential. The absolute value of the energies is physically meaningless --
-only the relative excitation energies have a physically meaningful value.
-
+The solutions are ordered by energy (relative to the other states of this
+symmetry) and present the energy eigenvalues in atomic units and \cm.
 Each solution also contains a breakdown of the most important nonrelativistic configurations in the CI
 expansion in percentages $\displaystyle \sum_I |C_I|^2$, where $C_I$ is the expansion coefficient of
 each CSF corresponding to that configuration. Finally, the Land\`{e} g-factors are also presented to aid
-with the identification of levels. These are expensive to calculate and can be suppressed with the
+with the identification of levels. These can be expensive to calculate and can be suppressed with the
 \texttt{CI/--no-gfactors} flag.
 
 CI contributes the most to the resulting energy and wavefunction of any step (in multi-electron atoms),

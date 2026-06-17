@@ -2,7 +2,11 @@ ID = CrII
 
 Z = 24
 
--s123
+//-s123
+
+NuclearRadius = 3.9289
+NuclearThickness = 2.3
+
 
 [Lattice]
 NumPoints = 1000
@@ -16,22 +20,20 @@ Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d2 3d+3'
 [Basis]
 --bspline-basis
 ValenceBasis = 7spdf
-FrozenCore = 3s2p
 
 [CI]
-LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'
+LeadingConfigurations = '3d5, 3d4 4s1'
 ElectronExcitations = 2
-HoleExcitations = 0
 EvenParityTwoJ = '1, 3, 5'
 NumSolutions = 3
 
 [CI/SmallSide]
-LeadingConfigurations = '3d5, 3d4 4s1, 3d4 4p1'
-ElectronExcitations = '1,5spdf, 2, 5spdf'
-HoleExcitations = 0
+LeadingConfigurations = '3d5, 3d4 4s1'
+ElectronExcitations = 2
+ElectronBounds = '5spdf, 5spdf'
 
-[MBPT]
-Basis = 15spdf
+//[MBPT]
+//Basis = 30spdfg
 
 [Transitions]
 E2/AllBelow = -9.2

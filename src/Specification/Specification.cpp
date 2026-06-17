@@ -642,7 +642,7 @@ std::string GlobalSpecification::validateAndNormaliseSpecification()
 
     // Check for consistency in HF decorators (e.g. cannot request both nonrelativistic and
     // relativistic-only constraints)
-    if (hf_ms_only_rel_nms && hf_ms_nonrel_mass_shift)
+    if(hf_ms_only_rel_nms && hf_ms_nonrel_mass_shift)
         return "HF/--only-relativistic-nms and HF/--nonrelativistic-mass-shift cannot both be set at the same time";
     // Must have at least one of HF/N and HF/Charge, so error out if these are missing
     if(!hf_N)
