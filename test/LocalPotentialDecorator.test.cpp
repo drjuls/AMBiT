@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "HartreeFock/LocalPotentialDecorator.h"
-#include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 #include "Specification/Specification.h"
 
@@ -17,6 +16,7 @@ TEST(LocalPotentialDecoratorTester, CoreHartree)
 
     // Na
     std::string user_input_string = std::string() +
+    "ID = Na\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 11\n" +
@@ -32,18 +32,9 @@ TEST(LocalPotentialDecoratorTester, CoreHartree)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -62,6 +53,7 @@ TEST(LocalPotentialDecoratorTester, DiracHartree)
 
     // Na
     std::string user_input_string = std::string() +
+    "ID = Na\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 11\n" +
@@ -78,18 +70,9 @@ TEST(LocalPotentialDecoratorTester, DiracHartree)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -109,6 +92,7 @@ TEST(LocalPotentialDecoratorTester, KohnSham)
 
     // K
     std::string user_input_string = std::string() +
+    "ID = K\n" +
     "NuclearRadius = 3.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 19\n" +
@@ -125,18 +109,9 @@ TEST(LocalPotentialDecoratorTester, KohnSham)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -156,6 +131,7 @@ TEST(LocalPotentialDecoratorTester, DiracSlater)
 
     // Cs
     std::string user_input_string = std::string() +
+    "ID = Cs\n" +
     "NuclearRadius = 6.0\n" +
     "NuclearThickness = 2.3\n" +
     "Z = 55\n" +
@@ -172,18 +148,9 @@ TEST(LocalPotentialDecoratorTester, DiracSlater)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

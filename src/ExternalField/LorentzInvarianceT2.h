@@ -32,7 +32,7 @@ protected:
 class LorentzInvarianceT2Calculator : public TransitionCalculator
 {
 public:
-    LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& specification);
+    LorentzInvarianceT2Calculator(Atom& atom, TransitionsLLIT2Specification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

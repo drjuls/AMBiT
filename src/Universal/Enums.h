@@ -81,36 +81,6 @@ inline std::string ShortName(Parity from)
     }
 }
 
-namespace DisplayOutputType
-{
-    enum Enum
-    {
-        Start,
-        Standard = 0,
-        CommaSeparated,
-        SpaceSeparated,
-        TabSeparated,
-        End
-    };
-
-    inline std::string Name(Enum from)
-    {
-        switch(from)
-        {
-            case Standard:
-                return "Standard";
-            case CommaSeparated:
-                return "Comma Separated";
-            case SpaceSeparated:
-                return "Space Separated";
-            case TabSeparated:
-                return "Tab Separated";
-            default:
-                return "";
-        }
-    }
-}
-
 inline std::string Name(MultipolarityType from)
 {
     switch(from)
@@ -139,7 +109,7 @@ inline std::string Name(TransitionGauge from)
 
 namespace TransitionCalculationMethod
 {
-    enum Enum 
+    enum Enum
     {
         Start,
         WalterJohnson = 0,
@@ -147,7 +117,7 @@ namespace TransitionCalculationMethod
         ZenonasRudzikas,
         End
     };
-    
+
     inline std::string Name(Enum from)
     {
         switch(from)

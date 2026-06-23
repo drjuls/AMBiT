@@ -1,7 +1,6 @@
 #ifndef CONFIG_GENERATOR_H
 #define CONFIG_GENERATOR_H
 
-#include "Atom/MultirunOptions.h"
 #include "Basis/OrbitalManager.h"
 #include "NonRelConfiguration.h"
 #include "RelativisticConfigList.h"

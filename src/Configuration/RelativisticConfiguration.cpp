@@ -37,6 +37,11 @@ unsigned int RelativisticConfiguration::NumCSFs() const
         return angular_data->NumCSFs();
 }
 
+const double* RelativisticConfiguration::GetCSFs() const
+{
+    return angular_data ? angular_data->GetCSFs() : nullptr;
+}
+
 int RelativisticConfiguration::GetTwiceMaxProjection() const
 {
     int maximum_two_m = 0;
@@ -116,7 +121,7 @@ void RelativisticConfiguration::Print(bool include_CSFs) const
     if(print_CSFs)
         *outstream << " (J = " << angular_data->GetTwoJ()/2. << ", M = " << angular_data->GetTwoM()/2. << ")";
     *outstream << ":\n";
-    
+
     for(const auto& proj: projections)
     {
         *outstream << proj.Name() << " ";
@@ -128,7 +133,7 @@ void RelativisticConfiguration::Print(bool include_CSFs) const
         const double* data = angular_data->GetCSFs();
         int num_CSFs = angular_data->NumCSFs();
         unsigned int num_projections = angular_data->projection_size();
-    
+
         for(int i = 0; i < num_CSFs; i++)
         {   for(int j = 0; j < num_projections; j++)
                 *outstream << data[j * num_CSFs + i] << " ";

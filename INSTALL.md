@@ -276,6 +276,10 @@ run-time crashes or performance degradations. To pass the MPI implementation to 
 - `msmpi`: Microsoft MPI (Note: Microsoft MPI is now called MS HPC. The `msmpi` option is only kept around for
   compatibility with legacy systems)
 
+This option is especially important when combining MKL with ScaLAPACK: if the MPI implemen tation
+specified by `MKL_MPI` does not match the MPI distribution used when running AMBiT, the MKL
+ScaLAPACK routines will crash.
+
 Check with your cluster's documentation to see which MPI library you should use here.
 
 ## Building with an alternative BLAS library
@@ -422,6 +426,22 @@ If no value is supplied to `MKL_THREADING`, it will default to using `intel_thre
 the `libiomp` library to be available. This will usually be fine if you're using the Intel compilers,
 but may not be present when compiling AMBiT with GCC so you'll need to set
 `MKL_THREADING=gnu_thread`.
+
+### MKL ScaLAPACK crashes at run time in `libmkl_blacs_*_mpi` libraries
+AMBiT will try to use MKL's ScaLAPACK implementation when both `USE_MKL` and `USE_SCALAPACK` are
+set. MKL's ScaLAPACK implementation supports several MPI backends, which can be set via the
+`MKL_MPI` CMake option and can have any one of the following values:
+
+- `intelmpi`: Intel MPI (default)
+- `mpich`: MPICH
+- `openmpi`: OpenMPI
+- `mshpc`: Mirosoft HPC Pack
+- `msmpi`: Microsoft MPI (Note: Microsoft MPI is now called MS HPC. The `msmpi` option is only kept around for
+  compatibility with legacy systems)
+
+`MKL_MPI` must be set to the version of MPI which was used to compile AMBiT, e.g. with
+`-DMKL_MPI=openmpi` if compiling AMBiT with OpenMPI. If this is not done correctly, AMBiT will
+crash at run time, with the stack trace pointing to some variant of `libmkl_blacs_*_mpi` libraries.
 
 ### Compilation fails when using Intel LLVM C++ compiler `icpx`
 **Example error output:**

@@ -13,6 +13,7 @@ TEST(BreitTester, LiLikeNe)
 
     // Li-like Ne - comparison with Walter Johnson book page 208
     std::string user_input_string = std::string() +
+        "ID = LiLikeNe\n" +
         "NuclearRadius = 3.7188\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 10\n" +
@@ -27,15 +28,9 @@ TEST(BreitTester, LiLikeNe)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();
@@ -96,6 +91,7 @@ TEST(BreitTester, HgSlow)
 
     //Hg - comparison with Lindroth et al. J. Phys. B 22, 2447 (1989)
     std::string user_input_string = std::string() +
+        "ID = Hg\n" +
         "NuclearRadius = 6.0\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 80\n" +
@@ -108,15 +104,9 @@ TEST(BreitTester, HgSlow)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    } 
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
     pCore core = basis_generator.GenerateHFCore();

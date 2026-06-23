@@ -2,7 +2,7 @@
 #define TRANSITIONS_H
 
 #include "Atom/Atom.h"
-#include "Configuration/Level.h"
+#include "Configuration/LevelVector.h"
 #include "Specification/Specification.h"
 #include "Universal/Enums.h"
 #include "RPAOperator.h"
@@ -40,11 +40,11 @@ typedef std::pair<LevelID, LevelID> TransitionID;
 class TransitionCalculator
 {
 public:
-    TransitionCalculator(MultirunOptions& user_input, pOrbitalManagerConst orbitals, pLevelStore levels, TransitionsBaseSpecification& specification):
-        user_input(user_input), orbitals(orbitals), levels(levels), op(nullptr), scale(1.0), specification(specification)
+    TransitionCalculator(pOrbitalManagerConst orbitals, pLevelStore levels, TransitionsBaseSpecification& specification):
+        orbitals(orbitals), levels(levels), op(nullptr), scale(1.0), specification(specification)
     {}
-    TransitionCalculator(MultirunOptions& user_input, Atom& atom, TransitionsBaseSpecification& specification):
-        TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+    TransitionCalculator(Atom& atom, TransitionsBaseSpecification& specification):
+        TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
     {}
 
     /** Parse user_input for transition requests, calculate and print.
@@ -114,7 +114,6 @@ protected:
     }
 
 protected:
-    MultirunOptions& user_input;
     TransitionsBaseSpecification specification;
     pOrbitalManagerConst orbitals;
     pLevelStore levels;

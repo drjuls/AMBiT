@@ -55,15 +55,15 @@ void TransitionCalculator::CalculateAndPrint()
             if(TransitionExists((*left_it)->GetSymmetry(), (*right_it)->GetSymmetry()))
             {
                 LevelVector left_vec = levels->GetLevels(*left_it);
-                for(int i = 0; i < left_vec.levels.size(); i++)
+                for(int i = 0; i < left_vec.NumLevels(); i++)
                 {
-                    if(left_vec.levels[i]->GetEnergy() > max_energy)
+                    if(left_vec.eigenvalues[i] > max_energy)
                         break;
 
                     LevelVector right_vec = levels->GetLevels(*right_it);
-                    for(int j = 0; j < right_vec.levels.size(); j++)
+                    for(int j = 0; j < right_vec.NumLevels(); j++)
                     {
-                        if(right_vec.levels[j]->GetEnergy() > max_energy)
+                        if(right_vec.eigenvalues[j] > max_energy)
                             break;
 
                         found_one = true;
@@ -128,7 +128,7 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
 {
     // Get BSplineBasis parameters and make RPA solver
     int N = specification.rpa_bspline_n;
-    int K = specification.rpa_bspline_n;
+    int K = specification.rpa_bspline_k;
     double Rmax;
     if(specification.rpa_bspline_rmax)
     {
@@ -166,6 +166,7 @@ pRPAOperator TransitionCalculator::MakeRPA(pSpinorOperator external, pHFOperator
     }
 
     int max_iterations = specification.rpa_max_iterations;
+    rpa_solver->SetMaxRPAIterations(max_iterations);
 
     // Limit RPA orbitals if requested
     // Make RPA operator
@@ -219,13 +220,13 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
         else
         {   // Get levels
             LevelVector left_levels = levels->GetLevels(left.first);
-            if(left_levels.levels.size() <= left.second)
+            if(left_levels.NumLevels() <= left.second)
             {   *errstream << "TransitionCalculator: Level " << Name(left) << " not found." << std::endl;
                 return 0.;
             }
 
             LevelVector right_levels = levels->GetLevels(right.first);
-            if(right_levels.levels.size() <= right.second)
+            if(right_levels.NumLevels() <= right.second)
             {   *errstream << "TransitionCalculator: Level " << Name(right) << " not found." << std::endl;
                 return 0.;
             }
@@ -244,9 +245,9 @@ double TransitionCalculator::CalculateTransition(const LevelID& left, const Leve
 
             // Add to matrix_elements map
             auto value_iterator = values.begin();
-            for(int i = 0; i < left_levels.levels.size(); i++)
+            for(int i = 0; i < left_levels.NumLevels(); i++)
             {
-                for(int j = 0; j < right_levels.levels.size(); j++)
+                for(int j = 0; j < right_levels.NumLevels(); j++)
                 {
                     TransitionID current_id = make_transitionID(std::make_pair(left.first, i), std::make_pair(right.first, j));
                     matrix_elements.insert(std::make_pair(current_id, *value_iterator/scale));

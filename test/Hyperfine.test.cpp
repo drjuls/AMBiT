@@ -5,7 +5,6 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "HartreeFock/HartreeFocker.h"
 #include "Basis/BasisGenerator.h"
-#include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronIntegrals.h"
 #include "MBPT/SlaterIntegrals.h"
 #include "MBPT/BruecknerDecorator.h"
@@ -21,6 +20,7 @@ TEST(HyperfineTester, Rb)
 
     // Rb - comparison with Walter Johnson book
     std::string user_input_string = std::string() +
+        "ID = Rb\n" +
         "NuclearRadius = 4.8708\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 37\n" +
@@ -34,18 +34,9 @@ TEST(HyperfineTester, Rb)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -71,6 +62,7 @@ TEST(HyperfineTester, Na)
 
     // Na
     std::string user_input_string = std::string() +
+        "ID = Na\n" +
         "NuclearRadius = 2.8853\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 11\n" +
@@ -86,18 +78,9 @@ TEST(HyperfineTester, Na)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -182,6 +165,7 @@ TEST(HyperfineTester, CsRPA)
     // Cs - Comparison with Dzuba code
     // [private communication; similar to Dzuba, Flambaum, Sushkov, JPB 17, 1953 (1984)]
     std::string user_input_string = std::string() +
+        "ID = Cs\n" +
         "NuclearRadius = 5.6748\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 55\n" +
@@ -195,18 +179,9 @@ TEST(HyperfineTester, CsRPA)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

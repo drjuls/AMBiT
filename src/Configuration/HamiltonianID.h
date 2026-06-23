@@ -1,5 +1,5 @@
-#ifndef LEVEL_H
-#define LEVEL_H
+#ifndef HAMILTONIAN_ID_H
+#define HAMILTONIAN_ID_H
 
 #include "Symmetry.h"
 #include "RelativisticConfigList.h"
@@ -63,44 +63,6 @@ typedef std::shared_ptr<const HamiltonianID> pHamiltonianIDConst;
 inline std::ostream& operator<<(std::ostream& stream, const pHamiltonianID& hID)
 {   return stream << hID->Print();
 }
-
-/** A Level is an eigenstate of the Hamiltonian with eigenvector of length NumCSFs.
-    The symmetry of the eigenstate is given by the stored HamiltonianID.
- */
-class Level : public std::enable_shared_from_this<Level>
-{
-public:
-    /** Initialise Level with energy eigenvalue, eigenvector, and pointer to relativistic configurations (CSFs).
-        PRE: length(csf_eigenvector) == configlist->NumCSFs() == numCSFs (if supplied).
-     */
-    Level(const double& energy, const std::vector<double>& csf_eigenvector, pHamiltonianID hamiltonian_id, const double& gFactor):
-        eigenvalue(energy), eigenvector(csf_eigenvector), hamiltonian(hamiltonian_id), gFactor(gFactor) {}
-    Level(const double& energy, const double* csf_eigenvector, pHamiltonianID hamiltonian_id, unsigned int numCSFs);
-
-    double GetEnergy() const { return eigenvalue; }
-    void SetEnergy(double energy) { eigenvalue = energy; }
-
-    double GetgFactor() const { return gFactor; }
-    void SetgFactor(double g_factor) { gFactor = g_factor; }
-
-    const std::vector<double>& GetEigenvector() const { return eigenvector; }
-    unsigned int GetEigenvectorLength() const { return eigenvector.size(); }     //!< Eigenvector length = NumCSFs
-
-    Parity GetParity() const { return hamiltonian->GetParity(); }
-    unsigned int GetTwoJ() const { return hamiltonian->GetTwoJ(); }
-
-    pHamiltonianID GetHamiltonianID() { return hamiltonian; }
-    pHamiltonianIDConst GetHamiltonianID() const { return hamiltonian; }
-
-protected:
-    double eigenvalue;
-    std::vector<double> eigenvector;        // length of eigenvector = hamiltonian->configs->NumCSFs()
-    pHamiltonianID hamiltonian = nullptr;   // identifier for the Hamiltonian that *this is an eigenvalue of
-    double gFactor = std::numeric_limits<double>::quiet_NaN();
-};
-
-typedef std::shared_ptr<Level> pLevel;
-typedef std::shared_ptr<const Level> pLevelConst;
 
 }
 #endif

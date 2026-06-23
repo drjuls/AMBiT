@@ -29,8 +29,8 @@ void YukawaDecorator::Alert()
     GenerateYukawaPotential(mass);
 }
 
-YukawaCalculator::YukawaCalculator(MultirunOptions& user_input, Atom& atom, TransitionsYukawaSpecification& specification):
-    TransitionCalculator(user_input, atom, specification)
+YukawaCalculator::YukawaCalculator(Atom& atom, TransitionsYukawaSpecification& specification):
+    TransitionCalculator(atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

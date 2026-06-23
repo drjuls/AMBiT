@@ -1243,8 +1243,8 @@ void ElectricSelfEnergyDecorator::Initialize()
     BfitD  = 0.056 + 0.050 * Za + 0.195 * Za2;
 }
 
-QEDCalculator::QEDCalculator(MultirunOptions& user_input, Atom& atom, TransitionsQEDSpecification& specification):
-    TransitionCalculator(user_input, atom, specification)
+QEDCalculator::QEDCalculator(Atom& atom, TransitionsQEDSpecification& specification):
+    TransitionCalculator(atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

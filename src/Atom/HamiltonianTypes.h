@@ -1,8 +1,6 @@
 #ifndef HAMILTONIAN_TYPES_H
 #define HAMILTONIAN_TYPES_H
 
-#include "Configuration/Level.h"
-
 namespace Ambit
 {
 /** SingleOrbitalID defines a Hamiltonian of size 1:
@@ -29,7 +27,7 @@ public:
                 return false;
         }
     }
-    
+
     virtual bool operator==(const HamiltonianID& other) const override
     {
         const SingleOrbitalID* other_soid = dynamic_cast<const SingleOrbitalID*>(&other);
@@ -61,7 +59,7 @@ public:
         HamiltonianID::Read(fp);
         file_err_handler->fread(&pqn, sizeof(int), 1, fp);
     }
-    
+
     virtual pHamiltonianID Clone() const override
     {   return std::make_shared<SingleOrbitalID>(*this);
     }

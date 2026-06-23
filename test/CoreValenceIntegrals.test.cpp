@@ -5,7 +5,6 @@
 #include "HartreeFock/ConfigurationParser.h"
 #include "Basis/BasisGenerator.h"
 #include "Configuration/ConfigGenerator.h"
-#include "Atom/MultirunOptions.h"
 #include "MBPT/OneElectronMBPT.h"
 #include "MBPT/CoreValenceIntegrals.h"
 #include "Specification/Specification.h"
@@ -22,7 +21,8 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     pLattice lattice(new Lattice(5000, 1.e-6, 50.));
 
     // CsI - we want to set up the MBPT options, even though we'll only use them for one component
-    std::string user_input_string = std::string() + 
+    std::string user_input_string = std::string() +
+        "ID = Cs_gtest" +
         "NuclearRadius=5.675\n" +
         "Z = 55\n" +
         "-s12\n" +
@@ -48,19 +48,11 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-    std::string identifier = "Cs_gtest";
+    std::string identifier = specification->ID;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -84,17 +76,17 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
 
     pOneElectronMBPT mbpt_integrals_one = std::make_shared<OneElectronMBPT>(orbitals, hf, core_mbpt, val_mbpt, identifier + ".one.int");
     pCoreValenceIntegralsMap mbpt_integrals_two = std::make_shared<CoreValenceIntegralsMap>(orbitals, core_mbpt, val_mbpt, identifier + ".two.int");
-    
+
     // Can do these by hand, since we have a fixed calculation
     int max_pqn_in_core = 5;
     bool is_open_shell = false;
 
-    bool use_box = !userInput.search("MBPT/--no-extra-box");
-    bool include_core = !userInput.search("MBPT/--no-core");
+    bool use_box = !specification->mbpt_no_extra_box;
+    bool include_core = !specification->mbpt_no_core;
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
     mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
 
-    bool include_valence = userInput.search("MBPT/--use-valence");
+    bool include_valence = specification->mbpt_use_valence;
     mbpt_integrals_one->IncludeValence(include_valence && is_open_shell);
     mbpt_integrals_two->IncludeValence(include_valence, include_valence && is_open_shell, include_valence && use_box);
 
@@ -120,9 +112,9 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
         else
             it++;
     }
-    valence_subset[1] = valence_subset[0]; 
+    valence_subset[1] = valence_subset[0];
 
-    // Now we can finally calculate the MBPT integrals. 
+    // Now we can finally calculate the MBPT integrals.
     // TODO: this currently needs to write the integrals to disk, which is a bit messy. Should at least delete the files when this test is done
     unsigned int one_body_size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
     unsigned int two_body_size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
@@ -154,7 +146,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     // Solve matrix
     LevelVector levels = H_CI.SolveMatrix(std::make_shared<HamiltonianID>(sym), 1);
     levels.Print();
-    CI_energy = levels.levels[0]->GetEnergy();
+    CI_energy = levels.eigenvalues[0];
 
     // Now incorporate the MBPT integrals and re-calculate
     hf_electron->Read(identifier + ".one.int");
@@ -174,7 +166,7 @@ TEST(CoreValenceIntegralsTester, CsGroundState)
     // Solve matrix
     levels = H_MBPT.SolveMatrix(std::make_shared<HamiltonianID>(sym), 1);
     levels.Print();
-    MBPT_energy = levels.levels[0]->GetEnergy();
+    MBPT_energy = levels.eigenvalues[0];
 
     double energy_diff = MBPT_energy - CI_energy;
     EXPECT_NEAR(-0.01766, energy_diff, 5e-4); // TODO: check the tolerance we want to use
@@ -190,46 +182,38 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     pLattice lattice(new Lattice(3000, 1.e-6, 50.));
 
     // HeI - we want to set up the MBPT options, even though we'll only use them for one component
-    std::string user_input_string = std::string() + 
-        "ID=HeI\n" + 
-        "Z=2\n" + 
-        "-s12\n" + 
-        "[Lattice]\n" + 
-        "NumPoints = 3000\n" + 
-        "[HF]\n" + 
-        "N=0\n" + 
-        "Configuration=0\n" + 
-        "[Basis]\n" + 
-        "--bspline-basis\n" + 
-        "ValenceBasis=1s\n" + 
-        "[Basis/BSpline]\n" + 
-        "K=9\n" + 
-        "SplineType='Johnson'\n" + 
-        "[CI]\n" + 
-        "LeadingConfigurations='1s2'\n" + 
-        "ElectronExcitations=2\n" + 
-        "EvenParityTwoJ = '0'\n" + 
-        "NumSolutions = 1\n" + 
-        "[MBPT]\n" + 
-        "--use-valence\n" + 
-        "Basis=35spdfghi\n"; 
-   
+    std::string user_input_string = std::string() +
+        "ID=HeI\n" +
+        "Z=2\n" +
+        "-s12\n" +
+        "[Lattice]\n" +
+        "NumPoints = 3000\n" +
+        "[HF]\n" +
+        "N=0\n" +
+        "Configuration=0\n" +
+        "[Basis]\n" +
+        "--bspline-basis\n" +
+        "ValenceBasis=1s\n" +
+        "[Basis/BSpline]\n" +
+        "K=9\n" +
+        "SplineType='Johnson'\n" +
+        "[CI]\n" +
+        "LeadingConfigurations='1s2'\n" +
+        "ElectronExcitations=2\n" +
+        "EvenParityTwoJ = '0'\n" +
+        "NumSolutions = 1\n" +
+        "[MBPT]\n" +
+        "--use-valence\n" +
+        "Basis=35spdfghi\n";
+
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
-    std::string identifier = "He_gtest";
+    std::string identifier = specification->ID;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -253,17 +237,17 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
 
     pOneElectronMBPT mbpt_integrals_one = std::make_shared<OneElectronMBPT>(orbitals, hf, core_mbpt, val_mbpt, identifier + ".one.int");
     pCoreValenceIntegralsMap mbpt_integrals_two = std::make_shared<CoreValenceIntegralsMap>(orbitals, core_mbpt, val_mbpt, identifier + ".two.int");
-    
+
     // Can do these by hand, since we have a fixed calculation
     int max_pqn_in_core = 5;
     bool is_open_shell = false;
 
-    bool use_box = !userInput.search("MBPT/--no-extra-box");
-    bool include_core = !userInput.search("MBPT/--no-core");
+    bool use_box = !specification->mbpt_no_extra_box;
+    bool include_core = !specification->mbpt_no_core;
     mbpt_integrals_one->IncludeCore(include_core, include_core && is_open_shell);
     mbpt_integrals_two->IncludeCore(include_core, include_core && is_open_shell, include_core && use_box);
 
-    bool include_valence = userInput.search("MBPT/--use-valence");
+    bool include_valence = specification->mbpt_use_valence;
     mbpt_integrals_one->IncludeValence(include_valence && is_open_shell);
     mbpt_integrals_two->IncludeValence(include_valence, include_valence && is_open_shell, include_valence && use_box);
 
@@ -289,9 +273,9 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
         else
             it++;
     }
-    valence_subset[1] = valence_subset[0]; 
+    valence_subset[1] = valence_subset[0];
 
-    // Now we can finally calculate the MBPT integrals. 
+    // Now we can finally calculate the MBPT integrals.
     // TODO: this currently needs to write the integrals to disk, which is a bit messy. Should at least delete the files when this test is done
     unsigned int one_body_size = mbpt_integrals_one->CalculateOneElectronIntegrals(valence, valence);
     unsigned int two_body_size = mbpt_integrals_two->CalculateTwoElectronIntegrals(valence_subset[0], valence_subset[1], valence_subset[2], valence_subset[3]);
@@ -323,7 +307,7 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     // Solve matrix
     LevelVector levels = H_CI.SolveMatrix(std::make_shared<HamiltonianID>(sym), 1);
     levels.Print();
-    CI_energy = levels.levels[0]->GetEnergy();
+    CI_energy = levels.eigenvalues[0];
 
     // Now incorporate the MBPT integrals and re-calculate
     hf_electron->Read(identifier + ".one.int");
@@ -343,9 +327,8 @@ TEST(CoreValenceIntegralsTester, HeCoulombPotential)
     // Solve matrix
     levels = H_MBPT.SolveMatrix(std::make_shared<HamiltonianID>(sym), 1);
     levels.Print();
-    MBPT_energy = levels.levels[0]->GetEnergy();
+    MBPT_energy = levels.eigenvalues[0];
 
     double energy_diff = MBPT_energy - CI_energy;
     EXPECT_NEAR(-0.1576, energy_diff, 5e-4); // TODO: check the tolerance
 }
-

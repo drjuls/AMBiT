@@ -85,8 +85,8 @@ SpinorFunction HyperfineMJOperator::ReducedApplyTo(const SpinorFunction& a, int 
     return ret * prefactor;
 }
 
-HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS1Specification& specification):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+HyperfineDipoleCalculator::HyperfineDipoleCalculator(Atom& atom, TransitionsHFS1Specification& specification):
+    TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
@@ -98,7 +98,7 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(MultirunOptions& user_input
         magnetic_radius = radius_opt.value();
     }
     else
-    {   
+    {
         pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
@@ -129,8 +129,8 @@ void HyperfineDipoleCalculator::PrintTransition(const LevelID& left, const Level
                << " = " << std::setprecision(6) << value << std::endl;
 }
 
-HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS2Specification& specification):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(Atom& atom, TransitionsHFS2Specification& specification):
+    TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
@@ -141,7 +141,7 @@ HyperfineQuadrupoleCalculator::HyperfineQuadrupoleCalculator(MultirunOptions& us
         magnetic_radius = radius_opt.value();
     }
     else
-    {   
+    {
         pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
@@ -170,8 +170,8 @@ void HyperfineQuadrupoleCalculator::PrintTransition(const LevelID& left, const L
                << " = " << std::setprecision(6) << value << std::endl;
 }
 
-GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFSISpecification& specification):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(Atom& atom, TransitionsHFISpecification& specification):
+    TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
 {
     MathConstant* math = MathConstant::Instance();
     pHFOperatorConst hf = atom.GetHFOperator();
@@ -183,7 +183,7 @@ GeneralisedHyperfineCalculator::GeneralisedHyperfineCalculator(MultirunOptions& 
         magnetic_radius = radius_opt.value();
     }
     else
-    {   
+    {
         pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);

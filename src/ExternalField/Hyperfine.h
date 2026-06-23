@@ -52,7 +52,7 @@ protected:
 class HyperfineDipoleCalculator : public TransitionCalculator
 {
 public:
-    HyperfineDipoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS1Specification& specification);
+    HyperfineDipoleCalculator(Atom& atom, TransitionsHFS1Specification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -64,7 +64,7 @@ protected:
 class HyperfineQuadrupoleCalculator : public TransitionCalculator
 {
 public:
-    HyperfineQuadrupoleCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFS2Specification& specification);
+    HyperfineQuadrupoleCalculator(Atom& atom, TransitionsHFS2Specification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;
@@ -76,7 +76,7 @@ protected:
 class GeneralisedHyperfineCalculator : public TransitionCalculator
 {
 public:
-    GeneralisedHyperfineCalculator(MultirunOptions& user_input, Atom& atom, TransitionsHFSISpecification& specification);
+    GeneralisedHyperfineCalculator(Atom& atom, TransitionsHFISpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

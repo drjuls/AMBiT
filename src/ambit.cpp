@@ -1,5 +1,3 @@
-#include "Atom/MultirunOptions.h"
-#include <optional>
 #ifdef AMBIT_USE_MPI
 #include <mpi.h>
 #endif
@@ -19,6 +17,7 @@
 #include "Specification/Specification.h"
 #include "Specification/TransitionSpecifications.h"
 #include "Specification/SpecificationMap.h"
+#include "Universal/Profiler.h"
 
 // Headers to get stack-traces
 #ifdef UNIX
@@ -99,99 +98,90 @@ int main(int argc, char* argv[])
 
     OutStreams::InitialiseStreams();
 
+    // Start the global timer
+    auto profiler = Profiler::Instance();
+    profiler->total.start();
+
     // Write the number of threads to the log file. This is useful for debugging.
     #ifdef AMBIT_USE_OPENMP
     *logstream << "AMBiT running with " << omp_get_max_threads() << " OpenMP threads." << std::endl;
     #endif
 
     try
-    {   MultirunOptions lineInput(argc, argv, ",");
-        auto specification = GlobalSpecification::Instance();
-
-        // Check for help message
-        if(lineInput.size() == 1 || lineInput.search(2, "--help", "-h"))
-        {   Ambit::AmbitInterface::PrintHelp(lineInput[0]);
-            return 0;
-        }
-
-        if(ProcessorRank == 0)
+    {   if(ProcessorRank == 0)
         {
             *outstream << "AMBiT  Copyright (C) 2018  Julian Berengut\n"
-                       << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n\n";
-            *outstream << "AMBiT version:    " << GIT_LAST_TAG << std::endl;
-            *outstream << "      git branch: " << GIT_SOURCE_DESCRIPTION << std::endl;
-            *outstream << "      compiled:   " << COMPILE_DATE << std::endl;
+                       << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n";
+            *outstream << "\nAMBiT version:    " << GIT_LAST_TAG;
+            *outstream << "\n      git branch: " << GIT_SOURCE_DESCRIPTION;
+            *outstream << "\n      compiled:   " << COMPILE_DATE << std::endl;
 
             // Print git diff output
             if(strlen(GIT_DIFF_OUTPUT))
             {   *outstream << "\n----------------------------------------------------------"
-                << "\ngit diff:"
-                << "\n----------------------------------------------------------\n";
-                *outstream << GIT_DIFF_OUTPUT;
+                           << "\ngit diff:"
+                           << "\n----------------------------------------------------------\n";
+                *outstream << GIT_DIFF_OUTPUT << std::flush;
             }
         }
-
-        if(lineInput.search("--version"))
-            return 0;
 
         // Find .input file
-        std::string inputFileName = "";
+        std::string input_file_name;
         const std::string extension = ".input";
+        std::vector<std::string> line_args;
 
-        if(lineInput.search("-f"))
-        {   inputFileName = lineInput.next("");
-            if(inputFileName == "")
-                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
-        }
-        else
-        {   // Else look for .input arguments
-            bool foundFile = false;
-            bool endOfInput = false;
-            while(!foundFile && !endOfInput)
-            {
-                inputFileName = lineInput.next_nominus();
-                if(inputFileName == "")
-                    endOfInput = true;
-                else if(inputFileName.find(extension) != std::string::npos)
-                    foundFile = true;
+        // Grab super-urgent argv options, wait for the rest
+        for(char **argp = &argv[1]; *argp; ++argp)
+        {
+            std::string_view arg(*argp);
+
+            if(arg == "-h" || arg == "--help")
+            {   Ambit::AmbitInterface::PrintHelp(argv[0]);
+                return 0;
             }
-
-            if(endOfInput && !lineInput.search("--recursive-build"))
-            {   *errstream << "Input file not found" << std::endl;
-                Ambit::AmbitInterface::PrintHelp(lineInput[0]);
+            else if(arg == "--version")
+                return 0;
+            else if(arg == "-f")
+            {   ++argp;
+                if (!*argp)
+                    break;
+                else
+                    input_file_name = arg;
             }
+            else if(arg.length() >= extension.length() && arg.substr(arg.length()-extension.length()) == extension)
+                input_file_name = arg;
+            else
+                line_args.emplace_back(arg);
         }
 
-        MultirunOptions fileInput(inputFileName.c_str(), "//", "\n", ",");
-        fileInput.absorb(lineInput);
+        if(input_file_name.empty())
+        {   Ambit::AmbitInterface::PrintHelp(argv[0]);
+            return 0;
+        }
 
-        // Also read input into parapara-based parameter handling..
-        std::string perr = importSpecificationFile(specification, inputFileName);
+        // We print the user specification as we read it into GlobalSpecification.
+        *outstream << "\n----------------------------------------------------------"
+                   << "\ninput (" << input_file_name << " and command line):"
+                   << "\n----------------------------------------------------------" << std::endl;
+
+        // Read input into parapara-based parameter handling.
+        auto specification = GlobalSpecification::Instance();
+
+        std::string perr = importSpecificationFile(specification, input_file_name);
         if (!perr.empty()) {
             *errstream << "importSpecificationFile:\n" << perr << std::endl;
             exit(1);
         }
-
-        // For parapara, grab relevant argv options too.
-        for (char **argp = &argv[1]; *argp; ++argp) {
-            std::string_view arg(*argp);
-
-            if(arg == "-f")
-            {   ++argp;
-                if (!*argp) break;
-                else continue;
-            }
-
-            std::size_t ext_length = extension.length();
-            if(arg.length() >= ext_length && arg.substr(arg.length() - ext_length) == extension)
-                continue;
-
-            perr = importSpecificationKV(specification, std::string(arg));
-            if (!perr.empty()) {
+        for(auto arg: line_args)
+        {
+            perr = importSpecificationKV(specification, arg);
+            if(!perr.empty())
+            {
                 *errstream << "importSpecificationKV:\n" << perr << std::endl;
                 exit(1);
             }
         }
+        *outstream << "----------------------------------------------------------" << std::endl;
 
         // Validate and normalise the spec
         perr = specification->validateAndNormaliseSpecification();
@@ -199,22 +189,11 @@ int main(int argc, char* argv[])
             *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
             exit(1);
         }
-        // Identifier
-        std::string identifier = fileInput("ID", "");
-        if(identifier == "")
-        {
-            if(inputFileName.find(extension) != std::string::npos)
-                identifier = inputFileName.substr(0, inputFileName.find(extension));
-            else
-            {   *errstream << "No ID could be found." << std::endl;
-                exit(1);
-            }
-        }
 
-        Ambit::AmbitInterface ambit(fileInput, identifier);
+        Ambit::AmbitInterface ambit(specification->Z, specification->ID);
         ambit.EnergyCalculations();
 
-        if(!fileInput.search("--check-sizes"))
+        if(!specification->check_sizes)
         {
             ambit.TransitionCalculations();
             ambit.Recombination();
@@ -233,7 +212,60 @@ int main(int argc, char* argv[])
             int cont = 1;
             blacs_exit_(&cont);
         #endif
+    #endif
 
+    // Print timing information now that all processes have finished
+    profiler->total.stop();
+    *logstream << "\n|=========================================================|" << std::endl;
+    *logstream << absl::StreamFormat("|%-35s %21d|", "Profiling information for rank", ProcessorRank)
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Hartree-Fock and basis set")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->hf.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-electron Slater integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->slater.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "One-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->one_body_mbpt.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Two-body MBPT integrals")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->two_body_mbpt.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "CI")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed()))
+               << std::endl;
+
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Transition matrix elements")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->transitions.elapsed()))
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "Total wall time")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->total.elapsed()))
+               << std::endl;
+
+    *logstream << "|=========================================================|"
+               << std::endl;
+
+    #ifdef AMBIT_USE_MPI
         MPI_Finalize();
     #endif
 
@@ -245,108 +277,9 @@ int main(int argc, char* argv[])
 
 namespace Ambit
 {
-AmbitInterface::AmbitInterface(MultirunOptions& user_input, const std::string& identifier):
-    user_input(user_input), identifier(identifier)
-{
-    auto specification = GlobalSpecification::Instance();
-    if(ProcessorRank == 0)
-    {
-        *outstream << "----------------------------------------------------------"
-                   << "\ninput:"
-                   << "\n----------------------------------------------------------\n";
-        // Use GetPot printing for now, since parapara's isn't done cooking
-        user_input.print();
-        //specification->PrintSpecification();
-        *outstream << "----------------------------------------------------------" << std::endl;
-    }
-}
-
 void AmbitInterface::EnergyCalculations()
 {
     auto specification= GlobalSpecification::Instance();
-    int Z = specification->Z;
-    if(Z <= 0)
-    {   *errstream << "Z not specified correctly." << std::endl;
-        exit(1);
-    }
-
-    bool check_sizes = specification->check_sizes;
-
-    // Multirun disabled at least while we're transitioning to parapara
-#if 0
-    // Choose which of the multiple runs are being done in the current calculation
-    unsigned int total_run_selections = user_input.vector_variable_size("-r");
-
-    if((user_input.GetNumRuns() <= 1) || check_sizes)
-    {   // Only do a single run if --check-sizes option is set (doesn't matter which one).
-        run_indexes.push_back(0);
-    }
-    else if(total_run_selections)
-    {
-        for(int i = 0; i < total_run_selections; i++)
-        {
-            int selection = user_input("-r", 0, i);
-
-            if(selection == 0)
-            {   // "-r=0" is shorthand for "just do the zero variation variety"
-                if(total_run_selections > 1)
-                {   *outstream << "USAGE: \"-r=0\" can only be used by itself." << std::endl;
-                    exit(1);
-                }
-
-                // Try to find a good candidate for -r=0
-                auto pair = user_input.FindZeroParameterRun();
-                if(pair.second < 0)
-                {   *errstream << "ERROR: Multiple run option couldn't find zero-variation option." << std::endl;
-                    exit(1);
-                }
-                else
-                {   *outstream << "Running case " << pair.second+1 << ": " << pair.first << " = 0.\n" << std::endl;
-                    run_indexes.push_back(pair.second);
-                }
-            }
-            else if((selection < 0) || (selection > user_input.GetNumRuns()))
-            {   *outstream << "USAGE: Option \"-r\" included index outside of multiple run range." << std::endl;
-                exit(1);
-            }
-            else
-            {   // Subtract one from the user's selection to make it start at zero
-                run_indexes.push_back(selection-1);
-            }
-        }
-    }
-    else
-    {   // If "-r" is not found, do all of the multiple run options
-        for(int i = 0; i < user_input.GetNumRuns(); i++)
-            run_indexes.push_back(i);
-    }
-#else
-    run_indexes = { 0 };
-#endif
-
-    // That's all we need to start the Atom class
-    for(int run: run_indexes)
-    {
-        user_input.SetRun(run);
-        std::string id = identifier + "_" + itoa(run);
-        atoms.emplace_back(user_input, Z, id);      // This copies the user_input, so each atom has its own.
-    }
-
-#if 0
-    // Start with -r=0 if possible, otherwise just first one
-    int zero_index = user_input.FindZeroParameterRun().second;
-    first_run_index = run_indexes.size();
-    if(zero_index > 0)
-    {   // Check whether it is in current runs
-        for(first_run_index = 0; first_run_index < run_indexes.size(); first_run_index++)
-            if(run_indexes[first_run_index] == zero_index)
-                break;
-    }
-    if(first_run_index >= run_indexes.size())   // -r=0 not found
-        first_run_index = 0;
-#else
-    first_run_index = 0;
-#endif
 
     // Log first build
     DebugOptions.LogFirstBuild(true);
@@ -354,32 +287,21 @@ void AmbitInterface::EnergyCalculations()
     DebugOptions.OutputHFExcited(true);
     DebugOptions.HartreeEnergyUnits(true);
 
-    user_input.SetRun(run_indexes[first_run_index]);        // Just for the printing (each atom has its own user_input)
-    user_input.PrintCurrentRunCondition(*outstream, "\n");
-    pCoreConst hf_open_core = atoms[first_run_index].MakeBasis();
+    pCoreConst hf_open_core = atom.MakeBasis();
     *outstream << "Core orbitals: \n";
     hf_open_core->Print();
 
     *outstream << "Excited orbitals: \n";
-    atoms[first_run_index].GetBasis()->excited->Print();
+    atom.GetBasis()->excited->Print();
     *outstream << std::endl;
-
-    // Don't output the others
-    DebugOptions.LogFirstBuild(false);
-    DebugOptions.LogHFIterations(false);
-    DebugOptions.OutputHFExcited(false);
-
-    for(unsigned int index = 0; index < run_indexes.size(); index++)
-        if(index != first_run_index)
-            atoms[index].MakeBasis(hf_open_core);
 
     // Print basis option
     if(specification->print_basis)
     {
         auto fp = file_err_handler->fopen("Orbitals.txt", "wt");
 
-        auto lattice = atoms[first_run_index].GetLattice();
-        for(auto& var: *atoms[first_run_index].GetBasis()->all)
+        auto lattice = atom.GetLattice();
+        for(auto& var: *atom.GetBasis()->all)
         {
             // Print pqn, kappa, Energy, number of points
             fprintf(fp, "  %i %i %12.6f %i\n", var.first.PQN(), var.first.Kappa(), var.second->Energy(), var.second->size());
@@ -389,53 +311,47 @@ void AmbitInterface::EnergyCalculations()
     }
 
     // Generate MBPT integrals and Brueckner orbitals
-    for(unsigned int index = 0; index < run_indexes.size(); index++)
-    {
-        auto& atom = atoms[index];
-        bool make_new_integrals = !specification->no_new_mbpt;
-        bool mbpt_use_breuckner = specification->mbpt_brueckner;
+    bool make_new_integrals = !specification->no_new_mbpt;
+    bool make_brueckner = specification->mbpt_brueckner;
+    bool mbpt_use_breuckner = specification->mbpt_use_brueckner;
+    bool check_sizes = specification->check_sizes;
 
-        if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
-            atom.MakeMBPTIntegrals();
+    if((!mbpt_use_breuckner && make_new_integrals) || check_sizes)
+        atom.MakeMBPTIntegrals();
 
-        if (specification->mbpt_brueckner && !check_sizes)
-        {   // Show details of HF iterated Brueckner orbitals
-            DebugOptions.OutputHFExcited(index == first_run_index);
-            atom.GenerateBruecknerOrbitals(make_new_integrals);
-        }
-
-        if(mbpt_use_breuckner && make_new_integrals && !check_sizes)
-            atom.MakeMBPTIntegrals();
+    if (make_brueckner && !check_sizes)
+    {   // Show details of HF iterated Brueckner orbitals
+        DebugOptions.OutputHFExcited(true);
+        atom.GenerateBruecknerOrbitals(make_new_integrals);
     }
 
+    if(mbpt_use_breuckner && make_new_integrals && !check_sizes)
+        atom.MakeMBPTIntegrals();
+
     // CI
-    if(specification->check_sizes)
-        atoms[0].CheckMatrixSizes();
+    if(check_sizes)
+        atom.CheckMatrixSizes();
     else
-    {   pLevelStore levels = atoms[0].ChooseHamiltoniansAndRead();
-        pAngularDataLibrary angular_data_lib = atoms[0].GetAngularDataLibrary();
+    {   pLevelStore levels = atom.ChooseHamiltoniansAndRead();
+        pAngularDataLibrary angular_data_lib = atom.GetAngularDataLibrary();
 
         // Don't calculate extra levels
         if(specification->ci_complete)
             return;
 
-        for(int i = 1; i < run_indexes.size(); i++)
-        {   user_input.SetRun(run_indexes[i]);
-            atoms[i].ChooseHamiltoniansAndRead(angular_data_lib);
-        }
+        // Start the CI timer
+        auto profiler = Profiler::Instance();
+        profiler->ci.start();
+
+        atom.ChooseHamiltoniansAndRead(angular_data_lib);
 
         for(auto& key: levels->keys)
         {
-            for(int i = 0; i < run_indexes.size(); i++)
-            {
-                // This if statement is just to switch off printing the run condition for only one run
-                if(user_input.GetNumRuns() > 1)
-                {   user_input.SetRun(run_indexes[i]);
-                    user_input.PrintCurrentRunCondition(*outstream, "\n");
-                }
-                atoms[i].CalculateEnergies(key);
-            }
+            atom.CalculateEnergies(key);
         }
+
+        // Stop the CI timer
+        profiler->ci.stop();
     }
 }
 
@@ -454,12 +370,12 @@ do { \
 } while(0)
 
 template<typename SpecificationOptType, typename CalculatorType>
-void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom, MultirunOptions user_input)
+void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom)
 {
     if(specification_opt)
     {
         auto specification = specification_opt.value();
-        CalculatorType calculon(user_input, atom, specification);
+        CalculatorType calculon(atom, specification);
         calculon.CalculateAndPrint();
         calculon.PrintAll();
     }
@@ -467,8 +383,11 @@ void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom
 
 void AmbitInterface::TransitionCalculations()
 {
+    // Start the timer
+    auto profiler = Profiler::Instance();
+    profiler->transitions.start();
+
     auto specification= GlobalSpecification::Instance();
-    Atom& atom = atoms[first_run_index];
 
     // EM types
     using EJTransitionsOpt = std::optional<TransitionsEJSpecification>;
@@ -490,7 +409,7 @@ void AmbitInterface::TransitionCalculations()
         if(std::get<0>(types))
         {
             auto specification = std::get<0>(types).value();
-            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), user_input, atom, specification));
+            std::unique_ptr<EMCalculator> calculon(new EMCalculator(std::get<1>(types), std::get<2>(types), atom, specification));
 
             calculon->CalculateAndPrint();
             calculators.push_back(std::move(calculon));
@@ -518,7 +437,7 @@ void AmbitInterface::TransitionCalculations()
     // Convenient typedefs
     using HFS1Opt = std::optional<TransitionsHFS1Specification>;
     using HFS2Opt = std::optional<TransitionsHFS2Specification>;
-    using HFSIOpt = std::optional<TransitionsHFSISpecification>;
+    using HFIOpt = std::optional<TransitionsHFISpecification>;
     using FSOpt = std::optional<TransitionsFSSpecification>;
     using QEDOpt = std::optional<TransitionsQEDSpecification>;
     using YukawaOpt = std::optional<TransitionsYukawaSpecification>;
@@ -526,70 +445,55 @@ void AmbitInterface::TransitionCalculations()
     using LLIT2Opt = std::optional<TransitionsLLIT2Specification>;
     using NMSOpt = std::optional<TransitionsNMSSpecification>;
 
-    run_and_store_transitions<HFS1Opt, 
-                              HyperfineDipoleCalculator>
-                             (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFS1Opt, HyperfineDipoleCalculator>
+        (specification->transitions_do_hfs1 ? HFS1Opt{specification->transitions_hfs1} : std::nullopt, atom);
 
-    run_and_store_transitions<HFS2Opt, 
-                              HyperfineQuadrupoleCalculator>
-                             (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFS2Opt, HyperfineQuadrupoleCalculator>
+        (specification->transitions_do_hfs2 ? HFS2Opt{specification->transitions_hfs2} : std::nullopt, atom);
 
-    run_and_store_transitions<HFSIOpt, 
-                              GeneralisedHyperfineCalculator>
-                             (specification->transitions_do_hfsi ? HFSIOpt{specification->transitions_hfsi} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<HFIOpt, GeneralisedHyperfineCalculator>
+        (specification->transitions_do_hfi ? HFIOpt{specification->transitions_hfi} : std::nullopt, atom);
 
-    run_and_store_transitions<FSOpt, 
-                              FieldShiftCalculator>
-                             (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<FSOpt, FieldShiftCalculator>
+        (specification->transitions_do_fs ? FSOpt{specification->transitions_fs} : std::nullopt, atom);
 
-    run_and_store_transitions<QEDOpt, 
-                              QEDCalculator>
-                             (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<QEDOpt, QEDCalculator>
+        (specification->transitions_do_qed ? QEDOpt{specification->transitions_qed} : std::nullopt, atom);
 
-    run_and_store_transitions<YukawaOpt, 
-                              YukawaCalculator>
-                             (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<YukawaOpt, YukawaCalculator>
+        (specification->transitions_do_yukawa ? YukawaOpt{specification->transitions_yukawa} : std::nullopt, atom);
 
-    run_and_store_transitions<KEOpt, 
-                              KineticEnergyCalculator>
-                             (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<KEOpt, KineticEnergyCalculator>
+        (specification->transitions_do_ke ? KEOpt{specification->transitions_ke} : std::nullopt, atom);
 
-    run_and_store_transitions<LLIT2Opt, 
-                              LorentzInvarianceT2Calculator>
-                             (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<LLIT2Opt, LorentzInvarianceT2Calculator>
+        (specification->transitions_do_llit2 ? LLIT2Opt{specification->transitions_llit2} : std::nullopt, atom);
 
-    run_and_store_transitions<NMSOpt, 
-                              NormalMassShiftCalculator>
-                             (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt,
-                              atom, user_input);
+    run_and_store_transitions<NMSOpt, NormalMassShiftCalculator>
+        (specification->transitions_do_nms ? NMSOpt{specification->transitions_nms} : std::nullopt, atom);
 
-    user_input.set_prefix("");
+    // Calculate additional Hamiltonian matrix elements
+    atom.ResidualCoulomb();
+
+    // Stop the timer
+    profiler->transitions.stop();
 }
 
 #undef RUN_AND_STORE_TRANSITION
-
 void AmbitInterface::Recombination()
 {
     auto specification= GlobalSpecification::Instance();
-    std::string target_file = user_input("DR/Target/Filename", "");
-    if(target_file.length() == 0)
+    std::string target_file = specification->dr_target_file;
+    if(target_file.empty())
         return;
 
-    int target_two_j = user_input("DR/Target/TwoJ", -1);
-    if(target_two_j < 0)
+    std::optional<int> target_two_j = specification->dr_target_twoj;
+    if(!target_two_j)
     {   *errstream << "DR/Target/TwoJ must be set in input file." << std::endl;
         exit(1);
     }
 
-    std::string parity_string = user_input("DR/Target/Parity", "");
+    std::string parity_string = specification->dr_target_parity;
     Parity target_parity;
     if(parity_string == "even")
         target_parity = Parity::even;
@@ -601,60 +505,60 @@ void AmbitInterface::Recombination()
     }
 
     // Get target atom
-    MultirunOptions target_input(target_file.c_str(), "//", "\n", ",");
-    std::string target_id = target_input("ID", "");
-    if(target_id == "")
-    {   if(target_file.find(".input") != std::string::npos)
-           target_id = target_file.substr(0, target_file.find(".input"));
-       else
-       {   *errstream << "No ID could be found." << std::endl;
-           exit(1);
-       }
+    GlobalSpecification target_specification;
+    importSpecificationFile(&target_specification, target_file);
+    target_specification.validateAndNormaliseSpecification();
+
+    LevelVector target_level_vec;
+
+    // Scope the second instance of GlobalSpecification
+    {
+        GlobalSpecification::ScopedOverride guard(&target_specification);
+
+        *outstream << "\n----------------------------------------------------------";
+        *outstream << "\nDR Target:" << std::endl;
+        AmbitInterface target_calculator(target_specification.Z, target_specification.ID);
+        target_calculator.EnergyCalculations();
+        *outstream << "----------------------------------------------------------" << std::endl;
+
+        Atom& target_atom = target_calculator.atom;
+
+        // Get target level
+        pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j.value(), target_parity);
+        target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
     }
 
-    *outstream << "\nTarget:" << std::endl;
-    AmbitInterface target_calculator(target_input, target_id);
-    target_calculator.EnergyCalculations();
-    *outstream << "----------------------------------------------------------" << std::endl;
-
-    Atom& target_atom = target_calculator.atoms[target_calculator.first_run_index];
-
-    // Get target level
-    pHamiltonianID target_key = std::make_shared<HamiltonianID>(target_two_j, target_parity);
-    LevelVector target_level_vec = target_atom.GetLevels()->GetLevels(target_key);
-
-    int target_level_index = user_input("DR/Target/Index", 0);
-    if(target_level_vec.levels.size() <= target_level_index)
+    int target_level_index = specification->dr_target_index;
+    if(target_level_index < target_level_vec.NumLevels())
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
         exit(1);
     }
 
-    auto keep = std::next(target_level_vec.levels.begin(), target_level_index);
-    target_level_vec.levels.erase(target_level_vec.levels.begin(), keep);
-    target_level_vec.levels.resize(1);
+    target_level_vec = target_level_vec.getSubset(target_level_index);
 
     // Get widths of current levels
-    if(user_input.search("--configuration-average"))
-        atoms[first_run_index].AutoionizationConfigurationAveraged(target_level_vec);
-    else if(user_input.search("DR/--energy-grid"))
-        atoms[first_run_index].AutoionizationEnergyGrid(target_level_vec);
+    if(specification->configuration_average)
+        atom.AutoionizationConfigurationAveraged(target_level_vec);
+    else if(specification->dr_use_energygrid)
+        atom.AutoionizationEnergyGrid(target_level_vec);
     else
-        atoms[first_run_index].Autoionization(target_level_vec);
+        atom.Autoionization(target_level_vec);
 }
 
 void AmbitInterface::InternalConversion()
 {
-    std::string source_file = user_input("IC/Source/Filename", "");
-    if(source_file.length() == 0)
+    auto specification= GlobalSpecification::Instance();
+    std::string source_file = specification->ic.source_filename;
+    if(source_file.empty())
         return;
 
-    int source_two_j = user_input("IC/Source/TwoJ", -1);
-    if(source_two_j < 0)
+    std::optional<int> source_two_j = specification->ic.source_twoj;
+    if(!source_two_j)
     {   *errstream << "IC/Source/TwoJ must be set in input file." << std::endl;
         exit(1);
     }
 
-    std::string parity_string = user_input("IC/Source/Parity", "");
+    std::string parity_string = specification->ic.source_parity;
     Parity source_parity;
     if(parity_string == "even")
         source_parity = Parity::even;
@@ -666,56 +570,52 @@ void AmbitInterface::InternalConversion()
     }
 
     // Get source atom and level
-    MultirunOptions source_input(source_file.c_str(), "//", "\n", ",");
-    std::string source_id = source_input("ID", "");
-    if(source_id == "")
-    {   if(source_file.find(".input") != std::string::npos)
-           source_id = source_file.substr(0, source_file.find(".input"));
-       else
-       {   *errstream << "No ID could be found." << std::endl;
-           exit(1);
-       }
+    GlobalSpecification source_specification;
+    importSpecificationFile(&source_specification, source_file);
+    source_specification.validateAndNormaliseSpecification();
+
+    LevelVector source_level_vec;
+
+    // Scope the second instance of GlobalSpecification
+    {
+        GlobalSpecification::ScopedOverride guard(&source_specification);
+
+        *outstream << "\n----------------------------------------------------------";
+        *outstream << "\nIC Source:" << std::endl;
+        AmbitInterface source_calculator(source_specification.Z, source_specification.ID);
+        source_calculator.EnergyCalculations();
+        *outstream << "----------------------------------------------------------" << std::endl;
+
+        Atom& source_atom = source_calculator.atom;
+
+        // Get source level
+        pHamiltonianID source_key = std::make_shared<HamiltonianID>(source_two_j.value(), source_parity);
+        source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
     }
 
-    *outstream << "\nSource:" << std::endl;
-    AmbitInterface source_calculator(source_input, source_id);
-    source_calculator.EnergyCalculations();
-    *outstream << "----------------------------------------------------------" << std::endl;
-
-    Atom& source_atom = source_calculator.atoms[source_calculator.first_run_index];
-
-    // Get source level
-    pHamiltonianID source_key = std::make_shared<HamiltonianID>(source_two_j, source_parity);
-    LevelVector source_level_vec = source_atom.GetLevels()->GetLevels(source_key);
-
-    int source_level_index = user_input("IC/Source/Index", 0);
-    if(source_level_vec.levels.size() <= source_level_index)
+    int source_level_index = specification->ic.source_index;
+    if(source_level_index < source_level_vec.NumLevels())
     {   *errstream << "IC: Cannot find source level." << std::endl;
         exit(1);
     }
+    source_level_vec = source_level_vec.getSubset(source_level_index);
 
-    auto keep = std::next(source_level_vec.levels.begin(), source_level_index);
-    source_level_vec.levels.erase(source_level_vec.levels.begin(), keep);
-    source_level_vec.levels.resize(1);
-
-    if(user_input.search("--configuration-average"))
-        atoms[first_run_index].InternalConversionConfigurationAveraged(source_level_vec);
+    if(specification->configuration_average)
+        atom.InternalConversionConfigurationAveraged(source_level_vec);
     else
-        atoms[first_run_index].InternalConversion(source_level_vec);
+        atom.InternalConversion(source_level_vec);
 }
 
 void AmbitInterface::PrintHelp(const std::string& ApplicationName)
 {
     *outstream << ApplicationName << std::endl;
     *outstream
-        << "AMBiT  Copyright (C) 2018  Julian Berengut\n"
-        << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n\n"
         << "usage: ambit [--version] [-f] <file.input>\n"
         << "             <options> <atomic data and commands>\n"
         << "\n"
         << "Input file must be specified either with \"-f anyfile\" or \"file.input\".\n"
         << "Options may be specified in the command line or input file.\n"
-        << "Consult the user guide in ./Documentation for usage information.\n"
+        << "Consult the user guide in doc/UserGuide for usage information.\n"
         << "Sample input files are included with the documentation." << std::endl;
 }
 }

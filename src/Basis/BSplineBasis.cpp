@@ -23,8 +23,6 @@ pOrbitalMap BasisGenerator::GenerateBSplines(const std::vector<int>& max_pqn)
     // Get spline type and parameters
     std::string spline_type_string = specification->basis_bspline_splinetype;
     // Parse the string from the user-input to get the Spline type.
-    // TODO EVK: this should probably be done in the config-parser, but I can't think of how to
-    // make this work with the nice map-like interface
     SplineType spline_type = SplineType::Reno;
     if(spline_type_string.compare("Reno") == 0 || spline_type_string.compare("DKB") == 0)
         spline_type = SplineType::Reno;
@@ -421,7 +419,7 @@ pOrbitalMap BSplineBasis::GenerateBSplines(pHFOperatorConst hf, int kappa, int m
         {
             (*ds) += (*splines[j]) * eigenvectors(j, i);
         }
-        
+
         // Remove spurious states
         if(i >= N && fabs(ds->Norm(integrator) - 1.) > 1.e-2)
         {   if(debug)

@@ -30,8 +30,8 @@ SpinorFunction KineticEnergyDecorator::CalculateExtraExchange(const SpinorFuncti
     return exchange;
 }
 
-KineticEnergyCalculator::KineticEnergyCalculator(MultirunOptions& user_input, Atom& atom, TransitionsKESpecification& specification):
-    TransitionCalculator(user_input, atom, specification)
+KineticEnergyCalculator::KineticEnergyCalculator(Atom& atom, TransitionsKESpecification& specification):
+    TransitionCalculator(atom, specification)
 {
     pHFOperatorConst hf = atom.GetHFOperator();
     pHFOperator zero = std::make_shared<HFOperatorBase>(*hf);

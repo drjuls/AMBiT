@@ -24,7 +24,7 @@ protected:
 class FieldShiftCalculator : public TransitionCalculator
 {
 public:
-    FieldShiftCalculator(MultirunOptions& user_input, Atom& atom, TransitionsFSSpecification& specification);
+    FieldShiftCalculator(Atom& atom, TransitionsFSSpecification& specification);
 
     virtual void PrintHeader() const override;
     virtual void PrintTransition(const LevelID& left, const LevelID& right, double matrix_element) const override;

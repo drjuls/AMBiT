@@ -111,8 +111,8 @@ SpinorFunction LorentzInvarianceT2Operator::ReducedApplyTo(const SpinorFunction&
     return ret;
 }
 
-LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(MultirunOptions& user_input, Atom& atom, TransitionsLLIT2Specification& specification):
-    TransitionCalculator(user_input, atom.GetBasis(), atom.GetLevels(), specification)
+LorentzInvarianceT2Calculator::LorentzInvarianceT2Calculator(Atom& atom, TransitionsLLIT2Specification& specification):
+    TransitionCalculator(atom.GetBasis(), atom.GetLevels(), specification)
 {
     auto hf = atom.GetHFOperator();
     op = std::make_shared<LorentzInvarianceT2Operator>(hf->GetIntegrator());

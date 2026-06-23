@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "Include.h"
 #include "ExternalField/RadiativePotential.h"
-#include "Atom/MultirunOptions.h"
 #include "Basis/BasisGenerator.h"
 #include "Specification/Specification.h"
 
@@ -13,6 +12,7 @@ TEST(RadiativePotentialTester, Uehling)
 
     // Na - comparison with Ginges & Berengut
     std::string user_input_string = std::string() +
+        "ID = Na\n" +
         "NuclearRadius = 2.9374\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 11\n" +
@@ -26,18 +26,9 @@ TEST(RadiativePotentialTester, Uehling)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -57,16 +48,6 @@ TEST(RadiativePotentialTester, Uehling)
     pNucleusDecorator nuc = basis_generator.GetNucleusDecorator();
     ueh = pHFOperator(new UehlingDecorator(hf, nuc->GetNuclearDensity()));
     EXPECT_NEAR(step_ueh, ueh->GetMatrixElement(*s, *s) - hf->GetMatrixElement(*s, *s), 1.e-10);
-
-    // Check electron density
-//    RadialFunction density = nuc->GetNuclearDensity();
-//    for(const auto& orb: *core)
-//    {
-//        density -= orb.second->GetDensity() * core->GetOccupancy(orb.first);
-//    }
-//
-//    ueh.reset(new UehlingDecorator(hf, density));
-//    *logstream << "Electron Uehling: " << ueh->GetMatrixElement(*s, *s) << std::endl;
 }
 
 TEST(RadiativePotentialTester, UehlingCs)
@@ -75,6 +56,7 @@ TEST(RadiativePotentialTester, UehlingCs)
 
     // Cs
     std::string user_input_string = std::string() +
+        "ID = Cs\n" +
         "NuclearRadius = 5.67073\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 55\n" +
@@ -90,18 +72,9 @@ TEST(RadiativePotentialTester, UehlingCs)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -122,21 +95,6 @@ TEST(RadiativePotentialTester, UehlingCs)
     pNucleusDecorator nuc = basis_generator.GetNucleusDecorator();
     ueh = std::make_shared<UehlingDecorator>(hf, nuc->GetNuclearDensity());
     EXPECT_NEAR(step_ueh, ueh->GetMatrixElement(*s, *s) - E0, 1.e-10);
-
-    // Check electron density
-//    RadialFunction density;
-//    for(const auto& orb: *core)
-//    {
-//        density -= orb.second->GetDensity() * core->GetOccupancy(orb.first);
-//    }
-//
-//    ueh = std::make_shared<UehlingDecorator>(hf, density);
-//    double el_ueh = ueh->GetMatrixElement(*s, *s) - E0;
-//    EXPECT_NEAR(0.78175e-7, el_ueh, 1.e-10);
-//
-//    density += nuc->GetNuclearDensity();
-//    ueh = std::make_shared<UehlingDecorator>(hf, density);
-//    EXPECT_NEAR(el_ueh, ueh->GetMatrixElement(*s, *s) - (E0 + step_ueh), 1.e-10);
 }
 
 TEST(RadiativePotentialTester, Magnetic)
@@ -145,6 +103,7 @@ TEST(RadiativePotentialTester, Magnetic)
 
     // Cs - comparison with Ginges & Berengut
     std::string user_input_string = std::string() +
+        "ID = Cs\n" +
         "NuclearRadius = 5.67073\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 55\n" +
@@ -160,18 +119,9 @@ TEST(RadiativePotentialTester, Magnetic)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);
@@ -210,6 +160,7 @@ TEST(RadiativePotentialTester, ElectricSlow)
 
     // Cs - comparison with Ginges & Berengut
     std::string user_input_string = std::string() +
+        "ID = Cs\n" +
         "NuclearRadius = 5.67073\n" +
         "NuclearThickness = 2.3\n" +
         "Z = 55\n" +
@@ -225,18 +176,9 @@ TEST(RadiativePotentialTester, ElectricSlow)
     auto specification = GlobalSpecification::Instance();
     // Can parse the user_input_string directly via parapara
     std::string perr = importSpecificationINIString(specification, user_input_string);
-    if (!perr.empty()) {
-        *errstream << "importSpecificationINIString:\n" << perr << std::endl;
-        exit(1);
-    }
+    ASSERT_TRUE(perr.empty()) << "importSpecificationINIString:\n" << perr;
     perr = specification->validateAndNormaliseSpecification();
-    if (!perr.empty()) {
-        *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
-        exit(1);
-    }
-
-    std::stringstream user_input_stream(user_input_string);
-    MultirunOptions userInput(user_input_stream, "//", "\n", ",");
+    ASSERT_TRUE(perr.empty()) << "validateAndNormaliseSpecification:\n" << perr;
 
     // Get core and excited basis
     BasisGenerator basis_generator(lattice);

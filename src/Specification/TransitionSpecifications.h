@@ -17,7 +17,7 @@ public:
     std::optional<double> all_below;
     bool reduced_elements = false;
     bool print_integrals = false;
-   
+
     double scale = 1.0;
 
     // RPA options
@@ -29,11 +29,10 @@ public:
     std::string rpa_configuration;
     bool rpa_no_negative_states = false;
     bool rpa_print_field = false;
-    int rpa_bspline_n = 100;
+    int rpa_bspline_n = 40;
     int rpa_bspline_k = 7;
     std::optional<double> rpa_bspline_rmax;
     double rpa_bspline_r0 = 0.0;
-
 };
 
 class TransitionsEJSpecification: public TransitionsBaseSpecification
@@ -47,7 +46,7 @@ class TransitionsHFS1Specification: public TransitionsBaseSpecification
 {
 public:
     std::optional<double> nuclear_magnetic_radius;
-    double g_on_i = 0.0;
+    double g_on_i = 1.0;
 };
 
 class TransitionsHFS2Specification: public TransitionsBaseSpecification
@@ -57,7 +56,7 @@ public:
     double q = 1.0;
 };
 
-class TransitionsHFSISpecification: public TransitionsBaseSpecification
+class TransitionsHFISpecification: public TransitionsBaseSpecification
 {
 public:
     std::optional<double> nuclear_radius;
@@ -107,16 +106,23 @@ public:
 };
 
 // Atom_Autoionization stuff
-// IC options should be a subclass of the HFSI specification, since it gets used to
+// IC options should be a subclass of the HFI specification, since it gets used to
 // initialise a GeneralisedHyperfine calculator
-class ICSpecification : public TransitionsHFSISpecification
+class ICSpecification : public TransitionsHFISpecification
 {
 public:
-    double nuclear_energy_ev;
+    std::string source_filename;
+    std::optional<int> source_twoj;
+    std::string source_parity;
+    int source_index = 0;
+    double nuclear_energy_ev = 0.0;
     unsigned continuum_l_min = 0;
     unsigned continuum_l_max = 6;
     std::optional<std::string> residue;
 };
+
+class ResidualCoulombSpecification: public TransitionsBaseSpecification
+{};
 
 }
 #endif

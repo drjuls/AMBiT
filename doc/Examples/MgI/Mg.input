@@ -1,0 +1,27 @@
+// Neutral magnesium - this system has two valence-electrons well-separated from the closed-shells
+// and works well with both CI and CI+MBPT.
+//
+// This calculation is small enough to run on most laptops or personal computers, but requires OpenMP to
+// complete in a reasonable length of time.
+
+ID = MgI
+Z = 12
+
+[HF]
+// We use the V^{N-2} potential here to avoid subtraction diagrams from non-closed HF shells
+N = 10
+Configuration = '1s2 2s2 2p6'
+
+[Basis]
+--bspline-basis
+ValenceBasis = 20spdf
+
+[CI]
+LeadingConfigurations = '3s2'
+ElectronExcitations = 2
+NumSolutions = 5
+EvenParityTwoJ = '0, 2'
+OddParityTwoJ = '0, 2, 4'
+
+[MBPT]
+Basis=30spdfg
