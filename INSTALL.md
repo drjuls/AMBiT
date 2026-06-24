@@ -1,5 +1,20 @@
 # Compiling AMBiT
 
+## Cloning the repository
+AMBiT uses git submodules to manage some of its dependencies, so you'll need to initialise
+them before compiling. The easiest way to do this is to use the `--recurse-submodules`
+flag when cloning the repository from Codeberg, e.g.:
+
+`git clone --recurse-submodules https://codeberg.org/AMBiT/AMBiT.git`
+
+If you've already cloned the repository, you can still initialise and update the
+submodules by running:
+
+`git submodule init && git submodule update`
+
+Before compiling AMBiT.
+
+## Platforms and dependencies
 We’ve tested AMBiT and know it works on the Linux and macOS operating
 systems. It will probably work on MS Windows or other Unix operating
 systems (e.g. FreeBSD, Illumos, etc), but we haven't tried it so we

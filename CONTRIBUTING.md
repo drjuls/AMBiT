@@ -11,19 +11,18 @@ Rather than emailing the developers, please run through this checklist to file a
 
 1. Make sure you're using the latest version of AMBiT (on either the `dev` or `master` branch) - the bug
    may have already been fixed in a more recent update.
-2. Check the list of open [issues](https://github.com/drjuls/AMBiT/issues) to see if anyone has
+2. Check the list of open [issues](https://codeberg.org/AMBiT/AMBiT/issues) to see if anyone has
    already reported this. If there's already an open issue on this bug, then please add a comment if 
    you have any new information to add (e.g. more information on how to trigger the bug, or other 
    circumstances it arises in).
-3. If no-one has reported the bug yet, [open a new issue](https://github.com/drjuls/AMBiT/issues/new),
+3. If no-one has reported the bug yet, [open a new issue](https://codeberg.org/AMBiT/AMBiT/issues/new),
    with a clear description of the unintended behaviour and how it differs from what you expected. 
    Please provide as much relevant information in the description as possible. In particular, make sure 
    to include:
     
     * The input file which triggers the unexpected behaviour, as well as the resulting output. Ideally,
       try and remove everything from the input which is not necessary to trigger the bug (this is called
-      a minimal working example). Make a [GitHub Gist](https://gist.github.com/) for these files,
-      rather than pasting them directly into the issue.
+      a minimal working example).
     * The version of AMBiT you are running, as well as the options used to compile it.
     * The operating system you're running on.
     * Whether the bug occurs when running with OpenMP, MPI or both.
@@ -31,7 +30,7 @@ Rather than emailing the developers, please run through this checklist to file a
 ### Fixing a bug
 * Open a pull-request (PR) with the patch and we'll look at it as soon as we get the chance (if you 
   don't know how to open a pull-request, check out 
-  [this guide](https://help.github.com/articles/about-pull-requests/) from GitHub). 
+  [this guide](https://docs.codeberg.org/collaborating/pull-requests-and-git-flow/) from Codeberg).
 * Make sure the PR description clearly describes what problem you're trying to solve and how you solved
   it. If you're fixing an existing issue, include the issue number in the description (e.g. resolves
   issue #123).
@@ -41,15 +40,10 @@ Rather than emailing the developers, please run through this checklist to file a
   **Development process** section of this guide for more details.
 
 ### Requesting or contributing a feature
-* If you have a request for a feature, contact the developers directly with the details of your request
-  and rationale behind it. Don't open a new issue, as GitHub issues are for bugs and unexpected
-  behaviour. Additionally, keep in mind that we are a small team with limited resources, so we may not 
-  be able to work on feature requests for a while (if at all).
-* If you have a patch which introduces a new feature, email the developers with the details of your
-  patch, the rationale behind it and a (small) proof of concept and we'll get back to you as soon as we
-  can. Pull-requests are also welcome, but we'd prefer if you also sent us a more detailed email to go 
-  with it. We work from the `dev` branch when developing new features, so please make sure your patch is
-  based off of `dev`, not `master`.
+* If you have a patch which introduces a new feature, make a pull request with the rationale behind it
+  and a (small) proof of concept and we'll get back to you as soon as we can.
+  We work from the `dev` branch when developing new features, so please make sure your patch is based
+  off of `dev`, not `master`.
 
 Lastly, if you have any questions about contributing: ask us! We'll be happy to help get you up and 
 running with developing AMBiT.

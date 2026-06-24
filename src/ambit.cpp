@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     try
     {   if(ProcessorRank == 0)
         {
-            *outstream << "AMBiT  Copyright (C) 2018  Julian Berengut\n"
+            *outstream << "AMBiT  Copyright (C) 2018-2026  Julian Berengut\n"
                        << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n";
             *outstream << "\nAMBiT version:    " << GIT_LAST_TAG;
             *outstream << "\n      git branch: " << GIT_SOURCE_DESCRIPTION;
