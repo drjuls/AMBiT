@@ -349,10 +349,10 @@ void Atom::InternalConversionConfigurationAveraged(const LevelVector& source)
 void Atom::Autoionization(const LevelVector& target)
 {
     auto specification= GlobalSpecification::Instance();
-    double ionization_energy = specification->dr_ionization_energy;
+    double ionization_energy = specification->dr_ionization_energy.value();
     std::optional<double> energy_limit = specification->dr_energy_limit;
-    unsigned min_continuum_l = specification->dr_continuum_l_min;
-    unsigned max_continuum_l = specification->dr_continuum_l_max;
+    int min_continuum_l = specification->dr_continuum_l_min;
+    int max_continuum_l = specification->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -529,14 +529,14 @@ void Atom::Autoionization(const LevelVector& target)
 void Atom::AutoionizationEnergyGrid(const LevelVector& target)
 {
     auto specification= GlobalSpecification::Instance();
-    double ionization_energy = specification->dr_ionization_energy;
+    double ionization_energy = specification->dr_ionization_energy.value();
     std::optional<double> energy_limit = specification->dr_energy_limit;
     double grid_min = specification->dr_energygrid_min;
     double grid_max = specification->dr_energygrid_max;
     double grid_step = specification->dr_energygrid_step;
     std::vector<double> energy_grid;
-    unsigned min_continuum_l = specification->dr_continuum_l_min;
-    unsigned max_continuum_l = specification->dr_continuum_l_max;
+    int min_continuum_l = specification->dr_continuum_l_min;
+    int max_continuum_l = specification->dr_continuum_l_max;
 
     auto math = MathConstant::Instance();
 
@@ -775,7 +775,9 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
             eigenvector_csf++;
         }
 
-        target_occ += rconfig * contribution;
+        OccupationMap target_config;
+        target_config += rconfig;
+        target_occ += target_config * contribution;
     }
 
     AutoionizationConfigurationAveraged(target_occ);
@@ -784,10 +786,10 @@ void Atom::AutoionizationConfigurationAveraged(const LevelVector& target)
 void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
 {
     auto specification= GlobalSpecification::Instance();
-    double ionization_energy = specification->dr_ionization_energy;
+    double ionization_energy = specification->dr_ionization_energy.value();
     std::optional<double> energy_limit = specification->dr_energy_limit;
-    unsigned min_continuum_l = specification->dr_continuum_l_min;
-    unsigned max_continuum_l = specification->dr_continuum_l_max;
+    int min_continuum_l = specification->dr_continuum_l_min;
+    int max_continuum_l = specification->dr_continuum_l_max;
     double grid_min = specification->dr_energygrid_min;
     bool use_single_particle_energy = specification->dr_use_single_particle_energy;
 
@@ -802,7 +804,7 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
     RelativisticConfiguration rtarget;
     for (const auto &pair: target)
     {
-        rtarget.insert(std::make_pair(pair.first, int(std::floor(target.GetOccupancy(pair.first) + 0.1))));
+        rtarget.insert(std::make_pair(pair.first, int(std::floor(target.GetOccupancy(pair.first) + 0.5))));
     }
 
     // Select orbitals in target wavefunction
@@ -971,10 +973,9 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                 // 6jSym = { k1 jb jeps }
                 //         { k2 ja  jh  }
 
-                int min_k1 = mmax(abs(b->L() - eps_info.L()), abs(a->L() - h->L()));
-                int max_k1 = mmin(b->L() + eps_info.L(), abs(a->L() + h->L()));
+                auto k1_limits = Ambit::MathConstant::klimits(*a, *b, *h, eps_info);
 
-                for(int k1 = min_k1; k1 <= max_k1; k1 += 2)
+                for(int k1 = k1_limits.first; k1 <= k1_limits.second; k1 += 2)
                 {
                     double Vah = two_body_operator->GetReducedMatrixElement(k1, *a, *b, *h, eps_info);
 
@@ -983,10 +984,9 @@ void Atom::AutoionizationConfigurationAveraged(const OccupationMap& target)
                         double multiplier = Vah / (2*k1 + 1);
 
                         // Exchange part
-                        int min_k2 = mmax(abs(a->L() - eps_info.L()), abs(b->L() - h->L()));
-                        int max_k2 = mmin(a->L() + eps_info.L(), abs(b->L() + h->L()));
+                        auto k2_limits = Ambit::MathConstant::klimits(*a, *b, eps_info, *h);
 
-                        for(int k2 = min_k2; k2 <= max_k2; k2 += 2)
+                        for(int k2 = k2_limits.first; k2 <= k2_limits.second; k2 += 2)
                         {
                             double partial_k2 = math->Wigner6j(k1, b->J(), eps->J(), k2, a->J(), h->J());
                             if(partial_k2)

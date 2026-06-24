@@ -29,6 +29,55 @@ inline auto positive = P::greater_than(0, "must be positive");
 inline auto nonnegative = P::at_least(0, "must be positive");
 inline auto zero_to_1 = between(0, 1, "must be positive");
 
+/****** Custom converters for types not supported by parapara out of the box ******/
+
+// Strip leading/trailing spaces and tabs from a string_view.
+static std::string_view trim(std::string_view v)
+{
+    auto first = v.find_first_not_of(" \t");
+    if(first == std::string_view::npos)
+        return {};
+    auto last = v.find_last_not_of(" \t");
+    return v.substr(first, last - first + 1);
+}
+
+// Read "first, second" as a pair of doubles.
+static P::hopefully<std::pair<double, double>> read_pair_double(std::string_view v)
+{
+    auto comma = v.find(',');
+    if(comma == std::string_view::npos)
+        return P::read_failure();
+
+    auto first  = P::read_numeric<double>(trim(v.substr(0, comma)));
+    auto second = P::read_numeric<double>(trim(v.substr(comma + 1)));
+    if(!first)  return P::unexpected(first.error());
+    if(!second) return P::unexpected(second.error());
+    return std::make_pair(first.value(), second.value());
+}
+
+// Write a pair of doubles as "first, second".
+static P::hopefully<std::string> write_pair_double(const std::pair<double, double>& p)
+{
+    auto first  = P::write_numeric(p.first);
+    auto second = P::write_numeric(p.second);
+    if(!first)  return P::unexpected(first.error());
+    if(!second) return P::unexpected(second.error());
+    return first.value() + ", " + second.value();
+}
+
+// AMBiT's reader/writer: parapara defaults extended with the custom converters above.
+static const P::reader<std::string_view>& ambit_reader()
+{
+    static P::reader<std::string_view> r(P::default_reader(), read_pair_double);
+    return r;
+}
+
+static const P::writer<std::string>& ambit_writer()
+{
+    static P::writer<std::string> w(P::default_writer(), write_pair_double);
+    return w;
+}
+
 /********************* GlobalSpecification methods *********************/
 GlobalSpecification* GlobalSpecification::s_override = nullptr;
 
@@ -222,8 +271,9 @@ std::vector<P::specification<X>> GlobalSpecification::make_ic_specification() {
         {"Source/Parity",           &X::source_parity},
         {"Source/Index",            &X::source_index, nonnegative},
         {"NuclearEnergyEV",         &X::nuclear_energy_ev, positive},
-        {"ContinuumLMin",           &X::continuum_l_min},
-        {"ContinuumLMax",           &X::continuum_l_max},
+        {"ContinuumLMin",           &X::continuum_l_min, nonnegative},
+        {"ContinuumLMax",           &X::continuum_l_max, nonnegative},
+        {"Residue",                 &X::residue},
     });
 }
 
@@ -409,10 +459,10 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"DR/Target/TwoJ",              &GlobalSpecification::dr_target_twoj, nonnegative},
     {"DR/Target/Parity",            &GlobalSpecification::dr_target_parity},
     {"DR/Target/Index",             &GlobalSpecification::dr_target_index, nonnegative},
-    {"DR/IonizationEnergy",         &GlobalSpecification::dr_ionization_energy, nonnegative},
+    {"DR/IonizationEnergy",         &GlobalSpecification::dr_ionization_energy},
     {"DR/EnergyLimit",              &GlobalSpecification::dr_energy_limit},
-    {"DR/ContinuumLMin",            &GlobalSpecification::dr_continuum_l_min},
-    {"DR/ContinuumLMax",            &GlobalSpecification::dr_continuum_l_max},
+    {"DR/ContinuumLMin",            &GlobalSpecification::dr_continuum_l_min, nonnegative},
+    {"DR/ContinuumLMax",            &GlobalSpecification::dr_continuum_l_max, nonnegative},
     {"DR/ContinuumResidue",         &GlobalSpecification::dr_continuum_residue},
     {"DR/--energy-grid",            &GlobalSpecification::dr_use_energygrid},
     {"DR/EnergyGrid/Min",           &GlobalSpecification::dr_energygrid_min},
@@ -496,7 +546,7 @@ P::hopefully<void> GlobalSpecification::PrintSpecification()
 
     auto record = *this;
     auto specs = global_specifications_mappings;
-    auto wtr = P::default_writer();
+    auto wtr = ambit_writer();
     std::string secsep = "/";
 
     constexpr auto npos = std::string::npos;
@@ -575,7 +625,7 @@ std::string importSpecificationINIString(GlobalSpecification* gs, const std::str
 std::string importSpecificationKV(GlobalSpecification* gs, const std::string& assignment) {
     *outstream << assignment << '\n';
     P::specification_map<GlobalSpecification> global_specifications_dict(gs->global_specifications_mappings, P::keys_lc_nows);
-    auto h = P::import_k_eq_v(*gs, global_specifications_dict, assignment);
+    auto h = P::import_k_eq_v(*gs, global_specifications_dict, ambit_reader(), assignment);
     if (!h) return P::explain(h.error(), true);
     else return "";
 }
@@ -876,7 +926,7 @@ P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Rec
     P::ini_style_importer importer(custom_ini_parser, in);
     while (importer) {
         std::string prev_sec{importer.section()};
-        auto h = importer.run_one(rec, specs, P::default_reader(), "/");
+        auto h = importer.run_one(rec, specs, ambit_reader(), "/");
 
         if (!h)
             return P::unexpected(h.error());

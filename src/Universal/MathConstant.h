@@ -8,10 +8,13 @@
 #include <absl/container/flat_hash_map.h>
 #include <gsl/gsl_math.h>
 #include "Enums.h"
+#include "Include.h"
+
+#define BIGGEST_K_EVER 100
 
 namespace Ambit
 {
-/** Class of mathematical constants, following the Singleton pattern. 
+/** Class of mathematical constants, following the Singleton pattern.
     Note that AMBiT uses atomic units, hbar = m_e = e = 1, so
     Bohr radius = 1, energy of ground state in hydrogen is 1/2.
  */
@@ -82,7 +85,30 @@ public:
     inline int is_half_integer(int twoj) const { return twoj%2 == 1; }
 
     /** Convert half-integer J and parity to kappa = (-1)^(l+j+1/2) (j+1/2) */
-    inline int convert_to_kappa(int twoj, Parity P);
+    static inline int convert_to_kappa(int twoj, Parity P);
+
+    /** Find minimum k that satisfies triangle(a.J(), b.J(), kmin) and
+     * (a.L() + b.L() + kmin) is even unless include_off_parity is set.
+     * Types can be anything with TwoJ(), L(), GetParity() defined. */
+    template <typename A, typename B>
+    static int kmin(const A& a, const B& b, bool include_off_parity = false);
+
+    /** Find minimum k connecting a -> c and b -> d. */
+    template <typename A, typename B, typename C, typename D>
+    static int kmin(const A& a, const B& b, const C& c, const D& d, bool include_off_parity = false);
+
+    /** Get maximum k. */
+    template <typename A, typename B>
+    static int kmax(const A& a, const B& b, bool include_off_parity = false);
+
+    template <typename A, typename B, typename C, typename D>
+    static int kmax(const A& a, const B& b, const C& c, const D& d, bool include_off_parity = false);
+
+    template <typename A, typename B>
+    static std::pair<int, int> klimits(const A& a, const B& b, bool include_off_parity = false);
+
+    template <typename A, typename B, typename C, typename D>
+    static std::pair<int, int> klimits(const A& a, const B& b, const C& c, const D& d, bool include_off_parity = false);
 
     /** Return +1 if power is even, -1 if odd. */
     inline int minus_one_to_the_power(int power) const { return (abs(power)%2)? -1 : 1; }
@@ -136,7 +162,7 @@ protected:
     int HashWigner3j(int twoj1, int twoj2, int twoj3, int twom1, int twom2) const;
 };
 
-inline int MathConstant::convert_to_kappa(int twoj, Parity P)
+int MathConstant::convert_to_kappa(int twoj, Parity P)
 {
     int kappa = (twoj + 1)/2;
     int L = kappa;
@@ -146,6 +172,68 @@ inline int MathConstant::convert_to_kappa(int twoj, Parity P)
         kappa = -kappa;
 
     return kappa;
+}
+
+template <typename A, typename B>
+int MathConstant::kmin(const A& a, const B& b, bool include_off_parity)
+{
+    // ensure triangle(a.J(), b.J(), kmin)
+    int k = abs(a.TwoJ() - b.TwoJ())/2;
+
+    // ensure eps(a.L() + b.L() + kmin)
+    if(!include_off_parity && (a.L() + b.L() + k)%2 != 0)
+        ++k;
+
+    return k;
+}
+
+template <typename A, typename B, typename C, typename D>
+int MathConstant::kmin(const A& a, const B& b, const C& c, const D& d, bool include_off_parity)
+{
+    if((a.L() + b.L() + c.L() + d.L())%2 != 0)
+        return BIGGEST_K_EVER;
+
+    int opt1 = kmin(a, c, include_off_parity);
+    int opt2 = kmin(b, d, include_off_parity);
+
+    return mmax(opt1, opt2);
+}
+
+template <typename A, typename B>
+int MathConstant::kmax(const A& a, const B& b, bool include_off_parity)
+{
+    // ensure triangle(a.J(), b.J(), kmin)
+    int k = (a.TwoJ() + b.TwoJ())/2;
+
+    // ensure eps(a.L() + b.L() + kmax)
+    if(!include_off_parity && (a.L() + b.L() + k)%2 != 0)
+        --k;
+
+    return k;
+}
+
+template <typename A, typename B, typename C, typename D>
+int MathConstant::kmax(const A& a, const B& b, const C& c, const D& d, bool include_off_parity)
+{
+    if((a.L() + b.L() + c.L() + d.L())%2 != 0)
+        return -1;
+
+    int opt1 = kmax(a, c, include_off_parity);
+    int opt2 = kmax(b, d, include_off_parity);
+
+    return mmin(opt1, opt2);
+}
+
+template <typename A, typename B>
+std::pair<int, int> MathConstant::klimits(const A& a, const B& b, bool include_off_parity)
+{
+    return std::make_pair(kmin(a, b, include_off_parity), kmax(a, b, include_off_parity));
+}
+
+template <typename A, typename B, typename C, typename D>
+std::pair<int, int> MathConstant::klimits(const A& a, const B& b, const C& c, const D& d, bool include_off_parity)
+{
+    return std::make_pair(kmin(a, b, c, d, include_off_parity), kmax(a, b, c, d, include_off_parity));
 }
 
 }

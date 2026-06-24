@@ -170,7 +170,7 @@ inline int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b) cons
 
 inline int MBPTCalculator::kmax(const OrbitalInfo& a, const OrbitalInfo& b, const OrbitalInfo& c, const OrbitalInfo& d) const
 {
-    return mmin(a.TwoJ() + b.TwoJ(), c.TwoJ() + d.TwoJ())/2;
+    return (a.TwoJ() + b.TwoJ())/2;
 }
 
 template<typename... OrbitalInfos>

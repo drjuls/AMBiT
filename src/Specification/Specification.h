@@ -339,10 +339,10 @@ public:
     std::string dr_target_parity;
     int dr_target_index = 0;
 
-    double dr_ionization_energy = 0.0;
+    std::optional<double> dr_ionization_energy;
     std::optional<double> dr_energy_limit;
-    unsigned dr_continuum_l_min = 0;
-    unsigned dr_continuum_l_max = 6;
+    int dr_continuum_l_min = 0;
+    int dr_continuum_l_max = 6;
     std::optional<std::string> dr_continuum_residue;
 
     bool dr_use_energygrid = false;

@@ -108,21 +108,18 @@ int main(int argc, char* argv[])
     #endif
 
     try
-    {   if(ProcessorRank == 0)
-        {
-            *outstream << "AMBiT  Copyright (C) 2018-2026  Julian Berengut\n"
-                       << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n";
-            *outstream << "\nAMBiT version:    " << GIT_LAST_TAG;
-            *outstream << "\n      git branch: " << GIT_SOURCE_DESCRIPTION;
-            *outstream << "\n      compiled:   " << COMPILE_DATE << std::endl;
+    {   *outstream << "AMBiT  Copyright (C) 2018-2026  Julian Berengut\n"
+                   << "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n";
+        *outstream << "\nAMBiT version:    " << GIT_LAST_TAG;
+        *outstream << "\n      git branch: " << GIT_SOURCE_DESCRIPTION;
+        *outstream << "\n      compiled:   " << COMPILE_DATE << std::endl;
 
-            // Print git diff output
-            if(strlen(GIT_DIFF_OUTPUT))
-            {   *outstream << "\n----------------------------------------------------------"
-                           << "\ngit diff:"
-                           << "\n----------------------------------------------------------\n";
-                *outstream << GIT_DIFF_OUTPUT << std::flush;
-            }
+        // Print git diff output
+        if(strlen(GIT_DIFF_OUTPUT))
+        {   *outstream << "\n----------------------------------------------------------"
+                       << "\ngit diff:"
+                       << "\n----------------------------------------------------------\n";
+            *outstream << GIT_DIFF_OUTPUT << std::flush;
         }
 
         // Find .input file
@@ -487,10 +484,15 @@ void AmbitInterface::Recombination()
     if(target_file.empty())
         return;
 
+    if(!specification->dr_ionization_energy)
+    {   *errstream << "DR/IonizationEnergy must be set." << std::endl;
+        return;
+    }
+
     std::optional<int> target_two_j = specification->dr_target_twoj;
     if(!target_two_j)
     {   *errstream << "DR/Target/TwoJ must be set in input file." << std::endl;
-        exit(1);
+        return;
     }
 
     std::string parity_string = specification->dr_target_parity;
@@ -501,7 +503,7 @@ void AmbitInterface::Recombination()
         target_parity = Parity::odd;
     else
     {   *errstream << "DR/Target/Parity must be set in input file to either \"even\" or \"odd\"." << std::endl;
-        exit(1);
+        return;
     }
 
     // Get target atom
@@ -529,9 +531,9 @@ void AmbitInterface::Recombination()
     }
 
     int target_level_index = specification->dr_target_index;
-    if(target_level_index < target_level_vec.NumLevels())
+    if(target_level_index >= target_level_vec.NumLevels())
     {   *errstream << "Recombination: Cannot find target level." << std::endl;
-        exit(1);
+        return;
     }
 
     target_level_vec = target_level_vec.getSubset(target_level_index);
@@ -555,7 +557,7 @@ void AmbitInterface::InternalConversion()
     std::optional<int> source_two_j = specification->ic.source_twoj;
     if(!source_two_j)
     {   *errstream << "IC/Source/TwoJ must be set in input file." << std::endl;
-        exit(1);
+        return;
     }
 
     std::string parity_string = specification->ic.source_parity;
@@ -566,7 +568,7 @@ void AmbitInterface::InternalConversion()
         source_parity = Parity::odd;
     else
     {   *errstream << "IC/Source/Parity must be set in input file to either \"even\" or \"odd\"." << std::endl;
-        exit(1);
+        return;
     }
 
     // Get source atom and level
@@ -594,9 +596,9 @@ void AmbitInterface::InternalConversion()
     }
 
     int source_level_index = specification->ic.source_index;
-    if(source_level_index < source_level_vec.NumLevels())
+    if(source_level_index >= source_level_vec.NumLevels())
     {   *errstream << "IC: Cannot find source level." << std::endl;
-        exit(1);
+        return;
     }
     source_level_vec = source_level_vec.getSubset(source_level_index);
 
