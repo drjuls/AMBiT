@@ -336,6 +336,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"-s13",                    &GlobalSpecification::_s13},
     {"-s23",                    &GlobalSpecification::_s23},
     {"-s123",                   &GlobalSpecification::_s123},
+    {"--verify",                &GlobalSpecification::only_verify_input},
     {"--no-new-mbpt",           &GlobalSpecification::no_new_mbpt},
     {"--check-sizes",           &GlobalSpecification::check_sizes},
     {"-c",                      &GlobalSpecification::clean_run},

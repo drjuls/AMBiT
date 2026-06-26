@@ -186,6 +186,10 @@ int main(int argc, char* argv[])
             *errstream << "validateAndNormaliseSpecification:\n" << perr << std::endl;
             exit(1);
         }
+        if(specification->only_verify_input)
+        {   *outstream << "No errors found in initial pass of user input." << std::endl;
+            return 0;
+        }
 
         Ambit::AmbitInterface ambit(specification->Z, specification->ID);
         ambit.EnergyCalculations();

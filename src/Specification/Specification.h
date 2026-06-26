@@ -179,10 +179,11 @@ public:
     std::string ID;
     unsigned Z = 0;
     std::optional<std::string> level_directory;
-    bool no_new_mbpt = false;
+    bool only_verify_input = false;
     bool check_sizes = false;
     bool clean_run = false;
     bool print_basis = false;
+    bool no_new_mbpt = false;
     bool ci_complete = false;
     bool no_ci = false;
     bool configuration_average = false;
