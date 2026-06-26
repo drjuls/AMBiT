@@ -2,8 +2,8 @@ AMBiT  Copyright (C) 2018-2026  Julian Berengut
 This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
 
 AMBiT version:    v4.0.0-dev
-      git branch: dev 982b422
-      compiled:   Fri 26 Jun 2026 14:57:23 AEST
+      git branch: dev c99d860
+      compiled:   Fri 26 Jun 2026 19:10:25 AEST
 
 ----------------------------------------------------------
 input (Cr+.input and command line):

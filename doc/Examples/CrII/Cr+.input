@@ -1,12 +1,10 @@
 ID = CrII
-
 Z = 24
 
 //-s123
 
 NuclearRadius = 3.9289
 NuclearThickness = 2.3
-
 
 [Lattice]
 NumPoints = 1000
