@@ -380,12 +380,12 @@ void AmbitInterface::TransitionCalculations()
     using EJTransitionsOpt = std::optional<TransitionsEJSpecification>;
     std::array<std::tuple<EJTransitionsOpt, MultipolarityType, int>, 8> EM_transition_types =
            {std::make_tuple(specification->transitions_do_e1 ? EJTransitionsOpt{specification->transitions_e1} : std::nullopt, MultipolarityType::E, 1),
-            std::make_tuple(specification->transitions_do_e2 ? EJTransitionsOpt{specification->transitions_e2} : std::nullopt, MultipolarityType::E, 2),
-            std::make_tuple(specification->transitions_do_e3 ? EJTransitionsOpt{specification->transitions_e3} : std::nullopt, MultipolarityType::E, 3),
-            std::make_tuple(specification->transitions_do_e4 ? EJTransitionsOpt{specification->transitions_e4} : std::nullopt, MultipolarityType::E, 4),
             std::make_tuple(specification->transitions_do_m1 ? EJTransitionsOpt{specification->transitions_m1} : std::nullopt, MultipolarityType::M, 1),
+            std::make_tuple(specification->transitions_do_e2 ? EJTransitionsOpt{specification->transitions_e2} : std::nullopt, MultipolarityType::E, 2),
             std::make_tuple(specification->transitions_do_m2 ? EJTransitionsOpt{specification->transitions_m2} : std::nullopt, MultipolarityType::M, 2),
+            std::make_tuple(specification->transitions_do_e3 ? EJTransitionsOpt{specification->transitions_e3} : std::nullopt, MultipolarityType::E, 3),
             std::make_tuple(specification->transitions_do_m3 ? EJTransitionsOpt{specification->transitions_m3} : std::nullopt, MultipolarityType::M, 3),
+            std::make_tuple(specification->transitions_do_e4 ? EJTransitionsOpt{specification->transitions_e4} : std::nullopt, MultipolarityType::E, 4),
             std::make_tuple(specification->transitions_do_m4 ? EJTransitionsOpt{specification->transitions_m4} : std::nullopt, MultipolarityType::M, 4),
            };
 

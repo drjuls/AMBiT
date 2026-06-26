@@ -1,136 +1,131 @@
-AMBiT  Copyright (C) 2018  Julian Berengut
+AMBiT  Copyright (C) 2018-2026  Julian Berengut
 This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
 
-AMBiT version:    v3.0.2
-      git branch: master b6ef0f1
-      compiled:   Fri Feb 15 19:39:52 AEST 2019
+AMBiT version:    v4.0.0-dev
+      git branch: dev 982b422
+      compiled:   Fri 26 Jun 2026 14:57:23 AEST
+
 ----------------------------------------------------------
-input:
+input (Cr+.input and command line):
 ----------------------------------------------------------
-argc = 25
-Cr+.input
-ID=CrII
-Z=24
+ID = CrII
+Z = 24
+NuclearRadius = 3.9289
+NuclearThickness = 2.3
 [Lattice]
-Lattice/NumPoints=1000
-Lattice/StartPoint=1.0e-6
-Lattice/EndPoint=50.0
+Lattice/NumPoints = 1000
+Lattice/StartPoint = 1.0e-6
+Lattice/EndPoint = 50.0
 [HF]
-HF/N=23
-HF/Configuration=1s2 2s2 2p6 3s2 3p6 : 3d5
+HF/N = 23
+HF/Configuration = '1s2 2s2 2p6 3s2 3p6 : 3d2 3d+3'
 [Basis]
 Basis/--bspline-basis
-Basis/ValenceBasis=7spdf
-Basis/FrozenCore=3s2p
+Basis/ValenceBasis = 7spdf
 [CI]
-CI/LeadingConfigurations=3d5, 3d4 4s1, 3d4 4p1
-CI/ElectronExcitations=2
-CI/HoleExcitations=0
-CI/EvenParityTwoJ=1, 3, 5
-CI/NumSolutions=3
+CI/LeadingConfigurations = '3d5, 3d4 4s1'
+CI/ElectronExcitations = 2
+CI/EvenParityTwoJ = '1, 3, 5'
+CI/NumSolutions = 3
 [CI/SmallSide]
-CI/SmallSide/LeadingConfigurations=3d5, 3d4 4s1, 3d4 4p1
-CI/SmallSide/ElectronExcitations=1,5spdf, 2, 5spdf
-CI/SmallSide/HoleExcitations=0
-Cr+.input
-
+CI/SmallSide/LeadingConfigurations = '3d5, 3d4 4s1'
+CI/SmallSide/ElectronExcitations = 2
+CI/SmallSide/ElectronBounds = '7spdf, 4spdf'
 ----------------------------------------------------------
+Nuclear RMS radius = 3.61203
 Core orbitals: 
-    1s  E = -222.448723263  size: (569) 6.265
-    2s  E = -26.8861828091  size: (647) 12.84
-    3s  E = -3.65304653147  size: (699) 17.82
-    2p  E = -22.7381178168  size: (673) 15.28
-    3p  E = -2.40253423197  size: (726) 20.52
-   2p+  E = -22.4139800076  size: (674) 15.38
-   3p+  E = -2.36228057124  size: (727) 20.62
-    3d  E = -0.591219307452  size: (803) 28.52
-   3d+  E = -0.58695822569  size: (804) 28.63
+    1s  E = -222.4475575  size: (569) 6.265
+    2s  E = -26.8860757602  size: (647) 12.84
+    3s  E = -3.65303116125  size: (699) 17.82
+    2p  E = -22.7381286742  size: (673) 15.28
+    3p  E = -2.40253522392  size: (726) 20.52
+   2p+  E = -22.4139911144  size: (674) 15.38
+   3p+  E = -2.36228160045  size: (727) 20.62
+    3d  E = -0.591219667377  size: (803) 28.52
+   3d+  E = -0.586958579186  size: (804) 28.63
 Excited orbitals: 
-    4s  E = -0.203846640381  size: (999) 50
-    5s  E = -0.0736314289931  size: (999) 50
-    6s  E = -0.0382640649084  size: (999) 50
-    7s  E = -0.0227258227426  size: (999) 50
-    4p  E = -0.116400004521  size: (999) 50
-    5p  E = -0.0521230284816  size: (999) 50
-    6p  E = -0.0296082407705  size: (999) 50
-    7p  E = -0.0167733660205  size: (999) 50
-   4p+  E = -0.115885445037  size: (999) 50
-   5p+  E = -0.0519670303227  size: (999) 50
-   6p+  E = -0.0295391563313  size: (999) 50
-   7p+  E = -0.0167122298378  size: (999) 50
-    3d  E = -0.591219307452  size: (803) 28.52
-    4d  E = -0.0542305646063  size: (999) 50
-    5d  E = -0.0305212657786  size: (999) 50
-    6d  E = -0.0181184733574  size: (999) 50
-    7d  E = -0.00432671884817  size: (999) 50
-   3d+  E = -0.58695822569  size: (804) 28.63
-   4d+  E = -0.0542036879641  size: (999) 50
-   5d+  E = -0.0305075571116  size: (999) 50
-   6d+  E = -0.0181071835831  size: (999) 50
-   7d+  E = -0.00431021603913  size: (999) 50
-    4f  E = -0.0312539327939  size: (999) 50
-    5f  E = -0.0193082587072  size: (999) 50
-    6f  E = -0.00763764375902  size: (999) 50
-    7f  E = 0.008522576434  size: (999) 50
-   4f+  E = -0.0312540206083  size: (999) 50
-   5f+  E = -0.0193083608559  size: (999) 50
-   6f+  E = -0.00763783329339  size: (999) 50
-   7f+  E = 0.00852156256589  size: (999) 50
+    4s  E = -0.203846008734  size: (999) 50
+    5s  E = -0.0736313096829  size: (999) 50
+    6s  E = -0.038264020964  size: (999) 50
+    7s  E = -0.0227257968661  size: (999) 50
+    4p  E = -0.11639999286  size: (999) 50
+    5p  E = -0.0521230261693  size: (999) 50
+    6p  E = -0.0296082398899  size: (999) 50
+    7p  E = -0.0167733652981  size: (999) 50
+   4p+  E = -0.115885434422  size: (999) 50
+   5p+  E = -0.0519670282861  size: (999) 50
+   6p+  E = -0.0295391555733  size: (999) 50
+   7p+  E = -0.0167122292226  size: (999) 50
+    3d  E = -0.591219667377  size: (803) 28.52
+    4d  E = -0.0542305666204  size: (999) 50
+    5d  E = -0.0305212668045  size: (999) 50
+    6d  E = -0.0181184742038  size: (999) 50
+    7d  E = -0.0043267200932  size: (999) 50
+   3d+  E = -0.586958579186  size: (804) 28.63
+   4d+  E = -0.0542036900127  size: (999) 50
+   5d+  E = -0.0305075581446  size: (999) 50
+   6d+  E = -0.0181071844316  size: (999) 50
+   7d+  E = -0.00431021729904  size: (999) 50
+    4f  E = -0.0312539327641  size: (999) 50
+    5f  E = -0.019308258669  size: (999) 50
+    6f  E = -0.00763764371256  size: (999) 50
+    7f  E = 0.00852257654285  size: (999) 50
+   4f+  E = -0.0312540205821  size: (999) 50
+   5f+  E = -0.0193083608374  size: (999) 50
+   6f+  E = -0.00763783323894  size: (999) 50
+   7f+  E = 0.00852156267315  size: (999) 50
 
- Number of CSFs = 18540 x 4356; Finding solutions using Davidson...
+ Number of CSFs = 8960 x 3950; Finding solutions using Davidson...
     nloops=16
-Solutions for J = 0.5, P = even (N = 18540 x 4356):
-0: -9.7117934    -2131492.2665 /cm
-             4s1 3d4  93.7100%
-             5s1 3d4  3.2903%
-                 3d5  1.6039%
-    g-factor = 3.3202
+Solutions for J = 0.5, P = even (N = 8960 x 3950):
+0: -9.7128728    -2131729.16734 /cm
+             4s1 3d4  94.1608%
+             5s1 3d4  3.3836%
+    g-factor = 3.3273
 
-1: -9.7100974    -2131120.05703 /cm
-             4s1 3d4  2.1823%
-                 3d5  97.5475%
-    g-factor = 2.6641
+1: -9.7101409    -2131129.58828 /cm
+             4s1 3d4  1.2459%
+                 3d5  98.5155%
+    g-factor = 2.6568
 
-2: -9.700613    -2129038.46247 /cm
-             4s1 3d4  7.7647%
-                 3d5  91.7724%
-    g-factor = 0.014006
+2: -9.7007189    -2129061.70834 /cm
+             4s1 3d4  8.1507%
+                 3d5  91.3216%
+    g-factor = 0.014256
 
- Number of CSFs = 32798 x 7712; Finding solutions using Davidson...
-    nloops=20
-Solutions for J = 1.5, P = even (N = 32798 x 7712):
-0: -9.7112781    -2131379.17236 /cm
-             4s1 3d4  92.3081%
-             5s1 3d4  3.2420%
-                 3d5  3.0701%
-    g-factor = 1.8617
+ Number of CSFs = 15846 x 6990; Finding solutions using Davidson...
+    nloops=22
+Solutions for J = 1.5, P = even (N = 15846 x 6990):
+0: -9.7123479    -2131613.9741 /cm
+             4s1 3d4  94.0925%
+             5s1 3d4  3.3819%
+    g-factor = 1.8652
 
-1: -9.7101556    -2131132.82078 /cm
-             4s1 3d4  3.6024%
-                 3d5  96.0610%
-    g-factor = 1.7291
+1: -9.7102019    -2131142.98419 /cm
+             4s1 3d4  1.3286%
+                 3d5  98.4299%
+    g-factor = 1.7254
 
-2: -9.7004038    -2128992.54945 /cm
-             4s1 3d4  7.3318%
-                 3d5  92.2220%
-    g-factor = 1.2082
+2: -9.7005028    -2129014.27027 /cm
+             4s1 3d4  7.6851%
+                 3d5  91.8088%
+    g-factor = 1.2083
 
- Number of CSFs = 40060 x 9449; Finding solutions using Davidson...
-    nloops=37
-Solutions for J = 2.5, P = even (N = 40060 x 9449):
-0: -9.8428556    -2160257.1131 /cm
-                 3d5  99.9189%
+ Number of CSFs = 19363 x 8548; Finding solutions using Davidson...
+    nloops=40
+Solutions for J = 2.5, P = even (N = 19363 x 8548):
+0: -9.8428714    -2160260.58039 /cm
+                 3d5  99.9144%
     g-factor = 1.9997
 
-1: -9.7269932    -2134828.2534 /cm
-                 3d5  99.6879%
+1: -9.7270037    -2134830.54575 /cm
+                 3d5  99.6840%
     g-factor = 0.57184
 
-2: -9.7104711    -2131202.05907 /cm
-             4s1 3d4  75.3665%
-             5s1 3d4  2.6515%
-                 3d5  20.8151%
-    g-factor = 1.6436
+2: -9.7114878    -2131425.20382 /cm
+             4s1 3d4  93.9510%
+             5s1 3d4  3.3780%
+    g-factor = 1.6563
 
 
 Finished

@@ -30,11 +30,13 @@ NumSolutions = 3
 [CI/SmallSide]
 LeadingConfigurations = '3d5, 3d4 4s1'
 ElectronExcitations = 2
-ElectronBounds = '5spdf, 5spdf'
+ElectronBounds = '7spdf, 4spdf'
 
 //[MBPT]
 //Basis = 30spdfg
 
-[Transitions]
-E2/AllBelow = -9.2
-M1/MatrixElements = '1e:0->1e:1, 3e:0->5e:0'
+//[Transitions/E2]
+//AllBelow = -9.04
+
+//[Transitions/M1]
+//MatrixElements = '1e:0->1e:1, 3e:0->5e:0'
