@@ -749,12 +749,12 @@ LevelVector Atom::CalculateEnergies(pHamiltonianID hID)
             if(specification->ci.scalapack)
             {
                 // Write matrix if it hasn't already been written
-                if(!user_input.search("CI/Output/--write-hamiltonian"))
+                if(!specification->ci.output_write_hamiltonian)
                     H->Write(hamiltonian_filename);
 
                 if(specification->ci.max_energy)
                 {
-                    double max_energy = specification->ci.max_energy.value());
+                    double max_energy = specification->ci.max_energy.value();
                     levelvec = H->SolveMatrixScalapack(hID, configs->NumCSFs(), hamiltonian_filename, max_energy);
                 }
                 else

@@ -90,20 +90,16 @@ HyperfineDipoleCalculator::HyperfineDipoleCalculator(Atom& atom, TransitionsHFS1
 {
     pHFOperatorConst hf = atom.GetHFOperator();
 
-    //double magnetic_radius = user_input("NuclearMagneticRadius", -1.0);
-    double magnetic_radius;
-    auto radius_opt = specification.nuclear_magnetic_radius;
-    if(radius_opt)
+    double magnetic_radius = 0.;
+    if(specification.nuclear_magnetic_radius)
     {
-        magnetic_radius = radius_opt.value();
+        magnetic_radius = specification.nuclear_magnetic_radius.value();
     }
     else
     {
         pNucleusDecorator nuc = atom.GetNucleusDecorator();
         if(nuc)
             magnetic_radius = nuc->CalculateNuclearRMSRadius() * sqrt(5./3.);
-        else
-            magnetic_radius = 0.;
     }
     op = std::make_shared<HyperfineMJOperator>(1, hf->GetIntegrator(), magnetic_radius);
 

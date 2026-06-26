@@ -352,20 +352,6 @@ void AmbitInterface::EnergyCalculations()
     }
 }
 
-// Used below to run all transition types. Can only be used if they have constructor
-//      TransitionCalculatorType(user_input, atom)
-#define RUN_AND_STORE_TRANSITION(id, TRANSITION_CALCULATOR_TYPE) \
-do { \
-  std::string prefix = std::string("Transitions/") + (#id); \
-  if(user_input.SectionExists(prefix)) \
-  { \
-    user_input.set_prefix(prefix); \
-    TRANSITION_CALCULATOR_TYPE calculon(user_input, atom); \
-    calculon.CalculateAndPrint(); \
-    calculon.PrintAll(); \
-  } \
-} while(0)
-
 template<typename SpecificationOptType, typename CalculatorType>
 void run_and_store_transitions(SpecificationOptType specification_opt, Atom atom)
 {
@@ -420,17 +406,6 @@ void AmbitInterface::TransitionCalculations()
         calc->PrintAll();
     }
 
-    // Other operators
-    //RUN_AND_STORE_TRANSITION(HFS1, HyperfineDipoleCalculator);
-    //RUN_AND_STORE_TRANSITION(HFS2, HyperfineQuadrupoleCalculator);
-    //RUN_AND_STORE_TRANSITION(HFI, GeneralisedHyperfineCalculator);
-    //RUN_AND_STORE_TRANSITION(FS, FieldShiftCalculator);
-    //RUN_AND_STORE_TRANSITION(QED, QEDCalculator);
-    //RUN_AND_STORE_TRANSITION(Yukawa, YukawaCalculator);
-    //RUN_AND_STORE_TRANSITION(KE, KineticEnergyCalculator);
-    //RUN_AND_STORE_TRANSITION(LLIT2, LorentzInvarianceT2Calculator);
-    //RUN_AND_STORE_TRANSITION(NMS, NormalMassShiftCalculator);
-
     // Convenient typedefs
     using HFS1Opt = std::optional<TransitionsHFS1Specification>;
     using HFS2Opt = std::optional<TransitionsHFS2Specification>;
@@ -476,7 +451,6 @@ void AmbitInterface::TransitionCalculations()
     profiler->transitions.stop();
 }
 
-#undef RUN_AND_STORE_TRANSITION
 void AmbitInterface::Recombination()
 {
     auto specification= GlobalSpecification::Instance();
