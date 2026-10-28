@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.18)
 
 project(ambit VERSION 3.2
         DESCRIPTION "Relativistic CI+MBPT atomic structure code"
-        LANGUAGES CXX Fortran)
+        LANGUAGES C CXX Fortran)
 
 enable_language(CXX)
+enable_language(C)
 enable_language(Fortran)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -21,7 +22,7 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION} -cpp")
 # Set the Fortran compiler. Note that this is case-sensitive: "Fortran" not "FORTRAN"
 get_filename_component(Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 
-###### AMBiT stuff ###### 
+###### AMBiT stuff ######
 
 # Set directory for angular data caching
 set(ANGULAR_DATA_DIR "${CMAKE_SOURCE_DIR}/AngularData" CACHE STRING "Directory to store angular data")
@@ -32,7 +33,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/Specification/parapara/include")
 add_subdirectory(src)
 
-############# Unit tests ############# 
+############# Unit tests #############
 # Now do unit testing
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   # Unit tests don't (currently) work with MPI, so abort if we're building with MPI
@@ -47,4 +48,3 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
   # can find it
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/template.input" "${CMAKE_CURRENT_BINARY_DIR}/test/template.input" COPYONLY)
 endif()
-
