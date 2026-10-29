@@ -1,0 +1,44 @@
+// Neutral helium - the smallest interesting CI problem. With only two electrons we can put
+// everything into CI from the start and skip MBPT entirely.
+//
+// What this example demonstrates:
+//   * V^0 starting potential: 'HF/N = 0' and 'Configuration = 0' tell the HF stage to
+//     generate hydrogenic basis functions in the bare nuclear potential. Both electrons
+//     are then correlated entirely inside CI.
+//   * Pure CI: no [MBPT] because there is no core. The level energies of the first few levels
+//     1S0 / 1P1 / 3P_{0,1,2} including fine structure are well converged.
+//   * Both even and odd parities, multiple total angular momenta.
+//   * E1 line strengths for the famous 1s^2 ^1S_0 -> 1s2p ^1P_1 (strong, S = 0.53143) and
+//      -> 1s2p ^3P_1 (weak intercombination, S = 5.403e-08) transitions.
+
+ID = HeI
+Z = 2
+
+NuclearRadius = 1.5
+NuclearThickness = 2.3
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.0e-6
+EndPoint = 40.0
+
+[HF]
+// No electrons in the HF self-consistent stage; both will enter via CI.
+N = 0
+Configuration = 0
+
+[Basis]
+--bspline-basis
+ValenceBasis = 20spd
+
+[CI]
+LeadingConfigurations = '1s2'
+ElectronExcitations = 2
+NumSolutions = 3
+EvenParityTwoJ = '0, 2, 4'
+OddParityTwoJ = '0, 2, 4'
+
+[Transitions/E1]
+// 1s^2 ^1S_0 -> 1s2p ^1P_1 (allowed, large)
+// 1s^2 ^1S_0 -> 1s2p ^3P_1 (intercombination, tiny)
+MatrixElements = '0e:0 -> 2o:0, 0e:0 -> 2o:1'

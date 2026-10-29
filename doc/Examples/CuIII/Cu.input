@@ -1,0 +1,52 @@
+// Doubly-ionised copper (Cu^{2+}, isoelectronic with Ni I), starting from the closed-shell
+// [Ar] 3d^{10} configuration with a single hole in the 3d shell.
+//
+// What this example demonstrates:
+//   * Hole excitations: the leading configuration '3d-1' denotes a hole in the otherwise
+//     filled 3d shell, generated from the closed-shell HF reference.
+//   * 'Basis/FrozenCore = 3sp': prevents holes from descending into the 3s/3p shells; only
+//     the 3d (and above, in MBPT) may be excited.
+//   * Combined 'ElectronExcitations + HoleExcitations' --- electrons leave the 3d into virtual
+//     orbitals, while holes propagate up from deeper orbitals into the 3d valence.
+//   * 3d^9 ground term (^2D_{5/2}, ^2D_{3/2}) fine structure: solve at 2J = 3 and 5 of even
+//     parity.
+//
+// Holes are the natural way to handle nearly-filled shells without writing out all of the
+// equivalent particle configurations (3d^9 here, 3d^8 in [CuIV], etc.).
+
+ID = CuIII
+Z = 29
+
+NuclearRadius = 3.7188
+NuclearThickness = 2.3
+
+-s123
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.0e-6
+EndPoint = 50.0
+
+[HF]
+// Closed-shell HF reference: 3d^{10} included.
+N = 28
+Configuration = '1s2 2s2 2p6 3s2 3p6 3d10'
+
+[Basis]
+--bspline-basis
+// We add some extra d orbitals to help with the change from 3d^9 to 3d^8 but we are still
+// far from convergence (or experiment)
+ValenceBasis = 6sp10d6f
+// Freeze the 3s, 3p shells against hole excitations; 3d (and higher) remain open.
+FrozenCore = 3sp
+
+[CI]
+// '3d-1' is a single hole in the otherwise-filled 3d shell.
+LeadingConfigurations = '3d-1, 3d-2 4s1'
+ElectronExcitations = 2
+HoleExcitations = 1
+NumSolutions = 3
+EvenParityTwoJ = '3, 5'
+
+[MBPT]
+Basis = 30spdfg

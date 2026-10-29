@@ -1,5 +1,5 @@
 // Neutral magnesium - this system has two valence-electrons well-separated from the closed-shells
-// and works well with both CI and CI+MBPT.
+// and works well with both CI and CI+MBPT. This example forms part of the tutorial in the user guide.
 //
 // This calculation is small enough to run on most laptops or personal computers, but requires OpenMP to
 // complete in a reasonable length of time.

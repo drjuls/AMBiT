@@ -1,0 +1,50 @@
+// Neutral sodium - the textbook alkali atom: a single valence electron above the closed [Ne] core.
+// The starting potential is V^{N-1}, which is well suited to a one-electron Brueckner MBPT treatment.
+//
+// What this example demonstrates:
+//   * Single-valence-electron CI (trivial Hamiltonian; the work is in MBPT).
+//   * Brueckner orbitals via 'MBPT/--brueckner': MBPT is folded back into the one-particle
+//     orbitals through the Sigma potential.
+//   * Hyperfine transitions (HFS1) with RPA core polarisation, comparable to e.g. 885.81 MHz
+//     for the 3s_{1/2} state of 23-Na.
+//
+// Fast enough to run on a laptop in a few minutes.
+
+ID = NaI
+Z = 11
+
+NuclearRadius = 2.8853
+NuclearThickness = 2.3
+
+[Lattice]
+NumPoints = 1000
+StartPoint = 1.e-6
+EndPoint = 50.
+
+[HF]
+// V^{N-1} starting potential: leave the 3s out of the HF core.
+N = 10
+Configuration = '1s2 2s2 2p6'
+
+[Basis]
+--bspline-basis
+ValenceBasis = 10sp
+
+[CI]
+LeadingConfigurations = '3s1'
+ElectronExcitations = 1
+NumSolutions = 3
+EvenParityTwoJ = '1'
+OddParityTwoJ = '1, 3'
+
+[MBPT]
+Basis = 30spdfg
+// Build Brueckner orbitals from the core-valence Sigma potential.
+--brueckner
+
+[Transitions/HFS1]
+// Magnetic-dipole hyperfine constants A_{HFS}, dressed with RPA core polarisation.
+// g_I / I for 23-Na (I=3/2) is 2.2176 / 1.5 = 1.4784 nuclear magnetons.
+MatrixElements = '1e:0, 1o:0, 3o:0'
+gOnI = 1.4784
+--rpa

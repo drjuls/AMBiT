@@ -1,3 +1,10 @@
+// Chromium ion - this transition metal has 5 valence electrons and is difficult to treat accurately.
+// It forms part of the tutorial in the user guide as an example of a complex open-shell system.
+//
+// While we have kept the calculation small for the purposes of the tutorial, better accuracy could be
+// achieved only on a suitable HPC (supercomputer) cluster.
+
+
 ID = CrII
 Z = 24
 
