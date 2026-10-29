@@ -250,6 +250,12 @@ int main(int argc, char* argv[])
     *logstream << absl::StreamFormat("|%-35s", "CI")
                << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->ci.elapsed()))
                << std::endl;
+    *logstream << "|---------------------------------------------------------|"
+               << std::endl;
+    *logstream << absl::StreamFormat("|%-35s", "AngularData CSFs")
+               << absl::StreamFormat("|%20gs|", absl::ToDoubleSeconds(profiler->angular_momentum.elapsed()))
+               << std::endl;
+
 
     *logstream << "|---------------------------------------------------------|"
                << std::endl;
