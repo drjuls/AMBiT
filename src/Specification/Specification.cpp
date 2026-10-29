@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <istream>
 #include <sstream>
@@ -438,24 +439,6 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     {"MBPT/Brueckner/Scaling",      &GlobalSpecification::mbpt_brueckner_scaling},
     {"MBPT/Brueckner/--use-lower",  &GlobalSpecification::mbpt_brueckner_use_lower},
     {"MBPT/Brueckner/--use-lower-lower",&GlobalSpecification::mbpt_brueckner_use_lower_lower},
-    {"Transitions/E1",              &GlobalSpecification::transitions_do_e1},
-    {"Transitions/E2",              &GlobalSpecification::transitions_do_e2},
-    {"Transitions/E3",              &GlobalSpecification::transitions_do_e3},
-    {"Transitions/E4",              &GlobalSpecification::transitions_do_e4},
-    {"Transitions/M1",              &GlobalSpecification::transitions_do_m1},
-    {"Transitions/M2",              &GlobalSpecification::transitions_do_m2},
-    {"Transitions/M3",              &GlobalSpecification::transitions_do_m3},
-    {"Transitions/M4",              &GlobalSpecification::transitions_do_m4},
-    {"Transitions/HFS1",            &GlobalSpecification::transitions_do_hfs1},
-    {"Transitions/HFS2",            &GlobalSpecification::transitions_do_hfs2},
-    {"Transitions/HFI",             &GlobalSpecification::transitions_do_hfi},
-    {"Transitions/FS",              &GlobalSpecification::transitions_do_fs},
-    {"Transitions/QED",             &GlobalSpecification::transitions_do_qed},
-    {"Transitions/Yukawa",          &GlobalSpecification::transitions_do_yukawa},
-    {"Transitions/KE",              &GlobalSpecification::transitions_do_ke},
-    {"Transitions/LLIT2",           &GlobalSpecification::transitions_do_llit2},
-    {"Transitions/NMS",             &GlobalSpecification::transitions_do_nms},
-    {"Transitions/ResidualCoulomb", &GlobalSpecification::transitions_do_residual_coulomb},
     {"DR/Target/Filename",          &GlobalSpecification::dr_target_file, P::nonempty()},
     {"DR/Target/TwoJ",              &GlobalSpecification::dr_target_twoj, nonnegative},
     {"DR/Target/Parity",            &GlobalSpecification::dr_target_parity},
@@ -497,32 +480,40 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
     auto ic_specs = make_ic_specification<ICSpecification>();
     auto residual_coulomb_specs = make_residual_coulomb_specification<ResidualCoulombSpecification>();
 
-    // Now delegate the parsing for each EJ multipole operator
-    // NOTE: The trailing "/"s in the key prefixes are signification (e.g. it's
-    // "Transitions/E1/" *not "Transitions/E1")
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e1, "Transitions/E1/", ej_specs, "E1 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e2, "Transitions/E2/", ej_specs, "E2 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e3, "Transitions/E3/", ej_specs, "E3 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_e4, "Transitions/E4/", ej_specs, "E4 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m1, "Transitions/M1/", ej_specs, "M1 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m2, "Transitions/M2/", ej_specs, "M2 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m3, "Transitions/M3/", ej_specs, "M3 transition operator: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_m4, "Transitions/M4/", ej_specs, "M4 transition operator: ");
+    // All section names map to the same operator settings. Keep Transitions first as
+    // the canonical spelling used by existing input files and printed specifications.
+    constexpr std::array transition_sections = {"Transitions", "Operators", "MatrixElements"};
+    auto add_transition = [this, &transition_sections](const char* name, bool GlobalSpecification::* enabled,
+                                                        auto member, const auto& specs, const char* description) {
+        for (const char* section : transition_sections) {
+            std::string path = std::string(section) + "/" + name;
+            global_specifications_mappings.emplace_back(path, enabled);
+            add_delegates_for(global_specifications_mappings, member, path + "/", specs, description);
+        }
+    };
 
-    // And the rest...
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs1, "Transitions/HFS1/", hfs1_specs , "HFS dipole transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfs2, "Transitions/HFS2/", hfs2_specs , "HFS quadrupole transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_hfi, "Transitions/HFI/", hfi_specs , "Generalised HFS transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_fs, "Transitions/FS/", fs_specs , "Field shift transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_qed, "Transitions/QED/", qed_specs , "QED radiative potential transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_yukawa, "Transitions/Yukawa/", yukawa_specs , "Yukawa potential transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_ke, "Transitions/KE/", ke_specs , "Kinetic energy transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_llit2, "Transitions/LLIT2/", llit2_specs , "Local-Lorentz Invariance T2 transitions: ");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::transitions_nms, "Transitions/NMS/", nms_specs , "Nuclear mass-shift (NMS) transitions: ");
+    add_transition("E1", &GlobalSpecification::transitions_do_e1, &GlobalSpecification::transitions_e1, ej_specs, "E1 transition operator: ");
+    add_transition("E2", &GlobalSpecification::transitions_do_e2, &GlobalSpecification::transitions_e2, ej_specs, "E2 transition operator: ");
+    add_transition("E3", &GlobalSpecification::transitions_do_e3, &GlobalSpecification::transitions_e3, ej_specs, "E3 transition operator: ");
+    add_transition("E4", &GlobalSpecification::transitions_do_e4, &GlobalSpecification::transitions_e4, ej_specs, "E4 transition operator: ");
+    add_transition("M1", &GlobalSpecification::transitions_do_m1, &GlobalSpecification::transitions_m1, ej_specs, "M1 transition operator: ");
+    add_transition("M2", &GlobalSpecification::transitions_do_m2, &GlobalSpecification::transitions_m2, ej_specs, "M2 transition operator: ");
+    add_transition("M3", &GlobalSpecification::transitions_do_m3, &GlobalSpecification::transitions_m3, ej_specs, "M3 transition operator: ");
+    add_transition("M4", &GlobalSpecification::transitions_do_m4, &GlobalSpecification::transitions_m4, ej_specs, "M4 transition operator: ");
+    add_transition("HFS1", &GlobalSpecification::transitions_do_hfs1, &GlobalSpecification::transitions_hfs1, hfs1_specs, "HFS dipole operator: ");
+    add_transition("HFS2", &GlobalSpecification::transitions_do_hfs2, &GlobalSpecification::transitions_hfs2, hfs2_specs, "HFS quadrupole operator: ");
+    add_transition("HFI", &GlobalSpecification::transitions_do_hfi, &GlobalSpecification::transitions_hfi, hfi_specs, "Generalised HFS operator: ");
+    add_transition("FS", &GlobalSpecification::transitions_do_fs, &GlobalSpecification::transitions_fs, fs_specs, "Field shift operator: ");
+    add_transition("QED", &GlobalSpecification::transitions_do_qed, &GlobalSpecification::transitions_qed, qed_specs, "QED radiative potential operator: ");
+    add_transition("Yukawa", &GlobalSpecification::transitions_do_yukawa, &GlobalSpecification::transitions_yukawa, yukawa_specs, "Yukawa potential operator: ");
+    add_transition("KE", &GlobalSpecification::transitions_do_ke, &GlobalSpecification::transitions_ke, ke_specs, "Kinetic energy operator: ");
+    add_transition("LLIT2", &GlobalSpecification::transitions_do_llit2, &GlobalSpecification::transitions_llit2, llit2_specs, "Local-Lorentz Invariance T2 operator: ");
+    add_transition("NMS", &GlobalSpecification::transitions_do_nms, &GlobalSpecification::transitions_nms, nms_specs, "Nuclear mass-shift (NMS) operator: ");
 
     // Autoionization
     add_delegates_for(global_specifications_mappings, &GlobalSpecification::ic, "IC/", ic_specs, "Internal Conversion (IC):");
-    add_delegates_for(global_specifications_mappings, &GlobalSpecification::residual_coulomb, "Transitions/ResidualCoulomb/", residual_coulomb_specs, "ResidualCoulomb:");
+    add_transition("ResidualCoulomb", &GlobalSpecification::transitions_do_residual_coulomb,
+                   &GlobalSpecification::residual_coulomb, residual_coulomb_specs, "ResidualCoulomb:");
 
     // Deprecated keywords: registered at the top level (empty prefix) so the parser accepts them,
     // then rejected in validateAndNormaliseSpecification() with a pointer to the replacement.
@@ -556,6 +547,10 @@ P::hopefully<void> GlobalSpecification::PrintSpecification()
     for (const auto& spec: specs) {
         std::string section;
         std::string_view key(spec.key);
+
+        // Aliases are accepted on input, but print each setting once under Transitions.
+        if (key.substr(0, 10) == "Operators/" || key.substr(0, 15) == "MatrixElements/")
+            continue;
 
         if (auto j = key.find(secsep); j!=npos) {
             section = key.substr(0, j);

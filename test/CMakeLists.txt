@@ -32,6 +32,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
                    MassShiftDecorator.test.cpp
                    MathConstant.test.cpp
                    RadiativePotential.test.cpp
+                   Specification.test.cpp
                    ambit.test.cpp
                    CACHE INTERNAL "")
 
