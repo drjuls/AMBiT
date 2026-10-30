@@ -2191,10 +2191,15 @@ Adds a $\kappa$-dependent prefactor to the (Br\"{u}ckner) sigma potential so $\S
 
 \section{Transitions}
 
-This set of options controls transition calculations for different operators are specified in separate 
-subsections, e.g. \texttt{Transitions/E1/--reduced-elements} or 
+This set of options controls transition calculations. Use \texttt{Transitions}, \texttt{Operators},
+or \texttt{MatrixElements} as the section name; each spelling accepts the same operator subsections
+and options. For example, \texttt{[Operators/E1]} and \texttt{[MatrixElements/E1]} are equivalent to
+\texttt{[Transitions/E1]}. Operators are specified in separate subsections, e.g.
+\texttt{Transitions/E1/--reduced-elements} or
 \texttt{Transitions/M2/RPA/BSpline/N}. Each subsection accepts the same set 
 of possible arguments, but the arguments need not be the same for each requested operator. 
+Options can also be placed directly under a root section, such as \texttt{[Operators]} with
+\texttt{M1/MatrixElements = '1e:0->1e:1'}. Any option for an operator enables that operator.
 
 Transitions for the following operators are supported by \ambit:
 

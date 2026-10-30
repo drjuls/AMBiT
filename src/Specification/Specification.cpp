@@ -17,6 +17,9 @@ namespace P = parapara;
 namespace Ambit
 {
 
+// Accepted names for the transition operator section in input files.
+constexpr std::array transition_sections = {"Transitions", "Operators", "MatrixElements"};
+
 // Use a custom line-by-line ini importer to handle relative section headings
 template <typename Record>
 P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Record>& specs, std::istream& in);
@@ -482,8 +485,7 @@ void GlobalSpecification::MakeGlobalSpecificationsMappings()
 
     // All section names map to the same operator settings. Keep Transitions first as
     // the canonical spelling used by existing input files and printed specifications.
-    constexpr std::array transition_sections = {"Transitions", "Operators", "MatrixElements"};
-    auto add_transition = [this, &transition_sections](const char* name, bool GlobalSpecification::* enabled,
+    auto add_transition = [this](const char* name, bool GlobalSpecification::* enabled,
                                                         auto member, const auto& specs, const char* description) {
         for (const char* section : transition_sections) {
             std::string path = std::string(section) + "/" + name;
@@ -929,6 +931,27 @@ P::hopefully<void> custom_import_ini(Record& rec, const P::specification_map<Rec
 
         if (h.value() == P::ini_record_kind::eof)
             break;
+
+        // A key such as M1/Frequency in [Transitions] selects M1 just as
+        // [Transitions/M1] does. Only successful option reads can enable it.
+        if (h.value() == P::ini_record_kind::key || h.value() == P::ini_record_kind::key_value) {
+            const std::string section = specs.canonicalize(importer.section());
+            const bool transition_section = std::any_of(transition_sections.begin(), transition_sections.end(),
+                [&specs, &section](const char* name) { return section == specs.canonicalize(name); });
+            if (transition_section) {
+                // Create effective operator key and insert into the record.
+                const std::string_view key = importer.base_key();
+                if (const auto slash = key.find('/'); slash != npos) {
+                    const std::string operator_key = std::string(importer.section()) + "/" + std::string(key.substr(0, slash));
+                    if (const auto* operator_spec = specs.get_if(operator_key);
+                        operator_spec && operator_spec->field_type == typeid(bool)) {
+                        auto enabled = operator_spec->assign(rec, true);
+                        if (!enabled)
+                            return P::unexpected(enabled.error());
+                    }
+                }
+            }
+        }
 
         if (h.value() != P::ini_record_kind::section)
         {   // Print key and value

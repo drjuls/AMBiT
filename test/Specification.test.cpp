@@ -49,16 +49,18 @@ TEST(SpecificationTester, TransitionSectionAliasesShareSettings)
     EXPECT_DOUBLE_EQ(specification.transitions_m1.scale, 2.0);
 }
 
-TEST(SpecificationTester, TransitionSectionAliasesShareSettings)
+TEST(SpecificationTester, TransitionSectionRootAliases)
 {
     GlobalSpecification specification;
     const std::string input =
         "[Transitions]\n"
         "M1/Frequency = 0.25\n"
-        "[Operators/M1]\n"
-        "AllBelow = -1.0\n"
+        "M1/AllBelow = -1.0\n"
         "[MatrixElements]\n"
-        "M1/Scale = 2.0\n";
+        "M1/Scale = 2.0\n"
+        "[operators]\n"
+        "HFS1/gOnI = 1.5\n"
+        "E1/RPA/BSpline/N = 42\n";
 
     ASSERT_TRUE(importSpecificationINIString(&specification, input).empty());
     EXPECT_TRUE(specification.transitions_do_m1);
@@ -66,4 +68,8 @@ TEST(SpecificationTester, TransitionSectionAliasesShareSettings)
     ASSERT_TRUE(specification.transitions_m1.all_below.has_value());
     EXPECT_DOUBLE_EQ(*specification.transitions_m1.all_below, -1.0);
     EXPECT_DOUBLE_EQ(specification.transitions_m1.scale, 2.0);
+    EXPECT_TRUE(specification.transitions_do_hfs1);
+    EXPECT_DOUBLE_EQ(specification.transitions_hfs1.g_on_i, 1.5);
+    EXPECT_TRUE(specification.transitions_do_e1);
+    EXPECT_EQ(specification.transitions_e1.rpa_bspline_n, 42);
 }
